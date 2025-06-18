@@ -1,15 +1,16 @@
 BEGIN:VCARD
-VERSION:4.0
-FN:吳勝繙
-N:吳;勝繙;;;
-ORG:數位發展部
-TITLE:科長
+VERSION:3.0
+PRODID:-//Apple Inc.//iPhone OS 16.5//EN
+FN;CHARSET=UTF-8:吳勝繙
+N;CHARSET=UTF-8:吳;勝繙;;;
+ORG;CHARSET=UTF-8:數位發展部
+TITLE;CHARSET=UTF-8:科長
 EMAIL;TYPE=work:iim0663418@moda.gov.tw
 TEL;TYPE=work,voice:+886-2-2380-0411
 URL;TYPE=work:https://github.com/iim0663418
 URL;TYPE=work:https://www.linkedin.com/in/%E5%90%B3-%E5%8B%9D%E7%B9%99-87a45a206/
-ADR;TYPE=work:;;台北市中正區延平南路143號;;;;Taiwan
-PHOTO;TYPE=PNG:https://yourusername.github.io/repository-name/assets/photo.png
-NOTE:歡迎透過 GitHub 或 LinkedIn 與我聯繫，期待與您的合作交流！
+ADR;TYPE=work;CHARSET=UTF-8:;;台北市中正區延平南路143號;;;;Taiwan
+PHOTO;TYPE=JPEG:https://yourusername.github.io/repository-name/assets/photo.jpg
+NOTE;CHARSET=UTF-8:歡迎透過 GitHub 或 LinkedIn 與我聯繫，期待與您的合作交流！
 REV:20250618T000000Z
-END:VCARD
+END:VCARD

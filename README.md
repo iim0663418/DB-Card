@@ -21,6 +21,7 @@
 │   └── COPYRIGHT.txt       # 版權聲明文件
 ├── NFC-GUIDE.md            # NFC 設定使用指南
 ├── PHOTO-GUIDE.md          # 大頭貼優化指南
+├── VCARD-GUIDE.md          # vCard 編碼相容性指南
 └── README.md               # 專案說明文件
 ```
 
@@ -72,6 +73,7 @@
 ## ⚠️ 重要提醒
 
 - **URL 格式**：NFC 卡片寫入時必須使用完整格式：`https://yourusername.github.io/project/`
+- **iOS 中文相容**：已優化 vCard 檔案以解決 iOS 中文亂碼問題，參考 [VCARD-GUIDE.md](VCARD-GUIDE.md)
 - **測試驗證**：每次部署或修改後，請重新測試 NFC 和 QR 碼功能
 - **瀏覽器相容**：確保在不同裝置上都能正確觸發瀏覽器開啟
 

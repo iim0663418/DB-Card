@@ -1,4 +1,4 @@
-# GitHub-based 數位名片系統
+# GitHub-based 數位名片
 
 一個可部署於 GitHub Pages 的網頁名片系統，支援 NFC 和 QR 碼快速開啟，並自動觸發 .vcf 聯絡人下載。
 

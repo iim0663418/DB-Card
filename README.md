@@ -14,7 +14,7 @@
 
 ```
 ├── index.html              # 主網頁入口
-├── wu-shengfan.vcf         # vCard 聯絡人檔案
+├── contact.vcf             # vCard 聯絡人檔案 (需自訂)
 ├── assets/
 │   ├── photo.jpg           # 個人頭像 (已優化)
 │   ├── moda-logo.svg       # MODA 官方標誌
@@ -65,7 +65,7 @@
 
 1. **更換頭像**：參考 [PHOTO-GUIDE.md](PHOTO-GUIDE.md) 優化您的照片後替換 `assets/photo.jpg`
 2. **修改個人資訊**：編輯 `index.html` 中的姓名、職稱、聯絡方式
-3. **更新聯絡人檔案**：修改 `wu-shengfan.vcf` 中的詳細資訊
+3. **更新聯絡人檔案**：修改 `contact.vcf` 中的詳細資訊
 4. **設定 NFC 卡片**：使用 [NFC 產生器](nfc-generator.html) 產生正確的寫入內容
 5. **調整配色**：如需要可修改 CSS 中的色彩方案
 

@@ -16,10 +16,11 @@
 ├── index.html              # 主網頁入口
 ├── wu-shengfan.vcf         # vCard 聯絡人檔案
 ├── assets/
-│   ├── photo.png           # 個人頭像
+│   ├── photo.jpg           # 個人頭像 (已優化)
 │   ├── moda-logo.svg       # MODA 官方標誌
 │   └── COPYRIGHT.txt       # 版權聲明文件
 ├── NFC-GUIDE.md            # NFC 設定使用指南
+├── PHOTO-GUIDE.md          # 大頭貼優化指南
 └── README.md               # 專案說明文件
 ```
 
@@ -55,9 +56,10 @@
 
 ## 🔧 自訂設定
 
-1. 替換 `assets/photo.png` 為您的頭像
-2. 修改 `index.html` 中的個人資訊
-3. 更新 `.vcf` 檔案中的聯絡資訊
+1. **更換頭像**：參考 [PHOTO-GUIDE.md](PHOTO-GUIDE.md) 優化您的照片後替換 `assets/photo.jpg`
+2. **修改個人資訊**：編輯 `index.html` 中的姓名、職稱、聯絡方式
+3. **更新聯絡人檔案**：修改 `wu-shengfan.vcf` 中的詳細資訊
+4. **調整配色**：如需要可修改 CSS 中的色彩方案
 
 ## 📧 聯絡資訊
 

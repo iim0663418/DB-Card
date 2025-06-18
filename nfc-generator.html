@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFC 內容產生器 - 數位名片工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(90deg, #6b7280 0%, #4b5563 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #6b7280;
+            box-shadow: 0 0 0 3px rgba(107,114,128,0.1);
+        }
+
+        .generate-btn {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(107,114,128,0.4);
+        }
+
+        .result-section {
+            display: none;
+            background: #f9fafb;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+
+        .result-section.show {
+            display: block;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-group {
+            margin-bottom: 25px;
+        }
+
+        .result-group h3 {
+            color: #374151;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .result-box {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            word-break: break-all;
+            position: relative;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: #4b5563;
+        }
+
+        .copy-btn.copied {
+            background: #10b981;
+        }
+
+        .info-box {
+            background: #dbeafe;
+            border: 1px solid #93c5fd;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 25px;
+        }
+
+        .info-box h4 {
+            color: #1e40af;
+            margin-bottom: 10px;
+        }
+
+        .info-box ul {
+            color: #1e40af;
+            padding-left: 20px;
+        }
+
+        .info-box li {
+            margin-bottom: 5px;
+        }
+
+        .nav-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #6b7280;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: #4b5563;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .main-content {
+                padding: 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏷️ NFC 內容產生器</h1>
+            <p>輸入您的網址，自動產生 NFC 卡片寫入內容</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="form-group">
+                <label for="url-input">GitHub Pages 網址</label>
+                <input type="url" id="url-input" placeholder="https://yourusername.github.io/repository-name/" value="">
+            </div>
+            
+            <button class="generate-btn" onclick="generateNFCContent()">
+                🚀 產生 NFC 內容
+            </button>
+            
+            <div class="result-section" id="result-section">
+                <div class="result-group">
+                    <h3>📱 App 寫入內容 (推薦)</h3>
+                    <div class="result-box">
+                        <button class="copy-btn" onclick="copyToClipboard('app-content')">複製</button>
+                        <div id="app-content"></div>
+                    </div>
+                    <small style="color: #6b7280;">適用於 NFC Tools、TagWriter 等 App 的 URL 欄位</small>
+                </div>
+                
+                <div class="result-group">
+                    <h3>🔧 NDEF 記錄格式 (進階)</h3>
+                    <div class="result-box">
+                        <button class="copy-btn" onclick="copyToClipboard('ndef-content')">複製</button>
+                        <div id="ndef-content"></div>
+                    </div>
+                    <small style="color: #6b7280;">NDEF URL 記錄的 16 進位格式</small>
+                </div>
+                
+                <div class="result-group">
+                    <h3>📊 容量資訊</h3>
+                    <div class="result-box">
+                        <div id="capacity-info"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="info-box">
+                <h4>💡 使用說明</h4>
+                <ul>
+                    <li><strong>App 寫入內容</strong>：直接複製到 NFC Tools 或 TagWriter 的 URL 欄位</li>
+                    <li><strong>NDEF 格式</strong>：適用於支援原始 NDEF 記錄的進階工具</li>
+                    <li><strong>建議晶片</strong>：NTAG213 (180 bytes) 或 NTAG215 (924 bytes)</li>
+                    <li><strong>相容性</strong>：支援 Android 和 iOS (iPhone 7+) 系統</li>
+                </ul>
+            </div>
+            
+            <a href="index.html" class="nav-link">← 返回數位名片</a>
+        </div>
+    </div>
+
+    <script>
+        // 頁面載入時自動填入當前域名的示例網址
+        window.addEventListener('load', function() {
+            const urlInput = document.getElementById('url-input');
+            const currentDomain = window.location.hostname;
+            if (currentDomain.includes('github.io')) {
+                urlInput.value = window.location.origin + '/';
+            } else {
+                urlInput.value = 'https://yourusername.github.io/NFC-Digital-Business-Card-Project/';
+            }
+        });
+
+        function generateNFCContent() {
+            const url = document.getElementById('url-input').value.trim();
+            
+            if (!url) {
+                alert('請輸入網址！');
+                return;
+            }
+            
+            if (!isValidUrl(url)) {
+                alert('請輸入有效的網址格式！');
+                return;
+            }
+
+            // 產生 App 寫入內容
+            const appContent = url;
+            document.getElementById('app-content').textContent = appContent;
+
+            // 產生 NDEF 記錄格式
+            const ndefContent = generateNDEFRecord(url);
+            document.getElementById('ndef-content').textContent = ndefContent;
+
+            // 計算容量資訊
+            const capacityInfo = generateCapacityInfo(url, ndefContent);
+            document.getElementById('capacity-info').innerHTML = capacityInfo;
+
+            // 顯示結果區域
+            document.getElementById('result-section').classList.add('show');
+            
+            // 滾動到結果區域
+            document.getElementById('result-section').scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start' 
+            });
+        }
+
+        function generateNDEFRecord(url) {
+            // 移除協議前綴以節省空間
+            let processedUrl = url;
+            if (url.startsWith('https://www.')) {
+                processedUrl = url.substring(12); // 移除 "https://www."
+                return `D1 01 ${(processedUrl.length + 1).toString(16).padStart(2, '0').toUpperCase()} 55 01 ${stringToHex(processedUrl)}`;
+            } else if (url.startsWith('http://www.')) {
+                processedUrl = url.substring(11); // 移除 "http://www."
+                return `D1 01 ${(processedUrl.length + 1).toString(16).padStart(2, '0').toUpperCase()} 55 00 ${stringToHex(processedUrl)}`;
+            } else if (url.startsWith('https://')) {
+                processedUrl = url.substring(8); // 移除 "https://"
+                return `D1 01 ${(processedUrl.length + 1).toString(16).padStart(2, '0').toUpperCase()} 55 02 ${stringToHex(processedUrl)}`;
+            } else if (url.startsWith('http://')) {
+                processedUrl = url.substring(7); // 移除 "http://"
+                return `D1 01 ${(processedUrl.length + 1).toString(16).padStart(2, '0').toUpperCase()} 55 03 ${stringToHex(processedUrl)}`;
+            } else {
+                // 完整 URL
+                return `D1 01 ${(url.length + 1).toString(16).padStart(2, '0').toUpperCase()} 55 00 ${stringToHex(url)}`;
+            }
+        }
+
+        function stringToHex(str) {
+            return str.split('').map(char => 
+                char.charCodeAt(0).toString(16).padStart(2, '0').toUpperCase()
+            ).join(' ');
+        }
+
+        function generateCapacityInfo(url, ndefHex) {
+            const urlBytes = new Blob([url]).size;
+            const ndefBytes = ndefHex.split(' ').length;
+            const overhead = 14; // NDEF 標頭開銷
+            const totalBytes = ndefBytes + overhead;
+
+            let chipRecommendation = '';
+            let warningMsg = '';
+            
+            if (totalBytes <= 96) {
+                chipRecommendation = 'NTAG213 (180 bytes) ✅';
+            } else if (totalBytes <= 180) {
+                chipRecommendation = 'NTAG213 (180 bytes) ✅';
+            } else if (totalBytes <= 924) {
+                chipRecommendation = 'NTAG215 (924 bytes) ⚠️';
+                warningMsg = '<br><span style="color: #f59e0b;">建議使用較大容量的晶片</span>';
+            } else {
+                chipRecommendation = 'NTAG216 (924 bytes) ❌';
+                warningMsg = '<br><span style="color: #ef4444;">URL 過長，建議縮短網址</span>';
+            }
+
+            return `
+                <strong>URL 長度：</strong>${urlBytes} bytes<br>
+                <strong>NDEF 記錄：</strong>${ndefBytes} bytes<br>
+                <strong>總需求：</strong>${totalBytes} bytes<br>
+                <strong>建議晶片：</strong>${chipRecommendation}${warningMsg}
+            `;
+        }
+
+        function isValidUrl(string) {
+            try {
+                new URL(string);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                const button = element.parentNode.querySelector('.copy-btn');
+                const originalText = button.textContent;
+                button.textContent = '已複製！';
+                button.classList.add('copied');
+                
+                setTimeout(function() {
+                    button.textContent = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(function(err) {
+                // 降級處理：使用 execCommand
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                const button = element.parentNode.querySelector('.copy-btn');
+                const originalText = button.textContent;
+                button.textContent = '已複製！';
+                button.classList.add('copied');
+                
+                setTimeout(function() {
+                    button.textContent = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

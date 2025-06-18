@@ -374,6 +374,7 @@
             <a href="#" id="add-contact-btn" class="download-btn">
                 📱 加入聯絡人
             </a>
+            <p id="contact-helper-text" style="font-size: 0.9em; color: #4b5563; margin-top: 15px;"></p>
             
             <div class="qr-section">
                 <div class="qr-code" id="qrcode">
@@ -449,28 +450,36 @@
 
     <script>
         window.addEventListener('load', function() {
-            // Find the link by its new ID
+            // 找到相關的 HTML 元素
             const contactLink = document.getElementById('add-contact-btn');
+            const helperText = document.getElementById('contact-helper-text');
+            let messageShown = false; // 用於確保訊息只顯示一次
 
-            // Fetch the content of your .vcf file
+            // 抓取 .vcf 檔案內容並設定連結
             fetch('contact.vcf')
                 .then(response => response.text())
                 .then(vcfText => {
-                    // Encode the VCF text and create a data URI
                     const vcfData = encodeURIComponent(vcfText);
-                    // Set the href to the data URI, specifying the correct MIME type
                     contactLink.href = `data:text/vcard;charset=utf-8,${vcfData}`;
-
-                    // As a fallback for desktop or older devices, also set the download attribute
+                    
+                    // 動態獲取姓名作為檔名
                     const nameElement = document.querySelector('.name');
                     const fileName = nameElement ? `${nameElement.textContent.trim()}.vcf` : 'contact.vcf';
                     contactLink.setAttribute('download', fileName);
                 })
                 .catch(err => {
                     console.error('Failed to fetch contact.vcf:', err);
-                    // If fetching fails, fall back to a direct link
                     contactLink.href = 'contact.vcf';
                 });
+
+            // 監聽按鈕點擊事件
+            contactLink.addEventListener('click', function() {
+                // 如果訊息尚未顯示，則顯示它
+                if (!messageShown) {
+                    helperText.innerHTML = '下載後，請點擊<b>「開啟」</b>或於<b>通知欄</b>中找到檔案，即可完成新增。';
+                    messageShown = true;
+                }
+            });
         });
     </script>
 </body>

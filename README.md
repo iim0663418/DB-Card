@@ -52,7 +52,13 @@
 3. 輸入您的 GitHub Pages 網址
 4. 將 NFC 卡片靠近手機完成寫入
 
-詳細設定步驟請參考 [NFC-GUIDE.md](NFC-GUIDE.md)\n\n### 🏷️ NFC 內容產生工具\n使用內建的 [NFC 產生器](nfc-generator.html) 可以：\n- 自動產生標準的 NFC 寫入內容\n- 提供 NDEF 記錄格式\n- 計算容量需求與晶片建議\n- 一鍵複製到剪貼簿
+詳細設定步驟請參考 [NFC-GUIDE.md](NFC-GUIDE.md)
+### 🏷️ NFC 內容產生工具
+使用內建的 [NFC 產生器](nfc-generator.html) 可以：
+- 自動產生標準的 NFC 寫入內容
+- 提供 NDEF 記錄格式
+- 計算容量需求與晶片建議
+- 一鍵複製到剪貼簿
 
 ## 🔧 自訂設定
 

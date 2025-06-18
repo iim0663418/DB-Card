@@ -371,7 +371,7 @@
         </div>
         
         <div class="action-section">
-            <a href="contact.vcf" class="download-btn">
+            <a href="#" id="add-contact-btn" class="download-btn">
                 📱 加入聯絡人
             </a>
             
@@ -445,6 +445,33 @@
 
         // 頁面載入後生成 QR 碼
         window.addEventListener('load', generateQRCode);
+    </script>
+
+    <script>
+        window.addEventListener('load', function() {
+            // Find the link by its new ID
+            const contactLink = document.getElementById('add-contact-btn');
+
+            // Fetch the content of your .vcf file
+            fetch('contact.vcf')
+                .then(response => response.text())
+                .then(vcfText => {
+                    // Encode the VCF text and create a data URI
+                    const vcfData = encodeURIComponent(vcfText);
+                    // Set the href to the data URI, specifying the correct MIME type
+                    contactLink.href = `data:text/vcard;charset=utf-8,${vcfData}`;
+
+                    // As a fallback for desktop or older devices, also set the download attribute
+                    const nameElement = document.querySelector('.name');
+                    const fileName = nameElement ? `${nameElement.textContent.trim()}.vcf` : 'contact.vcf';
+                    contactLink.setAttribute('download', fileName);
+                })
+                .catch(err => {
+                    console.error('Failed to fetch contact.vcf:', err);
+                    // If fetching fails, fall back to a direct link
+                    contactLink.href = 'contact.vcf';
+                });
+        });
     </script>
 </body>
 </html>

@@ -48,24 +48,32 @@
 
 ### 快速設定
 1. 下載 NFC Tools App (Android/iOS)
-2. 選擇「寫入」→「URL」
-3. 輸入您的 GitHub Pages 網址
+2. 選擇「新增記錄」→「URL/URI」
+3. **重要**: 輸入完整網址，必須包含 `https://`
 4. 將 NFC 卡片靠近手機完成寫入
+5. 測試確認能正確開啟瀏覽器
 
 詳細設定步驟請參考 [NFC-GUIDE.md](NFC-GUIDE.md)
 ### 🏷️ NFC 內容產生工具
 使用內建的 [NFC 產生器](nfc-generator.html) 可以：
-- 自動產生標準的 NFC 寫入內容
-- 提供 NDEF 記錄格式
-- 計算容量需求與晶片建議
-- 一鍵複製到剪貼簿
+- **自動產生正確格式**: 自動添加 `https://` 協議
+- **支援多種 App**: NFC Tools 和 TagWriter 專用格式
+- **容量分析**: 計算需求與晶片建議
+- **一鍵複製**: 直接複製到 NFC App 使用
 
 ## 🔧 自訂設定
 
 1. **更換頭像**：參考 [PHOTO-GUIDE.md](PHOTO-GUIDE.md) 優化您的照片後替換 `assets/photo.jpg`
 2. **修改個人資訊**：編輯 `index.html` 中的姓名、職稱、聯絡方式
 3. **更新聯絡人檔案**：修改 `wu-shengfan.vcf` 中的詳細資訊
-4. **調整配色**：如需要可修改 CSS 中的色彩方案
+4. **設定 NFC 卡片**：使用 [NFC 產生器](nfc-generator.html) 產生正確的寫入內容
+5. **調整配色**：如需要可修改 CSS 中的色彩方案
+
+## ⚠️ 重要提醒
+
+- **URL 格式**：NFC 卡片寫入時必須使用完整格式：`https://yourusername.github.io/project/`
+- **測試驗證**：每次部署或修改後，請重新測試 NFC 和 QR 碼功能
+- **瀏覽器相容**：確保在不同裝置上都能正確觸發瀏覽器開啟
 
 ## 📧 聯絡資訊
 

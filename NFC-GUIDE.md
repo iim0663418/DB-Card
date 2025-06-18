@@ -35,17 +35,25 @@ URI 內容: yourusername.github.io/NFC-Digital-Business-Card-Project/
 
 ### 方法一：使用 NFC Tools App
 1. 下載「NFC Tools」App (免費)
-2. 開啟 App，選擇「寫入」
-3. 選擇「新增記錄」→「URL/URI」
-4. 輸入完整網址：`https://yourusername.github.io/NFC-Digital-Business-Card-Project/`
-5. 將 NFC 卡片靠近手機背面
-6. 點擊「寫入」完成
+2. 開啟 App，選擇「寫入」(Write)
+3. 選擇「新增記錄」(Add a record) → 「URL/URI」
+4. **重要**：輸入完整網址，必須包含 `https://` 協議
+   ```
+   https://yourusername.github.io/NFC-Digital-Business-Card-Project/
+   ```
+5. 將 NFC 卡片靠近手機背面中央
+6. 點擊「寫入」(Write) 完成
+7. **測試**：用另一支手機測試讀取，確認能開啟瀏覽器
 
 ### 方法二：使用 TagWriter App
 1. 下載「TagWriter by NXP」App
 2. 選擇「Write tags」→「URL」
-3. 輸入網址並選擇「Write」
-4. 將卡片靠近手機完成寫入
+3. **重要**：輸入完整網址，必須包含 `https://` 協議
+   ```
+   https://yourusername.github.io/NFC-Digital-Business-Card-Project/
+   ```
+4. 選擇「Write」，將卡片靠近手機背面
+5. **測試**：寫入完成後立即測試讀取功能
 
 ## 🍎 iOS 寫入步驟
 
@@ -53,9 +61,13 @@ URI 內容: yourusername.github.io/NFC-Digital-Business-Card-Project/
 1. 從 App Store 下載「NFC Tools」
 2. 開啟 App，點擊「Write」
 3. 選擇「Add a record」→「URL」
-4. 輸入網址：`https://yourusername.github.io/NFC-Digital-Business-Card-Project/`
-5. 點擊「Write」，將卡片靠近 iPhone 頂部
-6. 確認寫入成功
+4. **重要**：輸入完整網址，必須包含 `https://` 協議
+   ```
+   https://yourusername.github.io/NFC-Digital-Business-Card-Project/
+   ```
+5. 點擊「Write」，將卡片靠近 iPhone 頂部邊緣
+6. 確認寫入成功訊息
+7. **測試**：立即測試 NFC 讀取功能
 
 ### 方法二：使用 Shortcuts App (iOS 13+)
 1. 開啟「捷徑」App
@@ -91,25 +103,40 @@ URI 內容: yourusername.github.io/NFC-Digital-Business-Card-Project/
 
 ## 🔍 故障排除
 
-### 常見問題
+### 瀏覽器無法開啟
+- **最常見原因**: URL 格式不完整，缺少 `https://` 或 `http://` 協議
+- **解決方法**: 使用 [NFC 內容產生器](nfc-generator.html) 產生正確格式
+- **檢查方式**: 確認 URL 以 `https://` 開頭
+
+### NFC 讀取問題
 - **無法讀取**: 檢查 NFC 功能是否開啟
 - **讀取距離短**: 正常現象，需靠近 1-4cm
 - **偶爾失效**: 卡片可能受磁場干擾，遠離金屬物品
-- **iOS 無反應**: 確認 iPhone 未在使用其他 App
+- **iOS 無反應**: 確認 iPhone 未在使用其他 App，螢幕需要亮起
 
 ### 寫入失敗處理
-- 確認卡片未被鎖定
-- 檢查 URL 格式正確性
-- 嘗試格式化後重新寫入
-- 更換 NFC 寫入 App
+- **格式檢查**: 使用 NFC 內容產生器驗證 URL 格式
+- **卡片狀態**: 確認卡片未被鎖定或損壞
+- **App 更新**: 嘗試更新 NFC Tools 或 TagWriter 到最新版
+- **重新格式化**: 先清除卡片內容，再重新寫入
+- **更換 App**: 如一個 App 失敗，嘗試另一個 App
 
 ## 📊 容量使用參考
 
-### URL 長度計算
-- 基本 URL: ~50 bytes
-- GitHub Pages URL: ~60 bytes  
-- 建議保留空間: 20 bytes
-- 總需求: ~80 bytes (NTAG213 足夠)
+### URL 格式要求
+- **必須包含協議**: `https://` 或 `http://` (7-8 bytes)
+- **基本 URL**: ~50 bytes
+- **GitHub Pages URL**: ~60 bytes  
+- **建議保留空間**: 20 bytes
+- **總需求**: ~80 bytes (NTAG213 足夠)
+
+### 正確 URL 範例
+```
+✅ 正確: https://username.github.io/project/
+✅ 正確: http://example.com/page
+❌ 錯誤: username.github.io/project (缺少協議)
+❌ 錯誤: www.example.com (缺少協議)
+```
 
 ### 進階功能 (需更大容量)
 - 多個聯絡方式: ~200 bytes

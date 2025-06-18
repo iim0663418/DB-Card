@@ -233,12 +233,21 @@
             
             <div class="result-section" id="result-section">
                 <div class="result-group">
-                    <h3>📱 App 寫入內容 (推薦)</h3>
+                    <h3>📱 NFC Tools App 寫入設定</h3>
                     <div class="result-box">
                         <button class="copy-btn" onclick="copyToClipboard('app-content')">複製</button>
                         <div id="app-content"></div>
                     </div>
-                    <small style="color: #6b7280;">適用於 NFC Tools、TagWriter 等 App 的 URL 欄位</small>
+                    <small style="color: #6b7280;">選擇「新增記錄」→「URL/URI」→ 貼上上方內容</small>
+                </div>
+                
+                <div class="result-group">
+                    <h3>🏷️ TagWriter App 寫入設定</h3>
+                    <div class="result-box">
+                        <button class="copy-btn" onclick="copyToClipboard('tagwriter-content')">複製</button>
+                        <div id="tagwriter-content"></div>
+                    </div>
+                    <small style="color: #6b7280;">選擇「Write tags」→「URL」→ 貼上上方內容</small>
                 </div>
                 
                 <div class="result-group">
@@ -261,9 +270,10 @@
             <div class="info-box">
                 <h4>💡 使用說明</h4>
                 <ul>
-                    <li><strong>App 寫入內容</strong>：直接複製到 NFC Tools 或 TagWriter 的 URL 欄位</li>
-                    <li><strong>NDEF 格式</strong>：適用於支援原始 NDEF 記錄的進階工具</li>
-                    <li><strong>建議晶片</strong>：NTAG213 (180 bytes) 或 NTAG215 (924 bytes)</li>
+                    <li><strong>NFC Tools</strong>：選擇「新增記錄」→「URL/URI」→ 貼上完整網址</li>
+                    <li><strong>TagWriter</strong>：選擇「Write tags」→「URL」→ 貼上完整網址</li>
+                    <li><strong>重要</strong>：務必包含 https:// 或 http:// 協議前綴</li>
+                    <li><strong>測試</strong>：寫入後用手機測試是否能正確開啟瀏覽器</li>
                     <li><strong>相容性</strong>：支援 Android 和 iOS (iPhone 7+) 系統</li>
                 </ul>
             </div>
@@ -278,7 +288,8 @@
             const urlInput = document.getElementById('url-input');
             const currentDomain = window.location.hostname;
             if (currentDomain.includes('github.io')) {
-                urlInput.value = window.location.origin + '/';
+                // 使用當前完整 URL
+                urlInput.value = window.location.href.replace('/nfc-generator.html', '/');
             } else {
                 urlInput.value = 'https://yourusername.github.io/NFC-Digital-Business-Card-Project/';
             }
@@ -296,17 +307,26 @@
                 alert('請輸入有效的網址格式！');
                 return;
             }
+            
+            // 確保 URL 包含協議
+            let finalUrl = url;
+            if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+                finalUrl = 'https://' + finalUrl;
+            }
 
-            // 產生 App 寫入內容
-            const appContent = url;
+            // 產生 NFC Tools App 寫入內容
+            const appContent = finalUrl;
             document.getElementById('app-content').textContent = appContent;
+            
+            // 產生 TagWriter App 寫入內容 (相同格式)
+            document.getElementById('tagwriter-content').textContent = appContent;
 
             // 產生 NDEF 記錄格式
-            const ndefContent = generateNDEFRecord(url);
+            const ndefContent = generateNDEFRecord(finalUrl);
             document.getElementById('ndef-content').textContent = ndefContent;
 
             // 計算容量資訊
-            const capacityInfo = generateCapacityInfo(url, ndefContent);
+            const capacityInfo = generateCapacityInfo(finalUrl, ndefContent);
             document.getElementById('capacity-info').innerHTML = capacityInfo;
 
             // 顯示結果區域
@@ -377,7 +397,12 @@
 
         function isValidUrl(string) {
             try {
-                new URL(string);
+                // 先嘗試加上 https:// 如果沒有協議
+                let testUrl = string;
+                if (!testUrl.startsWith('http://') && !testUrl.startsWith('https://')) {
+                    testUrl = 'https://' + testUrl;
+                }
+                new URL(testUrl);
                 return true;
             } catch (_) {
                 return false;

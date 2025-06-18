@@ -120,8 +120,57 @@
         .greeting {
             font-size: 1.1em;
             color: #34495e;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             min-height: 50px;
+        }
+
+        .contact-info {
+            background: #f8fafc;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 25px 0;
+            border: 1px solid #e2e8f0;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 0.95em;
+            color: #4a5568;
+        }
+
+        .contact-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .contact-icon {
+            font-size: 1.2em;
+            margin-right: 12px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .contact-text {
+            flex: 1;
+        }
+
+        .contact-link {
+            color: #4a5568;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .contact-link:hover {
+            color: #6b7280;
+        }
+
+        .contact-title {
+            font-size: 1em;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 15px;
+            text-align: center;
         }
 
         .download-btn {
@@ -228,6 +277,30 @@
         
         <div class="greeting" id="greeting">
             歡迎認識我！
+        </div>
+        
+        <div class="contact-info">
+            <div class="contact-title">聯絡資訊</div>
+            <div class="contact-item">
+                <span class="contact-icon">📧</span>
+                <span class="contact-text">
+                    <a href="mailto:iim0663418@moda.gov.tw" class="contact-link">iim0663418@moda.gov.tw</a>
+                </span>
+            </div>
+            <div class="contact-item">
+                <span class="contact-icon">📞</span>
+                <span class="contact-text">
+                    <a href="tel:+886-2-2380-0411" class="contact-link">02-2380-0411</a>
+                </span>
+            </div>
+            <div class="contact-item">
+                <span class="contact-icon">🏢</span>
+                <span class="contact-text">數位發展部</span>
+            </div>
+            <div class="contact-item">
+                <span class="contact-icon">📍</span>
+                <span class="contact-text">台北市中正區延平南路143號</span>
+            </div>
         </div>
         
         <div class="action-section">

@@ -112,6 +112,5 @@ URI 內容: yourusername.github.io/NFC-Digital-Business-Card-Project/
 - 總需求: ~80 bytes (NTAG213 足夠)
 
 ### 進階功能 (需更大容量)
-- WiFi 密碼分享: ~100 bytes
 - 多個聯絡方式: ~200 bytes
 - vCard 直接嵌入: ~300+ bytes

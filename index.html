@@ -278,22 +278,6 @@
             font-weight: 500;
         }
 
-        .social-links {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-        }
-
-        .social-link {
-            color: #7f8c8d;
-            font-size: 1.5em;
-            transition: color 0.3s ease;
-        }
-
-        .social-link:hover {
-            color: #6b7280;
-            transform: translateY(-1px);
-        }
 
         @media (max-width: 480px) {
             .card {
@@ -451,12 +435,6 @@
                     <div class="qr-label">掃描 QR 碼快速開啟</div>
                 </div>
                 
-                <div class="social-links">
-                    <a id="social-email" href="" class="social-link" title="Email">📧</a>
-                    <a id="social-socialmedia" href="" class="social-link" title="社群媒體">📱</a>
-                    <a id="social-github" href="" class="social-link" title="GitHub">💻</a>
-                    <a id="social-line" href="" class="social-link" title="LINE">💬</a>
-                </div>
             </div>
         </div>
     </div>
@@ -610,11 +588,6 @@
             document.getElementById('user-organization').textContent = data.organization;
             document.getElementById('user-address').textContent = data.address;
             
-            // 社交連結
-            document.getElementById('social-email').href = data.socialLinks.email;
-            document.getElementById('social-socialmedia').href = data.socialLinks.socialMedia;
-            document.getElementById('social-github').href = data.socialLinks.github;
-            document.getElementById('social-line').href = data.socialLinks.line;
             
             // 設定問候語
             greetings = data.greetings;
@@ -689,14 +662,30 @@
         function getCardDataFromNFC() {
             // 從 URL 參數中獲取 NFC 傳送的 JSON 資料
             const urlParams = new URLSearchParams(window.location.search);
-            const cardDataParam = urlParams.get('data');
+            let cardDataParam = urlParams.get('data');
+            let isCompactFormat = false;
+            
+            // 檢查是否為精簡格式
+            if (!cardDataParam) {
+                cardDataParam = urlParams.get('c');
+                isCompactFormat = true;
+            }
             
             if (cardDataParam) {
                 try {
                     // 先解 URL 編碼，再解 Base64，最後解析 JSON（支援 UTF-8）
                     const urlDecodedData = decodeURIComponent(cardDataParam);
                     const base64DecodedData = decodeURIComponent(escape(atob(urlDecodedData)));
-                    const cardData = JSON.parse(base64DecodedData);
+                    const rawData = JSON.parse(base64DecodedData);
+                    
+                    let cardData;
+                    if (isCompactFormat) {
+                        // 轉換精簡格式為標準格式
+                        cardData = convertCompactToFull(rawData);
+                    } else {
+                        cardData = rawData;
+                    }
+                    
                     console.log('Received card data from NFC:', cardData);
                     return cardData;
                 } catch (error) {
@@ -720,6 +709,31 @@
             }
             
             return null;
+        }
+
+        // 轉換精簡格式為完整格式
+        function convertCompactToFull(compactData) {
+            return {
+                meta: {
+                    userId: compactData.n ? compactData.n.toLowerCase().replace(/\s+/g, '-') : 'user',
+                    profile: 'work'
+                },
+                data: {
+                    name: compactData.n || '',
+                    title: compactData.t || '',
+                    department: compactData.d || '',
+                    organization: '數位發展部',
+                    email: compactData.e || '',
+                    phone: compactData.p || '',
+                    avatar: compactData.a || '',
+                    address: '台北市中正區延平南路143號', // 固定地址
+                    greetings: compactData.g || ['歡迎認識我！'],
+                    socialLinks: {
+                        email: compactData.e ? `mailto:${compactData.e}` : '',
+                        socialNote: compactData.s || ''
+                    }
+                }
+            };
         }
 
         // 轉換 Google Drive 分享連結為直接圖片連結

@@ -204,14 +204,6 @@
                             <label for="department">部門</label>
                             <input type="text" id="department">
                         </div>
-                        <div class="form-group">
-                            <label for="organization">機構/公司</label>
-                            <input type="text" id="organization">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="address">地址</label>
-                        <input type="text" id="address">
                     </div>
                 </div>
 
@@ -227,19 +219,12 @@
                             <input type="tel" id="phone">
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="socialMedia">社群媒體連結</label>
-                            <input type="url" id="socialMedia" placeholder="https://facebook.com/username">
-                        </div>
-                        <div class="form-group">
-                            <label for="line">LINE 連結</label>
-                            <input type="url" id="line" placeholder="https://line.me/ti/p/your-line-id">
-                        </div>
-                    </div>
                     <div class="form-group">
-                        <label for="github">GitHub 連結</label>
-                        <input type="url" id="github" placeholder="https://github.com/username">
+                        <label for="socialNote">社群連結備註</label>
+                        <textarea id="socialNote" placeholder="Facebook: fb.com/username&#10;LINE: @your-line-id&#10;GitHub: github.com/username" style="min-height: 80px;"></textarea>
+                        <div style="font-size: 0.8em; color: #6b7280; margin-top: 5px;">
+                            💡 將所有社群連結整合在此備註欄位中，節省 NFC 容量
+                        </div>
                     </div>
                 </div>
 
@@ -267,6 +252,7 @@
 
             <div id="output" class="output-section" style="display: none;">
                 <h3>生成的 NFC 連結</h3>
+                <div id="byteInfo" style="margin-bottom: 15px; padding: 10px; border-radius: 8px; font-weight: 500;"></div>
                 <div class="url-output" id="generatedUrl"></div>
                 <button class="btn copy-btn" onclick="copyToClipboard()">📋 複製連結</button>
                 
@@ -277,8 +263,12 @@
                 <div class="note">
                     <strong>使用說明：</strong><br>
                     1. 複製上方生成的連結<br>
-                    2. 使用 NFC 寫入工具將連結寫入 NFC 卡片<br>
-                    3. 用戶觸碰 NFC 卡片即可開啟數位名片
+                    2. 使用 NFC 寫入工具（如 <a href="https://www.wakdev.com/en/apps/nfc-tools-pc-mac.html" target="_blank" style="color: #d97706;">NFC Tools</a>）將連結寫入 NFC 卡片<br>
+                    3. 用戶觸碰 NFC 卡片即可開啟數位名片<br><br>
+                    <strong>💡 優化建議：</strong><br>
+                    • NFC 卡片容量限制：492 bytes<br>
+                    • 精簡格式已針對 NFC 容量優化<br>
+                    • 如超出限制，請減少問候語或社群備註內容
                 </div>
             </div>
         </div>
@@ -294,13 +284,9 @@
         document.getElementById('name').value = '吳勝繙';
         document.getElementById('title').value = '科長';
         document.getElementById('department').value = '資訊處';
-        document.getElementById('organization').value = '數位發展部';
         document.getElementById('email').value = 'iim0663418@moda.gov.tw';
         document.getElementById('phone').value = '02-2380-0411';
-        document.getElementById('address').value = '台北市中正區延平南路143號';
-        document.getElementById('socialMedia').value = 'https://www.facebook.com/profile.php?id=100012345678';
-        document.getElementById('github').value = 'https://github.com/iim0663418';
-        document.getElementById('line').value = 'https://line.me/ti/p/your-line-id';
+        document.getElementById('socialNote').value = 'Facebook: fb.com/iim0663418\nLINE: @iim0663418\nGitHub: github.com/iim0663418';
         document.getElementById('avatar').value = './assets/wu_sheng_fan/photo.jpg';
         document.getElementById('greetings').value = '歡迎認識我！\n很高興認識您 👋\n期待與您合作 🤝';
 
@@ -315,36 +301,42 @@
             const greetingsArray = greetingsText.split('\n').filter(line => line.trim() !== '');
 
             const cardData = {
-                meta: {
-                    userId: document.getElementById('name').value.toLowerCase().replace(/\s+/g, '-'),
-                    profile: "work"
-                },
-                data: {
-                    name: document.getElementById('name').value,
-                    title: document.getElementById('title').value,
-                    department: document.getElementById('department').value,
-                    avatar: document.getElementById('avatar').value,
-                    email: document.getElementById('email').value,
-                    phone: document.getElementById('phone').value,
-                    organization: document.getElementById('organization').value,
-                    address: document.getElementById('address').value,
-                    greetings: greetingsArray,
-                    socialLinks: {
-                        email: `mailto:${document.getElementById('email').value}`,
-                        socialMedia: document.getElementById('socialMedia').value,
-                        github: document.getElementById('github').value,
-                        line: document.getElementById('line').value
-                    }
-                }
+                n: document.getElementById('name').value,
+                t: document.getElementById('title').value,
+                d: document.getElementById('department').value,
+                e: document.getElementById('email').value,
+                p: document.getElementById('phone').value,
+                a: document.getElementById('avatar').value,
+                g: greetingsArray,
+                s: document.getElementById('socialNote').value
             };
 
             // 將 JSON 資料進行 Base64 編碼（支援 UTF-8）
             const jsonString = JSON.stringify(cardData);
             const encodedData = btoa(unescape(encodeURIComponent(jsonString)));
 
-            // 生成完整 URL
+            // 生成完整 URL（使用精簡格式）
             const baseUrl = window.location.origin + window.location.pathname.replace('nfc-generator.html', 'index.html');
-            generatedUrl = `${baseUrl}?data=${encodeURIComponent(encodedData)}`;
+            generatedUrl = `${baseUrl}?c=${encodeURIComponent(encodedData)}`;
+
+            // 計算 URL 位元組大小
+            const urlByteSize = new TextEncoder().encode(generatedUrl).length;
+            const nfcLimit = 492;
+            const byteInfo = document.getElementById('byteInfo');
+            
+            if (urlByteSize <= nfcLimit) {
+                byteInfo.innerHTML = `✅ <strong>URL 大小：${urlByteSize} bytes</strong> (符合 NFC 限制 ${nfcLimit} bytes)`;
+                byteInfo.style.background = '#d1fae5';
+                byteInfo.style.color = '#065f46';
+                byteInfo.style.border = '1px solid #10b981';
+            } else {
+                const overage = urlByteSize - nfcLimit;
+                byteInfo.innerHTML = `❌ <strong>URL 大小：${urlByteSize} bytes</strong> (超出 NFC 限制 ${overage} bytes)<br>
+                                     <small>⚠️ 請減少資料內容以符合 NFC 卡片容量限制</small>`;
+                byteInfo.style.background = '#fee2e2';
+                byteInfo.style.color = '#991b1b';
+                byteInfo.style.border = '1px solid #ef4444';
+            }
 
             // 顯示結果
             document.getElementById('generatedUrl').textContent = generatedUrl;

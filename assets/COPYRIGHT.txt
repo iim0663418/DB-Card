@@ -1,4 +1,4 @@
-MODA Logo Copyright Notice
+{範例}MODA Logo Copyright Notice
 ==========================
 
 File: moda-logo.svg

@@ -1,181 +1,225 @@
-# 多使用者動態數位名片系統
+# NFC 數位名片系統
 
-一個基於 GitHub Pages 的數位名片系統，支援多使用者管理、Token 驗證、NFC 和 QR 碼快速開啟，並動態生成 .vcf 聯絡人檔案。
+一個創新的 NFC 數位名片系統，將個人資料直接儲存在 NFC 卡片中，通過觸碰即可開啟專屬數位名片。
 
 ## 🎯 功能特色
 
-- 🔐 **Token 驗證**：使用無意義 Token 確保訪問有一點小門檻
-- 👥 **多使用者支援**：統一系統管理多位使用者的數位名片
-- 📱 **行動裝置優化**：響應式設計，移動設備滿版顯示
-- 🎨 **動態資料渲染**：JSON 驅動，即時反映資料變更
-- 📇 **智能 vCard 生成**：前端動態組裝，遵循 iOS 相容格式
-- 🖼 **個人化展示**：大頭照、社群連結、職稱資訊與動態個人簡介
-- 🌐 **GitHub Pages 部署**：無需伺服器，直接部署至 GitHub Pages
-- 📱 **跨平台相容**：Android 和 iOS 均可正常使用
+- 🏷️ **NFC 資料自包含**：個人資料直接儲存在 NFC 卡片中，無需伺服器配置
+- 📱 **一觸即用**：觸碰 NFC 卡片立即開啟數位名片，無需額外步驟
+- 🎨 **動態資料渲染**：即時解析 NFC 資料並渲染精美名片介面
+- 📇 **智能 vCard 生成**：動態生成並下載 .vcf 聯絡人檔案
+- 🖼 **個人化展示**：支援大頭照、社群連結、職稱資訊與問候語
+- 🌐 **純前端架構**：無需後端服務，可部署至任何靜態托管平台
+- 📱 **跨平台相容**：Android 和 iOS 設備均完美支援
+- 🔧 **視覺化生成器**：內建 NFC 生成器，輕鬆創建個人數位名片
 
 ## 📦 專案結構
 
 ```
-├── index.html              # 動態名片模板
-├── token_map.json          # Token 對應表
-├── configs/                # 使用者設定檔目錄
-│   ├── wu_sheng_fan.json   # 吳勝繙的設定檔
-│   └── chen_da_ming.json   # 陳大明的設定檔（範例）
+├── index.html              # 數位名片顯示頁面
+├── nfc-generator.html      # NFC 名片生成器
 ├── assets/                 # 資源檔案目錄
-│   ├── wu_sheng_fan/       # 吳勝繙的資源
-│   │   └── photo.jpg       # 個人頭像
-│   ├── chen_da_ming/       # 陳大明的資源
-│   │   └── photo.jpg       # 個人頭像
 │   ├── moda-logo.svg       # MODA 官方標誌
+│   ├── wu_sheng_fan/       # 範例用戶資源
+│   │   └── photo.jpg       # 範例大頭貼
+│   ├── chen_da_ming/       # 範例用戶資源
+│   │   └── photo.jpg       # 範例大頭貼
 │   └── COPYRIGHT.txt       # 版權聲明文件
-├── nfc-generator.html      # NFC 內容產生工具
-├── NFC-GUIDE.md            # NFC 設定使用指南
-├── PHOTO-GUIDE.md          # 大頭貼優化指南
-├── VCARD-GUIDE.md          # vCard 編碼相容性指南
-├── CLAUDE.md               # Claude Code 專案指引
-└── README.md               # 專案說明文件
+├── NFC-GUIDE.md           # NFC 操作說明
+├── VCARD-GUIDE.md         # vCard 格式指南
+├── PHOTO-GUIDE.md         # 照片處理指南
+└── README.md              # 專案說明文件
 ```
 
-## 🚀 部署方式
+## 🚀 快速開始
 
-1. Fork 此專案
-2. 在 GitHub Repository 設定中開啟 GitHub Pages
-3. 選擇 main branch 作為來源
-4. 系統會自動部署到 `https://yourusername.github.io/repository-name/`
+### 1. 創建數位名片
 
-## 🔑 Token 系統
+1. 開啟 `nfc-generator.html`
+2. 填寫個人資料（姓名、職稱、聯絡方式等）
+3. 上傳大頭貼（推薦使用 [Imgur](https://imgur.com) 或本地圖片）
+4. 點擊「生成 NFC 連結」
+5. 複製生成的連結和 QR 碼
 
-### 訪問格式
-```
-https://yourusername.github.io/repository-name/?token=YOUR_TOKEN
-```
+### 2. 寫入 NFC 卡片
 
-### 預設 Token
-- **吳勝繙**: `A7g3K9zPq`
-- **陳大明**: `LpW2xR8vN` (範例用戶)
+1. 下載 NFC 寫入工具（推薦：[NFC Tools](https://www.wakdev.com/en/apps/nfc-tools-pc-mac.html)）
+2. 選擇「URL/URI」記錄類型
+3. 貼上剛複製的完整連結
+4. 將 NFC 卡片放在手機背面並寫入
 
-### 錯誤處理
-- 無 Token 或錯誤 Token：顯示「訪問權限不足」畫面
-- 系統會自動顯示具體錯誤訊息
+### 3. 測試使用
 
-## 👥 多使用者管理
-
-### 新增使用者
-
-1. **建立使用者資源資料夾**：
-   ```bash
-   mkdir assets/new_user_id
-   ```
-
-2. **放置使用者頭像**：
-   ```
-   assets/new_user_id/photo.jpg
-   ```
-
-3. **建立 JSON 設定檔** (`configs/new_user_id.json`)：
-   ```json
-   {
-     "meta": {
-       "userId": "new_user_id",
-       "profile": "work"
-     },
-     "data": {
-       "name": "使用者姓名",
-       "title": "職稱",
-       "department": "部門",
-       "avatar": "assets/new_user_id/photo.jpg",
-       "email": "user@example.com",
-       "phone": "02-1234-5678",
-       "organization": "組織名稱",
-       "address": "地址",
-       "greetings": [
-         "問候語 1",
-         "問候語 2",
-         "問候語 3"
-       ],
-       "socialLinks": {
-         "email": "mailto:user@example.com",
-         "socialMedia": "https://facebook.com/username",
-         "github": "https://github.com/username",
-         "line": "https://line.me/ti/p/your-line-id"
-       }
-     }
-   }
-   ```
-
-4. **更新 Token 對應表** (`token_map.json`)：
-   ```json
-   {
-     "A7g3K9zPq": "configs/wu_sheng_fan.json",
-     "LpW2xR8vN": "configs/chen_da_ming.json",
-     "NEW_TOKEN": "configs/new_user_id.json"
-   }
-   ```
-
-5. **生成新 Token**：建議使用 9 位隨機英數字組合
+1. 用支援 NFC 的手機觸碰卡片
+2. 自動開啟專屬數位名片頁面
+3. 可瀏覽完整資訊並下載 vCard 聯絡人檔案
 
 ## 📱 使用方式
 
-1. **網頁訪問**：使用完整 Token URL 開啟
-2. **NFC 卡片**：將 Token URL 寫入 NFC 卡片，靠近手機即可開啟
-3. **QR 碼掃描**：名片頁面自動生成 QR 碼，包含當前 Token 參數
-4. **加入聯絡人**：點擊「加入聯絡人」按鈕，系統動態生成並下載 .vcf 檔案
+### NFC 觸碰（主要方式）
+- 將 NFC 卡片靠近支援 NFC 的 Android 或 iPhone
+- 手機自動開啟瀏覽器並載入數位名片
+- 支援動態問候語、社群連結和一鍵加入聯絡人
 
-## 🔧 技術特點
+### 直接連結分享
+- 可直接分享生成的連結
+- 格式：`index.html?data=[Base64編碼的個人資料]`
+- 適用於 QR 碼、電子郵件或即時通訊分享
 
-### 前端動態生成 vCard
-- **零 .vcf 檔案**：完全由 JavaScript 動態組裝
-- **iOS 相容格式**：遵循 VCARD-GUIDE.md 的最佳實踐
-- **動態照片 URL**：自動適應部署環境
-- **智能欄位處理**：自動格式化電話號碼、過濾空欄位
+## 🔧 技術架構
 
-### 響應式設計優化
-- **移動設備滿版**：在 480px 以下達到 98% 寬度
-- **漸進式優化**：針對不同螢幕尺寸的細緻調整
-- **觸控友好**：適當的按鈕大小和間距
+### 資料格式
+```json
+{
+  "meta": {
+    "userId": "使用者ID",
+    "profile": "work"
+  },
+  "data": {
+    "name": "姓名",
+    "title": "職稱",
+    "department": "部門",
+    "organization": "機構",
+    "email": "email@example.com",
+    "phone": "電話號碼",
+    "address": "地址",
+    "avatar": "大頭貼URL",
+    "greetings": ["問候語1", "問候語2"],
+    "socialLinks": {
+      "email": "mailto:email@example.com",
+      "socialMedia": "社群媒體連結",
+      "github": "GitHub連結", 
+      "line": "LINE連結"
+    }
+  }
+}
+```
 
-### 資料驅動架構
-- **單一真實來源**：JSON 設定檔是唯一資料來源
-- **兩段式載入**：Token Map → 個人設定檔
-- **完整錯誤處理**：友善的錯誤訊息顯示
+### 資料處理流程
+1. **輸入階段**：使用 NFC 生成器收集個人資料
+2. **編碼階段**：JSON 資料進行 UTF-8 + Base64 + URL 編碼
+3. **傳輸階段**：編碼後的資料嵌入 URL 參數
+4. **解碼階段**：名片頁面自動解碼並驗證資料格式
+5. **渲染階段**：動態生成個人化名片介面和功能
 
-## 📟 NFC 設定指南
+## 📸 大頭貼設定指南
 
-### 支援規格
-- **Android**: NFC Forum Type 2-4, ISO14443 Type A/B
-- **iOS**: NFC Forum Type 2-5, ISO14443 Type A (iPhone 7+)
-- **建議晶片**: NTAG213/215/216
-- **記錄格式**: NDEF (NFC Data Exchange Format)
+### 推薦圖片托管服務
+- **[Imgur](https://imgur.com)**：免費、穩定、支援 HTTPS
+  1. 上傳圖片後右鍵選擇「複製圖片網址」
+  2. 取得格式如：`https://i.imgur.com/XXXXXX.jpg`
 
-### 快速設定
-1. 下載 NFC Tools App (Android/iOS)
-2. 選擇「新增記錄」→「URL/URI」
-3. **重要**: 輸入完整 Token URL：`https://yourusername.github.io/repository-name/?token=YOUR_TOKEN`
-4. 將 NFC 卡片靠近手機完成寫入
-5. 測試確認能正確開啟瀏覽器並顯示對應使用者名片
+- **GitHub Repository**：使用專案內圖片
+  1. 上傳圖片到 `assets` 目錄
+  2. 使用相對路徑：`./assets/your_folder/photo.jpg`
 
-詳細設定步驟請參考 [NFC-GUIDE.md](NFC-GUIDE.md)
+### 圖片規格建議
+- **尺寸**：建議 200x200 至 800x800 像素（正方形）
+- **格式**：JPG、PNG（避免 GIF 動圖）
+- **大小**：建議小於 1MB 以確保快速載入
+- **背景**：純色背景或專業照片背景
 
-### 🏷️ NFC 內容產生工具
-使用內建的 [NFC 產生器](nfc-generator.html) 可以：
-- **自動產生正確格式**: 自動添加 `https://` 協議和 Token 參數
-- **支援多種 App**: NFC Tools 和 TagWriter 專用格式
-- **容量分析**: 計算需求與晶片建議
-- **一鍵複製**: 直接複製到 NFC App 使用
+## 🛠️ 部署方式
 
-## ⚠️ 重要提醒
+### GitHub Pages（推薦）
+1. Fork 此專案到你的 GitHub 帳號
+2. 在 Repository Settings > Pages 中啟用
+3. 選擇 `main` 分支作為來源
+4. 系統自動部署至：`https://yourusername.github.io/NFC-Digital-Business-Card-Project/`
 
-- **Token**：建議亂數
-- **URL 格式**：NFC 卡片寫入時必須包含完整 Token 參數
-- **iOS 中文相容**：系統已自動優化 vCard 格式，確保中文正確顯示
-- **環境適應性**：照片 URL 會自動適應部署環境（GitHub Pages/自定義域名）
-- **測試驗證**：每次新增使用者或修改設定後，請測試對應的 Token URL
-- **JSON 格式**：確保所有 JSON 檔案格式正確，避免語法錯誤
+### 本地開發
+```bash
+# 使用 Python 啟動本地伺服器
+python -m http.server 8000
 
-## 📧 聯絡資訊
+# 或使用 Node.js
+npx http-server
 
-如有問題或建議，歡迎開啟 Issue 或 Pull Request。
+# 或使用 VS Code Live Server 擴展
+```
+
+### 其他靜態托管
+- **Netlify**：拖放檔案夾即可部署
+- **Vercel**：連接 GitHub 自動部署
+- **Cloudflare Pages**：支援自訂網域
+
+## 📝 自訂指南
+
+### 更換組織標誌
+1. 替換 `assets/moda-logo.svg` 為你的組織標誌
+2. 建議使用 SVG 格式以確保清晰度
+3. 調整 `index.html` 中的標誌尺寸設定
+
+### 調整色彩主題
+```css
+/* 在 index.html 中修改這些 CSS 變數 */
+body {
+    background: linear-gradient(135deg, #your-color1, #your-color2);
+}
+
+.card::before {
+    background: linear-gradient(90deg, #your-color1, #your-color2);
+}
+```
+
+### 新增或修改欄位
+1. 在 `nfc-generator.html` 添加表單欄位
+2. 在 `index.html` 的 `renderCard()` 函數中添加顯示邏輯
+3. 更新 vCard 生成器以包含新欄位
+
+## 🔒 隱私與安全
+
+### 資料控制
+- ✅ **完全自主**：個人資料儲存在自己的 NFC 卡片中
+- ✅ **無追蹤**：不收集使用者行為資料
+- ✅ **離線友好**：無需網路即可顯示基本資訊
+- ✅ **開源透明**：所有代碼公開可檢視
+
+### 安全建議
+- 🔐 定期更新 NFC 卡片資料
+- 🔐 避免在公共場合暴露 NFC 卡片
+- 🔐 使用 HTTPS 部署確保傳輸安全
+- 🔐 大頭貼 URL 避免包含敏感資訊
+
+## 🆘 常見問題
+
+### Q: NFC 卡片無法被手機讀取？
+A: 確認手機已開啟 NFC 功能，並且卡片格式正確寫入為 URL/URI 類型。
+
+### Q: 大頭貼無法顯示？
+A: 檢查圖片 URL 是否可直接訪問，推薦使用 Imgur 或本地相對路徑。
+
+### Q: 生成的連結太長？
+A: 這是正常現象，Base64 編碼會增加長度，但 NFC 卡片容量通常足夠。
+
+### Q: 支援哪些手機？
+A: 支援所有具備 NFC 功能的 Android 手機和 iPhone 7 以上型號。
+
+## 🤝 貢獻指南
+
+歡迎提交 Issue 和 Pull Request！
+
+1. Fork 專案並創建功能分支
+2. 確保代碼遵循現有風格
+3. 添加適當的註釋和文檔
+4. 測試新功能的相容性
+5. 提交 Pull Request 並描述變更內容
+
+## 📄 授權條款
+
+MIT License - 詳見 [LICENSE](LICENSE) 檔案
+
+本專案基於開源精神，歡迎自由使用、修改和分發。
+
+## 📞 技術支援
+
+如需幫助，請參考：
+- [NFC 操作說明](NFC-GUIDE.md) - 詳細的 NFC 卡片設定指南
+- [vCard 格式指南](VCARD-GUIDE.md) - 聯絡人檔案格式說明
+- [照片處理指南](PHOTO-GUIDE.md) - 大頭貼優化建議
+
+或在 [GitHub Issues](https://github.com/your-repo/issues) 中提問。
 
 ---
 
-*這是一個基於現代前端技術的數位名片解決方案，提供相對防君子、靈活且易於維護的多使用者管理體驗。*
+🎯 **讓每一次交換名片都成為難忘的數位體驗！**

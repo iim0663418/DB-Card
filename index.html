@@ -12,7 +12,10 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Hiragino Sans TC', 'Microsoft JhengHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-feature-settings: 'kern' 1, 'liga' 1;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
             background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
             min-height: 100vh;
             display: flex;
@@ -21,6 +24,7 @@
             color: #333;
             position: relative;
             padding: 15px;
+            letter-spacing: 0.02em;
         }
 
         body::before {
@@ -118,10 +122,12 @@
 
         .name {
             font-size: 2.2em;
-            font-weight: bold;
+            font-weight: 600;
             margin-bottom: 8px;
             color: #374151;
             text-shadow: 0 1px 2px rgba(55,65,81,0.1);
+            letter-spacing: 0.01em;
+            line-height: 1.2;
         }
 
         .title {
@@ -129,12 +135,17 @@
             color: #4b5563;
             margin-bottom: 5px;
             font-weight: 500;
+            letter-spacing: 0.01em;
+            line-height: 1.4;
         }
 
         .department {
             font-size: 1em;
             color: #666;
             margin-bottom: 25px;
+            font-weight: 400;
+            letter-spacing: 0.01em;
+            line-height: 1.4;
         }
 
         .greeting {
@@ -142,6 +153,9 @@
             color: #34495e;
             margin-bottom: 25px;
             min-height: 50px;
+            font-weight: 400;
+            letter-spacing: 0.005em;
+            line-height: 1.5;
         }
 
         .contact-info {
@@ -158,6 +172,9 @@
             margin-bottom: 12px;
             font-size: 0.95em;
             color: #4a5568;
+            font-weight: 400;
+            letter-spacing: 0.005em;
+            line-height: 1.4;
         }
 
         .contact-item:last-child {
@@ -173,6 +190,7 @@
 
         .contact-text {
             flex: 1;
+            font-weight: 400;
         }
 
         .contact-link {
@@ -191,6 +209,8 @@
             color: #374151;
             margin-bottom: 15px;
             text-align: center;
+            letter-spacing: 0.02em;
+            line-height: 1.4;
         }
 
         .download-btn {
@@ -207,6 +227,8 @@
             display: inline-block;
             margin-bottom: 20px;
             box-shadow: 0 4px 12px rgba(107,114,128,0.3);
+            letter-spacing: 0.02em;
+            line-height: 1.3;
         }
 
         .download-btn:hover {
@@ -441,7 +463,7 @@
     
     <div id="access-denied" style="display: block; color: white; text-align: center; padding-top: 50px;">
         <h1>🚫</h1>
-        <h2>訪問權限不足</h2>
+        <h2>連結錯誤</h2>
         <p>請確認您使用的是正確的連結。</p>
     </div>
 
@@ -514,17 +536,47 @@
                 console.error('Avatar load failed:', this.src, 'Retry count:', retryCount);
                 
                 if (retryCount === 0) {
-                    // 第一次失敗，嘗試相對路徑
-                    console.log('Trying with relative path: ./' + data.avatar);
-                    this.src = './' + data.avatar;
-                    retryCount++;
+                    // 第一次失敗，檢查是否為 Google Drive 連結
+                    if (data.avatar.includes('drive.google.com')) {
+                        const googleDriveDirectUrl = convertGoogleDriveUrl(data.avatar);
+                        if (googleDriveDirectUrl) {
+                            console.log('Trying Google Drive direct URL:', googleDriveDirectUrl);
+                            this.src = googleDriveDirectUrl;
+                            retryCount++;
+                            return;
+                        }
+                    }
+                    
+                    // 檢查是否為相對路徑
+                    if (!data.avatar.startsWith('http') && !data.avatar.startsWith('./')) {
+                        console.log('Trying with ./ prefix:', './' + data.avatar);
+                        this.src = './' + data.avatar;
+                        retryCount++;
+                    } else if (data.avatar.startsWith('./')) {
+                        // 移除 ./ 前綴重試
+                        console.log('Trying without ./ prefix:', data.avatar.substring(2));
+                        this.src = data.avatar.substring(2);
+                        retryCount++;
+                    } else {
+                        // 隱藏圖片
+                        console.log('Cannot resolve avatar path, hiding avatar');
+                        this.style.display = 'none';
+                        return;
+                    }
                 } else if (retryCount === 1) {
-                    // 第二次失敗，嘗試絕對路徑
-                    const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/');
-                    const absolutePath = baseUrl + data.avatar;
-                    console.log('Trying with absolute path:', absolutePath);
-                    this.src = absolutePath;
-                    retryCount++;
+                    // 第二次失敗，嘗試絕對路徑構建
+                    if (!data.avatar.startsWith('http')) {
+                        const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/');
+                        const cleanPath = data.avatar.replace(/^\.\//, '');
+                        const absolutePath = baseUrl + cleanPath;
+                        console.log('Trying with absolute path:', absolutePath);
+                        this.src = absolutePath;
+                        retryCount++;
+                    } else {
+                        // HTTP 連結失敗，隱藏圖片
+                        console.log('HTTP avatar loading failed, hiding avatar');
+                        this.style.display = 'none';
+                    }
                 } else {
                     // 所有嘗試都失敗，隱藏圖片
                     console.log('All avatar loading attempts failed, hiding avatar');
@@ -634,69 +686,107 @@
             });
         }
 
-        window.addEventListener('load', function() {
-            // 取得 URL 中的 token
+        function getCardDataFromNFC() {
+            // 從 URL 參數中獲取 NFC 傳送的 JSON 資料
             const urlParams = new URLSearchParams(window.location.search);
-            const providedToken = urlParams.get('token');
+            const cardDataParam = urlParams.get('data');
+            
+            if (cardDataParam) {
+                try {
+                    // 先解 URL 編碼，再解 Base64，最後解析 JSON（支援 UTF-8）
+                    const urlDecodedData = decodeURIComponent(cardDataParam);
+                    const base64DecodedData = decodeURIComponent(escape(atob(urlDecodedData)));
+                    const cardData = JSON.parse(base64DecodedData);
+                    console.log('Received card data from NFC:', cardData);
+                    return cardData;
+                } catch (error) {
+                    console.error('Failed to parse card data:', error);
+                    console.error('Raw data:', cardDataParam);
+                    return null;
+                }
+            }
+            
+            // 檢查是否有直接的 JSON 資料參數（開發測試用）
+            const jsonParam = urlParams.get('json');
+            if (jsonParam) {
+                try {
+                    const cardData = JSON.parse(decodeURIComponent(jsonParam));
+                    console.log('Received card data from JSON param:', cardData);
+                    return cardData;
+                } catch (error) {
+                    console.error('Failed to parse JSON param:', error);
+                    return null;
+                }
+            }
+            
+            return null;
+        }
 
-            if (!providedToken) {
-                // 沒有提供 token
+        // 轉換 Google Drive 分享連結為直接圖片連結
+        function convertGoogleDriveUrl(url) {
+            // 匹配 Google Drive 分享連結格式
+            const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+            if (match) {
+                const fileId = match[1];
+                return `https://drive.google.com/uc?export=view&id=${fileId}`;
+            }
+            
+            // 如果已經是直接連結格式，返回原連結
+            if (url.includes('drive.google.com/uc?')) {
+                return url;
+            }
+            
+            return null;
+        }
+
+        window.addEventListener('load', function() {
+            // 嘗試從 NFC 獲取名片資料
+            const cardData = getCardDataFromNFC();
+
+            if (!cardData) {
+                // 沒有提供名片資料，顯示訪問拒絕
                 document.getElementById('card-container').style.display = 'none';
                 document.getElementById('access-denied').style.display = 'block';
+                
+                // 更新錯誤訊息
+                const errorElement = document.querySelector('#access-denied p');
+                if (errorElement) {
+                    errorElement.textContent = '請使用 NFC 卡片或包含資料的連結訪問。';
+                }
                 return;
             }
 
-            // 第一步：fetch token_map.json
-            fetch('token_map.json')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('無法載入 token 對應表');
-                    }
-                    return response.json();
-                })
-                .then(tokenMap => {
-                    // 在地圖中查找 token
-                    const configPath = tokenMap[providedToken];
-                    
-                    if (!configPath) {
-                        throw new Error('無效的存取令牌');
-                    }
+            try {
+                // 驗證資料格式
+                if (!cardData.data || !cardData.data.name) {
+                    throw new Error('名片資料格式不正確');
+                }
 
-                    // 第二步：fetch 對應的個人設定檔
-                    return fetch(configPath);
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('無法載入使用者設定檔');
-                    }
-                    return response.json();
-                })
-                .then(userData => {
-                    // 驗證成功，顯示名片並渲染資料
-                    document.getElementById('card-container').style.display = 'block';
-                    document.getElementById('access-denied').style.display = 'none';
+                // 顯示名片並渲染資料
+                document.getElementById('card-container').style.display = 'block';
+                document.getElementById('access-denied').style.display = 'none';
 
-                    // 渲染使用者資料
-                    renderCard(userData);
+                // 渲染使用者資料
+                renderCard(cardData);
 
-                    // 啟動頁面功能
-                    setTimeout(changeGreeting, 1000); // 觸發打字機效果
-                    generateQRCode(); // 產生 QR Code
-                    setupVCardLink(userData); // 設定 vCard 下載連結（傳入 userData）
-                })
-                .catch(error => {
-                    // 任何錯誤都會導致存取失敗
-                    console.error('載入使用者資料失敗:', error);
-                    document.getElementById('card-container').style.display = 'none';
-                    document.getElementById('access-denied').style.display = 'block';
-                    
-                    // 可選：更新錯誤訊息
-                    const errorElement = document.querySelector('#access-denied p');
-                    if (errorElement) {
-                        errorElement.textContent = error.message || '請確認您使用的是正確的連結。';
-                    }
-                });
+                // 啟動頁面功能
+                setTimeout(changeGreeting, 1000); // 觸發打字機效果
+                generateQRCode(); // 產生 QR Code
+                setupVCardLink(cardData); // 設定 vCard 下載連結
+
+            } catch (error) {
+                // 資料驗證失敗
+                console.error('名片資料驗證失敗:', error);
+                document.getElementById('card-container').style.display = 'none';
+                document.getElementById('access-denied').style.display = 'block';
+                
+                const errorElement = document.querySelector('#access-denied p');
+                if (errorElement) {
+                    errorElement.textContent = error.message || '名片資料格式錯誤。';
+                }
+            }
         });
+
     </script>
 </body>
 </html>

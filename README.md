@@ -109,7 +109,7 @@
 
 - **GitHub Repository**：使用專案內圖片
   1. 找到上傳的照片
-  2. 右鍵複製路徑
+  2. 右鍵複製路徑（如：https://github.com/iim0663418/NFC-Digital-Business-Card-Project/blob/main/assets/wu_sheng_fan/photo.jpg?raw=true）
 
 ### 圖片規格建議
 - **尺寸**：建議 200x200 至 800x800 像素（正方形）

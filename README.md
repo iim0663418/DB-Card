@@ -37,7 +37,7 @@
 
 1. 開啟 `nfc-generator.html`
 2. 填寫個人資料（姓名、職稱、聯絡方式等）
-3. 上傳大頭貼（推薦使用 [Imgur](https://imgur.com) 或本地圖片）
+3. 上傳大頭貼（推薦使用 [Imgur](https://imgur.com) 或 GitHub Raw 圖片）
 4. 點擊「生成 NFC 連結」
 5. 複製生成的連結和 QR 碼
 

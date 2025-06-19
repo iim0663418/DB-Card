@@ -95,9 +95,9 @@ https://yourusername.github.io/repository-name/?token=YOUR_TOKEN
        ],
        "socialLinks": {
          "email": "mailto:user@example.com",
-         "linkedin": "https://linkedin.com/in/username",
+         "socialMedia": "https://facebook.com/username",
          "github": "https://github.com/username",
-         "nfcTool": "nfc-generator.html"
+         "line": "https://line.me/ti/p/your-line-id"
        }
      }
    }

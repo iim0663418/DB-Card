@@ -41,8 +41,9 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.2), 0 0 0 1px rgba(107,114,128,0.1);
             padding: 40px;
             text-align: center;
-            max-width: 480px;
-            width: 92%;
+            max-width: 600px;
+            width: 95%;
+            min-width: 320px;
             animation: slideIn 0.6s ease-out;
             position: relative;
             overflow: hidden;
@@ -83,12 +84,13 @@
         }
 
         .avatar {
-            width: 100px;
-            height: 100px;
+            width: 120px;
+            height: 120px;
             border-radius: 50%;
             object-fit: cover;
             border: 3px solid #6b7280;
             box-shadow: 0 4px 12px rgba(107,114,128,0.3);
+            display: block;
         }
 
         @keyframes pulse {
@@ -302,11 +304,14 @@
         
         @media (max-width: 768px) {
             body {
-                padding: 5px;
+                padding: 10px;
             }
             
             .card {
                 border-radius: 16px;
+                padding: 30px;
+                max-width: 500px;
+                width: 98%;
             }
         }
 
@@ -355,7 +360,7 @@
         <div class="card">
             <div class="logo-section">
                 <img src="assets/moda-logo.svg" alt="MODA Logo" class="moda-logo">
-                <img id="user-avatar" src="" alt="" class="avatar" onerror="this.style.display='none'">
+                <img id="user-avatar" src="" alt="" class="avatar" onerror="console.error('Avatar load failed:', this.src); this.style.display='none'">
             </div>
             
             <h1 id="user-name" class="name"></h1>
@@ -405,9 +410,9 @@
                 
                 <div class="social-links">
                     <a id="social-email" href="" class="social-link" title="Email">📧</a>
-                    <a id="social-linkedin" href="" class="social-link" title="LinkedIn">💼</a>
+                    <a id="social-socialmedia" href="" class="social-link" title="社群媒體">📱</a>
                     <a id="social-github" href="" class="social-link" title="GitHub">💻</a>
-                    <a id="social-nfc" href="" class="social-link" title="NFC 工具">🏷️</a>
+                    <a id="social-line" href="" class="social-link" title="LINE">💬</a>
                 </div>
             </div>
         </div>
@@ -475,6 +480,19 @@
             
             // 頭像
             const avatar = document.getElementById('user-avatar');
+            avatar.onload = function() {
+                console.log('Avatar loaded successfully:', this.src);
+                this.style.display = 'block';
+            };
+            avatar.onerror = function() {
+                console.error('Avatar load failed:', this.src);
+                // 嘗試使用相對路徑
+                if (!this.src.includes('./')) {
+                    this.src = './' + data.avatar;
+                } else {
+                    this.style.display = 'none';
+                }
+            };
             avatar.src = data.avatar;
             avatar.alt = data.name;
             
@@ -499,9 +517,9 @@
             
             // 社交連結
             document.getElementById('social-email').href = data.socialLinks.email;
-            document.getElementById('social-linkedin').href = data.socialLinks.linkedin;
+            document.getElementById('social-socialmedia').href = data.socialLinks.socialMedia;
             document.getElementById('social-github').href = data.socialLinks.github;
-            document.getElementById('social-nfc').href = data.socialLinks.nfcTool;
+            document.getElementById('social-line').href = data.socialLinks.line;
             
             // 設定問候語
             greetings = data.greetings;
@@ -547,7 +565,8 @@
                     `EMAIL;TYPE=work:${data.email || ''}`,
                     data.phone ? `TEL;TYPE=work,voice:${formattedPhone}` : '',
                     data.socialLinks.github ? `URL;TYPE=work:${data.socialLinks.github}` : '',
-                    data.socialLinks.linkedin ? `URL;TYPE=work:${data.socialLinks.linkedin}` : '',
+                    data.socialLinks.socialMedia ? `URL;TYPE=work:${data.socialLinks.socialMedia}` : '',
+                    data.socialLinks.line ? `URL;TYPE=work:${data.socialLinks.line}` : '',
                     `ADR;TYPE=work;CHARSET=UTF-8:;;${data.address || ''};;;;Taiwan`,
                     `PHOTO;TYPE=JPEG:${photoUrl}`,
                     `REV:${timestamp}`,

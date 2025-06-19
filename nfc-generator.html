@@ -221,9 +221,18 @@
                     </div>
                     <div class="form-group">
                         <label for="socialNote">社群連結備註</label>
-                        <textarea id="socialNote" placeholder="Facebook: fb.com/username&#10;LINE: @your-line-id&#10;GitHub: github.com/username" style="min-height: 80px;"></textarea>
-                        <div style="font-size: 0.8em; color: #6b7280; margin-top: 5px;">
-                            💡 將所有社群連結整合在此備註欄位中，節省 NFC 容量
+                        <textarea id="socialNote" placeholder="FB: fb.com/yourname&#10;IG: @yourname&#10;LINE: @your-line-id&#10;GitHub: github.com/yourname" style="min-height: 120px;"></textarea>
+                        <div style="font-size: 0.8em; color: #6b7280; margin-top: 8px; line-height: 1.4;">
+                            💡 <strong>建議使用簡化格式節省容量：</strong><br>
+                            • <span style="color: #059669;">FB: fb.com/yourname</span> (推薦)<br>
+                            • <span style="color: #059669;">IG: @yourname</span> (推薦)<br>
+                            • <span style="color: #059669;">LINE: @your-line-id</span> (推薦)<br>
+                            • <span style="color: #059669;">GitHub: github.com/yourname</span> (推薦)<br><br>
+                            <strong>📝 填寫技巧：</strong><br>
+                            • 每行一個連結，自動換行顯示<br>
+                            • 可混用網址和文字說明<br>
+                            • 善用 emoji 讓資訊更清楚 📱💼🎬<br>
+                            • 系統會即時顯示容量使用狀況
                         </div>
                     </div>
                 </div>
@@ -231,14 +240,15 @@
                 <div class="form-section">
                     <h2>個人化設定</h2>
                     <div class="form-group">
-                        <label for="avatar">大頭貼 URL</label>
+                        <label for="avatar">大頭貼 URL (選填)</label>
                         <input type="url" id="avatar" placeholder="https://i.imgur.com/example.jpg">
                         <div style="font-size: 0.8em; color: #6b7280; margin-top: 5px;">
-                            💡 <strong>推薦使用：</strong><br>
+                            💡 <strong>請使用完整的圖片網址：</strong><br>
                             • <a href="https://imgur.com" target="_blank" style="color: #3b82f6;">Imgur</a> - 上傳後右鍵複製圖片網址<br>
                             • <a href="https://github.com" target="_blank" style="color: #3b82f6;">GitHub</a> - 上傳到 repository 後使用 raw 連結<br>
-                            • 任何支援直接圖片連結的服務<br>
-                            ⚠️ Google Drive 分享連結可能無法顯示
+                            • 任何支援 HTTPS 的圖床服務<br>
+                            ⚠️ 必須以 https:// 開頭的完整網址，避免使用相對路徑<br>
+                            ❌ 不支援：Google Drive 分享連結、相對路徑 (./assets/...)
                         </div>
                     </div>
                     <div class="form-group">
@@ -286,8 +296,8 @@
         document.getElementById('department').value = '資訊處';
         document.getElementById('email').value = 'iim0663418@moda.gov.tw';
         document.getElementById('phone').value = '02-2380-0411';
-        document.getElementById('socialNote').value = 'Facebook: fb.com/iim0663418\nLINE: @iim0663418\nGitHub: github.com/iim0663418';
-        document.getElementById('avatar').value = './assets/wu_sheng_fan/photo.jpg';
+        document.getElementById('socialNote').value = 'FB: fb.com/iim0663418\nIG: @iim0663418\nLINE: @iim0663418\nGitHub: github.com/iim0663418';
+        // document.getElementById('avatar').value = ''; // 大頭貼設為選填，預設空白
         document.getElementById('greetings').value = '歡迎認識我！\n很高興認識您 👋\n期待與您合作 🤝';
 
         form.addEventListener('submit', function(e) {

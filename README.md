@@ -1,6 +1,6 @@
-# NFC 數位名片系統
+# NFC 數位名片
 
-一個創新的 NFC 數位名片系統，將個人資料直接儲存在 NFC 卡片中，通過觸碰即可開啟專屬數位名片。
+一個創新的 NFC 數位名片機制，將個人資料直接儲存在 NFC 卡片中，通過觸碰即可開啟專屬數位名片。
 
 ## 🎯 功能特色
 
@@ -22,7 +22,7 @@
 │   ├── moda-logo.svg       # MODA 官方標誌
 │   ├── wu_sheng_fan/       # 範例用戶資源
 │   │   └── photo.jpg       # 範例大頭貼
-│   └── COPYRIGHT.txt       # 版權聲明文件
+│   └── COPYRIGHT.txt       # 範例版權聲明文件（數位發展部商標圖已 CC0）
 ├── NFC-GUIDE.md           # NFC 操作說明
 ├── VCARD-GUIDE.md         # vCard 格式指南
 ├── PHOTO-GUIDE.md         # 照片處理指南

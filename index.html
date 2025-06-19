@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>吳勝繙 - 數位名片</title>
+    <title>數位發展部數位名片</title>
     <style>
         * {
             margin: 0;
@@ -20,6 +20,7 @@
             justify-content: center;
             color: #333;
             position: relative;
+            padding: 15px;
         }
 
         body::before {
@@ -40,8 +41,8 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.2), 0 0 0 1px rgba(107,114,128,0.1);
             padding: 40px;
             text-align: center;
-            max-width: 420px;
-            width: 90%;
+            max-width: 480px;
+            width: 92%;
             animation: slideIn 0.6s ease-out;
             position: relative;
             overflow: hidden;
@@ -255,7 +256,10 @@
 
         @media (max-width: 480px) {
             .card {
-                padding: 25px 15px;
+                padding: 25px 20px;
+                width: 94%;
+                max-width: none;
+                margin: 15px;
             }
             
             .logo-section {
@@ -296,25 +300,40 @@
             }
         }
         
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+            }
+            
+            .card {
+                border-radius: 16px;
+            }
+        }
+
         @media (max-width: 360px) {
             .card {
-                padding: 20px 12px;
+                padding: 20px 16px;
+                width: 92%;
+                margin: 12px;
+                border-radius: 12px;
             }
             
             .logo-section {
-                gap: 8px;
-                flex-direction: column;
+                gap: 12px;
+                flex-direction: row;
                 align-items: center;
+                justify-content: center;
             }
             
             .moda-logo {
-                height: 25px;
-                margin-bottom: 5px;
+                height: 30px;
+                flex-shrink: 0;
             }
             
             .avatar {
                 width: 70px;
                 height: 70px;
+                flex-shrink: 0;
             }
             
             .name {
@@ -332,74 +351,77 @@
     </style>
 </head>
 <body>
-    <div class="card">
-        <div class="logo-section">
-            <img src="assets/moda-logo.svg" alt="MODA Logo" class="moda-logo">
-            <img src="assets/photo.jpg" alt="吳勝繙" class="avatar" onerror="this.style.display='none'">
-        </div>
-        
-        <h1 class="name">吳勝繙</h1>
-        <p class="title">科長</p>
-        <p class="department">數位發展部</p>
-        
-        <div class="greeting" id="greeting">
-            歡迎認識我！
-        </div>
-        
-        <div class="contact-info">
-            <div class="contact-title">聯絡資訊</div>
-            <div class="contact-item">
-                <span class="contact-icon">📧</span>
-                <span class="contact-text">
-                    <a href="mailto:iim0663418@moda.gov.tw" class="contact-link">iim0663418@moda.gov.tw</a>
-                </span>
+    <div id="card-container" style="display: none;">
+        <div class="card">
+            <div class="logo-section">
+                <img src="assets/moda-logo.svg" alt="MODA Logo" class="moda-logo">
+                <img id="user-avatar" src="" alt="" class="avatar" onerror="this.style.display='none'">
             </div>
-            <div class="contact-item">
-                <span class="contact-icon">📞</span>
-                <span class="contact-text">
-                    <a href="tel:+886-2-2380-0411" class="contact-link">02-2380-0411</a>
-                </span>
-            </div>
-            <div class="contact-item">
-                <span class="contact-icon">🏢</span>
-                <span class="contact-text">數位發展部</span>
-            </div>
-            <div class="contact-item">
-                <span class="contact-icon">📍</span>
-                <span class="contact-text">台北市中正區延平南路143號</span>
-            </div>
-        </div>
-        
-        <div class="action-section">
-            <a href="#" id="add-contact-btn" class="download-btn">
-                📱 加入聯絡人
-            </a>
-            <p id="contact-helper-text" style="font-size: 0.9em; color: #4b5563; margin-top: 15px;"></p>
             
-            <div class="qr-section">
-                <div class="qr-code" id="qrcode">
-                    QR 碼載入中...
+            <h1 id="user-name" class="name"></h1>
+            <p id="user-title" class="title"></p>
+            <p id="user-department" class="department"></p>
+            
+            <div class="greeting" id="greeting">
+                歡迎認識我！
+            </div>
+            
+            <div class="contact-info">
+                <div class="contact-title">聯絡資訊</div>
+                <div class="contact-item">
+                    <span class="contact-icon">📧</span>
+                    <span class="contact-text">
+                        <a id="user-email" href="" class="contact-link"></a>
+                    </span>
                 </div>
-                <div class="qr-label">掃描 QR 碼快速開啟</div>
+                <div id="phone-item" class="contact-item">
+                    <span class="contact-icon">📞</span>
+                    <span class="contact-text">
+                        <a id="user-phone" href="" class="contact-link"></a>
+                    </span>
+                </div>
+                <div class="contact-item">
+                    <span class="contact-icon">🏢</span>
+                    <span id="user-organization" class="contact-text"></span>
+                </div>
+                <div class="contact-item">
+                    <span class="contact-icon">📍</span>
+                    <span id="user-address" class="contact-text"></span>
+                </div>
             </div>
             
-            <div class="social-links">
-                <a href="mailto:iim0663418@moda.gov.tw" class="social-link" title="Email">📧</a>
-                <a href="https://www.linkedin.com/in/%E5%90%B3-%E5%8B%9D%E7%B9%99-87a45a206/" class="social-link" title="LinkedIn">💼</a>
-                <a href="https://github.com/iim0663418" class="social-link" title="GitHub">💻</a>
-                <a href="nfc-generator.html" class="social-link" title="NFC 工具">🏷️</a>
+            <div class="action-section">
+                <a href="#" id="add-contact-btn" class="download-btn">
+                    📱 加入聯絡人
+                </a>
+                <p id="contact-helper-text" style="font-size: 0.9em; color: #4b5563; margin-top: 15px;"></p>
+                
+                <div class="qr-section">
+                    <div class="qr-code" id="qrcode">
+                        QR 碼載入中...
+                    </div>
+                    <div class="qr-label">掃描 QR 碼快速開啟</div>
+                </div>
+                
+                <div class="social-links">
+                    <a id="social-email" href="" class="social-link" title="Email">📧</a>
+                    <a id="social-linkedin" href="" class="social-link" title="LinkedIn">💼</a>
+                    <a id="social-github" href="" class="social-link" title="GitHub">💻</a>
+                    <a id="social-nfc" href="" class="social-link" title="NFC 工具">🏷️</a>
+                </div>
             </div>
         </div>
     </div>
+    
+    <div id="access-denied" style="display: block; color: white; text-align: center; padding-top: 50px;">
+        <h1>🚫</h1>
+        <h2>訪問權限不足</h2>
+        <p>請確認您使用的是正確的連結。</p>
+    </div>
 
     <script>
-        const greetings = [
-            "歡迎認識我！",
-            "很高興認識您 👋",
-            "期待與您合作 🤝"
-        ];
-
         let currentIndex = 0;
+        let greetings = [];
         const greetingElement = document.getElementById('greeting');
 
         function typeText(text, callback) {
@@ -416,14 +438,12 @@
         }
 
         function changeGreeting() {
+            if (greetings.length === 0) return;
             typeText(greetings[currentIndex], () => {
                 currentIndex = (currentIndex + 1) % greetings.length;
                 setTimeout(changeGreeting, 1000);
             });
         }
-
-        // 開始動畫
-        setTimeout(changeGreeting, 1000);
 
         // 生成 QR 碼
         function generateQRCode() {
@@ -444,42 +464,176 @@
             qrContainer.appendChild(qrImg);
         }
 
-        // 頁面載入後生成 QR 碼
-        window.addEventListener('load', generateQRCode);
+        // 渲染名片函數
+        function renderCard(userData) {
+            const data = userData.data;
+            
+            // 基本資訊
+            document.getElementById('user-name').textContent = data.name;
+            document.getElementById('user-title').textContent = data.title;
+            document.getElementById('user-department').textContent = data.department;
+            
+            // 頭像
+            const avatar = document.getElementById('user-avatar');
+            avatar.src = data.avatar;
+            avatar.alt = data.name;
+            
+            // 聯絡資訊
+            const emailLink = document.getElementById('user-email');
+            emailLink.href = data.socialLinks.email;
+            emailLink.textContent = data.email;
+            
+            // 電話（可選）
+            const phoneItem = document.getElementById('phone-item');
+            if (data.phone) {
+                const phoneLink = document.getElementById('user-phone');
+                phoneLink.href = `tel:${data.phone.replace(/[^0-9+]/g, '')}`;
+                phoneLink.textContent = data.phone;
+                phoneItem.style.display = 'flex';
+            } else {
+                phoneItem.style.display = 'none';
+            }
+            
+            document.getElementById('user-organization').textContent = data.organization;
+            document.getElementById('user-address').textContent = data.address;
+            
+            // 社交連結
+            document.getElementById('social-email').href = data.socialLinks.email;
+            document.getElementById('social-linkedin').href = data.socialLinks.linkedin;
+            document.getElementById('social-github').href = data.socialLinks.github;
+            document.getElementById('social-nfc').href = data.socialLinks.nfcTool;
+            
+            // 設定問候語
+            greetings = data.greetings;
+        }
     </script>
 
     <script>
-        window.addEventListener('load', function() {
-            // 找到相關的 HTML 元素
+        function setupVCardLink(userData) {
+            const data = userData.data;
             const contactLink = document.getElementById('add-contact-btn');
             const helperText = document.getElementById('contact-helper-text');
-            let messageShown = false; // 用於確保訊息只顯示一次
+            let messageShown = false;
 
-            // 抓取 .vcf 檔案內容並設定連結
-            fetch('contact.vcf')
-                .then(response => response.text())
-                .then(vcfText => {
-                    const vcfData = encodeURIComponent(vcfText);
-                    contactLink.href = `data:text/vcard;charset=utf-8,${vcfData}`;
-                    
-                    // 動態獲取姓名作為檔名
-                    const nameElement = document.querySelector('.name');
-                    const fileName = nameElement ? `${nameElement.textContent.trim()}.vcf` : 'contact.vcf';
-                    contactLink.setAttribute('download', fileName);
-                })
-                .catch(err => {
-                    console.error('Failed to fetch contact.vcf:', err);
-                    contactLink.href = 'contact.vcf';
-                });
+            // 動態生成 vCard 內容，遵循 VCARD-GUIDE.md 的 iOS 相容格式
+            function generateVCardContent() {
+                // 處理姓名分割（中文姓名：第一個字為姓，其餘為名）
+                const fullName = data.name;
+                const surname = fullName.substring(0, 1);
+                const givenName = fullName.substring(1);
+                
+                // 格式化電話號碼
+                const phone = data.phone ? data.phone.replace(/[^0-9+]/g, '') : '';
+                const formattedPhone = phone.startsWith('+') ? phone : `+886-${phone.replace(/^0/, '')}`;
+                
+                // 生成當前時間戳
+                const now = new Date();
+                const timestamp = now.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+                
+                // 動態生成照片 URL（基於當前網站位置）
+                const currentOrigin = window.location.origin;
+                const currentPath = window.location.pathname.replace('/index.html', '').replace(/\/$/, '');
+                const photoUrl = `${currentOrigin}${currentPath}/${data.avatar}`;
+                
+                // 組裝 vCard 內容（使用 CRLF 行結束符以符合 iOS 要求）
+                const vcardContent = [
+                    'BEGIN:VCARD',
+                    'VERSION:3.0',
+                    'PRODID:-//Apple Inc.//iPhone OS 16.5//EN',
+                    `FN;CHARSET=UTF-8:${fullName}`,
+                    `N;CHARSET=UTF-8:${surname};${givenName};;;`,
+                    `ORG;CHARSET=UTF-8:${data.organization || ''}`,
+                    `TITLE;CHARSET=UTF-8:${data.title || ''}`,
+                    `EMAIL;TYPE=work:${data.email || ''}`,
+                    data.phone ? `TEL;TYPE=work,voice:${formattedPhone}` : '',
+                    data.socialLinks.github ? `URL;TYPE=work:${data.socialLinks.github}` : '',
+                    data.socialLinks.linkedin ? `URL;TYPE=work:${data.socialLinks.linkedin}` : '',
+                    `ADR;TYPE=work;CHARSET=UTF-8:;;${data.address || ''};;;;Taiwan`,
+                    `PHOTO;TYPE=JPEG:${photoUrl}`,
+                    `REV:${timestamp}`,
+                    'END:VCARD'
+                ].filter(line => line.trim() !== '').join('\r\n');
+                
+                return vcardContent;
+            }
+
+            // 設定下載連結
+            const vcardContent = generateVCardContent();
+            const vcfData = encodeURIComponent(vcardContent);
+            contactLink.href = `data:text/vcard;charset=utf-8,${vcfData}`;
+            contactLink.setAttribute('download', `${data.name}.vcf`);
 
             // 監聽按鈕點擊事件
             contactLink.addEventListener('click', function() {
-                // 如果訊息尚未顯示，則顯示它
                 if (!messageShown) {
                     helperText.innerHTML = '下載後，請點擊<b>「開啟」</b>或於<b>通知欄</b>中找到檔案，即可完成新增。';
                     messageShown = true;
                 }
             });
+        }
+
+        window.addEventListener('load', function() {
+            // 取得 URL 中的 token
+            const urlParams = new URLSearchParams(window.location.search);
+            const providedToken = urlParams.get('token');
+
+            if (!providedToken) {
+                // 沒有提供 token
+                document.getElementById('card-container').style.display = 'none';
+                document.getElementById('access-denied').style.display = 'block';
+                return;
+            }
+
+            // 第一步：fetch token_map.json
+            fetch('token_map.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('無法載入 token 對應表');
+                    }
+                    return response.json();
+                })
+                .then(tokenMap => {
+                    // 在地圖中查找 token
+                    const configPath = tokenMap[providedToken];
+                    
+                    if (!configPath) {
+                        throw new Error('無效的存取令牌');
+                    }
+
+                    // 第二步：fetch 對應的個人設定檔
+                    return fetch(configPath);
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('無法載入使用者設定檔');
+                    }
+                    return response.json();
+                })
+                .then(userData => {
+                    // 驗證成功，顯示名片並渲染資料
+                    document.getElementById('card-container').style.display = 'block';
+                    document.getElementById('access-denied').style.display = 'none';
+
+                    // 渲染使用者資料
+                    renderCard(userData);
+
+                    // 啟動頁面功能
+                    setTimeout(changeGreeting, 1000); // 觸發打字機效果
+                    generateQRCode(); // 產生 QR Code
+                    setupVCardLink(userData); // 設定 vCard 下載連結（傳入 userData）
+                })
+                .catch(error => {
+                    // 任何錯誤都會導致存取失敗
+                    console.error('載入使用者資料失敗:', error);
+                    document.getElementById('card-container').style.display = 'none';
+                    document.getElementById('access-denied').style.display = 'block';
+                    
+                    // 可選：更新錯誤訊息
+                    const errorElement = document.querySelector('#access-denied p');
+                    if (errorElement) {
+                        errorElement.textContent = error.message || '請確認您使用的是正確的連結。';
+                    }
+                });
         });
     </script>
 </body>

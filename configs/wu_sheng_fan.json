@@ -1,0 +1,27 @@
+{
+  "meta": {
+    "userId": "wu_sheng_fan",
+    "profile": "work"
+  },
+  "data": {
+    "name": "吳勝繙",
+    "title": "科長",
+    "department": "數位發展部",
+    "avatar": "assets/wu_sheng_fan/photo.jpg",
+    "email": "iim0663418@moda.gov.tw",
+    "phone": "02-2380-0411",
+    "organization": "數位發展部",
+    "address": "台北市中正區延平南路143號",
+    "greetings": [
+      "歡迎認識我！",
+      "很高興認識您 👋",
+      "期待與您合作 🤝"
+    ],
+    "socialLinks": {
+      "email": "mailto:iim0663418@moda.gov.tw",
+      "linkedin": "https://www.linkedin.com/in/%E5%90%B3-%E5%8B%9D%E7%B9%99-87a45a206/",
+      "github": "https://github.com/iim0663418",
+      "nfcTool": "nfc-generator.html"
+    }
+  }
+}

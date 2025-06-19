@@ -1,0 +1,27 @@
+{
+  "meta": {
+    "userId": "chen_da_ming",
+    "profile": "work"
+  },
+  "data": {
+    "name": "陳大明",
+    "title": "副組長",
+    "department": "資訊組",
+    "avatar": "assets/chen_da_ming/photo.jpg",
+    "email": "chen.daming@example.com",
+    "phone": "02-1234-5678",
+    "organization": "範例公司",
+    "address": "台北市信義區信義路五段150號",
+    "greetings": [
+      "Hello！很高興認識您",
+      "歡迎來到我的數位名片 🎯",
+      "期待未來的合作機會 ✨"
+    ],
+    "socialLinks": {
+      "email": "mailto:chen.daming@example.com",
+      "linkedin": "https://www.linkedin.com/in/chen-da-ming",
+      "github": "https://github.com/chendaming",
+      "nfcTool": "nfc-generator.html"
+    }
+  }
+}

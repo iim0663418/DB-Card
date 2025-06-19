@@ -22,8 +22,6 @@
 │   ├── moda-logo.svg       # MODA 官方標誌
 │   ├── wu_sheng_fan/       # 範例用戶資源
 │   │   └── photo.jpg       # 範例大頭貼
-│   ├── chen_da_ming/       # 範例用戶資源
-│   │   └── photo.jpg       # 範例大頭貼
 │   └── COPYRIGHT.txt       # 版權聲明文件
 ├── NFC-GUIDE.md           # NFC 操作說明
 ├── VCARD-GUIDE.md         # vCard 格式指南
@@ -35,7 +33,7 @@
 
 ### 1. 創建數位名片
 
-1. 開啟 `nfc-generator.html`[範例](https://iim0663418.github.io/NFC-Digital-Business-Card-Project/nfc-generator.html)
+1. 開啟 `nfc-generator.html`[範例](https://iim0663418.github.io/DB-Card/nfc-generator.html)
 3. 填寫個人資料（姓名、職稱、聯絡方式等）
 4. 上傳大頭貼（推薦使用 [Imgur](https://imgur.com) 或 GitHub Raw 圖片）
 5. 點擊「生成 NFC 連結」
@@ -110,8 +108,8 @@
   2. 取得格式如：`https://i.imgur.com/XXXXXX.jpg`
 
 - **GitHub Repository**：使用專案內圖片
-  1. 上傳圖片到 `assets` 目錄
-  2. 使用相對路徑：`./assets/your_folder/photo.jpg`
+  1. 找到上傳的照片
+  2. 右鍵複製路徑（如：https://github.com/iim0663418/NFC-Digital-Business-Card-Project/blob/main/assets/wu_sheng_fan/photo.jpg?raw=true）
 
 ### 圖片規格建議
 - **尺寸**：建議 200x200 至 800x800 像素（正方形）

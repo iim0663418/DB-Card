@@ -22,7 +22,7 @@
 │   ├── moda-logo.svg       # MODA 官方標誌
 │   ├── wu_sheng_fan/       # 範例用戶資源
 │   │   └── photo.jpg       # 範例大頭貼
-│   └── COPYRIGHT.txt       # 版權聲明文件
+│   └── COPYRIGHT.txt       # 範例版權聲明文件（數位發展部商標圖已 CC0）
 ├── NFC-GUIDE.md           # NFC 操作說明
 ├── VCARD-GUIDE.md         # vCard 格式指南
 ├── PHOTO-GUIDE.md         # 照片處理指南

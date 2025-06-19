@@ -35,11 +35,11 @@
 
 ### 1. 創建數位名片
 
-1. 開啟 `nfc-generator.html`
-2. 填寫個人資料（姓名、職稱、聯絡方式等）
-3. 上傳大頭貼（推薦使用 [Imgur](https://imgur.com) 或 GitHub Raw 圖片）
-4. 點擊「生成 NFC 連結」
-5. 複製生成的連結和 QR 碼
+1. 開啟 `nfc-generator.html`[範例](https://iim0663418.github.io/NFC-Digital-Business-Card-Project/nfc-generator.html)
+3. 填寫個人資料（姓名、職稱、聯絡方式等）
+4. 上傳大頭貼（推薦使用 [Imgur](https://imgur.com) 或 GitHub Raw 圖片）
+5. 點擊「生成 NFC 連結」
+6. 複製生成的連結和 QR 碼
 
 ### 2. 寫入 NFC 卡片
 

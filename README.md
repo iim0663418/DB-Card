@@ -110,8 +110,8 @@
   2. 取得格式如：`https://i.imgur.com/XXXXXX.jpg`
 
 - **GitHub Repository**：使用專案內圖片
-  1. 上傳圖片到 `assets` 目錄
-  2. 使用相對路徑：`./assets/your_folder/photo.jpg`
+  1. 找到上傳的照片
+  2. 右鍵複製路徑
 
 ### 圖片規格建議
 - **尺寸**：建議 200x200 至 800x800 像素（正方形）

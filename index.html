@@ -360,7 +360,7 @@
         <div class="card">
             <div class="logo-section">
                 <img src="assets/moda-logo.svg" alt="MODA Logo" class="moda-logo">
-                <img id="user-avatar" src="" alt="" class="avatar" onerror="console.error('Avatar load failed:', this.src); this.style.display='none'">
+                <img id="user-avatar" src="" alt="" class="avatar">
             </div>
             
             <h1 id="user-name" class="name"></h1>
@@ -480,21 +480,43 @@
             
             // 頭像
             const avatar = document.getElementById('user-avatar');
+            
+            // 設定載入成功處理
             avatar.onload = function() {
                 console.log('Avatar loaded successfully:', this.src);
                 this.style.display = 'block';
             };
+            
+            // 設定載入失敗處理
+            let retryCount = 0;
             avatar.onerror = function() {
-                console.error('Avatar load failed:', this.src);
-                // 嘗試使用相對路徑
-                if (!this.src.includes('./')) {
+                console.error('Avatar load failed:', this.src, 'Retry count:', retryCount);
+                
+                if (retryCount === 0) {
+                    // 第一次失敗，嘗試相對路徑
+                    console.log('Trying with relative path: ./' + data.avatar);
                     this.src = './' + data.avatar;
+                    retryCount++;
+                } else if (retryCount === 1) {
+                    // 第二次失敗，嘗試絕對路徑
+                    const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/');
+                    const absolutePath = baseUrl + data.avatar;
+                    console.log('Trying with absolute path:', absolutePath);
+                    this.src = absolutePath;
+                    retryCount++;
                 } else {
+                    // 所有嘗試都失敗，隱藏圖片
+                    console.log('All avatar loading attempts failed, hiding avatar');
                     this.style.display = 'none';
                 }
             };
-            avatar.src = data.avatar;
+            
+            // 設定基本屬性
             avatar.alt = data.name;
+            
+            // 開始載入圖片
+            console.log('Loading avatar:', data.avatar);
+            avatar.src = data.avatar;
             
             // 聯絡資訊
             const emailLink = document.getElementById('user-email');

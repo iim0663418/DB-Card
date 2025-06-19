@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>數位發展部數位名片</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -12,19 +15,21 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Hiragino Sans TC', 'Microsoft JhengHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-family: 'PingFang TC', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans TC', 'Microsoft JhengHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
             font-feature-settings: 'kern' 1, 'liga' 1;
+            font-weight: 300;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
-            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            background: #f4f6f7;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #333;
+            color: #1a1a1a;
             position: relative;
             padding: 15px;
-            letter-spacing: 0.02em;
+            letter-spacing: 0;
+            line-height: 1.5;
         }
 
         body::before {
@@ -40,12 +45,13 @@
         }
 
         .card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2), 0 0 0 1px rgba(107,114,128,0.1);
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+            border: 1px solid #e5e5e5;
             padding: 40px;
             text-align: center;
-            max-width: 600px;
+            max-width: 480px;
             width: 95%;
             min-width: 320px;
             animation: slideIn 0.6s ease-out;
@@ -60,7 +66,7 @@
             left: 0;
             right: 0;
             height: 4px;
-            background: linear-gradient(90deg, #6b7280 0%, #4b5563 100%);
+            background: linear-gradient(90deg, #6868ac 0%, #4e4e81 100%);
         }
 
         @keyframes slideIn {
@@ -121,60 +127,59 @@
         }
 
         .name {
-            font-size: 2.2em;
+            font-size: 1.875em;
             font-weight: 600;
             margin-bottom: 8px;
-            color: #374151;
-            text-shadow: 0 1px 2px rgba(55,65,81,0.1);
-            letter-spacing: 0.01em;
-            line-height: 1.2;
+            color: #1a1a1a;
+            letter-spacing: -0.01em;
+            line-height: 1.25;
         }
 
         .title {
-            font-size: 1.2em;
-            color: #4b5563;
-            margin-bottom: 5px;
-            font-weight: 500;
-            letter-spacing: 0.01em;
-            line-height: 1.4;
+            font-size: 1.125em;
+            color: #565e62;
+            margin-bottom: 4px;
+            font-weight: 400;
+            letter-spacing: 0;
+            line-height: 1.5;
         }
 
         .department {
             font-size: 1em;
-            color: #666;
-            margin-bottom: 25px;
-            font-weight: 400;
-            letter-spacing: 0.01em;
-            line-height: 1.4;
-        }
-
-        .greeting {
-            font-size: 1.1em;
-            color: #34495e;
-            margin-bottom: 25px;
-            min-height: 50px;
-            font-weight: 400;
-            letter-spacing: 0.005em;
+            color: #7b868c;
+            margin-bottom: 24px;
+            font-weight: 300;
+            letter-spacing: 0;
             line-height: 1.5;
         }
 
+        .greeting {
+            font-size: 1em;
+            color: #565e62;
+            margin-bottom: 28px;
+            min-height: 50px;
+            font-weight: 300;
+            letter-spacing: 0;
+            line-height: 1.6;
+        }
+
         .contact-info {
-            background: #f8fafc;
-            border-radius: 15px;
+            background: #f3f5f6;
+            border-radius: 8px;
             padding: 20px;
-            margin: 25px 0;
-            border: 1px solid #e2e8f0;
+            margin: 24px 0;
+            border: 1px solid #e5e5e5;
         }
 
         .contact-item {
             display: flex;
             align-items: center;
             margin-bottom: 12px;
-            font-size: 0.95em;
-            color: #4a5568;
-            font-weight: 400;
-            letter-spacing: 0.005em;
-            line-height: 1.4;
+            font-size: 0.9em;
+            color: #565e62;
+            font-weight: 300;
+            letter-spacing: 0;
+            line-height: 1.5;
         }
 
         .contact-item:last-child {
@@ -194,47 +199,49 @@
         }
 
         .contact-link {
-            color: #4a5568;
+            color: #6868ac;
             text-decoration: none;
-            transition: color 0.3s ease;
+            transition: color 0.2s ease;
         }
 
         .contact-link:hover {
-            color: #6b7280;
+            color: #4e4e81;
+            text-decoration: underline;
         }
 
         .contact-title {
-            font-size: 1em;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 15px;
+            font-size: 0.95em;
+            font-weight: 500;
+            color: #1a1a1a;
+            margin-bottom: 12px;
             text-align: center;
-            letter-spacing: 0.02em;
-            line-height: 1.4;
+            letter-spacing: 0;
+            line-height: 1.5;
         }
 
         .download-btn {
-            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 25px;
-            font-size: 1.1em;
+            background: #6868ac;
+            color: #fff;
+            border: 1px solid #6868ac;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 0.9em;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.15s ease;
             text-decoration: none;
             display: inline-block;
             margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(107,114,128,0.3);
-            letter-spacing: 0.02em;
-            line-height: 1.3;
+            box-shadow: 0 1px 3px rgba(104,104,172,0.2);
+            letter-spacing: 0;
+            line-height: 1.5;
         }
 
         .download-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(107,114,128,0.4);
-            background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+            background: #4e4e81;
+            border-color: #4e4e81;
+            box-shadow: 0 2px 6px rgba(104,104,172,0.3);
+            transform: translateY(-1px);
         }
 
         .action-section {
@@ -279,29 +286,40 @@
         }
 
         .social-info {
-            background: #f0f9ff;
-            border-radius: 15px;
-            padding: 20px;
-            margin: 25px 0;
-            border: 1px solid #bae6fd;
+            background: #dbdbeb;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 20px 0;
+            border: 1px solid #a4a4cd;
         }
 
         .social-info-title {
-            font-size: 1em;
-            font-weight: 600;
-            color: #0369a1;
-            margin-bottom: 15px;
+            font-size: 0.9em;
+            font-weight: 500;
+            color: #4e4e81;
+            margin-bottom: 12px;
             text-align: center;
-            letter-spacing: 0.02em;
-            line-height: 1.4;
+            letter-spacing: 0;
+            line-height: 1.5;
         }
 
         .social-info-content {
-            font-size: 0.95em;
-            color: #1e40af;
+            font-size: 0.85em;
+            color: #4e4e81;
             line-height: 1.6;
             white-space: pre-line;
             word-break: break-word;
+        }
+
+        .social-link {
+            color: #6868ac;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .social-link:hover {
+            color: #4e4e81;
+            text-decoration: underline;
         }
 
 
@@ -352,12 +370,12 @@
             }
             
             .social-info {
-                padding: 15px;
-                margin: 20px 0;
+                padding: 12px;
+                margin: 16px 0;
             }
             
             .social-info-content {
-                font-size: 0.9em;
+                font-size: 0.8em;
             }
         }
         
@@ -433,11 +451,6 @@
                 歡迎認識我！
             </div>
             
-            <div id="social-info-section" class="social-info" style="display: none;">
-                <div class="social-info-title">🔗 社群連結</div>
-                <div id="social-info-content" class="social-info-content"></div>
-            </div>
-            
             <div class="contact-info">
                 <div class="contact-title">聯絡資訊</div>
                 <div class="contact-item">
@@ -460,6 +473,11 @@
                     <span class="contact-icon">📍</span>
                     <span id="user-address" class="contact-text"></span>
                 </div>
+            </div>
+            
+            <div id="social-info-section" class="social-info" style="display: none;">
+                <div class="social-info-title">🔗 社群連結</div>
+                <div id="social-info-content" class="social-info-content"></div>
             </div>
             
             <div class="action-section">
@@ -636,7 +654,8 @@
             const socialInfoSection = document.getElementById('social-info-section');
             const socialInfoContent = document.getElementById('social-info-content');
             if (data.socialLinks && data.socialLinks.socialNote && data.socialLinks.socialNote.trim() !== '') {
-                socialInfoContent.textContent = data.socialLinks.socialNote;
+                const processedContent = processSocialLinks(data.socialLinks.socialNote);
+                socialInfoContent.innerHTML = processedContent;
                 socialInfoSection.style.display = 'block';
             } else {
                 socialInfoSection.style.display = 'none';
@@ -801,6 +820,95 @@
             }
             
             return null;
+        }
+
+        // 處理社群媒體連結，自動轉換為可點擊的超連結
+        function processSocialLinks(text) {
+            // 先處理每行，分別處理避免交叉影響
+            const lines = text.split('\n');
+            const processedLines = lines.map(line => {
+                let processedLine = line;
+                
+                // Facebook
+                if (/^FB:/i.test(processedLine)) {
+                    processedLine = processedLine.replace(/FB:\s*(fb\.com\/[\w\.-]+|facebook\.com\/[\w\.-]+|@[\w\.-]+)/gi, function(match, url) {
+                        const cleanUrl = url.startsWith('@') ? `fb.com/${url.substring(1)}` : url;
+                        const fullUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
+                        return `FB: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
+                    });
+                }
+                
+                // Instagram
+                else if (/^IG:/i.test(processedLine)) {
+                    processedLine = processedLine.replace(/IG:\s*(instagram\.com\/[\w\.-]+|@[\w\.-]+)/gi, function(match, url) {
+                        const cleanUrl = url.startsWith('@') ? `instagram.com/${url.substring(1)}` : url;
+                        const fullUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
+                        return `IG: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
+                    });
+                }
+                
+                // LINE
+                else if (/^LINE:/i.test(processedLine)) {
+                    processedLine = processedLine.replace(/LINE:\s*(@[\w\.-]+|line\.me\/[\w\/-]+)/gi, function(match, url) {
+                        let fullUrl;
+                        if (url.startsWith('@')) {
+                            fullUrl = `https://line.me/ti/p/${url}`;
+                        } else if (url.startsWith('line.me')) {
+                            fullUrl = `https://${url}`;
+                        } else {
+                            fullUrl = url.startsWith('http') ? url : `https://${url}`;
+                        }
+                        return `LINE: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
+                    });
+                }
+                
+                // GitHub
+                else if (/^GitHub:/i.test(processedLine)) {
+                    processedLine = processedLine.replace(/GitHub:\s*(github\.com\/[\w\.-\/]+|@[\w\.-]+)/gi, function(match, url) {
+                        const cleanUrl = url.startsWith('@') ? `github.com/${url.substring(1)}` : url;
+                        const fullUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
+                        return `GitHub: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
+                    });
+                }
+                
+                // Twitter/X
+                else if (/^(Twitter|X):/i.test(processedLine)) {
+                    processedLine = processedLine.replace(/(Twitter|X):\s*(twitter\.com\/[\w\.-]+|x\.com\/[\w\.-]+|@[\w\.-]+)/gi, function(match, platform, url) {
+                        const cleanUrl = url.startsWith('@') ? `x.com/${url.substring(1)}` : url;
+                        const fullUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
+                        return `${platform}: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
+                    });
+                }
+                
+                // LinkedIn
+                else if (/^LinkedIn:/i.test(processedLine)) {
+                    processedLine = processedLine.replace(/LinkedIn:\s*(linkedin\.com\/[\w\/-]+|@[\w\.-]+)/gi, function(match, url) {
+                        const cleanUrl = url.startsWith('@') ? `linkedin.com/in/${url.substring(1)}` : url;
+                        const fullUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
+                        return `LinkedIn: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
+                    });
+                }
+                
+                // YouTube
+                else if (/^YouTube:/i.test(processedLine)) {
+                    processedLine = processedLine.replace(/YouTube:\s*(youtube\.com\/[\w\/@-]+|youtu\.be\/[\w-]+|@[\w\.-]+)/gi, function(match, url) {
+                        const cleanUrl = url.startsWith('@') ? `youtube.com/${url}` : url;
+                        const fullUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
+                        return `YouTube: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
+                    });
+                }
+                
+                // 一般 URL 處理（如果不是以上任何格式開頭）
+                else if (/^https?:\/\//i.test(processedLine)) {
+                    processedLine = processedLine.replace(/(https?:\/\/[\w\.-]+(?:\.[\w]{2,})+(?:\/[\w\.-\/\?#&=]*)?)/gi, function(match, url) {
+                        return `<a href="${url}" target="_blank" class="social-link">${url}</a>`;
+                    });
+                }
+                
+                return processedLine;
+            });
+            
+            return processedLines.join('\n');
         }
 
         window.addEventListener('load', function() {

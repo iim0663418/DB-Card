@@ -690,6 +690,12 @@
                 const currentPath = window.location.pathname.replace('/index.html', '').replace(/\/$/, '');
                 const photoUrl = `${currentOrigin}${currentPath}/${data.avatar}`;
                 
+                // 準備社群媒體備註
+                let socialNote = '';
+                if (data.socialLinks && data.socialLinks.socialNote && data.socialLinks.socialNote.trim() !== '') {
+                    socialNote = data.socialLinks.socialNote.replace(/\n/g, '\\n'); // 轉換換行符
+                }
+
                 // 組裝 vCard 內容（使用 CRLF 行結束符以符合 iOS 要求）
                 const vcardContent = [
                     'BEGIN:VCARD',
@@ -701,10 +707,8 @@
                     `TITLE;CHARSET=UTF-8:${data.title || ''}`,
                     `EMAIL;TYPE=work:${data.email || ''}`,
                     data.phone ? `TEL;TYPE=work,voice:${formattedPhone}` : '',
-                    data.socialLinks.github ? `URL;TYPE=work:${data.socialLinks.github}` : '',
-                    data.socialLinks.socialMedia ? `URL;TYPE=work:${data.socialLinks.socialMedia}` : '',
-                    data.socialLinks.line ? `URL;TYPE=work:${data.socialLinks.line}` : '',
                     `ADR;TYPE=work;CHARSET=UTF-8:;;${data.address || ''};;;;Taiwan`,
+                    socialNote ? `NOTE;CHARSET=UTF-8:${socialNote}` : '',
                     `PHOTO;TYPE=JPEG:${photoUrl}`,
                     `REV:${timestamp}`,
                     'END:VCARD'

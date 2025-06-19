@@ -103,13 +103,15 @@
 ## 📸 大頭貼設定指南
 
 ### 推薦圖片托管服務
-- **[Imgur](https://imgur.com)**：免費、穩定、支援 HTTPS
+- **[Imgur](https://imgur.com)**：免費、穩定、支援 HTTPS（推薦）
   1. 上傳圖片後右鍵選擇「複製圖片網址」
   2. 取得格式如：`https://i.imgur.com/XXXXXX.jpg`
 
 - **GitHub Repository**：使用專案內圖片
   1. 找到上傳的照片
-  2. 右鍵複製路徑（如：https://github.com/iim0663418/NFC-Digital-Business-Card-Project/blob/main/assets/wu_sheng_fan/photo.jpg?raw=true）
+  2. 右鍵複製路徑（如：https://github.com/yourusername/repo-name/blob/main/assets/photo.jpg?raw=true）
+
+⚠️ **重要提醒**：大頭貼現為選填欄位，如不填寫可為社群媒體資訊預留更多 NFC 容量
 
 ### 圖片規格建議
 - **尺寸**：建議 200x200 至 800x800 像素（正方形）
@@ -121,9 +123,13 @@
 
 ### GitHub Pages（推薦）
 1. Fork 此專案到你的 GitHub 帳號
-2. 在 Repository Settings > Pages 中啟用
-3. 選擇 `main` 分支作為來源
-4. 系統自動部署至：`https://yourusername.github.io/NFC-Digital-Business-Card-Project/`
+2. **⚠️ 重要：修改前端寫死的內容**
+   - 編輯 `index.html` 第 752 行：將「數位發展部」改為你的機構名稱
+   - 編輯 `index.html` 第 756 行：將「台北市中正區延平南路143號」改為你的機構地址
+   - 替換 `assets/moda-logo.svg` 為你的機構標誌
+3. 在 Repository Settings > Pages 中啟用
+4. 選擇 `main` 分支作為來源
+5. 系統自動部署至：`https://yourusername.github.io/NFC-Digital-Business-Card-Project/`
 
 ### 本地開發
 ```bash
@@ -143,12 +149,25 @@ npx http-server
 
 ## 📝 自訂指南
 
-### 更換組織標誌
+### 🔧 必要修改項目（Fork 後）
+
+**1. 組織資訊設定**
+```javascript
+// index.html 第 752 行 - 修改機構名稱
+organization: '你的機構名稱',
+
+// index.html 第 756 行 - 修改機構地址  
+address: '你的機構地址',
+```
+
+**2. 組織標誌更換**
 1. 替換 `assets/moda-logo.svg` 為你的組織標誌
 2. 建議使用 SVG 格式以確保清晰度
 3. 調整 `index.html` 中的標誌尺寸設定
 
-### 調整色彩主題
+### 🎨 進階自訂選項
+
+**調整色彩主題**
 ```css
 /* 在 index.html 中修改這些 CSS 變數 */
 body {
@@ -160,10 +179,18 @@ body {
 }
 ```
 
-### 新增或修改欄位
+**新增或修改欄位**
 1. 在 `nfc-generator.html` 添加表單欄位
 2. 在 `index.html` 的 `renderCard()` 函數中添加顯示邏輯
 3. 更新 vCard 生成器以包含新欄位
+
+### ⚠️ 容量最佳化設計
+
+本系統為了符合 NFC 492 bytes 容量限制，採用以下設計：
+- **機構名稱**：前端寫死，節省傳輸容量
+- **機構地址**：前端寫死，節省傳輸容量
+- **精簡格式**：使用單字母鍵值對壓縮資料
+- **智慧顯示**：空白欄位自動隱藏
 
 ## 🔒 隱私與安全
 

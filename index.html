@@ -497,7 +497,13 @@
         </div>
     </div>
     
-    <div id="access-denied" style="display: block; color: white; text-align: center; padding-top: 50px;">
+    <div id="loading-state" style="display: block; color: #1a1a1a; text-align: center; padding-top: 50px;">
+        <h1>⏳</h1>
+        <h2>載入中</h2>
+        <p>正在解析數位名片資料...</p>
+    </div>
+    
+    <div id="access-denied" style="display: none; color: white; text-align: center; padding-top: 50px;">
         <h1>🚫</h1>
         <h2>連結錯誤</h2>
         <p>請確認您使用的是正確的連結。</p>
@@ -916,51 +922,57 @@
         }
 
         window.addEventListener('load', function() {
-            // 嘗試從 NFC 獲取名片資料
-            const cardData = getCardDataFromNFC();
+            // 延遲一點時間讓使用者看到載入狀態
+            setTimeout(() => {
+                // 嘗試從 NFC 獲取名片資料
+                const cardData = getCardDataFromNFC();
 
-            if (!cardData) {
-                // 沒有提供名片資料，顯示訪問拒絕
-                document.getElementById('card-container').style.display = 'none';
-                document.getElementById('access-denied').style.display = 'block';
-                
-                // 更新錯誤訊息
-                const errorElement = document.querySelector('#access-denied p');
-                if (errorElement) {
-                    errorElement.textContent = '請使用 NFC 卡片或包含資料的連結訪問。';
-                }
-                return;
-            }
-
-            try {
-                // 驗證資料格式
-                if (!cardData.data || !cardData.data.name) {
-                    throw new Error('名片資料格式不正確');
+                if (!cardData) {
+                    // 沒有提供名片資料，隱藏載入狀態並顯示錯誤
+                    document.getElementById('loading-state').style.display = 'none';
+                    document.getElementById('card-container').style.display = 'none';
+                    document.getElementById('access-denied').style.display = 'block';
+                    
+                    // 更新錯誤訊息
+                    const errorElement = document.querySelector('#access-denied p');
+                    if (errorElement) {
+                        errorElement.textContent = '請使用 NFC 卡片或包含資料的連結訪問。';
+                    }
+                    return;
                 }
 
-                // 顯示名片並渲染資料
-                document.getElementById('card-container').style.display = 'block';
-                document.getElementById('access-denied').style.display = 'none';
+                try {
+                    // 驗證資料格式
+                    if (!cardData.data || !cardData.data.name) {
+                        throw new Error('名片資料格式不正確');
+                    }
 
-                // 渲染使用者資料
-                renderCard(cardData);
+                    // 隱藏載入狀態，顯示名片並渲染資料
+                    document.getElementById('loading-state').style.display = 'none';
+                    document.getElementById('access-denied').style.display = 'none';
+                    document.getElementById('card-container').style.display = 'block';
 
-                // 啟動頁面功能
-                setTimeout(changeGreeting, 1000); // 觸發打字機效果
-                generateQRCode(); // 產生 QR Code
-                setupVCardLink(cardData); // 設定 vCard 下載連結
+                    // 渲染使用者資料
+                    renderCard(cardData);
 
-            } catch (error) {
-                // 資料驗證失敗
-                console.error('名片資料驗證失敗:', error);
-                document.getElementById('card-container').style.display = 'none';
-                document.getElementById('access-denied').style.display = 'block';
-                
-                const errorElement = document.querySelector('#access-denied p');
-                if (errorElement) {
-                    errorElement.textContent = error.message || '名片資料格式錯誤。';
+                    // 啟動頁面功能
+                    setTimeout(changeGreeting, 1000); // 觸發打字機效果
+                    generateQRCode(); // 產生 QR Code
+                    setupVCardLink(cardData); // 設定 vCard 下載連結
+
+                } catch (error) {
+                    // 資料驗證失敗，隱藏載入狀態並顯示錯誤
+                    console.error('名片資料驗證失敗:', error);
+                    document.getElementById('loading-state').style.display = 'none';
+                    document.getElementById('card-container').style.display = 'none';
+                    document.getElementById('access-denied').style.display = 'block';
+                    
+                    const errorElement = document.querySelector('#access-denied p');
+                    if (errorElement) {
+                        errorElement.textContent = error.message || '名片資料格式錯誤。';
+                    }
                 }
-            }
+            }, 800); // 800ms 延遲讓使用者看到載入狀態
         });
 
     </script>

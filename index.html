@@ -503,10 +503,10 @@
         <p>正在解析數位名片資料...</p>
     </div>
     
-    <div id="access-denied" style="display: none; color: white; text-align: center; padding-top: 50px;">
+    <div id="access-denied" style="display: none; color: #333; text-align: center; padding-top: 50px;">
         <h1>🚫</h1>
-        <h2>連結錯誤</h2>
-        <p>請確認您使用的是正確的連結。</p>
+        <h2>無效資料</h2>
+        <p>無效資料</p>
     </div>
 
     <script>
@@ -541,7 +541,7 @@
             const qrContainer = document.getElementById('qrcode');
             
             // 使用 QR Server API 生成 QR 碼
-            const qrURL = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(currentURL)}&bgcolor=ffffff&color=6b7280`;
+            const qrURL = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(currentURL)}&bgcolor=ffffff&color=6b7280`;
             
             const qrImg = document.createElement('img');
             qrImg.src = qrURL;
@@ -650,7 +650,7 @@
             }
             
             document.getElementById('user-organization').textContent = data.organization;
-            document.getElementById('user-address').textContent = data.address;
+            document.getElementById('user-address').innerHTML = data.address.replace(/\n/g, '<br>');
             
             
             // 設定問候語
@@ -793,6 +793,7 @@
         // 轉換精簡格式為完整格式
         function convertCompactToFull(compactData) {
             return {
+                v: compactData.v, // 保留驗證碼值
                 meta: {
                     userId: compactData.n ? compactData.n.toLowerCase().replace(/\s+/g, '-') : 'user',
                     profile: 'work'
@@ -805,7 +806,7 @@
                     email: compactData.e || '',
                     phone: compactData.p || '',
                     avatar: compactData.a || '',
-                    address: '台北市中正區延平南路143號', // 固定地址
+                    address: '延平大樓：10066臺北市中正區延平南路143號\n新光大樓：100507臺北市中正區忠孝西路一段66號（17、19樓）', // 固定地址
                     greetings: compactData.g || ['歡迎認識我！'],
                     socialLinks: {
                         email: compactData.e ? `mailto:${compactData.e}` : '',
@@ -946,6 +947,7 @@
                     if (!cardData.data || !cardData.data.name) {
                         throw new Error('名片資料格式不正確');
                     }
+
 
                     // 隱藏載入狀態，顯示名片並渲染資料
                     document.getElementById('loading-state').style.display = 'none';

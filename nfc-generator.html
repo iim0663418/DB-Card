@@ -267,10 +267,8 @@
                 <div id="byteInfo" style="margin-bottom: 15px; padding: 10px; border-radius: 8px; font-weight: 500;"></div>
                 <div class="url-output" id="generatedUrl"></div>
                 <button class="btn copy-btn" onclick="copyToClipboard()">📋 複製連結</button>
+                <button class="btn" onclick="previewCard()" style="background: #059669; margin-top: 10px;">👁️ 預覽數位名片</button>
                 
-                <div class="qr-container">
-                    <div id="qrcode"></div>
-                </div>
 
                 <div class="note">
                     <strong>使用說明：</strong><br>
@@ -286,7 +284,6 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <script>
         const form = document.getElementById('cardForm');
         const output = document.getElementById('output');
@@ -311,7 +308,6 @@
             // 收集表單資料
             const greetingsText = document.getElementById('greetings').value;
             const greetingsArray = greetingsText.split('\n').filter(line => line.trim() !== '');
-
             const cardData = {
                 n: document.getElementById('name').value,
                 t: document.getElementById('title').value,
@@ -354,30 +350,11 @@
             document.getElementById('generatedUrl').textContent = generatedUrl;
             output.style.display = 'block';
 
-            // 生成 QR 碼
-            generateQRCode();
 
             // 滾動到結果區域
             output.scrollIntoView({ behavior: 'smooth' });
         }
 
-        function generateQRCode() {
-            const qrContainer = document.getElementById('qrcode');
-            qrContainer.innerHTML = ''; // 清空之前的 QR 碼
-
-            QRCode.toCanvas(qrContainer, generatedUrl, {
-                width: 256,
-                height: 256,
-                margin: 2
-            }, function (error) {
-                if (error) {
-                    console.error('QR 碼生成失敗:', error);
-                    qrContainer.innerHTML = '<p style="color: red;">QR 碼生成失敗</p>';
-                } else {
-                    console.log('QR 碼生成成功');
-                }
-            });
-        }
 
         function copyToClipboard() {
             navigator.clipboard.writeText(generatedUrl).then(function() {
@@ -394,6 +371,14 @@
                 console.error('複製失敗:', err);
                 alert('複製失敗，請手動複製連結');
             });
+        }
+
+        function previewCard() {
+            if (generatedUrl) {
+                window.open(generatedUrl, '_blank');
+            } else {
+                alert('請先生成 NFC 連結');
+            }
         }
     </script>
 </body>

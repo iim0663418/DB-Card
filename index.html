@@ -851,14 +851,9 @@
             return null;
         }
 
-        // 轉換精簡格式為完整格式
+        // 轉換精簡格式為完整格式（優化版本）
         function convertCompactToFull(compactData) {
             return {
-                v: compactData.v, // 保留驗證碼值
-                meta: {
-                    userId: compactData.n ? compactData.n.toLowerCase().replace(/\s+/g, '-') : 'user',
-                    profile: 'work'
-                },
                 data: {
                     name: compactData.n || '',
                     title: compactData.t || '',

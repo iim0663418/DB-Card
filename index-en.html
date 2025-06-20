@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>數位發展部數位名片</title>
+    <title>Ministry of Digital Affairs - Digital Business Card</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -15,7 +15,7 @@
         }
 
         body {
-            font-family: 'PingFang TC', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans TC', 'Microsoft JhengHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             font-feature-settings: 'kern' 1, 'liga' 1;
             font-weight: 300;
             -webkit-font-smoothing: antialiased;
@@ -322,7 +322,6 @@
             text-decoration: underline;
         }
 
-
         @media (max-width: 480px) {
             .card {
                 padding: 25px 20px;
@@ -448,11 +447,11 @@
             <p id="user-department" class="department"></p>
             
             <div class="greeting" id="greeting">
-                歡迎認識我！
+                Nice to meet you!
             </div>
             
             <div class="contact-info">
-                <div class="contact-title">聯絡資訊</div>
+                <div class="contact-title">Contact Information</div>
                 <div class="contact-item">
                     <span class="contact-icon">📧</span>
                     <span class="contact-text">
@@ -476,37 +475,36 @@
             </div>
             
             <div id="social-info-section" class="social-info" style="display: none;">
-                <div class="social-info-title">🔗 社群連結</div>
+                <div class="social-info-title">🔗 Social Links</div>
                 <div id="social-info-content" class="social-info-content"></div>
             </div>
             
             <div class="action-section">
                 <a href="#" id="add-contact-btn" class="download-btn">
-                    📱 加入聯絡人
+                    📱 Add to Contacts
                 </a>
                 <p id="contact-helper-text" style="font-size: 0.9em; color: #4b5563; margin-top: 15px;"></p>
                 
                 <div class="qr-section">
                     <div class="qr-code" id="qrcode">
-                        QR 碼載入中...
+                        Loading QR Code...
                     </div>
-                    <div class="qr-label">掃描 QR 碼快速開啟</div>
+                    <div class="qr-label">Scan QR Code to Open</div>
                 </div>
-                
             </div>
         </div>
     </div>
     
     <div id="loading-state" style="display: block; color: #1a1a1a; text-align: center; padding-top: 50px;">
         <h1>⏳</h1>
-        <h2>載入中</h2>
-        <p>正在解析數位名片資料...</p>
+        <h2>Loading</h2>
+        <p>Parsing digital business card data...</p>
     </div>
     
     <div id="access-denied" style="display: none; color: #333; text-align: center; padding-top: 50px;">
         <h1>🚫</h1>
-        <h2>無效資料</h2>
-        <p>無效資料</p>
+        <h2>Invalid Data</h2>
+        <p>Invalid data</p>
     </div>
 
     <script>
@@ -554,31 +552,72 @@
             qrContainer.appendChild(qrImg);
         }
 
+        // 職位翻譯字典
+        const titleTranslations = {
+            '部長': 'Minister',
+            '政務次長': 'Deputy Minister',
+            '常務次長': 'Deputy Minister',
+            '主任秘書': 'Chief Secretary',
+            '司長': 'Director-General',
+            '副司長': 'Deputy Director-General',
+            '組長': 'Division Director',
+            '副組長': 'Deputy Division Director',
+            '科長': 'Section Chief',
+            '副科長': 'Deputy Section Chief',
+            '簡任技正': 'Senior Technical Specialist',
+            '薦任技正': 'Technical Specialist',
+            '專門委員': 'Senior Executive Officer',
+            '秘書': 'Secretary',
+            '技正': 'Technical Officer',
+            '技士': 'Technical Assistant',
+            '辦事員': 'Administrative Officer',
+            '助理': 'Assistant'
+        };
+
+        // 部門翻譯字典
+        const departmentTranslations = {
+            '資訊處': 'Information Department',
+            '綜合規劃司': 'Department of Comprehensive Planning',
+            '數位產業署': 'Administration for Digital Industries',
+            '資通安全署': 'Administration for Cyber Security',
+            '民主網絡司': 'Department of Democracy Network',
+            '數位政府司': 'Department of Digital Government',
+            '資源管理處': 'Department of Resource Management',
+            '法制處': 'Legal Affairs Department',
+            '政風處': 'Department of Government Ethics',
+            '人事處': 'Personnel Department',
+            '會計處': 'Accounting Department',
+            '秘書處': 'Secretariat'
+        };
+
         // 渲染名片函數
         function renderCard(userData) {
             const data = userData.data;
             
             // 基本資訊
             document.getElementById('user-name').textContent = data.name;
-            document.getElementById('user-title').textContent = data.title;
-            document.getElementById('user-department').textContent = data.department;
             
-            // 頭像
+            // 翻譯職位
+            const translatedTitle = titleTranslations[data.title] || data.title;
+            document.getElementById('user-title').textContent = translatedTitle;
+            
+            // 翻譯部門
+            const translatedDepartment = departmentTranslations[data.department] || data.department;
+            document.getElementById('user-department').textContent = translatedDepartment;
+            
+            // 頭像處理（與中文版相同）
             const avatar = document.getElementById('user-avatar');
             
-            // 設定載入成功處理
             avatar.onload = function() {
                 console.log('Avatar loaded successfully:', this.src);
                 this.style.display = 'block';
             };
             
-            // 設定載入失敗處理
             let retryCount = 0;
             avatar.onerror = function() {
                 console.error('Avatar load failed:', this.src, 'Retry count:', retryCount);
                 
                 if (retryCount === 0) {
-                    // 第一次失敗，檢查是否為 Google Drive 連結
                     if (data.avatar.includes('drive.google.com')) {
                         const googleDriveDirectUrl = convertGoogleDriveUrl(data.avatar);
                         if (googleDriveDirectUrl) {
@@ -589,24 +628,20 @@
                         }
                     }
                     
-                    // 檢查是否為相對路徑
                     if (!data.avatar.startsWith('http') && !data.avatar.startsWith('./')) {
                         console.log('Trying with ./ prefix:', './' + data.avatar);
                         this.src = './' + data.avatar;
                         retryCount++;
                     } else if (data.avatar.startsWith('./')) {
-                        // 移除 ./ 前綴重試
                         console.log('Trying without ./ prefix:', data.avatar.substring(2));
                         this.src = data.avatar.substring(2);
                         retryCount++;
                     } else {
-                        // 隱藏圖片
                         console.log('Cannot resolve avatar path, hiding avatar');
                         this.style.display = 'none';
                         return;
                     }
                 } else if (retryCount === 1) {
-                    // 第二次失敗，嘗試絕對路徑構建
                     if (!data.avatar.startsWith('http')) {
                         const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/');
                         const cleanPath = data.avatar.replace(/^\.\//, '');
@@ -615,21 +650,16 @@
                         this.src = absolutePath;
                         retryCount++;
                     } else {
-                        // HTTP 連結失敗，隱藏圖片
                         console.log('HTTP avatar loading failed, hiding avatar');
                         this.style.display = 'none';
                     }
                 } else {
-                    // 所有嘗試都失敗，隱藏圖片
                     console.log('All avatar loading attempts failed, hiding avatar');
                     this.style.display = 'none';
                 }
             };
             
-            // 設定基本屬性
             avatar.alt = data.name;
-            
-            // 開始載入圖片
             console.log('Loading avatar:', data.avatar);
             avatar.src = data.avatar;
             
@@ -638,7 +668,7 @@
             emailLink.href = data.socialLinks.email;
             emailLink.textContent = data.email;
             
-            // 電話（可選）
+            // 電話
             const phoneItem = document.getElementById('phone-item');
             if (data.phone) {
                 const phoneLink = document.getElementById('user-phone');
@@ -649,12 +679,18 @@
                 phoneItem.style.display = 'none';
             }
             
-            document.getElementById('user-organization').textContent = data.organization;
-            document.getElementById('user-address').innerHTML = data.address.replace(/\n/g, '<br>');
+            // 組織和地址（英文翻譯）
+            document.getElementById('user-organization').textContent = 'Ministry of Digital Affairs';
+            document.getElementById('user-address').innerHTML = 'No. 143, Yanping S. Rd., Zhongzheng Dist., Taipei City 100057, Taiwan (R.O.C.)';
             
-            
-            // 設定問候語
-            greetings = data.greetings;
+            // 設定問候語（翻譯為英文）
+            greetings = data.greetings.map(greeting => {
+                return greeting
+                    .replace(/歡迎認識我！?/g, 'Nice to meet you!')
+                    .replace(/很高興認識您/g, 'Pleased to meet you')
+                    .replace(/期待與您合作/g, 'Looking forward to working with you')
+                    .replace(/感謝您的時間/g, 'Thank you for your time');
+            });
             
             // 顯示社群媒體資訊
             const socialInfoSection = document.getElementById('social-info-section');
@@ -676,39 +712,32 @@
             const helperText = document.getElementById('contact-helper-text');
             let messageShown = false;
 
-            // 動態生成 vCard 內容，遵循 VCARD-GUIDE.md 的跨平台相容格式
+            // 動態生成 vCard 內容，使用英文格式
             function generateVCardContent() {
-                // 處理姓名分割（中文姓名：第一個字為姓，其餘為名）
                 const fullName = data.name;
                 const surname = fullName.substring(0, 1);
                 const givenName = fullName.substring(1);
                 
-                // 格式化電話號碼
                 const phone = data.phone ? data.phone.replace(/[^0-9+]/g, '') : '';
                 const formattedPhone = phone.startsWith('+') ? phone : `+886-${phone.replace(/^0/, '')}`;
                 
-                // 生成當前時間戳
                 const now = new Date();
                 const timestamp = now.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
                 
-                // 動態生成照片 URL（基於當前網站位置）
                 const currentOrigin = window.location.origin;
-                const currentPath = window.location.pathname.replace('/index.html', '').replace(/\/$/, '');
+                const currentPath = window.location.pathname.replace('/index-en.html', '').replace(/\/$/, '');
                 const photoUrl = `${currentOrigin}${currentPath}/${data.avatar}`;
                 
-                // 準備社群媒體備註
                 let socialNote = '';
                 if (data.socialLinks && data.socialLinks.socialNote && data.socialLinks.socialNote.trim() !== '') {
-                    socialNote = data.socialLinks.socialNote.replace(/\n/g, '\\n'); // 轉換換行符
+                    socialNote = data.socialLinks.socialNote.replace(/\n/g, '\\n');
                 }
 
                 // 動態檢測設備類型和系統版本生成 PRODID
                 function generatePRODID() {
                     const userAgent = navigator.userAgent;
                     
-                    // iOS 設備檢測
                     if (/iPhone|iPad|iPod/i.test(userAgent)) {
-                        // 嘗試獲取 iOS 版本
                         const iosMatch = userAgent.match(/OS (\d+)_(\d+)(?:_(\d+))?/);
                         if (iosMatch) {
                             const major = iosMatch[1];
@@ -716,13 +745,10 @@
                             const patch = iosMatch[3] || '0';
                             return `-//Apple Inc.//iPhone OS ${major}.${minor}.${patch}//EN`;
                         } else {
-                            return `-//Apple Inc.//iPhone OS 17.0//EN`; // 預設為較新版本
+                            return `-//Apple Inc.//iPhone OS 17.0//EN`;
                         }
                     }
-                    
-                    // Android 設備檢測
                     else if (/Android/i.test(userAgent)) {
-                        // 嘗試獲取 Android 版本
                         const androidMatch = userAgent.match(/Android (\d+)\.(\d+)(?:\.(\d+))?/);
                         if (androidMatch) {
                             const major = androidMatch[1];
@@ -730,16 +756,12 @@
                             const patch = androidMatch[3] || '0';
                             return `-//Google Inc.//Android ${major}.${minor}.${patch}//EN`;
                         } else {
-                            return `-//Google Inc.//Android 14.0//EN`; // 預設為較新版本
+                            return `-//Google Inc.//Android 14.0//EN`;
                         }
                     }
-                    
-                    // Windows 設備檢測
                     else if (/Windows/i.test(userAgent)) {
                         return `-//Microsoft Corporation//Windows//EN`;
                     }
-                    
-                    // macOS 設備檢測
                     else if (/Macintosh|Mac OS X/i.test(userAgent)) {
                         const macMatch = userAgent.match(/Mac OS X (\d+)_(\d+)(?:_(\d+))?/);
                         if (macMatch) {
@@ -751,30 +773,29 @@
                             return `-//Apple Inc.//macOS 14.0//EN`;
                         }
                     }
-                    
-                    // Linux 或其他系統
                     else if (/Linux/i.test(userAgent)) {
                         return `-//Linux Foundation//Linux//EN`;
                     }
-                    
-                    // 預設通用格式
                     else {
                         return `-//MODA//Digital Business Card Generator 1.0//EN`;
                     }
                 }
 
-                // 組裝 vCard 內容（使用 CRLF 行結束符以確保跨平台相容性）
+                // 翻譯職位和部門
+                const translatedTitle = titleTranslations[data.title] || data.title;
+                const translatedDepartment = departmentTranslations[data.department] || data.department;
+
                 const vcardContent = [
                     'BEGIN:VCARD',
                     'VERSION:3.0',
                     `PRODID:${generatePRODID()}`,
                     `FN;CHARSET=UTF-8:${fullName}`,
                     `N;CHARSET=UTF-8:${surname};${givenName};;;`,
-                    `ORG;CHARSET=UTF-8:${data.organization || ''}`,
-                    `TITLE;CHARSET=UTF-8:${data.title || ''}`,
+                    `ORG;CHARSET=UTF-8:Ministry of Digital Affairs`,
+                    `TITLE;CHARSET=UTF-8:${translatedTitle}`,
                     `EMAIL;TYPE=work:${data.email || ''}`,
                     data.phone ? `TEL;TYPE=work,voice:${formattedPhone}` : '',
-                    `ADR;TYPE=work;CHARSET=UTF-8:;;${data.address || ''};;;;Taiwan`,
+                    `ADR;TYPE=work;CHARSET=UTF-8:;;No. 143, Yanping S. Rd., Zhongzheng Dist., Taipei City 100057, Taiwan (R.O.C.);;;;Taiwan`,
                     socialNote ? `NOTE;CHARSET=UTF-8:${socialNote}` : '',
                     `PHOTO;TYPE=JPEG:${photoUrl}`,
                     `REV:${timestamp}`,
@@ -784,28 +805,24 @@
                 return vcardContent;
             }
 
-            // 設定下載連結
             const vcardContent = generateVCardContent();
             const vcfData = encodeURIComponent(vcardContent);
             contactLink.href = `data:text/vcard;charset=utf-8,${vcfData}`;
             contactLink.setAttribute('download', `${data.name}.vcf`);
 
-            // 監聽按鈕點擊事件
             contactLink.addEventListener('click', function() {
                 if (!messageShown) {
-                    helperText.innerHTML = '下載後，請點擊<b>「開啟」</b>或於<b>通知欄</b>中找到檔案，即可完成新增。';
+                    helperText.innerHTML = 'After downloading, please click <b>"Open"</b> or find the file in your notification bar to complete adding.';
                     messageShown = true;
                 }
             });
         }
 
         function getCardDataFromNFC() {
-            // 從 URL 參數中獲取 NFC 傳送的 JSON 資料
             const urlParams = new URLSearchParams(window.location.search);
             let cardDataParam = urlParams.get('data');
             let isCompactFormat = false;
             
-            // 檢查是否為精簡格式
             if (!cardDataParam) {
                 cardDataParam = urlParams.get('c');
                 isCompactFormat = true;
@@ -813,14 +830,12 @@
             
             if (cardDataParam) {
                 try {
-                    // 先解 URL 編碼，再解 Base64，最後解析 JSON（支援 UTF-8）
                     const urlDecodedData = decodeURIComponent(cardDataParam);
                     const base64DecodedData = decodeURIComponent(escape(atob(urlDecodedData)));
                     const rawData = JSON.parse(base64DecodedData);
                     
                     let cardData;
                     if (isCompactFormat) {
-                        // 轉換精簡格式為標準格式
                         cardData = convertCompactToFull(rawData);
                     } else {
                         cardData = rawData;
@@ -835,7 +850,6 @@
                 }
             }
             
-            // 檢查是否有直接的 JSON 資料參數（開發測試用）
             const jsonParam = urlParams.get('json');
             if (jsonParam) {
                 try {
@@ -851,10 +865,10 @@
             return null;
         }
 
-        // 轉換精簡格式為完整格式
+        // 轉換精簡格式為完整格式（英文版地址）
         function convertCompactToFull(compactData) {
             return {
-                v: compactData.v, // 保留驗證碼值
+                v: compactData.v,
                 meta: {
                     userId: compactData.n ? compactData.n.toLowerCase().replace(/\s+/g, '-') : 'user',
                     profile: 'work'
@@ -867,8 +881,8 @@
                     email: compactData.e || '',
                     phone: compactData.p || '',
                     avatar: compactData.a || '',
-                    address: '100057臺北市中正區延平南路143號', // 延平大樓地址
-                    greetings: compactData.g || ['歡迎認識我！'],
+                    address: 'No. 143, Yanping S. Rd., Zhongzheng Dist., Taipei City 100057, Taiwan (R.O.C.)', // 延平大樓英文地址
+                    greetings: compactData.g || ['Nice to meet you!'],
                     socialLinks: {
                         email: compactData.e ? `mailto:${compactData.e}` : '',
                         socialNote: compactData.s || ''
@@ -877,16 +891,13 @@
             };
         }
 
-        // 轉換 Google Drive 分享連結為直接圖片連結
         function convertGoogleDriveUrl(url) {
-            // 匹配 Google Drive 分享連結格式
             const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
             if (match) {
                 const fileId = match[1];
                 return `https://drive.google.com/uc?export=view&id=${fileId}`;
             }
             
-            // 如果已經是直接連結格式，返回原連結
             if (url.includes('drive.google.com/uc?')) {
                 return url;
             }
@@ -894,14 +905,11 @@
             return null;
         }
 
-        // 處理社群媒體連結，自動轉換為可點擊的超連結
         function processSocialLinks(text) {
-            // 先處理每行，分別處理避免交叉影響
             const lines = text.split('\n');
             const processedLines = lines.map(line => {
                 let processedLine = line;
                 
-                // Facebook
                 if (/^FB:/i.test(processedLine)) {
                     processedLine = processedLine.replace(/FB:\s*(fb\.com\/[\w\.-]+|facebook\.com\/[\w\.-]+|@[\w\.-]+)/gi, function(match, url) {
                         const cleanUrl = url.startsWith('@') ? `fb.com/${url.substring(1)}` : url;
@@ -909,8 +917,6 @@
                         return `FB: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
                     });
                 }
-                
-                // Instagram
                 else if (/^IG:/i.test(processedLine)) {
                     processedLine = processedLine.replace(/IG:\s*(instagram\.com\/[\w\.-]+|@[\w\.-]+)/gi, function(match, url) {
                         const cleanUrl = url.startsWith('@') ? `instagram.com/${url.substring(1)}` : url;
@@ -918,8 +924,6 @@
                         return `IG: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
                     });
                 }
-                
-                // LINE
                 else if (/^LINE:/i.test(processedLine)) {
                     processedLine = processedLine.replace(/LINE:\s*(@[\w\.-]+|line\.me\/[\w\/-]+)/gi, function(match, url) {
                         let fullUrl;
@@ -933,8 +937,6 @@
                         return `LINE: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
                     });
                 }
-                
-                // GitHub
                 else if (/^GitHub:/i.test(processedLine)) {
                     processedLine = processedLine.replace(/GitHub:\s*(github\.com\/[\w\.-\/]+|@[\w\.-]+)/gi, function(match, url) {
                         const cleanUrl = url.startsWith('@') ? `github.com/${url.substring(1)}` : url;
@@ -942,8 +944,6 @@
                         return `GitHub: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
                     });
                 }
-                
-                // Twitter/X
                 else if (/^(Twitter|X):/i.test(processedLine)) {
                     processedLine = processedLine.replace(/(Twitter|X):\s*(twitter\.com\/[\w\.-]+|x\.com\/[\w\.-]+|@[\w\.-]+)/gi, function(match, platform, url) {
                         const cleanUrl = url.startsWith('@') ? `x.com/${url.substring(1)}` : url;
@@ -951,8 +951,6 @@
                         return `${platform}: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
                     });
                 }
-                
-                // LinkedIn
                 else if (/^LinkedIn:/i.test(processedLine)) {
                     processedLine = processedLine.replace(/LinkedIn:\s*(linkedin\.com\/[\w\/-]+|@[\w\.-]+)/gi, function(match, url) {
                         const cleanUrl = url.startsWith('@') ? `linkedin.com/in/${url.substring(1)}` : url;
@@ -960,8 +958,6 @@
                         return `LinkedIn: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
                     });
                 }
-                
-                // YouTube
                 else if (/^YouTube:/i.test(processedLine)) {
                     processedLine = processedLine.replace(/YouTube:\s*(youtube\.com\/[\w\/@-]+|youtu\.be\/[\w-]+|@[\w\.-]+)/gi, function(match, url) {
                         const cleanUrl = url.startsWith('@') ? `youtube.com/${url}` : url;
@@ -969,8 +965,6 @@
                         return `YouTube: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
                     });
                 }
-                
-                // 一般 URL 處理（如果不是以上任何格式開頭）
                 else if (/^https?:\/\//i.test(processedLine)) {
                     processedLine = processedLine.replace(/(https?:\/\/[\w\.-]+(?:\.[\w]{2,})+(?:\/[\w\.-\/\?#&=]*)?)/gi, function(match, url) {
                         return `<a href="${url}" target="_blank" class="social-link">${url}</a>`;
@@ -984,58 +978,48 @@
         }
 
         window.addEventListener('load', function() {
-            // 延遲一點時間讓使用者看到載入狀態
             setTimeout(() => {
-                // 嘗試從 NFC 獲取名片資料
                 const cardData = getCardDataFromNFC();
 
                 if (!cardData) {
-                    // 沒有提供名片資料，隱藏載入狀態並顯示錯誤
                     document.getElementById('loading-state').style.display = 'none';
                     document.getElementById('card-container').style.display = 'none';
                     document.getElementById('access-denied').style.display = 'block';
                     
-                    // 更新錯誤訊息
                     const errorElement = document.querySelector('#access-denied p');
                     if (errorElement) {
-                        errorElement.textContent = '請使用 NFC 卡片或包含資料的連結訪問。';
+                        errorElement.textContent = 'Please access with NFC card or data link.';
                     }
                     return;
                 }
 
                 try {
-                    // 驗證資料格式
                     if (!cardData.data || !cardData.data.name) {
-                        throw new Error('名片資料格式不正確');
+                        throw new Error('Invalid business card data format');
                     }
 
-
-                    // 隱藏載入狀態，顯示名片並渲染資料
                     document.getElementById('loading-state').style.display = 'none';
                     document.getElementById('access-denied').style.display = 'none';
                     document.getElementById('card-container').style.display = 'block';
 
-                    // 渲染使用者資料
                     renderCard(cardData);
 
-                    // 啟動頁面功能
-                    setTimeout(changeGreeting, 1000); // 觸發打字機效果
-                    generateQRCode(); // 產生 QR Code
-                    setupVCardLink(cardData); // 設定 vCard 下載連結
+                    setTimeout(changeGreeting, 1000);
+                    generateQRCode();
+                    setupVCardLink(cardData);
 
                 } catch (error) {
-                    // 資料驗證失敗，隱藏載入狀態並顯示錯誤
-                    console.error('名片資料驗證失敗:', error);
+                    console.error('Business card data validation failed:', error);
                     document.getElementById('loading-state').style.display = 'none';
                     document.getElementById('card-container').style.display = 'none';
                     document.getElementById('access-denied').style.display = 'block';
                     
                     const errorElement = document.querySelector('#access-denied p');
                     if (errorElement) {
-                        errorElement.textContent = error.message || '名片資料格式錯誤。';
+                        errorElement.textContent = error.message || 'Business card data format error.';
                     }
                 }
-            }, 800); // 800ms 延遲讓使用者看到載入狀態
+            }, 800);
         });
 
     </script>

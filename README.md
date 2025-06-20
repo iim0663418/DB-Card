@@ -12,15 +12,19 @@
 - 🌐 **純前端架構**：無需後端服務，可部署至任何靜態托管平台
 - 📱 **跨平台相容**：Android 和 iOS 設備均完美支援
 - 🔧 **視覺化生成器**：內建 NFC 生成器，輕鬆創建個人數位名片
+- 🌐 **雙語支援**：智慧地址分離與多語言顯示，無需增加 NFC 資料量
 
 ## 📦 專案結構
 
 ```
-├── index.html              # 數位名片顯示頁面
-├── nfc-generator.html      # NFC 名片生成器
+├── index.html              # 數位名片顯示頁面（中文延平大樓）
+├── index1.html             # 數位名片顯示頁面（中文新光大樓）
+├── index-en.html           # 數位名片顯示頁面（英文延平大樓）
+├── index1-en.html          # 數位名片顯示頁面（英文新光大樓）
+├── nfc-generator.html      # NFC 名片生成器（含雙語選擇）
 ├── assets/                 # 資源檔案目錄
 │   ├── moda-logo.svg       # MODA 官方標誌
-│   ├── wu_sheng_fan/       # 範例用戶資源
+│   ├── wu_sheng_fan/       # 範例使用者資源
 │   │   └── photo.jpg       # 範例大頭貼
 │   └── COPYRIGHT.txt       # 範例版權聲明文件（數位發展部商標圖已 CC0）
 ├── NFC-GUIDE.md           # NFC 操作說明
@@ -34,10 +38,12 @@
 ### 1. 創建數位名片
 
 1. 開啟 `nfc-generator.html`[範例](https://iim0663418.github.io/DB-Card/nfc-generator.html)
+2. **選擇語言**：繁體中文或 English
 3. 填寫個人資料（姓名、職稱、聯絡方式等）
-4. 上傳大頭貼（推薦使用 [Imgur](https://imgur.com) 或 GitHub Raw 圖片）
-5. 點擊「生成 NFC 連結」
-6. 複製生成的連結和 QR 碼
+4. **選擇辦公地址**：延平大樓或新光大樓
+5. 上傳大頭貼（推薦使用 [Imgur](https://imgur.com) 或 GitHub Raw 圖片）
+6. 點擊「生成 NFC 連結」
+7. 複製生成的連結和 QR 碼
 
 ### 2. 寫入 NFC 卡片
 
@@ -65,6 +71,19 @@
 - 適用於 QR 碼、電子郵件或即時通訊分享
 
 ## 🔧 技術架構
+
+### 🌐 雙語架構設計
+
+#### 頁面對應關係
+| 地址/語言 | 中文版本 | 英文版本 |
+|-----------|----------|----------|
+| 延平大樓 | `index.html` | `index-en.html` |
+| 新光大樓 | `index1.html` | `index1-en.html` |
+
+#### 翻譯策略
+- **個人資料**：建議使用者專版專用，不增加 NFC 容量為優先考量
+- **組織資訊**：前端翻譯（數位發展部 → Ministry of Digital Affairs）
+- **地址資訊**：使用官方英文地址翻譯
 
 ### 資料格式
 ```json
@@ -151,16 +170,31 @@ npx http-server
 
 ### 🔧 必要修改項目（Fork 後）
 
-**1. 組織資訊設定**
+**1. 組織資訊設定（中文版本）**
 ```javascript
-// index.html 第 752 行 - 修改機構名稱
+// index.html & index1.html - 修改機構名稱和地址
 organization: '你的機構名稱',
-
-// index.html 第 756 行 - 修改機構地址  
 address: '你的機構地址',
 ```
 
-**2. 組織標誌更換**
+**2. 組織資訊設定（英文版本）**
+```javascript
+// index-en.html & index1-en.html - 修改英文機構名稱和地址
+organization: 'Your Organization Name',
+address: 'Your Organization Address in English',
+```
+
+**3. 職位翻譯字典（英文版本）**
+```javascript
+// 在 index-en.html & index1-en.html 中更新職位翻譯
+const titleTranslations = {
+    '你的職位': 'Your Title',
+    '你的部門': 'Your Department',
+    // 添加更多職位翻譯...
+};
+```
+
+**4. 組織標誌更換**
 1. 替換 `assets/moda-logo.svg` 為你的組織標誌
 2. 建議使用 SVG 格式以確保清晰度
 3. 調整 `index.html` 中的標誌尺寸設定

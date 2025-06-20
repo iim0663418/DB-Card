@@ -188,6 +188,22 @@
         <div class="main-content">
             <form id="cardForm">
                 <div class="form-section">
+                    <h2>語言設定</h2>
+                    <div class="form-group">
+                        <label for="languageSelect">選擇語言</label>
+                        <select id="languageSelect" style="width: 100%; padding: 12px 15px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: border-color 0.3s ease;">
+                            <option value="zh">繁體中文</option>
+                            <option value="en">English</option>
+                        </select>
+                        <div style="font-size: 0.8em; color: #6b7280; margin-top: 8px; line-height: 1.4;">
+                            💡 <strong>雙語功能：</strong><br>
+                            • 主要支援會有外賓的正式場合，針對英文需求準備專屬前端頁面<br>
+                            • 建議製作英文版時，個人資料、職稱也用正式的用法<br>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
                     <h2>基本資訊</h2>
                     <div class="form-row">
                         <div class="form-group">
@@ -285,7 +301,7 @@
                     <strong>使用說明：</strong><br>
                     1. 複製上方生成的連結<br>
                     2. 使用 NFC 寫入工具（如 <a href="https://www.wakdev.com/en/apps/nfc-tools-pc-mac.html" target="_blank" style="color: #d97706;">NFC Tools</a>）將連結寫入 NFC 卡片<br>
-                    3. 用戶觸碰 NFC 卡片即可開啟數位名片<br><br>
+                    3. 使用者觸碰 NFC 卡片即可開啟數位名片<br><br>
                     <strong>💡 優化建議：</strong><br>
                     • NFC 卡片容量限制：492 bytes<br>
                     • 精簡格式已針對 NFC 容量優化<br>
@@ -334,9 +350,18 @@
             const jsonString = JSON.stringify(cardData);
             const encodedData = btoa(unescape(encodeURIComponent(jsonString)));
 
-            // 根據地址選擇決定使用哪個頁面
+            // 根據地址和語言選擇決定使用哪個頁面
             const addressSelect = document.getElementById('addressSelect').value;
-            const indexFile = addressSelect === '新光大樓' ? 'index1.html' : 'index.html';
+            const languageSelect = document.getElementById('languageSelect').value;
+            
+            let indexFile;
+            if (languageSelect === 'en') {
+                // 英文版本
+                indexFile = addressSelect === '新光大樓' ? 'index1-en.html' : 'index-en.html';
+            } else {
+                // 中文版本
+                indexFile = addressSelect === '新光大樓' ? 'index1.html' : 'index.html';
+            }
             
             // 生成完整 URL（使用精簡格式）
             const baseUrl = window.location.origin + window.location.pathname.replace('nfc-generator.html', indexFile);

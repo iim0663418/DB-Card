@@ -240,6 +240,17 @@
                 </div>
 
                 <div class="form-section">
+                    <h2>地址設定</h2>
+                    <div class="form-group">
+                        <label for="addressSelect">選擇辦公地址</label>
+                        <select id="addressSelect" style="width: 100%; padding: 12px 15px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: border-color 0.3s ease;">
+                            <option value="延平大樓">延平大樓 - 10066臺北市中正區延平南路143號</option>
+                            <option value="新光大樓">新光大樓 - 100507臺北市中正區忠孝西路一段66號（17、19樓）</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-section">
                     <h2>個人化設定</h2>
                     <div class="form-group">
                         <label for="avatar">大頭貼 URL (選填)</label>
@@ -323,8 +334,12 @@
             const jsonString = JSON.stringify(cardData);
             const encodedData = btoa(unescape(encodeURIComponent(jsonString)));
 
+            // 根據地址選擇決定使用哪個頁面
+            const addressSelect = document.getElementById('addressSelect').value;
+            const indexFile = addressSelect === '新光大樓' ? 'index1.html' : 'index.html';
+            
             // 生成完整 URL（使用精簡格式）
-            const baseUrl = window.location.origin + window.location.pathname.replace('nfc-generator.html', 'index.html');
+            const baseUrl = window.location.origin + window.location.pathname.replace('nfc-generator.html', indexFile);
             generatedUrl = `${baseUrl}?c=${encodeURIComponent(encodedData)}`;
 
             // 計算 URL 位元組大小

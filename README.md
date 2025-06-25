@@ -37,7 +37,8 @@
 
 ### 1. 創建數位名片
 
-1. 開啟 `nfc-generator.html`[範例](https://iim0663418.github.io/DB-Card/nfc-generator.html)
+1. 開啟 `nfc-generator.html`
+>> https://{yourDomain}.github.io/DB-Card/nfc-generator.html
 2. **選擇語言**：繁體中文或 English
 3. 填寫個人資料（姓名、職稱、聯絡方式等）
 4. **選擇辦公地址**：延平大樓或新光大樓

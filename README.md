@@ -276,5 +276,6 @@ MIT License - 詳見 [LICENSE](LICENSE) 檔案
 或在 [GitHub Issues](https://github.com/your-repo/issues) 中提問。
 
 ---
+依據行政院及所屬機關（構）使用生成式 AI 參考指引第五、六點，本專案使用 Gemini 2.5 pro、Claude code 輔助，並由公務人員審查程式碼，依法適當揭露。
 
 🎯 **讓每一次交換名片都成為難忘的數位體驗！**

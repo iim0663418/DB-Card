@@ -369,13 +369,7 @@
             }
             
             // 生成完整 URL（相容 GitHub Pages 網域或其他）
-            let baseUrl;
-            if (window.location.origin.includes('github.io')) {
-                baseUrl = window.location.origin + window.location.pathname.replace(/nfc-generator(\.html)?$/, indexFile);
-            } else {
-                const safeOrigin = window.location.origin.endsWith('/') ? window.location.origin : window.location.origin + '/';
-                baseUrl = safeOrigin + indexFile;
-            }
+            const baseUrl = window.location.origin + window.location.pathname.replace(/[^/]+$/, "");
             generatedUrl = `${baseUrl}?c=${encodeURIComponent(encodedData)}`;
 
             // 計算 URL 位元組大小

@@ -368,9 +368,13 @@
                 indexFile = addressSelect === '新光大樓' ? 'index1.html' : 'index.html';
             }
             
-            // 生成完整 URL（使用精簡格式）
-            const baseUrl = window.location.origin + '/' + indexFile;
-            generatedUrl = `${baseUrl}?c=${encodeURIComponent(encodedData)}`;
+            // 生成完整 URL（相容 GitHub Pages 網域或其他）
+            const isGitHubPages = window.location.origin.includes('github.io');
+            const originWithSlash = window.location.origin.endsWith('/') ? window.location.origin : window.location.origin + '/';
+            const baseUrl = isGitHubPages
+                ? window.location.origin + window.location.pathname.replace('nfc-generator.html', indexFile)
+                : originWithSlash + indexFile;
+            const generatedUrl = `${baseUrl}?c=${encodeURIComponent(encodedData)}`;
 
             // 計算 URL 位元組大小
             const urlByteSize = new TextEncoder().encode(generatedUrl).length;

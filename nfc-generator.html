@@ -188,6 +188,22 @@
         <div class="main-content">
             <form id="cardForm">
                 <div class="form-section">
+                    <h2>版面設定</h2>
+                    <div class="form-group">
+                        <label for="cardType">名片類型</label>
+                        <select id="cardType" style="width: 100%; padding: 12px 15px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px;">
+                            <option value="official">官方版面（含 MODA Logo）</option>
+                            <option value="personal">個人版面（無 Logo，自訂內容）</option>
+                        </select>
+                        <div style="font-size: 0.8em; color: #6b7280; margin-top: 8px; line-height: 1.4;">
+                            💡 <strong>版面差異：</strong><br>
+                            • 官方版面：適合在職使用，含組織 Logo<br>
+                            • 個人版面：適合個人使用，更大字體，無 Logo
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
                     <h2>語言設定</h2>
                     <div class="form-group">
                         <label for="languageSelect">選擇語言</label>
@@ -200,6 +216,14 @@
                             • 主要支援會有外賓的正式場合，針對英文需求準備專屬前端頁面<br>
                             • 建議製作英文版時，個人資料、職稱也用正式的用法<br>
                         </div>
+                    </div>
+                </div>
+
+                <div class="form-section" id="organizationSection" style="display: none;">
+                    <h2>組織資訊</h2>
+                    <div class="form-group">
+                        <label for="organization">組織/公司名稱 (選填)</label>
+                        <input type="text" id="organization" placeholder="留空則不顯示組織資訊">
                     </div>
                 </div>
 
@@ -255,7 +279,7 @@
                     </div>
                 </div>
 
-                <div class="form-section">
+                <div class="form-section" id="officialAddressSection">
                     <h2>地址設定</h2>
                     <div class="form-group">
                         <label for="addressSelect">選擇辦公地址</label>
@@ -267,6 +291,21 @@
                             💡 <strong>對應英文地址：</strong><br>
                             • 延平大樓：No. 143, Yanping S. Rd., Zhongzheng Dist., Taipei City 100057, Taiwan (R.O.C.)<br>
                             • 新光大樓：No. 66, Sec. 1, Zhongxiao W. Rd., Zhongzheng Dist., Taipei City 100507, Taiwan (R.O.C.) (17F, 19F)
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section" id="personalAddressSection" style="display: none;">
+                    <h2>地址設定</h2>
+                    <div class="form-group">
+                        <label for="customAddress">自訂地址 (選填)</label>
+                        <textarea id="customAddress" placeholder="請輸入完整地址&#10;例如：台北市信義區信義路五段7號" style="min-height: 80px;"></textarea>
+                        <div style="font-size: 0.8em; color: #6b7280; margin-top: 8px; line-height: 1.4;">
+                            💡 <strong>個人地址建議：</strong><br>
+                            • 可填入工作地址、居住地區或留空<br>
+                            • <span id="addressCharCount" style="color: #059669;">0</span> / <span style="color: #d97706;">50</span> 字（建議不超過 50 字）<br>
+                            • 避免過於詳細的個人住址以保護隱私<br>
+                            ⚠️ 超過建議字數可能影響 NFC 容量
                         </div>
                     </div>
                 </div>
@@ -285,9 +324,21 @@
                             ❌ 不支援：Google Drive 分享連結、相對路徑 (./assets/...)
                         </div>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" id="officialGreetingGroup">
                         <label for="greetings">問候語 (每行一個)</label>
                         <textarea id="greetings" placeholder="歡迎認識我！&#10;很高興認識您 👋&#10;期待與您合作 🤝"></textarea>
+                    </div>
+                    
+                    <div class="form-group" id="personalGreetingGroup" style="display: none;">
+                        <label for="personalGreeting">自訂問候語</label>
+                        <textarea id="personalGreeting" placeholder="歡迎認識我！&#10;很高興與您交流 👋" style="min-height: 80px;"></textarea>
+                        <div style="font-size: 0.8em; color: #6b7280; margin-top: 8px; line-height: 1.4;">
+                            💡 <strong>個人版面問候語建議：</strong><br>
+                            • <span id="greetingCharCount" style="color: #059669;">0</span> / <span style="color: #d97706;">60</span> 字（建議不超過 60 字）<br>
+                            • 簡潔有力的自我介紹<br>
+                            • 可使用 emoji 增加親和力<br>
+                            ⚠️ 超過建議字數可能影響 NFC 容量
+                        </div>
                     </div>
                 </div>
 
@@ -336,10 +387,76 @@
             generateNFCUrl();
         });
 
+        // 版面類型切換邏輯
+        document.getElementById('cardType').addEventListener('change', function() {
+            const isPersonal = this.value === 'personal';
+            
+            // 顯示/隱藏個人版面專用區塊（移除組織資訊）
+            document.getElementById('personalGreetingGroup').style.display = isPersonal ? 'block' : 'none';
+            document.getElementById('officialGreetingGroup').style.display = isPersonal ? 'none' : 'block';
+            document.getElementById('personalAddressSection').style.display = isPersonal ? 'block' : 'none';
+            document.getElementById('officialAddressSection').style.display = isPersonal ? 'none' : 'block';
+            
+            // 切換預設問候語
+            if (isPersonal) {
+                document.getElementById('personalGreeting').value = '歡迎認識我！\n很高興與您交流 👋';
+                updateGreetingCharCount();
+                updateAddressCharCount();
+            }
+        });
+
+        // 問候語字數統計
+        function updateGreetingCharCount() {
+            const greeting = document.getElementById('personalGreeting').value;
+            const charCount = greeting.length;
+            const charCountElement = document.getElementById('greetingCharCount');
+            
+            charCountElement.textContent = charCount;
+            
+            if (charCount <= 40) {
+                charCountElement.style.color = '#059669';
+            } else if (charCount <= 60) {
+                charCountElement.style.color = '#d97706';
+            } else {
+                charCountElement.style.color = '#dc2626';
+            }
+        }
+
+        document.getElementById('personalGreeting').addEventListener('input', updateGreetingCharCount);
+
+        // 地址字數統計
+        function updateAddressCharCount() {
+            const address = document.getElementById('customAddress').value;
+            const charCount = address.length;
+            const charCountElement = document.getElementById('addressCharCount');
+            
+            charCountElement.textContent = charCount;
+            
+            if (charCount <= 30) {
+                charCountElement.style.color = '#059669';
+            } else if (charCount <= 50) {
+                charCountElement.style.color = '#d97706';
+            } else {
+                charCountElement.style.color = '#dc2626';
+            }
+        }
+
+        document.getElementById('customAddress').addEventListener('input', updateAddressCharCount);
+
         function generateNFCUrl() {
-            // 收集表單資料
-            const greetingsText = document.getElementById('greetings').value;
-            const greetingsArray = greetingsText.split('\n').filter(line => line.trim() !== '');
+            const cardType = document.getElementById('cardType').value;
+            
+            // 問候語處理
+            let greetingsArray;
+            if (cardType === 'personal') {
+                const personalGreeting = document.getElementById('personalGreeting').value;
+                greetingsArray = personalGreeting.split('\n').filter(line => line.trim() !== '');
+            } else {
+                const greetingsText = document.getElementById('greetings').value;
+                greetingsArray = greetingsText.split('\n').filter(line => line.trim() !== '');
+            }
+            
+            // 根據版面類型建立資料結構
             const cardData = {
                 n: document.getElementById('name').value,
                 t: document.getElementById('title').value,
@@ -350,22 +467,32 @@
                 g: greetingsArray,
                 s: document.getElementById('socialNote').value
             };
+            
+            // 個人版面新增組織和地址欄位
+            if (cardType === 'personal') {
+                cardData.o = document.getElementById('organization').value || '';
+                cardData.addr = document.getElementById('customAddress').value || '';
+            }
 
             // 將 JSON 資料進行 Base64 編碼（支援 UTF-8）
             const jsonString = JSON.stringify(cardData);
             const encodedData = btoa(unescape(encodeURIComponent(jsonString)));
 
-            // 根據地址和語言選擇決定使用哪個頁面
-            const addressSelect = document.getElementById('addressSelect').value;
+            // 根據版面類型和語言選擇目標頁面
             const languageSelect = document.getElementById('languageSelect').value;
-            
             let indexFile;
-            if (languageSelect === 'en') {
-                // 英文版本
-                indexFile = addressSelect === '新光大樓' ? 'index1-en.html' : 'index-en.html';
+            
+            if (cardType === 'personal') {
+                // 個人版面
+                indexFile = languageSelect === 'en' ? 'index-personal-en.html' : 'index-personal.html';
             } else {
-                // 中文版本
-                indexFile = addressSelect === '新光大樓' ? 'index1.html' : 'index.html';
+                // 官方版面
+                const addressSelect = document.getElementById('addressSelect').value;
+                if (languageSelect === 'en') {
+                    indexFile = addressSelect === '新光大樓' ? 'index1-en.html' : 'index-en.html';
+                } else {
+                    indexFile = addressSelect === '新光大樓' ? 'index1.html' : 'index.html';
+                }
             }
             
             // 生成完整 URL（相容 GitHub Pages 網域或其他）

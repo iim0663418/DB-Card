@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ministry of Digital Affairs - Digital Business Card</title>
+    <title>個人數位名片</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -15,17 +15,17 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
             font-feature-settings: 'kern' 1, 'liga' 1;
-            font-weight: 300;
+            font-weight: 400;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
-            background: #f4f6f7;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #1a1a1a;
+            color: #212529;
             position: relative;
             padding: 15px;
             letter-spacing: 0;
@@ -65,8 +65,59 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #6868ac 0%, #4e4e81 100%);
+            height: 5px;
+            background: linear-gradient(90deg, #6968ac 0%, #495057 100%);
+        }
+
+        .project-info {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            color: #6968ac;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+            border: 2px solid #6968ac;
+            box-shadow: 0 3px 8px rgba(105,104,172,0.2);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .project-info:hover {
+            background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(105,104,172,0.25);
+        }
+
+        .privacy-banner {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 2px solid #6968ac;
+            border-radius: 12px;
+            padding: 18px 22px;
+            margin: 22px 0;
+            font-size: 0.9em;
+            color: #495057;
+            line-height: 1.6;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .privacy-banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: #6968ac;
+        }
+
+        .privacy-banner strong {
+            color: #6968ac;
+            font-weight: 700;
         }
 
         @keyframes slideIn {
@@ -80,84 +131,74 @@
             }
         }
 
-        .logo-section {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 20px;
-            padding: 10px 0;
-        }
-
-        .moda-logo {
-            height: 45px;
-            width: auto;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
-            transition: transform 0.3s ease;
-        }
-
-        .moda-logo:hover {
-            transform: scale(1.05);
-        }
-
         .avatar-section {
             display: flex;
             justify-content: center;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
+            margin-top: 10px;
         }
 
         .avatar {
-            width: 130px;
-            height: 130px;
+            width: 150px;
+            height: 150px;
             border-radius: 50%;
             object-fit: cover;
             border: 4px solid #6b7280;
-            box-shadow: 0 6px 20px rgba(107,114,128,0.3);
+            box-shadow: 0 8px 24px rgba(107,114,128,0.35);
             display: block;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
         .avatar:hover {
             transform: scale(1.05);
-            box-shadow: 0 8px 25px rgba(107,114,128,0.4);
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
+            box-shadow: 0 10px 30px rgba(107,114,128,0.45);
         }
 
         .name {
-            font-size: 2.4em;
+            font-size: 2.8em;
             font-weight: 700;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
             color: #212529;
-            letter-spacing: -0.01em;
-            line-height: 1.2;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
         }
 
         .title {
-            font-size: 1.4em;
+            font-size: 1.6em;
             color: #495057;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             font-weight: 500;
             letter-spacing: 0.01em;
             line-height: 1.3;
         }
 
         .department {
-            font-size: 1.25em;
+            font-size: 1.4em;
             color: #6c757d;
-            margin-bottom: 28px;
+            margin-bottom: 12px;
             font-weight: 400;
             letter-spacing: 0.01em;
             line-height: 1.3;
         }
 
+        .organization {
+            display: inline-block;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            color: #4e4e81;
+            padding: 8px 16px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            font-weight: 400;
+            margin-bottom: 20px;
+            border: 1px solid #d1d5db;
+            letter-spacing: 0.01em;
+        }
+
         .greeting {
-            font-size: 1.25em;
+            font-size: 1.35em;
             color: #495057;
-            margin-bottom: 32px;
-            min-height: 60px;
+            margin-bottom: 38px;
+            min-height: 65px;
             font-weight: 400;
             letter-spacing: 0.01em;
             line-height: 1.5;
@@ -165,17 +206,17 @@
 
         .contact-info {
             background: #f3f5f6;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 24px 0;
+            border-radius: 10px;
+            padding: 24px;
+            margin: 28px 0;
             border: 1px solid #e5e5e5;
         }
 
         .contact-item {
             display: flex;
             align-items: center;
-            margin-bottom: 14px;
-            font-size: 1.05em;
+            margin-bottom: 16px;
+            font-size: 1.15em;
             color: #495057;
             font-weight: 400;
             letter-spacing: 0;
@@ -187,9 +228,9 @@
         }
 
         .contact-icon {
-            font-size: 1.2em;
-            margin-right: 12px;
-            width: 24px;
+            font-size: 1.3em;
+            margin-right: 14px;
+            width: 26px;
             text-align: center;
         }
 
@@ -210,10 +251,10 @@
         }
 
         .contact-title {
-            font-size: 1.1em;
+            font-size: 1.2em;
             font-weight: 500;
             color: #212529;
-            margin-bottom: 14px;
+            margin-bottom: 16px;
             text-align: center;
             letter-spacing: 0;
             line-height: 1.4;
@@ -223,16 +264,16 @@
             background: #6868ac;
             color: #fff;
             border: 1px solid #6868ac;
-            padding: 12px 24px;
-            border-radius: 6px;
-            font-size: 0.9em;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 1em;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.15s ease;
             text-decoration: none;
             display: inline-block;
             margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(104,104,172,0.2);
+            box-shadow: 0 2px 6px rgba(104,104,172,0.25);
             letter-spacing: 0;
             line-height: 1.5;
         }
@@ -240,7 +281,7 @@
         .download-btn:hover {
             background: #4e4e81;
             border-color: #4e4e81;
-            box-shadow: 0 2px 6px rgba(104,104,172,0.3);
+            box-shadow: 0 3px 8px rgba(104,104,172,0.35);
             transform: translateY(-1px);
         }
 
@@ -248,18 +289,18 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
-            margin-top: 20px;
+            gap: 22px;
+            margin-top: 24px;
         }
 
         .qr-section {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
-            padding: 20px;
+            gap: 12px;
+            padding: 22px;
             background: #f9fafb;
-            border-radius: 15px;
+            border-radius: 16px;
             border: 1px solid #e5e7eb;
         }
 
@@ -280,31 +321,31 @@
         }
 
         .qr-label {
-            font-size: 1.05em;
+            font-size: 1.15em;
             color: #6b7280;
             font-weight: 500;
         }
 
         .social-info {
             background: #dbdbeb;
-            border-radius: 8px;
-            padding: 16px;
-            margin: 20px 0;
+            border-radius: 10px;
+            padding: 18px;
+            margin: 24px 0;
             border: 1px solid #a4a4cd;
         }
 
         .social-info-title {
-            font-size: 0.9em;
+            font-size: 1em;
             font-weight: 500;
             color: #4e4e81;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             text-align: center;
             letter-spacing: 0;
             line-height: 1.5;
         }
 
         .social-info-content {
-            font-size: 0.85em;
+            font-size: 0.9em;
             color: #4e4e81;
             line-height: 1.6;
             white-space: pre-line;
@@ -324,57 +365,53 @@
 
         @media (max-width: 480px) {
             .card {
-                padding: 25px 20px;
+                padding: 30px 24px;
                 width: 94%;
                 max-width: none;
                 margin: 15px;
             }
             
-            .logo-section {
-                margin-bottom: 15px;
-            }
-            
-            .moda-logo {
-                height: 35px;
-            }
-            
-            .avatar-section {
-                margin-bottom: 20px;
-            }
-            
             .avatar {
-                width: 100px;
-                height: 100px;
+                width: 120px;
+                height: 120px;
                 border-width: 3px;
             }
             
             .name {
-                font-size: 1.8em;
+                font-size: 2em;
+            }
+            
+            .title {
+                font-size: 1.2em;
+            }
+            
+            .department {
+                font-size: 1em;
             }
             
             .contact-info {
-                padding: 15px;
-                margin: 20px 0;
+                padding: 18px;
+                margin: 22px 0;
             }
             
             .contact-item {
-                font-size: 0.9em;
-                margin-bottom: 10px;
+                font-size: 0.95em;
+                margin-bottom: 12px;
             }
             
             .contact-icon {
-                font-size: 1.1em;
-                margin-right: 10px;
-                width: 20px;
+                font-size: 1.2em;
+                margin-right: 12px;
+                width: 22px;
             }
             
             .social-info {
-                padding: 12px;
-                margin: 16px 0;
+                padding: 14px;
+                margin: 18px 0;
             }
             
             .social-info-content {
-                font-size: 0.8em;
+                font-size: 0.85em;
             }
         }
         
@@ -384,41 +421,29 @@
             }
             
             .card {
-                border-radius: 16px;
-                padding: 30px;
-                max-width: 500px;
+                border-radius: 18px;
+                padding: 35px;
+                max-width: 540px;
                 width: 98%;
             }
         }
 
         @media (max-width: 360px) {
             .card {
-                padding: 20px 16px;
+                padding: 25px 20px;
                 width: 92%;
                 margin: 12px;
-                border-radius: 12px;
-            }
-            
-            .logo-section {
-                margin-bottom: 12px;
-            }
-            
-            .moda-logo {
-                height: 28px;
-            }
-            
-            .avatar-section {
-                margin-bottom: 18px;
+                border-radius: 14px;
             }
             
             .avatar {
-                width: 85px;
-                height: 85px;
+                width: 100px;
+                height: 100px;
                 border-width: 2px;
             }
             
             .name {
-                font-size: 1.6em;
+                font-size: 1.8em;
             }
             
             .title {
@@ -426,7 +451,7 @@
             }
             
             .department {
-                font-size: 0.9em;
+                font-size: 0.95em;
             }
         }
     </style>
@@ -434,9 +459,9 @@
 <body>
     <div id="card-container" style="display: none;">
         <div class="card">
-            <div class="logo-section">
-                <img src="assets/moda-logo.svg" alt="MODA Logo" class="moda-logo">
-            </div>
+            <a href="https://github.com/moda-gov-tw/DB-Card" target="_blank" class="project-info" title="行政院數位發展部開源專案 - 隱私優先的數位名片系統">
+                🇹🇼 moda 開源專案
+            </a>
             
             <div class="avatar-section">
                 <img id="user-avatar" src="" alt="" class="avatar">
@@ -445,13 +470,14 @@
             <h1 id="user-name" class="name"></h1>
             <p id="user-title" class="title"></p>
             <p id="user-department" class="department"></p>
+            <p id="user-organization" class="organization"></p>
             
             <div class="greeting" id="greeting">
-                Nice to meet you!
+                歡迎認識我！
             </div>
             
             <div class="contact-info">
-                <div class="contact-title">Contact Information</div>
+                <div class="contact-title">聯絡資訊</div>
                 <div class="contact-item">
                     <span class="contact-icon">📧</span>
                     <span class="contact-text">
@@ -464,53 +490,48 @@
                         <a id="user-phone" href="" class="contact-link"></a>
                     </span>
                 </div>
-                <div class="contact-item">
-                    <span class="contact-icon">🏢</span>
-                    <span id="user-organization" class="contact-text"></span>
-                </div>
-                <div class="contact-item">
+                <div id="address-item" class="contact-item" style="display: none;">
                     <span class="contact-icon">📍</span>
                     <span id="user-address" class="contact-text"></span>
                 </div>
             </div>
             
             <div id="social-info-section" class="social-info" style="display: none;">
-                <div class="social-info-title">🔗 Social Links</div>
+                <div class="social-info-title">🔗 社群連結</div>
                 <div id="social-info-content" class="social-info-content"></div>
-            </div>
-            
-            <div class="privacy-banner" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border: 2px solid #6968ac; border-radius: 12px; padding: 18px 22px; margin: 22px 0; font-size: 0.9em; color: #495057; line-height: 1.6; position: relative; overflow: hidden;">
-                <div style="position: absolute; top: 0; left: 0; width: 5px; height: 100%; background: #6968ac;"></div>
-                <strong style="color: #6968ac; font-weight: 700;">🔒 Privacy-First Design</strong> • Ministry of Digital Affairs Open Source Project<br>
-                All personal data stored only in NFC cards, no backend tracking, pure frontend architecture, complete personal data control
             </div>
             
             <div class="action-section">
                 <a href="#" id="add-contact-btn" class="download-btn">
-                    📱 Add to Contacts
+                    📱 加入聯絡人
                 </a>
                 <p id="contact-helper-text" style="font-size: 0.9em; color: #4b5563; margin-top: 15px;"></p>
                 
                 <div class="qr-section">
                     <div class="qr-code" id="qrcode">
-                        Loading QR Code...
+                        QR 碼載入中...
                     </div>
-                    <div class="qr-label">Scan QR Code to Open</div>
+                    <div class="qr-label">掃描 QR 碼快速開啟</div>
                 </div>
+                
+            <div class="privacy-banner">
+                <strong>🔒 隱私優先設計</strong> • 行政院數位發展部開源專案<br>
+                所有個人資料僅儲存於 NFC 卡片，無後端追蹤、純前端架構、個人資訊完全自主掌控
+            </div>
             </div>
         </div>
     </div>
     
     <div id="loading-state" style="display: block; color: #1a1a1a; text-align: center; padding-top: 50px;">
         <h1>⏳</h1>
-        <h2>Loading</h2>
-        <p>Parsing digital business card data...</p>
+        <h2>載入中</h2>
+        <p>正在解析數位名片資料...</p>
     </div>
     
     <div id="access-denied" style="display: none; color: #333; text-align: center; padding-top: 50px;">
         <h1>🚫</h1>
-        <h2>Invalid Data</h2>
-        <p>Invalid data</p>
+        <h2>無效資料</h2>
+        <p>無效資料</p>
     </div>
 
     <script>
@@ -539,12 +560,10 @@
             });
         }
 
-        // 生成 QR 碼
         function generateQRCode() {
             const currentURL = window.location.href;
             const qrContainer = document.getElementById('qrcode');
             
-            // 使用 QR Server API 生成 QR 碼
             const qrURL = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(currentURL)}&bgcolor=ffffff&color=6b7280`;
             
             const qrImg = document.createElement('img');
@@ -558,115 +577,31 @@
             qrContainer.appendChild(qrImg);
         }
 
-        // 職位翻譯字典
-        const titleTranslations = {
-            '部長': 'Minister',
-            '政務次長': 'Deputy Minister',
-            '常務次長': 'Deputy Minister',
-            '主任秘書': 'Chief Secretary',
-            '司長': 'Director-General',
-            '副司長': 'Deputy Director-General',
-            '組長': 'Division Director',
-            '副組長': 'Deputy Division Director',
-            '科長': 'Section Chief',
-            '副科長': 'Deputy Section Chief',
-            '簡任技正': 'Senior Technical Specialist',
-            '薦任技正': 'Technical Specialist',
-            '專門委員': 'Senior Executive Officer',
-            '秘書': 'Secretary',
-            '技正': 'Technical Officer',
-            '技士': 'Technical Assistant',
-            '辦事員': 'Administrative Officer',
-            '助理': 'Assistant'
-        };
-
-        // 部門翻譯字典
-        const departmentTranslations = {
-            '資訊處': 'Information Department',
-            '綜合規劃司': 'Department of Comprehensive Planning',
-            '數位產業署': 'Administration for Digital Industries',
-            '資通安全署': 'Administration for Cyber Security',
-            '民主網絡司': 'Department of Democracy Network',
-            '數位政府司': 'Department of Digital Government',
-            '資源管理處': 'Department of Resource Management',
-            '法制處': 'Legal Affairs Department',
-            '政風處': 'Department of Government Ethics',
-            '人事處': 'Personnel Department',
-            '會計處': 'Accounting Department',
-            '秘書處': 'Secretariat'
-        };
-
-        // 渲染名片函數
         function renderCard(userData) {
             const data = userData.data;
             
-            // 基本資訊
             document.getElementById('user-name').textContent = data.name;
+            document.getElementById('user-title').textContent = data.title;
+            document.getElementById('user-department').textContent = data.department;
             
-            // 翻譯職位
-            const translatedTitle = titleTranslations[data.title] || data.title;
-            document.getElementById('user-title').textContent = translatedTitle;
+            // 組織名稱（個人版可選）
+            const orgElement = document.getElementById('user-organization');
+            if (data.organization && data.organization.trim() !== '') {
+                orgElement.textContent = data.organization;
+                orgElement.style.display = 'inline-block';
+            } else {
+                orgElement.style.display = 'none';
+            }
             
-            // 翻譯部門
-            const translatedDepartment = departmentTranslations[data.department] || data.department;
-            document.getElementById('user-department').textContent = translatedDepartment;
-            
-            // 頭像處理（與中文版相同）
+            // 頭像處理
             const avatar = document.getElementById('user-avatar');
-            
             avatar.onload = function() {
-                console.log('Avatar loaded successfully:', this.src);
                 this.style.display = 'block';
             };
-            
-            let retryCount = 0;
             avatar.onerror = function() {
-                console.error('Avatar load failed:', this.src, 'Retry count:', retryCount);
-                
-                if (retryCount === 0) {
-                    if (data.avatar.includes('drive.google.com')) {
-                        const googleDriveDirectUrl = convertGoogleDriveUrl(data.avatar);
-                        if (googleDriveDirectUrl) {
-                            console.log('Trying Google Drive direct URL:', googleDriveDirectUrl);
-                            this.src = googleDriveDirectUrl;
-                            retryCount++;
-                            return;
-                        }
-                    }
-                    
-                    if (!data.avatar.startsWith('http') && !data.avatar.startsWith('./')) {
-                        console.log('Trying with ./ prefix:', './' + data.avatar);
-                        this.src = './' + data.avatar;
-                        retryCount++;
-                    } else if (data.avatar.startsWith('./')) {
-                        console.log('Trying without ./ prefix:', data.avatar.substring(2));
-                        this.src = data.avatar.substring(2);
-                        retryCount++;
-                    } else {
-                        console.log('Cannot resolve avatar path, hiding avatar');
-                        this.style.display = 'none';
-                        return;
-                    }
-                } else if (retryCount === 1) {
-                    if (!data.avatar.startsWith('http')) {
-                        const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/');
-                        const cleanPath = data.avatar.replace(/^\.\//, '');
-                        const absolutePath = baseUrl + cleanPath;
-                        console.log('Trying with absolute path:', absolutePath);
-                        this.src = absolutePath;
-                        retryCount++;
-                    } else {
-                        console.log('HTTP avatar loading failed, hiding avatar');
-                        this.style.display = 'none';
-                    }
-                } else {
-                    console.log('All avatar loading attempts failed, hiding avatar');
-                    this.style.display = 'none';
-                }
+                this.style.display = 'none';
             };
-            
             avatar.alt = data.name;
-            console.log('Loading avatar:', data.avatar);
             avatar.src = data.avatar;
             
             // 聯絡資訊
@@ -674,7 +609,6 @@
             emailLink.href = data.socialLinks.email;
             emailLink.textContent = data.email;
             
-            // 電話
             const phoneItem = document.getElementById('phone-item');
             if (data.phone) {
                 const phoneLink = document.getElementById('user-phone');
@@ -685,20 +619,18 @@
                 phoneItem.style.display = 'none';
             }
             
-            // 組織和地址（英文翻譯）
-            document.getElementById('user-organization').textContent = 'Ministry of Digital Affairs';
-            document.getElementById('user-address').innerHTML = 'No. 143, Yanping S. Rd., Zhongzheng Dist., Taipei City 100057, Taiwan (R.O.C.)';
+            // 地址（個人版可選）
+            const addressItem = document.getElementById('address-item');
+            if (data.address && data.address.trim() !== '') {
+                document.getElementById('user-address').innerHTML = data.address.replace(/\n/g, '<br>');
+                addressItem.style.display = 'flex';
+            } else {
+                addressItem.style.display = 'none';
+            }
             
-            // 設定問候語（翻譯為英文）
-            greetings = data.greetings.map(greeting => {
-                return greeting
-                    .replace(/歡迎認識我！?/g, 'Nice to meet you!')
-                    .replace(/很高興認識您/g, 'Pleased to meet you')
-                    .replace(/期待與您合作/g, 'Looking forward to working with you')
-                    .replace(/感謝您的時間/g, 'Thank you for your time');
-            });
+            greetings = data.greetings;
             
-            // 顯示社群媒體資訊
+            // 社群媒體資訊
             const socialInfoSection = document.getElementById('social-info-section');
             const socialInfoContent = document.getElementById('social-info-content');
             if (data.socialLinks && data.socialLinks.socialNote && data.socialLinks.socialNote.trim() !== '') {
@@ -709,16 +641,13 @@
                 socialInfoSection.style.display = 'none';
             }
         }
-    </script>
 
-    <script>
         function setupVCardLink(userData) {
             const data = userData.data;
             const contactLink = document.getElementById('add-contact-btn');
             const helperText = document.getElementById('contact-helper-text');
             let messageShown = false;
 
-            // 動態生成 vCard 內容，使用英文格式
             function generateVCardContent() {
                 const fullName = data.name;
                 const surname = fullName.substring(0, 1);
@@ -731,7 +660,7 @@
                 const timestamp = now.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
                 
                 const currentOrigin = window.location.origin;
-                const currentPath = window.location.pathname.replace('/index-en.html', '').replace(/\/$/, '');
+                const currentPath = window.location.pathname.replace('/index-personal.html', '').replace(/\/$/, '');
                 const photoUrl = `${currentOrigin}${currentPath}/${data.avatar}`;
                 
                 let socialNote = '';
@@ -739,69 +668,17 @@
                     socialNote = data.socialLinks.socialNote.replace(/\n/g, '\\n');
                 }
 
-                // 動態檢測設備類型和系統版本生成 PRODID
-                function generatePRODID() {
-                    const userAgent = navigator.userAgent;
-                    
-                    if (/iPhone|iPad|iPod/i.test(userAgent)) {
-                        const iosMatch = userAgent.match(/OS (\d+)_(\d+)(?:_(\d+))?/);
-                        if (iosMatch) {
-                            const major = iosMatch[1];
-                            const minor = iosMatch[2];
-                            const patch = iosMatch[3] || '0';
-                            return `-//Apple Inc.//iPhone OS ${major}.${minor}.${patch}//EN`;
-                        } else {
-                            return `-//Apple Inc.//iPhone OS 17.0//EN`;
-                        }
-                    }
-                    else if (/Android/i.test(userAgent)) {
-                        const androidMatch = userAgent.match(/Android (\d+)\.(\d+)(?:\.(\d+))?/);
-                        if (androidMatch) {
-                            const major = androidMatch[1];
-                            const minor = androidMatch[2];
-                            const patch = androidMatch[3] || '0';
-                            return `-//Google Inc.//Android ${major}.${minor}.${patch}//EN`;
-                        } else {
-                            return `-//Google Inc.//Android 14.0//EN`;
-                        }
-                    }
-                    else if (/Windows/i.test(userAgent)) {
-                        return `-//Microsoft Corporation//Windows//EN`;
-                    }
-                    else if (/Macintosh|Mac OS X/i.test(userAgent)) {
-                        const macMatch = userAgent.match(/Mac OS X (\d+)_(\d+)(?:_(\d+))?/);
-                        if (macMatch) {
-                            const major = macMatch[1];
-                            const minor = macMatch[2];
-                            const patch = macMatch[3] || '0';
-                            return `-//Apple Inc.//macOS ${major}.${minor}.${patch}//EN`;
-                        } else {
-                            return `-//Apple Inc.//macOS 14.0//EN`;
-                        }
-                    }
-                    else if (/Linux/i.test(userAgent)) {
-                        return `-//Linux Foundation//Linux//EN`;
-                    }
-                    else {
-                        return `-//MODA//Digital Business Card Generator 1.0//EN`;
-                    }
-                }
-
-                // 翻譯職位和部門
-                const translatedTitle = titleTranslations[data.title] || data.title;
-                const translatedDepartment = departmentTranslations[data.department] || data.department;
-
                 const vcardContent = [
                     'BEGIN:VCARD',
                     'VERSION:3.0',
-                    `PRODID:${generatePRODID()}`,
+                    `PRODID:-//Personal Digital Business Card//Personal Card 1.0//EN`,
                     `FN;CHARSET=UTF-8:${fullName}`,
                     `N;CHARSET=UTF-8:${surname};${givenName};;;`,
-                    `ORG;CHARSET=UTF-8:Ministry of Digital Affairs`,
-                    `TITLE;CHARSET=UTF-8:${translatedTitle}`,
+                    data.organization ? `ORG;CHARSET=UTF-8:${data.organization}` : '',
+                    `TITLE;CHARSET=UTF-8:${data.title || ''}`,
                     `EMAIL;TYPE=work:${data.email || ''}`,
                     data.phone ? `TEL;TYPE=work,voice:${formattedPhone}` : '',
-                    `ADR;TYPE=work;CHARSET=UTF-8:;;No. 143, Yanping S. Rd., Zhongzheng Dist., Taipei City 100057, Taiwan (R.O.C.);;;;Taiwan`,
+                    data.address ? `ADR;TYPE=work;CHARSET=UTF-8:;;${data.address};;;;Taiwan` : '',
                     socialNote ? `NOTE;CHARSET=UTF-8:${socialNote}` : '',
                     `PHOTO;TYPE=JPEG:${photoUrl}`,
                     `REV:${timestamp}`,
@@ -818,7 +695,7 @@
 
             contactLink.addEventListener('click', function() {
                 if (!messageShown) {
-                    helperText.innerHTML = 'After downloading, please click <b>"Open"</b> or find the file in your notification bar to complete adding.';
+                    helperText.innerHTML = '下載後，請點擊<b>「開啟」</b>或於<b>通知欄</b>中找到檔案，即可完成新增。';
                     messageShown = true;
                 }
             });
@@ -847,23 +724,9 @@
                         cardData = rawData;
                     }
                     
-                    console.log('Received card data from NFC:', cardData);
                     return cardData;
                 } catch (error) {
                     console.error('Failed to parse card data:', error);
-                    console.error('Raw data:', cardDataParam);
-                    return null;
-                }
-            }
-            
-            const jsonParam = urlParams.get('json');
-            if (jsonParam) {
-                try {
-                    const cardData = JSON.parse(decodeURIComponent(jsonParam));
-                    console.log('Received card data from JSON param:', cardData);
-                    return cardData;
-                } catch (error) {
-                    console.error('Failed to parse JSON param:', error);
                     return null;
                 }
             }
@@ -871,39 +734,24 @@
             return null;
         }
 
-        // 轉換精簡格式為完整格式（優化版本）
         function convertCompactToFull(compactData) {
             return {
                 data: {
                     name: compactData.n || '',
                     title: compactData.t || '',
                     department: compactData.d || '',
-                    organization: 'Ministry of Digital Affairs',
+                    organization: compactData.o || '',
                     email: compactData.e || '',
                     phone: compactData.p || '',
                     avatar: compactData.a || '',
-                    address: 'No. 143, Yanping S. Rd., Zhongzheng Dist., Taipei City 100057, Taiwan (R.O.C.)', // 延平大樓英文地址
-                    greetings: compactData.g || ['Nice to meet you!'],
+                    address: compactData.addr || '',
+                    greetings: compactData.g || ['歡迎認識我！'],
                     socialLinks: {
                         email: compactData.e ? `mailto:${compactData.e}` : '',
                         socialNote: compactData.s || ''
                     }
                 }
             };
-        }
-
-        function convertGoogleDriveUrl(url) {
-            const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-            if (match) {
-                const fileId = match[1];
-                return `https://drive.google.com/uc?export=view&id=${fileId}`;
-            }
-            
-            if (url.includes('drive.google.com/uc?')) {
-                return url;
-            }
-            
-            return null;
         }
 
         function processSocialLinks(text) {
@@ -945,27 +793,6 @@
                         return `GitHub: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
                     });
                 }
-                else if (/^(Twitter|X):/i.test(processedLine)) {
-                    processedLine = processedLine.replace(/(Twitter|X):\s*(twitter\.com\/[\w\.-]+|x\.com\/[\w\.-]+|@[\w\.-]+)/gi, function(match, platform, url) {
-                        const cleanUrl = url.startsWith('@') ? `x.com/${url.substring(1)}` : url;
-                        const fullUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
-                        return `${platform}: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
-                    });
-                }
-                else if (/^LinkedIn:/i.test(processedLine)) {
-                    processedLine = processedLine.replace(/LinkedIn:\s*(linkedin\.com\/[\w\/-]+|@[\w\.-]+)/gi, function(match, url) {
-                        const cleanUrl = url.startsWith('@') ? `linkedin.com/in/${url.substring(1)}` : url;
-                        const fullUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
-                        return `LinkedIn: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
-                    });
-                }
-                else if (/^YouTube:/i.test(processedLine)) {
-                    processedLine = processedLine.replace(/YouTube:\s*(youtube\.com\/[\w\/@-]+|youtu\.be\/[\w-]+|@[\w\.-]+)/gi, function(match, url) {
-                        const cleanUrl = url.startsWith('@') ? `youtube.com/${url}` : url;
-                        const fullUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
-                        return `YouTube: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
-                    });
-                }
                 else if (/^https?:\/\//i.test(processedLine)) {
                     processedLine = processedLine.replace(/(https?:\/\/[\w\.-]+(?:\.[\w]{2,})+(?:\/[\w\.-\/\?#&=]*)?)/gi, function(match, url) {
                         return `<a href="${url}" target="_blank" class="social-link">${url}</a>`;
@@ -989,14 +816,14 @@
                     
                     const errorElement = document.querySelector('#access-denied p');
                     if (errorElement) {
-                        errorElement.textContent = 'Please access with NFC card or data link.';
+                        errorElement.textContent = '請使用 NFC 卡片或包含資料的連結訪問。';
                     }
                     return;
                 }
 
                 try {
                     if (!cardData.data || !cardData.data.name) {
-                        throw new Error('Invalid business card data format');
+                        throw new Error('名片資料格式不正確');
                     }
 
                     document.getElementById('loading-state').style.display = 'none';
@@ -1010,19 +837,18 @@
                     setupVCardLink(cardData);
 
                 } catch (error) {
-                    console.error('Business card data validation failed:', error);
+                    console.error('名片資料驗證失敗:', error);
                     document.getElementById('loading-state').style.display = 'none';
                     document.getElementById('card-container').style.display = 'none';
                     document.getElementById('access-denied').style.display = 'block';
                     
                     const errorElement = document.querySelector('#access-denied p');
                     if (errorElement) {
-                        errorElement.textContent = error.message || 'Business card data format error.';
+                        errorElement.textContent = error.message || '名片資料格式錯誤。';
                     }
                 }
             }, 800);
         });
-
     </script>
 </body>
 </html>

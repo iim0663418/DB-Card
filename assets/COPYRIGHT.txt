@@ -1,10 +1,10 @@
-{範例}MODA Logo Copyright Notice
+{範例}moda Logo Copyright Notice
 ==========================
 
 File: moda-logo.svg
-Source: https://moda.gov.tw/copyright/MODA/dijzj4q4.ozn.svg
-Copyright: Ministry of Digital Affairs (MODA), Taiwan
+Source: https://moda.gov.tw/copyright/moda/dijzj4q4.ozn.svg
+Copyright: Ministry of Digital Affairs (moda), Taiwan
 Usage: Official government logo used under appropriate terms
 
-This logo is the intellectual property of the Ministry of Digital Affairs (MODA) of Taiwan.
+This logo is the intellectual property of the Ministry of Digital Affairs (moda) of Taiwan.
 Use of this logo should comply with government branding guidelines and applicable copyright laws.

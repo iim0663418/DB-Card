@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌐 雙語 NFC 數位名片生成器</title>
+    <script src="assets/bilingual-common.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'PingFang TC', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #6868ac 0%, #4e4e81 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .form-container {
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 1.05em;
+        }
+
+        .required {
+            color: #e74c3c;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input-group input {
+            flex: 1;
+        }
+
+        .input-group .lang-label {
+            font-size: 0.9em;
+            color: #666;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #6868ac;
+            box-shadow: 0 0 0 3px rgba(104,104,172,0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .capacity-monitor {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        .capacity-bar {
+            width: 100%;
+            height: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .capacity-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #ffc107, #dc3545);
+            transition: width 0.3s ease;
+            border-radius: 5px;
+        }
+
+        .capacity-text {
+            font-size: 14px;
+            color: #6c757d;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .generate-btn {
+            background: linear-gradient(135deg, #6868ac 0%, #4e4e81 100%);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(104,104,172,0.3);
+        }
+
+        .generate-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .result-section {
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 1px solid #dee2e6;
+            display: none;
+        }
+
+        .result-section.show {
+            display: block;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-url {
+            background: white;
+            border: 2px solid #6868ac;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 0.9em;
+            word-break: break-all;
+            margin: 15px 0;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .copy-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-right: 10px;
+            transition: background 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: #218838;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-size: 0.9em;
+        }
+
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-size: 0.9em;
+        }
+
+        .help-text {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 768px) {
+            .form-container {
+                padding: 25px;
+            }
+            
+            .input-group {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .input-group .lang-label {
+                min-width: auto;
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌐 雙語 NFC 數位名片生成器</h1>
+            <p>創建支援中英文切換的國際化數位名片</p>
+        </div>
+        
+        <div class="form-container">
+            <form id="cardForm">
+                <div class="form-group">
+                    <label>版面類型：</label>
+                    <select id="layoutType">
+                        <option value="official-yanping">機關版（延平大樓）</option>
+                        <option value="official-xinyi">機關版（新光大樓）</option>
+                        <option value="personal">個人版（無 Logo）</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>姓名 / Name <span class="required">*</span>：</label>
+                    <div class="input-group">
+                        <div class="lang-label">🇹🇼</div>
+                        <input type="text" id="nameZh" placeholder="中文姓名" required>
+                    </div>
+                    <div class="input-group" style="margin-top: 8px;">
+                        <div class="lang-label">🇺🇸</div>
+                        <input type="text" id="nameEn" placeholder="English Name" required>
+                    </div>
+                    <div class="help-text">將顯示為：王小明 / Wang Xiaoming</div>
+                </div>
+                
+                <div class="form-group">
+                    <label>職稱 / Title <span class="required">*</span>：</label>
+                    <div class="input-group">
+                        <div class="lang-label">🇹🇼</div>
+                        <input type="text" id="titleZh" placeholder="中文職稱" required>
+                    </div>
+                    <div class="input-group" style="margin-top: 8px;">
+                        <div class="lang-label">🇺🇸</div>
+                        <input type="text" id="titleEn" placeholder="English Title" required>
+                    </div>
+                    <div class="help-text">例如：科長 / Section Chief</div>
+                </div>
+                
+                <div class="form-group">
+                    <label>部門：</label>
+                    <input type="text" id="department" placeholder="部門名稱（單語即可）">
+                    <div class="help-text">原始專案設計由前端對照數位發展部官方單位名稱翻譯，如 Fork 則不支援翻譯</div>
+                </div>
+                
+                <div class="form-group">
+                    <label>電子郵件 <span class="required">*</span>：</label>
+                    <input type="email" id="email" placeholder="your.email@moda.gov.tw" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>電話：</label>
+                    <input type="tel" id="phone" placeholder="02-2380-0411">
+                </div>
+                
+                <div class="form-group">
+                    <label>大頭貼 URL：</label>
+                    <input type="url" id="avatar" placeholder="https://i.imgur.com/example.jpg">
+                    <div class="help-text">
+                        推薦使用 <a href="https://imgur.com" target="_blank">Imgur</a> 上傳圖片，
+                        或留空以節省 NFC 容量
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>問候語 / Greetings：</label>
+                    <div class="input-group">
+                        <div class="lang-label">🇹🇼</div>
+                        <textarea id="greetingsZh" placeholder="歡迎認識我！&#10;很高興與您交流"></textarea>
+                    </div>
+                    <div class="input-group" style="margin-top: 8px;">
+                        <div class="lang-label">🇺🇸</div>
+                        <textarea id="greetingsEn" placeholder="Nice to meet you!&#10;Welcome to connect"></textarea>
+                    </div>
+                    <div class="help-text">每行一個問候語，將輪播顯示。雙語問候語會根據當前語言顯示。</div>
+                </div>
+                
+                <div class="form-group">
+                    <label>社群媒體資訊：</label>
+                    <textarea id="socialNote" placeholder="GitHub: github.com/yourname&#10;FB: fb.com/yourname&#10;IG: @yourname"></textarea>
+                    <div class="help-text">每行一個社群媒體，支援自動連結轉換</div>
+                </div>
+                
+                <!-- 容量監控 -->
+                <div class="capacity-monitor">
+                    <div class="capacity-bar">
+                        <div class="capacity-fill" id="capacityFill" style="width: 0%"></div>
+                    </div>
+                    <div class="capacity-text" id="capacityText">0/492 bytes (0%)</div>
+                </div>
+                
+                <button type="button" onclick="generateBilingualNFC()" class="generate-btn">
+                    🚀 生成雙語 NFC 連結
+                </button>
+            </form>
+            
+            <div id="result" class="result-section">
+                <h3>✅ 生成成功！</h3>
+                <p>請複製以下連結並寫入 NFC 卡片：</p>
+                
+                <div id="resultUrl" class="result-url"></div>
+                
+                <div>
+                    <button onclick="copyToClipboard()" class="copy-btn">📋 複製連結</button>
+                    <button onclick="testLink()" class="copy-btn" style="background: #007bff;">🔗 測試連結</button>
+                </div>
+                
+                <div class="help-text" style="margin-top: 15px;">
+                    <strong>下一步：</strong><br>
+                    1. 使用 NFC 寫入工具（如 NFC Tools）<br>
+                    2. 選擇「URL/URI」記錄類型<br>
+                    3. 貼上上方連結並寫入 NFC 卡片<br>
+                    4. 用手機觸碰測試
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let generatedUrl = '';
+
+        // 即時容量監控
+        function updateCapacityMonitor() {
+            const data = collectFormData();
+            if (!data) return;
+            
+            const capacity = calculateCapacity(data);
+            const percentage = Math.min((capacity.size / 492) * 100, 100);
+            
+            document.getElementById('capacityFill').style.width = `${percentage}%`;
+            document.getElementById('capacityText').textContent = 
+                `${capacity.size}/492 bytes (${Math.round(percentage)}%)`;
+            
+            // 顏色警告
+            const fillElement = document.getElementById('capacityFill');
+            if (percentage > 90) {
+                fillElement.style.background = '#dc3545';
+            } else if (percentage > 70) {
+                fillElement.style.background = '#ffc107';
+            } else {
+                fillElement.style.background = '#28a745';
+            }
+        }
+
+        // 收集表單資料
+        function collectFormData() {
+            const nameZh = document.getElementById('nameZh').value.trim();
+            const nameEn = document.getElementById('nameEn').value.trim();
+            const titleZh = document.getElementById('titleZh').value.trim();
+            const titleEn = document.getElementById('titleEn').value.trim();
+            
+            if (!nameZh || !nameEn || !titleZh || !titleEn) {
+                return null;
+            }
+            
+            // 處理雙語問候語
+            const greetingsZhText = document.getElementById('greetingsZh').value.trim();
+            const greetingsEnText = document.getElementById('greetingsEn').value.trim();
+            
+            const greetingsZh = greetingsZhText ? greetingsZhText.split('\n').filter(g => g.trim()) : ['歡迎認識我！'];
+            const greetingsEn = greetingsEnText ? greetingsEnText.split('\n').filter(g => g.trim()) : ['Nice to meet you!'];
+            
+            // 將雙語問候語結合
+            const maxLength = Math.max(greetingsZh.length, greetingsEn.length);
+            const bilingualGreetings = [];
+            
+            for (let i = 0; i < maxLength; i++) {
+                const zh = greetingsZh[i] || greetingsZh[greetingsZh.length - 1];
+                const en = greetingsEn[i] || greetingsEn[greetingsEn.length - 1];
+                bilingualGreetings.push(`${zh}~${en}`);
+            }
+            
+            return {
+                name: `${nameZh}~${nameEn}`,
+                title: `${titleZh}~${titleEn}`,
+                department: document.getElementById('department').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                avatar: document.getElementById('avatar').value.trim(),
+                greetings: bilingualGreetings,
+                socialNote: document.getElementById('socialNote').value.trim()
+            };
+        }
+
+        // 生成雙語 NFC 連結
+        function generateBilingualNFC() {
+            const data = collectFormData();
+            
+            if (!data) {
+                alert('請填寫必填欄位：中英文姓名和職稱');
+                return;
+            }
+            
+            if (!data.email) {
+                alert('請填寫電子郵件');
+                return;
+            }
+            
+            // 檢查容量
+            const capacity = calculateCapacity(data);
+            if (capacity.size > 492) {
+                showWarning(`資料超出 NFC 容量限制！當前：${capacity.size} bytes，限制：492 bytes`);
+                return;
+            }
+            
+            try {
+                // 使用優化編碼
+                const encoded = encodeCompact(data);
+                const layoutType = document.getElementById('layoutType').value;
+                const baseUrl = window.location.origin + window.location.pathname.replace('nfc-generator-bilingual.html', '');
+                
+                // 根據版面類型選擇對應頁面
+                let targetPage;
+                if (layoutType === 'personal') {
+                    targetPage = 'index-bilingual-personal.html';
+                } else if (layoutType === 'official-xinyi') {
+                    targetPage = 'index1-bilingual.html';
+                } else {
+                    targetPage = 'index-bilingual.html';
+                }
+                generatedUrl = `${baseUrl}${targetPage}?data=${encoded}`;
+                
+                // 顯示結果
+                document.getElementById('resultUrl').textContent = generatedUrl;
+                document.getElementById('result').classList.add('show');
+                
+                showSuccess(`生成成功！容量使用：${capacity.size}/492 bytes (${Math.round(capacity.percentage)}%)`);
+                
+            } catch (error) {
+                console.error('生成失敗:', error);
+                alert('生成失敗，請檢查輸入資料');
+            }
+        }
+
+        // 複製到剪貼簿
+        function copyToClipboard() {
+            if (!generatedUrl) return;
+            
+            navigator.clipboard.writeText(generatedUrl).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✅ 已複製';
+                btn.style.background = '#28a745';
+                
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '#28a745';
+                }, 2000);
+            }).catch(() => {
+                // 備用方案
+                const textArea = document.createElement('textarea');
+                textArea.value = generatedUrl;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('連結已複製到剪貼簿');
+            });
+        }
+
+        // 測試連結
+        function testLink() {
+            if (generatedUrl) {
+                window.open(generatedUrl, '_blank');
+            }
+        }
+
+        // 顯示警告
+        function showWarning(message) {
+            const existing = document.querySelector('.warning');
+            if (existing) existing.remove();
+            
+            const warning = document.createElement('div');
+            warning.className = 'warning';
+            warning.textContent = message;
+            document.getElementById('result').parentNode.insertBefore(warning, document.getElementById('result'));
+        }
+
+        // 顯示成功訊息
+        function showSuccess(message) {
+            const existing = document.querySelector('.success');
+            if (existing) existing.remove();
+            
+            const success = document.createElement('div');
+            success.className = 'success';
+            success.textContent = message;
+            document.getElementById('result').parentNode.insertBefore(success, document.getElementById('result'));
+        }
+
+        // 綁定即時監控事件
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputs = ['nameZh', 'nameEn', 'titleZh', 'titleEn', 'department', 'email', 'phone', 'avatar', 'greetingsZh', 'greetingsEn', 'socialNote'];
+            inputs.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', updateCapacityMonitor);
+                }
+            });
+            
+            // 初始化容量監控
+            updateCapacityMonitor();
+        });
+    </script>
+</body>
+</html>

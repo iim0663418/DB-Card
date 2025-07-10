@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>雙語問候語測試</title>
+    <script src="assets/bilingual-common.js"></script>
+</head>
+<body>
+    <h1>雙語問候語功能測試</h1>
+    
+    <div>
+        <button onclick="testBilingualGreetings()">測試雙語問候語</button>
+        <button onclick="testCapacity()">測試容量</button>
+    </div>
+    
+    <div id="results"></div>
+    
+    <script>
+        function testBilingualGreetings() {
+            const testData = {
+                name: "王小明~Wang Xiaoming",
+                title: "科長~Section Chief",
+                department: "資訊科",
+                email: "test@gov.tw",
+                phone: "02-12345678",
+                avatar: "https://i.imgur.com/x.jpg",
+                greetings: ["您好！~Hello!", "很高興認識您~Nice to meet you"],
+                socialNote: "GitHub: github.com/test"
+            };
+            
+            console.log('測試資料:', testData);
+            
+            // 測試中文問候語
+            const zhGreetings = processBilingualGreetings(testData.greetings, 'zh');
+            console.log('中文問候語:', zhGreetings);
+            
+            // 測試英文問候語
+            const enGreetings = processBilingualGreetings(testData.greetings, 'en');
+            console.log('英文問候語:', enGreetings);
+            
+            document.getElementById('results').innerHTML = `
+                <h3>測試結果：</h3>
+                <p><strong>中文問候語：</strong> ${zhGreetings.join(', ')}</p>
+                <p><strong>英文問候語：</strong> ${enGreetings.join(', ')}</p>
+            `;
+        }
+        
+        function testCapacity() {
+            const testData = {
+                name: "王小明~Wang Xiaoming",
+                title: "科長~Section Chief", 
+                department: "資訊科",
+                email: "test@gov.tw",
+                phone: "02-12345678",
+                avatar: "https://i.imgur.com/x.jpg",
+                greetings: ["您好！~Hello!", "很高興認識您~Nice to meet you"],
+                socialNote: "GitHub: github.com/test"
+            };
+            
+            const capacity = calculateCapacity(testData);
+            console.log('容量測試:', capacity);
+            
+            document.getElementById('results').innerHTML += `
+                <h3>容量測試：</h3>
+                <p><strong>編碼大小：</strong> ${capacity.size} bytes</p>
+                <p><strong>剩餘空間：</strong> ${capacity.remaining} bytes</p>
+                <p><strong>使用率：</strong> ${capacity.percentage}%</p>
+                <p><strong>狀態：</strong> ${capacity.size <= 492 ? '✅ 通過' : '❌ 超限'}</p>
+            `;
+        }
+    </script>
+</body>
+</html>

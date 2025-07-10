@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數位名片</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="assets/bilingual-common.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', 'PingFang TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans TC', 'Microsoft JhengHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-feature-settings: 'kern' 1, 'liga' 1;
+            font-weight: 300;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background: #f4f6f7;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1a1a1a;
+            position: relative;
+            padding: 15px;
+            letter-spacing: 0;
+            line-height: 1.5;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="%23ffffff" opacity="0.1"/></svg>') repeat;
+            background-size: 50px 50px;
+            pointer-events: none;
+        }
+
+        .language-switch {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 10;
+        }
+
+        .lang-btn {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid #6868ac;
+            border-radius: 22px;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #6868ac;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            min-width: 60px;
+            min-height: 36px;
+        }
+
+        .lang-btn:hover {
+            background: #6868ac;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(104,104,172,0.2);
+        }
+
+        .project-link {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid #6868ac;
+            border-radius: 18px;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #6868ac;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            min-height: 34px;
+            display: flex;
+            align-items: center;
+        }
+
+        .project-link:hover {
+            background: #6868ac;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(104,104,172,0.2);
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08);
+            border: 1px solid #e5e5e5;
+            padding: 45px;
+            text-align: center;
+            max-width: 520px;
+            width: 95%;
+            min-width: 320px;
+            animation: slideIn 0.6s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #6868ac 0%, #4e4e81 100%);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .avatar-section {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .avatar {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #6b7280;
+            box-shadow: 0 6px 20px rgba(107,114,128,0.3);
+            display: block;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .name {
+            font-size: 2.8em;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #212529;
+            letter-spacing: -0.01em;
+            line-height: 1.2;
+        }
+
+        .title {
+            font-size: 1.6em;
+            color: #495057;
+            margin-bottom: 10px;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            line-height: 1.3;
+        }
+
+        .department {
+            font-size: 1.4em;
+            color: #6c757d;
+            margin-bottom: 15px;
+            font-weight: 400;
+            letter-spacing: 0.01em;
+            line-height: 1.3;
+        }
+
+        .organization {
+            font-size: 1.3em;
+            color: #6c757d;
+            margin-bottom: 35px;
+            font-weight: 400;
+            letter-spacing: 0.01em;
+            line-height: 1.3;
+        }
+
+        .greeting {
+            font-size: 1.4em;
+            color: #495057;
+            margin-bottom: 35px;
+            min-height: 70px;
+            font-weight: 400;
+            letter-spacing: 0.01em;
+            line-height: 1.5;
+        }
+        
+        .greeting::after {
+            content: '|';
+            animation: blink 1s infinite;
+            color: #6868ac;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        .contact-info {
+            background: #f3f5f6;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 30px 0;
+            border: 1px solid #e5e5e5;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 18px;
+            font-size: 1.15em;
+            color: #495057;
+            font-weight: 400;
+            letter-spacing: 0;
+            line-height: 1.4;
+        }
+
+        .contact-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .contact-icon {
+            font-size: 1.3em;
+            margin-right: 15px;
+            width: 28px;
+            text-align: center;
+        }
+
+        .contact-text {
+            flex: 1;
+            font-weight: 400;
+        }
+
+        .contact-link {
+            color: #6868ac;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .contact-link:hover {
+            color: #4e4e81;
+            text-decoration: underline;
+        }
+
+        .contact-title {
+            font-size: 1.2em;
+            font-weight: 500;
+            color: #212529;
+            margin-bottom: 18px;
+            text-align: center;
+            letter-spacing: 0;
+            line-height: 1.4;
+        }
+
+        .download-btn {
+            background: #6868ac;
+            color: #fff;
+            border: 1px solid #6868ac;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin-bottom: 25px;
+            box-shadow: 0 1px 3px rgba(104,104,172,0.2);
+            letter-spacing: 0;
+            line-height: 1.5;
+        }
+
+        .download-btn:hover {
+            background: #4e4e81;
+            border-color: #4e4e81;
+            box-shadow: 0 2px 6px rgba(104,104,172,0.3);
+            transform: translateY(-1px);
+        }
+
+        .action-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 25px;
+            margin-top: 25px;
+        }
+
+        .qr-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 25px;
+            background: #f9fafb;
+            border-radius: 15px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .qr-code {
+            width: 240px;
+            height: 240px;
+            border: 2px solid #6b7280;
+            border-radius: 12px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+            padding: 15px;
+            box-shadow: 0 4px 12px rgba(107,114,128,0.15);
+        }
+
+        .qr-label {
+            font-size: 1.1em;
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .social-info {
+            background: #dbdbeb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            border: 1px solid #a4a4cd;
+        }
+
+        .social-info-title {
+            font-size: 1em;
+            font-weight: 500;
+            color: #4e4e81;
+            margin-bottom: 15px;
+            text-align: center;
+            letter-spacing: 0;
+            line-height: 1.5;
+        }
+
+        .social-info-content {
+            font-size: 0.9em;
+            color: #4e4e81;
+            line-height: 1.6;
+            white-space: pre-line;
+            word-break: break-word;
+        }
+
+        .social-link {
+            color: #6868ac;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .social-link:hover {
+            color: #4e4e81;
+            text-decoration: underline;
+        }
+
+        @media (max-width: 480px) {
+            .language-switch {
+                top: 15px;
+                right: 15px;
+            }
+            
+            .project-link {
+                top: 12px;
+                left: 12px;
+                font-size: 10px;
+                padding: 3px 8px;
+                border-radius: 12px;
+            }
+            
+            .lang-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            
+            .card {
+                padding: 30px 25px;
+                width: 94%;
+                max-width: none;
+                margin: 15px;
+            }
+            
+            .name {
+                font-size: 2.2em;
+            }
+            
+            .title {
+                font-size: 1.3em;
+            }
+            
+            .department {
+                font-size: 1.1em;
+            }
+            
+            .organization {
+                font-size: 1.05em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="card-container" style="display: none;">
+        <div class="card">
+            <!-- 專案連結 -->
+            <a id="projectLink" href="https://github.com/moda-gov-tw/DB-Card" target="_blank" class="project-link">
+                🇹🇼 <span id="projectLinkText">moda 開源專案</span>
+            </a>
+            
+            <!-- 語言切換按鈕 -->
+            <div class="language-switch">
+                <button id="langSwitch" onclick="toggleLanguage()" class="lang-btn">
+                    🇺🇸 EN
+                </button>
+            </div>
+            <div class="avatar-section">
+                <img id="userAvatar" src="" alt="" class="avatar">
+            </div>
+            
+            <h1 id="userName" class="name"></h1>
+            <p id="userTitle" class="title"></p>
+            <p id="userDepartment" class="department"></p>
+            <p id="userOrganization" class="organization"></p>
+            
+            <div class="greeting" id="greetings">
+                歡迎認識我！
+            </div>
+            
+            <div class="contact-info">
+                <div id="contactTitle" class="contact-title">聯絡資訊</div>
+                <div class="contact-item">
+                    <span class="contact-icon">📧</span>
+                    <span class="contact-text">
+                        <a id="userEmail" href="" class="contact-link"></a>
+                    </span>
+                </div>
+                <div id="phoneItem" class="contact-item">
+                    <span class="contact-icon">📞</span>
+                    <span class="contact-text">
+                        <a id="userPhone" href="" class="contact-link"></a>
+                    </span>
+                </div>
+                <div id="orgItem" class="contact-item" style="display: none;">
+                    <span class="contact-icon">🏢</span>
+                    <span id="orgName" class="contact-text"></span>
+                </div>
+                <div id="addressItem" class="contact-item" style="display: none;">
+                    <span class="contact-icon">📍</span>
+                    <span id="orgAddress" class="contact-text"></span>
+                </div>
+            </div>
+            
+            <div id="socialInfo" class="social-info" style="display: none;">
+                <div class="social-info-title">🔗 社群連結</div>
+                <div id="socialInfoContent" class="social-info-content"></div>
+            </div>
+            
+            <div id="privacyBanner" class="privacy-banner" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border: 2px solid #6968ac; border-radius: 12px; padding: 20px 25px; margin: 25px 0; font-size: 0.95em; color: #495057; line-height: 1.6; position: relative; overflow: hidden;">
+                <div style="position: absolute; top: 0; left: 0; width: 5px; height: 100%; background: #6968ac;"></div>
+                <strong style="color: #6968ac; font-weight: 700;">🔒 <span id="privacyTitle">隱私優先設計</span></strong> • <span id="projectInfo">行政院數位發展部開源專案</span><br>
+                <span id="privacyDesc">所有個人資料僅儲存於 NFC 卡片，無後端追蹤、純前端架構、個人資訊完全自主掌控</span>
+            </div>
+            
+            <div class="action-section">
+                <button id="downloadBtn" onclick="downloadBilingualVCard(currentData, currentLanguage)" class="download-btn">
+                    📱 <span id="downloadBtnText">加入聯絡人</span>
+                </button>
+                
+                <div class="qr-section">
+                    <div class="qr-code" id="qrcode">
+                        QR 碼載入中...
+                    </div>
+                    <div id="qrLabel" class="qr-label">掃描 QR 碼快速開啟</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="loading-state" style="display: block; color: #1a1a1a; text-align: center; padding-top: 50px;">
+        <h1>⏳</h1>
+        <h2 id="loadingTitle">載入中</h2>
+        <p id="loadingText">正在解析數位名片資料...</p>
+    </div>
+    
+    <div id="access-denied" style="display: none; color: #333; text-align: center; padding-top: 50px;">
+        <h1>🚫</h1>
+        <h2 id="errorTitle">無效資料</h2>
+        <p id="errorText">請使用 NFC 卡片或包含資料的連結訪問。</p>
+    </div>
+
+    <script>
+        // 個人版特殊渲染邏輯
+        function renderPersonalCard(data, lang = 'zh') {
+            const name = getLocalizedText(data.name, lang);
+            const title = getLocalizedText(data.title, lang);
+            
+            updateElement('userName', name);
+            updateElement('userTitle', title);
+            updateElement('userDepartment', data.department);
+            
+            // 個人版可能有自訂組織
+            if (data.organization) {
+                updateElement('userOrganization', data.organization);
+                document.getElementById('userOrganization').style.display = 'block';
+            } else {
+                document.getElementById('userOrganization').style.display = 'none';
+            }
+            
+            updateElement('userEmail', data.email);
+            if (data.email) {
+                document.getElementById('userEmail').href = `mailto:${data.email}`;
+            }
+            
+            // 處理電話
+            const phoneItem = document.getElementById('phoneItem');
+            if (data.phone) {
+                updateElement('userPhone', data.phone);
+                document.getElementById('userPhone').href = `tel:${data.phone.replace(/[^0-9+]/g, '')}`;
+                phoneItem.style.display = 'flex';
+            } else {
+                phoneItem.style.display = 'none';
+            }
+            
+            // 個人版可能有自訂地址
+            const orgItem = document.getElementById('orgItem');
+            const addressItem = document.getElementById('addressItem');
+            
+            if (data.organization) {
+                updateElement('orgName', data.organization);
+                orgItem.style.display = 'flex';
+            } else {
+                orgItem.style.display = 'none';
+            }
+            
+            if (data.address) {
+                updateElement('orgAddress', data.address);
+                addressItem.style.display = 'flex';
+            } else {
+                addressItem.style.display = 'none';
+            }
+        }
+
+        // 生成 QR 碼
+        function generateQRCode() {
+            const currentURL = window.location.href;
+            const qrContainer = document.getElementById('qrcode');
+            
+            const qrURL = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(currentURL)}&bgcolor=ffffff&color=6b7280`;
+            
+            const qrImg = document.createElement('img');
+            qrImg.src = qrURL;
+            qrImg.alt = 'QR Code';
+            qrImg.style.width = '100%';
+            qrImg.style.height = '100%';
+            qrImg.style.objectFit = 'contain';
+            
+            qrContainer.innerHTML = '';
+            qrContainer.appendChild(qrImg);
+        }
+
+        // 處理社群媒體連結
+        function processSocialLinks(text) {
+            const lines = text.split('\n');
+            const processedLines = lines.map(line => {
+                let processedLine = line;
+                
+                if (/^FB:/i.test(processedLine)) {
+                    processedLine = processedLine.replace(/FB:\s*(fb\.com\/[\w\.-]+|facebook\.com\/[\w\.-]+|@[\w\.-]+)/gi, function(match, url) {
+                        const cleanUrl = url.startsWith('@') ? `fb.com/${url.substring(1)}` : url;
+                        const fullUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
+                        return `FB: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
+                    });
+                }
+                else if (/^IG:/i.test(processedLine)) {
+                    processedLine = processedLine.replace(/IG:\s*(instagram\.com\/[\w\.-]+|@[\w\.-]+)/gi, function(match, url) {
+                        const cleanUrl = url.startsWith('@') ? `instagram.com/${url.substring(1)}` : url;
+                        const fullUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
+                        return `IG: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
+                    });
+                }
+                else if (/^GitHub:/i.test(processedLine)) {
+                    processedLine = processedLine.replace(/GitHub:\s*(github\.com\/[\w\.-\/]+|@[\w\.-]+)/gi, function(match, url) {
+                        const cleanUrl = url.startsWith('@') ? `github.com/${url.substring(1)}` : url;
+                        const fullUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
+                        return `GitHub: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
+                    });
+                }
+                
+                return processedLine;
+            });
+            
+            return processedLines.join('\n');
+        }
+
+        // 更新界面文字
+        function updateUIText(lang) {
+            const texts = {
+                zh: {
+                    contactTitle: '聯絡資訊',
+                    socialTitle: '🔗 社群連結',
+                    downloadBtnText: '加入聯絡人',
+                    qrLabel: '掃描 QR 碼快速開啟',
+                    loadingTitle: '載入中',
+                    loadingText: '正在解析數位名片資料...',
+                    errorTitle: '無效資料',
+                    errorText: '請使用 NFC 卡片或包含資料的連結訪問。',
+                    privacyTitle: '隱私優先設計',
+                    projectInfo: '行政院數位發展部開源專案',
+                    privacyDesc: '所有個人資料僅儲存於 NFC 卡片，無後端追蹤、純前端架構、個人資訊完全自主掌控',
+                    projectLinkText: 'moda 開源專案'
+                },
+                en: {
+                    contactTitle: 'Contact Information',
+                    socialTitle: '🔗 Social Links',
+                    downloadBtnText: 'Add to Contacts',
+                    qrLabel: 'Scan QR Code to Open',
+                    loadingTitle: 'Loading',
+                    loadingText: 'Parsing digital business card data...',
+                    errorTitle: 'Invalid Data',
+                    errorText: 'Please access via NFC card or link with data.',
+                    privacyTitle: 'Privacy-First Design',
+                    projectInfo: 'Open Source Project by Ministry of Digital Affairs',
+                    privacyDesc: 'All personal data is stored only on your NFC card. No backend tracking, pure frontend architecture, complete personal data autonomy.',
+                    projectLinkText: 'moda open source'
+                }
+            };
+            
+            const text = texts[lang] || texts.zh;
+            updateElement('contactTitle', text.contactTitle);
+            updateElement('qrLabel', text.qrLabel);
+            updateElement('loadingTitle', text.loadingTitle);
+            updateElement('loadingText', text.loadingText);
+            updateElement('errorTitle', text.errorTitle);
+            updateElement('errorText', text.errorText);
+            updateElement('downloadBtnText', text.downloadBtnText);
+            updateElement('privacyTitle', text.privacyTitle);
+            updateElement('projectInfo', text.projectInfo);
+            updateElement('privacyDesc', text.privacyDesc);
+            updateElement('projectLinkText', text.projectLinkText);
+            
+            // 更新社群標題
+            const socialTitle = document.querySelector('.social-info-title');
+            if (socialTitle) {
+                socialTitle.textContent = text.socialTitle;
+            }
+        }
+
+        // 打字機效果相關變數
+        window.typewriterTimeout = null;
+        window.currentGreetingIndex = 0;
+        window.currentGreetings = ['歡迎認識我！'];
+
+        // 打字機效果函數
+        function startGreetingAnimation() {
+            // 清理所有現有的計時器
+            if (window.typewriterTimeout) {
+                clearTimeout(window.typewriterTimeout);
+            }
+            
+            if (!window.currentGreetings || window.currentGreetings.length === 0) {
+                return;
+            }
+            
+            const greetingElement = document.getElementById('greetings');
+            if (!greetingElement) return;
+            
+            let charIndex = 0;
+            let isDeleting = false;
+            
+            function typeWriter() {
+                const currentText = window.currentGreetings[window.currentGreetingIndex];
+                
+                if (!isDeleting) {
+                    // 打字階段
+                    greetingElement.textContent = currentText.substring(0, charIndex + 1);
+                    charIndex++;
+                    
+                    if (charIndex === currentText.length) {
+                        // 完成打字，等待後開始刪除
+                        window.typewriterTimeout = setTimeout(() => {
+                            isDeleting = true;
+                            typeWriter();
+                        }, 4000);
+                        return;
+                    }
+                } else {
+                    // 刪除階段
+                    greetingElement.textContent = currentText.substring(0, charIndex);
+                    charIndex--;
+                    
+                    if (charIndex < 0) {
+                        // 完成刪除，等待後切換到下一個問候語
+                        isDeleting = false;
+                        charIndex = 0;
+                        window.currentGreetingIndex = (window.currentGreetingIndex + 1) % window.currentGreetings.length;
+                        
+                        // 在開始下一個問候語前等待
+                        window.typewriterTimeout = setTimeout(typeWriter, 1000);
+                        return;
+                    }
+                }
+                
+                // 設定下次執行時間
+                const speed = isDeleting ? 50 : 100;
+                window.typewriterTimeout = setTimeout(typeWriter, speed);
+            }
+            
+            // 開始打字機效果
+            typeWriter();
+        }
+
+        // 覆蓋通用渲染函數為個人版
+        function renderBilingualCard(data, lang = 'zh') {
+            renderPersonalCard(data, lang);
+            
+            // 更新問候語並重新啟動打字機效果
+            if (data.greetings && data.greetings.length > 0) {
+                const greetings = processBilingualGreetings(data.greetings, lang);
+                window.currentGreetings = greetings;
+                window.currentGreetingIndex = 0;
+                updateElement('greetings', greetings[0]);
+                
+                // 重新啟動打字機效果
+                if (typeof startGreetingAnimation === 'function') {
+                    startGreetingAnimation();
+                }
+            }
+        }
+
+        // 頁面初始化
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                const urlParams = new URLSearchParams(window.location.search);
+                const data = urlParams.get('data');
+                
+                if (!data) {
+                    document.getElementById('loading-state').style.display = 'none';
+                    document.getElementById('access-denied').style.display = 'block';
+                    return;
+                }
+                
+                try {
+                    currentData = decodeCompact(data);
+                    if (!currentData || !currentData.name) {
+                        throw new Error('名片資料格式不正確');
+                    }
+                    
+                    document.getElementById('loading-state').style.display = 'none';
+                    document.getElementById('card-container').style.display = 'block';
+                    
+                    renderPersonalCard(currentData, currentLanguage);
+                    updateUIText(currentLanguage);
+                    generateQRCode();
+                    
+                    // 處理頭像
+                    const avatar = document.getElementById('userAvatar');
+                    if (currentData.avatar) {
+                        avatar.src = currentData.avatar;
+                        avatar.style.display = 'block';
+                        avatar.onerror = function() {
+                            this.style.display = 'none';
+                        };
+                    } else {
+                        avatar.style.display = 'none';
+                    }
+                    
+                    // 處理問候語和打字機效果
+                    if (currentData.greetings && currentData.greetings.length > 0) {
+                        const greetings = processBilingualGreetings(currentData.greetings, currentLanguage);
+                        window.currentGreetings = greetings;
+                        window.currentGreetingIndex = 0;
+                        updateElement('greetings', greetings[0]);
+                        
+                        // 啟動打字機效果
+                        setTimeout(() => {
+                            startGreetingAnimation();
+                        }, 1000);
+                    }
+                    
+                    // 處理社群資訊
+                    if (currentData.socialNote) {
+                        const socialInfo = document.getElementById('socialInfo');
+                        const socialContent = document.getElementById('socialInfoContent');
+                        socialContent.innerHTML = processSocialLinks(currentData.socialNote);
+                        socialInfo.style.display = 'block';
+                    }
+                    
+                } catch (error) {
+                    console.error('解析失敗:', error);
+                    document.getElementById('loading-state').style.display = 'none';
+                    document.getElementById('access-denied').style.display = 'block';
+                }
+            }, 800);
+        });
+    </script>
+</body>
+</html>

@@ -165,7 +165,7 @@
 ## 📸 大頭貼設定指南
 
 ### 推薦圖片托管服務
-- **[Imgur](https://imgur.com)**：免費、穩定、支援 HTTPS（推薦）
+- **[Imgur](https://imgur.com)**：
   1. 上傳圖片後右鍵選擇「複製圖片網址」
   2. 取得格式如：`https://i.imgur.com/XXXXXX.jpg`
 

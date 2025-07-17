@@ -235,7 +235,7 @@ function updateOrganizationInfo(lang) {
     const orgInfo = {
         zh: {
             name: '數位發展部',
-            address: '台北市中正區延平南路143號' // 或新光大樓地址
+            address: '臺北市中正區延平南路143號' // 或新光大樓地址
         },
         en: {
             name: 'Ministry of Digital Affairs',
@@ -268,7 +268,7 @@ function generateBilingualVCard(data, lang = 'zh') {
         name.split(' ');
     
     const orgInfo = {
-        zh: { name: '數位發展部', address: '台北市中正區延平南路143號' },
+        zh: { name: '數位發展部', address: '臺北市中正區延平南路143號' },
         en: { name: 'Ministry of Digital Affairs', address: '143 Yanping S. Rd., Zhongzheng Dist., Taipei City, Taiwan' }
     };
     
@@ -548,7 +548,7 @@ function calculateCapacity(data) {
             <!-- 組織資訊 -->
             <div class="org-info">
                 <p id="orgName">數位發展部</p>
-                <p id="orgAddress">台北市中正區延平南路143號</p>
+                <p id="orgAddress">臺北市中正區延平南路143號</p>
             </div>
         </div>
         

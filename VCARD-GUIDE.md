@@ -46,7 +46,7 @@ TITLE;CHARSET=UTF-8:科長
 EMAIL;TYPE=work:iim0663418@moda.gov.tw
 TEL;TYPE=work,voice:+886-2-2380-0411
 URL;TYPE=work:https://github.com/iim0663418
-ADR;TYPE=work;CHARSET=UTF-8:;;台北市中正區延平南路143號;;;;Taiwan
+ADR;TYPE=work;CHARSET=UTF-8:;;臺北市中正區延平南路143號;;;;Taiwan
 PHOTO;TYPE=JPEG:https://example.com/photo.jpg
 NOTE;CHARSET=UTF-8:歡迎透過 GitHub 或 LinkedIn 與我聯繫！
 REV:20250618T000000Z

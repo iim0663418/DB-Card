@@ -191,7 +191,7 @@
 1. Fork 此專案到你的 GitHub 帳號
 2. **⚠️ 重要：修改前端寫死的內容**
    - 編輯 `index.html` 第 752 行：將「數位發展部」改為你的機構名稱
-   - 編輯 `index.html` 第 756 行：將「台北市中正區延平南路143號」改為你的機構地址
+   - 編輯 `index.html` 第 756 行：將「臺北市中正區延平南路143號」改為你的機構地址
    - 替換 `assets/moda-logo.svg` 為你的機構標誌
 3. 在 Repository Settings > Pages 中啟用
 4. 選擇 `main` 分支作為來源

@@ -267,8 +267,8 @@ function updateOrganizationInfo(lang, building = 'yanping') {
     const orgInfo = {
         zh: {
             name: '數位發展部',
-            yanping: '台北市中正區延平南路143號',
-            xinyi: '台北市中正區忠孝西路一段６６號（１７、１９樓）'
+            yanping: '臺北市中正區延平南路143號',
+            xinyi: '臺北市中正區忠孝西路一段６６號（１７、１９樓）'
         },
         en: {
             name: 'Ministry of Digital Affairs',
@@ -301,8 +301,8 @@ function generateBilingualVCard(data, lang = 'zh') {
         zh: { 
             name: '數位發展部', 
             address: isXinyiBuilding ? 
-                '台北市中正區忠孝西路一段６６號（１７、１９樓）' : 
-                '台北市中正區延平南路143號'
+                '臺北市中正區忠孝西路一段６６號（１７、１９樓）' : 
+                '臺北市中正區延平南路143號'
         },
         en: { 
             name: 'Ministry of Digital Affairs', 

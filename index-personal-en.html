@@ -626,7 +626,7 @@
             }
             
             const mobileItem = document.getElementById('mobile-item');
-            if (data.mobile) {
+            if (data.mobile && data.mobile.trim() !== '') {
                 const mobileLink = document.getElementById('user-mobile');
                 mobileLink.href = `tel:${data.mobile.replace(/[^0-9+]/g, '')}`;
                 mobileLink.textContent = data.mobile;
@@ -715,7 +715,7 @@
 
             contactLink.addEventListener('click', function() {
                 if (!messageShown) {
-                    helperText.innerHTML = 'After download, please click <b>"Open"</b> or find the file in your <b>notification bar</b> to complete the addition.';
+                    helperText.innerHTML = 'After download, please click <b>"Open"</b> or find the file in your <b>notification bar</b> to complete the addition.<br><b>Apple devices</b>: Please remember not to tap "Done" in the top left, scroll down to <b>"Add to Contacts"</b>.';
                     messageShown = true;
                 }
             });

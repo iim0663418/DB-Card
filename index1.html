@@ -663,7 +663,7 @@
             
             // 手機號碼（可選）
             const mobileItem = document.getElementById('mobile-item');
-            if (data.mobile) {
+            if (data.mobile && data.mobile.trim() !== '') {
                 const mobileLink = document.getElementById('user-mobile');
                 mobileLink.href = `tel:${data.mobile.replace(/[^0-9+]/g, '')}`;
                 mobileLink.textContent = data.mobile;
@@ -820,7 +820,7 @@
             // 監聽按鈕點擊事件
             contactLink.addEventListener('click', function() {
                 if (!messageShown) {
-                    helperText.innerHTML = '下載後，請點擊<b>「開啟」</b>或於<b>通知欄</b>中找到檔案，即可完成新增。';
+                    helperText.innerHTML = '下載後，請點擊<b>「開啟」</b>或於<b>通知欄</b>中找到檔案，即可完成新增。<br><b>Apple 裝置</b>：請記得不要按左上方的完成，要下拉到<b>「加入聯絡人」</b>。';
                     messageShown = true;
                 }
             });

@@ -321,6 +321,11 @@
                 </div>
                 
                 <div class="form-group">
+                    <label>手機號碼：</label>
+                    <input type="tel" id="mobile" placeholder="0912-345-678">
+                </div>
+                
+                <div class="form-group">
                     <label>大頭貼 URL：</label>
                     <input type="url" id="avatar" placeholder="https://i.imgur.com/example.jpg">
                     <div class="help-text">
@@ -344,8 +349,11 @@
                 
                 <div class="form-group">
                     <label>社群媒體資訊：</label>
-                    <textarea id="socialNote" placeholder="GitHub: github.com/yourname&#10;FB: fb.com/yourname&#10;IG: @yourname"></textarea>
-                    <div class="help-text">每行一個社群媒體，支援自動連結轉換</div>
+                    <textarea id="socialNote" placeholder="GitHub: github.com/yourname&#10;FB: fb.com/yourname&#10;IG: @yourname&#10;LINE: @your-line-id"></textarea>
+                    <div class="help-text">
+                        每行一個社群媒體，支援自動連結轉換<br>
+                        LINE 格式：<strong>@your-line-id</strong>（官方帳號，含@）或 <strong>your-line-id</strong>（個人帳號，無@）
+                    </div>
                 </div>
                 
                 <!-- 容量監控 -->
@@ -443,6 +451,7 @@
                 department: document.getElementById('department').value.trim(),
                 email: document.getElementById('email').value.trim(),
                 phone: document.getElementById('phone').value.trim(),
+                mobile: document.getElementById('mobile').value.trim(),
                 avatar: document.getElementById('avatar').value.trim(),
                 greetings: bilingualGreetings,
                 socialNote: document.getElementById('socialNote').value.trim()
@@ -474,7 +483,8 @@
                 // 使用優化編碼
                 const encoded = encodeCompact(data);
                 const layoutType = document.getElementById('layoutType').value;
-                const baseUrl = window.location.origin + window.location.pathname.replace('nfc-generator-bilingual.html', '');
+                // 生成完整 URL（相容 GitHub Pages 網域或其他）
+                const baseUrl = window.location.origin + window.location.pathname.replace(/[^/]+$/, "");
                 
                 // 根據版面類型選擇對應頁面
                 let targetPage;
@@ -556,7 +566,7 @@
 
         // 綁定即時監控事件
         document.addEventListener('DOMContentLoaded', function() {
-            const inputs = ['nameZh', 'nameEn', 'titleZh', 'titleEn', 'department', 'email', 'phone', 'avatar', 'greetingsZh', 'greetingsEn', 'socialNote'];
+            const inputs = ['nameZh', 'nameEn', 'titleZh', 'titleEn', 'department', 'email', 'phone', 'mobile', 'avatar', 'greetingsZh', 'greetingsEn', 'socialNote'];
             inputs.forEach(id => {
                 const element = document.getElementById(id);
                 if (element) {

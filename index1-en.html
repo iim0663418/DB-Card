@@ -464,6 +464,12 @@
                         <a id="user-phone" href="" class="contact-link"></a>
                     </span>
                 </div>
+                <div id="mobile-item" class="contact-item">
+                    <span class="contact-icon">📱</span>
+                    <span class="contact-text">
+                        <a id="user-mobile" href="" class="contact-link"></a>
+                    </span>
+                </div>
                 <div class="contact-item">
                     <span class="contact-icon">🏢</span>
                     <span id="user-organization" class="contact-text"></span>
@@ -685,6 +691,17 @@
                 phoneItem.style.display = 'none';
             }
             
+            // 手機號碼
+            const mobileItem = document.getElementById('mobile-item');
+            if (data.mobile) {
+                const mobileLink = document.getElementById('user-mobile');
+                mobileLink.href = `tel:${data.mobile.replace(/[^0-9+]/g, '')}`;
+                mobileLink.textContent = data.mobile;
+                mobileItem.style.display = 'flex';
+            } else {
+                mobileItem.style.display = 'none';
+            }
+            
             // 組織和地址（英文翻譯）
             document.getElementById('user-organization').textContent = 'Ministry of Digital Affairs';
             document.getElementById('user-address').innerHTML = 'No. 66, Sec. 1, Zhongxiao W. Rd., Zhongzheng Dist., Taipei City 100507, Taiwan (R.O.C.) (17F, 19F)';
@@ -726,6 +743,9 @@
                 
                 const phone = data.phone ? data.phone.replace(/[^0-9+]/g, '') : '';
                 const formattedPhone = phone.startsWith('+') ? phone : `+886-${phone.replace(/^0/, '')}`;
+                
+                const mobile = data.mobile ? data.mobile.replace(/[^0-9+]/g, '') : '';
+                const formattedMobile = mobile.startsWith('+') ? mobile : `+886-${mobile.replace(/^0/, '')}`;
                 
                 const now = new Date();
                 const timestamp = now.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
@@ -801,6 +821,7 @@
                     `TITLE;CHARSET=UTF-8:${translatedTitle}`,
                     `EMAIL;TYPE=work:${data.email || ''}`,
                     data.phone ? `TEL;TYPE=work,voice:${formattedPhone}` : '',
+                    data.mobile ? `TEL;TYPE=cell,voice:${formattedMobile}` : '',
                     `ADR;TYPE=work;CHARSET=UTF-8:;;No. 66, Sec. 1, Zhongxiao W. Rd., Zhongzheng Dist., Taipei City 100507, Taiwan (R.O.C.) (17F, 19F);;;;Taiwan`,
                     socialNote ? `NOTE;CHARSET=UTF-8:${socialNote}` : '',
                     `PHOTO;TYPE=JPEG:${photoUrl}`,
@@ -881,6 +902,7 @@
                     organization: 'Ministry of Digital Affairs',
                     email: compactData.e || '',
                     phone: compactData.p || '',
+                    mobile: compactData.m || '',
                     avatar: compactData.a || '',
                     address: 'No. 66, Sec. 1, Zhongxiao W. Rd., Zhongzheng Dist., Taipei City 100507, Taiwan (R.O.C.) (17F, 19F)', // 新光大樓英文地址
                     greetings: compactData.g || ['Nice to meet you!'],
@@ -926,12 +948,16 @@
                     });
                 }
                 else if (/^LINE:/i.test(processedLine)) {
-                    processedLine = processedLine.replace(/LINE:\s*(@[\w\.-]+|line\.me\/[\w\/-]+)/gi, function(match, url) {
+                    processedLine = processedLine.replace(/LINE:\s*(@?[\w\.-]+|line\.me\/[\w\/-]+)/gi, function(match, url) {
                         let fullUrl;
                         if (url.startsWith('@')) {
-                            fullUrl = `https://line.me/ti/p/${url}`;
+                            // Official account: @323foylw -> https://line.me/ti/p/~@323foylw
+                            fullUrl = `https://line.me/ti/p/~${url}`;
                         } else if (url.startsWith('line.me')) {
                             fullUrl = `https://${url}`;
+                        } else if (/^[\w\.-]+$/.test(url)) {
+                            // Personal account: tsgservice -> https://line.me/ti/p/~tsgservice
+                            fullUrl = `https://line.me/ti/p/~${url}`;
                         } else {
                             fullUrl = url.startsWith('http') ? url : `https://${url}`;
                         }

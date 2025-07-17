@@ -17,6 +17,7 @@ function encodeCompact(data) {
         data.department || '',
         data.email || '',
         data.phone || '',
+        data.mobile || '',
         data.avatar || '',
         (data.greetings || []).join(','),
         data.socialNote || ''
@@ -39,15 +40,33 @@ function decodeCompact(encoded) {
         ));
         
         const parts = compact.split('|');
+        
+        // 檢查是否為舊版本格式（8個欄位，沒有手機號碼）
+        if (parts.length === 8) {
+            return {
+                name: parts[0] || '',
+                title: parts[1] || '',
+                department: parts[2] || '',
+                email: parts[3] || '',
+                phone: parts[4] || '',
+                mobile: '', // 舊版本沒有手機號碼
+                avatar: parts[5] || '',
+                greetings: parts[6] ? parts[6].split(',') : [],
+                socialNote: parts[7] || ''
+            };
+        }
+        
+        // 新版本格式（9個欄位，包含手機號碼）
         return {
             name: parts[0] || '',
             title: parts[1] || '',
             department: parts[2] || '',
             email: parts[3] || '',
             phone: parts[4] || '',
-            avatar: parts[5] || '',
-            greetings: parts[6] ? parts[6].split(',') : [],
-            socialNote: parts[7] || ''
+            mobile: parts[5] || '',
+            avatar: parts[6] || '',
+            greetings: parts[7] ? parts[7].split(',') : [],
+            socialNote: parts[8] || ''
         };
     } catch (error) {
         console.error('解碼失敗:', error);
@@ -172,7 +191,32 @@ function renderBilingualCard(data, lang = 'zh') {
     updateElement('userTitle', title);
     updateElement('userDepartment', department);
     updateElement('userEmail', data.email);
-    updateElement('userPhone', data.phone);
+    
+    // 處理電話顯示
+    const phoneItem = document.getElementById('phoneItem');
+    if (data.phone) {
+        updateElement('userPhone', data.phone);
+        const phoneLink = document.getElementById('userPhone');
+        if (phoneLink) {
+            phoneLink.href = `tel:${data.phone.replace(/[^0-9+]/g, '')}`;
+        }
+        if (phoneItem) phoneItem.style.display = 'flex';
+    } else {
+        if (phoneItem) phoneItem.style.display = 'none';
+    }
+    
+    // 處理手機號碼顯示
+    const mobileItem = document.getElementById('mobileItem');
+    if (data.mobile) {
+        updateElement('userMobile', data.mobile);
+        const mobileLink = document.getElementById('userMobile');
+        if (mobileLink) {
+            mobileLink.href = `tel:${data.mobile.replace(/[^0-9+]/g, '')}`;
+        }
+        if (mobileItem) mobileItem.style.display = 'flex';
+    } else {
+        if (mobileItem) mobileItem.style.display = 'none';
+    }
     
     if (data.avatar) {
         updateElement('userAvatar', '', 'src', data.avatar);
@@ -287,7 +331,8 @@ N;CHARSET=UTF-8:${nameParts[0] || ''};${nameParts[1] || ''};;;
 ORG;CHARSET=UTF-8:${org.name};${department}
 TITLE;CHARSET=UTF-8:${title}
 EMAIL;TYPE=work:${data.email || ''}
-TEL;TYPE=work,voice:${data.phone || ''}
+${data.phone ? `TEL;TYPE=work,voice:${data.phone}` : ''}
+${data.mobile ? `TEL;TYPE=cell,voice:${data.mobile}` : ''}
 ADR;TYPE=work;CHARSET=UTF-8:;;${org.address};;;;Taiwan
 ${data.avatar ? `PHOTO;TYPE=JPEG:${data.avatar}` : ''}
 ${greetingNote}
@@ -341,15 +386,77 @@ function toggleLanguage() {
  * 初始化頁面
  */
 function initializePage() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const data = urlParams.get('data');
-    
-    if (data) {
-        currentData = decodeCompact(data);
-        if (currentData) {
-            renderBilingualCard(currentData, currentLanguage);
+    setTimeout(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const data = urlParams.get('data');
+        
+        if (!data) {
+            const loadingState = document.getElementById('loading-state');
+            const accessDenied = document.getElementById('access-denied');
+            if (loadingState) loadingState.style.display = 'none';
+            if (accessDenied) accessDenied.style.display = 'block';
+            return;
         }
-    }
+        
+        try {
+            currentData = decodeCompact(data);
+            if (!currentData || !currentData.name) {
+                throw new Error('名片資料格式不正確');
+            }
+            
+            const loadingState = document.getElementById('loading-state');
+            const cardContainer = document.getElementById('card-container');
+            const accessDenied = document.getElementById('access-denied');
+            
+            if (loadingState) loadingState.style.display = 'none';
+            if (accessDenied) accessDenied.style.display = 'none';
+            if (cardContainer) cardContainer.style.display = 'block';
+            
+            renderBilingualCard(currentData, currentLanguage);
+            updateUIText(currentLanguage);
+            
+            // 生成 QR 碼
+            if (typeof generateQRCode === 'function') {
+                generateQRCode();
+            }
+            
+            // 處理頭像
+            const avatar = document.getElementById('userAvatar');
+            if (avatar && currentData.avatar) {
+                avatar.src = currentData.avatar;
+                avatar.style.display = 'block';
+                avatar.onerror = function() {
+                    this.style.display = 'none';
+                };
+            } else if (avatar) {
+                avatar.style.display = 'none';
+            }
+            
+            // 處理社群資訊
+            if (currentData.socialNote && typeof processSocialLinks === 'function') {
+                const socialInfo = document.getElementById('socialInfo');
+                const socialContent = document.getElementById('socialInfoContent');
+                if (socialInfo && socialContent) {
+                    socialContent.innerHTML = processSocialLinks(currentData.socialNote);
+                    socialInfo.style.display = 'block';
+                }
+            }
+            
+            // 啟動問候語動畫
+            setTimeout(() => {
+                if (typeof startGreetingAnimation === 'function') {
+                    startGreetingAnimation();
+                }
+            }, 1000);
+            
+        } catch (error) {
+            console.error('解析失敗:', error);
+            const loadingState = document.getElementById('loading-state');
+            const accessDenied = document.getElementById('access-denied');
+            if (loadingState) loadingState.style.display = 'none';
+            if (accessDenied) accessDenied.style.display = 'block';
+        }
+    }, 800);
 }
 
 // 頁面載入完成後初始化

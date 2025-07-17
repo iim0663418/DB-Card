@@ -396,6 +396,12 @@
                         <a id="userPhone" href="" class="contact-link"></a>
                     </span>
                 </div>
+                <div id="mobileItem" class="contact-item">
+                    <span class="contact-icon">📱</span>
+                    <span class="contact-text">
+                        <a id="userMobile" href="" class="contact-link"></a>
+                    </span>
+                </div>
                 <div class="contact-item">
                     <span class="contact-icon">🏢</span>
                     <span id="orgName" class="contact-text">數位發展部</span>
@@ -481,6 +487,23 @@
                         const cleanUrl = url.startsWith('@') ? `instagram.com/${url.substring(1)}` : url;
                         const fullUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
                         return `IG: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
+                    });
+                }
+                else if (/^LINE:/i.test(processedLine)) {
+                    processedLine = processedLine.replace(/LINE:\s*(@?[\w\.-]+|line\.me\/[\w\/-]+)/gi, function(match, url) {
+                        let fullUrl;
+                        if (url.startsWith('@')) {
+                            // 官方帳號：@323foylw -> https://line.me/ti/p/~@323foylw
+                            fullUrl = `https://line.me/ti/p/~${url}`;
+                        } else if (url.startsWith('line.me')) {
+                            fullUrl = `https://${url}`;
+                        } else if (/^[\w\.-]+$/.test(url)) {
+                            // 個人帳號：tsgservice -> https://line.me/ti/p/~tsgservice
+                            fullUrl = `https://line.me/ti/p/~${url}`;
+                        } else {
+                            fullUrl = url.startsWith('http') ? url : `https://${url}`;
+                        }
+                        return `LINE: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
                     });
                 }
                 else if (/^GitHub:/i.test(processedLine)) {

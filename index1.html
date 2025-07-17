@@ -465,6 +465,12 @@
                         <a id="user-phone" href="" class="contact-link"></a>
                     </span>
                 </div>
+                <div id="mobile-item" class="contact-item">
+                    <span class="contact-icon">📱</span>
+                    <span class="contact-text">
+                        <a id="user-mobile" href="" class="contact-link"></a>
+                    </span>
+                </div>
                 <div class="contact-item">
                     <span class="contact-icon">🏢</span>
                     <span id="user-organization" class="contact-text"></span>
@@ -655,6 +661,17 @@
                 phoneItem.style.display = 'none';
             }
             
+            // 手機號碼（可選）
+            const mobileItem = document.getElementById('mobile-item');
+            if (data.mobile) {
+                const mobileLink = document.getElementById('user-mobile');
+                mobileLink.href = `tel:${data.mobile.replace(/[^0-9+]/g, '')}`;
+                mobileLink.textContent = data.mobile;
+                mobileItem.style.display = 'flex';
+            } else {
+                mobileItem.style.display = 'none';
+            }
+            
             document.getElementById('user-organization').textContent = data.organization;
             document.getElementById('user-address').innerHTML = data.address.replace(/\n/g, '<br>');
             
@@ -692,6 +709,9 @@
                 // 格式化電話號碼
                 const phone = data.phone ? data.phone.replace(/[^0-9+]/g, '') : '';
                 const formattedPhone = phone.startsWith('+') ? phone : `+886-${phone.replace(/^0/, '')}`;
+                
+                const mobile = data.mobile ? data.mobile.replace(/[^0-9+]/g, '') : '';
+                const formattedMobile = mobile.startsWith('+') ? mobile : `+886-${mobile.replace(/^0/, '')}`;
                 
                 // 生成當前時間戳
                 const now = new Date();
@@ -780,6 +800,7 @@
                     `TITLE;CHARSET=UTF-8:${data.title || ''}`,
                     `EMAIL;TYPE=work:${data.email || ''}`,
                     data.phone ? `TEL;TYPE=work,voice:${formattedPhone}` : '',
+                    data.mobile ? `TEL;TYPE=cell,voice:${formattedMobile}` : '',
                     `ADR;TYPE=work;CHARSET=UTF-8:;;${data.address || ''};;;;Taiwan`,
                     socialNote ? `NOTE;CHARSET=UTF-8:${socialNote}` : '',
                     `PHOTO;TYPE=JPEG:${photoUrl}`,
@@ -867,6 +888,7 @@
                     organization: '數位發展部',
                     email: compactData.e || '',
                     phone: compactData.p || '',
+                    mobile: compactData.m || '',
                     avatar: compactData.a || '',
                     address: '100507臺北市中正區忠孝西路一段66號（17、19樓）', // 新光大樓地址
                     greetings: compactData.g || ['歡迎認識我！'],
@@ -922,12 +944,16 @@
                 
                 // LINE
                 else if (/^LINE:/i.test(processedLine)) {
-                    processedLine = processedLine.replace(/LINE:\s*(@[\w\.-]+|line\.me\/[\w\/-]+)/gi, function(match, url) {
+                    processedLine = processedLine.replace(/LINE:\s*(@?[\w\.-]+|line\.me\/[\w\/-]+)/gi, function(match, url) {
                         let fullUrl;
                         if (url.startsWith('@')) {
-                            fullUrl = `https://line.me/ti/p/${url}`;
+                            // 官方帳號：@323foylw -> https://line.me/ti/p/~@323foylw
+                            fullUrl = `https://line.me/ti/p/~${url}`;
                         } else if (url.startsWith('line.me')) {
                             fullUrl = `https://${url}`;
+                        } else if (/^[\w\.-]+$/.test(url)) {
+                            // 個人帳號：tsgservice -> https://line.me/ti/p/~tsgservice
+                            fullUrl = `https://line.me/ti/p/~${url}`;
                         } else {
                             fullUrl = url.startsWith('http') ? url : `https://${url}`;
                         }

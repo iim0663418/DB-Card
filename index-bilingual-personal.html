@@ -455,6 +455,12 @@
                         <a id="userPhone" href="" class="contact-link"></a>
                     </span>
                 </div>
+                <div id="mobileItem" class="contact-item">
+                    <span class="contact-icon">📱</span>
+                    <span class="contact-text">
+                        <a id="userMobile" href="" class="contact-link"></a>
+                    </span>
+                </div>
                 <div id="orgItem" class="contact-item" style="display: none;">
                     <span class="contact-icon">🏢</span>
                     <span id="orgName" class="contact-text"></span>
@@ -591,6 +597,23 @@
                         const cleanUrl = url.startsWith('@') ? `instagram.com/${url.substring(1)}` : url;
                         const fullUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
                         return `IG: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
+                    });
+                }
+                else if (/^LINE:/i.test(processedLine)) {
+                    processedLine = processedLine.replace(/LINE:\s*(@?[\w\.-]+|line\.me\/[\w\/-]+)/gi, function(match, url) {
+                        let fullUrl;
+                        if (url.startsWith('@')) {
+                            // 官方帳號：@323foylw -> https://line.me/ti/p/~@323foylw
+                            fullUrl = `https://line.me/ti/p/~${url}`;
+                        } else if (url.startsWith('line.me')) {
+                            fullUrl = `https://${url}`;
+                        } else if (/^[\w\.-]+$/.test(url)) {
+                            // 個人帳號：tsgservice -> https://line.me/ti/p/~tsgservice
+                            fullUrl = `https://line.me/ti/p/~${url}`;
+                        } else {
+                            fullUrl = url.startsWith('http') ? url : `https://${url}`;
+                        }
+                        return `LINE: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
                     });
                 }
                 else if (/^GitHub:/i.test(processedLine)) {
@@ -742,71 +765,7 @@
             }
         }
 
-        // 頁面初始化
-        window.addEventListener('load', function() {
-            setTimeout(() => {
-                const urlParams = new URLSearchParams(window.location.search);
-                const data = urlParams.get('data');
-                
-                if (!data) {
-                    document.getElementById('loading-state').style.display = 'none';
-                    document.getElementById('access-denied').style.display = 'block';
-                    return;
-                }
-                
-                try {
-                    currentData = decodeCompact(data);
-                    if (!currentData || !currentData.name) {
-                        throw new Error('名片資料格式不正確');
-                    }
-                    
-                    document.getElementById('loading-state').style.display = 'none';
-                    document.getElementById('card-container').style.display = 'block';
-                    
-                    renderPersonalCard(currentData, currentLanguage);
-                    updateUIText(currentLanguage);
-                    generateQRCode();
-                    
-                    // 處理頭像
-                    const avatar = document.getElementById('userAvatar');
-                    if (currentData.avatar) {
-                        avatar.src = currentData.avatar;
-                        avatar.style.display = 'block';
-                        avatar.onerror = function() {
-                            this.style.display = 'none';
-                        };
-                    } else {
-                        avatar.style.display = 'none';
-                    }
-                    
-                    // 處理問候語和打字機效果
-                    if (currentData.greetings && currentData.greetings.length > 0) {
-                        const greetings = processBilingualGreetings(currentData.greetings, currentLanguage);
-                        window.currentGreetings = greetings;
-                        window.currentGreetingIndex = 0;
-                        updateElement('greetings', greetings[0]);
-                        
-                        // 啟動打字機效果
-                        setTimeout(() => {
-                            startGreetingAnimation();
-                        }, 1000);
-                    }
-                    
-                    // 處理社群資訊
-                    if (currentData.socialNote) {
-                        const socialInfo = document.getElementById('socialInfo');
-                        const socialContent = document.getElementById('socialInfoContent');
-                        socialContent.innerHTML = processSocialLinks(currentData.socialNote);
-                        socialInfo.style.display = 'block';
-                    }
-                    
-                } catch (error) {
-                    console.error('解析失敗:', error);
-                    document.getElementById('loading-state').style.display = 'none';
-                    document.getElementById('access-denied').style.display = 'block';
-                }
-            }, 800);
-        });
+        // 頁面初始化由 bilingual-common.js 統一處理
     </script>
 </body>
 </html>

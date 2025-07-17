@@ -490,6 +490,12 @@
                         <a id="user-phone" href="" class="contact-link"></a>
                     </span>
                 </div>
+                <div id="mobile-item" class="contact-item">
+                    <span class="contact-icon">📱</span>
+                    <span class="contact-text">
+                        <a id="user-mobile" href="" class="contact-link"></a>
+                    </span>
+                </div>
                 <div id="address-item" class="contact-item" style="display: none;">
                     <span class="contact-icon">📍</span>
                     <span id="user-address" class="contact-text"></span>
@@ -619,6 +625,16 @@
                 phoneItem.style.display = 'none';
             }
             
+            const mobileItem = document.getElementById('mobile-item');
+            if (data.mobile) {
+                const mobileLink = document.getElementById('user-mobile');
+                mobileLink.href = `tel:${data.mobile.replace(/[^0-9+]/g, '')}`;
+                mobileLink.textContent = data.mobile;
+                mobileItem.style.display = 'flex';
+            } else {
+                mobileItem.style.display = 'none';
+            }
+            
             // 地址（個人版可選）
             const addressItem = document.getElementById('address-item');
             if (data.address && data.address.trim() !== '') {
@@ -656,6 +672,9 @@
                 const phone = data.phone ? data.phone.replace(/[^0-9+]/g, '') : '';
                 const formattedPhone = phone.startsWith('+') ? phone : `+886-${phone.replace(/^0/, '')}`;
                 
+                const mobile = data.mobile ? data.mobile.replace(/[^0-9+]/g, '') : '';
+                const formattedMobile = mobile.startsWith('+') ? mobile : `+886-${mobile.replace(/^0/, '')}`;
+                
                 const now = new Date();
                 const timestamp = now.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
                 
@@ -678,6 +697,7 @@
                     `TITLE;CHARSET=UTF-8:${data.title || ''}`,
                     `EMAIL;TYPE=work:${data.email || ''}`,
                     data.phone ? `TEL;TYPE=work,voice:${formattedPhone}` : '',
+                    data.mobile ? `TEL;TYPE=cell,voice:${formattedMobile}` : '',
                     data.address ? `ADR;TYPE=work;CHARSET=UTF-8:;;${data.address};;;;Taiwan` : '',
                     socialNote ? `NOTE;CHARSET=UTF-8:${socialNote}` : '',
                     `PHOTO;TYPE=JPEG:${photoUrl}`,
@@ -743,6 +763,7 @@
                     organization: compactData.o || '',
                     email: compactData.e || '',
                     phone: compactData.p || '',
+                    mobile: compactData.m || '',
                     avatar: compactData.a || '',
                     address: compactData.addr || '',
                     greetings: compactData.g || ['歡迎認識我！'],
@@ -774,12 +795,16 @@
                     });
                 }
                 else if (/^LINE:/i.test(processedLine)) {
-                    processedLine = processedLine.replace(/LINE:\s*(@[\w\.-]+|line\.me\/[\w\/-]+)/gi, function(match, url) {
+                    processedLine = processedLine.replace(/LINE:\s*(@?[\w\.-]+|line\.me\/[\w\/-]+)/gi, function(match, url) {
                         let fullUrl;
                         if (url.startsWith('@')) {
-                            fullUrl = `https://line.me/ti/p/${url}`;
+                            // 官方帳號：@323foylw -> https://line.me/ti/p/~@323foylw
+                            fullUrl = `https://line.me/ti/p/~${url}`;
                         } else if (url.startsWith('line.me')) {
                             fullUrl = `https://${url}`;
+                        } else if (/^[\w\.-]+$/.test(url)) {
+                            // 個人帳號：tsgservice -> https://line.me/ti/p/~tsgservice
+                            fullUrl = `https://line.me/ti/p/~${url}`;
                         } else {
                             fullUrl = url.startsWith('http') ? url : `https://${url}`;
                         }

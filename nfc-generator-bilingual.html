@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🌐 雙語 NFC 數位名片生成器</title>
+    <script src="assets/qrcode.min.js"></script>
     <script src="assets/bilingual-common.js"></script>
+    <link rel="stylesheet" href="assets/qrcode-style.css">
     <style>
         * {
             margin: 0;
@@ -282,11 +284,11 @@
                     <label>姓名 / Name <span class="required">*</span>：</label>
                     <div class="input-group">
                         <div class="lang-label">🇹🇼</div>
-                        <input type="text" id="nameZh" placeholder="中文姓名" required>
+                        <input type="text" id="nameZh" placeholder="中文姓名" required maxlength="20">
                     </div>
                     <div class="input-group" style="margin-top: 8px;">
                         <div class="lang-label">🇺🇸</div>
-                        <input type="text" id="nameEn" placeholder="English Name" required>
+                        <input type="text" id="nameEn" placeholder="English Name" required maxlength="30">
                     </div>
                     <div class="help-text">將顯示為：王小明 / Wang Xiaoming</div>
                 </div>
@@ -295,18 +297,18 @@
                     <label>職稱 / Title <span class="required">*</span>：</label>
                     <div class="input-group">
                         <div class="lang-label">🇹🇼</div>
-                        <input type="text" id="titleZh" placeholder="中文職稱" required>
+                        <input type="text" id="titleZh" placeholder="中文職稱" required maxlength="30">
                     </div>
                     <div class="input-group" style="margin-top: 8px;">
                         <div class="lang-label">🇺🇸</div>
-                        <input type="text" id="titleEn" placeholder="English Title" required>
+                        <input type="text" id="titleEn" placeholder="English Title" required maxlength="40">
                     </div>
                     <div class="help-text">例如：科長 / Section Chief</div>
                 </div>
                 
                 <div class="form-group">
                     <label>部門：</label>
-                    <input type="text" id="department" placeholder="部門名稱（單語即可）">
+                    <input type="text" id="department" placeholder="部門名稱（單語即可）" maxlength="50">
                     <div class="help-text">原始專案設計由前端對照數位發展部官方單位名稱翻譯，如 Fork 則不支援翻譯</div>
                 </div>
                 
@@ -327,7 +329,7 @@
                 
                 <div class="form-group">
                     <label>大頭貼 URL：</label>
-                    <input type="url" id="avatar" placeholder="https://i.imgur.com/example.jpg">
+                    <input type="url" id="avatar" placeholder="https://i.imgur.com/example.jpg" maxlength="200">
                     <div class="help-text">
                         推薦使用 <a href="https://imgur.com" target="_blank">Imgur</a> 或 <a href="https://postimages.org" target="_blank">PostImages</a>(複製 Direct link) 上傳圖片，
                         或留空以節省 NFC 容量
@@ -338,18 +340,18 @@
                     <label>問候語 / Greetings：</label>
                     <div class="input-group">
                         <div class="lang-label">🇹🇼</div>
-                        <textarea id="greetingsZh" placeholder="歡迎認識我！&#10;很高興與您交流"></textarea>
+                        <textarea id="greetingsZh" placeholder="歡迎認識我！&#10;很高興與您交流" maxlength="200"></textarea>
                     </div>
                     <div class="input-group" style="margin-top: 8px;">
                         <div class="lang-label">🇺🇸</div>
-                        <textarea id="greetingsEn" placeholder="Nice to meet you!&#10;Welcome to connect"></textarea>
+                        <textarea id="greetingsEn" placeholder="Nice to meet you!&#10;Welcome to connect" maxlength="200"></textarea>
                     </div>
                     <div class="help-text">每行一個問候語，將輪播顯示。雙語問候語會根據當前語言顯示。</div>
                 </div>
                 
                 <div class="form-group">
                     <label>社群媒體資訊：</label>
-                    <textarea id="socialNote" placeholder="GitHub: github.com/yourname&#10;FB: fb.com/yourname&#10;IG: @yourname&#10;LINE: @your-line-id"></textarea>
+                    <textarea id="socialNote" placeholder="GitHub: github.com/yourname&#10;FB: fb.com/yourname&#10;IG: @yourname&#10;LINE: @your-line-id" maxlength="300"></textarea>
                     <div class="help-text">
                         每行一個社群媒體，支援自動連結轉換<br>
                         LINE 格式：<strong>@your-line-id</strong>（官方帳號，含@）或 <strong>your-line-id</strong>（個人帳號，無@）
@@ -380,12 +382,51 @@
                     <button onclick="testLink()" class="copy-btn" style="background: #007bff;">🔗 測試連結</button>
                 </div>
                 
-                <div class="help-text" style="margin-top: 15px;">
+                <div id="qrCodeSection" style="margin-top: 25px; border: 2px solid #3b82f6; border-radius: 10px; padding: 20px; background-color: #f0f7ff; animation: pulse 2s infinite;">
+                    <h3 style="color: #3b82f6; margin-bottom: 15px; font-size: 1.3em;">🔍 QR 碼下載</h3>
+                    <div class="qr-container" id="qrcode" style="margin-bottom: 20px; text-align: center;">QR 碼載入中...</div>
+                    <button onclick="downloadQRCode()" class="copy-btn" style="background: #3b82f6; margin-bottom: 10px; padding: 15px 20px; font-size: 1.1em; width: 100%; font-weight: bold; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3); border-radius: 8px; cursor: pointer; transition: all 0.3s ease;">
+                        💾 下載 QR 碼圖片
+                    </button>
+                </div>
+                
+                <style>
+                    @keyframes pulse {
+                        0% {
+                            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+                        }
+                        70% {
+                            box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+                        }
+                        100% {
+                            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+                        }
+                    }
+                    
+                    /* Stop animation after 5 seconds */
+                    #qrCodeSection {
+                        animation: pulse 2s 3;
+                    }
+                </style>
+                
+                <div class="help-text" style="margin-top: 15px; line-height: 1.5;">
                     <strong>下一步：</strong><br>
-                    1. 使用 NFC 寫入工具（如 NFC Tools）<br>
-                    2. 選擇「URL/URI」記錄類型<br>
-                    3. 貼上上方連結並寫入 NFC 卡片<br>
-                    4. 用手機觸碰測試
+                    <div style="display: flex; margin-top: 10px;">
+                        <div style="flex: 1; padding-right: 10px; border-right: 1px solid #e5e7eb;">
+                            <strong style="color: #4f46e5;">📱 NFC 卡片方式：</strong><br>
+                            1. 使用 NFC 寫入工具（如 NFC Tools）<br>
+                            2. 選擇「URL/URI」記錄類型<br>
+                            3. 貼上上方連結並寫入 NFC 卡片<br>
+                            4. 用手機觸碰測試
+                        </div>
+                        <div style="flex: 1; padding-left: 10px;">
+                            <strong style="color: #4f46e5;">🔍 QR 碼方式：</strong><br>
+                            1. 點擊上方「下載 QR 碼圖片」按鈕<br>
+                            2. 將下載的 QR 碼圖片列印或分享<br>
+                            3. 他人可使用手機相機掃描 QR 碼<br>
+                            4. 自動開啟您的數位名片
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -417,12 +458,30 @@
             }
         }
 
+        // 輸入清理函數
+        function sanitizeInput(input) {
+            return input.replace(/[<>"'&]/g, function(match) {
+                const map = {'<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;', '&': '&amp;'};
+                return map[match];
+            });
+        }
+
+        // 驗證 URL 格式
+        function isValidUrl(string) {
+            try {
+                const url = new URL(string);
+                return url.protocol === 'http:' || url.protocol === 'https:';
+            } catch (_) {
+                return false;
+            }
+        }
+
         // 收集表單資料
         function collectFormData() {
-            const nameZh = document.getElementById('nameZh').value.trim();
-            const nameEn = document.getElementById('nameEn').value.trim();
-            const titleZh = document.getElementById('titleZh').value.trim();
-            const titleEn = document.getElementById('titleEn').value.trim();
+            const nameZh = sanitizeInput(document.getElementById('nameZh').value.trim());
+            const nameEn = sanitizeInput(document.getElementById('nameEn').value.trim());
+            const titleZh = sanitizeInput(document.getElementById('titleZh').value.trim());
+            const titleEn = sanitizeInput(document.getElementById('titleEn').value.trim());
             
             if (!nameZh || !nameEn || !titleZh || !titleEn) {
                 return null;
@@ -445,16 +504,22 @@
                 bilingualGreetings.push(`${zh}~${en}`);
             }
             
+            const avatar = document.getElementById('avatar').value.trim();
+            if (avatar && !isValidUrl(avatar)) {
+                alert('請輸入有效的圖片 URL');
+                return null;
+            }
+
             return {
                 name: `${nameZh}~${nameEn}`,
                 title: `${titleZh}~${titleEn}`,
-                department: document.getElementById('department').value.trim(),
+                department: sanitizeInput(document.getElementById('department').value.trim()),
                 email: document.getElementById('email').value.trim(),
                 phone: document.getElementById('phone').value.trim(),
                 mobile: document.getElementById('mobile').value.trim(),
-                avatar: document.getElementById('avatar').value.trim(),
-                greetings: bilingualGreetings,
-                socialNote: document.getElementById('socialNote').value.trim()
+                avatar: avatar,
+                greetings: bilingualGreetings.map(g => sanitizeInput(g)),
+                socialNote: sanitizeInput(document.getElementById('socialNote').value.trim())
             };
         }
 
@@ -500,6 +565,9 @@
                 // 顯示結果
                 document.getElementById('resultUrl').textContent = generatedUrl;
                 document.getElementById('result').classList.add('show');
+                
+                // 生成 QR 碼
+                generateQRCode(generatedUrl);
                 
                 showSuccess(`生成成功！容量使用：${capacity.size}/492 bytes (${Math.round(capacity.percentage)}%)`);
                 
@@ -577,6 +645,126 @@
             // 初始化容量監控
             updateCapacityMonitor();
         });
+        // 生成 QR 碼函數
+        function generateQRCode(url) {
+            const qrContainer = document.getElementById('qrcode');
+            
+            // 清空容器
+            while (qrContainer.firstChild) {
+                qrContainer.removeChild(qrContainer.firstChild);
+            }
+            
+            // 創建外層容器
+            const outerContainer = document.createElement('div');
+            outerContainer.className = 'qr-code-wrapper';
+            
+            // 創建內層容器
+            const innerContainer = document.createElement('div');
+            innerContainer.className = 'qr-code-inner';
+            
+            outerContainer.appendChild(innerContainer);
+            qrContainer.appendChild(outerContainer);
+            
+            // 使用 QRCode.js 生成 QR 碼
+            new QRCode(innerContainer, {
+                text: url,
+                width: 240,
+                height: 240,
+                colorDark: "#6b7280",  // 使用灰色而非黑色
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            
+            // 顯示成功訊息
+            const successMsg = document.createElement('div');
+            successMsg.textContent = 'QR 碼生成成功！點擊下方按鈕下載';
+            successMsg.className = 'qr-success-message';
+            qrContainer.parentNode.appendChild(successMsg);
+            
+            // 停止 QR 碼區域的動畫
+            setTimeout(() => {
+                const qrSection = document.getElementById('qrCodeSection');
+                if (qrSection) {
+                    qrSection.style.animation = 'none';
+                    qrSection.style.boxShadow = '0 4px 6px rgba(59, 130, 246, 0.2)';
+                }
+            }, 6000);
+        }
+        
+        // 下載 QR 碼函數
+        function downloadQRCode() {
+            if (!generatedUrl) {
+                alert('請先生成 NFC 連結');
+                return;
+            }
+            
+            // 顯示下載中狀態
+            const downloadBtn = event.target;
+            const originalText = downloadBtn.textContent;
+            downloadBtn.textContent = '⏳ 下載中...';
+            downloadBtn.disabled = true;
+            
+            try {
+                // 取得 QR 碼圖片
+                const qrCodeImg = document.querySelector('#qrcode img');
+                if (!qrCodeImg) {
+                    throw new Error('QR 碼圖片不存在');
+                }
+                
+                // 創建一個臨時 canvas 來繪製高解析度版本
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 800;
+                canvas.height = 800;
+                
+                // 創建一個臨時圖片來轉換
+                const tempImg = new Image();
+                tempImg.crossOrigin = 'Anonymous';
+                
+                tempImg.onload = function() {
+                    // 繪製高解析度版本
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(tempImg, 0, 0, canvas.width, canvas.height);
+                    
+                    // 取得使用者姓名作為檔名
+                    const nameZh = document.getElementById('nameZh').value.trim();
+                    const fileName = nameZh ? `${nameZh}的數位名片.png` : '數位名片.png';
+                    
+                    // 轉換為下載連結
+                    canvas.toBlob(function(blob) {
+                        const url = URL.createObjectURL(blob);
+                        const tempLink = document.createElement('a');
+                        tempLink.href = url;
+                        tempLink.download = fileName;
+                        document.body.appendChild(tempLink);
+                        tempLink.click();
+                        document.body.removeChild(tempLink);
+                        URL.revokeObjectURL(url);
+                        
+                        // 恢復按鈕狀態
+                        setTimeout(() => {
+                            downloadBtn.textContent = '✅ 下載完成';
+                            setTimeout(() => {
+                                downloadBtn.textContent = originalText;
+                                downloadBtn.disabled = false;
+                            }, 1500);
+                        }, 500);
+                    });
+                };
+                
+                // 使用現有 QR 碼圖片
+                tempImg.src = qrCodeImg.src;
+                
+            } catch (error) {
+                console.error('QR 碼下載錯誤:', error);
+                alert('QR 碼下載失敗，請重新生成後再試');
+                
+                // 恢復按鈕狀態
+                downloadBtn.textContent = originalText;
+                downloadBtn.disabled = false;
+            }
+        }
     </script>
 </body>
 </html>

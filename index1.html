@@ -7,6 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="assets/qrcode.min.js"></script>
+    <link rel="stylesheet" href="assets/qrcode-style.css">
     <style>
         * {
             margin: 0;
@@ -256,8 +258,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
-            padding: 20px;
+            padding: 30px 20px 25px;
             background: #f9fafb;
             border-radius: 15px;
             border: 1px solid #e5e7eb;
@@ -266,23 +267,23 @@
         .qr-code {
             width: 240px;
             height: 240px;
-            border: 2px solid #6b7280;
-            border-radius: 12px;
-            background: white;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 14px;
             color: #6b7280;
             text-align: center;
-            padding: 15px;
-            box-shadow: 0 4px 12px rgba(107,114,128,0.15);
+            margin: 10px auto 0;
         }
 
         .qr-label {
-            font-size: 1.05em;
+            font-size: 1.1em;
             color: #6b7280;
             font-weight: 500;
+            max-width: 520px;
+            margin: 15px auto 5px;
+            line-height: 1.6;
+            padding: 0 10px;
         }
 
         .social-info {
@@ -502,7 +503,8 @@
                     <div class="qr-code" id="qrcode">
                         QR 碼載入中...
                     </div>
-                    <div class="qr-label">掃描 QR 碼快速開啟</div>
+                    <div class="qr-label">這是這張名片的 QR code，你也可以請別人掃描來讀取這張名片</div>
+
                 </div>
                 
             </div>
@@ -552,18 +554,29 @@
             const currentURL = window.location.href;
             const qrContainer = document.getElementById('qrcode');
             
-            // 使用 QR Server API 生成 QR 碼
-            const qrURL = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(currentURL)}&bgcolor=ffffff&color=6b7280`;
-            
-            const qrImg = document.createElement('img');
-            qrImg.src = qrURL;
-            qrImg.alt = 'QR Code';
-            qrImg.style.width = '100%';
-            qrImg.style.height = '100%';
-            qrImg.style.objectFit = 'contain';
-            
+            // 清空容器
             qrContainer.innerHTML = '';
-            qrContainer.appendChild(qrImg);
+            
+            // 創建外層容器
+            const outerContainer = document.createElement('div');
+            outerContainer.className = 'qr-code-wrapper';
+            
+            // 創建內層容器
+            const innerContainer = document.createElement('div');
+            innerContainer.className = 'qr-code-inner';
+            
+            outerContainer.appendChild(innerContainer);
+            qrContainer.appendChild(outerContainer);
+            
+            // 使用 qrcodejs 生成 QR 碼
+            new QRCode(innerContainer, {
+                text: currentURL,
+                width: 240,
+                height: 240,
+                colorDark: "#6b7280",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
         }
 
         // 渲染名片函數

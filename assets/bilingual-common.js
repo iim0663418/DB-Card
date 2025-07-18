@@ -234,8 +234,31 @@ function renderBilingualCard(data, lang = 'zh') {
         }
     }
     
-    if (data.socialNote) {
-        updateElement('socialInfo', data.socialNote);
+    // 處理社群媒體資訊
+    if (data.socialNote && typeof processSocialLinks === 'function') {
+        const socialInfo = document.getElementById('socialInfo');
+        const socialContent = document.getElementById('socialInfoContent');
+        if (socialInfo && socialContent) {
+            // 安全清空內容
+            while (socialContent.firstChild) {
+                socialContent.removeChild(socialContent.firstChild);
+            }
+            // 使用安全的 DOM 操作
+            const socialLinks = processSocialLinks(data.socialNote);
+            if (typeof socialLinks === 'string') {
+                const tempDiv = document.createElement('div');
+                tempDiv.textContent = socialLinks;
+                socialContent.appendChild(tempDiv);
+            } else {
+                socialContent.appendChild(socialLinks);
+            }
+            socialInfo.style.display = 'block';
+        }
+    } else {
+        const socialInfo = document.getElementById('socialInfo');
+        if (socialInfo) {
+            socialInfo.style.display = 'none';
+        }
     }
     
     // 檢查是否為新光大樓版本
@@ -437,7 +460,19 @@ function initializePage() {
                 const socialInfo = document.getElementById('socialInfo');
                 const socialContent = document.getElementById('socialInfoContent');
                 if (socialInfo && socialContent) {
-                    socialContent.innerHTML = processSocialLinks(currentData.socialNote);
+                    // 安全清空內容
+                    while (socialContent.firstChild) {
+                        socialContent.removeChild(socialContent.firstChild);
+                    }
+                    // 使用安全的 DOM 操作
+                    const socialLinks = processSocialLinks(currentData.socialNote);
+                    if (typeof socialLinks === 'string') {
+                        const tempDiv = document.createElement('div');
+                        tempDiv.textContent = socialLinks;
+                        socialContent.appendChild(tempDiv);
+                    } else {
+                        socialContent.appendChild(socialLinks);
+                    }
                     socialInfo.style.display = 'block';
                 }
             }

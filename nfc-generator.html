@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NFC 數位名片生成器</title>
+    <script src="assets/qrcode.min.js"></script>
+    <link rel="stylesheet" href="assets/qrcode-style.css">
     <style>
         * {
             margin: 0;
@@ -360,12 +362,20 @@
                 <button class="btn copy-btn" onclick="copyToClipboard()">📋 複製連結</button>
                 <button class="btn" onclick="previewCard()" style="background: #059669; margin-top: 10px;">👁️ 預覽數位名片</button>
                 
+                <div style="margin-top: 25px;">
+                    <h3>QR 碼</h3>
+                    <div class="qr-container" id="qrcode" style="margin-bottom: 15px;">QR 碼載入中...</div>
+                    <button class="btn" onclick="downloadQRCode()" style="background: #3b82f6; margin-bottom: 20px;">
+                        💾 下載 QR 碼圖片
+                    </button>
+                </div>
 
                 <div class="note">
                     <strong>使用說明：</strong><br>
                     1. 複製上方生成的連結<br>
                     2. 使用 NFC 寫入工具（如 <a href="https://www.wakdev.com/en/apps/nfc-tools-pc-mac.html" target="_blank" style="color: #d97706;">NFC Tools</a>）將連結寫入 NFC 卡片<br>
-                    3. 使用者觸碰 NFC 卡片即可開啟數位名片<br><br>
+                    3. 使用者觸碰 NFC 卡片即可開啟數位名片<br>
+                    4. 或下載 QR 碼圖片供他人掃描使用<br><br>
                     <strong>💡 優化建議：</strong><br>
                     • NFC 卡片容量限制：492 bytes<br>
                     • 精簡格式已針對 NFC 容量優化<br>
@@ -530,10 +540,124 @@
             // 顯示結果
             document.getElementById('generatedUrl').textContent = generatedUrl;
             output.style.display = 'block';
-
+            
+            // 生成 QR 碼
+            generateQRCode(generatedUrl);
 
             // 滾動到結果區域
             output.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // 生成 QR 碼函數
+        function generateQRCode(url) {
+            const qrContainer = document.getElementById('qrcode');
+            
+            // 清空容器
+            qrContainer.innerHTML = '';
+            
+            // 創建外層容器
+            const outerContainer = document.createElement('div');
+            outerContainer.className = 'qr-code-wrapper';
+            
+            // 創建內層容器
+            const innerContainer = document.createElement('div');
+            innerContainer.className = 'qr-code-inner';
+            
+            outerContainer.appendChild(innerContainer);
+            qrContainer.appendChild(outerContainer);
+            
+            // 使用 QRCode.js 生成 QR 碼
+            new QRCode(innerContainer, {
+                text: url,
+                width: 240,
+                height: 240,
+                colorDark: "#6b7280",  // 使用灰色而非黑色
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+        
+        // 下載 QR 碼函數
+        function downloadQRCode() {
+            if (!generatedUrl) {
+                alert('請先生成 NFC 連結');
+                return;
+            }
+            
+            // 顯示下載中狀態
+            const downloadBtn = event.target;
+            const originalText = downloadBtn.textContent;
+            downloadBtn.textContent = '⏳ 下載中...';
+            downloadBtn.disabled = true;
+            
+            try {
+                // 取得 QR 碼圖片
+                const qrCodeImg = document.querySelector('#qrcode img');
+                if (!qrCodeImg) {
+                    throw new Error('QR 碼圖片不存在');
+                }
+                
+                // 創建一個臨時 canvas 來繪製高解析度版本
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 800;
+                canvas.height = 800;
+                
+                // 創建一個臨時圖片來轉換
+                const tempImg = new Image();
+                tempImg.crossOrigin = 'Anonymous';
+                
+                tempImg.onload = function() {
+                    // 繪製高解析度版本
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(tempImg, 0, 0, canvas.width, canvas.height);
+                    
+                    // 取得使用者姓名作為檔名
+                    const userName = document.getElementById('name').value.trim();
+                    const languageSelect = document.getElementById('languageSelect').value;
+                    
+                    // 根據語言設定檔名
+                    let fileName;
+                    if (languageSelect === 'en') {
+                        fileName = userName ? `${userName}'s Digital Business Card.png` : 'Digital Business Card.png';
+                    } else {
+                        fileName = userName ? `${userName}的數位名片.png` : '數位名片.png';
+                    }
+                    
+                    // 轉換為下載連結
+                    canvas.toBlob(function(blob) {
+                        const url = URL.createObjectURL(blob);
+                        const tempLink = document.createElement('a');
+                        tempLink.href = url;
+                        tempLink.download = fileName;
+                        document.body.appendChild(tempLink);
+                        tempLink.click();
+                        document.body.removeChild(tempLink);
+                        URL.revokeObjectURL(url);
+                        
+                        // 恢復按鈕狀態
+                        setTimeout(() => {
+                            downloadBtn.textContent = '✅ 下載完成';
+                            setTimeout(() => {
+                                downloadBtn.textContent = originalText;
+                                downloadBtn.disabled = false;
+                            }, 1500);
+                        }, 500);
+                    });
+                };
+                
+                // 使用現有 QR 碼圖片
+                tempImg.src = qrCodeImg.src;
+                
+            } catch (error) {
+                console.error('QR 碼下載錯誤:', error);
+                alert('QR 碼下載失敗，請重新生成後再試');
+                
+                // 恢復按鈕狀態
+                downloadBtn.textContent = originalText;
+                downloadBtn.disabled = false;
+            }
         }
 
 

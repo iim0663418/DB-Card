@@ -399,11 +399,11 @@ A: 支援多種 LINE 連結格式：官方帳號使用 `@username` 格式，個�
   - 用途：中文字體顯示
   - 來源：https://fonts.google.com/noto/specimen/Noto+Sans+TC
 
-#### 外部服務
-- **QR Server API**
-  - 服務：https://api.qrserver.com/
-  - 用途：動態生成 QR 碼
-  - 授權：免費使用，無需註冊
+#### JavaScript 函式庫
+- **qrcodejs**
+  - 來源：https://github.com/davidshimjs/qrcodejs?tab=MIT-1-ov-file
+  - 用途：純前端 QR 碼生成
+  - 授權：MIT License
 
 #### 政府資源
 - **moda Logo (moda-logo.svg)**

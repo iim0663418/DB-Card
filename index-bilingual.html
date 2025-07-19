@@ -6,9 +6,10 @@
     <title>數位發展部數位名片</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=Noto+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="assets/qrcode.min.js"></script>
     <link rel="stylesheet" href="assets/qrcode-style.css">
+    <link rel="stylesheet" href="assets/high-accessibility.css">
     <script src="assets/bilingual-common.js"></script>
     <style>
         * {
@@ -438,6 +439,13 @@
                 <button id="downloadBtn" onclick="downloadBilingualVCard(currentData, currentLanguage)" class="download-btn">
                     📱 <span id="downloadBtnText">加入聯絡人</span>
                 </button>
+                <div id="vcardGuide" style="background: #f3f5f6; border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px 15px; margin-bottom: 20px; font-size: 0.85em; color: #495057; line-height: 1.5; max-width: 90%;">
+                    <strong id="vcardGuideTitle" style="color: #6868ac;">📱 如何加入聯絡人</strong>
+                    <div id="vcardGuideContent" style="margin-top: 8px;">
+                        <p><strong>Android:</strong> 點擊「開啟」或於通知欄中找到檔案，即可完成新增。</p>
+                        <p><strong>Apple:</strong> 開啟檔案後，請記得不要按左上方的「完成」，要下拉到「加入聯絡人」選項。</p>
+                    </div>
+                </div>
                 
                 <div class="qr-section">
                     <div class="qr-code" id="qrcode">
@@ -510,7 +518,9 @@
                     errorText: '請使用 NFC 卡片或包含資料的連結訪問。',
                     privacyTitle: '隱私優先設計',
                     projectInfo: '數位發展部開源專案',
-                    privacyDesc: '所有個人資料僅儲存於 NFC 卡片，無後端追蹤、純前端架構、個人資訊完全自主掌控'
+                    privacyDesc: '所有個人資料僅儲存於 NFC 卡片，無後端追蹤、純前端架構、個人資訊完全自主掌控',
+                    vcardGuideTitle: '📱 如何加入聯絡人',
+                    vcardGuideContent: '<p><strong>Android:</strong> 會先下載名片檔，點擊「開啟」或於通知欄中找到檔案，即可完成新增。</p><p><strong>Apple:</strong> 會自動觸發加入通訊錄，請記得不要按左上方的「完成」，要下拉到「加入聯絡人」選項。</p>'
                 },
                 en: {
                     contactTitle: 'Contact Information',
@@ -524,7 +534,9 @@
                     errorText: 'Please access via NFC card or link with data.',
                     privacyTitle: 'Privacy-First Design',
                     projectInfo: 'Open Source Project by Ministry of Digital Affairs',
-                    privacyDesc: 'All personal data is stored only on your NFC card. No backend tracking, pure frontend architecture, complete personal data autonomy.'
+                    privacyDesc: 'All personal data is stored only on your NFC card. No backend tracking, pure frontend architecture, complete personal data autonomy.',
+                    vcardGuideTitle: '📱 How to Add to Contacts',
+                    vcardGuideContent: '<p><strong>Android:</strong> The card file will download first. Tap "Open" or find the file in your notification panel to add the contact.</p><p><strong>Apple:</strong> The contacts app will open automatically. Don\'t tap "Done" in the top left. Instead, scroll down to find the "Add to Contacts" option.</p>'
                 }
             };
             
@@ -540,6 +552,13 @@
             updateElement('privacyTitle', text.privacyTitle);
             updateElement('projectInfo', text.projectInfo);
             updateElement('privacyDesc', text.privacyDesc);
+            
+            // 更新 vCard 引導說明
+            updateElement('vcardGuideTitle', text.vcardGuideTitle);
+            const vcardGuideContent = document.getElementById('vcardGuideContent');
+            if (vcardGuideContent) {
+                vcardGuideContent.innerHTML = text.vcardGuideContent;
+            }
             
             // 更新社群標題
             const socialTitle = document.querySelector('.social-info-title');

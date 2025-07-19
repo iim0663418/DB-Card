@@ -4,7 +4,26 @@
  */
 
 // 全域變數
-let currentLanguage = 'zh';
+// 偵測瀏覽器語言偏好，預設為中文
+function detectBrowserLanguage() {
+    // 檢查是否有儲存的使用者偏好
+    const savedLang = localStorage.getItem('preferredLanguage');
+    if (savedLang && ['zh', 'en'].includes(savedLang)) {
+        return savedLang;
+    }
+    
+    // 否則偵測瀏覽器語言
+    const userLang = (navigator.language || navigator.userLanguage || navigator.browserLanguage || '').toLowerCase();
+    const detectedLang = /^en(-[a-z]{2})?$/.test(userLang) ? 'en' : 'zh';
+    console.log(`Browser language: ${userLang} → Detected: ${detectedLang}`);
+    
+    // 設定 HTML 語言屬性
+    document.documentElement.lang = detectedLang === 'zh' ? 'zh-TW' : 'en';
+    
+    return detectedLang;
+}
+
+let currentLanguage = detectBrowserLanguage();
 let currentData = null;
 
 /**
@@ -103,7 +122,10 @@ function switchLanguage(lang) {
     if (!currentData) return;
     
     currentLanguage = lang;
-    document.documentElement.lang = lang;
+    document.documentElement.lang = lang === 'zh' ? 'zh-TW' : 'en';
+    
+    // 儲存使用者語言偏好
+    localStorage.setItem('preferredLanguage', lang);
     
     renderBilingualCard(currentData, lang);
     updateLanguageButton(lang);
@@ -121,8 +143,13 @@ function switchLanguage(lang) {
 function updateLanguageButton(lang) {
     const button = document.getElementById('langSwitch');
     if (button) {
-        button.textContent = lang === 'zh' ? '🇺🇸 EN' : '🇹🇼 中';
-        button.title = lang === 'zh' ? 'Switch to English' : '切換到中文';
+        if (lang === 'zh') {
+            button.innerHTML = '<span style="margin-right:4px;">🇺🇸</span> EN';
+            button.title = 'Switch to English';
+        } else {
+            button.innerHTML = '<span style="margin-right:4px;">🇹🇼</span> 中';
+            button.title = '切換到中文';
+        }
     }
 }
 
@@ -440,6 +467,7 @@ function initializePage() {
             
             renderBilingualCard(currentData, currentLanguage);
             updateUIText(currentLanguage);
+            updateLanguageButton(currentLanguage);
             
             // 生成 QR 碼
             if (typeof generateQRCode === 'function') {
@@ -486,6 +514,9 @@ function initializePage() {
             if (loadingState) loadingState.style.display = 'none';
             if (accessDenied) accessDenied.style.display = 'block';
         }
+        
+        // 確保語言按鈕與偵測到的語言同步
+        updateLanguageButton(currentLanguage);
     }, 800);
 }
 

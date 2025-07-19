@@ -35,13 +35,15 @@
 ├── assets/                         # 資源檔案目錄
 │   ├── moda-logo.svg               # moda 官方標誌
 │   ├── bilingual-common.js         # 雙語功能核心函數庫
+│   ├── high-accessibility.css      # 高齡友善字體優化樣式
 │   ├── wu_sheng_fan/               # 範例使用者資源
 │   │   └── photo.jpg               # 範例大頭貼
 │   └── COPYRIGHT.txt               # 版權聲明文件
 ├── doc/                            # 文檔目錄
 │   ├── BILINGUAL-PLANNING.md       # 雙語版規劃文件
 │   ├── ENCODING-OPTIMIZATION.md    # 編碼優化技術文件
-│   └── IMPLEMENTATION-GUIDE.md     # 實作指南
+│   ├── IMPLEMENTATION-GUIDE.md     # 實作指南
+│   └── ACCESSIBILITY-GUIDE.md      # 高齡友善設計指南
 ├── test-qr-generation.html         # QR 碼生成測試頁面
 ├── NFC-GUIDE.md                    # NFC 操作說明
 ├── VCARD-GUIDE.md                  # vCard 格式指南
@@ -386,6 +388,12 @@ A: 手機號碼為可選欄位。如果未填寫，在名片顯示時會自動�
 ### Q: LINE 連結格式有什麼要求？
 A: 支援多種 LINE 連結格式：官方帳號使用 `@username` 格式，個人帳號直接輸入帳號名稱，或完整的 `line.me` 網址。系統會自動產生正確的連結格式。
 
+### Q: 如何正確加入 vCard 聯絡人？
+A: 下載 vCard 後，請依照不同裝置操作：
+- **Android 裝置**：點擊「開啟」或於通知欄中找到檔案，即可完成新增。
+- **Apple 裝置**：開啟檔案後，請記得不要按左上方的「完成」，要下拉到「加入聯絡人」選項。
+- **雙語版本**：依照當前顯示語言產生對應語言的聯絡人檔案。自動產生正確的連結格式。
+
 ## 🤝 貢獻指南
 
 歡迎提交 Issue 和 Pull Request！
@@ -405,9 +413,9 @@ A: 支援多種 LINE 連結格式：官方帳號使用 `@username` 格式，個�
 ### 第三方元件授權
 
 #### 字體服務
-- **Google Fonts (Noto Sans TC)**
+- **Google Fonts (Noto Sans TC & Noto Sans)**
   - 授權：SIL Open Font License 1.1
-  - 用途：中文字體顯示
+  - 用途：中文與英文字體顯示，高齡友善設計
   - 來源：https://fonts.google.com/noto/specimen/Noto+Sans+TC
 
 #### JavaScript 函式庫
@@ -438,6 +446,8 @@ A: 支援多種 LINE 連結格式：官方帳號使用 `@username` 格式，個�
 - **高對比**：使用數位發展部官方配色系統，確保可讀性
 - **大 QR 碼**：統一使用 240x240 像素 QR 碼，易於掃描
 - **清晰間距**：適當的行距和元素間距，避免視覺擁擠
+- **雙語優化**：中英文切換時保持一致的字體大小與間距
+- **無障礙設計**：符合 WCAG 2.1 AA 標準，支援鍵盤操作與螢幕閱讀器
 
 ### 版面差異化
 - **機關版**：含 moda Logo，適合公務使用，固定機關地址
@@ -503,7 +513,8 @@ A: 支援多種 LINE 連結格式：官方帳號使用 `@username` 格式，個�
 - ✅ 實作打字機效果問候語動畫
 - ✅ 優化編碼格式，提升 40% 容量效率
 - ✅ 新增雙語 vCard 生成功能
-- ✅ 完善高齡友善設計
+- ✅ 完善高齡友善設計，符合無障礙標準
+- ✅ 導入專用高齡友善 CSS 檔案，優化雙語字體與間距
 
 ### v1.0.0 (2025-06) - 基礎版本
 - ✅ 純前端 NFC 數位名片系統

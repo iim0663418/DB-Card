@@ -338,9 +338,20 @@ function generateBilingualVCard(data, lang = 'zh') {
         greetingNote = `NOTE;CHARSET=UTF-8:${localizedGreetings.join(' ')}`;
     }
     
+    // 處理社群連結資訊
+    let socialNote = '';
+    if (data.socialNote) {
+        const socialText = lang === 'zh' ? '社群連結' : 'Social Links';
+        socialNote = `\nNOTE;CHARSET=UTF-8:${socialText}: ${data.socialNote.replace(/\n/g, ' | ')}`;
+    }
+    
+    const prodId = lang === 'zh' ? 
+        'PRODID:-//moda//NFC 數位名片//ZH' : 
+        'PRODID:-//moda//NFC Digital Business Card//EN';
+    
     const vcard = `BEGIN:VCARD
 VERSION:3.0
-PRODID:-//moda//NFC Digital Business Card//EN
+${prodId}
 FN;CHARSET=UTF-8:${name}
 N;CHARSET=UTF-8:${nameParts[0] || ''};${nameParts[1] || ''};;;
 ORG;CHARSET=UTF-8:${org.name};${department}
@@ -350,7 +361,7 @@ ${data.phone ? `TEL;TYPE=work,voice:${data.phone}` : ''}
 ${data.mobile ? `TEL;TYPE=cell,voice:${data.mobile}` : ''}
 ADR;TYPE=work;CHARSET=UTF-8:;;${org.address};;;;Taiwan
 ${data.avatar ? `PHOTO;TYPE=JPEG:${data.avatar}` : ''}
-${greetingNote}
+${greetingNote}${socialNote}
 REV:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z
 END:VCARD`.replace(/\n\n/g, '\n');
 

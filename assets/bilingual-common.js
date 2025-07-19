@@ -239,19 +239,11 @@ function renderBilingualCard(data, lang = 'zh') {
         const socialInfo = document.getElementById('socialInfo');
         const socialContent = document.getElementById('socialInfoContent');
         if (socialInfo && socialContent) {
-            // 安全清空內容
             while (socialContent.firstChild) {
                 socialContent.removeChild(socialContent.firstChild);
             }
-            // 使用安全的 DOM 操作
-            const socialLinks = processSocialLinks(data.socialNote);
-            if (typeof socialLinks === 'string') {
-                const tempDiv = document.createElement('div');
-                tempDiv.textContent = socialLinks;
-                socialContent.appendChild(tempDiv);
-            } else {
-                socialContent.appendChild(socialLinks);
-            }
+            const socialLinks = processSocialLinks(data.socialNote, lang);
+            socialContent.appendChild(socialLinks);
             socialInfo.style.display = 'block';
         }
     } else {
@@ -460,19 +452,11 @@ function initializePage() {
                 const socialInfo = document.getElementById('socialInfo');
                 const socialContent = document.getElementById('socialInfoContent');
                 if (socialInfo && socialContent) {
-                    // 安全清空內容
                     while (socialContent.firstChild) {
                         socialContent.removeChild(socialContent.firstChild);
                     }
-                    // 使用安全的 DOM 操作
-                    const socialLinks = processSocialLinks(currentData.socialNote);
-                    if (typeof socialLinks === 'string') {
-                        const tempDiv = document.createElement('div');
-                        tempDiv.textContent = socialLinks;
-                        socialContent.appendChild(tempDiv);
-                    } else {
-                        socialContent.appendChild(socialLinks);
-                    }
+                    const socialLinks = processSocialLinks(currentData.socialNote, currentLanguage);
+                    socialContent.appendChild(socialLinks);
                     socialInfo.style.display = 'block';
                 }
             }
@@ -492,6 +476,99 @@ function initializePage() {
             if (accessDenied) accessDenied.style.display = 'block';
         }
     }, 800);
+}
+
+/**
+ * 安全創建社群連結元素
+ */
+function createSocialElement(platform, url, buttonText, brandColor, displayUrl = '') {
+    const container = document.createElement('div');
+    container.style.cssText = 'display: flex; align-items: center; justify-content: center; gap: 8px; margin: 6px 0;';
+    
+    const label = document.createElement('span');
+    label.style.cssText = `color: ${brandColor}; font-weight: 500;`;
+    label.textContent = platform + (displayUrl ? `: ${displayUrl}` : '');
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.className = 'social-link';
+    link.style.cssText = `background: ${brandColor}; color: white; padding: 4px 12px; border-radius: 16px; text-decoration: none; font-size: 0.85em; font-weight: 500;`;
+    link.textContent = buttonText;
+    
+    container.appendChild(label);
+    container.appendChild(link);
+    return container;
+}
+
+/**
+ * 處理社群媒體連結 - 安全版本
+ */
+function processSocialLinks(text, lang = 'zh') {
+    if (!text || !text.trim()) return document.createDocumentFragment();
+    
+    const buttonTexts = {
+        zh: {
+            facebook: '👥 造訪頁面', instagram: '❤️ 追蹤', lineOfficial: '🏢 加入官方',
+            linePersonal: '👤 加好友', github: '⭐ 造訪', twitter: '👥 追蹤',
+            linkedin: '🤝 連結', youtube: '🔔 訂閱', discord: '🏠 加入'
+        },
+        en: {
+            facebook: '👥 Visit Page', instagram: '❤️ Follow', lineOfficial: '🏢 Add Official',
+            linePersonal: '👤 Add Friend', github: '⭐ Visit', twitter: '👥 Follow',
+            linkedin: '🤝 Connect', youtube: '🔔 Subscribe', discord: '🏠 Join'
+        }
+    };
+    
+    const texts = buttonTexts[lang] || buttonTexts.zh;
+    const fragment = document.createDocumentFragment();
+    
+    text.split('\n').filter(line => line.trim()).forEach(line => {
+        const trimmed = line.trim();
+        let element = null;
+        
+        if (/^FB:/i.test(trimmed)) {
+            const match = trimmed.match(/FB:\s*([\w\.-@\/]+)/i);
+            if (match) {
+                let url = match[1];
+                if (url.startsWith('@')) url = `fb.com/${url.substring(1)}`;
+                else if (!url.includes('.com')) url = `fb.com/${url}`;
+                const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+                element = createSocialElement('📘 Facebook', fullUrl, texts.facebook, '#1877f2');
+            }
+        } else if (/^IG:/i.test(trimmed)) {
+            const match = trimmed.match(/IG:\s*([\w\.-@\/]+)/i);
+            if (match) {
+                let url = match[1];
+                if (url.startsWith('@')) url = `instagram.com/${url.substring(1)}`;
+                else if (!url.includes('.com')) url = `instagram.com/${url}`;
+                const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+                element = createSocialElement('📷 Instagram', fullUrl, texts.instagram, 'linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)');
+            }
+        } else if (/^LINE:/i.test(trimmed)) {
+            const match = trimmed.match(/LINE:\s*([\w\.-@\/]+)/i);
+            if (match) {
+                const url = match[1];
+                const isOfficial = url.startsWith('@');
+                const fullUrl = `https://line.me/ti/p/~${url}`;
+                const buttonText = isOfficial ? texts.lineOfficial : texts.linePersonal;
+                element = createSocialElement('💬 LINE', fullUrl, buttonText, '#00B900', url);
+            }
+        } else if (/^GitHub:/i.test(trimmed)) {
+            const match = trimmed.match(/GitHub:\s*([\w\.-@\/]+)/i);
+            if (match) {
+                let url = match[1];
+                if (url.startsWith('@')) url = `github.com/${url.substring(1)}`;
+                else if (!url.includes('.com')) url = `github.com/${url}`;
+                const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+                element = createSocialElement('🐙 GitHub', fullUrl, texts.github, '#24292e');
+            }
+        }
+        
+        if (element) fragment.appendChild(element);
+    });
+    
+    return fragment;
 }
 
 // 頁面載入完成後初始化

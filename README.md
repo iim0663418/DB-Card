@@ -42,7 +42,7 @@
 │   ├── BILINGUAL-PLANNING.md       # 雙語版規劃文件
 │   ├── ENCODING-OPTIMIZATION.md    # 編碼優化技術文件
 │   └── IMPLEMENTATION-GUIDE.md     # 實作指南
-├── test-bilingual-greetings.html   # 雙語問候語測試頁面
+├── test-qr-generation.html         # QR 碼生成測試頁面
 ├── NFC-GUIDE.md                    # NFC 操作說明
 ├── VCARD-GUIDE.md                  # vCard 格式指南
 ├── PHOTO-GUIDE.md                  # 照片處理指南
@@ -173,9 +173,17 @@
   1. 上傳圖片後右鍵選擇「複製圖片網址」
   2. 取得格式如：`https://i.imgur.com/XXXXXX.jpg`
 
+- **[PostImages](https://postimages.org)**：
+  1. 上傳圖片後複製 "Direct link" 網址
+  2. 格式通常為：`https://i.postimg.cc/XXXXXX/image.jpg`
+
 - **GitHub Repository**：使用專案內圖片
   1. 找到上傳的照片
   2. 右鍵複製路徑（如：https://github.com/yourusername/repo-name/blob/main/assets/photo.jpg?raw=true）
+
+- 額外建議：可以使用生成的 Ｑ 版大頭貼等取代真實照片，讓名片更生動同時保有真實照片的隱私性。
+
+**⚠️ 重要更新**：專案已導入本地 QR 碼生成技術（qrcode.js），**不再依賴外部 api.qrserver.com 服務**，大幅提升穩定性與隱私保護。
 
 ⚠️ **重要提醒**：大頭貼現為選填欄位，如不填寫可為社群媒體資訊預留更多 NFC 容量
 
@@ -360,6 +368,9 @@ A: 檢查圖片 URL 是否可直接訪問。
 ### Q: 生成的連結太長？
 A: 這是正常現象，Base64 編碼會增加長度。系統已針對 NFC 492 bytes 限制進行優化，包含精簡格式和容量提示。新版本 v2.1.0 新增手機號碼欄位，建議在資料較多時選擇性填寫非必要欄位。
 
+### Q: QR 碼無法生成或顯示？
+A: v2.1.0 版本已改用本地 QR 碼生成技術，不再依賴外部服務。如仍有問題，請檢查瀏覽器 JavaScript 是否正常運作，或嘗試重新整理頁面。
+
 ### Q: 個人版面和機關版面有什麼差別？
 A: 機關版含 moda Logo 和固定機關地址，適合公務使用；個人版無 Logo，字體更大，可自訂組織和地址，適合個人使用。
 
@@ -400,10 +411,11 @@ A: 支援多種 LINE 連結格式：官方帳號使用 `@username` 格式，個�
   - 來源：https://fonts.google.com/noto/specimen/Noto+Sans+TC
 
 #### JavaScript 函式庫
-- **qrcodejs**
-  - 來源：https://github.com/davidshimjs/qrcodejs?tab=MIT-1-ov-file
-  - 用途：純前端 QR 碼生成
+- **qrcode.js (v1.0.0)**
+  - 來源：https://github.com/davidshimjs/qrcodejs
+  - 用途：純前端 QR 碼生成（v2.1.0 新增本地支援）
   - 授權：MIT License
+  - 特色：完全離線運作，無外部 API 依賴
 
 #### 政府資源
 - **moda Logo (moda-logo.svg)**
@@ -475,9 +487,12 @@ A: 支援多種 LINE 連結格式：官方帳號使用 `@username` 格式，個�
 
 ## 🚀 版本歷程
 
-### v2.1.0 (2025-07) - 手機號碼與 LINE 優化版
+### v2.1.0 (2025-07) - 手機號碼與 QR 碼本地化版
 - ✅ 新增手機號碼欄位支援，完整支援雙電話聯絡方式
 - ✅ 改善 LINE 連結處理邏輯，支援官方帳號與個人帳號格式
+- ✅ **QR 碼本地化**：導入 qrcode.js 本地生成，取代外部 api.qrserver.com 依賴
+- ✅ **QR 碼下載功能**：支援高解析度 QR 碼圖片下載，智慧檔名生成
+- ✅ **安全性增強**：移除 innerHTML 安全風險，使用安全 DOM 操作
 - ✅ 統一頁面初始化流程，減少程式碼重複提升維護性
 - ✅ 完善向下相容性，自動識別舊版本資料格式
 - ✅ 智慧型欄位顯示，空白欄位自動隱藏節省空間

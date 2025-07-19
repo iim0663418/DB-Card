@@ -320,7 +320,6 @@
             font-size: 0.85em;
             color: #4e4e81;
             line-height: 1.6;
-            white-space: pre-line;
             word-break: break-word;
         }
 
@@ -479,56 +478,7 @@
             });
         }
 
-        // 處理社群媒體連結
-        function processSocialLinks(text) {
-            const lines = text.split('\n');
-            const processedLines = lines.map(line => {
-                let processedLine = line;
-                
-                if (/^FB:/i.test(processedLine)) {
-                    processedLine = processedLine.replace(/FB:\s*(fb\.com\/[\w\.-]+|facebook\.com\/[\w\.-]+|@[\w\.-]+)/gi, function(match, url) {
-                        const cleanUrl = url.startsWith('@') ? `fb.com/${url.substring(1)}` : url;
-                        const fullUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
-                        return `FB: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
-                    });
-                }
-                else if (/^IG:/i.test(processedLine)) {
-                    processedLine = processedLine.replace(/IG:\s*(instagram\.com\/[\w\.-]+|@[\w\.-]+)/gi, function(match, url) {
-                        const cleanUrl = url.startsWith('@') ? `instagram.com/${url.substring(1)}` : url;
-                        const fullUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
-                        return `IG: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
-                    });
-                }
-                else if (/^LINE:/i.test(processedLine)) {
-                    processedLine = processedLine.replace(/LINE:\s*(@?[\w\.-]+|line\.me\/[\w\/-]+)/gi, function(match, url) {
-                        let fullUrl;
-                        if (url.startsWith('@')) {
-                            // 官方帳號：@323foylw -> https://line.me/ti/p/~@323foylw
-                            fullUrl = `https://line.me/ti/p/~${url}`;
-                        } else if (url.startsWith('line.me')) {
-                            fullUrl = `https://${url}`;
-                        } else if (/^[\w\.-]+$/.test(url)) {
-                            // 個人帳號：tsgservice -> https://line.me/ti/p/~tsgservice
-                            fullUrl = `https://line.me/ti/p/~${url}`;
-                        } else {
-                            fullUrl = url.startsWith('http') ? url : `https://${url}`;
-                        }
-                        return `LINE: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
-                    });
-                }
-                else if (/^GitHub:/i.test(processedLine)) {
-                    processedLine = processedLine.replace(/GitHub:\s*(github\.com\/[\w\.-\/]+|@[\w\.-]+)/gi, function(match, url) {
-                        const cleanUrl = url.startsWith('@') ? `github.com/${url.substring(1)}` : url;
-                        const fullUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
-                        return `GitHub: <a href="${fullUrl}" target="_blank" class="social-link">${url}</a>`;
-                    });
-                }
-                
-                return processedLine;
-            });
-            
-            return processedLines.join('\n');
-        }
+        // processSocialLinks 函數已統一移至 bilingual-common.js
 
         // 更新界面文字
         function updateUIText(lang) {

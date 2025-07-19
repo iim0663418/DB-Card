@@ -552,8 +552,10 @@
             const currentURL = window.location.href;
             const qrContainer = document.getElementById('qrcode');
             
-            // 清空容器
-            qrContainer.innerHTML = '';
+            // 安全清空容器
+            while (qrContainer.firstChild) {
+                qrContainer.removeChild(qrContainer.firstChild);
+            }
             
             // 創建外層容器
             const outerContainer = document.createElement('div');
@@ -717,7 +719,9 @@
             
             // 組織和地址（英文翻譯）
             document.getElementById('user-organization').textContent = 'Ministry of Digital Affairs';
-            document.getElementById('user-address').innerHTML = 'No. 66, Sec. 1, Zhongxiao W. Rd., Zhongzheng Dist., Taipei City 100507, Taiwan (R.O.C.) (17F, 19F)';
+            // 安全設置地址文字
+            const addressElement = document.getElementById('user-address');
+            addressElement.textContent = 'No. 66, Sec. 1, Zhongxiao W. Rd., Zhongzheng Dist., Taipei City 100507, Taiwan (R.O.C.) (17F, 19F)';
             
             // 設定問候語（翻譯為英文）
             greetings = data.greetings.map(greeting => {
@@ -733,7 +737,16 @@
             const socialInfoContent = document.getElementById('social-info-content');
             if (data.socialLinks && data.socialLinks.socialNote && data.socialLinks.socialNote.trim() !== '') {
                 const processedContent = processSocialLinks(data.socialLinks.socialNote);
-                socialInfoContent.innerHTML = processedContent;
+                // 安全清空並設置內容
+                while (socialInfoContent.firstChild) {
+                    socialInfoContent.removeChild(socialInfoContent.firstChild);
+                }
+                // 由於 processSocialLinks 返回 HTML 字符串，我們需要安全地解析它
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = processedContent;
+                while (tempDiv.firstChild) {
+                    socialInfoContent.appendChild(tempDiv.firstChild);
+                }
                 socialInfoSection.style.display = 'block';
             } else {
                 socialInfoSection.style.display = 'none';
@@ -852,7 +865,30 @@
 
             contactLink.addEventListener('click', function() {
                 if (!messageShown) {
-                    helperText.innerHTML = 'After downloading, please click <b>"Open"</b> or find the file in your notification bar to complete adding.<br><b>Apple devices</b>: Please remember not to tap "Done" in the top left, scroll down to <b>"Add to Contacts"</b>.';
+                    // 安全設置幫助文字
+                    while (helperText.firstChild) {
+                        helperText.removeChild(helperText.firstChild);
+                    }
+                    
+                    // 創建文本節點和強調元素
+                    helperText.appendChild(document.createTextNode('After downloading, please click '));
+                    const openBold = document.createElement('b');
+                    openBold.textContent = '"Open"';
+                    helperText.appendChild(openBold);
+                    helperText.appendChild(document.createTextNode(' or find the file in your '));
+                    const notificationBold = document.createElement('b');
+                    notificationBold.textContent = 'notification bar';
+                    helperText.appendChild(notificationBold);
+                    helperText.appendChild(document.createTextNode(' to complete adding.'));
+                    helperText.appendChild(document.createElement('br'));
+                    const appleBold = document.createElement('b');
+                    appleBold.textContent = 'Apple devices';
+                    helperText.appendChild(appleBold);
+                    helperText.appendChild(document.createTextNode(': Please remember not to tap "Done" in the top left, scroll down to '));
+                    const addContactBold = document.createElement('b');
+                    addContactBold.textContent = '"Add to Contacts"';
+                    helperText.appendChild(addContactBold);
+                    helperText.appendChild(document.createTextNode('.'));
                     messageShown = true;
                 }
             });

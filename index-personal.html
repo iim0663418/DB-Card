@@ -572,8 +572,10 @@
             const currentURL = window.location.href;
             const qrContainer = document.getElementById('qrcode');
             
-            // 清空容器
-            qrContainer.innerHTML = '';
+            // 安全清空容器
+            while (qrContainer.firstChild) {
+                qrContainer.removeChild(qrContainer.firstChild);
+            }
             
             // 創建外層容器
             const outerContainer = document.createElement('div');
@@ -652,7 +654,21 @@
             // 地址（個人版可選）
             const addressItem = document.getElementById('address-item');
             if (data.address && data.address.trim() !== '') {
-                document.getElementById('user-address').innerHTML = data.address.replace(/\n/g, '<br>');
+                // 安全處理地址換行
+                const addressElement = document.getElementById('user-address');
+                // 清空元素
+                while (addressElement.firstChild) {
+                    addressElement.removeChild(addressElement.firstChild);
+                }
+                // 按行分割並添加
+                const addressLines = data.address.split('\n');
+                addressLines.forEach((line, index) => {
+                    if (index > 0) {
+                        addressElement.appendChild(document.createElement('br'));
+                    }
+                    const textNode = document.createTextNode(line);
+                    addressElement.appendChild(textNode);
+                });
                 addressItem.style.display = 'flex';
             } else {
                 addressItem.style.display = 'none';
@@ -665,7 +681,16 @@
             const socialInfoContent = document.getElementById('social-info-content');
             if (data.socialLinks && data.socialLinks.socialNote && data.socialLinks.socialNote.trim() !== '') {
                 const processedContent = processSocialLinks(data.socialLinks.socialNote);
-                socialInfoContent.innerHTML = processedContent;
+                // 安全清空並設置內容
+                while (socialInfoContent.firstChild) {
+                    socialInfoContent.removeChild(socialInfoContent.firstChild);
+                }
+                // 由於 processSocialLinks 返回 HTML 字符串，我們需要安全地解析它
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = processedContent;
+                while (tempDiv.firstChild) {
+                    socialInfoContent.appendChild(tempDiv.firstChild);
+                }
                 socialInfoSection.style.display = 'block';
             } else {
                 socialInfoSection.style.display = 'none';
@@ -729,7 +754,30 @@
 
             contactLink.addEventListener('click', function() {
                 if (!messageShown) {
-                    helperText.innerHTML = '下載後，請點擊<b>「開啟」</b>或於<b>通知欄</b>中找到檔案，即可完成新增。<br><b>Apple 裝置</b>：請記得不要按左上方的完成，要下拉到<b>「加入聯絡人」</b>。';
+                    // 安全設置幫助文字
+                    while (helperText.firstChild) {
+                        helperText.removeChild(helperText.firstChild);
+                    }
+                    
+                    // 創建文本節點和強調元素
+                    helperText.appendChild(document.createTextNode('下載後，請點擊'));
+                    const openBold = document.createElement('b');
+                    openBold.textContent = '「開啟」';
+                    helperText.appendChild(openBold);
+                    helperText.appendChild(document.createTextNode('或於'));
+                    const notificationBold = document.createElement('b');
+                    notificationBold.textContent = '通知欄';
+                    helperText.appendChild(notificationBold);
+                    helperText.appendChild(document.createTextNode('中找到檔案，即可完成新增。'));
+                    helperText.appendChild(document.createElement('br'));
+                    const appleBold = document.createElement('b');
+                    appleBold.textContent = 'Apple 裝置';
+                    helperText.appendChild(appleBold);
+                    helperText.appendChild(document.createTextNode('：請記得不要按左上方的完成，要下拉到'));
+                    const addContactBold = document.createElement('b');
+                    addContactBold.textContent = '「加入聯絡人」';
+                    helperText.appendChild(addContactBold);
+                    helperText.appendChild(document.createTextNode('。'));
                     messageShown = true;
                 }
             });

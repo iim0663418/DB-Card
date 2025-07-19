@@ -351,10 +351,27 @@
                 
                 <div class="form-group">
                     <label>社群媒體資訊：</label>
-                    <textarea id="socialNote" placeholder="GitHub: github.com/yourname&#10;FB: fb.com/yourname&#10;IG: @yourname&#10;LINE: @your-line-id" maxlength="300"></textarea>
+                    <textarea id="socialNote" placeholder="GitHub: yourname&#10;FB: yourname&#10;IG: @yourname&#10;LINE: @your-line-id&#10;Twitter: @yourname&#10;LinkedIn: yourname&#10;YouTube: @yourname&#10;Discord: invite-code" maxlength="300"></textarea>
                     <div class="help-text">
-                        每行一個社群媒體，支援自動連結轉換<br>
-                        LINE 格式：<strong>@your-line-id</strong>（官方帳號，含@）或 <strong>your-line-id</strong>（個人帳號，無@）
+                        <strong>🌐 支援平台：</strong>GitHub, Facebook, Instagram, LINE, Twitter/X, LinkedIn<br>
+                        <strong>📝 格式說明：</strong>每行一個平台，格式為「平台名: 帳號」<br><br>
+                        <strong>📺 平台格式範例：</strong><br>
+                        • <code>GitHub: username</code> → 🐙 GitHub [⭐ 造訪] 按鈕<br>
+                        • <code>FB: username</code> → 📘 Facebook [👥 造訪頁面] 按鈕<br>
+                        • <code>IG: @username</code> → 📷 Instagram [❤️ 追蹤] 按鈕<br>
+                        • <code>LINE: @official-id</code> → 💬 LINE [🏢 加入官方] 按鈕<br>
+                        • <code>LINE: personal-id</code> → 💬 LINE [👤 加好友] 按鈕<br>
+                        • <code>Twitter: @username</code> → 🐦 Twitter [👥 追蹤] 按鈕<br>
+                        • <code>LinkedIn: username</code> → 💼 LinkedIn [🤝 連結] 按鈕<br><br>
+                        <strong>🌍 雙語支援：</strong>按鈕文字會根據當前語言自動切換中英文<br>
+                        <strong>🔒 安全設計：</strong>所有連結都經過安全驗證，防止惡意網址<br>
+                        <strong>📱 即時預覽：</strong>輸入後可在下方看到按鈕效果預覽
+                    </div>
+                    
+                    <!-- 社群連結預覽 -->
+                    <div id="socialPreview" style="display: none; margin-top: 10px; padding: 12px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; font-size: 0.9em; line-height: 1.5;">
+                        <strong style="color: #6868ac;">📱 預覽效果：</strong><br>
+                        <div id="socialPreviewContent" style="margin-top: 8px; color: #495057;"></div>
                     </div>
                 </div>
                 
@@ -456,6 +473,78 @@
             } else {
                 fillElement.style.background = '#28a745';
             }
+            
+            // 更新社群連結預覽
+            updateSocialPreview();
+        }
+        
+        // 社群連結預覽功能
+        function updateSocialPreview() {
+            const socialNote = document.getElementById('socialNote').value.trim();
+            const previewElement = document.getElementById('socialPreview');
+            const previewContent = document.getElementById('socialPreviewContent');
+            
+            if (!previewElement || !previewContent) return;
+            
+            if (socialNote) {
+                // 使用簡化版的社群連結處理
+                const processedLinks = processSocialLinksPreview(socialNote);
+                previewContent.innerHTML = processedLinks;
+                previewElement.style.display = 'block';
+            } else {
+                previewElement.style.display = 'none';
+            }
+        }
+        
+        // 簡化版社群連結處理（用於預覽）
+        function processSocialLinksPreview(text) {
+            if (!text || !text.trim()) return '';
+            
+            const lines = text.split('\n').filter(line => line.trim());
+            const processedLines = lines.map(line => {
+                let processedLine = line.trim();
+                
+                // 簡化版處理，只顯示格式化的文字和圖示
+                if (/^GitHub:/i.test(processedLine)) {
+                    const url = processedLine.replace(/^GitHub:\s*/i, '').trim();
+                    return `<span style="color: #6868ac; font-weight: 500;">🐙 GitHub:</span> <span style="color: #495057;">${url}</span> <small style="color: #28a745;">✓ 可點擊</small>`;
+                }
+                else if (/^FB:/i.test(processedLine)) {
+                    const url = processedLine.replace(/^FB:\s*/i, '').trim();
+                    return `<span style="color: #6868ac; font-weight: 500;">📘 Facebook:</span> <span style="color: #495057;">${url}</span> <small style="color: #28a745;">✓ 可點擊</small>`;
+                }
+                else if (/^IG:/i.test(processedLine)) {
+                    const url = processedLine.replace(/^IG:\s*/i, '').trim();
+                    return `<span style="color: #6868ac; font-weight: 500;">📷 Instagram:</span> <span style="color: #495057;">${url}</span> <small style="color: #28a745;">✓ 可點擊</small>`;
+                }
+                else if (/^LINE:/i.test(processedLine)) {
+                    const url = processedLine.replace(/^LINE:\s*/i, '').trim();
+                    const isOfficial = url.startsWith('@');
+                    const friendType = isOfficial ? '官方帳號' : '個人帳號';
+                    return `<span style="color: #6868ac; font-weight: 500;">💬 LINE:</span> <span style="color: #495057;">${url}</span> <small style="color: #17a2b8;">(${friendType})</small> <small style="color: #28a745;">✓ 可加好友</small>`;
+                }
+                else if (/^(Twitter|X):/i.test(processedLine)) {
+                    const [platform, ...urlParts] = processedLine.split(':');
+                    const url = urlParts.join(':').trim();
+                    return `<span style="color: #6868ac; font-weight: 500;">🐦 ${platform}:</span> <span style="color: #495057;">${url}</span> <small style="color: #28a745;">✓ 可追蹤</small>`;
+                }
+                else if (/^LinkedIn:/i.test(processedLine)) {
+                    const url = processedLine.replace(/^LinkedIn:\s*/i, '').trim();
+                    return `<span style="color: #6868ac; font-weight: 500;">💼 LinkedIn:</span> <span style="color: #495057;">${url}</span> <small style="color: #28a745;">✓ 可連結</small>`;
+                }
+                else if (/^YouTube:/i.test(processedLine)) {
+                    const url = processedLine.replace(/^YouTube:\s*/i, '').trim();
+                    return `<span style="color: #6868ac; font-weight: 500;">📺 YouTube:</span> <span style="color: #495057;">${url}</span> <small style="color: #28a745;">✓ 可訂閱</small>`;
+                }
+                else if (/^Discord:/i.test(processedLine)) {
+                    const url = processedLine.replace(/^Discord:\s*/i, '').trim();
+                    return `<span style="color: #6868ac; font-weight: 500;">🎮 Discord:</span> <span style="color: #495057;">${url}</span> <small style="color: #28a745;">✓ 可加入</small>`;
+                }
+                
+                return `<span style="color: #6c757d;">${processedLine}</span>`;
+            });
+            
+            return processedLines.join('<br>');
         }
 
         // 輸入清理函數
@@ -644,6 +733,15 @@
             
             // 初始化容量監控
             updateCapacityMonitor();
+            
+            // 為社群媒體輸入添加即時預覽
+            const socialNoteElement = document.getElementById('socialNote');
+            if (socialNoteElement) {
+                socialNoteElement.addEventListener('input', function() {
+                    updateCapacityMonitor();
+                    updateSocialPreview();
+                });
+            }
         });
         // 生成 QR 碼函數
         function generateQRCode(url) {

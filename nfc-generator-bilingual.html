@@ -457,12 +457,27 @@
             const data = collectFormData();
             if (!data) return;
             
-            const capacity = calculateCapacity(data);
-            const percentage = Math.min((capacity.size / 492) * 100, 100);
+            // 使用動態域名計算容量
+            const encoded = encodeCompact(data);
+            const layoutType = document.getElementById('layoutType').value;
+            const baseUrl = window.location.origin + window.location.pathname.replace(/[^/]+$/, "");
+            
+            let targetPage;
+            if (layoutType === 'personal') {
+                targetPage = 'index-bilingual-personal.html';
+            } else if (layoutType === 'official-xinyi') {
+                targetPage = 'index1-bilingual.html';
+            } else {
+                targetPage = 'index-bilingual.html';
+            }
+            
+            const testUrl = `${baseUrl}${targetPage}?data=${encoded}`;
+            const urlSize = new Blob([testUrl]).size;
+            const percentage = Math.min((urlSize / 492) * 100, 100);
             
             document.getElementById('capacityFill').style.width = `${percentage}%`;
             document.getElementById('capacityText').textContent = 
-                `${capacity.size}/492 bytes (${Math.round(percentage)}%)`;
+                `${urlSize}/492 bytes (${Math.round(percentage)}%)`;
             
             // 顏色警告
             const fillElement = document.getElementById('capacityFill');
@@ -626,10 +641,25 @@
                 return;
             }
             
-            // 檢查容量
-            const capacity = calculateCapacity(data);
-            if (capacity.size > 492) {
-                showWarning(`資料超出 NFC 容量限制！當前：${capacity.size} bytes，限制：492 bytes`);
+            // 檢查容量（使用動態域名）
+            const testEncoded = encodeCompact(data);
+            const testLayoutType = document.getElementById('layoutType').value;
+            const testBaseUrl = window.location.origin + window.location.pathname.replace(/[^/]+$/, "");
+            
+            let testTargetPage;
+            if (testLayoutType === 'personal') {
+                testTargetPage = 'index-bilingual-personal.html';
+            } else if (testLayoutType === 'official-xinyi') {
+                testTargetPage = 'index1-bilingual.html';
+            } else {
+                testTargetPage = 'index-bilingual.html';
+            }
+            
+            const testUrl = `${testBaseUrl}${testTargetPage}?data=${testEncoded}`;
+            const urlSize = new Blob([testUrl]).size;
+            
+            if (urlSize > 492) {
+                showWarning(`資料超出 NFC 容量限制！當前：${urlSize} bytes，限制：492 bytes`);
                 return;
             }
             
@@ -658,7 +688,8 @@
                 // 生成 QR 碼
                 generateQRCode(generatedUrl);
                 
-                showSuccess(`生成成功！容量使用：${capacity.size}/492 bytes (${Math.round(capacity.percentage)}%)`);
+                const percentage = Math.round((urlSize / 492) * 100);
+                showSuccess(`生成成功！容量使用：${urlSize}/492 bytes (${percentage}%)`);
                 
             } catch (error) {
                 console.error('生成失敗:', error);
@@ -773,9 +804,14 @@
                 correctLevel: QRCode.CorrectLevel.H
             });
             
-            // 顯示成功訊息
+            // 顯示成功訊息（避免重複）
+            const existingMsg = qrContainer.parentNode.querySelector('.qr-success-message');
+            if (existingMsg) {
+                existingMsg.remove();
+            }
+            
             const successMsg = document.createElement('div');
-            successMsg.textContent = 'QR 碼生成成功！點擊下方按鈕下載';
+            successMsg.textContent = 'QR 碼生成成功！點擊上方按鈕下載';
             successMsg.className = 'qr-success-message';
             qrContainer.parentNode.appendChild(successMsg);
             

@@ -605,6 +605,39 @@ function processSocialLinks(text, lang = 'zh') {
                 const fullUrl = url.startsWith('http') ? url : `https://${url}`;
                 element = createSocialElement('🐙 GitHub', fullUrl, texts.github, '#24292e');
             }
+        } else if (/^(Twitter|X):/i.test(trimmed)) {
+            const match = trimmed.match(/(Twitter|X):\s*([\w\.-@\/]+)/i);
+            if (match) {
+                let url = match[2];
+                if (url.startsWith('@')) url = `twitter.com/${url.substring(1)}`;
+                else if (!url.includes('.com')) url = `twitter.com/${url}`;
+                const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+                element = createSocialElement('🐦 Twitter', fullUrl, texts.twitter, '#1da1f2');
+            }
+        } else if (/^LinkedIn:/i.test(trimmed)) {
+            const match = trimmed.match(/LinkedIn:\s*([\w\.-@\/\u4e00-\u9fff-]+)/i);
+            if (match) {
+                let url = match[1];
+                if (!url.includes('.com')) url = `linkedin.com/in/${url}`;
+                const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+                element = createSocialElement('💼 LinkedIn', fullUrl, texts.linkedin, '#0077b5');
+            }
+        } else if (/^YouTube:/i.test(trimmed)) {
+            const match = trimmed.match(/YouTube:\s*([\w\.-@\/]+)/i);
+            if (match) {
+                let url = match[1];
+                if (url.startsWith('@')) url = `youtube.com/${url}`;
+                else if (!url.includes('.com')) url = `youtube.com/c/${url}`;
+                const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+                element = createSocialElement('📺 YouTube', fullUrl, texts.youtube, '#ff0000');
+            }
+        } else if (/^Discord:/i.test(trimmed)) {
+            const match = trimmed.match(/Discord:\s*([\w\.-@\/]+)/i);
+            if (match) {
+                const url = match[1];
+                const fullUrl = url.startsWith('http') ? url : `https://discord.gg/${url}`;
+                element = createSocialElement('🎮 Discord', fullUrl, texts.discord, '#5865f2');
+            }
         }
         
         if (element) fragment.appendChild(element);

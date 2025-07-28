@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collection 相容性測試</title>
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        button { padding: 8px 16px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary { background: #6868ac; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+    </style>
+</head>
+<body>
+    <h1>Collection 相容性測試</h1>
+    
+    <div class="test-section">
+        <h3>測試 1: 標準 JSON 格式解析</h3>
+        <button class="btn-primary" onclick="testStandardFormat()">測試標準格式</button>
+        <div id="test1-result" class="test-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>測試 2: 雙語版緊密格式解析（舊版 8 欄位）</h3>
+        <button class="btn-primary" onclick="testCompactFormat8()">測試緊密格式 8 欄位</button>
+        <div id="test2-result" class="test-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>測試 3: 雙語版緊密格式解析（新版 9 欄位）</h3>
+        <button class="btn-primary" onclick="testCompactFormat9()">測試緊密格式 9 欄位</button>
+        <div id="test3-result" class="test-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>測試 4: 開啟 Collection 頁面</h3>
+        <button class="btn-secondary" onclick="openCollection()">開啟 Collection</button>
+        <button class="btn-secondary" onclick="openCollectionWithTestData()">開啟 Collection (含測試資料)</button>
+    </div>
+
+    <script>
+        // 統一格式解析函數 - 與 collection.html 相同
+        function parseCardData(dataParam, format = 'auto') {
+            try {
+                // 1. 嘗試雙語版緊密格式（管道分隔）
+                if (format === 'compact' || format === 'auto') {
+                    try {
+                        const padding = '='.repeat((4 - dataParam.length % 4) % 4);
+                        const compact = decodeURIComponent(atob(
+                            dataParam.replace(/-/g, '+').replace(/_/g, '/') + padding
+                        ));
+                        
+                        if (compact.includes('|')) {
+                            const parts = compact.split('|');
+                            
+                            // 檢查是否為舊版本格式（8個欄位，沒有手機號碼）
+                            if (parts.length === 8) {
+                                return {
+                                    name: parts[0] || '',
+                                    title: parts[1] || '',
+                                    department: parts[2] || '',
+                                    email: parts[3] || '',
+                                    phone: parts[4] || '',
+                                    mobile: '', // 舊版本沒有手機號碼
+                                    avatar: parts[5] || '',
+                                    greetings: parts[6] ? parts[6].split(',') : [],
+                                    socialNote: parts[7] || ''
+                                };
+                            }
+                            
+                            // 新版本格式（9個欄位，包含手機號碼）
+                            if (parts.length >= 9) {
+                                return {
+                                    name: parts[0] || '',
+                                    title: parts[1] || '',
+                                    department: parts[2] || '',
+                                    email: parts[3] || '',
+                                    phone: parts[4] || '',
+                                    mobile: parts[5] || '',
+                                    avatar: parts[6] || '',
+                                    greetings: parts[7] ? parts[7].split(',') : [],
+                                    socialNote: parts[8] || ''
+                                };
+                            }
+                        }
+                    } catch (compactError) {
+                        console.log('緊密格式解析失敗，嘗試標準格式:', compactError);
+                    }
+                }
+                
+                // 2. 嘗試標準 JSON + Base64 格式
+                if (format === 'json' || format === 'auto') {
+                    try {
+                        const urlDecodedData = decodeURIComponent(dataParam);
+                        const base64DecodedData = atob(urlDecodedData);
+                        const jsonData = JSON.parse(decodeURIComponent(base64DecodedData));
+                        
+                        if (jsonData.data) {
+                            return jsonData.data;
+                        }
+                        return jsonData;
+                    } catch (jsonError) {
+                        console.log('JSON 格式解析失敗:', jsonError);
+                    }
+                }
+                
+                // 3. 嘗試直接 JSON 解析
+                if (format === 'direct' || format === 'auto') {
+                    try {
+                        const directJson = JSON.parse(decodeURIComponent(dataParam));
+                        if (directJson.data) {
+                            return directJson.data;
+                        }
+                        return directJson;
+                    } catch (directError) {
+                        console.log('直接 JSON 解析失敗:', directError);
+                    }
+                }
+                
+                return null;
+            } catch (error) {
+                console.error('所有格式解析都失敗:', error);
+                return null;
+            }
+        }
+
+        function showResult(elementId, success, message, data = null) {
+            const element = document.getElementById(elementId);
+            element.className = `test-result ${success ? 'success' : 'error'}`;
+            element.innerHTML = `
+                <strong>${success ? '✅ 成功' : '❌ 失敗'}</strong>: ${message}
+                ${data ? `<pre>${JSON.stringify(data, null, 2)}</pre>` : ''}
+            `;
+        }
+
+        function testStandardFormat() {
+            // 模擬標準 JSON 格式
+            const testData = {
+                data: {
+                    name: "測試使用者",
+                    title: "軟體工程師",
+                    department: "資訊處",
+                    email: "test@example.com",
+                    phone: "02-1234-5678",
+                    mobile: "0912-345-678",
+                    avatar: "assets/test.jpg",
+                    greetings: ["你好！", "歡迎認識我"],
+                    socialNote: "FB: fb.com/test\nLINE: @test"
+                }
+            };
+            
+            const jsonString = JSON.stringify(testData);
+            const base64Data = btoa(encodeURIComponent(jsonString));
+            
+            const parsed = parseCardData(base64Data, 'json');
+            
+            if (parsed && parsed.name === "測試使用者") {
+                showResult('test1-result', true, '標準 JSON 格式解析成功', parsed);
+            } else {
+                showResult('test1-result', false, '標準 JSON 格式解析失敗', parsed);
+            }
+        }
+
+        function testCompactFormat8() {
+            // 模擬舊版緊密格式（8 欄位）
+            const compactData = "測試使用者|軟體工程師|資訊處|test@example.com|02-1234-5678|assets/test.jpg|你好,歡迎認識我|FB: fb.com/test";
+            const base64Data = btoa(encodeURIComponent(compactData));
+            
+            const parsed = parseCardData(base64Data, 'compact');
+            
+            if (parsed && parsed.name === "測試使用者" && parsed.mobile === '') {
+                showResult('test2-result', true, '緊密格式 8 欄位解析成功（無手機號碼）', parsed);
+            } else {
+                showResult('test2-result', false, '緊密格式 8 欄位解析失敗', parsed);
+            }
+        }
+
+        function testCompactFormat9() {
+            // 模擬新版緊密格式（9 欄位）
+            const compactData = "測試使用者|軟體工程師|資訊處|test@example.com|02-1234-5678|0912-345-678|assets/test.jpg|你好,歡迎認識我|FB: fb.com/test";
+            const base64Data = btoa(encodeURIComponent(compactData));
+            
+            const parsed = parseCardData(base64Data, 'compact');
+            
+            if (parsed && parsed.name === "測試使用者" && parsed.mobile === '0912-345-678') {
+                showResult('test3-result', true, '緊密格式 9 欄位解析成功（含手機號碼）', parsed);
+            } else {
+                showResult('test3-result', false, '緊密格式 9 欄位解析失敗', parsed);
+            }
+        }
+
+        function openCollection() {
+            window.open('/collection.html', '_blank');
+        }
+
+        function openCollectionWithTestData() {
+            const testData = {
+                data: {
+                    name: "測試使用者",
+                    title: "軟體工程師",
+                    department: "資訊處",
+                    email: "test@example.com",
+                    phone: "02-1234-5678",
+                    mobile: "0912-345-678",
+                    avatar: "assets/test.jpg",
+                    greetings: ["你好！", "歡迎認識我"],
+                    socialNote: "FB: fb.com/test\nLINE: @test"
+                }
+            };
+            
+            const jsonString = JSON.stringify(testData);
+            const base64Data = btoa(encodeURIComponent(jsonString));
+            const collectionUrl = `/collection.html?autoSave=true&cardData=${base64Data}&source=test`;
+            window.open(collectionUrl, '_blank');
+        }
+    </script>
+</body>
+</html>

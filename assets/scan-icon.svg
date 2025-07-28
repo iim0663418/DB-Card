@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="96" height="96" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6868ac;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4e4e81;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="96" height="96" rx="12" fill="url(#bg)"/>
+  
+  <!-- QR Code Frame -->
+  <rect x="24" y="24" width="48" height="48" rx="4" fill="none" stroke="white" stroke-width="2"/>
+  
+  <!-- Corner markers -->
+  <rect x="28" y="28" width="8" height="8" rx="1" fill="white"/>
+  <rect x="60" y="28" width="8" height="8" rx="1" fill="white"/>
+  <rect x="28" y="60" width="8" height="8" rx="1" fill="white"/>
+  
+  <!-- Scan line -->
+  <rect x="24" y="46" width="48" height="2" fill="white" opacity="0.8"/>
+  
+  <!-- Phone icon -->
+  <rect x="76" y="16" width="12" height="20" rx="2" fill="white" opacity="0.9"/>
+  <rect x="78" y="18" width="8" height="12" rx="1" fill="#6868ac"/>
+</svg>

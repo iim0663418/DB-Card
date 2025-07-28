@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>名片收藏 - NFC 數位名片</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f4f6f7;
+            color: #1a1a1a;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #6868ac 0%, #4e4e81 100%);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-primary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .stats-section {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #6868ac;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .controls-section {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #6868ac;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+
+        .select {
+            padding: 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+        }
+
+        .cards-section {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .cards-container {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .card-item {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .card-item:hover {
+            border-color: #6868ac;
+            box-shadow: 0 4px 12px rgba(104,104,172,0.1);
+        }
+
+        .card-header {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .card-avatar {
+            position: relative;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: #6868ac;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .avatar-fallback {
+            color: white;
+            font-weight: 600;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Toast 提示樣式 */
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        .toast {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        /* 載入動畫 */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #6868ac;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 成功提示 */
+        .success-toast {
+            background: #28a745 !important;
+        }
+
+        /* 錯誤訊息 */
+        .error-message {
+            background: #dc3545 !important;
+        }
+
+        /* 高對比模式 */
+        .high-contrast {
+            filter: contrast(150%) brightness(110%);
+        }
+
+        /* 無障礙改善 */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* 焦點指示 */
+        .btn:focus, .search-input:focus, .select:focus {
+            outline: 2px solid #6868ac;
+            outline-offset: 2px;
+        }
+
+        /* 動畫效果增強 */
+        .card-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(104,104,172,0.2);
+        }
+
+        .btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        /* QR 掃描器樣式 */
+        .qr-scanner-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .qr-scanner-container {
+            position: relative;
+            width: 90vw;
+            max-width: 500px;
+            height: 70vh;
+            max-height: 500px;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .qr-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .qr-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+
+        .qr-overlay::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 200px;
+            height: 200px;
+            margin: -100px 0 0 -100px;
+            border: 2px solid #6868ac;
+            border-radius: 12px;
+            box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
+        }
+
+        .qr-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 1rem;
+        }
+
+        .qr-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .qr-btn-close {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .qr-btn-manual {
+            background: #6868ac;
+            color: white;
+        }
+
+        .qr-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .qr-status {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .card-info h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .card-info p {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 0.1rem;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .action-btn {
+            padding: 0.4rem 0.8rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+
+        .action-btn:hover {
+            background: #f8f9fa;
+        }
+
+        .view-btn:hover { border-color: #28a745; }
+        .edit-btn:hover { border-color: #ffc107; }
+        .delete-btn:hover { border-color: #dc3545; }
+
+        .card-meta {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+            font-size: 0.85rem;
+        }
+
+        .source-tag, .time-tag {
+            background: #f8f9fa;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            color: #6c757d;
+        }
+
+        .tags {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .tag {
+            background: #6868ac;
+            color: white;
+            padding: 0.1rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.75rem;
+        }
+
+        .card-contact {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .card-notes {
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 3px solid #6868ac;
+        }
+
+        .view-count {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .contact-link {
+            color: #6868ac;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s ease;
+        }
+
+        .contact-link:hover {
+            color: #4e4e81;
+            text-decoration: underline;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #6c757d;
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #495057;
+        }
+
+        .fab {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #6868ac;
+            color: white;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(104,104,172,0.3);
+            transition: all 0.2s ease;
+        }
+
+        .fab:hover {
+            background: #4e4e81;
+            transform: scale(1.1);
+        }
+
+        /* 響應式設計改善 */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .controls-grid {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+
+            .card-header {
+                grid-template-columns: auto 1fr;
+                gap: 0.75rem;
+            }
+
+            .card-actions {
+                grid-column: 1 / -1;
+                justify-content: center;
+                margin-top: 0.5rem;
+            }
+
+            .card-contact {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .fab {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .main {
+                padding: 1rem 0.5rem;
+            }
+
+            .stats-section, .controls-section, .cards-section {
+                padding: 1rem;
+            }
+
+            .card-item {
+                padding: 0.75rem;
+            }
+        }
+
+        /* 高齡友善設計 */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        @media (prefers-contrast: high) {
+            .card-item {
+                border-width: 2px;
+            }
+
+            .btn {
+                border-width: 2px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                📇 名片收藏
+            </div>
+            <div class="header-actions">
+                <a href="/index.html" class="btn btn-primary">
+                    🏠 首頁
+                </a>
+                <button class="btn btn-primary" onclick="showAddDialog()">
+                    ➕ 新增名片
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <section class="stats-section">
+            <div id="stats-container" class="stats-container">
+                <div class="stat-item">
+                    <div class="stat-number">0</div>
+                    <div class="stat-label">總收藏</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">0</div>
+                    <div class="stat-label">本週新增</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">0</div>
+                    <div class="stat-label">來源類型</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="controls-section">
+            <div class="controls-grid">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="search-input" class="search-input" placeholder="搜尋姓名、公司、職稱...">
+                </div>
+                <select id="filter-select" class="select">
+                    <option value="all">全部名片</option>
+                    <option value="recent">最近一週</option>
+                    <option value="qr">QR 掃描</option>
+                    <option value="nfc">NFC 讀取</option>
+                    <option value="manual">手動新增</option>
+                </select>
+                <select id="sort-select" class="select">
+                    <option value="newest">最新優先</option>
+                    <option value="oldest">最舊優先</option>
+                    <option value="name">姓名排序</option>
+                    <option value="company">公司排序</option>
+                    <option value="viewed">瀏覽次數</option>
+                </select>
+            </div>
+        </section>
+
+        <section class="cards-section">
+            <div id="cards-container" class="cards-container">
+                <div class="empty-state">
+                    <div class="empty-icon">📇</div>
+                    <h3>載入中...</h3>
+                    <p>正在載入您的名片收藏</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <button class="fab" onclick="showQRScanner()" title="掃描 QR 碼">
+        📱
+    </button>
+
+    <!-- QR 掃描器模組 -->
+    <div id="qr-scanner-modal" class="qr-scanner-modal">
+        <div class="qr-scanner-container">
+            <video id="qr-video" class="qr-video" autoplay muted playsinline></video>
+            <div id="qr-overlay" class="qr-overlay"></div>
+            <div id="qr-status" class="qr-status">正在掃描 QR 碼...</div>
+            <div class="qr-controls">
+                <button id="qr-close" class="qr-btn qr-btn-close">關閉</button>
+                <button id="qr-manual" class="qr-btn qr-btn-manual">手動輸入</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script src="/security-utils.js"></script>
+    <script src="/qr-scanner.js"></script>
+    <script src="/pwa-storage.js"></script>
+    <script src="/collection-manager.js"></script>
+    <script>
+        // PWA 安裝提示
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            showInstallPrompt();
+        });
+
+        function showInstallPrompt() {
+            // 顯示安裝提示
+            const installBanner = document.createElement('div');
+            installBanner.innerHTML = `
+                <div style="background: #6868ac; color: white; padding: 1rem; text-align: center; position: fixed; top: 0; left: 0; right: 0; z-index: 1000;">
+                    <span>📱 安裝此應用程式以獲得更好的體驗</span>
+                    <button onclick="installPWA()" style="margin-left: 1rem; padding: 0.5rem 1rem; background: white; color: #6868ac; border: none; border-radius: 4px; cursor: pointer;">安裝</button>
+                    <button onclick="this.parentElement.remove()" style="margin-left: 0.5rem; padding: 0.5rem 1rem; background: transparent; color: white; border: 1px solid white; border-radius: 4px; cursor: pointer;">稍後</button>
+                </div>
+            `;
+            document.body.appendChild(installBanner);
+        }
+
+        async function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to the install prompt: ${outcome}`);
+                deferredPrompt = null;
+            }
+        }
+
+        // 統一格式解析函數 - 支援所有名片格式
+        function parseCardData(dataParam, format = 'auto') {
+            try {
+                // 1. 嘗試雙語版緊密格式（管道分隔）
+                if (format === 'compact' || format === 'auto') {
+                    try {
+                        const padding = '='.repeat((4 - dataParam.length % 4) % 4);
+                        const compact = decodeURIComponent(atob(
+                            dataParam.replace(/-/g, '+').replace(/_/g, '/') + padding
+                        ));
+                        
+                        if (compact.includes('|')) {
+                            const parts = compact.split('|');
+                            
+                            // 檢查是否為舊版本格式（8個欄位，沒有手機號碼）
+                            if (parts.length === 8) {
+                                return {
+                                    name: parts[0] || '',
+                                    title: parts[1] || '',
+                                    department: parts[2] || '',
+                                    email: parts[3] || '',
+                                    phone: parts[4] || '',
+                                    mobile: '', // 舊版本沒有手機號碼
+                                    avatar: parts[5] || '',
+                                    greetings: parts[6] ? parts[6].split(',') : [],
+                                    socialNote: parts[7] || ''
+                                };
+                            }
+                            
+                            // 新版本格式（9個欄位，包含手機號碼）
+                            if (parts.length >= 9) {
+                                return {
+                                    name: parts[0] || '',
+                                    title: parts[1] || '',
+                                    department: parts[2] || '',
+                                    email: parts[3] || '',
+                                    phone: parts[4] || '',
+                                    mobile: parts[5] || '',
+                                    avatar: parts[6] || '',
+                                    greetings: parts[7] ? parts[7].split(',') : [],
+                                    socialNote: parts[8] || ''
+                                };
+                            }
+                        }
+                    } catch (compactError) {
+                        console.log('緊密格式解析失敗，嘗試標準格式:', compactError);
+                    }
+                }
+                
+                // 2. 嘗試標準 JSON + Base64 格式
+                if (format === 'json' || format === 'auto') {
+                    try {
+                        const urlDecodedData = decodeURIComponent(dataParam);
+                        const base64DecodedData = atob(urlDecodedData);
+                        const jsonData = JSON.parse(decodeURIComponent(base64DecodedData));
+                        
+                        if (jsonData.data) {
+                            return jsonData.data;
+                        }
+                        return jsonData;
+                    } catch (jsonError) {
+                        console.log('JSON 格式解析失敗:', jsonError);
+                    }
+                }
+                
+                // 3. 嘗試直接 JSON 解析
+                if (format === 'direct' || format === 'auto') {
+                    try {
+                        const directJson = JSON.parse(decodeURIComponent(dataParam));
+                        if (directJson.data) {
+                            return directJson.data;
+                        }
+                        return directJson;
+                    } catch (directError) {
+                        console.log('直接 JSON 解析失敗:', directError);
+                    }
+                }
+                
+                return null;
+            } catch (error) {
+                console.error('所有格式解析都失敗:', error);
+                return null;
+            }
+        }
+
+        // Service Worker 註冊
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((registration) => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch((registrationError) => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+
+        // 處理傳入的名片資料並自動儲存
+        async function handleIncomingCardData() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const autoSave = urlParams.get('autoSave');
+            const cardDataParam = urlParams.get('cardData');
+            const source = urlParams.get('source') || 'MANUAL';
+            const format = urlParams.get('format');
+            
+            if (autoSave === 'true' && cardDataParam) {
+                try {
+                    let cardData;
+                    
+                    // 使用統一格式解析器
+                    const decodedData = parseCardData(cardDataParam, format || 'auto');
+                    if (decodedData) {
+                        cardData = { data: decodedData };
+                    } else {
+                        throw new Error('無法解析名片資料格式');
+                    }
+                    
+                    if (cardData && cardData.data) {
+                        // 等待收藏管理器初始化完成
+                        await collectionManager.init();
+                        
+                        // 自動儲存名片
+                        const result = await collectionManager.addCardWithValidation(
+                            cardData.data, 
+                            source.toUpperCase(),
+                            [],
+                            '從名片介面自動新增'
+                        );
+                        
+                        if (result.success) {
+                            collectionManager.showSuccess('✅ 名片已自動加入收藏！');
+                        } else {
+                            if (result.message.includes('已存在')) {
+                                collectionManager.showSuccess('ℹ️ 此名片已在收藏中');
+                            } else {
+                                collectionManager.showError('❌ ' + result.message);
+                            }
+                        }
+                        
+                        // 清理 URL 參數
+                        const cleanUrl = window.location.pathname;
+                        window.history.replaceState({}, document.title, cleanUrl);
+                    }
+                } catch (error) {
+                    console.error('處理傳入名片資料失敗:', error);
+                    if (collectionManager && collectionManager.showError) {
+                        collectionManager.showError('處理名片資料時發生錯誤');
+                    }
+                }
+            }
+        }
+
+        // 初始化收藏管理器
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await collectionManager.init();
+                await handleIncomingCardData();
+            } catch (error) {
+                console.error('Initialization error:', error);
+                document.getElementById('cards-container').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">⚠️</div>
+                        <h3>初始化失敗</h3>
+                        <p>無法載入名片收藏，請重新整理頁面</p>
+                        <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 1rem;">重新載入</button>
+                    </div>
+                `;
+            }
+        });
+
+        // 顯示新增對話框
+        function showAddDialog() {
+            showAdvancedAddDialog();
+        }
+
+        // 從 URL 新增名片（增強版）
+        async function addCardFromUrl(url) {
+            try {
+                collectionManager.showLoading();
+                const result = await collectionManager.addCardWithValidation(
+                    collectionManager.parseCardFromUrl(url), 
+                    'MANUAL'
+                );
+                if (result.success) {
+                    collectionManager.showSuccess('名片新增成功！');
+                } else {
+                    collectionManager.showError(result.message || '新增名片失敗');
+                }
+            } catch (error) {
+                console.error('Add card error:', error);
+                collectionManager.showError('新增名片時發生錯誤');
+            }
+        }
+
+        // 進階新增名片對話框 - 安全版本
+        function showAdvancedAddDialog() {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;';
+            
+            const dialog = document.createElement('div');
+            dialog.style.cssText = 'background: white; padding: 2rem; border-radius: 12px; max-width: 500px; width: 90%;';
+            
+            const title = document.createElement('h3');
+            title.textContent = '新增名片';
+            
+            const inputContainer = document.createElement('div');
+            inputContainer.style.margin = '1rem 0';
+            
+            const label = document.createElement('label');
+            label.textContent = '名片 URL 或 QR 碼內容：';
+            
+            const textarea = document.createElement('textarea');
+            textarea.id = 'card-url';
+            textarea.style.cssText = 'width: 100%; height: 100px; margin-top: 0.5rem; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;';
+            textarea.placeholder = '貼上完整的名片 URL...';
+            
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.cssText = 'display: flex; gap: 1rem; justify-content: flex-end;';
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = '取消';
+            cancelBtn.style.cssText = 'padding: 0.5rem 1rem; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;';
+            cancelBtn.onclick = () => overlay.remove();
+            
+            const addBtn = document.createElement('button');
+            addBtn.textContent = '新增';
+            addBtn.style.cssText = 'padding: 0.5rem 1rem; background: #6868ac; color: white; border: none; border-radius: 4px; cursor: pointer;';
+            addBtn.onclick = handleAdvancedAdd;
+            
+            inputContainer.appendChild(label);
+            inputContainer.appendChild(textarea);
+            buttonContainer.appendChild(cancelBtn);
+            buttonContainer.appendChild(addBtn);
+            
+            dialog.appendChild(title);
+            dialog.appendChild(inputContainer);
+            dialog.appendChild(buttonContainer);
+            overlay.appendChild(dialog);
+            
+            document.body.appendChild(overlay);
+            textarea.focus();
+        }
+
+        // 處理進階新增 - 安全版本
+        function handleAdvancedAdd() {
+            const urlInput = document.getElementById('card-url');
+            if (!urlInput) return;
+            
+            const url = urlInput.value.trim();
+            if (url) {
+                // 驗證 URL 格式
+                if (SecurityUtils.validateInput(url, 'url') || url.includes('data=')) {
+                    addCardFromUrl(url);
+                    const overlay = urlInput.closest('[style*="position: fixed"]');
+                    if (overlay) overlay.remove();
+                } else {
+                    collectionManager.showError('無效的 URL 格式');
+                }
+            } else {
+                collectionManager.showError('請輸入名片 URL');
+            }
+        }
+
+        // 顯示 QR 掃描器
+        async function showQRScanner() {
+            // 檢查瀏覽器支援
+            if (!QRScanner.isSupported()) {
+                collectionManager.showError('您的瀏覽器不支援 QR 掃描功能');
+                return;
+            }
+
+            // 請求相機權限
+            const hasPermission = await window.qrScanner.requestCameraPermission();
+            if (!hasPermission) {
+                collectionManager.showError('無法取得相機權限，請在瀏覽器設定中允許相機存取');
+                return;
+            }
+
+            // 顯示掃描器
+            const modal = document.getElementById('qr-scanner-modal');
+            const video = document.getElementById('qr-video');
+            const status = document.getElementById('qr-status');
+            
+            modal.style.display = 'flex';
+            status.textContent = '正在啟動相機...';
+
+            // 設定掃描回調
+            window.qrScanner.onScanSuccess((data) => {
+                modal.style.display = 'none';
+                addCardFromUrl(data);
+            });
+
+            window.qrScanner.onScanError((error) => {
+                status.textContent = '掃描錯誤：' + error.message;
+            });
+
+            // 開始掃描
+            try {
+                await window.qrScanner.startScan(video);
+                status.textContent = '將 QR 碼對準掃描框';
+            } catch (error) {
+                modal.style.display = 'none';
+                collectionManager.showError('啟動掃描器失敗：' + error.message);
+            }
+        }
+
+        // 關閉 QR 掃描器
+        function closeQRScanner() {
+            const modal = document.getElementById('qr-scanner-modal');
+            modal.style.display = 'none';
+            window.qrScanner.stopScan();
+        }
+
+        // 設定 QR 掃描器事件
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('qr-close').addEventListener('click', closeQRScanner);
+            document.getElementById('qr-manual').addEventListener('click', () => {
+                closeQRScanner();
+                showAddDialog();
+            });
+        });
+    </script>
+</body>
+</html>

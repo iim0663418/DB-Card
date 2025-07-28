@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>數位發展部數位名片</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#6868ac">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -491,6 +493,7 @@
                 <div style="position: absolute; top: 0; left: 0; width: 5px; height: 100%; background: #6968ac;"></div>
                 <strong style="color: #6968ac; font-weight: 700;">🔒 隱私優先設計</strong> • 數位發展部開源專案<br>
                 所有個人資料僅儲存於 NFC 卡片，無後端追蹤、純前端架構、個人資訊完全自主掌控
+                <br><a href="#" onclick="openCollectionWithCurrentCard()" style="color: #6868ac; text-decoration: none; font-weight: 500; margin-top: 8px; display: inline-block;">📇 開啟名片收藏功能</a>
             </div>
             
             <div class="action-section">
@@ -1069,6 +1072,54 @@
             });
             
             return processedLines.join('\n');
+        }
+
+        // 開啟收藏功能並傳遞當前名片資料
+        function openCollectionWithCurrentCard() {
+            const cardData = getCardDataFromNFC();
+            if (cardData && cardData.data) {
+                const data = { data: cardData.data };
+                const jsonString = JSON.stringify(data);
+                const base64Data = btoa(encodeURIComponent(jsonString));
+                const collectionUrl = `/collection.html?autoSave=true&cardData=${base64Data}&source=institutional`;
+                window.open(collectionUrl, '_blank');
+            } else {
+                window.open('/collection.html', '_blank');
+            }
+        }
+
+        // PWA Service Worker 註冊
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((registration) => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch((registrationError) => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+
+        // 收藏名片功能
+        async function saveToCollection() {
+            if (!window.pwaStorage) {
+                // 動態載入 PWA 儲存模組
+                const script = document.createElement('script');
+                script.src = '/pwa-storage.js';
+                document.head.appendChild(script);
+                
+                script.onload = async () => {
+                    await window.pwaStorage.init();
+                    const cardData = getCardDataFromNFC();
+                    if (cardData && cardData.data) {
+                        const result = await window.pwaStorage.addCard(cardData.data, 'NFC');
+                        if (result) {
+                            alert('名片已加入收藏！');
+                        }
+                    }
+                };
+            }
         }
 
         window.addEventListener('load', function() {

@@ -418,6 +418,7 @@
                 <div style="position: absolute; top: 0; left: 0; width: 5px; height: 100%; background: #6968ac;"></div>
                 <strong style="color: #6968ac; font-weight: 700;">🔒 <span id="privacyTitle">隱私優先設計</span></strong> • <span id="projectInfo">數位發展部開源專案</span><br>
                 <span id="privacyDesc">所有個人資料僅儲存於 NFC 卡片，無後端追蹤、純前端架構、個人資訊完全自主掌控</span>
+                <br><a href="#" onclick="openCollectionWithCurrentCard()" style="color: #6868ac; text-decoration: none; font-weight: 500; margin-top: 8px; display: inline-block;">📇 <span id="collectionLinkText">開啟名片收藏功能</span></a>
             </div>
             
             <div class="action-section">
@@ -507,7 +508,8 @@
                     errorText: 'Please access via NFC card or link with data.',
                     privacyTitle: 'Privacy-First Design',
                     projectInfo: 'Open Source Project by Ministry of Digital Affairs',
-                    privacyDesc: 'All personal data is stored only on your NFC card. No backend tracking, pure frontend architecture, complete personal data autonomy.'
+                    privacyDesc: 'All personal data is stored only on your NFC card. No backend tracking, pure frontend architecture, complete personal data autonomy.',
+                    collectionLinkText: 'Open Card Collection'
                 }
             };
             
@@ -522,6 +524,7 @@
             updateElement('privacyTitle', text.privacyTitle);
             updateElement('projectInfo', text.projectInfo);
             updateElement('privacyDesc', text.privacyDesc);
+            updateElement('collectionLinkText', text.collectionLinkText);
             
             // 更新社群標題
             const socialTitle = document.querySelector('.social-info-title');
@@ -530,9 +533,53 @@
             }
         }
 
+        // 開啟收藏功能並傳遞當前名片資料
+        function openCollectionWithCurrentCard() {
+            if (window.currentData) {
+                // 雙語版使用緊密格式編碼
+                const compactData = encodeCompact(window.currentData);
+                const collectionUrl = `/collection.html?autoSave=true&cardData=${compactData}&source=bilingual-xinyi&lang=${window.currentLanguage || 'zh'}&format=compact`;
+                window.open(collectionUrl, '_blank');
+            } else {
+                window.open('/collection.html', '_blank');
+            }
+        }
+
+        // PWA 初始化函式
+        async function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        async function initPWA() {
+            try {
+                await loadScript('./format-parser.js');
+                await loadScript('./pwa-storage.js');
+                await loadScript('./pwa-core.js');
+                await loadScript('./pwa-injector.js');
+                
+                // 設定全域變數供 PWA 核心使用
+                window.currentCardData = window.currentData;
+                window.pageType = 'bilingual-institutional-xinyi';
+                
+                await PWACore.init('bilingual-institutional-xinyi', 'bilingual');
+                await PWAInjector.inject({
+                    injectCollectionButton: true,
+                    injectPWAPrompt: true
+                });
+            } catch (error) {
+                console.warn('PWA initialization failed:', error);
+            }
+        }
+
         // 頁面初始化
         window.addEventListener('load', function() {
-            setTimeout(() => {
+            setTimeout(async () => {
                 const urlParams = new URLSearchParams(window.location.search);
                 const data = urlParams.get('data');
                 
@@ -574,6 +621,9 @@
                         socialContent.innerHTML = processSocialLinks(currentData.socialNote);
                         socialInfo.style.display = 'block';
                     }
+                    
+                    // 初始化 PWA 功能
+                    await initPWA();
                     
                 } catch (error) {
                     console.error('解析失敗:', error);

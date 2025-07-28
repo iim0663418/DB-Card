@@ -490,6 +490,7 @@
                 <div style="position: absolute; top: 0; left: 0; width: 5px; height: 100%; background: #6968ac;"></div>
                 <strong style="color: #6968ac; font-weight: 700;">🔒 Privacy-First Design</strong> • Ministry of Digital Affairs Open Source Project<br>
                 All personal data stored only in NFC cards, no backend tracking, pure frontend architecture, complete personal data control
+                <br><a href="#" onclick="openCollectionWithCurrentCard()" style="color: #6868ac; text-decoration: none; font-weight: 500; margin-top: 8px; display: inline-block;">📇 Open Card Collection</a>
             </div>
             
             <div class="action-section">
@@ -1053,8 +1054,54 @@
             return processedLines.join('\n');
         }
 
+        // 開啟收藏功能並傳遞當前名片資料
+        function openCollectionWithCurrentCard() {
+            const cardData = getCardDataFromNFC();
+            if (cardData && cardData.data) {
+                const data = { data: cardData.data };
+                const jsonString = JSON.stringify(data);
+                const base64Data = btoa(encodeURIComponent(jsonString));
+                const collectionUrl = `/collection.html?autoSave=true&cardData=${base64Data}&source=institutional-xinyi-en`;
+                window.open(collectionUrl, '_blank');
+            } else {
+                window.open('/collection.html', '_blank');
+            }
+        }
+
+        // PWA 初始化函式
+        async function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        async function initPWA() {
+            try {
+                await loadScript('./format-parser.js');
+                await loadScript('./pwa-storage.js');
+                await loadScript('./pwa-core.js');
+                await loadScript('./pwa-injector.js');
+                
+                // 設定全域變數供 PWA 核心使用
+                window.currentCardData = getCardDataFromNFC();
+                window.pageType = 'institutional-xinyi-en';
+                
+                await PWACore.init('institutional-xinyi-en', 'legacy');
+                await PWAInjector.inject({
+                    injectCollectionButton: true,
+                    injectPWAPrompt: true
+                });
+            } catch (error) {
+                console.warn('PWA initialization failed:', error);
+            }
+        }
+
         window.addEventListener('load', function() {
-            setTimeout(() => {
+            setTimeout(async () => {
                 const cardData = getCardDataFromNFC();
 
                 if (!cardData) {
@@ -1083,6 +1130,9 @@
                     setTimeout(changeGreeting, 1000);
                     generateQRCode();
                     setupVCardLink(cardData);
+
+                    // 初始化 PWA 功能
+                    await initPWA();
 
                 } catch (error) {
                     console.error('Business card data validation failed:', error);

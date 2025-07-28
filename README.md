@@ -30,8 +30,13 @@
 ├── index-personal-en.html          # 個人版數位名片（英文）
 ├── index-bilingual.html            # 雙語版數位名片（機關版）
 ├── index-bilingual-personal.html   # 雙語版數位名片（個人版）
+├── collection.html                 # PWA 名片收藏管理介面
 ├── nfc-generator.html              # NFC 名片生成器
 ├── nfc-generator-bilingual.html    # 雙語版 NFC 生成器
+├── manifest.json                   # PWA 應用程式配置
+├── sw.js                          # Service Worker 離線支援
+├── pwa-storage.js                 # IndexedDB 儲存管理
+├── collection-manager.js          # 收藏業務邏輯管理
 ├── assets/                         # 資源檔案目錄
 │   ├── moda-logo.svg               # moda 官方標誌
 │   ├── bilingual-common.js         # 雙語功能核心函數庫
@@ -40,6 +45,9 @@
 │   │   └── photo.jpg               # 範例大頭貼
 │   └── COPYRIGHT.txt               # 版權聲明文件
 ├── doc/                            # 文檔目錄
+│   ├── design.md                   # PWA 技術設計文件
+│   ├── requirements.md             # PWA 功能需求規格
+│   ├── tasks.md                    # PWA 開發任務分解
 │   ├── BILINGUAL-PLANNING.md       # 雙語版規劃文件
 │   ├── ENCODING-OPTIMIZATION.md    # 編碼優化技術文件
 │   ├── IMPLEMENTATION-GUIDE.md     # 實作指南
@@ -496,6 +504,16 @@ A: 下載 vCard 後，請依照不同裝置操作：
 - **安全性**：無後端風險，資料完全客戶端處理
 
 ## 🚀 版本歷程
+
+### v3.0.0 (2025-07) - PWA 名片收藏版 🚀 **生產就緒**
+- ✅ **PWA 基礎建設**：manifest.json、Service Worker、離線支援
+- ✅ **IndexedDB 儲存**：完整的名片收藏 CRUD 操作
+- ✅ **收藏管理介面**：collection.html 收藏管理頁面
+- ✅ **QR 掃描整合**：相機權限與 QR 碼解析功能
+- ✅ **搜尋與篩選**：全文搜尋、標籤分類、多維度篩選
+- ✅ **品質保證**：Code Review + Security Review 雙重審查通過
+- ✅ **安全認證**：XSS 防護、輸入驗證、權限管理符合標準
+- ✅ **技術文件完善**：requirements.md、design.md、tasks.md
 
 ### v2.1.0 (2025-07) - 手機號碼與 QR 碼本地化版
 - ✅ 新增手機號碼欄位支援，完整支援雙電話聯絡方式

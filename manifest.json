@@ -1,0 +1,46 @@
+{
+  "name": "NFC 數位名片收藏",
+  "short_name": "名片收藏",
+  "description": "隱私優先的 NFC 數位名片收藏與管理系統",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f6f7",
+  "theme_color": "#6868ac",
+  "orientation": "portrait-primary",
+  "scope": "./",
+  "lang": "zh-TW",
+  "dir": "ltr",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "./assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/icon-512.png", 
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "掃描名片",
+      "short_name": "掃描",
+      "description": "掃描 QR 碼收藏名片",
+      "url": "./collection.html?action=scan",
+      "icons": [{ "src": "./assets/scan-icon.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "我的收藏",
+      "short_name": "收藏",
+      "description": "查看收藏的名片",
+      "url": "./collection.html",
+      "icons": [{ "src": "./assets/collection-icon.png", "sizes": "96x96" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

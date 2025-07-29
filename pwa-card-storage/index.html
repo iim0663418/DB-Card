@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="數位發展部 NFC 數位名片離線儲存服務">
+    <meta name="theme-color" content="#1976d2">
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="名片儲存">
+    <link rel="apple-touch-icon" href="../assets/moda-logo.svg">
+    
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self';
+      style-src 'self' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com;
+      img-src 'self' data: https:;
+      connect-src 'self';
+      worker-src 'self';
+      manifest-src 'self';
+      object-src 'none';
+      base-uri 'self';
+      form-action 'self';
+    ">
+    
+    <title>NFC 數位名片離線儲存</title>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="assets/styles/main.css">
+    <link rel="stylesheet" href="assets/styles/components.css">
+    <link rel="stylesheet" href="assets/styles/modal-styles.css">
+    <link rel="stylesheet" href="assets/styles/qr-scanner.css">
+    <link rel="stylesheet" href="assets/styles/csp-fix.css">
+    <link rel="stylesheet" href="../assets/high-accessibility.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- PWA 安裝提示 -->
+    <div id="install-prompt" class="install-prompt hidden">
+        <div class="install-content">
+            <img src="../assets/moda-logo.svg" alt="moda Logo" class="install-icon">
+            <h3>安裝名片儲存 App</h3>
+            <p>安裝到桌面，享受完整的離線體驗</p>
+            <div class="install-actions">
+                <button id="install-button" class="btn btn-primary">安裝</button>
+                <button id="install-dismiss" class="btn btn-secondary">稍後</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要內容 -->
+    <div id="app" class="app-container">
+        <!-- 標題列 -->
+        <header class="app-header">
+            <div class="header-content">
+                <img src="../assets/moda-logo.svg" alt="moda Logo" class="header-logo">
+                <div class="header-text">
+                    <h1>NFC 數位名片</h1>
+                    <p>離線儲存服務</p>
+                </div>
+                <div class="header-actions">
+                    <button id="lang-toggle" class="btn btn-icon" title="語言切換">
+                        <span class="icon">中</span>
+                    </button>
+                    <button id="sync-button" class="btn btn-icon" title="同步資料">
+                        <span class="icon">🔄</span>
+                    </button>
+                    <button id="settings-button" class="btn btn-icon" title="設定">
+                        <span class="icon">⚙️</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 導航列 -->
+        <nav class="app-nav">
+            <button id="nav-home" class="nav-item active" data-page="home">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">首頁</span>
+            </button>
+            <button id="nav-cards" class="nav-item" data-page="cards">
+                <span class="nav-icon">📇</span>
+                <span class="nav-label">名片</span>
+            </button>
+            <button id="nav-import" class="nav-item" data-page="import">
+                <span class="nav-icon">📥</span>
+                <span class="nav-label">匯入</span>
+            </button>
+            <button id="nav-export" class="nav-item" data-page="export">
+                <span class="nav-icon">📤</span>
+                <span class="nav-label">匯出</span>
+            </button>
+        </nav>
+
+        <!-- 頁面內容 -->
+        <main id="main-content" class="main-content">
+            <!-- 首頁 -->
+            <div id="page-home" class="page active">
+                <div class="welcome-section">
+                    <h2>歡迎使用離線名片儲存</h2>
+                    <p>安全地儲存和管理您的數位名片，完全離線運作</p>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="total-cards">0</div>
+                            <div class="stat-label">已儲存名片</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="storage-used">0%</div>
+                            <div class="stat-label">儲存空間</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="last-sync">從未</div>
+                            <div class="stat-label">最後同步</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <h3>快速操作</h3>
+                    <div class="action-grid">
+                        <button class="action-card" data-action="add-card">
+                            <span class="action-icon">➕</span>
+                            <span class="action-title">新增名片</span>
+                            <span class="action-desc">從 URL 或檔案新增</span>
+                        </button>
+                        <button class="action-card" data-action="scan-qr">
+                            <span class="action-icon">📱</span>
+                            <span class="action-title">掃描 QR 碼</span>
+                            <span class="action-desc">快速匯入名片</span>
+                        </button>
+                        <button class="action-card" data-action="import-file">
+                            <span class="action-icon">📁</span>
+                            <span class="action-title">匯入檔案</span>
+                            <span class="action-desc">批次匯入名片</span>
+                        </button>
+                        <button class="action-card" data-action="backup-all">
+                            <span class="action-icon">💾</span>
+                            <span class="action-title">備份資料</span>
+                            <span class="action-desc">匯出所有名片</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 名片列表頁 -->
+            <div id="page-cards" class="page">
+                <div class="page-header">
+                    <h2>我的名片</h2>
+                    <div class="page-actions">
+                        <input type="search" id="card-search" placeholder="搜尋名片..." class="search-input">
+                        <select id="card-filter" class="filter-select">
+                            <option value="">所有類型</option>
+                            <option value="gov-yp">機關版-延平</option>
+                            <option value="gov-sg">機關版-新光</option>
+                            <option value="personal">個人版</option>
+                            <option value="bilingual">雙語版</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="cards-list" class="cards-list">
+                    <!-- 名片列表將動態載入 -->
+                </div>
+            </div>
+
+            <!-- 匯入頁 -->
+            <div id="page-import" class="page">
+                <div class="page-header">
+                    <h2>匯入名片</h2>
+                </div>
+                <div class="import-options">
+                    <div class="import-card">
+                        <h3>從 URL 匯入</h3>
+                        <input type="url" id="import-url" placeholder="貼上名片連結..." class="url-input">
+                        <button id="import-url-btn" class="btn btn-primary">匯入</button>
+                    </div>
+                    <div class="import-card">
+                        <h3>從檔案匯入</h3>
+                        <input type="file" id="import-file" accept=".json,.vcf" class="file-input">
+                        <button id="import-file-btn" class="btn btn-primary">選擇檔案</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 匯出頁 -->
+            <div id="page-export" class="page">
+                <div class="page-header">
+                    <h2>匯出名片</h2>
+                </div>
+                <div class="export-options">
+                    <div class="export-card">
+                        <h3>匯出選項</h3>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="export-all" checked>
+                            匯出所有名片
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="export-versions">
+                            包含版本歷史
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="export-encrypt">
+                            加密匯出檔案
+                        </label>
+                        <button id="export-btn" class="btn btn-primary">開始匯出</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 狀態列 -->
+        <footer class="app-footer">
+            <div class="status-info">
+                <span id="connection-status" class="status-indicator offline">離線模式</span>
+                <span id="storage-status" class="status-text">儲存空間充足</span>
+            </div>
+            <div class="app-info">
+                <span>🇹🇼 moda 開源專案</span>
+                <a href="https://github.com/moda-gov-tw/DB-Card" target="_blank" rel="noopener">GitHub</a>
+            </div>
+        </footer>
+    </div>
+
+    <!-- 載入指示器 -->
+    <div id="loading" class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">處理中...</div>
+    </div>
+
+    <!-- 通知訊息 -->
+    <div id="notification" class="notification hidden">
+        <div class="notification-content">
+            <span class="notification-icon"></span>
+            <span class="notification-message"></span>
+            <button class="notification-close">&times;</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="src/core/error-handler.js"></script>
+    <script src="../assets/bilingual-common.js"></script>
+    <script src="../assets/qrcode.min.js"></script>
+    <script src="../assets/qr-utils.js"></script>
+    <script src="assets/html5-qrcode.min.js"></script>
+    <script src="src/integration/legacy-adapter.js"></script>
+    <script src="src/integration/bilingual-bridge.js"></script>
+    <script src="src/core/storage.js"></script>
+    <script src="src/core/health-manager.js"></script>
+    <script src="src/core/version-manager.js"></script>
+    <script src="src/features/card-manager.js"></script>
+    <script src="src/features/offline-tools.js"></script>
+    <script src="src/features/transfer-manager.js"></script>
+    <script src="src/features/qr-scanner.js"></script>
+    <script src="src/ui/components/card-list.js"></script>
+    <script src="src/app.js"></script>
+    <script src="src/pwa-init.js"></script>
+</body>
+</html>

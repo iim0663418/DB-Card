@@ -497,6 +497,9 @@
                 <a href="#" id="add-contact-btn" class="download-btn">
                     📱 加入聯絡人
                 </a>
+                <button id="save-to-pwa-btn" class="download-btn" style="background: #28a745; border-color: #28a745; margin-left: 10px;">
+                    💾 儲存到離線
+                </button>
                 <p id="contact-helper-text" style="font-size: 0.9em; color: #4b5563; margin-top: 15px;"></p>
                 
                 <div class="qr-section">
@@ -1110,6 +1113,7 @@
                     setTimeout(changeGreeting, 1000); // 觸發打字機效果
                     generateQRCode(); // 產生 QR Code
                     setupVCardLink(cardData); // 設定 vCard 下載連結
+                    setupPWASaveButton(cardData); // 設定 PWA 儲存按鈕
 
                 } catch (error) {
                     // 資料驗證失敗，隱藏載入狀態並顯示錯誤

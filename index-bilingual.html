@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="assets/qrcode-style.css">
     <link rel="stylesheet" href="assets/high-accessibility.css">
     <script src="assets/bilingual-common.js"></script>
+    <script src="assets/pwa-integration.js"></script>
     <style>
         * {
             margin: 0;
@@ -439,6 +440,9 @@
                 <button id="downloadBtn" onclick="downloadBilingualVCard(currentData, currentLanguage)" class="download-btn">
                     📱 <span id="downloadBtnText">加入聯絡人</span>
                 </button>
+                <button id="save-to-pwa-btn" class="download-btn" style="background: #28a745; border-color: #28a745; margin-left: 10px;">
+                    💾 <span id="savePwaText">儲存到離線</span>
+                </button>
                 <div id="vcardGuide" style="background: #f3f5f6; border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px 15px; margin-bottom: 20px; font-size: 0.85em; color: #495057; line-height: 1.5; max-width: 90%;">
                     <strong id="vcardGuideTitle" style="color: #6868ac;">📱 如何加入聯絡人</strong>
                     <div id="vcardGuideContent" style="margin-top: 8px;">
@@ -510,6 +514,7 @@
                     contactTitle: '聯絡資訊',
                     socialTitle: '🔗 社群連結',
                     downloadBtnText: '加入聯絡人',
+                    savePwaText: '儲存到離線',
                     qrLabel: '這是這張名片的 QR code，你也可以請別人掃描來讀取這張名片',
 
                     loadingTitle: '載入中',
@@ -526,6 +531,7 @@
                     contactTitle: 'Contact Information',
                     socialTitle: '🔗 Social Links',
                     downloadBtnText: 'Add to Contacts',
+                    savePwaText: 'Save Offline',
                     qrLabel: 'This is the QR code for this card, you can also ask others to scan it to view this card',
 
                     loadingTitle: 'Loading',
@@ -548,6 +554,7 @@
             updateElement('errorTitle', text.errorTitle);
             updateElement('errorText', text.errorText);
             updateElement('downloadBtnText', text.downloadBtnText);
+            updateElement('savePwaText', text.savePwaText || '儲存到離線');
 
             updateElement('privacyTitle', text.privacyTitle);
             updateElement('projectInfo', text.projectInfo);
@@ -629,6 +636,47 @@
             
             // 開始打字機效果
             typeWriter();
+        }
+
+        // PWA 儲存功能
+        function setupPWASaveButton() {
+            const saveButton = document.getElementById('save-to-pwa-btn');
+            if (!saveButton) return;
+            
+            saveButton.addEventListener('click', function() {
+                if (window.location.protocol !== 'https:' && 
+                    window.location.hostname !== 'localhost' && 
+                    window.location.hostname !== '127.0.0.1') {
+                    alert('離線儲存功能需要 HTTPS 連線或本地環境');
+                    return;
+                }
+                
+                const urlParams = new URLSearchParams(window.location.search);
+                const dataParam = urlParams.get('data') || urlParams.get('c');
+                
+                if (!dataParam) {
+                    alert('無法獲取名片資料');
+                    return;
+                }
+                
+                const pwaUrl = window.location.origin + '/pwa-card-storage/?c=' + dataParam;
+                const pwaWindow = window.open(pwaUrl, '_blank');
+                
+                if (pwaWindow) {
+                    const originalText = saveButton.innerHTML;
+                    saveButton.innerHTML = '✅ 已開啟 PWA';
+                    saveButton.style.background = '#6c757d';
+                    saveButton.disabled = true;
+                    
+                    setTimeout(() => {
+                        saveButton.innerHTML = originalText;
+                        saveButton.style.background = '#28a745';
+                        saveButton.disabled = false;
+                    }, 3000);
+                } else {
+                    alert('無法開啟 PWA，請檢查瀏覽器設定');
+                }
+            });
         }
 
         // 頁面初始化由 bilingual-common.js 統一處理

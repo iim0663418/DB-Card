@@ -1,0 +1,121 @@
+{
+  "name": "NFC 數位名片離線儲存",
+  "short_name": "名片儲存",
+  "description": "數位發展部 NFC 數位名片離線儲存服務",
+  "version": "1.0.1",
+  "start_url": "/pwa-card-storage/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#1976d2",
+  "background_color": "#ffffff",
+  "lang": "zh-TW",
+  
+  "icons": [
+    {
+      "src": "../assets/moda-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  
+  "categories": ["business", "productivity", "utilities"],
+  "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
+  
+  "shortcuts": [
+    {
+      "name": "匯入名片",
+      "short_name": "匯入",
+      "description": "快速匯入新的數位名片",
+      "url": "/pwa-card-storage/?action=import"
+    },
+    {
+      "name": "瀏覽名片",
+      "short_name": "瀏覽",
+      "description": "瀏覽已儲存的名片",
+      "url": "/pwa-card-storage/?action=browse"
+    },
+    {
+      "name": "匯出備份",
+      "short_name": "備份",
+      "description": "匯出名片備份檔案",
+      "url": "/pwa-card-storage/?action=export"
+    }
+  ],
+  
+  "related_applications": [],
+  "prefer_related_applications": false,
+  
+  "scope": "/pwa-card-storage/",
+  "id": "/pwa-card-storage/",
+  
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  
+  "handle_links": "preferred",
+  
+  "protocol_handlers": [
+    {
+      "protocol": "web+nfccard",
+      "url": "/pwa-card-storage/?data=%s"
+    }
+  ],
+  
+  "share_target": {
+    "action": "/pwa-card-storage/",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  
+  "file_handlers": [
+    {
+      "action": "/pwa-card-storage/?import=file",
+      "accept": {
+        "application/json": [".json"],
+        "text/vcard": [".vcf"],
+        "application/octet-stream": [".enc"]
+      }
+    }
+  ],
+  
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  
+  "permissions": [
+    "storage-access"
+  ],
+  
+  "security": {
+    "content_security_policy": {
+      "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'self';"
+    },
+    "encryption": {
+      "algorithm": "AES-GCM",
+      "key_derivation": "PBKDF2",
+      "iterations": 100000
+    },
+    "privacy": {
+      "data_collection": false,
+      "analytics": false,
+      "third_party_tracking": false
+    }
+  },
+  
+  "cross_platform": {
+    "minimum_versions": {
+      "ios": "12.0",
+      "android": "8.0",
+      "chrome": "80",
+      "safari": "12",
+      "firefox": "75"
+    }
+  }
+}

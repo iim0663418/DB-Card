@@ -507,6 +507,11 @@ function initializePage() {
                 }
             }, 1000);
             
+            // 設定 PWA 按鈕功能
+            if (typeof setupPWASaveButton === 'function') {
+                setupPWASaveButton();
+            }
+            
         } catch (error) {
             console.error('解析失敗:', error);
             const loadingState = document.getElementById('loading-state');

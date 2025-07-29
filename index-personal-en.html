@@ -512,6 +512,9 @@
                 <a href="#" id="add-contact-btn" class="download-btn">
                     📱 Add to Contacts
                 </a>
+                <button id="save-to-pwa-btn" class="download-btn" style="background: #28a745; border-color: #28a745; margin-left: 10px;">
+                    💾 Save Offline
+                </button>
                 <p id="contact-helper-text" style="font-size: 0.9em; color: #4b5563; margin-top: 15px;"></p>
                 
                 <div class="qr-section">
@@ -892,6 +895,39 @@
             return processedLines.join('\n');
         }
 
+        // PWA 儲存功能
+        function setupPWASaveButton(cardData) {
+            const saveButton = document.getElementById('save-to-pwa-btn');
+            if (!saveButton) return;
+            
+            saveButton.addEventListener('click', function() {
+                if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                    alert('離線儲存功能需要 HTTPS 連線或本地環境');
+                    return;
+                }
+                
+                const urlParams = new URLSearchParams(window.location.search);
+                const dataParam = urlParams.get('data') || urlParams.get('c');
+                const pwaUrl = window.location.origin + '/pwa-card-storage/?c=' + encodeURIComponent(dataParam);
+                
+                const pwaWindow = window.open(pwaUrl, '_blank');
+                
+                if (pwaWindow) {
+                    saveButton.textContent = '✅ 已開啟 PWA';
+                    saveButton.style.background = '#6c757d';
+                    saveButton.disabled = true;
+                    
+                    setTimeout(() => {
+                        saveButton.textContent = '💾 儲存到離線';
+                        saveButton.style.background = '#28a745';
+                        saveButton.disabled = false;
+                    }, 3000);
+                } else {
+                    alert('無法開啟 PWA，請檢查瀏覽器設定');
+                }
+            });
+        }
+
         window.addEventListener('load', function() {
             setTimeout(() => {
                 const cardData = getCardDataFromNFC();
@@ -922,6 +958,7 @@
                     setTimeout(changeGreeting, 1000);
                     generateQRCode();
                     setupVCardLink(cardData);
+                    setupPWASaveButton(cardData);
 
                 } catch (error) {
                     console.error('Business card data validation failed:', error);

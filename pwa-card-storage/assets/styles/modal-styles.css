@@ -1,0 +1,162 @@
+/* 模態框額外樣式 - 替代內聯樣式 */
+
+/* QR 碼模態框特定樣式 */
+.qr-modal .qr-image {
+  max-width: 300px;
+  height: auto;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.qr-modal .qr-url {
+  font-size: 0.8em;
+  color: #666;
+  word-break: break-all;
+  margin: 10px 0;
+  max-height: 60px;
+  overflow-y: auto;
+}
+
+.qr-modal .qr-actions button {
+  margin: 5px;
+}
+
+.qr-modal .qr-tip {
+  margin-top: 15px;
+  font-size: 0.9em;
+  color: #666;
+}
+
+/* 名片模態框特定樣式 */
+.card-modal .card-preview {
+  text-align: center;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+  color: white;
+  border-radius: var(--border-radius);
+  margin-bottom: 1.5rem;
+}
+
+.card-modal .card-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 1rem;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.card-modal .card-name {
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.card-modal .card-title,
+.card-modal .card-department,
+.card-modal .card-organization {
+  opacity: 0.9;
+  margin-bottom: 0.25rem;
+}
+
+.card-modal .card-details {
+  margin-bottom: 1.5rem;
+}
+
+.card-modal .detail-item {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.card-modal .detail-item:last-child {
+  border-bottom: none;
+}
+
+.card-modal .detail-item strong {
+  color: var(--text-primary);
+  font-weight: 500;
+  margin-right: 0.5rem;
+}
+
+.card-modal .card-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+/* 測試頁面樣式 */
+.test-section {
+  margin: 20px 0;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.qr-result {
+  margin: 10px 0;
+  padding: 10px;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.qr-result .qr-image {
+  max-width: 300px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.qr-result .error {
+  color: red;
+  background: #ffe6e6;
+}
+
+.qr-result .success {
+  color: green;
+  background: #e6ffe6;
+}
+
+.url-display {
+  word-break: break-all;
+  font-size: 0.8em;
+}
+
+/* 通用工具類別 */
+.text-center {
+  text-align: center;
+}
+
+.margin-5 {
+  margin: 5px;
+}
+
+.margin-10 {
+  margin: 10px 0;
+}
+
+.margin-15 {
+  margin-top: 15px;
+}
+
+.font-small {
+  font-size: 0.8em;
+}
+
+.font-smaller {
+  font-size: 0.9em;
+}
+
+.color-orange {
+  color: orange;
+}
+
+.color-gray {
+  color: #666;
+}
+
+.max-height-60 {
+  max-height: 60px;
+}
+
+.overflow-auto {
+  overflow-y: auto;
+}

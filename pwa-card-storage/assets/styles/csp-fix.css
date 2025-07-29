@@ -1,0 +1,72 @@
+/**
+ * CSP 修復樣式 - 替代內聯樣式
+ * 用於支援 Content Security Policy 的嚴格模式
+ */
+
+/* 隱藏元素的通用類別 */
+.hidden {
+  display: none !important;
+}
+
+/* 顯示為 flex 的元素 */
+.flex-visible {
+  display: flex !important;
+}
+
+/* 顯示為 block 的元素 */
+.block-visible {
+  display: block !important;
+}
+
+/* 顯示為 inline-block 的元素 */
+.inline-block-visible {
+  display: inline-block !important;
+}
+
+/* 聯絡項目的預設樣式 */
+.contact-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.contact-item.hidden {
+  display: none;
+}
+
+/* 社群資訊區塊 */
+.social-info {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.social-info.hidden {
+  display: none;
+}
+
+/* 頭像樣式 */
+.avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 0 auto 20px;
+  display: block;
+}
+
+.avatar.hidden {
+  display: none;
+}
+
+/* Test result styles */
+.success {
+  color: #4caf50;
+  font-weight: bold;
+}
+
+.error {
+  color: #f44336;
+  font-weight: bold;
+}

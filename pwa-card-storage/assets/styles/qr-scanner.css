@@ -1,0 +1,277 @@
+/**
+ * QR Scanner Modal Styles
+ * PWA-19: QR 碼掃描功能樣式
+ */
+
+/* QR Scanner Modal */
+.qr-scanner-modal .modal-content {
+  max-width: 500px;
+  width: 90%;
+}
+
+.qr-scanner-modal .modal-body {
+  padding: 1.5rem;
+}
+
+/* Scanner Section */
+.scanner-section {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.qr-reader {
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8f9fa;
+}
+
+.qr-reader video {
+  border-radius: 4px;
+  max-width: 100%;
+  height: auto;
+}
+
+.scanner-controls {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.scanner-controls .btn {
+  min-width: 100px;
+}
+
+/* Divider */
+.divider {
+  text-align: center;
+  margin: 1.5rem 0;
+  position: relative;
+  color: #666;
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: #ddd;
+  z-index: 1;
+}
+
+.divider::after {
+  content: attr(data-text);
+  background-color: white;
+  padding: 0 1rem;
+  position: relative;
+  z-index: 2;
+}
+
+/* File Upload Section */
+.file-upload-section {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #fafafa;
+}
+
+.file-upload-section h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.file-input {
+  display: none;
+}
+
+.file-upload-section .btn {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+/* Manual Input Section */
+.manual-input-section {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #fafafa;
+}
+
+.manual-input-section h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.url-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.url-input:focus {
+  outline: none;
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+}
+
+.manual-input-section .btn {
+  width: 100%;
+}
+
+/* Scan Result Section */
+.scan-result {
+  padding: 1rem;
+  border: 2px solid #4caf50;
+  border-radius: 8px;
+  background-color: #f1f8e9;
+  margin-top: 1rem;
+}
+
+.scan-result h3 {
+  margin: 0 0 1rem 0;
+  color: #2e7d32;
+  font-size: 1.1rem;
+}
+
+.result-content {
+  text-align: center;
+}
+
+.result-content p {
+  margin: 0 0 1rem 0;
+  font-weight: 500;
+  color: #333;
+}
+
+.result-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.result-actions .btn {
+  min-width: 120px;
+}
+
+/* No Camera Notice */
+.no-camera-notice {
+  text-align: center;
+  padding: 1rem;
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.no-camera-notice p {
+  margin: 0;
+  color: #856404;
+}
+
+/* Help Section */
+.help-section {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: #e3f2fd;
+  border-radius: 8px;
+  border-left: 4px solid #1976d2;
+}
+
+.help-section h4 {
+  margin: 0 0 0.5rem 0;
+  color: #1565c0;
+  font-size: 1rem;
+}
+
+.help-section ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.help-section li {
+  margin-bottom: 0.3rem;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .qr-scanner-modal .modal-content {
+    width: 95%;
+    margin: 1rem auto;
+  }
+  
+  .scanner-controls {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .scanner-controls .btn {
+    width: 100%;
+    max-width: 200px;
+  }
+  
+  .result-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .result-actions .btn {
+    width: 100%;
+    max-width: 200px;
+  }
+}
+
+/* Animation */
+.qr-reader {
+  transition: border-color 0.3s ease;
+}
+
+.qr-reader.scanning {
+  border-color: #4caf50;
+  background-color: #f1f8e9;
+}
+
+.btn {
+  transition: all 0.2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+/* Loading State */
+.qr-reader.loading::after {
+  content: '📱 正在啟動相機...';
+  display: block;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.qr-reader.error::after {
+  content: '❌ 相機啟動失敗';
+  display: block;
+  color: #d32f2f;
+  font-size: 0.9rem;
+}

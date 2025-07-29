@@ -1,0 +1,486 @@
+/* PWA 名片儲存 - UI 元件樣式 */
+
+/* 名片列表樣式 */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+  padding: 1rem 0;
+}
+
+.card-item {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+  cursor: pointer;
+  position: relative;
+}
+
+.card-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-elevated);
+  border-color: var(--primary-color);
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.card-avatar {
+  flex-shrink: 0;
+}
+
+.avatar-img {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border-color);
+}
+
+.avatar-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-name {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0 0 0.25rem 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-title {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0 0 0.25rem 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-org {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.card-type-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card-type-badge.gov-yp,
+.card-type-badge.gov-sg,
+.card-type-badge.gov-yp-en,
+.card-type-badge.gov-sg-en {
+  background: rgba(25, 118, 210, 0.1);
+  color: var(--primary-color);
+}
+
+.card-type-badge.personal,
+.card-type-badge.personal-en {
+  background: rgba(76, 175, 80, 0.1);
+  color: var(--success-color);
+}
+
+.card-type-badge.bilingual,
+.card-type-badge.personal-bilingual {
+  background: rgba(255, 152, 0, 0.1);
+  color: var(--warning-color);
+}
+
+.card-type-badge.en {
+  background: rgba(156, 39, 176, 0.1);
+  color: #9c27b0;
+}
+
+.card-date {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.card-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.contact-item {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card-footer {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-sm {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+}
+
+/* 空狀態樣式 */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-secondary);
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+/* 模態框樣式 */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  position: relative;
+  background: var(--surface-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-elevated);
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h2 {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: var(--transition);
+}
+
+.modal-close:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text-primary);
+}
+
+.modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* 名片詳細資料樣式 */
+.card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.detail-section h3 {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.detail-item {
+  display: flex;
+  margin-bottom: 0.75rem;
+}
+
+.detail-item label {
+  font-weight: 500;
+  color: var(--text-secondary);
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.detail-item span {
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.greetings-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.greetings-list li {
+  padding: 0.5rem;
+  background: rgba(25, 118, 210, 0.04);
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  font-style: italic;
+}
+
+/* QR 碼模態框樣式 */
+.qr-modal .modal-body {
+  text-align: center;
+}
+
+.qr-image {
+  max-width: 240px;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.qr-url {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  word-break: break-all;
+  background: var(--background-color);
+  padding: 0.5rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.qr-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* 卡片選單樣式 */
+.card-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-menu .menu-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.menu-content {
+  position: relative;
+  background: var(--surface-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-elevated);
+  min-width: 200px;
+  overflow: hidden;
+}
+
+.menu-content button {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.menu-content button:last-child {
+  border-bottom: none;
+}
+
+.menu-content button:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.menu-content button.danger {
+  color: var(--error-color);
+}
+
+.menu-content button.danger:hover {
+  background: rgba(244, 67, 54, 0.04);
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .cards-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .card-item {
+    padding: 1rem;
+  }
+  
+  .card-header {
+    gap: 0.75rem;
+  }
+  
+  .avatar-img,
+  .avatar-placeholder {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .avatar-placeholder {
+    font-size: 1rem;
+  }
+  
+  .card-name {
+    font-size: 1rem;
+  }
+  
+  .card-footer {
+    gap: 0.25rem;
+  }
+  
+  .btn-sm {
+    padding: 0.375rem 0.5rem;
+    font-size: 0.6875rem;
+  }
+  
+  .modal-content {
+    margin: 0.5rem;
+    max-height: 90vh;
+  }
+  
+  .modal-header,
+  .modal-body {
+    padding: 1rem;
+  }
+  
+  .qr-actions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .card-footer {
+    flex-direction: column;
+  }
+  
+  .btn-sm {
+    width: 100%;
+    text-align: center;
+  }
+  
+  .detail-item {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .detail-item label {
+    min-width: auto;
+    font-size: 0.875rem;
+  }
+}

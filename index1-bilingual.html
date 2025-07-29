@@ -10,6 +10,7 @@
     <script src="assets/qrcode.min.js"></script>
     <link rel="stylesheet" href="assets/qrcode-style.css">
     <script src="assets/bilingual-common.js"></script>
+    <script src="assets/pwa-integration.js"></script>
     <style>
         * {
             margin: 0;
@@ -424,6 +425,9 @@
                 <button id="downloadBtn" onclick="downloadBilingualVCard(currentData, currentLanguage)" class="download-btn">
                     📱 <span id="downloadBtnText">加入聯絡人</span>
                 </button>
+                <button id="save-to-pwa-btn" class="download-btn" style="background: #28a745; border-color: #28a745; margin-left: 10px;">
+                    💾 <span id="savePwaText">儲存到離線</span>
+                </button>
                 
                 <div class="qr-section">
                     <div class="qr-code" id="qrcode">
@@ -487,6 +491,7 @@
                     contactTitle: '聯絡資訊',
                     socialTitle: '🔗 社群連結',
                     downloadBtnText: '加入聯絡人',
+                    savePwaText: '儲存到離線',
                     qrLabel: '掃描 QR 碼快速開啟',
                     loadingTitle: '載入中',
                     loadingText: '正在解析數位名片資料...',
@@ -500,6 +505,7 @@
                     contactTitle: 'Contact Information',
                     socialTitle: '🔗 Social Links',
                     downloadBtnText: 'Add to Contacts',
+                    savePwaText: 'Save Offline',
                     qrLabel: 'Scan QR Code to Open',
                     loadingTitle: 'Loading',
                     loadingText: 'Parsing digital business card data...',
@@ -519,6 +525,7 @@
             updateElement('errorTitle', text.errorTitle);
             updateElement('errorText', text.errorText);
             updateElement('downloadBtnText', text.downloadBtnText);
+            updateElement('savePwaText', text.savePwaText || '儲存到離線');
             updateElement('privacyTitle', text.privacyTitle);
             updateElement('projectInfo', text.projectInfo);
             updateElement('privacyDesc', text.privacyDesc);
@@ -528,6 +535,40 @@
             if (socialTitle) {
                 socialTitle.textContent = text.socialTitle;
             }
+        }
+
+        // PWA 儲存功能
+        function setupPWASaveButton() {
+            const saveButton = document.getElementById('save-to-pwa-btn');
+            if (!saveButton) return;
+            
+            saveButton.addEventListener('click', function() {
+                if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                    alert('離線儲存功能需要 HTTPS 連線或本地環境');
+                    return;
+                }
+                
+                const urlParams = new URLSearchParams(window.location.search);
+                const dataParam = urlParams.get('data') || urlParams.get('c');
+                const pwaUrl = window.location.origin + '/pwa-card-storage/?c=' + encodeURIComponent(dataParam);
+                
+                const pwaWindow = window.open(pwaUrl, '_blank');
+                
+                if (pwaWindow) {
+                    const originalText = saveButton.innerHTML;
+                    saveButton.innerHTML = '✅ 已開啟 PWA';
+                    saveButton.style.background = '#6c757d';
+                    saveButton.disabled = true;
+                    
+                    setTimeout(() => {
+                        saveButton.innerHTML = originalText;
+                        saveButton.style.background = '#28a745';
+                        saveButton.disabled = false;
+                    }, 3000);
+                } else {
+                    alert('無法開啟 PWA，請檢查瀏覽器設定');
+                }
+            });
         }
 
         // 頁面初始化
@@ -554,6 +595,7 @@
                     renderBilingualCard(currentData, currentLanguage);
                     updateUIText(currentLanguage);
                     generateQRCode();
+                    setupPWASaveButton();
                     
                     // 處理頭像
                     const avatar = document.getElementById('userAvatar');

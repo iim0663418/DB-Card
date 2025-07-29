@@ -1,0 +1,568 @@
+/* PWA-19 QR 碼掃描器樣式 */
+/* 遵循專案的高齡友善設計原則和雙語支援 */
+
+/* QR 掃描器模態框 */
+.qr-scanner-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(4px);
+}
+
+.qr-scanner-content {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* 標題區域 */
+.qr-scanner-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e7eb;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px 12px 0 0;
+}
+
+.qr-scanner-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    font-family: 'Noto Sans TC', sans-serif;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 2rem;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* 標籤切換 */
+.qr-scanner-tabs {
+    display: flex;
+    background: #f8fafc;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 16px 20px;
+    background: none;
+    border: none;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Noto Sans TC', sans-serif;
+    position: relative;
+}
+
+.tab-btn.active {
+    color: #667eea;
+    background: white;
+}
+
+.tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+}
+
+.tab-btn:hover:not(.active) {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+/* 內容區域 */
+.qr-scanner-body {
+    padding: 24px;
+    min-height: 300px;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* 相機掃描區域 */
+#qr-scanner-container {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto 20px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: #f8fafc;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+#qr-scanner-container video {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* 掃描控制按鈕 */
+.scanner-controls {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.btn-primary, .btn-secondary {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Noto Sans TC', sans-serif;
+    min-width: 120px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.btn-secondary:hover {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.btn-primary:disabled, .btn-secondary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* 檔案上傳區域 */
+.file-upload-area {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.upload-zone {
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: #f8fafc;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.upload-zone:hover {
+    border-color: #667eea;
+    background: #f0f4ff;
+}
+
+.upload-zone.drag-over {
+    border-color: #667eea;
+    background: #e0e7ff;
+    transform: scale(1.02);
+}
+
+.upload-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.7;
+}
+
+.upload-zone p {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #64748b;
+    font-family: 'Noto Sans TC', sans-serif;
+}
+
+/* 狀態顯示 */
+.qr-scanner-status {
+    padding: 16px 24px;
+    margin: 0;
+    text-align: center;
+    font-weight: 500;
+    font-family: 'Noto Sans TC', sans-serif;
+    border-radius: 0 0 12px 12px;
+    min-height: 20px;
+}
+
+.qr-scanner-status.success {
+    background: #dcfce7;
+    color: #166534;
+    border-top: 1px solid #bbf7d0;
+}
+
+.qr-scanner-status.error {
+    background: #fef2f2;
+    color: #dc2626;
+    border-top: 1px solid #fecaca;
+}
+
+.qr-scanner-status.info {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-top: 1px solid #dbeafe;
+}
+
+/* 權限指導 */
+.permission-guide {
+    padding: 20px;
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: 8px;
+    margin: 16px 0;
+}
+
+.permission-guide h4 {
+    margin: 0 0 12px 0;
+    color: #92400e;
+    font-family: 'Noto Sans TC', sans-serif;
+}
+
+.permission-guide p {
+    margin: 0 0 12px 0;
+    color: #78350f;
+}
+
+.permission-guide ol {
+    margin: 0;
+    padding-left: 20px;
+    color: #78350f;
+}
+
+.permission-guide li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .qr-scanner-content {
+        width: 95%;
+        margin: 10px;
+        max-height: 95vh;
+    }
+    
+    .qr-scanner-header {
+        padding: 16px 20px;
+    }
+    
+    .qr-scanner-header h3 {
+        font-size: 1.3rem;
+    }
+    
+    .qr-scanner-body {
+        padding: 20px 16px;
+    }
+    
+    .scanner-controls {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .btn-primary, .btn-secondary {
+        width: 100%;
+        max-width: 200px;
+    }
+    
+    .tab-btn {
+        padding: 14px 16px;
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .qr-scanner-content {
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+        max-height: 100vh;
+    }
+    
+    .qr-scanner-header {
+        border-radius: 0;
+    }
+    
+    .upload-zone {
+        padding: 30px 15px;
+        min-height: 150px;
+    }
+    
+    .upload-icon {
+        font-size: 2.5rem;
+    }
+    
+    .upload-zone p {
+        font-size: 1rem;
+    }
+}
+
+/* 高對比度模式支援 */
+@media (prefers-contrast: high) {
+    .qr-scanner-modal {
+        background: rgba(0, 0, 0, 0.9);
+    }
+    
+    .qr-scanner-content {
+        border: 2px solid #000;
+    }
+    
+    .tab-btn {
+        border: 1px solid #ccc;
+    }
+    
+    .tab-btn.active {
+        border-color: #000;
+        background: #fff;
+    }
+    
+    .upload-zone {
+        border-width: 3px;
+    }
+}
+
+/* 減少動畫模式 */
+@media (prefers-reduced-motion: reduce) {
+    .qr-scanner-content {
+        animation: none;
+    }
+    
+    .btn-primary:hover {
+        transform: none;
+    }
+    
+    .upload-zone.drag-over {
+        transform: none;
+    }
+    
+    * {
+        transition: none !important;
+    }
+}
+
+/* 深色模式支援 */
+@media (prefers-color-scheme: dark) {
+    .qr-scanner-content {
+        background: #1f2937;
+        color: #f9fafb;
+    }
+    
+    .qr-scanner-header {
+        border-bottom-color: #374151;
+    }
+    
+    .qr-scanner-tabs {
+        background: #111827;
+        border-bottom-color: #374151;
+    }
+    
+    .tab-btn {
+        color: #9ca3af;
+    }
+    
+    .tab-btn.active {
+        background: #1f2937;
+        color: #667eea;
+    }
+    
+    .tab-btn:hover:not(.active) {
+        background: #374151;
+        color: #d1d5db;
+    }
+    
+    .btn-secondary {
+        background: #374151;
+        color: #d1d5db;
+        border-color: #4b5563;
+    }
+    
+    .btn-secondary:hover {
+        background: #4b5563;
+        color: #f3f4f6;
+    }
+    
+    .upload-zone {
+        background: #111827;
+        border-color: #4b5563;
+        color: #d1d5db;
+    }
+    
+    .upload-zone:hover {
+        background: #1f2937;
+        border-color: #667eea;
+    }
+    
+    .upload-zone.drag-over {
+        background: #312e81;
+        border-color: #667eea;
+    }
+    
+    #qr-scanner-container {
+        background: #111827;
+    }
+    
+    .qr-scanner-status.success {
+        background: #064e3b;
+        color: #6ee7b7;
+        border-top-color: #047857;
+    }
+    
+    .qr-scanner-status.error {
+        background: #7f1d1d;
+        color: #fca5a5;
+        border-top-color: #dc2626;
+    }
+    
+    .qr-scanner-status.info {
+        background: #1e3a8a;
+        color: #93c5fd;
+        border-top-color: #3b82f6;
+    }
+}
+
+/* 無障礙功能增強 */
+.qr-scanner-modal:focus-within {
+    outline: none;
+}
+
+.tab-btn:focus,
+.btn-primary:focus,
+.btn-secondary:focus,
+.close-btn:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+.upload-zone:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 4px;
+}
+
+/* 載入動畫 */
+.scanner-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    color: #64748b;
+}
+
+.scanner-loading::before {
+    content: '';
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e2e8f0;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 12px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 掃描成功動畫 */
+.scan-success-animation {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(34, 197, 94, 0.9);
+    color: white;
+    padding: 16px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    animation: successPulse 0.6s ease-out;
+    z-index: 10;
+}
+
+@keyframes successPulse {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+    50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}

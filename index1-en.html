@@ -496,6 +496,9 @@
                 <a href="#" id="add-contact-btn" class="download-btn">
                     📱 Add to Contacts
                 </a>
+                <button id="save-to-pwa-btn" class="download-btn" style="background: #28a745; border-color: #28a745; margin-left: 10px;">
+                    💾 Save Offline
+                </button>
                 <p id="contact-helper-text" style="font-size: 0.9em; color: #4b5563; margin-top: 15px;"></p>
                 
                 <div class="qr-section">
@@ -1083,6 +1086,7 @@
                     setTimeout(changeGreeting, 1000);
                     generateQRCode();
                     setupVCardLink(cardData);
+                    setupPWASaveButton(cardData);
 
                 } catch (error) {
                     console.error('Business card data validation failed:', error);

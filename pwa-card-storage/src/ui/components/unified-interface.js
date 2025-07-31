@@ -15,7 +15,6 @@ class UnifiedInterface {
 
   async init() {
     try {
-      console.log('[UnifiedInterface] Initializing unified interface...');
       
       await this.initializeComponents();
       this.setupGlobalEventListeners();
@@ -23,7 +22,6 @@ class UnifiedInterface {
       this.setupAccessibility();
       
       this.isInitialized = true;
-      console.log('[UnifiedInterface] Unified interface initialized successfully');
       
       // 觸發初始化完成事件
       this.dispatchEvent('interfaceReady', { timestamp: Date.now() });
@@ -87,7 +85,6 @@ class UnifiedInterface {
     }
     
     this.components.set('navigation', navigation);
-    console.log('[UnifiedInterface] Navigation initialized');
   }
 
   /**
@@ -111,7 +108,6 @@ class UnifiedInterface {
     });
     
     this.components.set('pages', pages);
-    console.log('[UnifiedInterface] Page components initialized');
   }
 
   /**
@@ -163,7 +159,6 @@ class UnifiedInterface {
       });
     });
     
-    console.log('[UnifiedInterface] Home page initialized');
   }
 
   /**
@@ -224,7 +219,6 @@ class UnifiedInterface {
       });
     });
     
-    console.log('[UnifiedInterface] Cards page initialized');
   }
 
   /**
@@ -254,7 +248,6 @@ class UnifiedInterface {
       this.setupDragAndDrop(dropZone);
     }
     
-    console.log('[UnifiedInterface] Import page initialized');
   }
 
   /**
@@ -278,7 +271,6 @@ class UnifiedInterface {
       });
     });
     
-    console.log('[UnifiedInterface] Export page initialized');
   }
 
   /**
@@ -309,7 +301,6 @@ class UnifiedInterface {
       });
     }
     
-    console.log('[UnifiedInterface] Settings page initialized');
   }
 
   /**
@@ -335,7 +326,6 @@ class UnifiedInterface {
     // 通用模態對話框
     this.setupGenericModals();
     
-    console.log('[UnifiedInterface] Modal components initialized');
   }
 
   /**
@@ -363,7 +353,6 @@ class UnifiedInterface {
       this.components.set('notification', notificationSystem);
     }
     
-    console.log('[UnifiedInterface] Notification system initialized');
   }
 
   /**
@@ -382,7 +371,6 @@ class UnifiedInterface {
       this.components.set('loading', loadingSystem);
     }
     
-    console.log('[UnifiedInterface] Loading system initialized');
   }
 
   /**
@@ -413,7 +401,6 @@ class UnifiedInterface {
       this.handleVisibilityChange();
     });
     
-    console.log('[UnifiedInterface] Global event listeners set up');
   }
 
   /**
@@ -442,7 +429,6 @@ class UnifiedInterface {
       }
     });
     
-    console.log('[UnifiedInterface] Keyboard shortcuts set up');
   }
 
   /**
@@ -461,7 +447,6 @@ class UnifiedInterface {
     // 螢幕閱讀器支援
     this.setupScreenReaderSupport();
     
-    console.log('[UnifiedInterface] Accessibility features set up');
   }
 
   /**
@@ -470,7 +455,6 @@ class UnifiedInterface {
   navigateToView(viewName) {
     if (this.currentView === viewName) return;
     
-    console.log('[UnifiedInterface] Navigating to view:', viewName);
     
     // 隱藏當前檢視
     this.hideCurrentView();
@@ -527,7 +511,6 @@ class UnifiedInterface {
       this.hideNotification();
     }, hideDelay);
     
-    console.log('[UnifiedInterface] Notification shown:', message, type);
   }
 
   /**
@@ -559,7 +542,6 @@ class UnifiedInterface {
     loading.isVisible = true;
     loading.queue++;
     
-    console.log('[UnifiedInterface] Loading shown:', message);
   }
 
   /**
@@ -581,7 +563,6 @@ class UnifiedInterface {
    * 處理衝突解決
    */
   handleConflictResolution(resolutions, importData) {
-    console.log('[UnifiedInterface] Handling conflict resolution:', resolutions);
     
     if (window.app && window.app.transferManager) {
       window.app.transferManager.resolveConflictsAndImport(importData, resolutions)
@@ -606,7 +587,6 @@ class UnifiedInterface {
    * 處理快速操作
    */
   handleQuickAction(action) {
-    console.log('[UnifiedInterface] Handling quick action:', action);
     
     switch (action) {
       case 'add-card':
@@ -625,7 +605,6 @@ class UnifiedInterface {
         this.navigateToView('cards');
         break;
       default:
-        console.warn('[UnifiedInterface] Unknown quick action:', action);
     }
   }
 
@@ -698,4 +677,3 @@ class UnifiedInterface {
 // 全域實例
 window.unifiedInterface = new UnifiedInterface();
 
-console.log('[UnifiedInterface] Unified interface component loaded');

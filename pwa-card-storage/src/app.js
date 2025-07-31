@@ -40,7 +40,6 @@ class PWACardApp {
       this.hideLoading();
       window.pwaErrorHandler?.logStep('App Init Complete', 'SUCCESS');
       
-      console.log('[PWA] Application initialized successfully');
     } catch (error) {
       console.error('[PWA] Initialization failed:', error);
       window.pwaErrorHandler?.logError(error, 'App Initialization');
@@ -59,13 +58,11 @@ class PWACardApp {
 
   async initializeServices() {
     try {
-      console.log('[PWA] Initializing services...');
       window.pwaErrorHandler?.logStep('Check PWACardStorage', 'CHECKING');
       
       // 初始化核心儲存
       if (typeof PWACardStorage !== 'undefined') {
         window.pwaErrorHandler?.logStep('PWACardStorage Found', 'SUCCESS');
-        console.log('[PWA] Initializing storage...');
         
         window.pwaErrorHandler?.logStep('Create Storage Instance', 'STARTING');
         this.storage = new PWACardStorage();
@@ -75,7 +72,6 @@ class PWACardApp {
         await this.storage.initialize();
         window.pwaErrorHandler?.logStep('Storage Initialize', 'SUCCESS');
         
-        console.log('[PWA] Storage initialized successfully');
       } else {
         window.pwaErrorHandler?.logStep('PWACardStorage Check', 'FAILED', 'PWACardStorage class not found');
         throw new Error('PWACardStorage not available');
@@ -83,65 +79,48 @@ class PWACardApp {
       
       // 初始化名片管理器
       if (typeof PWACardManager !== 'undefined') {
-        console.log('[PWA] Initializing card manager...');
         try {
           this.cardManager = new PWACardManager(this.storage);
           await this.cardManager.initialize();
-          console.log('[PWA] Card manager initialized successfully');
         } catch (error) {
           console.error('[PWA] Card manager initialization failed:', error);
           this.cardManager = null;
         }
       } else {
-        console.error('[PWA] PWACardManager class not found');
         this.cardManager = null;
       }
       
       // 初始化健康管理器
       if (typeof HealthManager !== 'undefined' && this.storage) {
-        console.log('[PWA] Initializing health manager...');
         this.healthManager = new HealthManager(this.storage);
         await this.healthManager.initialize();
-        console.log('[PWA] Health manager initialized successfully');
       }
       
-      // 初始化版本管理器
-      if (typeof VersionManager !== 'undefined' && this.storage) {
-        console.log('[PWA] Initializing version manager...');
-        this.versionManager = new VersionManager(this.storage);
-        await this.versionManager.initialize();
-        console.log('[PWA] Version manager initialized successfully');
-      }
+      // 版本管理功能現在已整合到 storage 中
+      
+      // 資料遷移功能已移除
       
       // 初始化離線工具
       if (typeof OfflineToolsManager !== 'undefined' && this.cardManager) {
-        console.log('[PWA] Initializing offline tools...');
         this.offlineTools = new OfflineToolsManager(this.cardManager);
-        console.log('[PWA] Offline tools initialized successfully');
       }
       
       // 初始化傳輸管理器
       if (typeof TransferManager !== 'undefined' && this.cardManager) {
-        console.log('[PWA] Initializing transfer manager...');
         this.transferManager = new TransferManager(this.cardManager);
-        console.log('[PWA] Transfer manager initialized successfully');
       }
       
       // 初始化 QR 掃描器（優雅降級）
       if (typeof QRScannerManager !== 'undefined' && this.cardManager) {
-        console.log('[PWA] Initializing QR scanner...');
         try {
           this.qrScanner = new QRScannerManager(this.cardManager);
           await this.qrScanner.initialize();
-          console.log('[PWA] QR scanner initialized successfully');
         } catch (error) {
-          console.warn('[PWA] QR scanner initialization failed, using fallback:', error);
           this.qrScanner = null;
           // 不拋出錯誤，讓應用程式繼續運行
         }
       }
       
-      console.log('[PWA] All services initialized successfully');
     } catch (error) {
       console.error('[PWA] Service initialization failed:', error);
       throw error;
@@ -233,6 +212,19 @@ class PWACardApp {
   async loadInitialData() {
     try {
       await this.updateStats();
+      
+      // 資料遷移功能已移除，直接載入資料
+      
+      // 執行基本的資料健康檢查
+      if (this.storage) {
+        try {
+          const healthCheck = await this.storage.performHealthCheck();
+          if (!healthCheck.healthy && healthCheck.corruptedCount > 0) {
+            this.showNotification(`發現 ${healthCheck.corruptedCount} 張損壞的名片`, 'warning');
+          }
+        } catch (error) {
+        }
+      }
     } catch (error) {
       console.error('[PWA] Failed to load initial data:', error);
     }
@@ -253,7 +245,6 @@ class PWACardApp {
       }
     }
 
-    console.log('[PWA] URL params:', { action, data: data ? 'present' : 'missing', dataLength: data ? data.length : 0 });
 
     if (data) {
       // 自動匯入名片資料
@@ -269,67 +260,70 @@ class PWACardApp {
     try {
       this.showLoading('讀取名片資料...');
       
-      // 使用統一的解析邏輯
-      let cardData = null;
+      // PWA-36 修復：確保 URL 資訊正確傳遞
+      const currentUrl = window.location.href;
+      console.log('[App] 當前 URL:', currentUrl);
+      console.log('[App] 輸入資料:', data);
       
-      // 優先使用 LegacyAdapter
-      if (window.legacyAdapter) {
-        cardData = window.legacyAdapter.parseCardData(data);
+      // PWA-24 直通管道：使用精簡解析器
+      if (!window.SimpleCardParser) {
+        this.showNotification('精簡解析器未載入', 'error');
+        return;
       }
       
-      // 備用方案
-      if (!cardData) {
-        cardData = this.getCardDataFromNFC(data);
-      }
+      const cardData = window.SimpleCardParser.parseDirectly(data);
       
       if (!cardData) {
         this.showNotification('無法解析名片資料', 'error');
         return;
       }
       
-      console.log('[PWA] Parsed card data:', cardData);
+      // PWA-36 修復：將 URL 資訊添加到名片資料中
+      cardData.url = currentUrl;
       
-      // 確保 greeting 和社群資訊完整性
-      const enhancedData = this.ensureDataCompleteness(cardData.data);
+      // PWA-36 修復：從 referrer 或 URL 參數中推斷原始來源
+      const referer = document.referrer;
+      console.log('[App] 檢查 referrer:', referer);
       
-      // 自動識別名片類型
-      let cardType = 'personal';
-      if (this.cardManager) {
-        cardType = this.cardManager.detectCardType(enhancedData);
-        console.log('[PWA] Detected card type:', cardType);
+      if (referer && !referer.includes('pwa-card-storage')) {
+        // referrer 不是 PWA 頁面，可能是原始來源
+        console.log('[App] 使用 referrer 作為原始來源:', referer);
+        window.PWAIntegration?.storeSourceContext(referer, cardData);
+      } else {
+        console.log('[App] 無有效 referrer，依賴資料特徵識別');
       }
       
-      // 套用類型預設值
-      let finalData = enhancedData;
-      if (this.cardManager) {
-        finalData = this.cardManager.applyCardTypeDefaults(enhancedData, cardType);
+      console.log('[App] 添加 URL 後的資料:', cardData);
+      
+      // 驗證解析結果
+      if (!window.SimpleCardParser.validateParsedData(cardData)) {
+        this.showNotification('名片資料驗證失敗', 'error');
+        return;
       }
       
-      // 儲存名片
+      // PWA-24 直接儲存，跳過所有中間處理
       if (this.storage) {
         try {
-          const cardId = await this.storage.storeCard(finalData);
-          console.log('[PWA] Card stored with ID:', cardId, 'Type:', cardType);
-          console.log('[PWA] Stored data includes:', {
-            hasGreetings: !!finalData.greetings,
-            greetingsCount: Array.isArray(finalData.greetings) ? finalData.greetings.length : 0,
-            hasSocialNote: !!finalData.socialNote,
-            socialNoteLength: finalData.socialNote ? finalData.socialNote.length : 0
-          });
+          // 確保使用直通儲存方法，不經過任何標準化處理
+          if (typeof this.storage.storeCardDirectly !== 'function') {
+            this.showNotification('直通儲存方法未載入', 'error');
+            return;
+          }
           
-          this.showNotification('名片已自動儲存（含問候語和社群資訊）', 'success');
+          const cardId = await this.storage.storeCardDirectly(cardData);
+          
+          this.showNotification('名片已儲存', 'success');
+          
           await this.updateStats();
           this.navigateTo('cards');
         } catch (storeError) {
-          console.error('[PWA] Store card failed:', storeError);
           this.showNotification(`儲存失敗: ${storeError.message}`, 'error');
         }
       } else {
         this.showNotification('儲存服務未初始化', 'error');
-        console.error('[PWA] Storage not available');
       }
     } catch (error) {
-      console.error('[PWA] Import from URL data failed:', error);
+      console.error('[App] Import from URL data failed:', error);
       this.showNotification('讀取名片失敗', 'error');
     } finally {
       this.hideLoading();
@@ -337,370 +331,73 @@ class PWACardApp {
   }
 
   /**
-   * 新增：確保資料完整性，特別是 greeting 和社群資訊
-   * 修復 [object Object] 問題 - 直接修復版
+   * PWA-24 直通處理：舊的複雜處理方法已移除
+   * 現在使用 SimpleCardParser.parseDirectly() 和 storage.storeCardDirectly()
+   * 實現零資料遺失的直通管道處理
    */
-  ensureDataCompleteness(cardData) {
-    const enhanced = { ...cardData };
-    
-    console.log('[PWA] Original greetings:', enhanced.greetings, typeof enhanced.greetings);
-    
-    // 直接處理問候語格式，避免 String() 轉換
-    if (!enhanced.greetings) {
-      enhanced.greetings = ['歡迎認識我！'];
-    } else if (Array.isArray(enhanced.greetings)) {
-      enhanced.greetings = enhanced.greetings
-        .map(g => {
-          if (typeof g === 'string') {
-            if (g.includes('~')) {
-              return g.split('~')[0].trim();
-            }
-            return g.trim();
-          }
-          if (typeof g === 'object' && g !== null && g.zh) {
-            return g.zh;
-          }
-          if (typeof g === 'object' && g !== null && g.en) {
-            return g.en;
-          }
-          // 避免 String()轉換，直接返回空字串
-          return '';
-        })
-        .filter(g => g && g.length > 0);
-      
-      if (enhanced.greetings.length === 0) {
-        enhanced.greetings = ['歡迎認識我！'];
-      }
-    } else {
-      enhanced.greetings = ['歡迎認識我！'];
-    }
-    
-    if (!enhanced.socialNote) {
-      enhanced.socialNote = '';
-    }
-    
-    console.log('[PWA] Fixed greetings:', enhanced.greetings);
-    
-    return enhanced;
-  }
 
   /**
-   * 處理單個問候語項目用於顯示
+   * 簡化的問候語字串提取 - 用於顯示
    */
-  processGreetingForDisplay(greeting) {
+  extractStringFromGreeting(greeting, language = 'zh') {
     if (!greeting) return '';
     
     if (typeof greeting === 'string') {
-      // 處理雙語格式 "中文~English"
+      // PWA-24: 直接使用字串，支援雙語格式 "中文~English"
       if (greeting.includes('~')) {
-        const [chinese] = greeting.split('~');
-        return chinese.trim();
+        const parts = greeting.split('~');
+        return language === 'en' ? (parts[1] || parts[0]) : parts[0];
       }
-      return greeting.trim();
+      return greeting;
     }
     
+    // 物件格式處理
     if (typeof greeting === 'object' && greeting !== null) {
-      // 處理物件格式 {zh: "中文", en: "English"}
-      if (greeting.zh) {
-        return greeting.zh;
-      } else if (greeting.en) {
-        return greeting.en;
-      }
-      
-      // 提取第一個字串值
-      const firstString = Object.values(greeting)
-        .find(v => v && typeof v === 'string');
-      return firstString || '';
+      return greeting[language] || greeting.zh || greeting.en || '';
     }
     
-    return String(greeting);
+    return String(greeting || '');
   }
   
   /**
-   * 統一的名片資料解析器 - 支援所有現有格式
-   * 完全相容兩大生成器的資料格式
+   * 標準化名片類型識別 - 全域通用
    */
-  getCardDataFromNFC(cardDataParam) {
-    if (!cardDataParam) return null;
+  identifyCardType(data) {
+    if (typeof data === 'string') data = { url: data };
     
-    console.log('[PWA] Parsing card data, length:', cardDataParam.length);
+    if (data.url) {
+      const url = data.url.toLowerCase().trim();
+      if (url.includes('index1-bilingual.html')) return 'bilingual1';
+      if (url.includes('index-bilingual-personal.html')) return 'personal-bilingual';
+      if (url.includes('index-bilingual.html')) return 'bilingual';
+      if (url.includes('index1-en.html')) return 'en1';
+      if (url.includes('index-personal-en.html')) return 'personal-en';
+      if (url.includes('index-en.html')) return 'en';
+      if (url.includes('index-personal.html')) return 'personal';
+      if (url.includes('index1.html')) return 'index1';
+      if (url.includes('index.html')) return 'index';
+    }
     
-    try {
-      // 1. 嘗試管道分隔格式（雙語版本 nfc-generator-bilingual.html） - 優先級
-      const pipeResult = this.parsePipeFormat(cardDataParam);
-      if (pipeResult) {
-        console.log('[PWA] Successfully parsed pipe format (bilingual)');
-        return pipeResult;
-      }
-      
-      // 2. 嘗試 JSON 格式解析（單語版本 nfc-generator.html）
-      const jsonResult = this.parseJSONFormat(cardDataParam);
-      if (jsonResult) {
-        console.log('[PWA] Successfully parsed JSON format');
-        return jsonResult;
-      }
-      
-      // 3. 嘗試 Legacy 格式（舊版本相容性）
-      const legacyResult = this.parseLegacyFormat(cardDataParam);
-      if (legacyResult) {
-        console.log('[PWA] Successfully parsed legacy format');
-        return legacyResult;
-      }
-      
-      console.error('[PWA] All parsing methods failed');
-      return null;
-    } catch (error) {
-      console.error('[PWA] Card data parsing failed:', error);
-      return null;
+    const isBilingual = (typeof data.name === 'string' && data.name.includes('~')) || 
+                       (typeof data.title === 'string' && data.title.includes('~'));
+    const isGov = data.organization && data.department;
+    const isShinGuang = (typeof data.address === 'string') && 
+                       (data.address.includes('新光') || data.address.includes('松仁路'));
+    
+    if (isBilingual) {
+      return isGov ? (isShinGuang ? 'bilingual1' : 'bilingual') : 'personal-bilingual';
     }
+    
+    return isGov ? (isShinGuang ? 'index1' : 'index') : 'personal';
   }
   
-  /**
-   * 解析 JSON 格式（單語版本和雙語版本）
-   */
-  parseJSONFormat(cardDataParam) {
-    try {
-      // 嘗試標準 Base64 解碼（與原生成器一致）
-      const decoded = decodeURIComponent(atob(cardDataParam));
-      const jsonData = JSON.parse(decoded);
-      
-      // 確保 greetings 正確處理
-      let greetings = [];
-      if (Array.isArray(jsonData.g)) {
-        greetings = jsonData.g;
-      } else if (Array.isArray(jsonData.greetings)) {
-        greetings = jsonData.greetings;
-      } else if (jsonData.g && typeof jsonData.g === 'string') {
-        greetings = [jsonData.g];
-      } else if (jsonData.greetings && typeof jsonData.greetings === 'string') {
-        greetings = [jsonData.greetings];
-      } else {
-        greetings = ['歡迎認識我！']; // 預設問候語
-      }
-      
-      // 轉換為標準格式
-      return {
-        data: {
-          name: jsonData.n || jsonData.name || '',
-          title: jsonData.t || jsonData.title || '',
-          department: jsonData.d || jsonData.department || '',
-          organization: jsonData.o || jsonData.organization || '',
-          email: jsonData.e || jsonData.email || '',
-          phone: jsonData.p || jsonData.phone || '',
-          mobile: jsonData.m || jsonData.mobile || '',
-          avatar: jsonData.a || jsonData.avatar || '',
-          address: jsonData.addr || jsonData.address || '',
-          greetings: greetings,
-          socialNote: jsonData.s || jsonData.socialNote || ''
-        }
-      };
-    } catch (error) {
-      console.log('[PWA] Standard JSON parsing failed, trying UTF-8 method:', error.message);
-      
-      // 備用方案：UTF-8 解碼（處理特殊編碼）
-      try {
-        const fixedBase64 = cardDataParam
-          .replace(/\s/g, '+')
-          .replace(/-/g, '+')
-          .replace(/_/g, '/')
-          .trim();
-        
-        const binaryString = atob(fixedBase64);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        
-        const jsonString = new TextDecoder('utf-8').decode(bytes);
-        const jsonData = JSON.parse(jsonString);
-        
-        // 確保 greetings 正確處理（UTF-8 版本）
-        let greetings = [];
-        if (Array.isArray(jsonData.g)) {
-          greetings = jsonData.g;
-        } else if (Array.isArray(jsonData.greetings)) {
-          greetings = jsonData.greetings;
-        } else if (jsonData.g && typeof jsonData.g === 'string') {
-          greetings = [jsonData.g];
-        } else if (jsonData.greetings && typeof jsonData.greetings === 'string') {
-          greetings = [jsonData.greetings];
-        } else {
-          greetings = ['歡迎認識我！']; // 預設問候語
-        }
-        
-        return {
-          data: {
-            name: jsonData.n || jsonData.name || '',
-            title: jsonData.t || jsonData.title || '',
-            department: jsonData.d || jsonData.department || '',
-            organization: jsonData.o || jsonData.organization || '',
-            email: jsonData.e || jsonData.email || '',
-            phone: jsonData.p || jsonData.phone || '',
-            mobile: jsonData.m || jsonData.mobile || '',
-            avatar: jsonData.a || jsonData.avatar || '',
-            address: jsonData.addr || jsonData.address || '',
-            greetings: greetings,
-            socialNote: jsonData.s || jsonData.socialNote || ''
-          }
-        };
-      } catch (utf8Error) {
-        console.log('[PWA] UTF-8 JSON parsing also failed:', utf8Error.message);
-        return null;
-      }
-    }
-  }
+
   
-  /**
-   * 解析管道分隔格式（雙語版本） - 修復版本
-   */
-  parsePipeFormat(cardDataParam) {
-    try {
-      console.log('[PWA] Parsing pipe format, input length:', cardDataParam.length);
-      
-      // 嘗試 URL-safe Base64 解碼（與雙語生成器一致）
-      const padding = '='.repeat((4 - cardDataParam.length % 4) % 4);
-      const base64Fixed = cardDataParam.replace(/-/g, '+').replace(/_/g, '/') + padding;
-      const compact = decodeURIComponent(atob(base64Fixed));
-      
-      console.log('[PWA] Decoded pipe data:', compact);
-      const parts = compact.split('|');
-      console.log('[PWA] Split parts:', parts.length, parts);
-      
-      // 支援舊版本（8欄位）和新版本（9欄位）
-      let parsedData;
-      if (parts.length === 8) {
-        // 舊版本格式（沒有手機號碼）
-        const rawGreetings = parts[6] || '';
-        console.log('[PWA] Raw greetings (8-field):', rawGreetings, typeof rawGreetings);
-        const greetings = rawGreetings ? rawGreetings.split(',').map(g => g.trim()).filter(g => g) : ['歡迎認識我！'];
-        console.log('[PWA] Processed greetings (8-field):', greetings);
-        parsedData = {
-          name: parts[0] || '',
-          title: parts[1] || '',
-          department: parts[2] || '',
-          email: parts[3] || '',
-          phone: parts[4] || '',
-          mobile: '',
-          avatar: parts[5] || '',
-          greetings: greetings,
-          socialNote: parts[7] || ''
-        };
-      } else if (parts.length >= 9) {
-        // 新版本格式（包含手機號碼）
-        const rawGreetings = parts[7] || '';
-        console.log('[PWA] Raw greetings (9-field):', rawGreetings, typeof rawGreetings);
-        const greetings = rawGreetings ? rawGreetings.split(',').map(g => g.trim()).filter(g => g) : ['歡迎認識我！'];
-        console.log('[PWA] Processed greetings (9-field):', greetings);
-        parsedData = {
-          name: parts[0] || '',
-          title: parts[1] || '',
-          department: parts[2] || '',
-          email: parts[3] || '',
-          phone: parts[4] || '',
-          mobile: parts[5] || '',
-          avatar: parts[6] || '',
-          greetings: greetings,
-          socialNote: parts[8] || ''
-        };
-      } else {
-        throw new Error(`Invalid pipe format: ${parts.length} parts`);
-      }
-      
-      console.log('[PWA] Final parsed data:', parsedData);
-      console.log('[PWA] Final greetings type:', typeof parsedData.greetings, 'isArray:', Array.isArray(parsedData.greetings));
-      return { data: parsedData };
-    } catch (error) {
-      console.log('[PWA] URL-safe pipe parsing failed, trying standard method:', error.message);
-      
-      // 備用方案：標準 Base64 解碼
-      try {
-        const decoded = decodeURIComponent(atob(cardDataParam));
-        const parts = decoded.split('|');
-        
-        let parsedData;
-        if (parts.length === 8) {
-          // 舊版本格式（沒有手機號碼） - 標準版本
-          const greetings = parts[6] ? parts[6].split(',').map(g => g.trim()).filter(g => g) : ['歡迎認識我！'];
-          parsedData = {
-            name: parts[0] || '',
-            title: parts[1] || '',
-            department: parts[2] || '',
-            email: parts[3] || '',
-            phone: parts[4] || '',
-            mobile: '',
-            avatar: parts[5] || '',
-            greetings: greetings,
-            socialNote: parts[7] || ''
-          };
-        } else if (parts.length >= 9) {
-          // 新版本格式（包含手機號碼） - 標準版本
-          const greetings = parts[7] ? parts[7].split(',').map(g => g.trim()).filter(g => g) : ['歡迎認識我！'];
-          parsedData = {
-            name: parts[0] || '',
-            title: parts[1] || '',
-            department: parts[2] || '',
-            email: parts[3] || '',
-            phone: parts[4] || '',
-            mobile: parts[5] || '',
-            avatar: parts[6] || '',
-            greetings: greetings,
-            socialNote: parts[8] || ''
-          };
-        } else {
-          throw new Error(`Invalid pipe format: ${parts.length} parts`);
-        }
-        
-        return { data: parsedData };
-      } catch (standardError) {
-        console.log('[PWA] Standard pipe parsing also failed:', standardError.message);
-        return null;
-      }
-    }
-  }
+
   
-  /**
-   * 解析 Legacy 格式（向下相容性）
-   */
-  parseLegacyFormat(cardDataParam) {
-    try {
-      // 嘗試直接 Base64 解碼
-      const decoded = atob(cardDataParam);
-      const jsonData = JSON.parse(decoded);
-      
-      // 檢查是否為舊版本的完整格式
-      if (jsonData.data && jsonData.data.name) {
-        return jsonData;
-      }
-      
-      return null;
-    } catch (error) {
-      console.log('[PWA] Legacy format parsing failed:', error.message);
-      return null;
-    }
-  }
+
   
-  // 轉換精簡格式為完整格式（優化版本）
-  convertCompactToFull(compactData) {
-    // 預設為延平大樓，後續由 detectCardType 自動識別修正
-    return {
-      data: {
-        name: compactData.n || '',
-        title: compactData.t || '',
-        department: compactData.d || '',
-        organization: compactData.o || '數位發展部',
-        email: compactData.e || '',
-        phone: compactData.p || '',
-        mobile: compactData.m || '',
-        avatar: compactData.a || '',
-        address: compactData.addr || '100057臺北市中正區延平南路143號',
-        greetings: compactData.g || ['歡迎認識我！'],
-        socialLinks: {
-          email: compactData.e ? `mailto:${compactData.e}` : '',
-          socialNote: compactData.s || ''
-        }
-      }
-    };
-  }
+
   
 
 
@@ -758,15 +455,12 @@ class PWACardApp {
 
   async updateStats() {
     try {
-      console.log('[PWA] Updating stats...');
       
       if (!this.storage) {
-        console.warn('[PWA] Storage not available for stats');
         return;
       }
 
       const stats = await this.storage.getStorageStats();
-      console.log('[PWA] Storage stats:', stats);
       
       const totalCardsEl = document.getElementById('total-cards');
       const storageUsedEl = document.getElementById('storage-used');
@@ -775,16 +469,13 @@ class PWACardApp {
       if (totalCardsEl) totalCardsEl.textContent = stats.totalCards || 0;
       if (storageUsedEl) storageUsedEl.textContent = `${stats.storageUsedPercent || 0}%`;
       
-      // 獲取健康檢查狀態
-      if (this.healthManager) {
-        const healthSummary = this.healthManager.getHealthSummary();
+      // 獲取版本統計資訊
+      try {
+        const versionStats = await this.storage.getVersionStats();
         if (lastSyncEl) {
-          lastSyncEl.textContent = 
-            healthSummary.lastCheck ? 
-            new Date(healthSummary.lastCheck).toLocaleDateString() : 
-            '從未';
+          lastSyncEl.textContent = versionStats.totalVersions > 0 ? '已同步' : '從未';
         }
-      } else {
+      } catch (error) {
         if (lastSyncEl) lastSyncEl.textContent = '從未';
       }
 
@@ -800,7 +491,6 @@ class PWACardApp {
         }
       }
       
-      console.log('[PWA] Stats updated successfully');
     } catch (error) {
       console.error('[PWA] Failed to update stats:', error);
     }
@@ -810,18 +500,12 @@ class PWACardApp {
     try {
       const cardsList = document.getElementById('cards-list');
       if (cardsList && this.storage) {
-        console.log('[PWA] Initializing cards list...');
         if (!window.cardList) {
           // 使用 storage 直接初始化，不依賴 cardManager
           window.cardList = new CardListComponent(cardsList, { storage: this.storage });
         }
         await window.cardList.loadCards();
-        console.log('[PWA] Cards list initialized successfully');
       } else {
-        console.warn('[PWA] Cards list initialization skipped:', {
-          cardsList: !!cardsList,
-          storage: !!this.storage
-        });
       }
     } catch (error) {
       console.error('[PWA] Failed to initialize cards list:', error);
@@ -963,12 +647,10 @@ class PWACardApp {
 
   async scanQRCode() {
     try {
-      console.log('[PWA] Starting QR code scan...');
       
       if (this.qrScanner) {
         await this.qrScanner.openScannerModal();
       } else {
-        console.error('[PWA] QR Scanner not initialized');
         this.showNotification('QR 掃描器未初始化', 'error');
         
         // 備用方案：顯示簡單的手動輸入介面
@@ -1050,7 +732,6 @@ class PWACardApp {
             this.showNotification('無法解析名片連結，請確認連結格式正確', 'error');
           }
         } catch (error) {
-          console.error('[PWA] Manual import failed:', error);
           this.showNotification('連結格式不正確', 'error');
         }
       } else {
@@ -1063,7 +744,6 @@ class PWACardApp {
 
   async viewCard(cardId) {
     try {
-      console.log('[PWA] View card:', cardId);
       
       if (!this.cardManager) {
         this.showNotification('名片管理器未初始化', 'error');
@@ -1085,10 +765,8 @@ class PWACardApp {
 
   async generateQR(cardId) {
     try {
-      console.log('[PWA] Generate QR for card:', cardId);
       
       if (!this.cardManager) {
-        console.error('[PWA] CardManager not available');
         this.showNotification('CardManager 未初始化', 'error');
         return;
       }
@@ -1100,7 +778,6 @@ class PWACardApp {
         colorLight: '#ffffff'
       });
       
-      console.log('[PWA] QR generation result:', result);
       
       if (result.success) {
         this.showQRModal(result.dataUrl, result.url, cardId);
@@ -1142,11 +819,9 @@ class PWACardApp {
   }
 
   async searchCards(query) {
-    console.log('[PWA] Search cards:', query);
   }
 
   async filterCards(type) {
-    console.log('[PWA] Filter cards:', type);
   }
 
   updateConnectionStatus() {
@@ -1163,40 +838,46 @@ class PWACardApp {
   }
 
   showCardModal(card) {
-    console.log('[PWA] showCardModal - card.data:', card.data);
-    console.log('[PWA] showCardModal - card.data.greetings:', card.data.greetings);
     
     const displayData = this.cardManager ? 
       this.cardManager.getBilingualCardData(card.data, this.currentLanguage) : 
       card.data;
     
-    console.log('[PWA] showCardModal - displayData:', displayData);
-    console.log('[PWA] showCardModal - displayData.greetings:', displayData.greetings);
     
     const labels = this.getUILabels();
     
-    // 處理問候語顯示 - 直接修復版
+    // 處理問候語顯示 - 支援雙語切換
     let greetingsHtml = '';
     if (displayData.greetings && Array.isArray(displayData.greetings) && displayData.greetings.length > 0) {
       const firstGreeting = displayData.greetings[0];
-      let greetingText = '';
+      let greetingText = this.extractStringFromGreeting(firstGreeting, this.currentLanguage);
       
-      if (firstGreeting && typeof firstGreeting === 'object' && firstGreeting.zh) {
-        greetingText = firstGreeting.zh;
-      } else if (typeof firstGreeting === 'string') {
-        greetingText = firstGreeting.includes('~') ? firstGreeting.split('~')[0] : firstGreeting;
-      } else {
-        greetingText = '歡迎認識我';
+      if (!greetingText) {
+        greetingText = this.currentLanguage === 'en' ? 'Nice to meet you!' : '歡迎認識我';
       }
       
       greetingsHtml = `<div class="detail-item"><strong>${labels.greetings}:</strong><br><div class="greetings-container"><span class="greeting-item">${greetingText}</span></div></div>`;
     }
     
-    // 處理社群資訊顯示 - 增強互動性
+    // 處理社群資訊顯示 - 增強互動性（安全處理）
     let socialHtml = '';
-    if (displayData.socialNote && displayData.socialNote.trim()) {
-      const socialContent = this.formatSocialContent(displayData.socialNote);
-      socialHtml = `<div class="detail-item"><strong>${labels.social}:</strong><br><div class="social-content">${socialContent}</div></div>`;
+    if (displayData.socialNote) {
+      let socialText = '';
+      
+      // 安全處理 socialNote，可能是字串或物件
+      if (typeof displayData.socialNote === 'string') {
+        socialText = displayData.socialNote.trim();
+      } else if (typeof displayData.socialNote === 'object' && displayData.socialNote !== null) {
+        // 處理雙語物件格式
+        socialText = displayData.socialNote.zh || displayData.socialNote.en || String(displayData.socialNote);
+      } else {
+        socialText = String(displayData.socialNote || '').trim();
+      }
+      
+      if (socialText) {
+        const socialContent = this.formatSocialContent(socialText);
+        socialHtml = `<div class="detail-item"><strong>${labels.social}:</strong><br><div class="social-content">${socialContent}</div></div>`;
+      }
     }
     
     const modal = document.createElement('div');
@@ -1313,7 +994,6 @@ class PWACardApp {
             await navigator.clipboard.writeText(value);
             this.showNotification(`已複製: ${value}`, 'success');
           } catch (error) {
-            console.error('Copy failed:', error);
             this.showNotification('複製失敗', 'error');
           }
         }
@@ -1328,6 +1008,16 @@ class PWACardApp {
     // 重新載入名片列表
     if (this.currentPage === 'cards' && window.cardList) {
       window.cardList.refresh();
+    }
+    
+    // 如果有開啟的名片模態視窗，重新渲染
+    const existingModal = document.querySelector('.modal.card-modal');
+    if (existingModal) {
+      const cardId = existingModal.querySelector('.generate-qr-btn')?.dataset.cardId;
+      if (cardId) {
+        existingModal.remove();
+        this.viewCard(cardId);
+      }
     }
     
     this.showNotification(
@@ -1445,7 +1135,6 @@ class PWACardApp {
             filename = window.qrUtils.generateSmartFilename(displayName, this.currentLanguage);
           }
         } catch (error) {
-          console.warn('[PWA] Failed to get card data for filename:', error);
         }
       }
 
@@ -1584,4 +1273,3 @@ window.addEventListener('unhandledrejection', (event) => {
   }
 });
 
-console.log('[PWA] App.js loaded with simplified greeting processing fix');

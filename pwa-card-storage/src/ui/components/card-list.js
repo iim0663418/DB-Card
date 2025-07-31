@@ -25,7 +25,6 @@ class CardListComponent {
 
   init() {
     this.setupEventListeners();
-    console.log('[CardList] Component initialized');
   }
 
   setupEventListeners() {
@@ -48,7 +47,6 @@ class CardListComponent {
 
   async loadCards() {
     try {
-      console.log('[CardList] Loading cards...');
       this.showLoading();
       
       if (!this.storage) {
@@ -56,7 +54,6 @@ class CardListComponent {
       }
       
       const cards = await this.storage.listCards();
-      console.log('[CardList] Retrieved cards from storage:', cards);
       
       this.cards = cards;
       this.filteredCards = [...cards];
@@ -64,7 +61,6 @@ class CardListComponent {
       this.renderCards();
       this.hideLoading();
       
-      console.log(`[CardList] Loaded ${cards.length} cards successfully`);
     } catch (error) {
       console.error('[CardList] Load cards failed:', error);
       this.showError('載入名片失敗');
@@ -84,12 +80,21 @@ class CardListComponent {
       // 搜尋篩選
       if (this.currentFilter.searchTerm) {
         const term = this.currentFilter.searchTerm.toLowerCase();
+        
+        // 安全提取搜尋文字，處理可能是物件的欄位
+        const extractText = (field) => {
+          if (!field) return '';
+          if (typeof field === 'string') return field;
+          if (typeof field === 'object' && field.zh) return field.zh;
+          return String(field);
+        };
+        
         const searchableText = [
-          card.data.name,
-          card.data.title,
-          card.data.email,
-          card.data.organization,
-          card.data.department
+          extractText(card.data.name),
+          extractText(card.data.title),
+          extractText(card.data.email),
+          extractText(card.data.organization),
+          extractText(card.data.department)
         ].filter(Boolean).join(' ').toLowerCase();
         
         if (!searchableText.includes(term)) {
@@ -119,63 +124,103 @@ class CardListComponent {
   }
 
   renderCard(card) {
-    console.log('[CardList] renderCard - Full card data:', card);
-    console.log('[CardList] renderCard - card.data:', card.data);
-    console.log('[CardList] renderCard - card.data.greetings:', card.data.greetings);
-    
     const displayName = this.getDisplayName(card.data);
     const displayTitle = this.getDisplayTitle(card.data);
     const displayGreetings = this.getDisplayGreetings(card.data);
-    
-    console.log('[CardList] renderCard - displayGreetings result:', displayGreetings, typeof displayGreetings);
-    
     const typeLabel = this.getTypeLabel(card.type);
     const lastModified = this.formatDate(card.modified);
     
+    // 組織資訊顯示（安全處理）
+    const orgInfo = [];
+    const safeGetText = (field) => {
+      if (!field) return '';
+      if (typeof field === 'string') return field;
+      if (typeof field === 'object' && field.zh) return field.zh;
+      return String(field);
+    };
+    
+    const orgText = safeGetText(card.data.organization);
+    const deptText = safeGetText(card.data.department);
+    
+    if (orgText) orgInfo.push(orgText);
+    if (deptText) orgInfo.push(deptText);
+    const orgDisplay = orgInfo.join(' · ');
+    
     return `
       <div class="card-item" data-card-id="${card.id}">
-        <div class="card-avatar">
-          ${card.data.avatar ? 
-            `<img src="${card.data.avatar}" alt="${displayName}" class="avatar-image">` :
-            `<div class="avatar-placeholder">${displayName.charAt(0)}</div>`
-          }
-        </div>
-        
-        <div class="card-info">
-          <div class="card-header">
-            <h3 class="card-name">${displayName}</h3>
-            <span class="card-type">${typeLabel}</span>
+        <div class="card-content">
+          <div class="card-main">
+            <div class="card-identity">
+              <div class="card-avatar">
+                ${card.data.avatar ? 
+                  `<img src="${card.data.avatar}" alt="${displayName}" class="avatar-image">` :
+                  `<div class="avatar-placeholder">${displayName.charAt(0)}</div>`
+                }
+              </div>
+              
+              <div class="card-info">
+                <h3 class="card-name">${displayName}</h3>
+                ${displayTitle ? `<p class="card-title">${displayTitle}</p>` : ''}
+                ${orgDisplay ? `<p class="card-org">${orgDisplay}</p>` : ''}
+              </div>
+            </div>
+            
+            <div class="card-type-badge">
+              <span class="type-label">${typeLabel}</span>
+            </div>
           </div>
           
-          <div class="card-details">
-            ${displayTitle ? `<p class="card-title">${displayTitle}</p>` : ''}
-            ${card.data.organization ? `<p class="card-org">${card.data.organization}</p>` : ''}
-            ${card.data.email ? `<p class="card-email">${card.data.email}</p>` : ''}
-
+          ${displayGreetings ? `
+            <div class="card-greeting">
+              <span class="greeting-text">"${displayGreetings}"</span>
+            </div>
+          ` : ''}
+          
+          <div class="card-contact">
+            ${card.data.email ? `
+              <div class="contact-item">
+                <span class="contact-icon">📧</span>
+                <span class="contact-text">${card.data.email}</span>
+              </div>
+            ` : ''}
+            ${card.data.phone ? `
+              <div class="contact-item">
+                <span class="contact-icon">📞</span>
+                <span class="contact-text">${card.data.phone}</span>
+              </div>
+            ` : ''}
+            ${card.data.website ? `
+              <div class="contact-item">
+                <span class="contact-icon">🌐</span>
+                <span class="contact-text">${card.data.website}</span>
+              </div>
+            ` : ''}
           </div>
           
-          <div class="card-meta">
-            <span class="card-date">修改於 ${lastModified}</span>
-            ${card.isFavorite ? '<span class="card-favorite">⭐</span>' : ''}
+          <div class="card-footer">
+            <div class="card-meta">
+              <span class="card-date">儲存於 ${lastModified}</span>
+            </div>
+            
+            <div class="card-actions">
+              <button class="action-btn primary" data-action="view" title="檢視詳細資訊">
+                <span class="action-icon">👁️</span>
+                <span class="action-text">檢視</span>
+              </button>
+              <button class="action-btn secondary" data-action="qr" title="產生 QR 碼分享">
+                <span class="action-icon">📱</span>
+                <span class="action-text">分享</span>
+              </button>
+              <button class="action-btn secondary" data-action="vcard" title="下載為通訊錄格式">
+                <span class="action-icon">📇</span>
+                <span class="action-text">下載</span>
+              </button>
+              <button class="action-btn danger" data-action="delete" title="刪除此名片">
+                <span class="action-icon">🗑️</span>
+                <span class="action-text">刪除</span>
+              </button>
+            </div>
           </div>
-        </div>
-        
-        <div class="card-actions">
-          <button class="btn btn-icon" data-action="view" title="檢視">
-            <span class="icon">👁️</span>
-          </button>
-          <button class="btn btn-icon" data-action="qr" title="生成 QR 碼">
-            <span class="icon">📱</span>
-          </button>
-          <button class="btn btn-icon" data-action="vcard" title="下載 vCard">
-            <span class="icon">📇</span>
-          </button>
-          <button class="btn btn-icon" data-action="edit" title="編輯">
-            <span class="icon">✏️</span>
-          </button>
-          <button class="btn btn-icon btn-danger" data-action="delete" title="刪除">
-            <span class="icon">🗑️</span>
-          </button>
         </div>
       </div>
     `;
@@ -184,18 +229,53 @@ class CardListComponent {
   renderEmptyState() {
     const hasFilter = this.currentFilter.searchTerm || this.currentFilter.type;
     
-    this.container.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">📇</div>
-        <h3>${hasFilter ? '沒有符合條件的名片' : '尚未儲存任何名片'}</h3>
-        <p>${hasFilter ? '請嘗試調整搜尋條件' : '開始匯入您的第一張數位名片'}</p>
-        ${!hasFilter ? `
-          <button class="btn btn-primary" data-action="navigate-import">
-            匯入名片
-          </button>
-        ` : ''}
-      </div>
-    `;
+    if (hasFilter) {
+      this.container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <h3>沒有找到符合條件的名片</h3>
+          <p>請嘗試調整搜尋關鍵字或篩選條件</p>
+          <div class="empty-actions">
+            <button class="btn btn-secondary" data-action="clear-filters">
+              清除篩選條件
+            </button>
+          </div>
+        </div>
+      `;
+    } else {
+      this.container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-illustration">
+            <div class="empty-icon">📇</div>
+            <div class="empty-cards">
+              <div class="ghost-card"></div>
+              <div class="ghost-card"></div>
+              <div class="ghost-card"></div>
+            </div>
+          </div>
+          <h3>還沒有儲存任何名片</h3>
+          <p>匯入您的第一張數位名片，開始建立您的名片收藏</p>
+          <div class="empty-actions">
+            <button class="btn btn-primary" data-action="navigate-import">
+              <span class="btn-icon">📥</span>
+              開始匯入名片
+            </button>
+            <button class="btn btn-secondary" data-action="scan-qr">
+              <span class="btn-icon">📱</span>
+              掃描 QR 碼
+            </button>
+          </div>
+          <div class="empty-tips">
+            <h4>💡 小提示</h4>
+            <ul>
+              <li>支援從 URL 連結匯入名片</li>
+              <li>可掃描 QR 碼快速新增</li>
+              <li>支援匯入 JSON 和 vCard 檔案</li>
+            </ul>
+          </div>
+        </div>
+      `;
+    }
     
     this.bindEmptyStateEvents();
   }
@@ -237,12 +317,10 @@ class CardListComponent {
         case 'vcard':
           await this.exportVCard(cardId);
           break;
-        case 'edit':
-          await this.editCard(cardId);
-          break;
         case 'delete':
           await this.deleteCard(cardId);
           break;
+        default:
       }
     } catch (error) {
       console.error(`[CardList] Action ${action} failed:`, error);
@@ -268,9 +346,6 @@ class CardListComponent {
     }
   }
 
-  async editCard(cardId) {
-    this.showNotification('編輯功能開發中', 'info');
-  }
 
   async deleteCard(cardId) {
     if (!confirm('確定要刪除這張名片嗎？此操作無法復原。')) {
@@ -294,43 +369,69 @@ class CardListComponent {
   // 工具方法
 
   getDisplayName(cardData) {
-    if (cardData.name && cardData.name.includes('~')) {
-      const [chinese] = cardData.name.split('~');
-      return chinese.trim();
+    try {
+      if (!cardData || !cardData.name) return '未知姓名';
+      
+      const name = cardData.name;
+      
+      // 處理物件格式
+      if (typeof name === 'object' && name !== null) {
+        return name.zh || name.en || '未知姓名';
+      }
+      
+      // 處理字串格式
+      if (typeof name === 'string') {
+        if (name.indexOf('~') !== -1) {
+          const parts = name.split('~');
+          return parts[0] ? parts[0].trim() : '未知姓名';
+        }
+        return name.trim() || '未知姓名';
+      }
+      
+      return String(name) || '未知姓名';
+    } catch (error) {
+      return '未知姓名';
     }
-    return cardData.name || '未知姓名';
   }
 
   getDisplayTitle(cardData) {
-    if (cardData.title && cardData.title.includes('~')) {
-      const [chinese] = cardData.title.split('~');
-      return chinese.trim();
+    try {
+      if (!cardData || !cardData.title) return '';
+      
+      const title = cardData.title;
+      
+      // 處理物件格式
+      if (typeof title === 'object' && title !== null) {
+        return title.zh || title.en || '';
+      }
+      
+      // 處理字串格式
+      if (typeof title === 'string') {
+        if (title.indexOf('~') !== -1) {
+          const parts = title.split('~');
+          return parts[0] ? parts[0].trim() : '';
+        }
+        return title.trim();
+      }
+      
+      return String(title) || '';
+    } catch (error) {
+      return '';
     }
-    return cardData.title || '';
   }
 
   getDisplayGreetings(cardData) {
-    console.log('[CardList] getDisplayGreetings - input cardData:', cardData);
-    console.log('[CardList] getDisplayGreetings - cardData.greetings:', cardData.greetings);
-    
     if (!cardData || !cardData.greetings) {
-      console.log('[CardList] No greetings data found');
       return '';
     }
     
     if (Array.isArray(cardData.greetings) && cardData.greetings.length > 0) {
       const firstGreeting = cardData.greetings[0];
-      console.log('[CardList] First greeting:', firstGreeting, typeof firstGreeting);
       
-      if (firstGreeting && typeof firstGreeting === 'object') {
-        console.log('[CardList] Object greeting - zh:', firstGreeting.zh, 'en:', firstGreeting.en);
-        const result = firstGreeting.zh || firstGreeting.en || '';
-        console.log('[CardList] Final result:', result);
-        return result;
-      }
+      // 使用與儲存層一致的提取邏輯
+      const result = this.processGreetingItem(firstGreeting);
+      return result;
     }
-    
-    console.log('[CardList] No valid greeting found, returning empty');
     return '';
   }
 
@@ -338,54 +439,55 @@ class CardListComponent {
     if (!greeting) return '';
     
     if (typeof greeting === 'string') {
+      const trimmed = greeting.trim();
+      if (!trimmed) return '';
+      
+      // 過濾掉無效的字串
+      if (trimmed === '[object Object]' || 
+          trimmed === 'undefined' || 
+          trimmed === 'null' ||
+          trimmed === '[object Undefined]' ||
+          trimmed === '[object Null]') {
+        return '';
+      }
+      
       // 處理雙語格式 "中文~English"
-      if (greeting.includes('~')) {
-        const [chinese] = greeting.split('~');
+      if (trimmed.includes('~')) {
+        const [chinese] = trimmed.split('~');
         return chinese ? chinese.trim() : '';
       }
-      return greeting.trim();
+      return trimmed;
     }
     
     if (typeof greeting === 'object' && greeting !== null) {
-      // 處理物件格式 {zh: "中文", en: "English"} - 強化版
+      // 只處理標準的雙語物件格式 {zh: "中文", en: "English"}
       if (greeting.zh && typeof greeting.zh === 'string') {
-        return greeting.zh.trim();
-      } else if (greeting.en && typeof greeting.en === 'string') {
-        return greeting.en.trim();
+        const trimmed = greeting.zh.trim();
+        if (trimmed && trimmed !== '[object Object]') return trimmed;
+      }
+      if (greeting.en && typeof greeting.en === 'string') {
+        const trimmed = greeting.en.trim();
+        if (trimmed && trimmed !== '[object Object]') return trimmed;
       }
       
-      // 提取第一個有效的字串值
-      const values = Object.values(greeting);
-      for (const value of values) {
-        if (value && typeof value === 'string' && value.trim()) {
-          return value.trim();
-        }
-      }
-      
-      // 如果都沒有有效字串，返回空字串
+      // 不提取任意物件的值，只接受標準格式
       return '';
     }
     
-    // 其他類型：嘗試轉換為字串，但避免 [object Object]
-    const stringified = String(greeting);
-    if (stringified === '[object Object]' || stringified === 'undefined' || stringified === 'null') {
-      return '';
-    }
-    
-    return stringified.trim();
+    return '';
   }
 
   getTypeLabel(type) {
     const typeLabels = {
-      'gov-yp': '機關版-延平',
-      'gov-sg': '機關版-新光',
+      'index': '機關版-延平大樓',
+      'index1': '機關版-新光大樓',
       'personal': '個人版',
-      'bilingual': '雙語版',
+      'bilingual': '雙語版-延平',
+      'bilingual1': '雙語版-新光',
       'personal-bilingual': '個人雙語版',
-      'en': '英文版',
-      'personal-en': '個人英文版',
-      'gov-yp-en': '機關英文版-延平',
-      'gov-sg-en': '機關英文版-新光'
+      'en': '英文版-延平',
+      'en1': '英文版-新光',
+      'personal-en': '個人英文版'
     };
     return typeLabels[type] || '未知類型';
   }
@@ -481,6 +583,31 @@ class CardListComponent {
         if (window.app) {
           window.app.navigateTo('import');
         }
+      });
+    }
+    
+    const scanBtn = this.container.querySelector('[data-action="scan-qr"]');
+    if (scanBtn) {
+      scanBtn.addEventListener('click', () => {
+        if (window.app) {
+          window.app.startQRScan();
+        }
+      });
+    }
+    
+    const clearFiltersBtn = this.container.querySelector('[data-action="clear-filters"]');
+    if (clearFiltersBtn) {
+      clearFiltersBtn.addEventListener('click', () => {
+        // 清除篩選條件
+        const searchInput = document.getElementById('card-search');
+        const filterSelect = document.getElementById('card-filter');
+        
+        if (searchInput) searchInput.value = '';
+        if (filterSelect) filterSelect.value = '';
+        
+        this.currentFilter = {};
+        this.filteredCards = [...this.cards];
+        this.renderCards();
       });
     }
   }

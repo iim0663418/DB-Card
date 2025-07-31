@@ -14,7 +14,6 @@ class HealthManager {
    * PWA-07: 資料健康檢查機制
    */
   async initialize() {
-    console.log('[Health] Initializing health manager...');
     
     // 啟動時執行健康檢查
     await this.performHealthCheck();
@@ -22,7 +21,6 @@ class HealthManager {
     // 設定定期健康檢查（每小時）
     this.scheduleHealthChecks();
     
-    console.log('[Health] Health manager initialized');
   }
 
   /**
@@ -30,7 +28,6 @@ class HealthManager {
    */
   async performHealthCheck() {
     try {
-      console.log('[Health] Starting health check...');
       
       const healthReport = {
         timestamp: new Date().toISOString(),
@@ -69,7 +66,6 @@ class HealthManager {
       await this.storage.setSetting('lastHealthCheck', healthReport);
       this.lastHealthCheck = healthReport;
       
-      console.log(`[Health] Health check completed. Status: ${healthReport.status}`);
       return healthReport;
     } catch (error) {
       console.error('[Health] Health check failed:', error);
@@ -287,7 +283,6 @@ class HealthManager {
           security.pbkdf2Support = true;
           security.aesGcmSupport = true;
         } catch (error) {
-          console.warn('[Health] Crypto feature test failed:', error);
         }
       }
 
@@ -296,7 +291,6 @@ class HealthManager {
         const meta = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
         security.cspHeaders = !!meta || document.querySelector('meta[name="csp-nonce"]');
       } catch (error) {
-        console.warn('[Health] CSP check failed:', error);
       }
 
       const supportedFeatures = Object.values(security).filter(Boolean).length;
@@ -365,7 +359,6 @@ class HealthManager {
       // 清理孤立版本
       await this.storage.cleanupOrphanedVersions();
       
-      console.log('[Health] Storage cleanup completed');
     } catch (error) {
       console.error('[Health] Storage cleanup failed:', error);
     }
@@ -376,7 +369,6 @@ class HealthManager {
    */
   async createEmergencyBackup() {
     try {
-      console.log('[Health] Creating emergency backup...');
       
       const cards = await this.storage.listCards();
       const backupData = {
@@ -400,7 +392,6 @@ class HealthManager {
       // 清理舊的緊急備份（保留最近 3 個）
       this.cleanupEmergencyBackups();
       
-      console.log('[Health] Emergency backup created:', backupKey);
       return backupKey;
     } catch (error) {
       console.error('[Health] Emergency backup failed:', error);
@@ -413,7 +404,6 @@ class HealthManager {
    */
   async restoreFromEmergencyBackup(backupKey) {
     try {
-      console.log('[Health] Restoring from emergency backup:', backupKey);
       
       const backupData = localStorage.getItem(backupKey);
       if (!backupData) {
@@ -428,11 +418,9 @@ class HealthManager {
           await this.storage.storeCard(card.data);
           restoredCount++;
         } catch (error) {
-          console.warn(`[Health] Failed to restore card ${card.id}:`, error);
         }
       }
       
-      console.log(`[Health] Restored ${restoredCount} cards from emergency backup`);
       return { success: true, restoredCount };
     } catch (error) {
       console.error('[Health] Emergency restore failed:', error);
@@ -463,7 +451,6 @@ class HealthManager {
       });
       
       if (keysToDelete.length > 0) {
-        console.log(`[Health] Cleaned up ${keysToDelete.length} old emergency backups`);
       }
     } catch (error) {
       console.error('[Health] Emergency backup cleanup failed:', error);
@@ -479,7 +466,6 @@ class HealthManager {
       this.performHealthCheck();
     }, 60 * 60 * 1000);
     
-    console.log('[Health] Scheduled health checks every hour');
   }
 
   /**
@@ -489,7 +475,6 @@ class HealthManager {
     if (this.healthCheckInterval) {
       clearInterval(this.healthCheckInterval);
       this.healthCheckInterval = null;
-      console.log('[Health] Stopped scheduled health checks');
     }
   }
 
@@ -551,7 +536,6 @@ class HealthManager {
    */
   destroy() {
     this.stopHealthChecks();
-    console.log('[Health] Health manager destroyed');
   }
 }
 

@@ -14,9 +14,7 @@ class VersionManager {
 
   async initialize() {
     try {
-      console.log('[VersionManager] Initializing version manager...');
       await this.initDatabase();
-      console.log('[VersionManager] Version manager initialized successfully');
     } catch (error) {
       console.error('[VersionManager] Initialization failed:', error);
       throw error;
@@ -37,7 +35,6 @@ class VersionManager {
       
       request.onsuccess = () => {
         this.db = request.result;
-        console.log('[VersionManager] Version database opened successfully');
         resolve();
       };
       
@@ -50,13 +47,11 @@ class VersionManager {
           versionStore.createIndex('cardId', 'cardId', { unique: false });
           versionStore.createIndex('timestamp', 'timestamp', { unique: false });
           versionStore.createIndex('version', 'version', { unique: false });
-          console.log('[VersionManager] Version store created');
         }
         
         // 建立版本元資料 store
         if (!db.objectStoreNames.contains('versionMeta')) {
           const metaStore = db.createObjectStore('versionMeta', { keyPath: 'cardId' });
-          console.log('[VersionManager] Version meta store created');
         }
       };
     });
@@ -67,7 +62,6 @@ class VersionManager {
    */
   async createVersionSnapshot(cardId, cardData, changeType = 'update', description = '') {
     try {
-      console.log('[VersionManager] Creating version snapshot for card:', cardId);
       
       if (!this.db) {
         throw new Error('Version database not initialized');
@@ -106,7 +100,6 @@ class VersionManager {
       // 清理舊版本（保持最多 10 個版本）
       await this.cleanupOldVersions(cardId);
 
-      console.log('[VersionManager] Version snapshot created:', versionSnapshot.id);
       return versionSnapshot;
     } catch (error) {
       console.error('[VersionManager] Failed to create version snapshot:', error);
@@ -141,7 +134,6 @@ class VersionManager {
             maxVersions: this.maxVersions
           };
           
-          console.log('[VersionManager] Retrieved version history:', history);
           resolve(history);
         };
         
@@ -161,7 +153,6 @@ class VersionManager {
    */
   async restoreVersion(cardId, targetVersion) {
     try {
-      console.log('[VersionManager] Restoring card to version:', cardId, targetVersion);
       
       // 獲取目標版本資料
       const versionSnapshot = await this.getVersionSnapshot(cardId, targetVersion);
@@ -172,7 +163,6 @@ class VersionManager {
       // 驗證資料完整性
       const calculatedChecksum = await this.calculateChecksum(versionSnapshot.data);
       if (calculatedChecksum !== versionSnapshot.checksum) {
-        console.warn('[VersionManager] Version data integrity check failed');
         // 繼續執行，但記錄警告
       }
 
@@ -187,7 +177,6 @@ class VersionManager {
         `Restored to version ${targetVersion}`
       );
 
-      console.log('[VersionManager] Successfully restored to version:', targetVersion);
       return {
         success: true,
         restoredVersion: targetVersion,
@@ -288,7 +277,6 @@ class VersionManager {
    */
   async cleanupExpiredVersions(daysOld = 30) {
     try {
-      console.log('[VersionManager] Cleaning up versions older than', daysOld, 'days');
       
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - daysOld);
@@ -313,7 +301,6 @@ class VersionManager {
             }
             cursor.continue();
           } else {
-            console.log('[VersionManager] Cleanup completed, deleted', deletedCount, 'versions');
             resolve(deletedCount);
           }
         };
@@ -440,7 +427,6 @@ class VersionManager {
           store.delete(versionId);
         }
         
-        console.log('[VersionManager] Cleaned up', versionsToDelete.length, 'old versions for card:', cardId);
       }
     } catch (error) {
       console.error('[VersionManager] Cleanup old versions failed:', error);

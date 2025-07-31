@@ -1,134 +1,115 @@
 /**
- * PWA 整合腳本
- * 為所有 9 個名片介面提供 PWA 儲存功能
+ * PWA 整合模組 - URL 暫存與類型識別
+ * 解決名片頁面跳轉到 PWA 後 URL 識別問題
  */
 
-(function() {
-    'use strict';
-    
-    // PWA 儲存功能
-    function setupPWASaveButton(cardData) {
-        const saveButton = document.getElementById('save-to-pwa-btn');
-        if (!saveButton) return;
-        
-        saveButton.addEventListener('click', function() {
-            // 檢查 PWA 是否可用
-            if (window.location.protocol !== 'https:' && 
-                window.location.hostname !== 'localhost' && 
-                window.location.hostname !== '127.0.0.1') {
-                alert('離線儲存功能需要 HTTPS 連線或本地環境');
-                return;
-            }
-            
-            // 獲取當前 URL 參數
-            const urlParams = new URLSearchParams(window.location.search);
-            const dataParam = urlParams.get('data') || urlParams.get('c');
-            
-            if (!dataParam) {
-                alert('無法獲取名片資料');
-                return;
-            }
-            
-            // 構建 PWA URL（資料已經編碼過，不需要再次編碼）
-            const pwaUrl = window.location.origin + '/pwa-card-storage/?c=' + dataParam;
-            
-            // 在新窗口開啟 PWA
-            const pwaWindow = window.open(pwaUrl, '_blank');
-            
-            if (pwaWindow) {
-                // 更新按鈕狀態
-                const originalText = saveButton.textContent;
-                const originalBg = saveButton.style.background;
-                
-                saveButton.textContent = '✅ 已開啟 PWA';
-                saveButton.style.background = '#6c757d';
-                saveButton.disabled = true;
-                
-                setTimeout(() => {
-                    saveButton.textContent = originalText;
-                    saveButton.style.background = originalBg;
-                    saveButton.disabled = false;
-                }, 3000);
-            } else {
-                alert('無法開啟 PWA，請檢查瀏覽器設定');
-            }
-        });
-    }
-    
-    // 添加 PWA 儲存按鈕到頁面
-    function addPWASaveButton() {
-        // 尋找現有的下載按鈕
-        const downloadBtn = document.getElementById('add-contact-btn');
-        if (!downloadBtn) return;
-        
-        // 檢查是否已經添加過按鈕
-        if (document.getElementById('save-to-pwa-btn')) return;
-        
-        // 創建 PWA 儲存按鈕
-        const saveButton = document.createElement('button');
-        saveButton.id = 'save-to-pwa-btn';
-        saveButton.className = 'download-btn';
-        saveButton.textContent = '💾 儲存到離線';
-        saveButton.style.cssText = `
-            background: #28a745; 
-            border-color: #28a745; 
-            margin-left: 10px;
-            margin-top: 10px;
-        `;
-        
-        // 在下載按鈕後插入
-        downloadBtn.parentNode.insertBefore(saveButton, downloadBtn.nextSibling);
-        
-        return saveButton;
-    }
-    
-    // 自動初始化
-    function autoInit() {
-        // 等待 DOM 載入完成
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', autoInit);
-            return;
-        }
-        
-        // 添加按鈕
-        const saveButton = addPWASaveButton();
-        if (!saveButton) return;
-        
-        // 等待名片資料載入
-        let attempts = 0;
-        const maxAttempts = 50; // 5 秒超時
-        
-        const checkForCardData = () => {
-            attempts++;
-            
-            // 檢查是否有名片資料
-            const urlParams = new URLSearchParams(window.location.search);
-            const hasData = urlParams.get('data') || urlParams.get('c');
-            
-            if (hasData) {
-                // 設定按鈕功能
-                setupPWASaveButton();
-                return;
-            }
-            
-            if (attempts < maxAttempts) {
-                setTimeout(checkForCardData, 100);
-            } else {
-                // 超時後隱藏按鈕
-                saveButton.style.display = 'none';
-            }
-        };
-        
-        checkForCardData();
-    }
-    
-    // 全域函數供手動調用
-    window.PWAIntegration = {
-        setupPWASaveButton: setupPWASaveButton,
-        addPWASaveButton: addPWASaveButton,
-        init: autoInit
+class PWAIntegration {
+  constructor() {
+    this.STORAGE_KEY = 'pwa_card_source_url';
+    this.STORAGE_EXPIRY = 5 * 60 * 1000; // 5分鐘過期
+  }
+
+  /**
+   * 在名片頁面觸發儲存時暫存原始 URL
+   */
+  storeSourceUrl() {
+    const sourceData = {
+      url: window.location.href,
+      timestamp: Date.now(),
+      referrer: document.referrer
     };
     
-    // 自動初始化
-    autoInit();
-})();
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(sourceData));
+      console.log('[PWA] 暫存來源 URL:', sourceData.url);
+    } catch (error) {
+      console.warn('[PWA] 無法暫存來源 URL:', error);
+    }
+  }
+
+  /**
+   * 在 PWA 中獲取暫存的原始 URL
+   */
+  getSourceUrl() {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (!stored) return null;
+
+      const sourceData = JSON.parse(stored);
+      
+      // 檢查是否過期
+      if (Date.now() - sourceData.timestamp > this.STORAGE_EXPIRY) {
+        localStorage.removeItem(this.STORAGE_KEY);
+        return null;
+      }
+
+      return sourceData.url;
+    } catch (error) {
+      console.warn('[PWA] 無法讀取來源 URL:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 清除暫存的 URL（使用後清理）
+   */
+  clearSourceUrl() {
+    try {
+      localStorage.removeItem(this.STORAGE_KEY);
+    } catch (error) {
+      console.warn('[PWA] 無法清除來源 URL:', error);
+    }
+  }
+
+  /**
+   * 根據暫存的 URL 識別名片類型
+   */
+  identifyCardTypeFromSource() {
+    const sourceUrl = this.getSourceUrl();
+    if (!sourceUrl) return null;
+
+    const url = sourceUrl.toLowerCase().trim();
+    console.log('[PWA] 使用暫存 URL 識別類型:', url);
+
+    // 精確匹配名片類型
+    if (url.includes('index-bilingual-personal.html')) return 'personal-bilingual';
+    if (url.includes('index1-bilingual.html')) return 'bilingual1';
+    if (url.includes('index-bilingual.html')) return 'bilingual';
+    if (url.includes('index-personal-en.html')) return 'personal-en';
+    if (url.includes('index1-en.html')) return 'en1';
+    if (url.includes('index-en.html')) return 'en';
+    if (url.includes('index-personal.html')) return 'personal';
+    if (url.includes('index1.html')) return 'index1';
+    if (url.includes('index.html')) return 'index';
+
+    return null;
+  }
+}
+
+// 全域實例
+window.pwaIntegration = new PWAIntegration();
+
+// 自動檢測並暫存 URL（在名片頁面）
+if (window.location.pathname.includes('index') && 
+    !window.location.pathname.includes('pwa-card-storage')) {
+  
+  // 監聽 PWA 儲存按鈕點擊
+  document.addEventListener('DOMContentLoaded', () => {
+    // 查找所有可能的儲存按鈕
+    const storageButtons = document.querySelectorAll('[onclick*="pwa"], [data-action="store"], .pwa-store-btn');
+    
+    storageButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        window.pwaIntegration.storeSourceUrl();
+      });
+    });
+
+    // 監聽 PWA 相關的連結點擊
+    const pwaLinks = document.querySelectorAll('a[href*="pwa-card-storage"]');
+    pwaLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        window.pwaIntegration.storeSourceUrl();
+      });
+    });
+  });
+}

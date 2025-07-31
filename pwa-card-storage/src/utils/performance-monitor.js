@@ -18,8 +18,6 @@ class PerformanceMonitor {
    * 初始化效能監控
    */
   async initialize() {
-    console.log('[Performance] Initializing performance monitor...');
-    
     // 監控頁面載入時間
     this.measureLoadTime();
     
@@ -34,8 +32,6 @@ class PerformanceMonitor {
     
     // 設定定期監控
     this.startPeriodicMonitoring();
-    
-    console.log('[Performance] Performance monitor initialized');
   }
 
   /**
@@ -46,7 +42,6 @@ class PerformanceMonitor {
       if (performance.timing) {
         const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
         this.metrics.loadTime = loadTime;
-        console.log(`[Performance] Page load time: ${loadTime}ms`);
       }
       
       // 使用 Performance Observer 監控更詳細的指標
@@ -55,7 +50,6 @@ class PerformanceMonitor {
           for (const entry of list.getEntries()) {
             if (entry.entryType === 'navigation') {
               this.metrics.loadTime = entry.loadEventEnd - entry.fetchStart;
-              console.log(`[Performance] Navigation timing: ${this.metrics.loadTime}ms`);
             }
           }
         });
@@ -64,7 +58,7 @@ class PerformanceMonitor {
         this.observers.push(observer);
       }
     } catch (error) {
-      console.warn('[Performance] Load time measurement failed:', error);
+      // Load time measurement failed silently
     }
   }
 
@@ -88,7 +82,7 @@ class PerformanceMonitor {
         setInterval(updateMemoryMetrics, 30000);
       }
     } catch (error) {
-      console.warn('[Performance] Memory monitoring failed:', error);
+      // Memory monitoring failed silently
     }
   }
 
@@ -116,7 +110,7 @@ class PerformanceMonitor {
         battery.addEventListener('chargingchange', updateBatteryMetrics);
       }
     } catch (error) {
-      console.warn('[Performance] Battery monitoring failed:', error);
+      // Battery monitoring failed silently
     }
   }
 
@@ -145,7 +139,7 @@ class PerformanceMonitor {
         });
       }
     } catch (error) {
-      console.warn('[Performance] Network speed measurement failed:', error);
+      // Network speed measurement failed silently
     }
   }
 
@@ -184,7 +178,6 @@ class PerformanceMonitor {
     }
     
     if (warnings.length > 0) {
-      console.warn('[Performance] Performance warnings:', warnings);
       this.triggerOptimizations();
     }
   }
@@ -194,8 +187,6 @@ class PerformanceMonitor {
    */
   async triggerOptimizations() {
     try {
-      console.log('[Performance] Triggering performance optimizations...');
-      
       // 清理記憶體
       if (window.PWACardStorage) {
         const storage = new window.PWACardStorage();
@@ -208,8 +199,6 @@ class PerformanceMonitor {
         const oldCaches = cacheNames.filter(name => !name.includes('v1.0.1'));
         await Promise.all(oldCaches.map(name => caches.delete(name)));
       }
-      
-      console.log('[Performance] Performance optimizations completed');
     } catch (error) {
       console.error('[Performance] Performance optimization failed:', error);
     }
@@ -277,7 +266,6 @@ class PerformanceMonitor {
   destroy() {
     this.observers.forEach(observer => observer.disconnect());
     this.observers = [];
-    console.log('[Performance] Performance monitor destroyed');
   }
 }
 

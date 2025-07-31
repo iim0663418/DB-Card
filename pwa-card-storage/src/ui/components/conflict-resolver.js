@@ -23,7 +23,6 @@ class ConflictResolver {
   init() {
     this.createUI();
     this.setupEventListeners();
-    console.log('[ConflictResolver] Conflict resolver initialized');
   }
 
   /**
@@ -37,7 +36,6 @@ class ConflictResolver {
     this.renderConflicts();
     this.show();
     
-    console.log('[ConflictResolver] Showing conflicts:', conflicts.length);
   }
 
   /**
@@ -263,7 +261,6 @@ class ConflictResolver {
         this.resolutions.set(index, resolution);
         this.updateResolveButton();
         
-        console.log('[ConflictResolver] Resolution set:', index, resolution);
       });
     });
   }
@@ -294,7 +291,6 @@ class ConflictResolver {
     
     this.updateResolveButton();
     
-    console.log('[ConflictResolver] Bulk action applied:', action, resolution);
   }
 
   /**
@@ -322,7 +318,6 @@ class ConflictResolver {
       this.options.onCancel();
     }
     
-    console.log('[ConflictResolver] Conflict resolution cancelled');
   }
 
   /**
@@ -346,7 +341,6 @@ class ConflictResolver {
       this.options.onResolve(resolutionArray, this.importData);
     }
     
-    console.log('[ConflictResolver] Conflicts resolved:', resolutionArray);
   }
 
   /**
@@ -418,7 +412,6 @@ class ConflictResolver {
       conflictList.innerHTML = '';
     }
     
-    console.log('[ConflictResolver] Conflict resolver reset');
   }
 
   /**
@@ -485,4 +478,3 @@ class ConflictResolver {
 // 全域可用
 window.ConflictResolver = ConflictResolver;
 
-console.log('[ConflictResolver] Conflict resolver component loaded');

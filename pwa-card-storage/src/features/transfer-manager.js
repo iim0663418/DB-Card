@@ -14,7 +14,6 @@ class TransferManager {
    */
   async exportEncrypted(options = {}) {
     try {
-      console.log('[Transfer] Starting encrypted export...');
 
       // 獲取要匯出的名片
       const cards = await this.getCardsForExport(options);
@@ -85,7 +84,6 @@ class TransferManager {
    */
   async importData(file, password = null) {
     try {
-      console.log('[Transfer] Starting import from file:', file.name);
 
       const fileContent = await this.readFile(file);
       let importData;
@@ -134,7 +132,6 @@ class TransferManager {
    */
   async resolveConflictsAndImport(importData, resolutions) {
     try {
-      console.log('[Transfer] Resolving conflicts and importing...');
 
       const cardsToImport = [];
       

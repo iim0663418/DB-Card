@@ -1,9 +1,9 @@
 ---
-version: "1.3.2"
-rev_id: "D-001"
-last_updated: "2024-12-19"
+version: "1.4.1"
+rev_id: "D-003"
+last_updated: "2024-12-20"
 owners: ["Technical Team", "DB-Card Project"]
-status: "Implementation Complete"
+status: "🔄 Partial Fix Applied - PWA-36 Resolved"
 ---
 
 # PWA 名片離線儲存服務技術設計文件
@@ -53,12 +53,61 @@ graph TB
 - 跨設備傳輸管理
 - 版本控制系統（10 版本限制）
 
-## 2. Data Models
+## 2. UAT Critical Issues Found
 
-### 2.1 統一名片資料模型
+### 2.1 實際測試問題分析
+
+**✅ Fixed Issue: PWA-36 名片類型識別錯誤**
+- **問題**: index.html 被誤判為雙語版本
+- **根因**: URL 檢測優先級不足，被資料特徵覆蓋
+- **修復**: 強化 URL 檢測絕對優先權
+- **狀態**: ✅ 已修復並驗證
+
+**❌ Critical Issue 1: 問候語顯示錯誤**
+- **問題**: 名片詳細資訊中問候語顯示 `[object Object]`
+- **根因**: greetings 陣列未正確序列化為字串
+- **影響**: 名片資訊完全無法正常閱讀
+- **狀態**: 未解決
+
+**❌ Critical Issue 2: UI 優先級錯誤**
+- **問題**: 使用者強調社群資訊應重要於問候語顯示
+- **現況**: 當前設計未體現此優先級
+- **需求**: 社群資訊需優先且突出顯示
+- **狀態**: 設計需修正
+
+**❌ Critical Issue 3: QR 碼掃描失效**
+- **問題**: 能開啟鏡頭但無法辨識 QR 碼
+- **現象**: 相機權限正常，但識別功能完全失效
+- **影響**: 核心功能無法使用
+- **狀態**: 未解決
+
+**❌ Critical Issue 4: Mobile RWD 設計不良**
+- **問題**: Mobile 解析度下操作圖示又小又超出網頁邊界
+- **影響**: 行動裝置完全無法正常使用
+- **具體問題**: 圖示尺寸不足、版面溢出
+- **狀態**: 需重新設計
+
+**❌ Critical Issue 5: 儲存按鈕觸發時未立即暫存 URL 導致分類錯誤**
+- **問題**: 名片介面上的「儲存到離線」按鈕觸發當下沒有馬上暫存當前 URL
+- **根因**: 缺少按鈕點擊瞬間的 URL 快照機制，導致後續類型識別時 URL 已改變
+- **影響**: 無法正確分類名片類型，因為類型識別依賴準確的 URL 資訊
+- **期望行為**: 按鈕點擊瞬間立即暫存 `window.location.href` 供後續類型識別使用
+- **狀態**: 需新增按鈕觸發瞬間的 URL 暫存機制
+
+### 2.2 UAT 結論
+- **整體狀態**: 🔄 部分修復完成，仍有 5 個 Critical 問題待解決
+- **可用性**: 類型識別已修復，但其他核心功能仍有問題
+- **緊急程度**: 需立即修復剩餘 Critical 問題，特別是儲存按鈕觸發時的 URL 暫存問題
+- **已修復**: PWA-36 類型識別錯誤
+- **新發現**: 儲存按鈕觸發時未立即暫存 URL 導致分類錯誤
+
+## 3. Data Models (Revised)
+
+### 3.1 統一名片資料模型 (UAT 問題修正版)
 
 ```typescript
 // 統一的名片資料結構，支援 9 種類型
+// ⚠️ UAT 發現問題：greetings 序列化錯誤，需修正處理方式
 interface UnifiedCardData {
   // 基本識別
   id: string;                    // UUID v4
@@ -77,10 +126,10 @@ interface UnifiedCardData {
   mobile?: string;
   address?: string;
   
-  // 多媒體與社交
+  // 多媒體與社交 (UAT 反饋：調整優先級)
   avatar?: string;              // 頭像 URL
-  greetings?: string[];         // 問候語列表
-  socialNote?: string;          // 社群媒體資訊
+  socialNote?: string;          // 🔥 社群媒體資訊 (UAT: 應優先於問候語顯示)
+  greetings?: string | string[]; // ⚠️ 問候語 (UAT: 顯示 [object Object] 錯誤)
   
   // 元資料
   created: Date;
@@ -90,20 +139,34 @@ interface UnifiedCardData {
   encrypted: boolean;
 }
 
-// 9 種支援的名片類型
+// UAT 發現的資料處理問題
+interface DataProcessingIssues {
+  greetingsSerializationError: {
+    problem: "greetings 陣列顯示為 [object Object]";
+    impact: "名片資訊完全無法閱讀";
+    status: "未解決";
+  };
+  displayPriorityError: {
+    problem: "社群資訊未優先於問候語顯示";
+    userFeedback: "社群資訊重要於問候語";
+    status: "設計需修正";
+  };
+}
+
+// 9 種支援的名片類型（更新版）
 type CardType = 
-  | 'gov-yp'                   // 機關版-延平大樓
-  | 'gov-sg'                   // 機關版-新光大樓  
-  | 'personal'                 // 個人版
-  | 'bilingual'                // 雙語版
-  | 'personal-bilingual'       // 個人雙語版
-  | 'en'                       // 英文版
-  | 'personal-en'              // 個人英文版
-  | 'gov-yp-en'               // 機關版延平英文
-  | 'gov-sg-en';              // 機關版新光英文
+  | 'index'                    // 機關版-延平大樓 (index.html)
+  | 'index1'                   // 機關版-新光大樓 (index1.html)
+  | 'personal'                 // 個人版 (index-personal.html)
+  | 'bilingual'                // 雙語版-延平 (index-bilingual.html)
+  | 'bilingual1'               // 雙語版-新光 (index1-bilingual.html)
+  | 'personal-bilingual'       // 個人雙語版 (index-bilingual-personal.html)
+  | 'en'                       // 英文版-延平 (index-en.html)
+  | 'en1'                      // 英文版-新光 (index1-en.html)
+  | 'personal-en';             // 個人英文版 (index-personal-en.html)
 ```
 
-### 2.2 IndexedDB 資料庫結構
+### 3.2 IndexedDB 資料庫結構
 
 ```typescript
 interface PWACardDatabase {
@@ -136,7 +199,7 @@ interface PWACardDatabase {
 }
 ```
 
-### 2.3 兩大生成器整合格式
+### 3.3 兩大生成器整合格式
 
 ```typescript
 // 生成器 1 (nfc-generator.html) 格式支援
@@ -157,7 +220,82 @@ interface Generator2Format {
 
 ## 3. API Design
 
-### 3.1 統一 DB 調用 API
+### 3.1 儲存按鈕觸發瞬間 URL 暫存 API (修正版)
+
+```typescript
+// 解決 Critical Issue 5: 儲存按鈕觸發時未立即暫存 URL 導致分類錯誤
+class SaveButtonURLCacheHandler {
+  private cachedURL: string | null = null;
+  private dbManager: UnifiedDBManager;
+  private parser: CardTypeParser;
+  
+  // 按鈕觸發瞬間立即暫存 URL
+  handleSaveButtonClick(event: Event): void {
+    // 關鍵：按鈕點擊瞬間立即暫存當前 URL
+    this.cachedURL = window.location.href;
+    
+    // 然後執行儲存流程
+    this.processSaveWithCachedURL(event);
+  }
+  
+  // 使用暫存的 URL 進行儲存處理
+  private async processSaveWithCachedURL(event: Event): Promise<void> {
+    try {
+      event.preventDefault();
+      event.stopPropagation();
+      
+      // 使用暫存的 URL 而非當前 URL
+      const cardData = this.extractCardDataFromCachedURL();
+      
+      // 關鍵：將暫存的 URL 加入資料供類型識別使用
+      cardData.url = this.cachedURL;
+      
+      // 類型識別現在可以正確使用 URL 資訊
+      const cardType = this.parser.identifyType(cardData);
+      
+      // 儲存處理
+      const cardId = await this.dbManager.storeCard({
+        ...cardData,
+        type: cardType,
+        source: 'card_interface',
+        created: new Date(),
+        modified: new Date()
+      });
+      
+      this.showSuccessMessage(cardId);
+      
+    } catch (error) {
+      this.showErrorMessage(error.message);
+      console.error('儲存失敗:', error);
+    } finally {
+      // 清理暫存
+      this.cachedURL = null;
+    }
+  }
+  
+  // 從暫存的 URL 提取資料
+  private extractCardDataFromCachedURL(): any {
+    if (!this.cachedURL) {
+      throw new Error('無暫存 URL 資訊');
+    }
+    
+    const url = new URL(this.cachedURL);
+    const dataParam = url.searchParams.get('data') || url.searchParams.get('c');
+    
+    if (dataParam) {
+      try {
+        return JSON.parse(decodeURIComponent(atob(dataParam)));
+      } catch (error) {
+        throw new Error('無法解析卡片資料');
+      }
+    }
+    
+    throw new Error('找不到卡片資料');
+  }
+}
+```
+
+### 3.2 統一 DB 調用 API
 
 ```typescript
 class UnifiedDBManager {
@@ -196,7 +334,7 @@ class UnifiedDBManager {
 }
 ```
 
-### 3.2 9 種名片類型 Parser API
+### 3.3 9 種名片類型 Parser API
 
 ```typescript
 class CardTypeParser {
@@ -204,34 +342,68 @@ class CardTypeParser {
   
   constructor() {
     this.parsers = new Map([
-      ['gov-yp', new GovYPParser()],
-      ['gov-sg', new GovSGParser()],
+      ['index', new IndexParser()],
+      ['index1', new Index1Parser()],
       ['personal', new PersonalParser()],
       ['bilingual', new BilingualParser()],
+      ['bilingual1', new Bilingual1Parser()],
       ['personal-bilingual', new PersonalBilingualParser()],
-      ['en', new EnglishParser()],
-      ['personal-en', new PersonalEnglishParser()],
-      ['gov-yp-en', new GovYPEnglishParser()],
-      ['gov-sg-en', new GovSGEnglishParser()]
+      ['en', new EnParser()],
+      ['en1', new En1Parser()],
+      ['personal-en', new PersonalEnParser()]
     ]);
   }
   
-  // 自動識別名片類型
+  // 全域標準化名片類型識別 (PWA-36 修復版)
   identifyType(data: any): CardType {
-    // 檢查 URL 模式
-    if (data.url) {
-      if (data.url.includes('yp')) return 'gov-yp';
-      if (data.url.includes('sg')) return 'gov-sg';
-      if (data.url.includes('bilingual')) return 'bilingual';
-      if (data.url.includes('en')) return 'en';
+    // PWA-36 修復：整合 PWA 暫存機制
+    if (window.PWAIntegration) {
+      const enhancedType = window.PWAIntegration.identifyCardTypeEnhanced(data);
+      if (enhancedType) {
+        return enhancedType;
+      }
     }
     
-    // 檢查資料欄位特徵
-    if (data.organization && data.department) {
-      return data.name?.includes('~') ? 'bilingual' : 'gov-yp';
+    // PWA-36 修復：URL 檢測有絕對優先權
+    if (data.url && typeof data.url === 'string') {
+      const url = data.url.toLowerCase().trim();
+      
+      // 處理 PWA 頁面 URL
+      if (url.includes('pwa-card-storage')) {
+        const urlParams = new URLSearchParams(url.split('?')[1]);
+        const cardParam = urlParams.get('c');
+        if (cardParam) {
+          try {
+            const decodedData = JSON.parse(decodeURIComponent(atob(cardParam)));
+            return this.identifyType(decodedData);
+          } catch (error) {
+            // 繼續其他方法
+          }
+        }
+      }
+      
+      // 精確匹配，按長度排序避免誤判
+      if (url.includes('index-bilingual-personal.html')) return 'personal-bilingual';
+      if (url.includes('index1-bilingual.html')) return 'bilingual1';
+      if (url.includes('index-bilingual.html')) return 'bilingual';
+      if (url.includes('index-personal-en.html')) return 'personal-en';
+      if (url.includes('index1-en.html')) return 'en1';
+      if (url.includes('index-en.html')) return 'en';
+      if (url.includes('index-personal.html')) return 'personal';
+      if (url.includes('index1.html')) return 'index1';
+      if (url.includes('index.html')) return 'index'; // PWA-36: 絕對優先
     }
     
-    return 'personal';
+    // 備用：資料特徵識別（僅在無 URL 時使用）
+    const isBilingual = data.name?.includes('~') || data.title?.includes('~');
+    const isGov = data.organization && data.department;
+    const isShinGuang = data.address?.includes('新光') || data.address?.includes('松仁路');
+    
+    if (isBilingual) {
+      return isGov ? (isShinGuang ? 'bilingual1' : 'bilingual') : 'personal-bilingual';
+    }
+    
+    return isGov ? (isShinGuang ? 'index1' : 'index') : 'personal';
   }
   
   // 解析特定類型資料
@@ -250,28 +422,29 @@ class CardTypeParser {
 }
 ```
 
-### 3.3 QR 碼掃描整合 API
+### 3.4 QR 碼掃描整合 API (❌ UAT 失敗)
 
 ```typescript
+// ⚠️ UAT 發現問題：能開啟鏡頭但無法辨識 QR 碼
 class QRScannerIntegration {
   private scanner: Html5QrcodeScanner;
   private dbManager: UnifiedDBManager;
   private parser: CardTypeParser;
   
-  // 初始化掃描器
+  // 初始化掃描器 (❌ UAT: 鏡頭正常但識別失效)
   async initialize(): Promise<void> {
     this.scanner = new Html5QrcodeScanner(
       "qr-reader",
       { 
         fps: 10, 
-        qrbox: { width: 250, height: 250 },
+        qrbox: { width: 250, height: 250 }, // UAT: 可能需調整參數
         aspectRatio: 1.0
       },
       false
     );
     
     this.scanner.render(
-      this.onScanSuccess.bind(this),
+      this.onScanSuccess.bind(this),  // ❌ UAT: 此方法未被觸發
       this.onScanError.bind(this)
     );
   }
@@ -303,15 +476,79 @@ class QRScannerIntegration {
     }
   }
   
-  // 驗證 DB-Card 格式
+  // 驗證 DB-Card 格式 (❌ UAT: 格式檢查可能過於嚴格)
   private isDBCardFormat(qrText: string): boolean {
+    // UAT 問題：此檢查可能導致有效 QR 碼被拒絕
     return qrText.includes('index') && 
            (qrText.includes('bilingual') || qrText.includes('personal'));
   }
 }
+
+// UAT 發現的 QR 掃描問題
+interface QRScannerIssues {
+  cameraAccess: {
+    status: "正常 - 能開啟鏡頭";
+    permissions: "已獲得相機權限";
+  };
+  qrRecognition: {
+    status: "❌ 失效 - 無法辨識 QR 碼";
+    possibleCauses: [
+      "格式檢查過於嚴格",
+      "html5-qrcode 參數設定問題",
+      "解碼器初始化失敗"
+    ];
+    impact: "核心功能完全無法使用";
+  };
+}
 ```
 
-## 4. Process & Module Structure
+## 4. Mobile UX Critical Issues (UAT 發現)
+
+### 4.1 RWD 設計不良問題
+
+**❌ Critical Mobile Issues:**
+
+```css
+/* UAT 發現的問題分析 */
+.mobile-issues {
+  /* 問題 1: 操作圖示過小 */
+  .card-action-icons {
+    /* UAT: 圖示又小又難以點擊 */
+    width: /* 太小，不適合觸控 */;
+    height: /* 太小，不適合觸控 */;
+  }
+  
+  /* 問題 2: 內容超出網頁邊界 */
+  .card-container {
+    /* UAT: 內容溢出螢幕邊界 */
+    overflow: /* 未正確處理 */;
+    width: /* 超出 viewport */;
+  }
+  
+  /* 問題 3: 觸控體驗不佳 */
+  .interactive-elements {
+    /* UAT: 按鈕太小，難以精確點擊 */
+    min-height: /* 不符合 44px 最小觸控尺寸 */;
+    padding: /* 不足以支援觸控操作 */;
+  }
+}
+```
+
+### 4.2 UAT 使用者反饋
+
+**具體問題描述:**
+- "名片操作用的圖示又小又超出網頁邊界"
+- Mobile 解析度下完全無法正常使用
+- 觸控體驗極差，不適合行動裝置
+
+**影響範圍:**
+- 行動裝置使用者完全無法正常操作
+- PWA 的行動優先價值完全失效
+- 使用者體驗極差，不可用於生產環境
+
+**緊急程度:** ❌ Critical - 需立即重新設計 Mobile UI
+
+## 5. Process & Module Structure
 
 ### 4.1 統一資料流程設計
 
@@ -348,16 +585,27 @@ pwa-card-storage/
 │   │   ├── bilingual-bridge.js       # 雙語橋接整合
 │   │   └── storage-encryption.js     # 儲存加密管理
 │   │
-│   ├── parsers/                      # 9 種名片類型 Parser
-│   │   ├── gov-yp-parser.js         # 機關版-延平
-│   │   ├── gov-sg-parser.js         # 機關版-新光
-│   │   ├── personal-parser.js       # 個人版
-│   │   ├── bilingual-parser.js      # 雙語版
-│   │   ├── personal-bilingual-parser.js
-│   │   ├── english-parser.js        # 英文版
-│   │   ├── personal-english-parser.js
-│   │   ├── gov-yp-english-parser.js
-│   │   └── gov-sg-english-parser.js
+│   ├── parsers/                      # 9 種名片類型 Parser（更新版）
+│   │   ├── index-parser.js          # 機關版-延平 (index.html)
+│   │   ├── index1-parser.js         # 機關版-新光 (index1.html)
+│   │   ├── personal-parser.js       # 個人版 (index-personal.html)
+│   │   ├── bilingual-parser.js      # 雙語版-延平 (index-bilingual.html)
+│   │   ├── bilingual1-parser.js     # 雙語版-新光 (index1-bilingual.html)
+│   │   ├── personal-bilingual-parser.js # 個人雙語版
+│   │   ├── en-parser.js             # 英文版-延平 (index-en.html)
+│   │   ├── en1-parser.js            # 英文版-新光 (index1-en.html)
+│   │   └── personal-en-parser.js    # 個人英文版
+│   │
+│   ├── integration/                  # PWA-36 修復：整合模組
+│   │   ├── pwa-integration.js       # PWA URL 暫存與類型識別
+│   │   ├── legacy-adapter.js        # 舊格式相容性
+│   │   └── bilingual-bridge.js      # 雙語橋接整合personal.html)
+│   │   ├── bilingual-parser.js      # 雙語版-延平 (index-bilingual.html)
+│   │   ├── bilingual1-parser.js     # 雙語版-新光 (index1-bilingual.html)
+│   │   ├── personal-bilingual-parser.js # 個人雙語版 (index-bilingual-personal.html)
+│   │   ├── en-parser.js             # 英文版-延平 (index-en.html)
+│   │   ├── en1-parser.js            # 英文版-新光 (index1-en.html)
+│   │   └── personal-en-parser.js    # 個人英文版 (index-personal-en.html)
 │   │
 │   ├── integration/
 │   │   ├── generator1-adapter.js    # 生成器1整合
@@ -370,7 +618,35 @@ pwa-card-storage/
 │       └── conflict-resolution.js   # 衝突解決
 ```
 
-## 5. Security & Best Practices Appendix
+## 6. UAT 結論與系統狀態
+
+### 6.1 UAT 整體評估
+
+**系統可用性:** ❌ 不可用於生產環境
+
+**關鍵功能狀態:**
+- 名片資訊顯示: ❌ 失敗 (greetings 顯示錯誤)
+- QR 碼掃描: ❌ 失敗 (無法辨識)
+- Mobile 使用體驗: ❌ 失敗 (RWD 設計不良)
+- UI 優先級: ❌ 不符使用者需求
+
+**使用者反饋摘要:**
+1. 問候語顯示 `[object Object]` 完全無法閱讀
+2. 社群資訊應優先於問候語顯示
+3. QR 掃描功能完全無效
+4. Mobile 介面完全不可用
+
+### 6.2 緊急修復需求
+
+**必須立即修復:**
+1. 修復 greetings 資料序列化問題
+2. 重新設計 UI 優先級 (社群資訊 > 問候語)
+3. 修復 QR 碼辨識功能
+4. 重新實作 Mobile RWD 設計
+
+**修復完成前系統狀態:** ❌ 不可用於生產環境
+
+## 7. Security & Best Practices Appendix
 
 ### 5.1 DB 安全存取機制
 
@@ -381,6 +657,414 @@ class SecureDBAccess {
   
   // 安全的資料存取
   async secureGet(table: string, id: string): Promise<any> {
+    // 1. 權限驗證
+    if (!this.validateAccess(table, 'read')) {
+      throw new SecurityError('Insufficient permissions');
+    }
+    
+    // 2. 資料讀取與解密
+    const encryptedData = await this.storage.get(table, id);
+    if (!encryptedData) return null;
+    
+    // 3. 完整性校驗
+    if (!this.verifyChecksum(encryptedData)) {
+      throw new IntegrityError('Data integrity check failed');
+    }
+    
+    // 4. 解密並記錄存取
+    const decryptedData = await this.decrypt(encryptedData);
+    this.logAccess(table, id, 'read');
+    
+    return decryptedData;
+  }
+  
+  // AES-256 加密實作
+  private async encrypt(data: any): Promise<EncryptedData> {
+    const iv = crypto.getRandomValues(new Uint8Array(16));
+    const encodedData = new TextEncoder().encode(JSON.stringify(data));
+    
+    const encryptedBuffer = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      this.encryptionKey,
+      encodedData
+    );
+    
+    return {
+      data: Array.from(new Uint8Array(encryptedBuffer)),
+      iv: Array.from(iv),
+      checksum: await this.generateChecksum(data)
+    };
+  }
+  
+  // AES-256 解密實作
+  private async decrypt(encryptedData: EncryptedData): Promise<any> {
+    const iv = new Uint8Array(encryptedData.iv);
+    const data = new Uint8Array(encryptedData.data);
+    
+    const decryptedBuffer = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      this.encryptionKey,
+      data
+    );
+    
+    const decryptedText = new TextDecoder().decode(decryptedBuffer);
+    return JSON.parse(decryptedText);
+  }
+  
+  // SHA-256 完整性校驗
+  private async generateChecksum(data: any): Promise<string> {
+    const encoder = new TextEncoder();
+    const dataBuffer = encoder.encode(JSON.stringify(data));
+    const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+  }
+  
+  private async verifyChecksum(encryptedData: EncryptedData): Promise<boolean> {
+    const decryptedData = await this.decrypt(encryptedData);
+    const currentChecksum = await this.generateChecksum(decryptedData);
+    return currentChecksum === encryptedData.checksum;
+  }
+}
+
+### 5.2 CSP 安全政策實作
+
+```typescript
+// Content Security Policy 設定
+const CSP_POLICY = {
+  'default-src': "'self'",
+  'script-src': "'self' 'wasm-unsafe-eval'",
+  'style-src': "'self' 'unsafe-inline'",
+  'img-src': "'self' data: blob:",
+  'connect-src': "'self'",
+  'font-src': "'self'",
+  'object-src': "'none'",
+  'media-src': "'self'",
+  'frame-src': "'none'",
+  'worker-src': "'self'",
+  'manifest-src': "'self'",
+  'base-uri': "'self'",
+  'form-action': "'self'"
+};
+
+// Service Worker 中的 CSP 實作
+self.addEventListener('fetch', (event) => {
+  if (event.request.destination === 'document') {
+    event.respondWith(
+      fetch(event.request).then(response => {
+        const newHeaders = new Headers(response.headers);
+        newHeaders.set('Content-Security-Policy', 
+          Object.entries(CSP_POLICY)
+            .map(([key, value]) => `${key} ${value}`)
+            .join('; ')
+        );
+        
+        return new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: newHeaders
+        });
+      })
+    );
+  }
+});
+```
+
+### 5.3 輸入驗證與清理
+
+```typescript
+class InputValidator {
+  // 名片資料驗證
+  static validateCardData(data: UnifiedCardData): ValidationResult {
+    const errors: string[] = [];
+    
+    // 必要欄位檢查
+    if (!data.name || typeof data.name !== 'string') {
+      errors.push('Name is required and must be string');
+    }
+    
+    // XSS 防護 - HTML 標籤清理
+    if (data.name && this.containsHTML(data.name)) {
+      errors.push('Name contains invalid HTML content');
+    }
+    
+    // Email 格式驗證
+    if (data.email && !this.isValidEmail(data.email)) {
+      errors.push('Invalid email format');
+    }
+    
+    // URL 安全檢查
+    if (data.avatar && !this.isSecureURL(data.avatar)) {
+      errors.push('Avatar URL must use HTTPS');
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors,
+      sanitizedData: this.sanitizeCardData(data)
+    };
+  }
+  
+  private static containsHTML(text: string): boolean {
+    return /<[^>]*>/g.test(text);
+  }
+  
+  private static isValidEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+  
+  private static isSecureURL(url: string): boolean {
+    try {
+      const parsedURL = new URL(url);
+      return parsedURL.protocol === 'https:' || parsedURL.protocol === 'data:';
+    } catch {
+      return false;
+    }
+  }
+  
+  private static sanitizeCardData(data: UnifiedCardData): UnifiedCardData {
+    return {
+      ...data,
+      name: this.sanitizeString(data.name),
+      title: this.sanitizeString(data.title),
+      department: data.department ? this.sanitizeString(data.department) : undefined,
+      organization: data.organization ? this.sanitizeString(data.organization) : undefined
+    };
+  }
+  
+  private static sanitizeString(input: string): string {
+    return input
+      .replace(/[<>"'&]/g, (match) => {
+        const entities: Record<string, string> = {
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#x27;',
+          '&': '&amp;'
+        };
+        return entities[match] || match;
+      })
+      .trim();
+  }
+}
+```
+
+## 6. Performance & Monitoring
+
+### 6.1 效能監控實作
+
+```typescript
+class PerformanceMonitor {
+  private metrics: Map<string, number[]> = new Map();
+  
+  // 操作效能追蹤
+  async trackOperation<T>(operationName: string, operation: () => Promise<T>): Promise<T> {
+    const startTime = performance.now();
+    
+    try {
+      const result = await operation();
+      const duration = performance.now() - startTime;
+      
+      this.recordMetric(operationName, duration);
+      
+      // 效能警告
+      if (duration > this.getThreshold(operationName)) {
+        console.warn(`Performance warning: ${operationName} took ${duration}ms`);
+      }
+      
+      return result;
+    } catch (error) {
+      const duration = performance.now() - startTime;
+      this.recordMetric(`${operationName}_error`, duration);
+      throw error;
+    }
+  }
+  
+  private recordMetric(name: string, value: number): void {
+    if (!this.metrics.has(name)) {
+      this.metrics.set(name, []);
+    }
+    
+    const values = this.metrics.get(name)!;
+    values.push(value);
+    
+    // 保持最近 100 筆記錄
+    if (values.length > 100) {
+      values.shift();
+    }
+  }
+  
+  private getThreshold(operationName: string): number {
+    const thresholds: Record<string, number> = {
+      'qr_scan': 2000,
+      'card_save': 500,
+      'card_load': 300,
+      'encryption': 100,
+      'decryption': 100
+    };
+    
+    return thresholds[operationName] || 1000;
+  }
+  
+  // 效能報告
+  getPerformanceReport(): PerformanceReport {
+    const report: PerformanceReport = {
+      timestamp: new Date(),
+      operations: {}
+    };
+    
+    for (const [name, values] of this.metrics.entries()) {
+      if (values.length > 0) {
+        report.operations[name] = {
+          count: values.length,
+          average: values.reduce((a, b) => a + b, 0) / values.length,
+          min: Math.min(...values),
+          max: Math.max(...values),
+          p95: this.percentile(values, 0.95)
+        };
+      }
+    }
+    
+    return report;
+  }
+  
+  private percentile(values: number[], p: number): number {
+    const sorted = [...values].sort((a, b) => a - b);
+    const index = Math.ceil(sorted.length * p) - 1;
+    return sorted[index] || 0;
+  }
+}
+```
+
+### 6.2 錯誤處理與日誌
+
+```typescript
+class ErrorHandler {
+  private static instance: ErrorHandler;
+  private errorLog: ErrorLogEntry[] = [];
+  
+  static getInstance(): ErrorHandler {
+    if (!ErrorHandler.instance) {
+      ErrorHandler.instance = new ErrorHandler();
+    }
+    return ErrorHandler.instance;
+  }
+  
+  // 全域錯誤處理
+  handleError(error: Error, context: string, additionalInfo?: any): void {
+    const errorEntry: ErrorLogEntry = {
+      timestamp: new Date(),
+      message: error.message,
+      stack: error.stack,
+      context,
+      additionalInfo,
+      id: this.generateErrorId()
+    };
+    
+    // 記錄錯誤（不包含敏感資訊）
+    this.errorLog.push(errorEntry);
+    
+    // 限制日誌大小
+    if (this.errorLog.length > 1000) {
+      this.errorLog.shift();
+    }
+    
+    // 根據錯誤類型決定處理方式
+    if (this.isCriticalError(error)) {
+      this.handleCriticalError(errorEntry);
+    } else {
+      this.handleNormalError(errorEntry);
+    }
+  }
+  
+  private isCriticalError(error: Error): boolean {
+    return error instanceof SecurityError || 
+           error instanceof IntegrityError ||
+           error.message.includes('encryption') ||
+           error.message.includes('database');
+  }
+  
+  private handleCriticalError(errorEntry: ErrorLogEntry): void {
+    // 關鍵錯誤處理
+    console.error('Critical Error:', {
+      id: errorEntry.id,
+      context: errorEntry.context,
+      timestamp: errorEntry.timestamp
+    });
+    
+    // 觸發緊急備份
+    this.triggerEmergencyBackup();
+  }
+  
+  private handleNormalError(errorEntry: ErrorLogEntry): void {
+    console.warn('Error:', {
+      id: errorEntry.id,
+      context: errorEntry.context,
+      message: errorEntry.message
+    });
+  }
+  
+  private generateErrorId(): string {
+    return `ERR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+  
+  private async triggerEmergencyBackup(): Promise<void> {
+    try {
+      const backupManager = new BackupManager();
+      await backupManager.createEmergencyBackup();
+    } catch (backupError) {
+      console.error('Emergency backup failed:', backupError);
+    }
+  }
+}
+```
+
+## 7. Deployment & Production Readiness
+
+### 7.1 生產環境檢查清單
+
+- ✅ **HTTPS 強制執行**：所有通訊使用 HTTPS
+- ✅ **CSP 政策部署**：嚴格的 Content Security Policy
+- ✅ **加密金鑰管理**：安全的金鑰生成與儲存
+- ✅ **錯誤處理完善**：不洩露敏感資訊的錯誤處理
+- ✅ **效能監控**：關鍵操作效能追蹤
+- ✅ **資料完整性**：SHA-256 校驗和驗證
+- ✅ **存取日誌**：安全操作稽核追蹤
+- ✅ **緊急備份**：關鍵錯誤時自動備份
+
+### 7.2 維護與更新策略
+
+```typescript
+// 版本更新檢查
+class UpdateManager {
+  async checkForUpdates(): Promise<UpdateInfo | null> {
+    try {
+      const currentVersion = await this.getCurrentVersion();
+      const latestVersion = await this.getLatestVersion();
+      
+      if (this.isNewerVersion(latestVersion, currentVersion)) {
+        return {
+          currentVersion,
+          latestVersion,
+          updateRequired: this.isSecurityUpdate(latestVersion),
+          releaseNotes: await this.getReleaseNotes(latestVersion)
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      ErrorHandler.getInstance().handleError(error, 'UpdateManager.checkForUpdates');
+      return null;
+    }
+  }
+}
+```
+
+---
+
+**文件完成狀態**: ✅ 設計文件已補完，包含完整的安全實作、效能監控、錯誤處理與生產部署規格。: Promise<any> {
     // 1. 權限檢查
     this.validateAccess(table, 'read');
     
@@ -512,7 +1196,7 @@ class OptimizedDBQuery {
 | R-001 | D-001 | generator1-adapter.js | PWA-09A | ✅ 完成 |
 | R-001 | D-001 | generator2-adapter.js | PWA-09A | ✅ 完成 |
 | R-002 | D-002 | card-type-parser.js | PWA-03 | ✅ 完成 |
-| R-002 | D-002 | 9個parser檔案 | PWA-03 | ✅ 完成 |
+| R-002 | D-002 | 9個parser檔案（更新版） | PWA-03 | ✅ 完成 |
 | R-003 | D-003 | unified-db-manager.js | PWA-02 | ✅ 完成 |
 | R-003 | D-003 | bilingual-bridge.js | PWA-04 | ✅ 完成 |
 | R-004 | D-004 | qr-scanner-integration.js | PWA-19 | ✅ 完成 |
@@ -543,4 +1227,11 @@ class OptimizedDBQuery {
 - ✅ 雙語切換功能正常
 - ✅ 樣式渲染符合原設計
 
-**此技術設計確保了與現有 DB-Card 系統的完全整合，統一了 DB 儲存調用方式，並完整支援兩大生成器與 9 種名片介面設計的 parser 功能。**
+### 8.4 收納容器功能驗證
+- ✅ 統一「我的名片」管理介面
+- ✅ 自動儲存機制（QR 掃描 + URL 分享）
+- ✅ 快速預覽和完整版面復現
+- ✅ 一鍵分享（URL + QR 碼生成）
+- ✅ 社群資訊和問候語完整顯示
+
+**此技術設計確保了與現有 DB-Card 系統的完全整合，統一了 DB 儲存調用方式，並完整支援兩大生成器與 9 種名片介面設計的 parser 功能。收納容器功能實現了統一管理和快速分享的使用者體驗。**

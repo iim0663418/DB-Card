@@ -12,15 +12,17 @@ class QRScannerManager {
     this.currentModal = null;
     this.initializationFailed = false;
     
-    // 掃描配置
+    // 掃描配置 - UAT 修復版本，增大掃描區域
     this.scannerConfig = {
       fps: 10,
-      qrbox: { width: 250, height: 250 },
+      qrbox: { width: 300, height: 300 }, // 增大掃描區域
       aspectRatio: 1.0,
-      facingMode: 'environment'
+      facingMode: 'environment',
+      // 新增配置選項
+      rememberLastUsedCamera: true,
+      supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA, Html5QrcodeScanType.SCAN_TYPE_FILE]
     };
     
-    console.log('[QRScanner] QR Scanner Manager initialized');
   }
 
   /**
@@ -30,19 +32,16 @@ class QRScannerManager {
     try {
       // 檢查 html5-qrcode 是否可用
       if (typeof Html5Qrcode === 'undefined') {
-        console.error('[QRScanner] html5-qrcode library not found, attempting dynamic load');
         
         // 嘗試動態載入
         try {
           await this.loadHtml5QrCodeLibrary();
         } catch (loadError) {
-          console.warn('[QRScanner] Dynamic load failed, will use manual input only');
           this.initializationFailed = true;
           return false; // 不拋出錯誤，允許應用程式繼續運行
         }
       }
       
-      console.log('[QRScanner] QR Scanner initialized successfully');
       this.initializationFailed = false;
       return true;
     } catch (error) {
@@ -67,7 +66,6 @@ class QRScannerManager {
       const script = document.createElement('script');
       script.src = 'assets/html5-qrcode.min.js';
       script.onload = () => {
-        console.log('[QRScanner] html5-qrcode library loaded dynamically');
         resolve();
       };
       script.onerror = () => {
@@ -84,11 +82,9 @@ class QRScannerManager {
    */
   async openScannerModal() {
     try {
-      console.log('[QRScanner] Opening scanner modal...');
       
       // 如果初始化失敗，顯示完整的手動輸入介面而非「開發中」
       if (this.initializationFailed) {
-        console.warn('[QRScanner] Scanner initialization failed, showing manual input only');
         this.createManualInputModal();
         return;
       }
@@ -171,7 +167,6 @@ class QRScannerManager {
     document.body.appendChild(modal);
     this.currentModal = modal;
     
-    console.log('[QRScanner] Manual input modal created');
   }
 
   /**
@@ -228,7 +223,6 @@ class QRScannerManager {
   async checkCameraPermission() {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        console.warn('[QRScanner] Camera API not supported');
         return false;
       }
 
@@ -240,10 +234,8 @@ class QRScannerManager {
       // 立即停止串流，只是檢查權限
       stream.getTracks().forEach(track => track.stop());
       
-      console.log('[QRScanner] Camera permission granted');
       return true;
     } catch (error) {
-      console.warn('[QRScanner] Camera permission denied or not available:', error);
       return false;
     }
   }
@@ -312,7 +304,6 @@ class QRScannerManager {
     document.body.appendChild(modal);
     this.currentModal = modal;
     
-    console.log('[QRScanner] Scanner modal created');
   }
 
   /**
@@ -396,10 +387,8 @@ class QRScannerManager {
    */
   async startCameraScanning() {
     try {
-      console.log('[QRScanner] Starting camera scanning...');
       
       if (this.isScanning) {
-        console.warn('[QRScanner] Scanner already running');
         return;
       }
 
@@ -408,24 +397,34 @@ class QRScannerManager {
         throw new Error('Scanner element not found');
       }
 
-      // 使用 Html5QrcodeScanner 而非 Html5Qrcode
+      // 使用 Html5QrcodeScanner 而非 Html5Qrcode - UAT 修復版本
       this.html5QrcodeScanner = new Html5QrcodeScanner(
         "qr-reader", 
-        { fps: 10, qrbox: 250 }
+        { 
+          fps: 10, 
+          qrbox: { width: 300, height: 300 }, // 增大掃描區域
+          aspectRatio: 1.0,
+          rememberLastUsedCamera: true,
+          showTorchButtonIfSupported: true,
+          showZoomSliderIfSupported: true,
+          defaultZoomValueIfSupported: 2
+        }
       );
       
       // 渲染掃描器
       this.html5QrcodeScanner.render(
         (decodedText, decodedResult) => {
-          console.log('[QRScanner] QR Code detected:', decodedText);
+          // 停止掃描器以防止重複處理
+          if (this.html5QrcodeScanner) {
+            this.html5QrcodeScanner.clear().catch(e => {});
+          }
           this.onScanSuccess(decodedText, decodedResult);
-          // 掃描成功後停止掃描
-          this.html5QrcodeScanner.clear();
         },
         (errorMessage) => {
-          // 只記錄非常見的掃描錯誤
-          if (!errorMessage.includes('No QR code found')) {
-            console.warn('[QRScanner] Scan error:', errorMessage);
+          // 只記錄非常見的掃描錯誤 - UAT 修復版本
+          if (!errorMessage.includes('No QR code found') && 
+              !errorMessage.includes('QR code parse error') &&
+              !errorMessage.includes('No MultiFormat Readers')) {
           }
         }
       );
@@ -433,7 +432,6 @@ class QRScannerManager {
       this.isScanning = true;
       this.updateScannerUI(true);
       
-      console.log('[QRScanner] Camera scanning started successfully');
     } catch (error) {
       console.error('[QRScanner] Failed to start camera scanning:', error);
       this.showError('無法啟動相機掃描：' + error.message);
@@ -450,7 +448,6 @@ class QRScannerManager {
         this.html5QrcodeScanner = null;
         this.isScanning = false;
         this.updateScannerUI(false);
-        console.log('[QRScanner] Scanning stopped');
       }
     } catch (error) {
       console.error('[QRScanner] Failed to stop scanning:', error);
@@ -487,12 +484,10 @@ class QRScannerManager {
    */
   async scanFile(file) {
     try {
-      console.log('[QRScanner] Scanning file:', file.name);
       
       // 使用 Html5Qrcode 進行檔案掃描
       const html5QrCode = new Html5Qrcode('qr-reader');
       const result = await html5QrCode.scanFile(file, true);
-      console.log('[QRScanner] File scan result:', result);
       
       this.onScanSuccess(result, null);
     } catch (error) {
@@ -506,7 +501,6 @@ class QRScannerManager {
    */
   async processManualUrl(url) {
     try {
-      console.log('[QRScanner] Processing manual URL:', url);
       
       // 解析 URL 參數
       const urlObj = new URL(url);
@@ -530,23 +524,22 @@ class QRScannerManager {
   }
 
   /**
-   * 掃描成功處理 - 直接處理名片資料
+   * 掃描成功處理 - UAT 修復版本，改善名片資料解析
    */
   async onScanSuccess(qrText, decodedResult, cardData = null) {
     try {
-      console.log('[QRScanner] Scan success:', qrText);
-      console.log('[QRScanner] Processing scan result...');
       
       // 停止掃描
       if (this.isScanning) {
         await this.stopScanning();
       }
 
-      // 解析名片資料
+      // 解析名片資料 - 改善版本
       let processedCardData = null;
       
+      // 嘗試多種解析方式
       if (qrText.startsWith('http')) {
-        // 如果是 URL，解析參數
+        // 方式 1: 使用 app.getCardDataFromNFC
         try {
           const url = new URL(qrText);
           const data = url.searchParams.get('data') || url.searchParams.get('c');
@@ -554,22 +547,45 @@ class QRScannerManager {
             processedCardData = window.app.getCardDataFromNFC(data);
           }
         } catch (urlError) {
-          console.warn('[QRScanner] URL parsing failed:', urlError);
+        }
+        
+        // 方式 2: 使用 cardManager.importFromUrl
+        if (!processedCardData && this.cardManager && typeof this.cardManager.importFromUrl === 'function') {
+          try {
+            const importResult = await this.cardManager.importFromUrl(qrText);
+            if (importResult.success) {
+              processedCardData = importResult.data;
+            }
+          } catch (importError) {
+          }
         }
       }
       
       if (processedCardData) {
         // 直接儲存名片
         try {
-          if (this.cardManager && typeof this.cardManager.storeCard === 'function') {
-            await this.cardManager.storeCard(processedCardData);
-            console.log('[QRScanner] Card stored successfully');
+          let cardId = null;
+          
+          // 嘗試使用 cardManager.addCard
+          if (this.cardManager && typeof this.cardManager.addCard === 'function') {
+            const addResult = await this.cardManager.addCard(processedCardData);
+            if (addResult.success) {
+              cardId = addResult.id;
+            }
+          }
+          // 備用方案：使用 storage.storeCard
+          else if (this.cardManager && this.cardManager.storage && typeof this.cardManager.storage.storeCard === 'function') {
+            cardId = await this.cardManager.storage.storeCard(processedCardData);
+          }
+          
+          if (cardId) {
             
             // 顯示成功訊息
+            const cardName = processedCardData.name || processedCardData.nameZh || '未知';
             if (window.app && typeof window.app.showNotification === 'function') {
-              window.app.showNotification(`名片「${processedCardData.name || '未知'}」已成功匯入！`, 'success');
+              window.app.showNotification(`名片「${cardName}」已成功匯入！`, 'success');
             } else {
-              alert(`名片「${processedCardData.name || '未知'}」已成功匯入！`);
+              alert(`名片「${cardName}」已成功匯入！`);
             }
             
             // 關閉掃描器
@@ -581,6 +597,8 @@ class QRScannerManager {
             }
             
             return; // 成功處理，結束函數
+          } else {
+            throw new Error('無法儲存名片資料');
           }
         } catch (storeError) {
           console.error('[QRScanner] Failed to store card:', storeError);
@@ -603,7 +621,6 @@ class QRScannerManager {
    */
   parseQRData(qrText) {
     try {
-      console.log('[QRScanner] Parsing QR data:', qrText);
       
       // 檢查是否為 DB-Card 格式的 URL
       if (qrText.includes('data=') || qrText.includes('c=')) {
@@ -612,11 +629,9 @@ class QRScannerManager {
           const data = url.searchParams.get('data') || url.searchParams.get('c');
           
           if (data) {
-            console.log('[QRScanner] Found URL parameter data:', data);
             return data;
           }
         } catch (urlError) {
-          console.warn('[QRScanner] URL parsing failed:', urlError);
         }
       }
       
@@ -624,18 +639,15 @@ class QRScannerManager {
       if (qrText.includes('#c=')) {
         const hashIndex = qrText.indexOf('#c=');
         const hashData = qrText.substring(hashIndex + 3);
-        console.log('[QRScanner] Found hash data:', hashData);
         return hashData;
       }
       
       // 檢查是否為直接的 Base64 資料
       if (this.isValidBase64(qrText)) {
-        console.log('[QRScanner] Found Base64 data');
         return qrText;
       }
       
       // 如果都不是，返回原始文本
-      console.log('[QRScanner] No special format detected, returning raw text');
       return qrText;
       
     } catch (error) {
@@ -654,12 +666,41 @@ class QRScannerManager {
       return false;
     }
   }
+  
+  /**
+   * 標準化名片類型識別 - 全域通用
+   */
+  identifyCardType(data) {
+    if (typeof data === 'string') data = { url: data };
+    
+    if (data.url) {
+      const url = data.url.toLowerCase().trim();
+      if (url.includes('index1-bilingual.html')) return 'bilingual1';
+      if (url.includes('index-bilingual-personal.html')) return 'personal-bilingual';
+      if (url.includes('index-bilingual.html')) return 'bilingual';
+      if (url.includes('index1-en.html')) return 'en1';
+      if (url.includes('index-personal-en.html')) return 'personal-en';
+      if (url.includes('index-en.html')) return 'en';
+      if (url.includes('index-personal.html')) return 'personal';
+      if (url.includes('index1.html')) return 'index1';
+      if (url.includes('index.html')) return 'index';
+    }
+    
+    const isBilingual = data.name?.includes('~') || data.title?.includes('~');
+    const isGov = data.organization && data.department;
+    const isShinGuang = data.address?.includes('新光') || data.address?.includes('松仁路');
+    
+    if (isBilingual) {
+      return isGov ? (isShinGuang ? 'bilingual1' : 'bilingual') : 'personal-bilingual';
+    }
+    
+    return isGov ? (isShinGuang ? 'index1' : 'index') : 'personal';
+  }
 
   /**
    * 顯示掃描結果
    */
   showScanResult(qrText, cardData) {
-    console.log('[QRScanner] Showing scan result:', { qrText, cardData });
     
     const resultSection = document.getElementById('scan-result');
     const resultText = document.getElementById('result-text');
@@ -692,7 +733,6 @@ class QRScannerManager {
         cardData
       };
       
-      console.log('[QRScanner] Scan result displayed successfully');
     } else {
       console.error('[QRScanner] Result elements not found');
     }
@@ -707,7 +747,6 @@ class QRScannerManager {
         throw new Error('沒有可匯入的掃描結果');
       }
 
-      console.log('[QRScanner] Importing scanned result:', this.lastScanResult);
       
       const { qrText } = this.lastScanResult;
       
@@ -726,7 +765,6 @@ class QRScannerManager {
             }
           }
         } catch (urlError) {
-          console.warn('[QRScanner] URL parsing failed:', urlError);
         }
       }
       
@@ -734,7 +772,6 @@ class QRScannerManager {
         // 儲存名片到本地
         if (this.cardManager && typeof this.cardManager.storeCard === 'function') {
           await this.cardManager.storeCard(cardData);
-          console.log('[QRScanner] Card stored successfully');
           
           // 顯示成功訊息
           if (window.app && typeof window.app.showNotification === 'function') {
@@ -802,7 +839,6 @@ class QRScannerManager {
         try {
           this.html5QrcodeScanner.clear();
         } catch (clearError) {
-          console.warn('[QRScanner] Scanner clear failed:', clearError);
         }
         this.html5QrcodeScanner = null;
       }
@@ -817,7 +853,6 @@ class QRScannerManager {
       this.lastScanResult = null;
       this.isScanning = false;
       
-      console.log('[QRScanner] Scanner modal closed');
     } catch (error) {
       console.error('[QRScanner] Failed to close scanner modal:', error);
     }
@@ -858,7 +893,6 @@ class QRScannerManager {
    * 顯示錯誤訊息
    */
   showError(message) {
-    console.error('[QRScanner] Error:', message);
     
     if (window.app && typeof window.app.showNotification === 'function') {
       window.app.showNotification(message, 'error');
@@ -897,4 +931,3 @@ class QRScannerManager {
 // 全域實例
 window.QRScannerManager = QRScannerManager;
 
-console.log('[QRScanner] QR Scanner Manager class loaded');

@@ -65,6 +65,7 @@
   "share_target": {
     "action": "/pwa-card-storage/",
     "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
     "params": {
       "title": "title",
       "text": "text",

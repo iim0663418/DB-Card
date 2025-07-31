@@ -7,74 +7,82 @@ class PWACardManager {
   constructor(storage) {
     this.storage = storage;
     this.cardTypes = {
-      'gov-yp': {
+      'index': {
         name: '機關版-延平大樓',
         organization: '數位發展部',
         address: '臺北市中正區延平南路143號',
         logo: true,
-        template: 'government'
+        template: 'government',
+        page: 'index.html'
       },
-      'gov-sg': {
+      'index1': {
         name: '機關版-新光大樓',
         organization: '數位發展部',
         address: '臺北市信義區松仁路99號',
         logo: true,
-        template: 'government'
+        template: 'government',
+        page: 'index1.html'
       },
       'personal': {
         name: '個人版',
         organization: null,
         address: null,
         logo: false,
-        template: 'personal'
+        template: 'personal',
+        page: 'index-personal.html'
       },
       'bilingual': {
-        name: '雙語版',
+        name: '雙語版-延平',
         organization: '數位發展部',
         address: '臺北市中正區延平南路143號',
         logo: true,
-        template: 'bilingual'
+        template: 'bilingual',
+        page: 'index-bilingual.html'
+      },
+      'bilingual1': {
+        name: '雙語版-新光',
+        organization: '數位發展部',
+        address: '臺北市信義區松仁路99號',
+        logo: true,
+        template: 'bilingual',
+        page: 'index1-bilingual.html'
       },
       'personal-bilingual': {
         name: '個人雙語版',
         organization: null,
         address: null,
         logo: false,
-        template: 'personal-bilingual'
+        template: 'personal-bilingual',
+        page: 'index-bilingual-personal.html'
       },
       'en': {
-        name: 'English Version',
+        name: '英文版-延平',
         organization: 'Ministry of Digital Affairs',
         address: '143 Yanping S. Rd., Zhongzheng Dist., Taipei City',
         logo: true,
-        template: 'english'
+        template: 'english',
+        page: 'index-en.html'
       },
-      'personal-en': {
-        name: 'Personal English',
-        organization: null,
-        address: null,
-        logo: false,
-        template: 'personal-english'
-      },
-      'gov-yp-en': {
-        name: 'Government English - Yanping',
-        organization: 'Ministry of Digital Affairs',
-        address: '143 Yanping S. Rd., Zhongzheng Dist., Taipei City',
-        logo: true,
-        template: 'government-english'
-      },
-      'gov-sg-en': {
-        name: 'Government English - Xinyi',
+      'en1': {
+        name: '英文版-新光',
         organization: 'Ministry of Digital Affairs',
         address: '99 Songren Rd., Xinyi Dist., Taipei City',
         logo: true,
-        template: 'government-english'
+        template: 'english',
+        page: 'index1-en.html'
+      },
+      'personal-en': {
+        name: '個人英文版',
+        organization: null,
+        address: null,
+        logo: false,
+        template: 'personal-english',
+        page: 'index-personal-en.html'
       }
     };
   }
 
   async initialize() {
-    console.log('[CardManager] Initializing...');
     
     if (!this.storage) {
       throw new Error('Storage instance required');
@@ -83,7 +91,6 @@ class PWACardManager {
     // 載入現有的 bilingual-common.js 功能
     await this.loadBilingualSupport();
     
-    console.log('[CardManager] Initialized successfully');
   }
 
   async loadBilingualSupport() {
@@ -128,64 +135,127 @@ class PWACardManager {
         }
       };
       
-      console.log('[CardManager] Bilingual support loaded with translations');
     } catch (error) {
       console.error('[CardManager] Failed to load bilingual support:', error);
     }
   }
 
   /**
-   * 自動識別名片類型 - 支援 9 種類型
-   * 完全相容兩大生成器的所有輸出格式
+   * 標準化名片類型識別 - 使用全域標準邏輯
    * @param {Object} cardData - 名片資料
    * @returns {string} 名片類型
    */
   detectCardType(cardData) {
     try {
-      console.log('[CardManager] Detecting card type for:', cardData);
-      
-      const isGov = this.isGovernmentCard(cardData);
-      const isEn = this.isEnglishCard(cardData);
-      const isBilingual = this.isBilingualCard(cardData);
-      const isShinGuang = this.isShinGuangBuilding(cardData);
-      
-      console.log('[CardManager] Detection flags:', { isGov, isEn, isBilingual, isShinGuang });
-      
-      // 雙語版本判斷（最高優先級）
-      if (isBilingual) {
-        if (isGov) {
-          const type = isShinGuang ? 'gov-sg-bilingual' : 'gov-yp-bilingual';
-          console.log('[CardManager] Detected bilingual government type:', type);
-          return type;
-        }
-        console.log('[CardManager] Detected personal bilingual type');
-        return 'personal-bilingual';
-      }
-      
-      // 英文版本判斷（中優先級）
-      if (isEn) {
-        if (isGov) {
-          const type = isShinGuang ? 'gov-sg-en' : 'gov-yp-en';
-          console.log('[CardManager] Detected English government type:', type);
-          return type;
-        }
-        console.log('[CardManager] Detected personal English type');
-        return 'personal-en';
-      }
-      
-      // 中文版本判斷（基礎優先級）
-      if (isGov) {
-        const type = isShinGuang ? 'gov-sg' : 'gov-yp';
-        console.log('[CardManager] Detected Chinese government type:', type);
-        return type;
-      }
-      
-      console.log('[CardManager] Detected personal type');
-      return 'personal';
+      // 使用標準化識別邏輯
+      return this.identifyCardType(cardData);
     } catch (error) {
       console.error('[CardManager] Card type detection failed:', error);
       return 'personal';
     }
+  }
+  
+  /**
+   * 標準化名片類型識別 - 全域通用（與 storage.js 同步修復）
+   */
+  identifyCardType(data) {
+    if (typeof data === 'string') data = { url: data };
+    
+    console.log('[CardManager] 開始類型識別，輸入資料:', {
+      hasUrl: !!data.url,
+      url: data.url,
+      name: data.name,
+      hasNameTilde: data.name?.includes?.('~'),
+      hasTitleTilde: data.title?.includes?.('~')
+    });
+    
+    // PWA-36 修復：整合 PWA 暫存機制
+    if (window.PWAIntegration) {
+      const enhancedType = window.PWAIntegration.identifyCardTypeEnhanced(data);
+      if (enhancedType) {
+        console.log('[CardManager] ✅ PWA 整合識別類型:', enhancedType);
+        return enhancedType;
+      }
+    }
+    
+    // 1. 最高優先級：檢查資料中的 URL 欄位（絕對優先）
+    if (data.url && typeof data.url === 'string') {
+      const url = data.url.toLowerCase().trim();
+      console.log('[CardManager] URL 檢測模式，URL:', url);
+      
+      // PWA-36 修復：處理 PWA 頁面 URL
+      if (url.includes('pwa-card-storage')) {
+        console.log('[CardManager] 檢測到 PWA 頁面，嘗試從參數解析');
+        const urlParams = new URLSearchParams(url.split('?')[1]);
+        const cardParam = urlParams.get('c');
+        if (cardParam) {
+          try {
+            const decodedData = JSON.parse(decodeURIComponent(atob(cardParam)));
+            return this.identifyCardType(decodedData);
+          } catch (error) {
+            console.log('[CardManager] PWA 參數解析失敗，繼續其他方法');
+          }
+        }
+      }
+      
+      // 精確匹配，按長度排序避免誤判
+      if (url.includes('index-bilingual-personal.html')) {
+        console.log('[CardManager] ✅ URL 匹配: index-bilingual-personal.html -> personal-bilingual');
+        return 'personal-bilingual';
+      }
+      if (url.includes('index1-bilingual.html')) {
+        console.log('[CardManager] ✅ URL 匹配: index1-bilingual.html -> bilingual1');
+        return 'bilingual1';
+      }
+      if (url.includes('index-bilingual.html')) {
+        console.log('[CardManager] ✅ URL 匹配: index-bilingual.html -> bilingual');
+        return 'bilingual';
+      }
+      if (url.includes('index-personal-en.html')) {
+        console.log('[CardManager] ✅ URL 匹配: index-personal-en.html -> personal-en');
+        return 'personal-en';
+      }
+      if (url.includes('index1-en.html')) {
+        console.log('[CardManager] ✅ URL 匹配: index1-en.html -> en1');
+        return 'en1';
+      }
+      if (url.includes('index-en.html')) {
+        console.log('[CardManager] ✅ URL 匹配: index-en.html -> en');
+        return 'en';
+      }
+      if (url.includes('index-personal.html')) {
+        console.log('[CardManager] ✅ URL 匹配: index-personal.html -> personal');
+        return 'personal';
+      }
+      if (url.includes('index1.html')) {
+        console.log('[CardManager] ✅ URL 匹配: index1.html -> index1');
+        return 'index1';
+      }
+      if (url.includes('index.html')) {
+        console.log('[CardManager] ✅ URL 匹配: index.html -> index');
+        return 'index';
+      }
+      
+      console.log('[CardManager] ⚠️ URL 存在但無匹配模式，URL:', url);
+    }
+    
+    // 2. 最後備用：資料特徵識別（僅在無 URL 時使用）
+    console.log('[CardManager] ⚠️ 使用資料特徵識別（備用方案）');
+    const isBilingual = data.name?.includes('~') || data.title?.includes('~');
+    const isGov = data.organization && data.department;
+    const isShinGuang = data.address?.includes('新光') || data.address?.includes('松仁路');
+    
+    console.log('[CardManager] 資料特徵分析:', { isBilingual, isGov, isShinGuang });
+    
+    if (isBilingual) {
+      const result = isGov ? (isShinGuang ? 'bilingual1' : 'bilingual') : 'personal-bilingual';
+      console.log('[CardManager] 🔄 雙語版識別結果:', result);
+      return result;
+    }
+    
+    const result = isGov ? (isShinGuang ? 'index1' : 'index') : 'personal';
+    console.log('[CardManager] 🔄 非雙語版識別結果:', result);
+    return result;
   }
 
   /**
@@ -228,46 +298,79 @@ class PWACardManager {
       '法制處'
     ];
 
-    const textToCheck = [
+    // 檢查所有欄位，包括雙語格式
+    const fieldsToCheck = [
       cardData.organization,
       cardData.department,
       cardData.address,
       cardData.email,
       cardData.name,
       cardData.title
-    ].filter(Boolean).join(' ').toLowerCase();
+    ];
+    
+    // 處理雙語格式，提取中英文部分
+    const textParts = [];
+    fieldsToCheck.forEach(field => {
+      if (field && typeof field === 'string') {
+        if (field.includes('~')) {
+          // 雙語格式，分別檢查中英文
+          const [chinese, english] = field.split('~');
+          if (chinese) textParts.push(chinese.trim());
+          if (english) textParts.push(english.trim());
+        } else {
+          textParts.push(field);
+        }
+      }
+    });
+    
+    const textToCheck = textParts.join(' ').toLowerCase();
+    
+    console.log('[CardManager] 政府機關檢查:', {
+      textToCheck,
+      organization: cardData.organization,
+      department: cardData.department,
+      email: cardData.email
+    });
 
     const isGov = govIndicators.some(indicator => 
       textToCheck.includes(indicator.toLowerCase())
     );
     
-    if (isGov) {
-      console.log('[CardManager] Detected government card from indicators:', textToCheck);
-    }
-    
+    console.log('[CardManager] 政府機關檢查結果:', isGov);
     return isGov;
   }
 
   /**
-   * 檢查是否為雙語名片
+   * 檢查是否為雙語名片 - 修復版本
+   * 增強雙語檢測邏輯，確保準確識別
    */
   isBilingualCard(cardData) {
+    console.log('[CardManager] 檢查雙語特徵:', {
+      name: cardData.name,
+      title: cardData.title,
+      greetings: cardData.greetings
+    });
+    
     // 檢查姓名是否包含 ~ 分隔符
-    if (cardData.name && cardData.name.includes('~')) {
-      console.log('[CardManager] Detected bilingual from name:', cardData.name);
+    if (cardData.name && typeof cardData.name === 'string' && cardData.name.includes('~')) {
+      console.log('[CardManager] 發現雙語姓名:', cardData.name);
       return true;
     }
     
     // 檢查職稱是否包含 ~ 分隔符
-    if (cardData.title && cardData.title.includes('~')) {
-      console.log('[CardManager] Detected bilingual from title:', cardData.title);
+    if (cardData.title && typeof cardData.title === 'string' && cardData.title.includes('~')) {
+      console.log('[CardManager] 發現雙語職稱:', cardData.title);
       return true;
     }
     
     // 檢查問候語是否為雙語格式
-    if (cardData.greetings && Array.isArray(cardData.greetings)) {
-      const hasBilingualGreeting = cardData.greetings.some(greeting => {
-        if (typeof greeting === 'object' && greeting.zh && greeting.en) {
+    if (cardData.greetings) {
+      
+      // 確保是陣列格式
+      const greetingsArray = Array.isArray(cardData.greetings) ? cardData.greetings : [cardData.greetings];
+      
+      const hasBilingualGreeting = greetingsArray.some(greeting => {
+        if (typeof greeting === 'object' && greeting !== null && greeting.zh && greeting.en) {
           return true;
         }
         if (typeof greeting === 'string' && greeting.includes('~')) {
@@ -277,16 +380,23 @@ class PWACardManager {
       });
       
       if (hasBilingualGreeting) {
-        console.log('[CardManager] Detected bilingual from greetings');
         return true;
       }
+    }
+    
+    // 檢查部門和組織欄位
+    if (cardData.department && typeof cardData.department === 'string' && cardData.department.includes('~')) {
+      return true;
+    }
+    
+    if (cardData.organization && typeof cardData.organization === 'string' && cardData.organization.includes('~')) {
+      return true;
     }
     
     // 檢查來源 URL 是否為雙語版本
     if (typeof window !== 'undefined' && window.location) {
       const isBilingualUrl = window.location.pathname.includes('bilingual');
       if (isBilingualUrl) {
-        console.log('[CardManager] Detected bilingual from URL path');
         return true;
       }
     }
@@ -299,20 +409,17 @@ class PWACardManager {
    */
   isEnglishCard(cardData) {
     // 檢查組織名稱
-    if (cardData.organization && cardData.organization.includes('Ministry of Digital Affairs')) {
-      console.log('[CardManager] Detected English from organization:', cardData.organization);
+    if (cardData.organization && typeof cardData.organization === 'string' && cardData.organization.includes('Ministry of Digital Affairs')) {
       return true;
     }
 
     // 檢查地址格式
-    if (cardData.address && /\d+\s+\w+\s+(Rd\.|St\.|Ave\.)/.test(cardData.address)) {
-      console.log('[CardManager] Detected English from address format:', cardData.address);
+    if (cardData.address && typeof cardData.address === 'string' && /\d+\s+\w+\s+(Rd\.|St\.|Ave\.)/.test(cardData.address)) {
       return true;
     }
 
     // 檢查姓名是否主要為英文（不包含雙語格式）
-    if (cardData.name && /^[A-Za-z\s\-\.]+$/.test(cardData.name) && !cardData.name.includes('~')) {
-      console.log('[CardManager] Detected English from name format:', cardData.name);
+    if (cardData.name && typeof cardData.name === 'string' && /^[A-Za-z\s\-\.]+$/.test(cardData.name) && !cardData.name.includes('~')) {
       return true;
     }
     
@@ -321,7 +428,6 @@ class PWACardManager {
       const isEnglishUrl = window.location.pathname.includes('-en.html') || 
                           window.location.pathname.includes('/en/');
       if (isEnglishUrl) {
-        console.log('[CardManager] Detected English from URL path');
         return true;
       }
     }
@@ -335,7 +441,7 @@ class PWACardManager {
    */
   isShinGuangBuilding(cardData) {
     // 檢查地址資訊
-    if (cardData.address) {
+    if (cardData.address && typeof cardData.address === 'string') {
       const addressChecks = [
         cardData.address.includes('新光'),
         cardData.address.includes('松仁路'),
@@ -351,7 +457,6 @@ class PWACardManager {
       ];
       
       if (addressChecks.some(check => check)) {
-        console.log('[CardManager] Detected Shin Guang building from address:', cardData.address);
         return true;
       }
     }
@@ -366,7 +471,6 @@ class PWACardManager {
       ];
       
       if (urlChecks.some(check => check)) {
-        console.log('[CardManager] Detected Shin Guang building from URL path');
         return true;
       }
     }
@@ -395,7 +499,7 @@ class PWACardManager {
     }
 
     // 處理雙語資料
-    if (detectedType.includes('bilingual')) {
+    if (detectedType === 'bilingual' || detectedType === 'bilingual1' || detectedType === 'personal-bilingual') {
       return this.processBilingualData(enhancedData);
     }
 
@@ -403,37 +507,32 @@ class PWACardManager {
   }
 
   /**
-   * 處理雙語資料
+   * 處理雙語資料 - 資料一致性修復版本
+   * 僅分離雙語欄位，不改變原始格式
    */
   processBilingualData(cardData) {
     const processed = { ...cardData };
 
-    // 處理雙語姓名
-    if (processed.name && processed.name.includes('~')) {
+    // 處理雙語姓名 - 保持原始格式
+    if (processed.name && typeof processed.name === 'string' && processed.name.includes('~')) {
       const [chinese, english] = processed.name.split('~');
       processed.nameZh = chinese.trim();
       processed.nameEn = english.trim();
+      // 保持 processed.name 為 "中文~English" 格式
     }
 
-    // 處理雙語職稱
-    if (processed.title && processed.title.includes('~')) {
+    // 處理雙語職稱 - 保持原始格式
+    if (processed.title && typeof processed.title === 'string' && processed.title.includes('~')) {
       const [chinese, english] = processed.title.split('~');
       processed.titleZh = chinese.trim();
       processed.titleEn = english.trim();
+      // 保持 processed.title 為 "中文~English" 格式
     }
 
-    // 處理雙語問候語
-    if (processed.greetings && Array.isArray(processed.greetings)) {
-      processed.greetings = processed.greetings.map(greeting => {
-        if (greeting.includes('~')) {
-          const [chinese, english] = greeting.split('~');
-          return {
-            zh: chinese.trim(),
-            en: english.trim()
-          };
-        }
-        return greeting;
-      });
+    // 問候語保持原始雙語字串格式，不進行任何轉換
+    // 確保是陣列格式
+    if (processed.greetings && !Array.isArray(processed.greetings)) {
+      processed.greetings = [processed.greetings];
     }
 
     return processed;
@@ -444,7 +543,6 @@ class PWACardManager {
    */
   async importFromUrl(url) {
     try {
-      console.log('[CardManager] Importing from URL:', url);
 
       // 解析 URL 參數
       const cardData = this.parseCardUrl(url);
@@ -550,7 +648,6 @@ class PWACardManager {
    */
   async importFromFile(file) {
     try {
-      console.log('[CardManager] Importing from file:', file.name);
 
       const fileContent = await this.readFile(file);
       let importData;
@@ -634,7 +731,6 @@ class PWACardManager {
    */
   async exportCards(options = {}) {
     try {
-      console.log('[CardManager] Exporting cards with options:', options);
 
       const cards = options.exportAll 
         ? await this.storage.listCards()
@@ -688,7 +784,6 @@ class PWACardManager {
    */
   async generateQRCode(cardId, options = {}) {
     try {
-      console.log('[CardManager] PWA-09A: Starting QR code generation with original generator logic');
       
       const card = await this.storage.getCard(cardId);
       if (!card) {
@@ -697,11 +792,9 @@ class PWACardManager {
 
       // 使用原生成器邏輯生成 URL
       const cardUrl = this.generateCardUrl(card.data, card.type);
-      console.log('[CardManager] Generated QR URL:', cardUrl, 'Length:', cardUrl.length);
       
       // 檢查 URL 長度（使用更寬鬆的限制，因為原生成器已經過優化）
       if (cardUrl.length > 2500) {
-        console.warn('[CardManager] URL too long for QR code:', cardUrl.length);
         return {
           success: false,
           error: `URL 太長（${cardUrl.length} 字元），請減少資料內容`
@@ -710,7 +803,6 @@ class PWACardManager {
       
       // 優先使用統一 QR 工具
       if (window.qrUtils) {
-        console.log('[CardManager] Using unified QR utils');
         const result = await window.qrUtils.generateHighResQRCode(cardUrl, {
           size: options.size || 800,
           colorDark: options.colorDark || '#6b7280',
@@ -725,13 +817,11 @@ class PWACardManager {
             size: result.size
           };
         } else {
-          console.warn('[CardManager] Unified QR utils failed, trying fallback:', result.error);
         }
       }
       
       // 備用方案：直接使用 QRCode.js（與原生成器一致）
       if (window.QRCode) {
-        console.log('[CardManager] Using QRCode.js fallback');
         return await this.generateQRCodeFallback(cardUrl, options);
       }
       
@@ -792,24 +882,23 @@ class PWACardManager {
   }
 
   /**
-   * 生成名片 URL - PWA-09A 修復：直接使用原生成器的 encodeCompact 函數
+   * 生成名片 URL - PWA-22 修復：確保資料完整性
    */
   generateCardUrl(cardData, cardType) {
     try {
-      console.log('[CardManager] PWA-09A: Using original generator logic');
       
-      // 檢測是否為雙語版本
-      const isBilingual = cardType.includes('bilingual') || this.isBilingualCard(cardData);
+      // 根據原始來源格式選擇生成器，而非根據資料內容
+      const isFromBilingualGenerator = this.isFromBilingualGenerator(cardData, cardType);
       
-      if (isBilingual) {
-        // 使用雙語生成器的完全相同邏輯
+      if (isFromBilingualGenerator) {
+        // 使用雙語生成器的完全相同邏輯（PWA-22 修復版）
         return this.generateBilingualUrl(cardData, cardType);
       } else {
         // 使用標準生成器的完全相同邏輯
         return this.generateStandardUrl(cardData, cardType);
       }
     } catch (error) {
-      console.error('[CardManager] URL generation failed:', error);
+      console.error('[CardManager] PWA-22: URL generation failed:', error);
       throw error;
     }
   }
@@ -818,7 +907,6 @@ class PWACardManager {
    * 使用標準生成器的完全相同邏輯（nfc-generator.html）
    */
   generateStandardUrl(cardData, cardType) {
-    console.log('[CardManager] Using standard generator logic');
     
     // 完全複製 nfc-generator.html 的邏輯
     const compactData = {
@@ -855,58 +943,86 @@ class PWACardManager {
   
   /**
    * 使用雙語生成器的完全相同邏輯（nfc-generator-bilingual.html）
+   * PWA-23 終極修復：確保雙語問候語完整保持
    */
   generateBilingualUrl(cardData, cardType) {
-    console.log('[CardManager] Using bilingual generator logic - PIPE FORMAT');
-    console.log('[CardManager] Input cardData:', cardData);
     
-    // 處理 greetings 格式，確保能還原雙語格式
+    // PWA-23 修復：確保所有欄位都有值，特別是 socialNote
+    const safeCardData = {
+      name: cardData.name || '',
+      title: cardData.title || '',
+      department: cardData.department || '',
+      email: cardData.email || '',
+      phone: cardData.phone || '',
+      mobile: cardData.mobile || '',
+      avatar: cardData.avatar || '',
+      greetings: cardData.greetings || [],
+      socialNote: cardData.socialNote || '' // PWA-23: 確保 socialNote 不為 null/undefined
+    };
+    
+    
+    // PWA-23 終極修復：雙語問候語處理邏輯 - 保持原始格式
     let greetingsArray = [];
-    if (Array.isArray(cardData.greetings)) {
-      greetingsArray = cardData.greetings.map(g => {
+    
+    if (Array.isArray(safeCardData.greetings)) {
+      greetingsArray = safeCardData.greetings.map((g, index) => {
+        
         if (typeof g === 'string') {
+          // 已經是字串格式，直接保持（可能包含雙語格式）
           return g;
         } else if (g && typeof g === 'object' && g.zh && g.en) {
           // 將物件格式轉回雙語字串格式
-          return `${g.zh}~${g.en}`;
-        } else if (g && typeof g === 'object' && g.zh) {
-          return g.zh;
-        } else if (g && typeof g === 'object' && g.en) {
-          return g.en;
+          const result = `${g.zh}~${g.en}`;
+          return result;
+        } else if (g && typeof g === 'object') {
+          // 處理其他物件格式 - 保持原始值
+          const firstValue = Object.values(g).find(v => v && typeof v === 'string');
+          const result = firstValue ? String(firstValue) : String(g);
+          return result;
         }
-        return String(g || '');
-      }).filter(g => g && g.trim());
-    } else if (typeof cardData.greetings === 'string') {
-      greetingsArray = [cardData.greetings];
-    } else if (cardData.greetings && typeof cardData.greetings === 'object') {
-      if (cardData.greetings.zh && cardData.greetings.en) {
-        greetingsArray = [`${cardData.greetings.zh}~${cardData.greetings.en}`];
+        
+        // 其他情況轉為字串
+        const result = String(g || '');
+        return result;
+      }).filter(g => {
+        const isValid = g && g.trim() && g !== '[object Object]';
+        if (!isValid) {
+        }
+        return isValid;
+      });
+    } else if (typeof safeCardData.greetings === 'string') {
+      greetingsArray = [safeCardData.greetings];
+    } else if (safeCardData.greetings && typeof safeCardData.greetings === 'object') {
+      if (safeCardData.greetings.zh && safeCardData.greetings.en) {
+        greetingsArray = [`${safeCardData.greetings.zh}~${safeCardData.greetings.en}`];
       } else {
-        const values = Object.values(cardData.greetings).filter(v => v && typeof v === 'string');
-        greetingsArray = values.length > 0 ? values : ['歡迎認識我！'];
+        const firstValue = Object.values(safeCardData.greetings).find(v => v && typeof v === 'string');
+        greetingsArray = firstValue ? [String(firstValue)] : ['歡迎認識我！~Nice to meet you!'];
       }
     }
     
+    // 如果沒有有效問候語，設定雙語預設值
     if (greetingsArray.length === 0) {
-      greetingsArray = ['歡迎認識我！'];
+      greetingsArray = ['歡迎認識我！~Nice to meet you!'];
     }
     
-    console.log('[CardManager] Processed greetings:', greetingsArray);
     
-    // 使用與 bilingual-common.js 中 encodeCompact 完全相同的管道分隔格式
-    const compact = [
-      cardData.name || '',
-      cardData.title || '',
-      cardData.department || '',
-      cardData.email || '',
-      cardData.phone || '',
-      cardData.mobile || '',
-      cardData.avatar || '',
-      greetingsArray.join(','),
-      cardData.socialNote || ''
-    ].join('|');
+    // PWA-23 修復：使用與 bilingual-common.js 中 encodeCompact 完全相同的管道分隔格式
+    // 確保所有 9 個欄位都存在，特別是最後一個 socialNote
+    const compactFields = [
+      safeCardData.name,           // 0: name
+      safeCardData.title,          // 1: title
+      safeCardData.department,     // 2: department
+      safeCardData.email,          // 3: email
+      safeCardData.phone,          // 4: phone
+      safeCardData.mobile,         // 5: mobile
+      safeCardData.avatar,         // 6: avatar
+      greetingsArray.join(','),    // 7: greetings
+      safeCardData.socialNote      // 8: socialNote - PWA-23 修復重點
+    ];
     
-    console.log('[CardManager] Compact data:', compact);
+    const compact = compactFields.join('|');
+    
     
     // 使用與雙語生成器完全相同的編碼方式
     const encoded = btoa(encodeURIComponent(compact))
@@ -914,7 +1030,6 @@ class PWACardManager {
       .replace(/\//g, '_')
       .replace(/=/g, '');
     
-    console.log('[CardManager] Encoded data:', encoded);
     
     return this.buildBilingualUrl(encoded, cardType);
   }
@@ -924,22 +1039,13 @@ class PWACardManager {
    */
   buildStandardUrl(encoded, cardType) {
     const baseUrl = window.location.origin + window.location.pathname.replace(/pwa-card-storage.*$/, '');
-    let targetPage;
     
-    if (cardType === 'personal' || cardType === 'personal-en') {
-      targetPage = cardType === 'personal-en' ? 'index-personal-en.html' : 'index-personal.html';
-    } else {
-      const isShinGuang = cardType.includes('sg') || cardType.includes('新光');
-      if (cardType.includes('en')) {
-        targetPage = isShinGuang ? 'index1-en.html' : 'index-en.html';
-      } else {
-        targetPage = isShinGuang ? 'index1.html' : 'index.html';
-      }
-    }
+    // 直接從 cardTypes 中獲取對應的頁面文件名
+    const typeConfig = this.cardTypes[cardType];
+    const targetPage = typeConfig ? typeConfig.page : 'index.html';
     
     // 使用與原生成器完全相同的 URL 編碼方式
     const url = `${baseUrl}${targetPage}?c=${encodeURIComponent(encoded)}`;
-    console.log(`[CardManager] Standard URL generated, length: ${url.length}`);
     return url;
   }
   
@@ -948,19 +1054,13 @@ class PWACardManager {
    */
   buildBilingualUrl(encoded, cardType) {
     const baseUrl = window.location.origin + window.location.pathname.replace(/pwa-card-storage.*$/, '');
-    let targetPage;
     
-    if (cardType === 'personal-bilingual') {
-      targetPage = 'index-bilingual-personal.html';
-    } else if (cardType.includes('sg') || cardType.includes('新光')) {
-      targetPage = 'index1-bilingual.html';
-    } else {
-      targetPage = 'index-bilingual.html';
-    }
+    // 直接從 cardTypes 中獲取對應的頁面文件名
+    const typeConfig = this.cardTypes[cardType];
+    const targetPage = typeConfig ? typeConfig.page : 'index-bilingual.html';
     
     // 使用與雙語生成器完全相同的 URL 編碼方式
     const url = `${baseUrl}${targetPage}?data=${encodeURIComponent(encoded)}`;
-    console.log(`[CardManager] Bilingual URL generated, length: ${url.length}`);
     return url;
   }
 
@@ -1046,19 +1146,47 @@ class PWACardManager {
   }
 
   /**
+   * 檢查是否來自雙語生成器
+   */
+  isFromBilingualGenerator(cardData, cardType) {
+    // 只有明確的雙語類型才使用雙語生成器
+    const bilingualTypes = ['bilingual', 'bilingual1', 'personal-bilingual'];
+    return bilingualTypes.includes(cardType);
+  }
+
+  /**
    * 獲取顯示名稱
    */
   getDisplayName(cardData, language = 'zh') {
-    if (cardData.nameZh && cardData.nameEn) {
-      return language === 'en' ? cardData.nameEn : cardData.nameZh;
+    try {
+      if (cardData.nameZh && cardData.nameEn) {
+        return language === 'en' ? cardData.nameEn : cardData.nameZh;
+      }
+      
+      if (cardData.name) {
+        // 處理物件格式
+        if (typeof cardData.name === 'object' && cardData.name !== null) {
+          return language === 'en' ? (cardData.name.en || cardData.name.zh || '') : (cardData.name.zh || cardData.name.en || '');
+        }
+        
+        // 處理字串格式
+        if (typeof cardData.name === 'string' && cardData.name.indexOf('~') !== -1) {
+          const parts = cardData.name.split('~');
+          const chinese = parts[0] ? parts[0].trim() : '';
+          const english = parts[1] ? parts[1].trim() : '';
+          return language === 'en' ? english : chinese;
+        }
+        
+        // 純字串格式
+        if (typeof cardData.name === 'string') {
+          return cardData.name;
+        }
+      }
+      
+      return String(cardData.name || '');
+    } catch (error) {
+      return '';
     }
-    
-    if (cardData.name && cardData.name.includes('~')) {
-      const [chinese, english] = cardData.name.split('~');
-      return language === 'en' ? english.trim() : chinese.trim();
-    }
-    
-    return cardData.name || '';
   }
 
   /**
@@ -1069,7 +1197,7 @@ class PWACardManager {
       return language === 'en' ? cardData.titleEn : cardData.titleZh;
     }
     
-    if (cardData.title && cardData.title.includes('~')) {
+    if (cardData.title && typeof cardData.title === 'string' && cardData.title.includes('~')) {
       const [chinese, english] = cardData.title.split('~');
       return language === 'en' ? english.trim() : chinese.trim();
     }
@@ -1109,7 +1237,6 @@ class PWACardManager {
    */
   async addCard(cardData) {
     try {
-      console.log('[CardManager] Adding card:', cardData);
       
       // 預處理問候語格式
       const preprocessedData = this.preprocessCardData(cardData);
@@ -1136,49 +1263,79 @@ class PWACardManager {
   }
 
   /**
-   * 預處理名片資料，確保問候語格式正確
+   * 預處理名片資料 - PWA-23 終極修復：確保雙語問候語完整保持
+   * 保持原始雙語格式，不進行語言選擇
    */
   preprocessCardData(cardData) {
-    const processed = { ...cardData };
     
-    // 使用 BilingualBridge 處理問候語
-    if (window.bilingualBridge && typeof window.bilingualBridge.normalizeGreetings === 'function') {
-      processed.greetings = window.bilingualBridge.normalizeGreetings(cardData.greetings, 'zh');
-    } else {
-      processed.greetings = this.fallbackNormalizeGreetings(cardData.greetings, 'zh');
+    // PWA-23 修復：確保所有欄位都有預設值
+    const processed = {
+      name: cardData.name || '',
+      title: cardData.title || '',
+      department: cardData.department || '',
+      email: cardData.email || '',
+      phone: cardData.phone || '',
+      mobile: cardData.mobile || '',
+      avatar: cardData.avatar || '',
+      greetings: cardData.greetings || [],
+      socialNote: cardData.socialNote || '', // PWA-23: 確保 socialNote 不為 null/undefined
+      organization: cardData.organization || '',
+      address: cardData.address || ''
+    };
+    
+    
+    // PWA-23 終極修復：雙語問候語處理邏輯
+    if (processed.greetings) {
+      // 確保是陣列格式
+      if (!Array.isArray(processed.greetings)) {
+        processed.greetings = [processed.greetings];
+      }
+      
+      
+      // 保持雙語字串格式，不進行語言選擇
+      processed.greetings = processed.greetings.map((greeting, index) => {
+        
+        if (typeof greeting === 'object' && greeting !== null) {
+          // 將物件格式轉回雙語字串格式
+          if (greeting.zh && greeting.en) {
+            const result = `${greeting.zh}~${greeting.en}`;
+            return result;
+          }
+          // 如果只有一種語言，使用第一個有效值
+          const firstValue = Object.values(greeting).find(v => v && typeof v === 'string');
+          const result = firstValue ? String(firstValue) : String(greeting);
+          return result;
+        }
+        
+        // 已經是字串格式，直接保持
+        const result = String(greeting);
+        return result;
+      }).filter(g => {
+        const isValid = g && g.trim() && g !== '[object Object]';
+        if (!isValid) {
+        }
+        return isValid;
+      });
     }
     
-    console.log('[CardManager] Preprocessed card data:', {
-      originalGreetings: cardData.greetings,
-      processedGreetings: processed.greetings
-    });
+    // 如果沒有有效問候語，設定預設值
+    if (!processed.greetings || processed.greetings.length === 0) {
+      processed.greetings = ['歡迎認識我！~Nice to meet you!'];
+    }
+    
     
     return processed;
   }
 
   /**
-   * 列出名片 - 修復問候語顯示
+   * 列出名片 - 保持原始資料格式
    */
   async listCards(filter = {}) {
     const cards = await this.storage.listCards(filter);
     
-    // 後處理每張名片的問候語格式
-    return cards.map(card => {
-      if (card.data && card.data.greetings) {
-        const processedCard = { ...card };
-        processedCard.data = { ...card.data };
-        
-        // 使用 BilingualBridge 標準化問候語
-        if (window.bilingualBridge && typeof window.bilingualBridge.normalizeGreetings === 'function') {
-          processedCard.data.greetings = window.bilingualBridge.normalizeGreetings(card.data.greetings, 'zh');
-        } else {
-          processedCard.data.greetings = this.fallbackNormalizeGreetings(card.data.greetings, 'zh');
-        }
-        
-        return processedCard;
-      }
-      return card;
-    });
+    // 不進行格式轉換，保持原始資料
+    // 僅在顯示時才進行語言選擇
+    return cards;
   }
 
   /**
@@ -1198,7 +1355,7 @@ class PWACardManager {
   }
 
   /**
-   * 獲取選中的名片 - 修復問候語顯示
+   * 獲取選中的名片 - 保持原始資料格式
    */
   async getSelectedCards(cardIds) {
     if (!cardIds || cardIds.length === 0) {
@@ -1209,17 +1366,8 @@ class PWACardManager {
     for (const cardId of cardIds) {
       const card = await this.storage.getCard(cardId);
       if (card) {
-        // 修復問候語格式
-        const processedCard = { ...card };
-        if (card.data && card.data.greetings) {
-          processedCard.data = { ...card.data };
-          if (window.bilingualBridge && typeof window.bilingualBridge.normalizeGreetings === 'function') {
-            processedCard.data.greetings = window.bilingualBridge.normalizeGreetings(card.data.greetings, 'zh');
-          } else {
-            processedCard.data.greetings = this.fallbackNormalizeGreetings(card.data.greetings, 'zh');
-          }
-        }
-        cards.push(processedCard);
+        // 不進行格式轉換，保持原始資料
+        cards.push(card);
       }
     }
     return cards;
@@ -1242,117 +1390,190 @@ class PWACardManager {
   }
 
   getBilingualName(cardData, language = 'zh') {
-    if (cardData.nameZh && cardData.nameEn) {
-      return language === 'en' ? cardData.nameEn : cardData.nameZh;
+    try {
+      if (cardData.nameZh && cardData.nameEn) {
+        return language === 'en' ? cardData.nameEn : cardData.nameZh;
+      }
+      
+      if (cardData.name) {
+        // 處理物件格式
+        if (typeof cardData.name === 'object' && cardData.name !== null) {
+          return language === 'en' ? (cardData.name.en || cardData.name.zh || '') : (cardData.name.zh || cardData.name.en || '');
+        }
+        
+        // 處理字串格式
+        if (typeof cardData.name === 'string' && cardData.name.indexOf('~') !== -1) {
+          const parts = cardData.name.split('~');
+          const chinese = parts[0] ? parts[0].trim() : '';
+          const english = parts[1] ? parts[1].trim() : '';
+          return language === 'en' ? english : chinese;
+        }
+        
+        // 純字串格式
+        if (typeof cardData.name === 'string') {
+          return cardData.name;
+        }
+      }
+      
+      return String(cardData.name || '');
+    } catch (error) {
+      return '';
     }
-    
-    if (cardData.name && cardData.name.includes('~')) {
-      const [chinese, english] = cardData.name.split('~');
-      return language === 'en' ? english.trim() : chinese.trim();
-    }
-    
-    return cardData.name || '';
   }
 
   getBilingualTitle(cardData, language = 'zh') {
-    if (cardData.titleZh && cardData.titleEn) {
-      return language === 'en' ? cardData.titleEn : cardData.titleZh;
+    try {
+      if (cardData.titleZh && cardData.titleEn) {
+        return language === 'en' ? cardData.titleEn : cardData.titleZh;
+      }
+      
+      if (cardData.title) {
+        // 處理物件格式
+        if (typeof cardData.title === 'object' && cardData.title !== null) {
+          return language === 'en' ? (cardData.title.en || cardData.title.zh || '') : (cardData.title.zh || cardData.title.en || '');
+        }
+        
+        // 處理字串格式
+        if (typeof cardData.title === 'string' && cardData.title.indexOf('~') !== -1) {
+          const parts = cardData.title.split('~');
+          const chinese = parts[0] ? parts[0].trim() : '';
+          const english = parts[1] ? parts[1].trim() : '';
+          return language === 'en' ? english : chinese;
+        }
+        
+        // 純字串格式
+        if (typeof cardData.title === 'string') {
+          if (language === 'en') {
+            return this.translateText(cardData.title, 'titles', 'en');
+          }
+          return cardData.title;
+        }
+      }
+      
+      return String(cardData.title || '');
+    } catch (error) {
+      return '';
     }
-    
-    if (cardData.title && cardData.title.includes('~')) {
-      const [chinese, english] = cardData.title.split('~');
-      return language === 'en' ? english.trim() : chinese.trim();
-    }
-    
-    if (language === 'en' && cardData.title) {
-      return this.translateText(cardData.title, 'titles', 'en');
-    }
-    
-    return cardData.title || '';
   }
 
   getBilingualCardData(cardData, language = 'zh') {
-    // 使用 BilingualBridge 的標準化方法處理問候語
-    let processedGreetings = [];
+    // 安全處理所有欄位，支援物件和字串格式
+    const safeGetField = (field) => {
+      try {
+        if (!field) return '';
+        
+        // 處理物件格式
+        if (typeof field === 'object' && field !== null) {
+          // 檢查是否為雙語物件格式
+          if (field.zh || field.en) {
+            if (language === 'en') {
+              return field.en || field.zh || '';
+            } else {
+              return field.zh || field.en || '';
+            }
+          }
+          
+          // 其他物件格式，嘗試提取第一個有效值
+          const values = Object.values(field).filter(v => v && typeof v === 'string');
+          if (values.length > 0) {
+            return values[0];
+          }
+          
+          // 最後手段：返回空字串而不是 [object Object]
+          return '';
+        }
+        
+        // 處理字串格式
+        if (typeof field === 'string') {
+          if (field.indexOf('~') !== -1) {
+            const parts = field.split('~');
+            return language === 'en' ? (parts[1] || parts[0] || '') : (parts[0] || '');
+          }
+          return field;
+        }
+        
+        // 其他類型轉字串
+        return String(field || '');
+      } catch (error) {
+        return '';
+      }
+    };
     
-    if (window.bilingualBridge && typeof window.bilingualBridge.normalizeGreetings === 'function') {
-      processedGreetings = window.bilingualBridge.normalizeGreetings(cardData.greetings, language);
-    } else {
-      // 備用方案：本地處理
-      processedGreetings = this.fallbackNormalizeGreetings(cardData.greetings, language);
+    // 處理問候語
+    let processedGreetings = cardData.greetings || [];
+    if (!Array.isArray(processedGreetings)) {
+      processedGreetings = [processedGreetings];
     }
     
-    console.log('[CardManager] Processed greetings:', {
-      original: cardData.greetings,
-      processed: processedGreetings,
-      language
-    });
+    processedGreetings = processedGreetings.map(greeting => {
+      if (typeof greeting === 'object' && greeting !== null) {
+        if (greeting.zh && greeting.en) {
+          return `${greeting.zh}~${greeting.en}`;
+        }
+        return String(greeting);
+      }
+      return String(greeting);
+    }).filter(g => g && g.trim() && g !== '[object Object]');
+    
+    if (processedGreetings.length === 0) {
+      processedGreetings = ['歡迎認識我！~Nice to meet you!'];
+    }
     
     return {
       name: this.getBilingualName(cardData, language),
       title: this.getBilingualTitle(cardData, language),
-      department: language === 'en' ? this.translateText(cardData.department, 'departments', 'en') : cardData.department,
-      organization: language === 'en' ? this.translateText(cardData.organization, 'organizations', 'en') : cardData.organization,
-      address: language === 'en' ? this.translateText(cardData.address, 'addresses', 'en') : cardData.address,
+      department: safeGetField(cardData.department),
+      organization: safeGetField(cardData.organization),
+      address: safeGetField(cardData.address),
       email: cardData.email || '',
       phone: cardData.phone || '',
       mobile: cardData.mobile || '',
       avatar: cardData.avatar || '',
       greetings: processedGreetings,
-      socialNote: cardData.socialNote || ''
+      socialNote: safeGetField(cardData.socialNote) || ''
     };
   }
 
   /**
-   * 備用的問候語標準化方法
+   * 獲取顯示用問候語 - 僅在顯示時選擇語言
+   * 不改變原始資料格式
    */
-  fallbackNormalizeGreetings(greetings, language = 'zh') {
-    if (!greetings) {
-      return ['歡迎認識我！'];
-    }
-    
-    let processedGreetings = [];
+  getDisplayGreetings(greetings, language = 'zh') {
+    if (!greetings) return ['歡迎認識我！'];
     
     if (Array.isArray(greetings)) {
-      processedGreetings = greetings
-        .map(g => this.processGreetingItem(g, language))
-        .filter(g => g && typeof g === 'string' && g.trim().length > 0);
-    } else if (typeof greetings === 'object' && greetings !== null) {
-      // 處理物件格式的 greetings
-      if (greetings.zh || greetings.en) {
-        const targetGreetings = greetings[language] || greetings.zh || greetings.en;
-        if (Array.isArray(targetGreetings)) {
-          processedGreetings = targetGreetings
-            .map(g => this.processGreetingItem(g, language))
-            .filter(g => g && typeof g === 'string');
-        } else if (typeof targetGreetings === 'string') {
-          const processed = this.processGreetingItem(targetGreetings, language);
-          if (processed) processedGreetings = [processed];
-        }
-      } else {
-        // 提取所有字串值
-        const values = Object.values(greetings)
-          .map(v => this.processGreetingItem(v, language))
-          .filter(v => v && typeof v === 'string');
-        processedGreetings = values.length > 0 ? values : [];
+      const processed = greetings
+        .map(g => {
+          if (typeof g === 'string') {
+            // 處理雙語格式，根據語言選擇
+            if (g.includes('~')) {
+              const [chinese, english] = g.split('~');
+              return language === 'en' ? english.trim() : chinese.trim();
+            }
+            return g.trim();
+          }
+          return String(g).trim();
+        })
+        .filter(g => g && g !== '[object Object]');
+      return processed.length > 0 ? processed : ['歡迎認識我！'];
+    }
+    
+    if (typeof greetings === 'string') {
+      // 處理雙語格式
+      if (greetings.includes('~')) {
+        const [chinese, english] = greetings.split('~');
+        return [language === 'en' ? english.trim() : chinese.trim()];
       }
-    } else if (typeof greetings === 'string') {
-      const processed = this.processGreetingItem(greetings, language);
-      if (processed) processedGreetings = [processed];
+      return [greetings.trim()];
     }
     
-    // 確保至少有一個問候語
-    if (processedGreetings.length === 0) {
-      processedGreetings = ['歡迎認識我！'];
-    }
-    
-    return processedGreetings;
+    return ['歡迎認識我！'];
   }
 
   /**
-   * 處理單個問候語項目
+   * 獲取單個問候語的顯示內容 - 僅在顯示時選擇語言
    */
-  processGreetingItem(greeting, language) {
+  getGreetingDisplayText(greeting, language = 'zh') {
     if (!greeting) return null;
     
     if (typeof greeting === 'string') {
@@ -1364,24 +1585,10 @@ class PWACardManager {
       return greeting.trim();
     }
     
-    if (typeof greeting === 'object' && greeting !== null) {
-      // 處理物件格式 {zh: "中文", en: "English"}
-      if (greeting.zh || greeting.en) {
-        const target = greeting[language] || greeting.zh || greeting.en;
-        return typeof target === 'string' ? target.trim() : null;
-      }
-      
-      // 嘗試提取第一個字串值
-      const firstStringValue = Object.values(greeting)
-        .find(v => v && typeof v === 'string');
-      return firstStringValue ? firstStringValue.trim() : null;
-    }
-    
-    return null;
+    return String(greeting).trim();
   }
 }
 
 // 確保類別正確導出到全域
 window.PWACardManager = PWACardManager;
 
-console.log('[CardManager] PWACardManager class exported to global scope');

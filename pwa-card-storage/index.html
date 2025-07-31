@@ -16,7 +16,7 @@
     <!-- Security Headers -->
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
-      script-src 'self';
+      script-src 'self' https://unpkg.com 'unsafe-inline';
       style-src 'self' https://fonts.googleapis.com;
       font-src 'self' https://fonts.gstatic.com;
       img-src 'self' data: https:;
@@ -253,14 +253,17 @@
     <script src="assets/html5-qrcode.min.js"></script>
     <script src="src/integration/legacy-adapter.js"></script>
     <script src="src/integration/bilingual-bridge.js"></script>
+    <!-- PWA-36 修復：載入 PWA 整合模組 -->
+    <script src="src/core/pwa-integration.js"></script>
     <script src="src/core/storage.js"></script>
     <script src="src/core/health-manager.js"></script>
-    <script src="src/core/version-manager.js"></script>
     <script src="src/features/card-manager.js"></script>
     <script src="src/features/offline-tools.js"></script>
     <script src="src/features/transfer-manager.js"></script>
     <script src="src/features/qr-scanner.js"></script>
     <script src="src/ui/components/card-list.js"></script>
+    <!-- PWA-24 Direct Processing -->
+    <script src="src/utils/simple-card-parser.js"></script>
     <script src="src/app.js"></script>
     <script src="src/pwa-init.js"></script>
 </body>

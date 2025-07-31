@@ -15,8 +15,6 @@ class DocumentationSync {
    */
   async syncVersionInfo() {
     try {
-      console.log('[DocSync] Starting version synchronization...');
-      
       const syncTasks = [
         this.syncManifestVersion(),
         this.syncServiceWorkerVersion(),
@@ -27,7 +25,6 @@ class DocumentationSync {
       await Promise.allSettled(syncTasks);
       
       this.lastSync = new Date().toISOString();
-      console.log('[DocSync] Version synchronization completed');
       
       return {
         success: true,
@@ -55,13 +52,12 @@ class DocumentationSync {
         const manifest = await response.json();
         
         if (manifest.version !== this.version) {
-          console.log(`[DocSync] Manifest version mismatch: ${manifest.version} -> ${this.version}`);
           // 在實際應用中，這裡會更新檔案
           // 目前只記錄差異
         }
       }
     } catch (error) {
-      console.warn('[DocSync] Manifest sync failed:', error);
+      // Manifest sync failed silently
     }
   }
 
@@ -86,13 +82,13 @@ class DocumentationSync {
           messageChannel.port1.onmessage = (event) => {
             const swVersion = event.data.version;
             if (swVersion && !swVersion.includes(this.version)) {
-              console.log(`[DocSync] Service Worker version mismatch: ${swVersion} -> ${this.version}`);
+              // Service Worker version mismatch detected
             }
           };
         }
       }
     } catch (error) {
-      console.warn('[DocSync] Service Worker sync failed:', error);
+      // Service Worker sync failed silently
     }
   }
 
@@ -103,9 +99,8 @@ class DocumentationSync {
     try {
       // 在 PWA 環境中，package.json 通常不可直接訪問
       // 這裡提供一個檢查機制的框架
-      console.log('[DocSync] Package version sync - not applicable in PWA environment');
     } catch (error) {
-      console.warn('[DocSync] Package sync failed:', error);
+      // Package sync failed silently
     }
   }
 
@@ -116,9 +111,8 @@ class DocumentationSync {
     try {
       // 檢查 README 中的版本資訊
       // 在實際應用中，這會讀取並更新 README 檔案
-      console.log('[DocSync] README version sync - manual update required');
     } catch (error) {
-      console.warn('[DocSync] README sync failed:', error);
+      // README sync failed silently
     }
   }
 
@@ -127,7 +121,6 @@ class DocumentationSync {
    */
   async checkSpecificationAlignment() {
     try {
-      console.log('[DocSync] Checking specification alignment...');
       
       const specFiles = [
         'requirements.md',
@@ -156,7 +149,6 @@ class DocumentationSync {
       // 生成建議
       alignmentReport.recommendations = this.generateAlignmentRecommendations(alignmentReport.misalignments);
       
-      console.log('[DocSync] Specification alignment check completed');
       return alignmentReport;
     } catch (error) {
       console.error('[DocSync] Specification alignment check failed:', error);
@@ -320,8 +312,6 @@ class DocumentationSync {
     setInterval(() => {
       this.syncVersionInfo();
     }, intervalHours * 60 * 60 * 1000);
-    
-    console.log(`[DocSync] Auto-sync enabled (every ${intervalHours} hours)`);
   }
 }
 

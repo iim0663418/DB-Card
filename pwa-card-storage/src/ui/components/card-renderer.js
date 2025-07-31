@@ -123,32 +123,49 @@ class CardRenderer {
   }
 
   /**
-   * 填充名片資料
+   * PWA-35: 填充名片資料 - 支援雙語欄位
    */
   populateCardData(cardData, cardType) {
     const card = this.container.querySelector('.card');
     
-    // 基本資訊
-    card.querySelector('.name').textContent = cardData.name || '';
-    card.querySelector('.title').textContent = cardData.title || '';
-    card.querySelector('.department').textContent = cardData.department || '';
+    // PWA-35: 基本資訊 - 支援雙語顯示
+    card.querySelector('.name').textContent = this.displayBilingualField(cardData.name, this.options.language);
+    card.querySelector('.title').textContent = this.displayBilingualField(cardData.title, this.options.language);
+    card.querySelector('.department').textContent = this.displayBilingualField(cardData.department, this.options.language);
     
     // 頭像處理
-    this.setupAvatar(card, cardData.avatar, cardData.name);
+    this.setupAvatar(card, cardData.avatar, this.displayBilingualField(cardData.name, this.options.language));
     
     // 聯絡資訊
     this.setupContactInfo(card, cardData);
     
-    // 組織和地址
+    // PWA-35: 組織和地址 - 支援雙語顯示
     this.setupOrganizationInfo(card, cardData, cardType);
     
-    // 社群媒體
+    // PWA-35: 社群媒體 - 支援雙語顯示
     this.setupSocialInfo(card, cardData);
     
     // 動作按鈕
     if (this.options.showActions) {
       this.setupActionButtons(card, cardData);
     }
+  }
+  
+  /**
+   * PWA-35: 雙語欄位顯示輔助方法
+   */
+  displayBilingualField(fieldData, currentLang) {
+    if (typeof fieldData === 'object' && fieldData && fieldData.zh && fieldData.en) {
+      return currentLang === 'en' ? fieldData.en : fieldData.zh;
+    }
+    
+    // 向下相容：處理字串格式的雙語資料
+    if (typeof fieldData === 'string' && fieldData.includes('~')) {
+      const [zh, en] = fieldData.split('~');
+      return currentLang === 'en' ? (en || '').trim() : (zh || '').trim();
+    }
+    
+    return fieldData || '';
   }
 
   /**
@@ -209,22 +226,22 @@ class CardRenderer {
   }
 
   /**
-   * 設置組織資訊
+   * PWA-35: 設置組織資訊 - 支援雙語欄位
    */
   setupOrganizationInfo(card, cardData, cardType) {
     const orgElement = card.querySelector('.organization');
     const addressElement = card.querySelector('.address');
     
-    // 組織名稱
-    let organization = cardData.organization;
+    // PWA-35: 組織名稱 - 支援雙語顯示
+    let organization = this.displayBilingualField(cardData.organization, this.options.language);
     if (!organization && this.isGovernmentType(cardType)) {
       organization = this.options.language === 'en' ? 
         'Ministry of Digital Affairs' : '數位發展部';
     }
     orgElement.textContent = organization || '';
     
-    // 地址
-    let address = cardData.address;
+    // PWA-35: 地址 - 支援雙語顯示
+    let address = this.displayBilingualField(cardData.address, this.options.language);
     if (!address && this.isGovernmentType(cardType)) {
       const isXinyi = cardType.includes('sg') || cardType.includes('xinyi');
       if (this.options.language === 'en') {
@@ -252,20 +269,23 @@ class CardRenderer {
   }
 
   /**
-   * 設置社群媒體資訊
+   * PWA-35: 設置社群媒體資訊 - 支援雙語顯示
    */
   setupSocialInfo(card, cardData) {
     const socialSection = card.querySelector('.social-info');
     const socialContent = card.querySelector('.social-info-content');
     
-    if (!cardData.socialNote || !cardData.socialNote.trim()) {
+    // PWA-35: 支援雙語社群連結顯示
+    const socialNote = this.displayBilingualField(cardData.socialNote, this.options.language);
+    
+    if (!socialNote || !socialNote.trim()) {
       socialSection.classList.add('hidden');
       return;
     }
     
     // 使用現有的社群連結處理邏輯
     if (typeof processSocialLinks === 'function') {
-      const processedContent = processSocialLinks(cardData.socialNote, this.options.language);
+      const processedContent = processSocialLinks(socialNote, this.options.language);
       socialContent.innerHTML = '';
       if (typeof processedContent === 'string') {
         socialContent.innerHTML = processedContent;
@@ -276,7 +296,7 @@ class CardRenderer {
     } else {
       // 備用方案：簡單的社群資訊顯示
       socialContent.innerHTML = '';
-      const socialText = this.processSocialLinksBasic(cardData.socialNote);
+      const socialText = this.processSocialLinksBasic(socialNote);
       socialContent.innerHTML = socialText;
       socialSection.classList.remove('hidden');
     }
@@ -334,11 +354,14 @@ class CardRenderer {
       this.handleSocialAction('facebook', cardData);
     });
     
-    // 設置 data-action 事件委托
+    // PWA-35: 設置 data-action 事件委托，包含語言切換
     card.addEventListener('click', (e) => {
       const action = e.target.dataset.action;
       if (action === 'language-toggle') {
-        card.dispatchEvent(new CustomEvent('languageToggle'));
+        // PWA-35: 語言切換功能
+        const newLanguage = this.options.language === 'zh' ? 'en' : 'zh';
+        this.switchLanguage(newLanguage);
+        card.dispatchEvent(new CustomEvent('languageToggle', { detail: { language: newLanguage } }));
       } else if (action === 'add-to-line') {
         this.handleSocialAction('line', cardData);
       } else if (action === 'add-to-facebook') {
@@ -354,7 +377,7 @@ class CardRenderer {
     switch (platform) {
       case 'line':
         // 嘗試開啟 LINE 加好友功能
-        if (cardData.socialNote && cardData.socialNote.includes('line.me')) {
+        if (cardData.socialNote && typeof cardData.socialNote === 'string' && cardData.socialNote.includes('line.me')) {
           const lineMatch = cardData.socialNote.match(/https?:\/\/line\.me\/[^\s]+/);
           if (lineMatch) {
             window.open(lineMatch[0], '_blank');
@@ -367,7 +390,7 @@ class CardRenderer {
         
       case 'facebook':
         // 嘗試開啟 Facebook 個人檔案
-        if (cardData.socialNote && cardData.socialNote.includes('facebook.com')) {
+        if (cardData.socialNote && typeof cardData.socialNote === 'string' && cardData.socialNote.includes('facebook.com')) {
           const fbMatch = cardData.socialNote.match(/https?:\/\/(?:www\.)?facebook\.com\/[^\s]+/);
           if (fbMatch) {
             window.open(fbMatch[0], '_blank');
@@ -403,7 +426,6 @@ class CardRenderer {
       normalizedGreetings = ['歡迎認識我！'];
     }
     
-    console.log('[CardRenderer] Typewriter greetings:', normalizedGreetings);
     
     let currentIndex = 0;
     
@@ -439,13 +461,13 @@ class CardRenderer {
   }
 
   /**
-   * 備用的問候語標準化方法（用於打字機效果）
+   * PWA-35: 備用的問候語標準化方法（用於打字機效果） - 支援雙語
    */
   normalizeGreetingsForTypewriter(greetings) {
     if (!greetings) return [];
     
     if (typeof greetings === 'string') {
-      return [greetings];
+      return [this.processGreetingForTypewriter(greetings)];
     }
     
     if (Array.isArray(greetings)) {
@@ -457,7 +479,7 @@ class CardRenderer {
     if (typeof greetings === 'object' && greetings !== null) {
       const processed = [];
       
-      // 嘗試提取雙語格式
+      // PWA-35: 支援雙語物件格式
       if (greetings.zh || greetings.en) {
         const target = greetings[this.options.language] || greetings.zh || greetings.en;
         if (Array.isArray(target)) {
@@ -483,13 +505,13 @@ class CardRenderer {
   }
 
   /**
-   * 處理單個問候語項目（用於打字機效果）
+   * PWA-35: 處理單個問候語項目（用於打字機效果） - 支援雙語
    */
   processGreetingForTypewriter(greeting) {
     if (!greeting) return null;
     
     if (typeof greeting === 'string') {
-      // 處理雙語格式
+      // PWA-35: 處理雙語格式
       if (greeting.includes('~')) {
         const [chinese, english] = greeting.split('~');
         return this.options.language === 'en' ? english.trim() : chinese.trim();
@@ -497,6 +519,7 @@ class CardRenderer {
       return greeting.trim();
     }
     
+    // PWA-35: 支援雙語物件格式
     if (typeof greeting === 'object' && greeting !== null) {
       if (greeting.zh || greeting.en) {
         const target = greeting[this.options.language] || greeting.zh || greeting.en;
@@ -541,12 +564,24 @@ class CardRenderer {
   }
 
   /**
-   * 切換語言
+   * PWA-35: 切換語言 - 支援所有雙語欄位的切換
    */
   switchLanguage(language) {
     this.options.language = language;
     if (this.currentCard) {
+      // 重新填充所有資料，確保所有雙語欄位都正確切換
       this.populateCardData(this.currentCard.data, this.currentCard.type);
+      
+      // 更新語言切換按鈕文字
+      const langBtn = this.container.querySelector('.lang-btn');
+      if (langBtn) {
+        langBtn.textContent = language === 'en' ? '🇹🇼 中文' : '🇺🇸 EN';
+      }
+      
+      // 重新啟動打字機效果（如果啟用）
+      if (this.options.enableTypewriter && this.currentCard.data.greetings) {
+        this.startTypewriterEffect(this.currentCard.data.greetings);
+      }
     }
   }
 
@@ -563,4 +598,3 @@ class CardRenderer {
 // 導出到全域
 window.CardRenderer = CardRenderer;
 
-console.log('[CardRenderer] CardRenderer class exported with enhanced greeting processing');

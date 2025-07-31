@@ -19,9 +19,6 @@ class PWAErrorHandler {
     
     this.initializationSteps.push(stepInfo);
     
-    if (this.isDebugMode) {
-      console.log(`[PWA-Debug] ${step}: ${status}`, details);
-    }
   }
 
   logError(error, context = 'Unknown') {
@@ -47,7 +44,6 @@ class PWAErrorHandler {
       steps: this.initializationSteps
     };
 
-    console.log('[PWA-Diagnosis] Initialization failure analysis:', diagnosis);
     return diagnosis;
   }
 
@@ -95,7 +91,6 @@ class PWAErrorHandler {
         testDB.onblocked = reject;
       });
     } catch (error) {
-      console.warn('[PWA-Diagnosis] IndexedDB test failed:', error);
     }
 
     try {
@@ -104,7 +99,6 @@ class PWAErrorHandler {
       localStorage.removeItem('test');
       result.localStorage = true;
     } catch (error) {
-      console.warn('[PWA-Diagnosis] localStorage test failed:', error);
     }
 
     try {
@@ -113,7 +107,6 @@ class PWAErrorHandler {
         result.estimate = await navigator.storage.estimate();
       }
     } catch (error) {
-      console.warn('[PWA-Diagnosis] Storage estimate failed:', error);
     }
 
     return result;
@@ -235,13 +228,11 @@ class PWAErrorHandler {
   enableDebugMode() {
     localStorage.setItem('pwa-debug', 'true');
     this.isDebugMode = true;
-    console.log('[PWA-Debug] Debug mode enabled');
   }
 
   disableDebugMode() {
     localStorage.removeItem('pwa-debug');
     this.isDebugMode = false;
-    console.log('[PWA-Debug] Debug mode disabled');
   }
 }
 
@@ -257,4 +248,3 @@ window.addEventListener('unhandledrejection', (event) => {
   window.pwaErrorHandler.logError(new Error(event.reason), 'Unhandled Promise Rejection');
 });
 
-console.log('[PWA-ErrorHandler] Error handler initialized');

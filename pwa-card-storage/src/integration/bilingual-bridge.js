@@ -48,15 +48,15 @@ class BilingualBridge {
         
         // 名片類型
         cardTypes: {
-          'gov-yp': '機關版-延平大樓',
-          'gov-sg': '機關版-新光大樓',
+          'index': '機關版-延平大樓',
+          'index1': '機關版-新光大樓',
           'personal': '個人版',
-          'bilingual': '雙語版',
+          'bilingual': '雙語版-延平',
+          'bilingual1': '雙語版-新光',
           'personal-bilingual': '個人雙語版',
-          'en': '英文版',
-          'personal-en': '個人英文版',
-          'gov-yp-en': '機關版延平英文',
-          'gov-sg-en': '機關版新光英文'
+          'en': '英文版-延平',
+          'en1': '英文版-新光',
+          'personal-en': '個人英文版'
         }
       },
       en: {
@@ -100,15 +100,15 @@ class BilingualBridge {
         
         // 名片類型
         cardTypes: {
-          'gov-yp': 'Government - Yanping',
-          'gov-sg': 'Government - Xinyi',
+          'index': 'Government - Yanping',
+          'index1': 'Government - Xinyi',
           'personal': 'Personal',
-          'bilingual': 'Bilingual',
+          'bilingual': 'Bilingual - Yanping',
+          'bilingual1': 'Bilingual - Xinyi',
           'personal-bilingual': 'Personal Bilingual',
-          'en': 'English',
-          'personal-en': 'Personal English',
-          'gov-yp-en': 'Government Yanping English',
-          'gov-sg-en': 'Government Xinyi English'
+          'en': 'English - Yanping',
+          'en1': 'English - Xinyi',
+          'personal-en': 'Personal English'
         }
       }
     };
@@ -119,10 +119,8 @@ class BilingualBridge {
   init() {
     // 檢查是否有現有的 bilingual-common.js
     if (window.bilingualCommon) {
-      console.log('[BilingualBridge] Found existing bilingual-common.js');
       this.integrateExistingBilingual();
     } else {
-      console.log('[BilingualBridge] Using built-in bilingual support');
     }
     
     // 從 localStorage 載入語言偏好
@@ -152,7 +150,6 @@ class BilingualBridge {
         });
       }
       
-      console.log('[BilingualBridge] Successfully integrated existing bilingual support');
     } catch (error) {
       console.error('[BilingualBridge] Failed to integrate existing bilingual:', error);
     }
@@ -163,7 +160,6 @@ class BilingualBridge {
    */
   setLanguage(language) {
     if (!['zh', 'en'].includes(language)) {
-      console.warn('[BilingualBridge] Invalid language:', language);
       return false;
     }
     
@@ -175,7 +171,6 @@ class BilingualBridge {
       detail: { language: this.currentLanguage }
     }));
     
-    console.log('[BilingualBridge] Language changed to:', language);
     return true;
   }
 
@@ -210,7 +205,6 @@ class BilingualBridge {
         result = result[k];
       } else {
         // 如果找不到翻譯，返回原始鍵值
-        console.warn('[BilingualBridge] Translation not found:', key, 'for language:', lang);
         return key;
       }
     }
@@ -230,176 +224,201 @@ class BilingualBridge {
   }
 
   /**
-   * 處理雙語名片資料 - 修復 greetings [object Object] 問題
+   * PWA-35: 處理雙語名片資料 - 支援所有雙語欄位
+   * 保持原始雙語格式，不進行格式轉換
    */
   processBilingualCardData(cardData, targetLanguage = null) {
-    const lang = targetLanguage || this.currentLanguage;
     const processedData = { ...cardData };
     
-    console.log('[BilingualBridge] Processing card data:', {
-      originalGreetings: cardData.greetings,
-      greetingsType: typeof cardData.greetings,
-      isArray: Array.isArray(cardData.greetings),
-      targetLanguage: lang
-    });
-    
-    // 處理雙語格式的欄位 (格式: "中文~English")
-    const bilingualFields = ['name', 'title', 'department', 'organization'];
+    // PWA-35: 擴展支援所有雙語欄位
+    const bilingualFields = ['name', 'title', 'department', 'organization', 'socialNote', 'address'];
     
     bilingualFields.forEach(field => {
-      if (processedData[field] && processedData[field].includes('~')) {
+      // 支援物件格式的雙語資料
+      if (typeof processedData[field] === 'object' && processedData[field] && 
+          processedData[field].zh && processedData[field].en) {
+        // 保留物件格式不變，並提供分離的訪問
+        processedData[`${field}Zh`] = processedData[field].zh;
+        processedData[`${field}En`] = processedData[field].en;
+      }
+      // 支援字串格式的雙語資料（向下相容）
+      else if (typeof processedData[field] === 'string' && processedData[field].includes('~')) {
         const [chinese, english] = processedData[field].split('~');
-        processedData[field] = lang === 'en' ? english.trim() : chinese.trim();
-        
-        // 保留原始雙語資料
         processedData[`${field}Zh`] = chinese.trim();
         processedData[`${field}En`] = english.trim();
       }
     });
     
-    // 處理問候語陣列 - 修復 [object Object] 問題（增強版）
-    processedData.greetings = this.normalizeGreetings(processedData.greetings, lang);
+    // 問候語保持原始格式，不進行任何轉換
+    if (processedData.greetings) {
+      if (!Array.isArray(processedData.greetings)) {
+        processedData.greetings = [processedData.greetings];
+      }
+      // 確保每個問候語都是字串格式，不轉換為物件
+      processedData.greetings = processedData.greetings.map(greeting => {
+        if (typeof greeting === 'object' && greeting !== null) {
+          // 如果意外收到物件格式，轉回字串格式
+          if (greeting.zh && greeting.en) {
+            return `${greeting.zh}~${greeting.en}`;
+          }
+          return String(greeting);
+        }
+        return String(greeting);
+      }).filter(g => g && g.trim());
+    }
     
     return processedData;
   }
 
   /**
-   * 標準化問候語格式 - 統一處理所有可能的格式
+   * 標準化問候語格式 - 資料一致性修復版本
+   * 保持雙語字串格式，僅在顯示時選擇語言
    */
   normalizeGreetings(greetings, targetLanguage = 'zh') {
-    console.log('[BilingualBridge] Normalizing greetings:', {
-      input: greetings,
-      type: typeof greetings,
-      isArray: Array.isArray(greetings),
-      targetLanguage
-    });
     
-    // 如果沒有問候語，返回預設值
+    // 如果沒有問候語，返回預設雙語格式
     if (!greetings) {
-      return ['歡迎認識我！'];
+      return ['歡迎認識我！~Nice to meet you!'];
     }
     
     let normalizedArray = [];
     
     if (Array.isArray(greetings)) {
-      // 處理陣列格式
+      // 處理陣列格式，保持雙語字串格式
       normalizedArray = greetings
-        .map(greeting => this.processGreetingItem(greeting, targetLanguage))
+        .map(greeting => this.preserveGreetingFormat(greeting))
         .filter(g => g && typeof g === 'string' && g.trim().length > 0);
     } else if (typeof greetings === 'object' && greetings !== null) {
-      // 處理物件格式
-      normalizedArray = this.extractGreetingsFromObject(greetings, targetLanguage);
+      // 處理物件格式，轉換為雙語字串格式
+      if (greetings.zh && greetings.en) {
+        normalizedArray = [`${greetings.zh}~${greetings.en}`];
+      } else {
+        const firstValue = Object.values(greetings).find(v => v && typeof v === 'string');
+        normalizedArray = firstValue ? [firstValue] : [];
+      }
     } else if (typeof greetings === 'string') {
-      // 處理字串格式
-      const processed = this.processGreetingItem(greetings, targetLanguage);
-      normalizedArray = processed ? [processed] : [];
+      // 處理字串格式，保持原樣
+      normalizedArray = [greetings.trim()];
     }
     
     // 確保至少有一個有效的問候語
     if (normalizedArray.length === 0) {
-      normalizedArray = ['歡迎認識我！'];
+      normalizedArray = ['歡迎認識我！~Nice to meet you!'];
     }
     
-    console.log('[BilingualBridge] Normalized greetings result:', normalizedArray);
     return normalizedArray;
   }
 
   /**
-   * 處理單個問候語項目
+   * 保持問候語格式 - 不進行語言選擇轉換
    */
-  processGreetingItem(greeting, targetLanguage) {
+  preserveGreetingFormat(greeting) {
     if (!greeting) return null;
     
     if (typeof greeting === 'string') {
-      // 處理雙語格式 "中文~English"
-      if (greeting.includes('~')) {
-        const [chinese, english] = greeting.split('~');
-        return targetLanguage === 'en' ? english.trim() : chinese.trim();
-      }
+      // 保持字串格式不變
       return greeting.trim();
     }
     
     if (typeof greeting === 'object' && greeting !== null) {
-      // 處理物件格式 {zh: "中文", en: "English"}
-      if (greeting.zh || greeting.en) {
-        const target = greeting[targetLanguage] || greeting.zh || greeting.en;
-        return typeof target === 'string' ? target.trim() : null;
+      // 將物件格式轉換為雙語字串格式
+      if (greeting.zh && greeting.en) {
+        return `${greeting.zh}~${greeting.en}`;
       }
       
-      // 嘗試提取第一個字串值
+      // 如果只有單一語言，直接返回
       const firstStringValue = Object.values(greeting)
         .find(v => v && typeof v === 'string');
       return firstStringValue ? firstStringValue.trim() : null;
     }
     
-    return null;
+    return String(greeting).trim();
   }
 
+
+
   /**
-   * 從物件中提取問候語
+   * PWA-35: 獲取雙語欄位顯示內容 - 通用方法
    */
-  extractGreetingsFromObject(greetingsObj, targetLanguage) {
-    const extracted = [];
+  getDisplayField(fieldData, language = null) {
+    const lang = language || this.currentLanguage;
     
-    // 優先處理標準雙語格式
-    if (greetingsObj.zh || greetingsObj.en) {
-      const targetGreetings = greetingsObj[targetLanguage] || greetingsObj.zh || greetingsObj.en;
-      
-      if (Array.isArray(targetGreetings)) {
-        targetGreetings.forEach(g => {
-          const processed = this.processGreetingItem(g, targetLanguage);
-          if (processed) extracted.push(processed);
-        });
-      } else if (typeof targetGreetings === 'string') {
-        const processed = this.processGreetingItem(targetGreetings, targetLanguage);
-        if (processed) extracted.push(processed);
-      }
-    } else {
-      // 處理其他物件格式，提取所有字串值
-      Object.values(greetingsObj).forEach(value => {
-        const processed = this.processGreetingItem(value, targetLanguage);
-        if (processed) extracted.push(processed);
-      });
+    // 支援物件格式
+    if (typeof fieldData === 'object' && fieldData && fieldData.zh && fieldData.en) {
+      return lang === 'en' ? fieldData.en : fieldData.zh;
     }
     
-    return extracted;
+    // 支援字串格式（向下相容）
+    if (typeof fieldData === 'string' && fieldData.includes('~')) {
+      const [chinese, english] = fieldData.split('~');
+      return lang === 'en' ? english.trim() : chinese.trim();
+    }
+    
+    return fieldData || '';
   }
-
+  
   /**
-   * 獲取名片顯示名稱
+   * 獲取名片顯示名稱 - 僅在顯示時選擇語言
    */
   getCardDisplayName(cardData, language = null) {
-    const lang = language || this.currentLanguage;
-    
-    if (cardData.nameZh && cardData.nameEn) {
-      return lang === 'en' ? cardData.nameEn : cardData.nameZh;
-    }
-    
-    if (cardData.name && cardData.name.includes('~')) {
-      const [chinese, english] = cardData.name.split('~');
-      return lang === 'en' ? english.trim() : chinese.trim();
-    }
-    
-    return cardData.name || '';
+    return this.getDisplayField(cardData.name, language);
+  }
+  
+  /**
+   * PWA-35: 獲取名片顯示職稱
+   */
+  getCardDisplayTitle(cardData, language = null) {
+    return this.getDisplayField(cardData.title, language);
+  }
+  
+  /**
+   * PWA-35: 獲取名片顯示部門
+   */
+  getCardDisplayDepartment(cardData, language = null) {
+    return this.getDisplayField(cardData.department, language);
+  }
+  
+  /**
+   * PWA-35: 獲取名片顯示組織
+   */
+  getCardDisplayOrganization(cardData, language = null) {
+    return this.getDisplayField(cardData.organization, language);
+  }
+  
+  /**
+   * PWA-35: 獲取名片顯示地址
+   */
+  getCardDisplayAddress(cardData, language = null) {
+    return this.getDisplayField(cardData.address, language);
+  }
+  
+  /**
+   * PWA-35: 獲取名片顯示社群連結
+   */
+  getCardDisplaySocialNote(cardData, language = null) {
+    return this.getDisplayField(cardData.socialNote, language);
   }
 
   /**
-   * 獲取名片顯示職稱
+   * 獲取問候語顯示內容 - 僅在顯示時選擇語言
    */
-  getCardDisplayTitle(cardData, language = null) {
+  getDisplayGreetings(greetings, language = null) {
     const lang = language || this.currentLanguage;
     
-    if (cardData.titleZh && cardData.titleEn) {
-      return lang === 'en' ? cardData.titleEn : cardData.titleZh;
+    if (!greetings || !Array.isArray(greetings)) {
+      return ['歡迎認識我！'];
     }
     
-    if (cardData.title && cardData.title.includes('~')) {
-      const [chinese, english] = cardData.title.split('~');
-      return lang === 'en' ? english.trim() : chinese.trim();
-    }
-    
-    return cardData.title || '';
+    return greetings.map(greeting => {
+      if (typeof greeting === 'string' && greeting.includes('~')) {
+        const [chinese, english] = greeting.split('~');
+        return lang === 'en' ? english.trim() : chinese.trim();
+      }
+      return String(greeting);
+    }).filter(g => g && g.trim());
   }
+
+
 
   /**
    * 更新 DOM 元素的語言
@@ -420,7 +439,6 @@ class BilingualBridge {
     // 更新 HTML lang 屬性
     document.documentElement.lang = this.currentLanguage;
     
-    console.log('[BilingualBridge] DOM language updated to:', this.currentLanguage);
   }
 
   /**
@@ -508,7 +526,6 @@ window.bilingualBridge = new BilingualBridge();
 
 // 語言變更事件監聽器
 window.addEventListener('languageChanged', (event) => {
-  console.log('[BilingualBridge] Language changed event:', event.detail.language);
   
   // 自動更新 DOM
   if (window.bilingualBridge) {
@@ -521,4 +538,3 @@ window.addEventListener('languageChanged', (event) => {
   }
 });
 
-console.log('[BilingualBridge] Bilingual bridge initialized');

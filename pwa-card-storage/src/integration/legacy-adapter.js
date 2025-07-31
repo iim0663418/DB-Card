@@ -13,7 +13,6 @@ class LegacyAdapter {
 
   async init() {
     try {
-      console.log('[LegacyAdapter] Initializing legacy adapter...');
       
       // 等待 bilingual-common.js 載入
       await this.waitForBilingualCommon();
@@ -22,9 +21,7 @@ class LegacyAdapter {
       this.setupAdapterMethods();
       
       this.initialized = true;
-      console.log('[LegacyAdapter] Legacy adapter initialized successfully');
     } catch (error) {
-      console.error('[LegacyAdapter] Initialization failed:', error);
     }
   }
 
@@ -34,7 +31,6 @@ class LegacyAdapter {
   waitForBilingualCommon() {
     return new Promise((resolve) => {
       // 簡化：直接使用備用方法，不等待外部庫
-      console.log('[LegacyAdapter] Using built-in parsing methods');
       resolve();
     });
   }
@@ -61,30 +57,25 @@ class LegacyAdapter {
   parseCardData(dataParam) {
     if (!dataParam) return null;
     
-    console.log('[LegacyAdapter] Parsing data, length:', dataParam.length);
     
     // 1. 嘗試 JSON 格式（nfc-generator.html）
     const jsonResult = this.parseJSONFormat(dataParam);
     if (jsonResult) {
-      console.log('[LegacyAdapter] Successfully parsed JSON format');
       return jsonResult;
     }
     
     // 2. 嘗試管道分隔格式（nfc-generator-bilingual.html）
     const pipeResult = this.parsePipeFormat(dataParam);
     if (pipeResult) {
-      console.log('[LegacyAdapter] Successfully parsed pipe format');
       return pipeResult;
     }
     
     // 3. 嘗試 Legacy 格式
     const legacyResult = this.parseLegacyFormat(dataParam);
     if (legacyResult) {
-      console.log('[LegacyAdapter] Successfully parsed legacy format');
       return legacyResult;
     }
     
-    console.error('[LegacyAdapter] All parsing methods failed');
     return null;
   }
   
@@ -124,7 +115,6 @@ class LegacyAdapter {
         }
       };
     } catch (error) {
-      console.log('[LegacyAdapter] JSON format parsing failed:', error.message);
       return null;
     }
   }
@@ -171,7 +161,6 @@ class LegacyAdapter {
       
       return { data: parsedData };
     } catch (error) {
-      console.log('[LegacyAdapter] Pipe format parsing failed:', error.message);
       return null;
     }
   }
@@ -190,7 +179,6 @@ class LegacyAdapter {
       
       throw new Error('Invalid legacy format');
     } catch (error) {
-      console.log('[LegacyAdapter] Legacy format parsing failed:', error.message);
       return null;
     }
   }
@@ -207,7 +195,6 @@ class LegacyAdapter {
       
       return this.parseCardData(data);
     } catch (error) {
-      console.error('[LegacyAdapter] Parse NFC URL failed:', error);
       return null;
     }
   }
@@ -223,7 +210,6 @@ class LegacyAdapter {
       
       return this.fallbackGenerateCardUrl(cardData, cardType);
     } catch (error) {
-      console.error('[LegacyAdapter] Generate card URL failed:', error);
       throw error;
     }
   }
@@ -239,7 +225,6 @@ class LegacyAdapter {
       
       return this.fallbackEncodeCardData(cardData);
     } catch (error) {
-      console.error('[LegacyAdapter] Encode card data failed:', error);
       throw error;
     }
   }
@@ -255,7 +240,6 @@ class LegacyAdapter {
       
       return this.fallbackDetectCardType(cardData);
     } catch (error) {
-      console.error('[LegacyAdapter] Detect card type failed:', error);
       return 'personal';
     }
   }
@@ -304,11 +288,8 @@ class LegacyAdapter {
         };
       }
       
-      console.log('[LegacyAdapter] Parsed compact data:', parsedData);
       return parsedData;
     } catch (error) {
-      console.error('[LegacyAdapter] Parse compact format failed:', error);
-      console.error('[LegacyAdapter] Raw data:', data);
       return null;
     }
   }
@@ -358,7 +339,6 @@ class LegacyAdapter {
       const encoded = btoa(jsonString);
       return encodeURIComponent(encoded);
     } catch (error) {
-      console.error('[LegacyAdapter] Fallback encode card data failed:', error);
       throw error;
     }
   }
@@ -387,7 +367,6 @@ class LegacyAdapter {
       const page = pageMap[cardType] || '/index-personal.html';
       return `${baseUrl}${page}?data=${encodedData}`;
     } catch (error) {
-      console.error('[LegacyAdapter] Fallback generate card URL failed:', error);
       throw error;
     }
   }
@@ -520,7 +499,6 @@ class LegacyAdapter {
 
       return convertedData;
     } catch (error) {
-      console.error('[LegacyAdapter] Convert legacy data failed:', error);
       return legacyData;
     }
   }
@@ -601,10 +579,8 @@ class LegacyAdapter {
       const cardType = this.detectCardType(testCardData);
       testResults.detectCardType = cardType === 'gov-yp';
 
-      console.log('[LegacyAdapter] Test results:', testResults);
       return testResults;
     } catch (error) {
-      console.error('[LegacyAdapter] Test failed:', error);
       return testResults;
     }
   }

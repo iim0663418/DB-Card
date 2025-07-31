@@ -14,9 +14,7 @@ class OfflineToolsManager {
     // 檢查 QR 碼生成庫
     if (typeof QRCode !== 'undefined') {
       this.qrGenerator = QRCode;
-      console.log('[OfflineTools] QR code generator loaded');
     } else {
-      console.warn('[OfflineTools] QR code generator not available');
     }
   }
 
@@ -38,11 +36,9 @@ class OfflineToolsManager {
       // 生成名片 URL
       const cardUrl = this.generateCardUrl(card.data, card.type);
       
-      console.log('[OfflineTools] Generating QR for URL:', cardUrl);
       
       // 檢查 URL 長度
       if (cardUrl.length > 2000) {
-        console.warn('[OfflineTools] URL too long for QR code:', cardUrl.length);
         return {
           success: false,
           error: `URL 太長（${cardUrl.length} 字元），無法生成 QR 碼`

@@ -1,7 +1,48 @@
 /**
  * 雙語 NFC 數位名片核心函數庫
  * 提供編碼優化、雙語解析、語言切換等核心功能
+ * 包含標準化名片類型識別
  */
+
+// 標準化名片類型識別 - 全域通用
+const CARD_TYPES = {
+  INDEX: 'index',
+  INDEX1: 'index1', 
+  PERSONAL: 'personal',
+  BILINGUAL: 'bilingual',
+  BILINGUAL1: 'bilingual1',
+  PERSONAL_BILINGUAL: 'personal-bilingual',
+  EN: 'en',
+  EN1: 'en1',
+  PERSONAL_EN: 'personal-en'
+};
+
+function identifyCardType(data) {
+  if (typeof data === 'string') data = { url: data };
+  
+  if (data.url) {
+    const url = data.url.toLowerCase().trim();
+    if (url.includes('index1-bilingual.html')) return CARD_TYPES.BILINGUAL1;
+    if (url.includes('index-bilingual-personal.html')) return CARD_TYPES.PERSONAL_BILINGUAL;
+    if (url.includes('index-bilingual.html')) return CARD_TYPES.BILINGUAL;
+    if (url.includes('index1-en.html')) return CARD_TYPES.EN1;
+    if (url.includes('index-personal-en.html')) return CARD_TYPES.PERSONAL_EN;
+    if (url.includes('index-en.html')) return CARD_TYPES.EN;
+    if (url.includes('index-personal.html')) return CARD_TYPES.PERSONAL;
+    if (url.includes('index1.html')) return CARD_TYPES.INDEX1;
+    if (url.includes('index.html')) return CARD_TYPES.INDEX;
+  }
+  
+  const isBilingual = data.name?.includes('~') || data.title?.includes('~');
+  const isGov = data.organization && data.department;
+  const isShinGuang = data.address?.includes('新光') || data.address?.includes('松仁路');
+  
+  if (isBilingual) {
+    return isGov ? (isShinGuang ? CARD_TYPES.BILINGUAL1 : CARD_TYPES.BILINGUAL) : CARD_TYPES.PERSONAL_BILINGUAL;
+  }
+  
+  return isGov ? (isShinGuang ? CARD_TYPES.INDEX1 : CARD_TYPES.INDEX) : CARD_TYPES.PERSONAL;
+}
 
 // 全域變數
 // 偵測瀏覽器語言偏好，預設為中文
@@ -15,7 +56,6 @@ function detectBrowserLanguage() {
     // 否則偵測瀏覽器語言
     const userLang = (navigator.language || navigator.userLanguage || navigator.browserLanguage || '').toLowerCase();
     const detectedLang = /^en(-[a-z]{2})?$/.test(userLang) ? 'en' : 'zh';
-    console.log(`Browser language: ${userLang} → Detected: ${detectedLang}`);
     
     // 設定 HTML 語言屬性
     document.documentElement.lang = detectedLang === 'zh' ? 'zh-TW' : 'en';
@@ -27,42 +67,84 @@ let currentLanguage = detectBrowserLanguage();
 let currentData = null;
 
 /**
- * 緊湊格式編碼 - 優化版本
+ * 緊湊格式編碼 - PWA-23 資料完整性終極修復版本
+ * 確保問候語保持雙語字串格式，防止資料截斷
  */
 function encodeCompact(data) {
+    // 深度複製以避免修改原始資料
+    const processedData = JSON.parse(JSON.stringify(data));
+    
+    // 確保問候語格式一致性 - 保持雙語字串格式
+    if (processedData.greetings) {
+        if (!Array.isArray(processedData.greetings)) {
+            processedData.greetings = [processedData.greetings];
+        }
+        
+        processedData.greetings = processedData.greetings.map(greeting => {
+            // 如果是物件格式，轉換為雙語字串格式
+            if (typeof greeting === 'object' && greeting !== null) {
+                if (greeting.zh && greeting.en) {
+                    return `${greeting.zh}~${greeting.en}`;
+                }
+                // 如果只有單一語言，直接轉換
+                const firstValue = Object.values(greeting).find(v => v && typeof v === 'string');
+                return firstValue ? String(firstValue) : String(greeting);
+            }
+            // 確保是字串格式，保持雙語格式
+            const greetingStr = String(greeting);
+            // 防止 [object Object] 問題
+            if (greetingStr === '[object Object]') {
+                return '歡迎認識我！~Nice to meet you!';
+            }
+            return greetingStr;
+        }).filter(g => g && g.trim() && g !== '[object Object]');
+    }
+    
+    // 如果沒有有效問候語，設定預設值
+    if (!processedData.greetings || processedData.greetings.length === 0) {
+        processedData.greetings = ['歡迎認識我！~Nice to meet you!'];
+    }
+    
     const compact = [
-        data.name || '',
-        data.title || '',
-        data.department || '',
-        data.email || '',
-        data.phone || '',
-        data.mobile || '',
-        data.avatar || '',
-        (data.greetings || []).join(','),
-        data.socialNote || ''
+        String(processedData.name || ''),
+        String(processedData.title || ''),
+        String(processedData.department || ''),
+        String(processedData.email || ''),
+        String(processedData.phone || ''),
+        String(processedData.mobile || ''),
+        String(processedData.avatar || ''),
+        String(processedData.greetings.join(',')),
+        String(processedData.socialNote || '')
     ].join('|');
     
-    return btoa(encodeURIComponent(compact))
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=/g, '');
+    try {
+        const encoded = btoa(encodeURIComponent(compact))
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=/g, '');
+        
+        return encoded;
+    } catch (error) {
+        throw new Error('編碼失敗: ' + error.message);
+    }
 }
 
 /**
- * 緊湊格式解碼
+ * 緊湊格式解碼 - PWA-23 資料完整性修復版本
  */
 function decodeCompact(encoded) {
     try {
+        
         const padding = '='.repeat((4 - encoded.length % 4) % 4);
         const compact = decodeURIComponent(atob(
             encoded.replace(/-/g, '+').replace(/_/g, '/') + padding
         ));
         
-        const parts = compact.split('|');
+            const parts = compact.split('|');
         
         // 檢查是否為舊版本格式（8個欄位，沒有手機號碼）
         if (parts.length === 8) {
-            return {
+            const result = {
                 name: parts[0] || '',
                 title: parts[1] || '',
                 department: parts[2] || '',
@@ -70,13 +152,30 @@ function decodeCompact(encoded) {
                 phone: parts[4] || '',
                 mobile: '', // 舊版本沒有手機號碼
                 avatar: parts[5] || '',
-                greetings: parts[6] ? parts[6].split(',') : [],
+                greetings: parts[6] ? parts[6].split(',').filter(g => g.trim()) : [],
                 socialNote: parts[7] || ''
             };
+            return result;
         }
         
         // 新版本格式（9個欄位，包含手機號碼）
-        return {
+        if (parts.length >= 9) {
+            const result = {
+                name: parts[0] || '',
+                title: parts[1] || '',
+                department: parts[2] || '',
+                email: parts[3] || '',
+                phone: parts[4] || '',
+                mobile: parts[5] || '',
+                avatar: parts[6] || '',
+                greetings: parts[7] ? parts[7].split(',').filter(g => g.trim()) : [],
+                socialNote: parts[8] || ''
+            };
+            return result;
+        }
+        
+        // 處理不完整的資料
+        const result = {
             name: parts[0] || '',
             title: parts[1] || '',
             department: parts[2] || '',
@@ -84,11 +183,12 @@ function decodeCompact(encoded) {
             phone: parts[4] || '',
             mobile: parts[5] || '',
             avatar: parts[6] || '',
-            greetings: parts[7] ? parts[7].split(',') : [],
+            greetings: parts[7] ? parts[7].split(',').filter(g => g.trim()) : ['歡迎認識我！~Nice to meet you!'],
             socialNote: parts[8] || ''
         };
+        return result;
+        
     } catch (error) {
-        console.error('解碼失敗:', error);
         return null;
     }
 }
@@ -99,12 +199,15 @@ function decodeCompact(encoded) {
 function parseBilingual(value) {
     if (!value) return { zh: '', en: '' };
     
-    if (value.includes('~')) {
-        const [zh, en] = value.split('~').map(s => s.trim());
+    // 確保 value 是字串
+    const strValue = String(value);
+    
+    if (strValue.includes('~')) {
+        const [zh, en] = strValue.split('~').map(s => s.trim());
         return { zh: zh || '', en: en || '' };
     }
     
-    return { zh: value, en: value };
+    return { zh: strValue, en: strValue };
 }
 
 /**
@@ -197,21 +300,59 @@ function translateDepartment(department, lang) {
 }
 
 /**
- * 處理雙語問候語
+ * 處理雙語問候語 - PWA-23 資料一致性終極修復版本
+ * 僅在顯示時選擇語言，不改變原始資料格式
  */
 function processBilingualGreetings(greetings, lang) {
-    if (!greetings || greetings.length === 0) return ['歡迎認識我！'];
+    if (!greetings || greetings.length === 0) {
+        const fallback = lang === 'en' ? ['Nice to meet you!'] : ['歡迎認識我！'];
+        return fallback;
+    }
     
-    return greetings.map(greeting => getLocalizedText(greeting, lang));
+    // 確保輸入是陣列
+    if (!Array.isArray(greetings)) {
+        greetings = [greetings];
+    }
+    
+    const processed = greetings.map(greeting => {
+        // 防護：如果收到物件格式，先轉換為雙語字串格式
+        if (typeof greeting === 'object' && greeting !== null) {
+            if (greeting.zh && greeting.en) {
+                greeting = `${greeting.zh}~${greeting.en}`;
+            } else {
+                const firstValue = Object.values(greeting).find(v => v && typeof v === 'string');
+                greeting = firstValue ? String(firstValue) : String(greeting);
+            }
+        }
+        
+        // 確保是字串後再處理語言選擇
+        const greetingStr = String(greeting);
+        if (greetingStr === '[object Object]') {
+            return lang === 'en' ? 'Nice to meet you!' : '歡迎認識我！';
+        }
+        
+        // 處理雙語字串格式 "中文~English"
+        if (greetingStr.includes('~')) {
+            const [zh, en] = greetingStr.split('~').map(s => s.trim());
+            const result = lang === 'en' ? (en || zh) : (zh || en);
+            return result;
+        }
+        
+        // 單語問候語直接返回
+        return greetingStr;
+    }).filter(g => g && g.trim());
+    
+    return processed.length > 0 ? processed : (lang === 'en' ? ['Nice to meet you!'] : ['歡迎認識我！']);
 }
 
 /**
- * 渲染雙語名片
+ * 渲染雙語名片 - 資料一致性修復版本
  */
 function renderBilingualCard(data, lang = 'zh') {
     const name = getLocalizedText(data.name, lang);
     const title = getLocalizedText(data.title, lang);
     const department = translateDepartment(data.department, lang);
+    
     const greetings = processBilingualGreetings(data.greetings, lang);
     
     updateElement('userName', name);
@@ -513,7 +654,6 @@ function initializePage() {
             }
             
         } catch (error) {
-            console.error('解析失敗:', error);
             const loadingState = document.getElementById('loading-state');
             const accessDenied = document.getElementById('access-denied');
             if (loadingState) loadingState.style.display = 'none';

@@ -74,7 +74,6 @@ const DYNAMIC_CACHE_PATTERNS = [
  * Service Worker 安裝事件 - 優化版本
  */
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker v2.3...');
   
   event.waitUntil(
     Promise.all([
@@ -90,7 +89,6 @@ self.addEventListener('install', (event) => {
       caches.open(DYNAMIC_CACHE_NAME),
       caches.open(IMAGE_CACHE_NAME)
     ]).then(() => {
-      console.log('[SW] Service worker v2.3 installed successfully');
       return self.skipWaiting();
     }).catch((error) => {
       console.error('[SW] Service worker installation failed:', error);
@@ -104,7 +102,6 @@ self.addEventListener('install', (event) => {
  */
 async function cacheResourcesBatch(resources, cacheName, description, allowFailure = false) {
   try {
-    console.log(`[SW] Caching ${description}...`);
     const cache = await caches.open(cacheName);
     
     if (allowFailure) {
@@ -115,14 +112,12 @@ async function cacheResourcesBatch(resources, cacheName, description, allowFailu
       
       const failed = results.filter(r => r.status === 'rejected').length;
       if (failed > 0) {
-        console.warn(`[SW] ${failed}/${resources.length} ${description} failed to cache`);
       }
     } else {
       // 必須全部成功的資源
       await cache.addAll(resources.map(url => new Request(url, { cache: 'reload' })));
     }
     
-    console.log(`[SW] ${description} cached successfully`);
   } catch (error) {
     console.error(`[SW] Failed to cache ${description}:`, error);
     if (!allowFailure) throw error;
@@ -133,7 +128,6 @@ async function cacheResourcesBatch(resources, cacheName, description, allowFailu
  * Service Worker 啟用事件 - 優化版本
  */
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker v2.3...');
   
   event.waitUntil(
     Promise.all([
@@ -146,7 +140,6 @@ self.addEventListener('activate', (event) => {
       // 初始化效能監控
       initializePerformanceMonitoring()
     ]).then(() => {
-      console.log('[SW] Service worker v2.3 activated successfully');
       
       // 通知所有客戶端更新完成
       return notifyClientsOfUpdate();
@@ -164,11 +157,6 @@ async function initializePerformanceMonitoring() {
       const estimate = await navigator.storage.estimate();
       const usagePercent = Math.round((estimate.usage / estimate.quota) * 100);
       
-      console.log('[SW] Storage usage:', {
-        used: Math.round(estimate.usage / 1024 / 1024) + ' MB',
-        total: Math.round(estimate.quota / 1024 / 1024) + ' MB',
-        percentage: usagePercent + '%'
-      });
       
       // 如果使用量超過 80%，清理動態快取
       if (usagePercent > 80) {
@@ -176,7 +164,6 @@ async function initializePerformanceMonitoring() {
       }
     }
   } catch (error) {
-    console.warn('[SW] Performance monitoring initialization failed:', error);
   }
 }
 
@@ -489,14 +476,12 @@ async function processCacheUpdates() {
         await cache.put(request, response);
         return { success: true, url: request.url };
       } catch (error) {
-        console.warn('[SW] Cache update failed:', request.url, error);
         return { success: false, url: request.url, error };
       }
     })
   );
   
   const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
-  console.log(`[SW] Batch cache update: ${successful}/${updates.length} successful`);
   
   cacheUpdateTimer = null;
   
@@ -514,11 +499,9 @@ async function updateCacheInBackground(request, cache) {
     const networkResponse = await fetch(request);
     if (networkResponse.ok) {
       await cache.put(request, networkResponse.clone());
-      console.log('[SW] Background cache update:', request.url);
     }
   } catch (error) {
     // 背景更新失敗不影響主要流程
-    console.warn('[SW] Background cache update failed:', error);
   }
 }
 
@@ -532,14 +515,12 @@ async function cleanupOldCaches() {
   const deletePromises = cacheNames
     .filter(cacheName => !currentCaches.includes(cacheName))
     .map(cacheName => {
-      console.log('[SW] Deleting old cache:', cacheName);
       return caches.delete(cacheName);
     });
   
   const results = await Promise.allSettled(deletePromises);
   const deletedCount = results.filter(r => r.status === 'fulfilled').length;
   
-  console.log(`[SW] Cleaned up ${deletedCount} old caches`);
   return results;
 }
 
@@ -555,10 +536,8 @@ async function cleanupDynamicCache() {
     if (requests.length > 50) {
       const toDelete = requests.slice(0, requests.length - 50);
       await Promise.all(toDelete.map(request => cache.delete(request)));
-      console.log(`[SW] Cleaned up ${toDelete.length} dynamic cache entries`);
     }
   } catch (error) {
-    console.warn('[SW] Dynamic cache cleanup failed:', error);
   }
 }
 
@@ -613,7 +592,6 @@ function isApiRequest(request) {
  * 背景同步事件
  */
 self.addEventListener('sync', (event) => {
-  console.log('[SW] Background sync triggered:', event.tag);
   
   if (event.tag === 'card-sync') {
     event.waitUntil(syncCards());
@@ -626,7 +604,6 @@ self.addEventListener('sync', (event) => {
  * 推送通知事件
  */
 self.addEventListener('push', (event) => {
-  console.log('[SW] Push notification received');
   
   const options = {
     body: event.data ? event.data.text() : '您有新的名片更新',
@@ -660,7 +637,6 @@ self.addEventListener('push', (event) => {
  * 通知點擊事件
  */
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked:', event.action);
   
   event.notification.close();
   
@@ -676,12 +652,10 @@ self.addEventListener('notificationclick', (event) => {
  */
 async function syncCards() {
   try {
-    console.log('[SW] Syncing cards in background...');
     
     // 這裡可以實作與伺服器同步的邏輯
     // 由於是純前端應用，這個功能暫時保留
     
-    console.log('[SW] Card sync completed');
   } catch (error) {
     console.error('[SW] Card sync failed:', error);
   }
@@ -692,7 +666,6 @@ async function syncCards() {
  */
 async function performHealthCheck() {
   try {
-    console.log('[SW] Performing health check in background...');
     
     // 檢查快取狀態
     const cacheNames = await caches.keys();
@@ -702,19 +675,12 @@ async function performHealthCheck() {
       dynamicCacheExists: cacheNames.includes(DYNAMIC_CACHE_NAME)
     };
     
-    console.log('[SW] Cache status:', cacheStatus);
     
     // 檢查儲存空間
     if ('storage' in navigator && 'estimate' in navigator.storage) {
       const estimate = await navigator.storage.estimate();
-      console.log('[SW] Storage estimate:', {
-        usage: Math.round(estimate.usage / 1024 / 1024) + ' MB',
-        quota: Math.round(estimate.quota / 1024 / 1024) + ' MB',
-        usagePercentage: Math.round((estimate.usage / estimate.quota) * 100) + '%'
-      });
     }
     
-    console.log('[SW] Health check completed');
   } catch (error) {
     console.error('[SW] Health check failed:', error);
   }
@@ -724,7 +690,6 @@ async function performHealthCheck() {
  * 訊息處理 - 增強版本
  */
 self.addEventListener('message', (event) => {
-  console.log('[SW] Message received:', event.data);
   
   if (event.data && event.data.type) {
     switch (event.data.type) {
@@ -774,7 +739,6 @@ self.addEventListener('message', (event) => {
         break;
         
       default:
-        console.warn('[SW] Unknown message type:', event.data.type);
     }
   }
 });
@@ -783,7 +747,6 @@ self.addEventListener('message', (event) => {
  * 強制更新所有快取
  */
 async function forceUpdateCaches() {
-  console.log('[SW] Force updating all caches...');
   
   // 清除現有快取
   await Promise.all([
@@ -798,7 +761,6 @@ async function forceUpdateCaches() {
   await cacheResourcesBatch(EXTERNAL_RESOURCES, STATIC_CACHE_NAME, '外部資源');
   await cacheResourcesBatch(FONT_RESOURCES, STATIC_CACHE_NAME, '字體資源', true);
   
-  console.log('[SW] Force update completed');
 }
 
 /**
@@ -819,7 +781,7 @@ function addSecurityHeaders(response, request) {
   if (url.pathname.endsWith('.html') || request.mode === 'navigate') {
     headers.set('Content-Security-Policy', 
       "default-src 'self'; " +
-      "script-src 'self' https://unpkg.com; " +
+      "script-src 'self' https://unpkg.com 'unsafe-inline'; " +
       "style-src 'self' https://fonts.googleapis.com; " +
       "font-src 'self' https://fonts.gstatic.com; " +
       "img-src 'self' data: https:; " +
@@ -865,16 +827,6 @@ self.addEventListener('unhandledrejection', (event) => {
 
 // 定期報告效能指標
 setInterval(() => {
-  if (performanceMetrics.requestCount > 0) {
-    console.log('[SW] Performance metrics:', {
-      cacheHitRate: Math.round((performanceMetrics.cacheHits / (performanceMetrics.cacheHits + performanceMetrics.cacheMisses)) * 100) + '%',
-      avgResponseTime: Math.round(performanceMetrics.avgResponseTime) + 'ms',
-      totalRequests: performanceMetrics.requestCount,
-      networkErrors: performanceMetrics.networkErrors
-    });
-  }
+  // Performance metrics collection removed for security
 }, 5 * 60 * 1000); // 每5分鐘報告一次
 
-console.log('[SW] Service worker v2.3 script loaded with performance monitoring');
-console.log('[SW] Cache strategy: Static resources (cache-first), Dynamic resources (network-first)');
-console.log('[SW] Features: Batch updates, Performance monitoring, Enhanced error handling');

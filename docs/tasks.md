@@ -35,7 +35,8 @@ status: "🚨 PWA-24 緊急任務 - 建立最精簡資料處理流程"
 - **🎉 PWA-33 驗證成功**：標準解碼修復完全生效，雙語檢測 100% 準確
 - **✅ PWA-35 完成**：雙語版多樣化欄位完整支援完成，測試驗證 100% 通過
 - **✅ PWA-36 類型識別修復完成**：修復 index.html 被誤判為雙語版本的問題，強化 URL 檢測絕對優先權
-- **狀態**：✅ **所有任務完成，系統功能完整，類型識別準確，測試驗證全部通過**
+- **🚨 PWA-37 緊急任務**：名片介面儲存按鈕點擊時立即暫存 URL 到 sessionStorage，確保類型識別準確性
+- **狀態**：🔄 **PWA-37 緊急任務進行中，需立即實施 sessionStorage URL 暫存機制**
 
 ### 關鍵路徑 (Critical Path)
 ```
@@ -75,6 +76,7 @@ PWA-01 → PWA-02 → PWA-03 → PWA-04 → PWA-05 → PWA-09A → PWA-19 → PW
 | **PWA-34** | **✅ 程式碼清理** | **清理所有 console.log 和調試日誌，準備生產部署** | PWA-33 | **Given 所有程式碼 When 清理日誌 Then 無 console.log 輸出** | **日誌清理、性能優化、生產準備** | 0.1 | ✅ **完成** |
 | **PWA-35** | **✅ 完善雙語欄位支援** | **擴展所有欄位的雙語解析、儲存、顯示功能，支援姓名、職稱、部門、地址等多樣化雙語欄位** | PWA-34 | **Given 雙語格式資料 When 解析儲存顯示 Then 所有欄位正確支援雙語切換** | **雙語解析器擴展、結構化儲存、完整顯示邏輯** | 0.6 | ✅ **完成並測試通過** |
 | **PWA-36** | **✅ 類型識別修復** | **修復 index.html 被誤判為雙語版本問題，強化 URL 檢測絕對優先權** | PWA-35 | **Given index.html URL When 包含雙語資料 Then 正確識別為 index 類型** | **URL 檢測優先級、類型識別邏輯、調試日誌** | 0.2 | ✅ **完成並測試通過** |
+| **PWA-37** | **🚨 名片介面 URL 暫存** | **在名片介面上點擊「儲存到離線」按鈕時立即將當前 URL 儲存到 sessionStorage** | PWA-36 | **Given 名片介面儲存按鈕 When 點擊瞬間 Then 立即暫存 window.location.href 到 sessionStorage** | **按鈕事件監聽、sessionStorage 操作、URL 保存機制** | 0.1 | 🔄 **進行中** |
 
 ## 3️⃣ PWA-24 詳細實施計劃
 
@@ -186,7 +188,57 @@ async storeCard(cardData) {
 - 大幅提升系統穩定性
 - 簡化維護複雜度
 
-## 6️⃣ PWA-35 雙語欄位支援完善計劃
+## 6️⃣ PWA-37 名片介面 URL 暫存機制實施計劃
+
+### 核心問題
+從架構上來看，在名片介面上點擊「儲存到離線」時，就要在 sessionStorage 上儲存當下的 URL 才能有效的得到能有效被辨識的 URL。
+
+### 實施方案
+
+#### 步驟 1：名片介面按鈕事件處理
+```javascript
+// 在所有名片頁面（index.html, index-bilingual.html 等）添加
+function handleSaveToOfflineClick(event) {
+  // 立即暫存當前 URL
+  sessionStorage.setItem('card_original_url', window.location.href);
+  
+  // 然後執行原有的儲存邏輯
+  // ...
+}
+```
+
+#### 步驟 2：PWA 頁面讀取暫存 URL
+```javascript
+// 在 PWA 頁面初始化時
+function initializePWAPage() {
+  const originalURL = sessionStorage.getItem('card_original_url');
+  if (originalURL) {
+    // 使用原始 URL 進行類型識別
+    window.PWA_ORIGINAL_URL = originalURL;
+  }
+}
+```
+
+#### 步驟 3：類型識別器使用暫存 URL
+```javascript
+// 修改類型識別邏輯
+function identifyCardType(data) {
+  // 優先使用暫存的原始 URL
+  const urlToCheck = window.PWA_ORIGINAL_URL || data.url || window.location.href;
+  
+  // 進行類型識別
+  if (urlToCheck.includes('index-bilingual.html')) return 'bilingual';
+  if (urlToCheck.includes('index.html')) return 'index';
+  // ...
+}
+```
+
+### 預期效果
+- ✅ 確保類型識別器能夠使用正確的原始 URL
+- ✅ 解決 PWA 頁面無法識別原始名片類型的問題
+- ✅ 最小化程式碼修改，影響範圍可控
+
+## 7️⃣ PWA-35 雙語欄位支援完善計劃
 
 ### 問題分析
 目前 PWA 系統對雙語版多樣化欄位的支援度有限：

@@ -87,19 +87,20 @@ graph TB
 - **具體問題**: 圖示尺寸不足、版面溢出
 - **狀態**: 需重新設計
 
-**❌ Critical Issue 5: 儲存按鈕觸發時未立即暫存 URL 導致分類錯誤**
-- **問題**: 名片介面上的「儲存到離線」按鈕觸發當下沒有馬上暫存當前 URL
-- **根因**: 缺少按鈕點擊瞬間的 URL 快照機制，導致後續類型識別時 URL 已改變
-- **影響**: 無法正確分類名片類型，因為類型識別依賴準確的 URL 資訊
-- **期望行為**: 按鈕點擊瞬間立即暫存 `window.location.href` 供後續類型識別使用
-- **狀態**: 需新增按鈕觸發瞬間的 URL 暫存機制
+**❌ Critical Issue 5: PWA 頁面 URL 暫存機制存在障礙**
+- **問題**: 從日誌顯示，PWA 頁面 URL 為 `pwa-card-storage/?c=...` 格式，無法直接識別原始名片類型
+- **現象**: PWA Integration 暫存上下文為 null，當前 URL 識別結果為 null，只能依賴資料特徵識別
+- **根因**: PWA 頁面 URL 不包含原始名片頁面資訊（如 index.html, bilingual.html 等）
+- **影響**: 類型識別器無法從 PWA URL 判斷原始名片類型，必須回退到資料特徵識別
+- **期望行為**: PWA 暫存機制應保存原始名片頁面 URL 資訊供類型識別使用
+- **狀態**: 需修正 PWA 暫存機制以保存原始頁面 URL 上下文
 
 ### 2.2 UAT 結論
 - **整體狀態**: 🔄 部分修復完成，仍有 5 個 Critical 問題待解決
 - **可用性**: 類型識別已修復，但其他核心功能仍有問題
-- **緊急程度**: 需立即修復剩餘 Critical 問題，特別是儲存按鈕觸發時的 URL 暫存問題
+- **緊急程度**: 需立即修復剩餘 Critical 問題，特別是 PWA URL 暫存機制障礙
 - **已修復**: PWA-36 類型識別錯誤
-- **新發現**: 儲存按鈕觸發時未立即暫存 URL 導致分類錯誤
+- **新發現**: PWA 頁面 URL 暫存機制存在障礙，無法保存原始名片頁面資訊
 
 ## 3. Data Models (Revised)
 
@@ -220,44 +221,58 @@ interface Generator2Format {
 
 ## 3. API Design
 
-### 3.1 儲存按鈕觸發瞬間 URL 暫存 API (修正版)
+### 3.1 PWA 原始頁面 URL 保存機制 API (修正版)
 
 ```typescript
-// 解決 Critical Issue 5: 儲存按鈕觸發時未立即暫存 URL 導致分類錯誤
-class SaveButtonURLCacheHandler {
-  private cachedURL: string | null = null;
+// 解決 Critical Issue 5: PWA 頁面 URL 暫存機制存在障礙
+class PWAOriginalPageURLHandler {
+  private static readonly ORIGINAL_URL_KEY = 'pwa_original_page_url';
   private dbManager: UnifiedDBManager;
   private parser: CardTypeParser;
   
-  // 按鈕觸發瞬間立即暫存 URL
-  handleSaveButtonClick(event: Event): void {
-    // 關鍵：按鈕點擊瞬間立即暫存當前 URL
-    this.cachedURL = window.location.href;
-    
-    // 然後執行儲存流程
-    this.processSaveWithCachedURL(event);
+  // 在進入 PWA 頁面前保存原始 URL
+  static preserveOriginalURL(originalURL: string): void {
+    // 保存原始名片頁面 URL 到 sessionStorage
+    sessionStorage.setItem(this.ORIGINAL_URL_KEY, originalURL);
   }
   
-  // 使用暫存的 URL 進行儲存處理
-  private async processSaveWithCachedURL(event: Event): Promise<void> {
+  // 從 PWA 頁面取得原始 URL
+  static getOriginalURL(): string | null {
+    return sessionStorage.getItem(this.ORIGINAL_URL_KEY);
+  }
+  
+  // 儲存按鈕處理（使用原始 URL）
+  handleSaveButtonClick(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    this.processSaveWithOriginalURL();
+  }
+  
+  // 使用原始 URL 進行儲存處理
+  private async processSaveWithOriginalURL(): Promise<void> {
     try {
-      event.preventDefault();
-      event.stopPropagation();
+      // 取得原始名片頁面 URL
+      const originalURL = PWAOriginalPageURLHandler.getOriginalURL();
+      if (!originalURL) {
+        throw new Error('無法取得原始名片頁面 URL');
+      }
       
-      // 使用暫存的 URL 而非當前 URL
-      const cardData = this.extractCardDataFromCachedURL();
+      // 從當前 PWA URL 提取卡片資料
+      const cardData = this.extractCardDataFromPWAURL();
       
-      // 關鍵：將暫存的 URL 加入資料供類型識別使用
-      cardData.url = this.cachedURL;
+      // 關鍵：使用原始 URL 供類型識別
+      cardData.url = originalURL;
+      cardData.originalURL = originalURL; // 保存原始 URL 供後續使用
       
-      // 類型識別現在可以正確使用 URL 資訊
+      // 現在類型識別器可以正確識別類型
       const cardType = this.parser.identifyType(cardData);
       
       // 儲存處理
       const cardId = await this.dbManager.storeCard({
         ...cardData,
         type: cardType,
-        source: 'card_interface',
+        source: 'pwa_interface',
         created: new Date(),
         modified: new Date()
       });
@@ -266,31 +281,36 @@ class SaveButtonURLCacheHandler {
       
     } catch (error) {
       this.showErrorMessage(error.message);
-      console.error('儲存失敗:', error);
-    } finally {
-      // 清理暫存
-      this.cachedURL = null;
+      console.error('PWA 儲存失敗:', error);
     }
   }
   
-  // 從暫存的 URL 提取資料
-  private extractCardDataFromCachedURL(): any {
-    if (!this.cachedURL) {
-      throw new Error('無暫存 URL 資訊');
-    }
-    
-    const url = new URL(this.cachedURL);
-    const dataParam = url.searchParams.get('data') || url.searchParams.get('c');
+  // 從 PWA URL 提取卡片資料
+  private extractCardDataFromPWAURL(): any {
+    const urlParams = new URLSearchParams(window.location.search);
+    const dataParam = urlParams.get('c');
     
     if (dataParam) {
       try {
-        return JSON.parse(decodeURIComponent(atob(dataParam)));
+        // PWA URL 中的資料可能經過雙重編碼
+        const decodedData = decodeURIComponent(dataParam);
+        return JSON.parse(decodeURIComponent(atob(decodedData)));
       } catch (error) {
-        throw new Error('無法解析卡片資料');
+        throw new Error('無法解析 PWA 卡片資料');
       }
     }
     
-    throw new Error('找不到卡片資料');
+    throw new Error('在 PWA URL 中找不到卡片資料');
+  }
+}
+
+// PWA 頁面初始化時的使用方式
+class PWAPageInitializer {
+  static initialize(): void {
+    // 如果是從名片頁面跳轉而來，保存 referrer 為原始 URL
+    if (document.referrer && !document.referrer.includes('pwa-card-storage')) {
+      PWAOriginalPageURLHandler.preserveOriginalURL(document.referrer);
+    }
   }
 }
 ```

@@ -198,6 +198,11 @@ class PWACardApp {
         this.toggleTheme();
       });
     }
+    
+    // 初始化 PWA 安裝按鈕
+    if (window.initPWAInstallButtons) {
+      window.initPWAInstallButtons();
+    }
   }
 
   initializeUI() {

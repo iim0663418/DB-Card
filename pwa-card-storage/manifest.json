@@ -5,7 +5,7 @@
   "version": "1.0.2",
   "start_url": "/pwa-card-storage/",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "theme_color": "#1976d2",
   "background_color": "#ffffff",
   "lang": "zh-TW",
@@ -88,7 +88,7 @@
     "preferred_width": 400
   },
   
-  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "display_override": ["standalone", "minimal-ui", "browser"],
   
   "permissions": [
     "storage-access"

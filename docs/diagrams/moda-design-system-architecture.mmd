@@ -1,0 +1,33 @@
+graph TB
+    subgraph "PWA Application Layer"
+        A[PWA Main App] --> B[Design System Manager]
+        B --> C[Theme Controller]
+        B --> D[CSS Variables Manager]
+        B --> E[Component Renderer]
+    end
+    
+    subgraph "Design System Layer"
+        F[moda Design Tokens] --> G[CSS Variables]
+        G --> H[Light Theme Variables]
+        G --> I[Dark Theme Variables]
+        J[Typography System] --> K[PingFang TC]
+        J --> L[Noto Sans TC]
+    end
+    
+    subgraph "Layout System"
+        M[Bootstrap 5 Core] --> N[Flexbox Layout]
+        M --> O[Responsive Grid]
+        P[Custom Variables] --> Q[moda Extensions]
+    end
+    
+    subgraph "Security Layer"
+        R[CSS Injection Protection] --> S[Content Security Policy]
+        R --> T[Input Sanitization]
+    end
+    
+    B --> F
+    C --> H
+    C --> I
+    E --> M
+    E --> J
+    A --> R

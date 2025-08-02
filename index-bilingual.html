@@ -260,11 +260,14 @@
             cursor: pointer;
             transition: all 0.15s ease;
             text-decoration: none;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             margin-bottom: 20px;
             box-shadow: 0 1px 3px rgba(104,104,172,0.2);
             letter-spacing: 0;
             line-height: 1.5;
+            min-height: 44px;
         }
 
         .download-btn:hover {
@@ -280,6 +283,43 @@
             align-items: center;
             gap: 20px;
             margin-top: 20px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: baseline;
+        }
+
+        .download-btn,
+        .pwa-save-btn {
+            background: #6868ac;
+            color: #fff;
+            border: 1px solid #6868ac;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 1px 3px rgba(104,104,172,0.2);
+            letter-spacing: 0;
+            line-height: 1.5;
+            min-height: 44px;
+            height: 44px;
+        }
+
+        .pwa-save-btn:hover {
+            background: #4e4e81;
+            border-color: #4e4e81;
+            box-shadow: 0 2px 6px rgba(104,104,172,0.3);
+            transform: translateY(-1px);
         }
 
         .qr-section {
@@ -367,6 +407,23 @@
                 max-width: none;
                 margin: 15px;
             }
+            
+            .button-group {
+                flex-direction: column;
+                gap: 10px;
+                width: 100%;
+                align-items: center;
+            }
+            
+            .download-btn,
+            .pwa-save-btn {
+                max-width: 280px;
+                width: auto;
+                min-width: 200px;
+                padding: 14px 20px;
+                font-size: 0.9em;
+                min-height: 48px;
+            }
         }
     </style>
 </head>
@@ -437,12 +494,15 @@
             </div>
             
             <div class="action-section">
-                <button id="downloadBtn" onclick="downloadBilingualVCard(currentData, currentLanguage)" class="download-btn">
-                    📱 <span id="downloadBtnText">加入聯絡人</span>
-                </button>
-                <button id="save-to-pwa-btn" class="download-btn" style="background: #28a745; border-color: #28a745; margin-left: 10px;">
-                    💾 <span id="savePwaText">儲存到離線</span>
-                </button>
+                <div class="button-group">
+                    <button id="downloadBtn" onclick="downloadBilingualVCard(currentData, currentLanguage)" class="download-btn">
+                        📱 <span id="downloadBtnText">加入聯絡人</span>
+                    </button>
+                    <button id="save-to-pwa-btn" class="pwa-save-btn">
+                        <span class="icon">💾</span>
+                        <span id="savePwaText">儲存到離線</span>
+                    </button>
+                </div>
                 <div id="vcardGuide" style="background: #f3f5f6; border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px 15px; margin-bottom: 20px; font-size: 0.85em; color: #495057; line-height: 1.5; max-width: 90%;">
                     <strong id="vcardGuideTitle" style="color: #6868ac;">📱 如何加入聯絡人</strong>
                     <div id="vcardGuideContent" style="margin-top: 8px;">

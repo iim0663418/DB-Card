@@ -191,13 +191,48 @@ class PWACardApp {
         this.toggleLanguage();
       });
     }
+
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+      themeToggle.addEventListener('click', () => {
+        this.toggleTheme();
+      });
+    }
   }
 
   initializeUI() {
     this.updateConnectionStatus();
-    this.updateLanguageUI();
+    this.loadThemePreference();
+    this.updateThemeUI();
+    
+    // 初始化語言管理器
+    if (window.languageManager) {
+      this.currentLanguage = window.languageManager.getCurrentLanguage();
+      this.updateLanguageUI();
+      
+      // 註冊語言變更觀察者
+      window.languageManager.addObserver((lang) => {
+        this.currentLanguage = lang;
+        this.updateLanguageUI();
+      });
+    }
+    
     this.navigateTo('home');
     this.handleUrlParams();
+  }
+  
+  loadThemePreference() {
+    const savedTheme = localStorage.getItem('pwa-theme');
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else if (savedTheme === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      // 檢測系統主題偏好
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.add('dark');
+      }
+    }
   }
 
   async loadInitialData() {
@@ -730,12 +765,9 @@ class PWACardApp {
   }
 
   showCardModal(card) {
-    console.log('[PWA] showCardModal - 原始卡片資料:', card.data);
-    
     let displayData;
     if (this.cardManager) {
       displayData = this.cardManager.getBilingualCardData(card.data, this.currentLanguage);
-      console.log('[PWA] showCardModal - 處理後資料:', displayData);
     } else {
       displayData = {
         ...card.data,
@@ -743,10 +775,7 @@ class PWACardApp {
         phone: String(card.data.phone || '').trim(),
         mobile: String(card.data.mobile || '').trim()
       };
-      console.log('[PWA] showCardModal - 備用處理資料:', displayData);
     }
-    
-    console.log('[PWA] showCardModal - 最終 email:', displayData.email);
     
     
     const labels = this.getUILabels();
@@ -954,9 +983,45 @@ class PWACardApp {
     });
   }
 
+  async toggleTheme() {
+    try {
+      const isDark = document.documentElement.classList.contains('dark');
+      const newTheme = isDark ? 'light' : 'dark';
+      
+      if (newTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      
+      // 儲存主題偏好
+      localStorage.setItem('pwa-theme', newTheme);
+      
+      // 更新主題按鈕 UI
+      this.updateThemeUI();
+      
+      // 使用語言管理器獲取本地化訊息
+      const message = window.languageManager ? 
+        window.languageManager.getNotificationMessage('themeChanged', newTheme === 'dark') :
+        (newTheme === 'dark' ? '已切換至深色模式' : '已切換至淺色模式');
+      
+      this.showNotification(message, 'success');
+    } catch (error) {
+      console.error('[PWA] Theme toggle failed:', error);
+      const errorMessage = window.languageManager ? 
+        window.languageManager.getText('themeFailed') : '主題切換失敗';
+      this.showNotification(errorMessage, 'error');
+    }
+  }
+
   toggleLanguage() {
-    this.currentLanguage = this.currentLanguage === 'zh' ? 'en' : 'zh';
-    this.updateLanguageUI();
+    if (!window.languageManager) {
+      console.error('[PWA] Language manager not available');
+      return;
+    }
+    
+    const newLang = window.languageManager.toggleLanguage();
+    this.currentLanguage = newLang;
     
     // 重新載入名片列表
     if (this.currentPage === 'cards' && window.cardList) {
@@ -973,20 +1038,52 @@ class PWACardApp {
       }
     }
     
-    this.showNotification(
-      this.currentLanguage === 'zh' ? '已切換至中文' : 'Switched to English', 
-      'success'
-    );
+    // 使用語言管理器獲取本地化訊息
+    const message = window.languageManager.getNotificationMessage('languageChanged');
+    this.showNotification(message, 'success');
   }
 
   updateLanguageUI() {
-    const langToggle = document.getElementById('lang-toggle');
-    if (langToggle) {
-      langToggle.textContent = this.currentLanguage === 'zh' ? 'EN' : '中';
+    // 語言 UI 更新現在由 LanguageManager 處理
+    if (window.languageManager) {
+      window.languageManager.updateLanguageButton();
+    }
+  }
+
+  updateThemeUI() {
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+      const icon = themeToggle.querySelector('.icon');
+      if (icon) {
+        const isDark = document.documentElement.classList.contains('dark');
+        icon.textContent = isDark ? '☀️' : '🌙';
+        themeToggle.title = isDark ? '切換到淺色模式' : '切換到深色模式';
+      }
     }
   }
 
   getUILabels() {
+    // 使用語言管理器獲取翻譯
+    if (window.languageManager) {
+      return {
+        cardDetails: window.languageManager.getText('cardDetails'),
+        avatar: window.languageManager.getText('avatar'),
+        email: window.languageManager.getText('email'),
+        phone: window.languageManager.getText('phone'),
+        mobile: window.languageManager.getText('mobile'),
+        address: window.languageManager.getText('address'),
+        greetings: window.languageManager.getText('greetings'),
+        social: window.languageManager.getText('social'),
+        generateQR: window.languageManager.getText('generateQR'),
+        downloadVCard: window.languageManager.getText('downloadVCard'),
+        qrCode: window.languageManager.getText('qrCode'),
+        downloadQR: window.languageManager.getText('downloadQR'),
+        copyLink: window.languageManager.getText('copyLink'),
+        qrTip: window.languageManager.getText('qrTip')
+      };
+    }
+    
+    // 備用方案
     const labels = {
       zh: {
         cardDetails: '名片詳細資訊',
@@ -1134,10 +1231,15 @@ class PWACardApp {
 
   showNotification(message, type = 'info') {
     const notification = document.getElementById('notification');
-    const icon = document.querySelector('.notification-icon');
-    const messageEl = document.querySelector('.notification-message');
+    const icon = notification?.querySelector('.notification-icon');
+    const messageEl = notification?.querySelector('.notification-message');
 
-    if (!notification || !icon || !messageEl) return;
+    if (!notification || !icon || !messageEl) {
+      console.warn('[PWA] Notification elements not found');
+      // 創建臨時通知
+      this.createTemporaryNotification(message, type);
+      return;
+    }
 
     const icons = {
       success: '✅',
@@ -1146,21 +1248,126 @@ class PWACardApp {
       info: 'ℹ️'
     };
 
+    // 設置通知內容
     icon.textContent = icons[type] || icons.info;
     messageEl.textContent = message;
 
-    notification.classList.remove('hidden');
+    // 清除舊的類型類別
+    notification.classList.remove('success', 'error', 'warning', 'info');
+    // 添加新的類型類別
+    notification.classList.add(type);
 
-    setTimeout(() => {
+    // 確保通知位置正確
+    notification.style.position = 'fixed';
+    notification.style.top = '1rem';
+    notification.style.right = '1rem';
+    notification.style.left = 'auto';
+    notification.style.bottom = 'auto';
+    notification.style.zIndex = '1001';
+
+    // 顯示通知
+    notification.classList.remove('hidden');
+    notification.style.display = 'block';
+    notification.style.opacity = '1';
+    notification.style.transform = 'translateX(0)';
+
+    // 清除之前的計時器
+    if (this.notificationTimer) {
+      clearTimeout(this.notificationTimer);
+    }
+    
+    // 設置自動隱藏
+    this.notificationTimer = setTimeout(() => {
       this.hideNotification();
-    }, 5000);
+    }, type === 'error' ? 8000 : 5000); // 錯誤訊息顯示更久
   }
 
   hideNotification() {
     const notification = document.getElementById('notification');
     if (notification) {
-      notification.classList.add('hidden');
+      notification.style.opacity = '0';
+      notification.style.transform = 'translateX(100%)';
+      
+      setTimeout(() => {
+        notification.classList.add('hidden');
+        notification.style.display = 'none';
+      }, 300);
     }
+  }
+  
+  createTemporaryNotification(message, type) {
+    // 創建臨時通知元素 - 使用 moda 設計系統
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.style.cssText = `
+      position: fixed !important;
+      top: 1rem !important;
+      right: 1rem !important;
+      left: auto !important;
+      bottom: auto !important;
+      background: var(--md-white-1, #ffffff);
+      border: 2px solid var(--md-primary-1, #6868ac);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(104, 104, 172, 0.25), 0 2px 8px rgba(0, 0, 0, 0.1);
+      z-index: 1001;
+      max-width: 400px;
+      min-width: 320px;
+      font-family: var(--pwa-font-family, 'Noto Sans TC', sans-serif);
+      backdrop-filter: blur(10px);
+      border-left-width: 6px;
+    `;
+    
+    const icons = {
+      success: '✅',
+      error: '❌',
+      warning: '⚠️',
+      info: 'ℹ️'
+    };
+    
+    const borderColors = {
+      success: '#4caf50',
+      error: '#f44336',
+      warning: '#ff9800',
+      info: 'var(--md-primary-1, #6868ac)'
+    };
+    
+    notification.style.borderLeftColor = borderColors[type] || borderColors.info;
+    
+    notification.innerHTML = `
+      <div style="display: flex; align-items: center; padding: 1.25rem; gap: 1rem; background: var(--md-white-1, #ffffff); color: var(--md-black-1, #1a1a1a); border-radius: 12px;">
+        <span style="font-size: 1.5rem; flex-shrink: 0;">${icons[type] || icons.info}</span>
+        <span style="flex: 1; font-size: 1rem; font-weight: 500; color: var(--md-black-1, #1a1a1a); line-height: 1.4; font-family: inherit;">${message}</span>
+        <button style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--md-secondary-1, #565e62); padding: 0.5rem; border-radius: 6px; min-width: 32px; min-height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;">&times;</button>
+      </div>
+    `;
+    
+    const closeBtn = notification.querySelector('button');
+    closeBtn.addEventListener('click', () => {
+      notification.style.opacity = '0';
+      notification.style.transform = 'translateX(100%)';
+      setTimeout(() => notification.remove(), 300);
+    });
+    
+    closeBtn.addEventListener('mouseenter', () => {
+      closeBtn.style.background = 'var(--md-neutral-9, #f3f5f6)';
+      closeBtn.style.color = 'var(--md-black-1, #1a1a1a)';
+    });
+    
+    closeBtn.addEventListener('mouseleave', () => {
+      closeBtn.style.background = 'none';
+      closeBtn.style.color = 'var(--md-secondary-1, #565e62)';
+    });
+    
+    document.body.appendChild(notification);
+    
+    // 自動移除
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => notification.remove(), 300);
+      }
+    }, type === 'error' ? 8000 : 5000);
   }
 
   async handleConflictResolution(conflicts, importData) {

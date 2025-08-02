@@ -273,11 +273,14 @@
             cursor: pointer;
             transition: all 0.15s ease;
             text-decoration: none;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             margin-bottom: 20px;
             box-shadow: 0 2px 6px rgba(104,104,172,0.25);
             letter-spacing: 0;
             line-height: 1.5;
+            min-height: 50px;
         }
 
         .download-btn:hover {
@@ -293,6 +296,43 @@
             align-items: center;
             gap: 22px;
             margin-top: 24px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: baseline;
+        }
+
+        .download-btn,
+        .pwa-save-btn {
+            background: #6868ac;
+            color: #fff;
+            border: 1px solid #6868ac;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(104,104,172,0.25);
+            letter-spacing: 0;
+            line-height: 1.5;
+            min-height: 50px;
+            height: 50px;
+        }
+
+        .pwa-save-btn:hover {
+            background: #4e4e81;
+            border-color: #4e4e81;
+            box-shadow: 0 3px 8px rgba(104,104,172,0.35);
+            transform: translateY(-1px);
         }
 
         .qr-section {
@@ -370,6 +410,23 @@
                 width: 94%;
                 max-width: none;
                 margin: 15px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+                gap: 10px;
+                width: 100%;
+                align-items: center;
+            }
+            
+            .download-btn,
+            .pwa-save-btn {
+                max-width: 300px;
+                width: auto;
+                min-width: 220px;
+                padding: 16px 20px;
+                font-size: 1em;
+                min-height: 52px;
             }
             
             .avatar {
@@ -509,12 +566,15 @@
             </div>
             
             <div class="action-section">
-                <a href="#" id="add-contact-btn" class="download-btn">
-                    📱 加入聯絡人
-                </a>
-                <button id="save-to-pwa-btn" class="download-btn" style="background: #28a745; border-color: #28a745; margin-left: 10px;">
-                    💾 儲存到離線
-                </button>
+                <div class="button-group">
+                    <a href="#" id="add-contact-btn" class="download-btn">
+                        📱 加入聯絡人
+                    </a>
+                    <button id="save-to-pwa-btn" class="pwa-save-btn">
+                        <span class="icon">💾</span>
+                        <span id="savePwaText">儲存到離線</span>
+                    </button>
+                </div>
                 <p id="contact-helper-text" style="font-size: 0.9em; color: #4b5563; margin-top: 15px;"></p>
                 
                 <div class="qr-section">

@@ -1412,7 +1412,19 @@ class PWACardApp {
 }
 
 let app;
-document.addEventListener('DOMContentLoaded', () => {
+
+// 確保只初始化一次
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+  initializeApp();
+}
+
+function initializeApp() {
+  if (window.app) {
+    return; // 已經初始化過了
+  }
+  
   app = new PWACardApp();
   window.app = app;
   
@@ -1422,7 +1434,7 @@ document.addEventListener('DOMContentLoaded', () => {
       window.location.reload();
     });
   }
-});
+}
 
 window.addEventListener('error', (event) => {
   console.error('[PWA] Global error:', event.error);

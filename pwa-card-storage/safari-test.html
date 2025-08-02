@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile PWA RWD 優化測試</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            min-height: calc(var(--vh, 1vh) * 100);
+        }
+        
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .test-item {
+            background: rgba(255, 255, 255, 0.2);
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .test-item.warning {
+            border-left-color: #FF9800;
+        }
+        
+        .test-item.error {
+            border-left-color: #F44336;
+        }
+        
+        .status {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+            -webkit-tap-highlight-color: rgba(76, 175, 80, 0.3);
+        }
+        
+        .btn:hover {
+            background: #45a049;
+            transform: translateY(-1px);
+        }
+        
+        .safe-area-test {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: rgba(255, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding-top: env(safe-area-inset-top);
+            z-index: 1000;
+        }
+        
+        @supports (-webkit-appearance: none) {
+            .safari-specific {
+                display: block;
+            }
+        }
+        
+        .safari-specific {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="safe-area-test">
+        安全區域測試 (Safe Area Test)
+    </div>
+    
+    <div class="test-container" style="margin-top: 70px;">
+        <h1>🧪 Mobile PWA RWD 優化測試</h1>
+        
+        <div id="browser-info" class="test-item">
+            <div class="status">瀏覽器檢測:</div>
+            <div id="browser-details">檢測中...</div>
+        </div>
+        
+        <div id="viewport-info" class="test-item">
+            <div class="status">視窗資訊:</div>
+            <div id="viewport-details">檢測中...</div>
+        </div>
+        
+        <div id="pwa-info" class="test-item">
+            <div class="status">PWA 狀態:</div>
+            <div id="pwa-details">檢測中...</div>
+        </div>
+        
+        <div id="safe-area-info" class="test-item">
+            <div class="status">安全區域:</div>
+            <div id="safe-area-details">檢測中...</div>
+        </div>
+        
+        <div class="safari-specific test-item">
+            <div class="status">✅ Safari 特定樣式:</div>
+            <div>Safari 特定 CSS 已載入</div>
+        </div>
+        
+        <div class="test-item">
+            <div class="status">觸控測試:</div>
+            <button class="btn" onclick="testTouch()">點擊測試</button>
+            <button class="btn" onclick="testVibration()">震動測試</button>
+            <div id="touch-result"></div>
+        </div>
+        
+        <div class="test-item">
+            <div class="status">方向測試:</div>
+            <button class="btn" onclick="testOrientation()">檢測方向</button>
+            <div id="orientation-result"></div>
+        </div>
+        
+        <div class="test-item">
+            <div class="status">優化器狀態:</div>
+            <div id="optimizer-status">檢測中...</div>
+        </div>
+        
+        <div class="test-item">
+            <button class="btn" onclick="runAllTests()">🔄 重新檢測</button>
+            <button class="btn" onclick="window.location.href='index.html'">返回主應用</button>
+        </div>
+    </div>
+
+    <script>
+        // 設定視窗高度變數
+        function setViewportHeight() {
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        }
+        
+        setViewportHeight();
+        window.addEventListener('resize', setViewportHeight);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(setViewportHeight, 100);
+        });
+        
+        function detectBrowser() {
+            const userAgent = navigator.userAgent;
+            const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
+            const isIOS = /iPad|iPhone|iPod/.test(userAgent) || 
+                         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const isStandalone = window.navigator.standalone === true || 
+                               window.matchMedia('(display-mode: standalone)').matches;
+            
+            return {
+                userAgent: userAgent,
+                isSafari: isSafari,
+                isIOS: isIOS,
+                isStandalone: isStandalone,
+                platform: navigator.platform,
+                maxTouchPoints: navigator.maxTouchPoints
+            };
+        }
+        
+        function getViewportInfo() {
+            return {
+                innerWidth: window.innerWidth,
+                innerHeight: window.innerHeight,
+                outerWidth: window.outerWidth,
+                outerHeight: window.outerHeight,
+                screenWidth: screen.width,
+                screenHeight: screen.height,
+                devicePixelRatio: window.devicePixelRatio,
+                orientation: window.innerWidth > window.innerHeight ? 'landscape' : 'portrait'
+            };
+        }
+        
+        function getPWAInfo() {
+            return {
+                serviceWorkerSupported: 'serviceWorker' in navigator,
+                manifestSupported: 'manifest' in document.createElement('link'),
+                notificationSupported: 'Notification' in window,
+                pushSupported: 'PushManager' in window,
+                installPromptSupported: 'onbeforeinstallprompt' in window
+            };
+        }
+        
+        function getSafeAreaInfo() {
+            const testElement = document.createElement('div');
+            testElement.style.position = 'fixed';
+            testElement.style.top = '0';
+            testElement.style.left = '0';
+            testElement.style.paddingTop = 'env(safe-area-inset-top)';
+            testElement.style.paddingRight = 'env(safe-area-inset-right)';
+            testElement.style.paddingBottom = 'env(safe-area-inset-bottom)';
+            testElement.style.paddingLeft = 'env(safe-area-inset-left)';
+            testElement.style.visibility = 'hidden';
+            document.body.appendChild(testElement);
+            
+            const computedStyle = getComputedStyle(testElement);
+            const safeArea = {
+                top: computedStyle.paddingTop,
+                right: computedStyle.paddingRight,
+                bottom: computedStyle.paddingBottom,
+                left: computedStyle.paddingLeft
+            };
+            
+            document.body.removeChild(testElement);
+            return safeArea;
+        }
+        
+        function testTouch() {
+            const result = document.getElementById('touch-result');
+            result.innerHTML = `<div style="margin-top: 10px; color: #4CAF50;">✅ 觸控回饋正常 (${new Date().toLocaleTimeString()})</div>`;
+        }
+        
+        function testVibration() {
+            if ('vibrate' in navigator) {
+                navigator.vibrate(100);
+                const result = document.getElementById('touch-result');
+                result.innerHTML = `<div style="margin-top: 10px; color: #4CAF50;">✅ 震動功能可用</div>`;
+            } else {
+                const result = document.getElementById('touch-result');
+                result.innerHTML = `<div style="margin-top: 10px; color: #FF9800;">⚠️ 震動功能不支援</div>`;
+            }
+        }
+        
+        function testOrientation() {
+            const result = document.getElementById('orientation-result');
+            const orientation = window.innerWidth > window.innerHeight ? '橫向' : '直向';
+            result.innerHTML = `<div style="margin-top: 10px; color: #4CAF50;">目前方向: ${orientation} (${window.innerWidth}x${window.innerHeight})</div>`;
+        }
+        
+        function updateDisplay() {
+            const browserInfo = detectBrowser();
+            const viewportInfo = getViewportInfo();
+            const pwaInfo = getPWAInfo();
+            const safeAreaInfo = getSafeAreaInfo();
+            
+            // 瀏覽器資訊
+            document.getElementById('browser-details').innerHTML = `
+                <div>Safari: ${browserInfo.isSafari ? '✅' : '❌'}</div>
+                <div>iOS: ${browserInfo.isIOS ? '✅' : '❌'}</div>
+                <div>Android: ${/Android/i.test(navigator.userAgent) ? '✅' : '❌'}</div>
+                <div>Mobile: ${/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? '✅' : '❌'}</div>
+                <div>Standalone: ${browserInfo.isStandalone ? '✅' : '❌'}</div>
+                <div>Platform: ${browserInfo.platform}</div>
+                <div>Touch Points: ${browserInfo.maxTouchPoints}</div>
+            `;
+            
+            // 視窗資訊
+            document.getElementById('viewport-details').innerHTML = `
+                <div>視窗: ${viewportInfo.innerWidth}x${viewportInfo.innerHeight}</div>
+                <div>螢幕: ${viewportInfo.screenWidth}x${viewportInfo.screenHeight}</div>
+                <div>DPR: ${viewportInfo.devicePixelRatio}</div>
+                <div>方向: ${viewportInfo.orientation}</div>
+            `;
+            
+            // PWA 資訊
+            document.getElementById('pwa-details').innerHTML = `
+                <div>Service Worker: ${pwaInfo.serviceWorkerSupported ? '✅' : '❌'}</div>
+                <div>Manifest: ${pwaInfo.manifestSupported ? '✅' : '❌'}</div>
+                <div>Notifications: ${pwaInfo.notificationSupported ? '✅' : '❌'}</div>
+                <div>Push: ${pwaInfo.pushSupported ? '✅' : '❌'}</div>
+            `;
+            
+            // 安全區域資訊
+            document.getElementById('safe-area-details').innerHTML = `
+                <div>Top: ${safeAreaInfo.top}</div>
+                <div>Right: ${safeAreaInfo.right}</div>
+                <div>Bottom: ${safeAreaInfo.bottom}</div>
+                <div>Left: ${safeAreaInfo.left}</div>
+            `;
+            
+            // 優化器狀態
+            if (window.unifiedMobileOptimizer) {
+                const status = window.unifiedMobileOptimizer.getStatus();
+                document.getElementById('optimizer-status').innerHTML = `
+                    <div style="color: #4CAF50;">✅ 統一 Mobile 優化器已載入</div>
+                    <div>狀態: ${JSON.stringify(status, null, 2)}</div>
+                `;
+            } else {
+                document.getElementById('optimizer-status').innerHTML = `
+                    <div style="color: #FF9800;">⚠️ 統一 Mobile 優化器未載入</div>
+                `;
+            }
+        }
+        
+        function runAllTests() {
+            updateDisplay();
+            testOrientation();
+        }
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', updateDisplay);
+        window.addEventListener('resize', updateDisplay);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(updateDisplay, 100);
+        });
+    </script>
+</body>
+</html>

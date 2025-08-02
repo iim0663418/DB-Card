@@ -1,310 +1,301 @@
----
-version: "1.5.4"
-rev_id: "D-008"
-last_updated: "2024-12-20"
-owners: ["Technical Team", "DB-Card Project"]
-status: "✅ Share Link Generation Fixed - All 9 Card Types Verified"
----
+# 統一安全架構設計文件
 
-# PWA 名片離線收納與分享中心技術設計文件
+## D-001: 安全架構總覽
 
-## 1. System Architecture Overview
+### 設計目標
+基於深度安全審查結果，建立統一的安全架構以解決所有已識別的Critical和High級別安全漏洞，確保系統符合「Secure by Default」原則。
 
-### 1.1 單次識別架構 (Eliminate Duplication)
+### 核心安全原則
+- **最小權限原則**: 每個組件僅獲得必要的最小權限
+- **深度防禦**: 多層安全控制機制
+- **輸入驗證**: 所有用戶輸入必須經過嚴格驗證和清理
+- **安全編碼**: 禁用不安全的瀏覽器API，使用安全替代方案
+- **審計追蹤**: 所有安全相關操作必須記錄
 
-消除重複識別流程，實現一次識別、全程傳遞的穩定架構。
+## D-002: 安全威脅模型
 
-```mermaid
-graph TD
-    A[名片頁面] -->|暫存 URL| B[SessionStorage]
-    A -->|跳轉 + 資料| C[PWA 應用]
-    C -->|讀取暫存| B
-    B -->|來源 URL| D[PWA Integration]
-    D -->|識別結果| E[App.js]
-    E -->|傳遞識別結果| F[SimpleCardParser]
-    E -->|傳遞識別結果| G[Storage.js]
-    G -->|直接使用| H[IndexedDB]
-    
-    style E fill:#ffecb3
-    style D fill:#f3e5f5
-    style F fill:#e8f5e8
-    style G fill:#fff3e0
-```
+### Critical級別威脅 (P0)
+1. **SEC-001**: 生產環境彈出視窗攻擊
+   - 威脅: 惡意腳本可利用prompt()進行社會工程攻擊
+   - 影響: 用戶資料洩露、身份盜用
+   - 風險評級: Critical
 
-### 1.2 消除重複的流程設計
+2. **SEC-002**: 密碼輸入安全漏洞
+   - 威脅: 明文密碼傳輸、瀏覽器歷史記錄洩露
+   - 影響: 認證繞過、未授權存取
+   - 風險評級: Critical
 
-```mermaid
-sequenceDiagram
-    participant App as App.js
-    participant PWA as PWA Integration
-    participant Parser as SimpleCardParser
-    participant Storage as Storage.js
+3. **SEC-003**: 確認對話框濫用
+   - 威脅: 惡意確認操作、用戶體驗劫持
+   - 影響: 未授權操作執行
+   - 風險評級: Critical
 
-    App->>PWA: 單次識別請求
-    PWA-->>App: 返回識別結果
-    Note over PWA: 不清除暫存
-    App->>Parser: parseDirectly(data, cardType)
-    Parser-->>App: 返回解析資料
-    App->>Storage: storeCardDirectly(data, cardType)
-    Note over Storage: 跳過識別，直接使用傳遞的類型
-    Storage-->>App: 儲存完成
-    App->>PWA: 清除暫存
-```
+### High級別威脅 (P1-P2)
+4. **SEC-004**: 日誌注入攻擊 (CWE-117)
+5. **SEC-005**: 跨站腳本攻擊 (CWE-79)
+6. **SEC-006**: 授權檢查缺失 (CWE-862)
 
-## 2. API Design - 最小修改方案
+## D-003: 統一安全架構設計
 
-### 2.1 PWA Integration 修改（不清除暫存）
-
-```typescript
-class PWAIntegration {
-  // 修改：不自動清除暫存
-  identifyCardTypeEnhanced(data: any): CardType | null {
-    const sourceContext = this.getSourceContext();
-    
-    if (sourceContext?.sourceUrl) {
-      const typeFromUrl = this.parseTypeFromUrl(sourceContext.sourceUrl);
-      if (typeFromUrl) {
-        console.log('[PWA Integration] 識別成功，保持暫存:', typeFromUrl);
-        // 不清除暫存！讓 App.js 控制清除時機
-        return typeFromUrl;
-      }
+### 3.1 安全輸入處理層 (Security Input Layer)
+```javascript
+// 統一輸入驗證與清理模組
+class SecurityInputHandler {
+    static validateAndSanitize(input, type) {
+        // 輸入驗證邏輯
+        // XSS防護
+        // 注入攻擊防護
     }
-
-    return null;
-  }
-
-  // 新增：手動清除方法
-  manualClearContext(): void {
-    console.log('[PWA Integration] 手動清除暫存');
-    this.clearSourceContext();
-  }
+    
+    static securePrompt(message, options = {}) {
+        // 安全的用戶輸入替代方案
+        // 使用模態對話框替代prompt()
+    }
+    
+    static secureConfirm(message, options = {}) {
+        // 安全的確認對話框
+        // 防止惡意確認操作
+    }
 }
 ```
 
-### 2.2 Storage.js 修改（接受傳遞的類型）
-
-```typescript
-class PWACardStorage {
-  // 修改：接受外部傳遞的類型，跳過識別
-  async storeCardDirectly(cardData: UnifiedCardData, cardType?: CardType): Promise<string> {
-    const id = this.generateId();
-    const now = new Date();
-    
-    // 使用傳遞的類型，或備用識別
-    const finalCardType = cardType || this.detectCardType(cardData);
-    
-    console.log('[Storage] 使用傳遞的類型:', finalCardType);
-    
-    const card = {
-      id,
-      type: finalCardType,  // 直接使用傳遞的類型
-      data: { ...cardData },
-      created: now,
-      modified: now,
-      currentVersion: 1,
-      encrypted: false,
-      tags: [],
-      isFavorite: false,
-      isBilingual: this.hasBilingualContent(cardData)
-    };
-    
-    const transaction = this.db.transaction(['cards'], 'readwrite');
-    const store = transaction.objectStore('cards');
-    
-    await new Promise((resolve, reject) => {
-      const request = store.add(card);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = (event) => {
-        reject(new Error(`Failed to store card: ${event.target.error?.message || 'Unknown error'}`));
-      };
-    });
-    
-    return id;
-  }
-
-  // 保留備用識別（僅在沒有傳遞類型時使用）
-  detectCardType(data: any): CardType {
-    console.log('[Storage] 使用備用識別機制');
-    
-    // 不再調用 PWA Integration，避免重複
-    const isBilingual = this.isBilingualCard(data);
-    const isGov = this.isGovernmentCard(data);
-    const isShinGuang = this.isShinGuangBuilding(data);
-    
-    if (isBilingual) {
-      return isGov ? (isShinGuang ? 'bilingual1' : 'bilingual') : 'personal-bilingual';
+### 3.2 安全認證與授權層 (Security Auth Layer)
+```javascript
+// 統一認證授權模組
+class SecurityAuthHandler {
+    static validateAccess(resource, operation) {
+        // 資源存取權限檢查
+        // 操作授權驗證
     }
     
-    return isGov ? (isShinGuang ? 'index1' : 'index') : 'personal';
-  }
+    static securePasswordInput() {
+        // 安全密碼輸入機制
+        // 加密傳輸
+        // 防止歷史記錄洩露
+    }
+    
+    static auditLog(action, details) {
+        // 安全審計日誌
+        // 防止日誌注入
+    }
 }
 ```
 
-### 2.3 App.js 修改（控制整個流程）
-
-```typescript
-class PWACardApp {
-  async importFromUrlData(data) {
-    try {
-      this.showLoading('讀取名片資料...');
-      
-      const currentUrl = window.location.href;
-      console.log('[App] 當前 URL:', currentUrl);
-      console.log('[App] 輸入資料:', data);
-      
-      // 1. 單次識別，獲取類型
-      let cardType = null;
-      if (window.PWAIntegration) {
-        const tempData = { url: currentUrl };
-        cardType = window.PWAIntegration.identifyCardTypeEnhanced(tempData);
-        console.log('[App] 識別類型:', cardType);
-      }
-      
-      if (!cardType) {
-        this.showNotification('無法識別名片類型', 'error');
-        return;
-      }
-      
-      // 2. 根據類型解析資料
-      if (!window.SimpleCardParser) {
-        this.showNotification('解析器未載入', 'error');
-        return;
-      }
-      
-      const cardData = window.SimpleCardParser.parseDirectly(data, cardType);
-      
-      if (!cardData) {
-        this.showNotification('無法解析名片資料', 'error');
-        return;
-      }
-      
-      // 3. 添加 URL 資訊
-      cardData.url = currentUrl;
-      console.log('[App] 解析完成的資料:', cardData);
-      
-      // 4. 傳遞類型進行儲存（避免重複識別）
-      if (this.storage) {
-        try {
-          const cardId = await this.storage.storeCardDirectly(cardData, cardType);
-          
-          this.showNotification('名片已儲存', 'success');
-          
-          // 5. 最後清除暫存
-          window.PWAIntegration?.manualClearContext();
-          
-          await this.updateStats();
-          this.navigateTo('cards');
-        } catch (storeError) {
-          this.showNotification(`儲存失敗: ${storeError.message}`, 'error');
-        }
-      } else {
-        this.showNotification('儲存服務未初始化', 'error');
-      }
-    } catch (error) {
-      console.error('[App] Import from URL data failed:', error);
-      this.showNotification('讀取名片失敗', 'error');
-    } finally {
-      this.hideLoading();
+### 3.3 安全資料處理層 (Security Data Layer)
+```javascript
+// 統一資料安全處理
+class SecurityDataHandler {
+    static sanitizeOutput(data) {
+        // 輸出編碼
+        // XSS防護
     }
-  }
+    
+    static validateDataIntegrity(data) {
+        // 資料完整性檢查
+        // 防篡改驗證
+    }
+    
+    static secureStorage(key, value) {
+        // 安全儲存機制
+        // 敏感資料加密
+    }
 }
 ```
 
-## 3. 預期修改後的日誌
+## D-004: 組件安全設計
 
-實作此設計後，日誌將變為：
+### 4.1 PWA核心模組安全強化
+**檔案**: `pwa-card-storage/src/app.js`
+- **問題**: 使用不安全的prompt()和confirm()
+- **解決方案**: 實作SecurityInputHandler替代
+- **實作重點**:
+  - 移除所有prompt()調用 (lines 528-529, 572-573, 1159-1160)
+  - 移除所有confirm()調用
+  - 實作安全的模態對話框系統
+  - 加入輸入驗證和清理機制
 
+### 4.2 儲存模組安全強化
+**檔案**: `pwa-card-storage/src/core/storage.js`
+- **問題**: XSS漏洞和錯誤處理不當
+- **解決方案**: 實作SecurityDataHandler
+- **實作重點**:
+  - 所有資料輸出必須經過sanitizeOutput()
+  - 加強錯誤處理機制
+  - 實作資料完整性檢查
+
+### 4.3 雙語共用模組安全強化
+**檔案**: `assets/bilingual-common.js`
+- **問題**: XSS漏洞 (lines 697-698)
+- **解決方案**: 安全的DOM操作
+- **實作重點**:
+  - 使用textContent替代innerHTML
+  - 實作安全的HTML渲染機制
+  - 加入輸出編碼
+
+## D-005: 安全控制點架構
+
+### 5.1 輸入控制點
+- **位置**: 所有用戶輸入接口
+- **控制**: 輸入驗證、清理、長度限制
+- **實作**: SecurityInputHandler.validateAndSanitize()
+
+### 5.2 處理控制點
+- **位置**: 資料處理邏輯
+- **控制**: 業務邏輯驗證、授權檢查
+- **實作**: SecurityAuthHandler.validateAccess()
+
+### 5.3 輸出控制點
+- **位置**: 資料輸出到DOM
+- **控制**: 輸出編碼、XSS防護
+- **實作**: SecurityDataHandler.sanitizeOutput()
+
+### 5.4 儲存控制點
+- **位置**: 資料持久化
+- **控制**: 加密儲存、完整性檢查
+- **實作**: SecurityDataHandler.secureStorage()
+
+## D-006: 安全API設計規範
+
+### 6.1 安全輸入API
+```javascript
+// 替代不安全的prompt()
+const userInput = await SecurityUI.showInputDialog({
+    title: '請輸入名稱',
+    type: 'text',
+    validation: 'alphanumeric',
+    maxLength: 50
+});
+
+// 替代不安全的confirm()
+const confirmed = await SecurityUI.showConfirmDialog({
+    title: '確認操作',
+    message: '您確定要執行此操作嗎？',
+    confirmText: '確認',
+    cancelText: '取消'
+});
 ```
-[App] 當前 URL: http://127.0.0.1:5500/pwa-card-storage/?c=...
-[App] 輸入資料: JUU2JUI4JUFDJUU4JUE5JUE2fn...
-[PWA Integration] 開始增強版類型識別
-[PWA Integration] 找到暫存 URL: http://127.0.0.1:5500/index-bilingual.html?data=...
-[PWA Integration] 識別成功，保持暫存: bilingual
-[App] 識別類型: bilingual
-[SimpleCardParser] 根據類型 bilingual 解析資料
-[App] 解析完成的資料: Object
-[Storage] 使用傳遞的類型: bilingual
-[PWA Integration] 手動清除暫存
+
+### 6.2 安全資料處理API
+```javascript
+// 安全的DOM更新
+SecurityDOM.updateElement(element, {
+    textContent: sanitizedText,
+    attributes: validatedAttributes
+});
+
+// 安全的HTML渲染
+SecurityDOM.renderHTML(container, {
+    template: trustedTemplate,
+    data: sanitizedData
+});
 ```
 
-**關鍵改善**：
-- ❌ 移除：Storage.js 中的重複識別調用
-- ✅ 新增：App.js 控制整個流程，傳遞識別結果
-- ✅ 新增：PWA Integration 不自動清除暫存
-- ✅ 新增：手動清除暫存的時機控制
+## D-007: 實作優先級與時程
 
-## 4. 實作優先級
+### Phase 1: Critical修復 (立即執行)
+- **時程**: 24小時內完成
+- **範圍**: SEC-001, SEC-002, SEC-003
+- **交付物**:
+  - SecurityInputHandler模組
+  - 移除所有prompt()/confirm()調用
+  - 實作安全的用戶輸入機制
 
-### 4.1 最小修改清單
+### Phase 2: High級別修復 (48小時內)
+- **時程**: 48小時內完成
+- **範圍**: SEC-004, SEC-005, SEC-006
+- **交付物**:
+  - SecurityDataHandler模組
+  - SecurityAuthHandler模組
+  - XSS防護機制
+  - 授權檢查機制
 
-1. **PWA Integration**: 移除自動清除暫存邏輯
-2. **Storage.js**: 修改 `storeCardDirectly` 接受類型參數
-3. **App.js**: 傳遞識別結果，控制清除時機
+### Phase 3: 安全強化 (1週內)
+- **時程**: 1週內完成
+- **範圍**: 全面安全測試與驗證
+- **交付物**:
+  - 安全測試套件
+  - 滲透測試報告
+  - 安全配置指南
 
-### 4.2 修改影響評估
+## D-008: 安全測試策略
 
-- **風險**: 極低（僅修改流程控制，不改變核心邏輯）
-- **工作量**: 0.5 天（三個檔案的小幅修改）
-- **測試**: 現有測試案例無需修改
+### 8.1 自動化安全測試
+- **靜態分析**: ESLint安全規則
+- **動態測試**: OWASP ZAP掃描
+- **依賴檢查**: npm audit
 
-## 5. Spec↔Design↔Tasks 映射表
+### 8.2 手動安全測試
+- **滲透測試**: 模擬攻擊場景
+- **程式碼審查**: 安全專家審查
+- **用戶體驗測試**: 安全功能可用性
 
-| ReqID | DesignID | Component | TaskID | Implementation Status |
-|-------|----------|-----------|--------|---------------------|
-| R-002 | D-007 | pwa-integration.js | PWA-38 | 🔄 移除自動清除 |
-| R-003 | D-007 | storage.js | PWA-38 | 🔄 接受類型參數 |
-| R-004 | D-007 | app.js | PWA-38 | 🔄 控制流程 |
+### 8.3 持續安全監控
+- **安全日誌**: 異常行為監控
+- **漏洞掃描**: 定期安全掃描
+- **更新管理**: 安全補丁管理
+
+## D-009: 合規性與標準
+
+### 9.1 安全標準遵循
+- **OWASP Top 10**: 防護主要Web安全風險
+- **CWE標準**: 修復已識別的CWE漏洞
+- **政府資安規範**: 符合數位發展部資安要求
+
+### 9.2 隱私保護
+- **資料最小化**: 僅收集必要資料
+- **加密保護**: 敏感資料加密儲存
+- **存取控制**: 嚴格的資料存取權限
+
+## D-010: 架構驗證與測試
+
+### 10.1 安全驗證檢查點
+- [ ] 所有Critical級別漏洞已修復
+- [ ] 所有High級別漏洞已修復
+- [ ] 安全API正常運作
+- [ ] 安全測試通過
+- [ ] 滲透測試通過
+
+### 10.2 效能影響評估
+- **預期影響**: <5%效能損失
+- **監控指標**: 頁面載入時間、API回應時間
+- **優化策略**: 安全檢查快取、批次處理
+
+## D-011: 維護與更新策略
+
+### 11.1 安全更新流程
+1. **漏洞識別**: 定期安全掃描
+2. **風險評估**: 漏洞影響分析
+3. **修復開發**: 安全補丁開發
+4. **測試驗證**: 安全測試驗證
+5. **部署上線**: 安全更新部署
+
+### 11.2 安全培訓計畫
+- **開發團隊**: 安全編碼培訓
+- **測試團隊**: 安全測試培訓
+- **維運團隊**: 安全監控培訓
 
 ---
 
-## 5. 分享連結生成修復設計
+## 設計決策記錄
 
-### 5.1 資料序列化修復
+### 決策001: 統一安全模組架構
+- **決策**: 採用分層安全架構設計
+- **理由**: 提供統一的安全控制點，便於維護和擴展
+- **影響**: 需要重構現有安全相關程式碼
 
-```mermaid
-graph TD
-    A[用戶點擊分享] --> B{識別名片類型}
-    B -->|雙語類型| C[使用雙語生成器]
-    B -->|單語類型| D[使用標準生成器]
-    
-    C --> E[safeBilingualStringify]
-    C --> F[safeMonolingualStringify]
-    D --> G[safeMonolingualStringify]
-    
-    E --> H[處理雙語欄位]
-    F --> I[處理單語欄位]
-    G --> I
-    
-    H --> J[生成編碼字串]
-    I --> J
-    J --> K[建立分享連結]
-    K --> L[用戶複製連結]
-    
-    style C fill:#e1f5fe
-    style D fill:#f3e5f5
-    style H fill:#e8f5e8
-    style I fill:#fff3e0
-```
+### 決策002: 禁用不安全瀏覽器API
+- **決策**: 完全禁用prompt()、confirm()、alert()
+- **理由**: 這些API存在安全風險且用戶體驗不佳
+- **影響**: 需要實作自定義的安全對話框系統
 
-### 5.2 9個名片介面相容性確認
-
-| 名片類型 | 檔案名稱 | 語言 | 建築 | 版面 | 狀態 |
-|----------|----------|------|------|------|---------|
-| index | index.html | 中文 | 延平 | 機關版 | ✅ 已驗證 |
-| index1 | index1.html | 中文 | 新光 | 機關版 | 📝 理論受益 |
-| personal | index-personal.html | 中文 | - | 個人版 | 📝 理論受益 |
-| bilingual | index-bilingual.html | 雙語 | 延平 | 機關版 | ✅ 已驗證 |
-| bilingual1 | index1-bilingual.html | 雙語 | 新光 | 機關版 | 📝 理論受益 |
-| personal-bilingual | index-bilingual-personal.html | 雙語 | - | 個人版 | 📝 理論受益 |
-| en | index-en.html | 英文 | 延平 | 機關版 | 📝 理論受益 |
-| en1 | index1-en.html | 英文 | 新光 | 機關版 | 📝 理論受益 |
-| personal-en | index-personal-en.html | 英文 | - | 個人版 | 📝 理論受益 |
-
-**狀態說明**:
-- ✅ **已驗證**: 直接修改並驗證修復效果
-- 📝 **理論受益**: 通過PWA修復理論上受益，但未直接修改或完整驗證
+### 決策003: 實作零信任安全模型
+- **決策**: 所有輸入都視為不可信任
+- **理由**: 提供最高級別的安全防護
+- **影響**: 增加輸入驗證和清理的處理成本
 
 ---
 
-**設計文件狀態**: ✅ 已更新分享連結生成修復設計  
-**系統狀態**: ✅ 所有名片類型的分享功能已修復並驗證
+**設計版本**: v1.0  
+**最後更新**: 2024-12-20  
+**設計師**: technical-architect  
+**審查狀態**: 待審查

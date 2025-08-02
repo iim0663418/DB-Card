@@ -1,0 +1,57 @@
+graph TB
+    subgraph "Phase 1: Critical Security Fixes (24h)"
+        A1[移除 prompt/confirm 調用] --> A2[實作 SecurityInputHandler]
+        A2 --> A3[部署安全對話框系統]
+        A3 --> A4[Critical 漏洞驗證測試]
+    end
+    
+    subgraph "Phase 2: High Priority Fixes (48h)"
+        B1[實作 SecurityDataHandler] --> B2[XSS 防護機制]
+        B2 --> B3[日誌注入防護]
+        B3 --> B4[授權檢查機制]
+        B4 --> B5[High 級別漏洞測試]
+    end
+    
+    subgraph "Phase 3: Security Hardening (1w)"
+        C1[安全測試套件] --> C2[滲透測試]
+        C2 --> C3[安全配置指南]
+        C3 --> C4[持續監控機制]
+    end
+    
+    subgraph "Security Architecture Components"
+        D1[SecurityInputHandler<br/>輸入驗證與清理]
+        D2[SecurityAuthHandler<br/>認證與授權]
+        D3[SecurityDataHandler<br/>資料安全處理]
+        D4[SecurityUI<br/>安全用戶介面]
+    end
+    
+    subgraph "Security Control Points"
+        E1[輸入控制點<br/>Input Validation]
+        E2[處理控制點<br/>Business Logic]
+        E3[輸出控制點<br/>Output Encoding]
+        E4[儲存控制點<br/>Secure Storage]
+    end
+    
+    A4 --> B1
+    B5 --> C1
+    
+    D1 --> E1
+    D2 --> E2
+    D3 --> E3
+    D4 --> E4
+    
+    style A1 fill:#ff6b6b
+    style A2 fill:#ff6b6b
+    style A3 fill:#ff6b6b
+    style A4 fill:#ff6b6b
+    
+    style B1 fill:#ffa726
+    style B2 fill:#ffa726
+    style B3 fill:#ffa726
+    style B4 fill:#ffa726
+    style B5 fill:#ffa726
+    
+    style C1 fill:#66bb6a
+    style C2 fill:#66bb6a
+    style C3 fill:#66bb6a
+    style C4 fill:#66bb6a

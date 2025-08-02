@@ -592,9 +592,7 @@ class UnifiedInterface {
       case 'add-card':
         this.navigateToView('import');
         break;
-      case 'scan-qr':
-        this.handleQRScan();
-        break;
+
       case 'import-file':
         document.getElementById('import-file')?.click();
         break;
@@ -671,7 +669,7 @@ class UnifiedInterface {
   handleVisibilityChange() { /* 實作可見性變更 */ }
   focusSearch() { /* 實作搜尋焦點 */ }
   handleEscapeKey() { /* 實作 ESC 鍵處理 */ }
-  handleQRScan() { /* 實作 QR 碼掃描 */ }
+
 }
 
 // 全域實例

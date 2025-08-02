@@ -420,7 +420,7 @@
     <div id="card-container" style="display: none;">
         <div class="card">
             <!-- 專案連結 -->
-            <a id="projectLink" href="https://github.com/moda-gov-tw/DB-Card" target="_blank" class="project-link">
+            <a id="projectLink" href="https://github.com/moda-gov-tw/DB-Card" target="_blank" rel="noopener noreferrer" class="project-link">
                 🇹🇼 <span id="projectLinkText">moda 開源專案</span>
             </a>
             
@@ -771,6 +771,19 @@
                     return;
                 }
                 
+                // 立即暫存當前頁面 URL
+                const currentUrl = window.location.href;
+                try {
+                    sessionStorage.setItem('pwa_card_source_url', JSON.stringify({
+                        sourceUrl: currentUrl,
+                        timestamp: Date.now(),
+                        referrer: document.referrer
+                    }));
+                    console.log('[PWA] 已暫存來源 URL:', currentUrl);
+                } catch (error) {
+                    console.error('[PWA] 暫存失敗:', error);
+                }
+                
                 const urlParams = new URLSearchParams(window.location.search);
                 const dataParam = urlParams.get('data') || urlParams.get('c');
                 
@@ -779,7 +792,7 @@
                     return;
                 }
                 
-                const pwaUrl = window.location.origin + '/pwa-card-storage/?c=' + dataParam;
+                const pwaUrl = window.location.origin + '/pwa-card-storage/?c=' + encodeURIComponent(dataParam);
                 const pwaWindow = window.open(pwaUrl, '_blank');
                 
                 if (pwaWindow) {

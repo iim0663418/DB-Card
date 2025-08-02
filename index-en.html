@@ -1068,6 +1068,19 @@
                     return;
                 }
                 
+                // 立即暫存當前頁面 URL
+                const currentUrl = window.location.href;
+                try {
+                    sessionStorage.setItem('pwa_card_source_url', JSON.stringify({
+                        sourceUrl: currentUrl,
+                        timestamp: Date.now(),
+                        referrer: document.referrer
+                    }));
+                    console.log('[PWA] 已暫存來源 URL:', currentUrl);
+                } catch (error) {
+                    console.error('[PWA] 暫存失敗:', error);
+                }
+                
                 // 開啟 PWA 並傳遞資料
                 const urlParams = new URLSearchParams(window.location.search);
                 const dataParam = urlParams.get('data') || urlParams.get('c');

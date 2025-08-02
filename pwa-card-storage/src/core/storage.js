@@ -308,9 +308,9 @@ class PWACardStorage {
   }
 
   /**
-   * PWA-35: 直接儲存方法 - 支援雙語欄位的結構化儲存
+   * PWA-38: 直接儲存方法 - 接受外部傳遞的類型，跳過識別
    */
-  async storeCardDirectly(cardData) {
+  async storeCardDirectly(cardData, cardType) {
     try {
       if (!this.db) {
         throw new Error('Database not initialized');
@@ -318,11 +318,15 @@ class PWACardStorage {
       
       const id = this.generateId();
       const now = new Date();
-      const cardType = this.detectCardType(cardData);
+      
+      // 使用傳遞的類型，或備用識別
+      const finalCardType = cardType || this.detectCardType(cardData);
+      
+
       
       const card = {
         id,
-        type: cardType,
+        type: finalCardType,  // 直接使用傳遞的類型
         data: { ...cardData },
         created: now,
         modified: now,
@@ -843,109 +847,18 @@ class PWACardStorage {
     return 'card_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
   }
 
+  // 保留備用識別（僅在沒有傳遞類型時使用）
   detectCardType(data) {
-    console.log('[Storage] 開始類型識別，輸入資料:', {
-      hasUrl: !!data.url,
-      url: data.url,
-      name: data.name,
-      hasNameTilde: data.name?.includes?.('~'),
-      hasTitleTilde: data.title?.includes?.('~')
-    });
-    
-    // PWA-36 修復：整合 PWA 暫存機制
-    if (window.PWAIntegration) {
-      const enhancedType = window.PWAIntegration.identifyCardTypeEnhanced(data);
-      if (enhancedType) {
-        console.log('[Storage] ✅ PWA 整合識別類型:', enhancedType);
-        return enhancedType;
-      }
-    }
-    
-    // 1. 最高優先級：檢查資料中的 URL 欄位（絕對優先）
-    if (data.url && typeof data.url === 'string') {
-      const url = data.url.toLowerCase().trim();
-      console.log('[Storage] URL 檢測模式，URL:', url);
-      
-      // PWA-36 修復：處理 PWA 頁面 URL
-      if (url.includes('pwa-card-storage')) {
-        console.log('[Storage] 檢測到 PWA 頁面，嘗試從參數解析');
-        const urlParams = new URLSearchParams(url.split('?')[1]);
-        const cardParam = urlParams.get('c');
-        if (cardParam) {
-          try {
-            const decodedData = JSON.parse(decodeURIComponent(atob(cardParam)));
-            return this.detectCardType(decodedData);
-          } catch (error) {
-            console.log('[Storage] PWA 參數解析失敗，繼續其他方法');
-          }
-        }
-      }
-      
-      // 精確匹配，按長度排序避免誤判
-      if (url.includes('index-bilingual-personal.html')) {
-        console.log('[Storage] ✅ URL 匹配: index-bilingual-personal.html -> personal-bilingual');
-        return 'personal-bilingual';
-      }
-      if (url.includes('index1-bilingual.html')) {
-        console.log('[Storage] ✅ URL 匹配: index1-bilingual.html -> bilingual1');
-        return 'bilingual1';
-      }
-      if (url.includes('index-bilingual.html')) {
-        console.log('[Storage] ✅ URL 匹配: index-bilingual.html -> bilingual');
-        return 'bilingual';
-      }
-      if (url.includes('index-personal-en.html')) {
-        console.log('[Storage] ✅ URL 匹配: index-personal-en.html -> personal-en');
-        return 'personal-en';
-      }
-      if (url.includes('index1-en.html')) {
-        console.log('[Storage] ✅ URL 匹配: index1-en.html -> en1');
-        return 'en1';
-      }
-      if (url.includes('index-en.html')) {
-        console.log('[Storage] ✅ URL 匹配: index-en.html -> en');
-        return 'en';
-      }
-      if (url.includes('index-personal.html')) {
-        console.log('[Storage] ✅ URL 匹配: index-personal.html -> personal');
-        return 'personal';
-      }
-      if (url.includes('index1.html')) {
-        console.log('[Storage] ✅ URL 匹配: index1.html -> index1');
-        return 'index1';
-      }
-      if (url.includes('index.html')) {
-        console.log('[Storage] ✅ URL 匹配: index.html -> index');
-        return 'index';
-      }
-      
-      console.log('[Storage] ⚠️ URL 存在但無匹配模式，URL:', url);
-    }
-    
-    // 2. 次優先級：檢查 referrer 來源 URL
-    const referrerType = this.detectTypeFromReferrer();
-    if (referrerType) {
-      console.log('[Storage] ✅ Referrer 識別類型:', referrerType);
-      return referrerType;
-    }
-    
-    // 3. 最後備用：資料特徵識別（僅在無 URL 時使用）
-    console.log('[Storage] ⚠️ 使用資料特徵識別（備用方案）');
+    // PWA-38: 不再調用 PWA Integration，避免重複識別
     const isBilingual = this.isBilingualCard(data);
     const isGov = this.isGovernmentCard(data);
     const isShinGuang = this.isShinGuangBuilding(data);
     
-    console.log('[Storage] 資料特徵分析:', { isBilingual, isGov, isShinGuang });
-    
     if (isBilingual) {
-      const result = isGov ? (isShinGuang ? 'bilingual1' : 'bilingual') : 'personal-bilingual';
-      console.log('[Storage] 🔄 雙語版識別結果:', result);
-      return result;
+      return isGov ? (isShinGuang ? 'bilingual1' : 'bilingual') : 'personal-bilingual';
     }
     
-    const result = isGov ? (isShinGuang ? 'index1' : 'index') : 'personal';
-    console.log('[Storage] 🔄 非雙語版識別結果:', result);
-    return result;
+    return isGov ? (isShinGuang ? 'index1' : 'index') : 'personal';
   }
   
   /**
@@ -960,44 +873,7 @@ class PWACardStorage {
     );
   }
   
-  detectTypeFromReferrer() {
-    if (typeof window === 'undefined' || !window.location) {
-      return null;
-    }
-    
-    const referrer = document.referrer || window.location.href;
-    
-    // 直接根據 referrer URL 判斷類型，不檢查資料內容
-    if (referrer.includes('index-bilingual-personal.html')) {
-      return 'personal-bilingual';
-    }
-    if (referrer.includes('index1-bilingual.html')) {
-      return 'bilingual1';
-    }
-    if (referrer.includes('index-bilingual.html')) {
-      return 'bilingual';
-    }
-    if (referrer.includes('index-personal-en.html')) {
-      return 'personal-en';
-    }
-    if (referrer.includes('index1-en.html')) {
-      return 'en1';
-    }
-    if (referrer.includes('index-en.html')) {
-      return 'en';
-    }
-    if (referrer.includes('index-personal.html')) {
-      return 'personal';
-    }
-    if (referrer.includes('index1.html')) {
-      return 'index1';
-    }
-    if (referrer.includes('index.html')) {
-      return 'index';
-    }
-    
-    return null;
-  }
+
   
   /**
    * PWA-33 標準解碼修復：使用 9 大名片頁面的標準解碼方式

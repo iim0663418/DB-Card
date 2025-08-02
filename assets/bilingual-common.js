@@ -134,11 +134,13 @@ function encodeCompact(data) {
  */
 function decodeCompact(encoded) {
     try {
-        
+        // 第一步：Base64 解碼（先處理 URL 安全字符）
         const padding = '='.repeat((4 - encoded.length % 4) % 4);
-        const compact = decodeURIComponent(atob(
-            encoded.replace(/-/g, '+').replace(/_/g, '/') + padding
-        ));
+        const base64Fixed = encoded.replace(/-/g, '+').replace(/_/g, '/') + padding;
+        const base64Decoded = atob(base64Fixed);
+        
+        // 第二步：URL 解碼
+        const compact = decodeURIComponent(base64Decoded);
         
             const parts = compact.split('|');
         
@@ -358,7 +360,13 @@ function renderBilingualCard(data, lang = 'zh') {
     updateElement('userName', name);
     updateElement('userTitle', title);
     updateElement('userDepartment', department);
-    updateElement('userEmail', data.email);
+    if (data.email) {
+        updateElement('userEmail', data.email);
+        const emailLink = document.getElementById('userEmail');
+        if (emailLink) {
+            emailLink.href = `mailto:${data.email}`;
+        }
+    }
     
     // 處理電話顯示
     const phoneItem = document.getElementById('phoneItem');
@@ -461,8 +469,18 @@ function updateOrganizationInfo(lang, building = 'yanping') {
     };
     
     const info = orgInfo[lang] || orgInfo.zh;
-    updateElement('orgName', info.name);
-    updateElement('orgAddress', info[building] || info.yanping);
+    
+    // 確保組織和地址元素存在且正確更新
+    const orgElement = document.getElementById('orgName');
+    const addressElement = document.getElementById('orgAddress');
+    
+    if (orgElement) {
+        orgElement.textContent = info.name;
+    }
+    
+    if (addressElement) {
+        addressElement.textContent = info[building] || info.yanping;
+    }
 }
 
 /**

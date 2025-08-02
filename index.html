@@ -588,10 +588,10 @@
         function renderCard(userData) {
             const data = userData.data;
             
-            // 基本資訊
-            document.getElementById('user-name').textContent = data.name;
-            document.getElementById('user-title').textContent = data.title;
-            document.getElementById('user-department').textContent = data.department;
+            // 基本資訊 - 確保所有欄位都轉換為字串
+            document.getElementById('user-name').textContent = String(data.name || '');
+            document.getElementById('user-title').textContent = String(data.title || '');
+            document.getElementById('user-department').textContent = String(data.department || '');
             
             // 頭像
             const avatar = document.getElementById('user-avatar');
@@ -1086,9 +1086,23 @@
                     return;
                 }
                 
-                // 開啟 PWA 並傳遞資料
+                // 立即暫存當前頁面 URL
                 const currentUrl = window.location.href;
-                const pwaUrl = window.location.origin + '/pwa-card-storage/?c=' + new URLSearchParams(window.location.search).get('c');
+                try {
+                    sessionStorage.setItem('pwa_card_source_url', JSON.stringify({
+                        sourceUrl: currentUrl,
+                        timestamp: Date.now(),
+                        referrer: document.referrer
+                    }));
+                    console.log('[PWA] 已暫存來源 URL:', currentUrl);
+                } catch (error) {
+                    console.error('[PWA] 暫存失敗:', error);
+                }
+                
+                // 開啟 PWA 並傳遞資料
+                const urlParams = new URLSearchParams(window.location.search);
+                const dataParam = urlParams.get('data') || urlParams.get('c');
+                const pwaUrl = window.location.origin + '/pwa-card-storage/?c=' + encodeURIComponent(dataParam);
                 
                 // 在新窗口開啟 PWA
                 const pwaWindow = window.open(pwaUrl, '_blank');

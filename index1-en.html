@@ -1056,6 +1056,56 @@
             return processedLines.join('\n');
         }
 
+        // PWA 儲存功能
+        function setupPWASaveButton(cardData) {
+            const saveButton = document.getElementById('save-to-pwa-btn');
+            if (!saveButton) return;
+            
+            saveButton.addEventListener('click', function() {
+                // 檢查 PWA 是否可用
+                if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                    alert('離線儲存功能需要 HTTPS 連線或本地環境');
+                    return;
+                }
+                
+                // 立即暫存當前頁面 URL
+                const currentUrl = window.location.href;
+                try {
+                    sessionStorage.setItem('pwa_card_source_url', JSON.stringify({
+                        sourceUrl: currentUrl,
+                        timestamp: Date.now(),
+                        referrer: document.referrer
+                    }));
+                    console.log('[PWA] 已暫存來源 URL:', currentUrl);
+                } catch (error) {
+                    console.error('[PWA] 暫存失敗:', error);
+                }
+                
+                // 開啟 PWA 並傳遞資料
+                const urlParams = new URLSearchParams(window.location.search);
+                const dataParam = urlParams.get('data') || urlParams.get('c');
+                const pwaUrl = window.location.origin + '/pwa-card-storage/?c=' + encodeURIComponent(dataParam);
+                
+                // 在新窗口開啟 PWA
+                const pwaWindow = window.open(pwaUrl, '_blank');
+                
+                if (pwaWindow) {
+                    // 更新按鈕狀態
+                    saveButton.textContent = '✅ 已開啟 PWA';
+                    saveButton.style.background = '#6c757d';
+                    saveButton.disabled = true;
+                    
+                    setTimeout(() => {
+                        saveButton.textContent = '💾 儲存到離線';
+                        saveButton.style.background = '#28a745';
+                        saveButton.disabled = false;
+                    }, 3000);
+                } else {
+                    alert('無法開啟 PWA，請檢查瀏覽器設定');
+                }
+            });
+        }
+
         window.addEventListener('load', function() {
             setTimeout(() => {
                 const cardData = getCardDataFromNFC();

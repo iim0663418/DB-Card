@@ -1175,7 +1175,10 @@
                 // 開啟 PWA 並傳遞資料
                 const urlParams = new URLSearchParams(window.location.search);
                 const dataParam = urlParams.get('data') || urlParams.get('c');
-                const pwaUrl = window.location.origin + '/pwa-card-storage/?c=' + encodeURIComponent(dataParam);
+                // 正確構建 PWA URL，相容 GitHub Pages 和 Cloudflare Pages
+                const currentPath = window.location.pathname;
+                const basePath = currentPath.includes('/') ? currentPath.replace(/\/[^/]*$/, '') : '';
+                const pwaUrl = window.location.origin + basePath + '/pwa-card-storage/?c=' + encodeURIComponent(dataParam);
                 
                 // 在新窗口開啟 PWA
                 const pwaWindow = window.open(pwaUrl, '_blank');

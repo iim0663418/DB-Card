@@ -1,0 +1,40 @@
+graph TB
+    subgraph "PWA Application Layer"
+        A[PWA App] --> B[Theme Toggle]
+        A --> C[Language Toggle]
+        A --> D[UI Components]
+    end
+    
+    subgraph "MODA Integration Layer"
+        E[MODA Integration] --> F[Design System Manager]
+        E --> G[Theme Controller]
+        E --> H[CSS Variables Manager]
+    end
+    
+    subgraph "Design System Layer"
+        I[MODA Design Tokens] --> J[Color System]
+        I --> K[Typography System]
+        I --> L[Spacing System]
+    end
+    
+    subgraph "UI Components Coverage"
+        M[Notification System] --> N[✅ Integrated]
+        O[Loading Indicators] --> P[✅ Integrated]
+        Q[Form Elements] --> R[✅ Integrated]
+        S[Status Indicators] --> T[✅ Integrated]
+        U[Install Prompt] --> V[✅ Integrated]
+    end
+    
+    A --> E
+    E --> I
+    D --> M
+    D --> O
+    D --> Q
+    D --> S
+    D --> U
+    
+    style N fill:#d4edda
+    style P fill:#d4edda
+    style R fill:#d4edda
+    style T fill:#d4edda
+    style V fill:#d4edda

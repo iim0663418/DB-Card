@@ -110,16 +110,7 @@ class PWACardApp {
         this.transferManager = new TransferManager(this.cardManager);
       }
       
-      // 初始化 QR 掃描器（優雅降級）
-      if (typeof QRScannerManager !== 'undefined' && this.cardManager) {
-        try {
-          this.qrScanner = new QRScannerManager(this.cardManager);
-          await this.qrScanner.initialize();
-        } catch (error) {
-          this.qrScanner = null;
-          // 不拋出錯誤，讓應用程式繼續運行
-        }
-      }
+      // CLEAN-01: QR 掃描器已移除
       
     } catch (error) {
       console.error('[PWA] Service initialization failed:', error);
@@ -260,59 +251,45 @@ class PWACardApp {
     try {
       this.showLoading('讀取名片資料...');
       
-      // PWA-36 修復：確保 URL 資訊正確傳遞
       const currentUrl = window.location.href;
-      console.log('[App] 當前 URL:', currentUrl);
-      console.log('[App] 輸入資料:', data);
       
-      // PWA-24 直通管道：使用精簡解析器
-      if (!window.SimpleCardParser) {
-        this.showNotification('精簡解析器未載入', 'error');
+      // 1. 單次識別，獲取類型
+      let cardType = null;
+      if (window.PWAIntegration) {
+        const tempData = { url: currentUrl };
+        cardType = window.PWAIntegration.identifyCardTypeEnhanced(tempData);
+      }
+      
+      if (!cardType) {
+        this.showNotification('無法識別名片類型', 'error');
         return;
       }
       
-      const cardData = window.SimpleCardParser.parseDirectly(data);
+      // 2. 根據類型解析資料
+      if (!window.SimpleCardParser) {
+        this.showNotification('解析器未載入', 'error');
+        return;
+      }
+      
+      const cardData = window.SimpleCardParser.parseDirectly(data, cardType);
       
       if (!cardData) {
         this.showNotification('無法解析名片資料', 'error');
         return;
       }
       
-      // PWA-36 修復：將 URL 資訊添加到名片資料中
+      // 3. 添加 URL 資訊
       cardData.url = currentUrl;
       
-      // PWA-36 修復：從 referrer 或 URL 參數中推斷原始來源
-      const referer = document.referrer;
-      console.log('[App] 檢查 referrer:', referer);
-      
-      if (referer && !referer.includes('pwa-card-storage')) {
-        // referrer 不是 PWA 頁面，可能是原始來源
-        console.log('[App] 使用 referrer 作為原始來源:', referer);
-        window.PWAIntegration?.storeSourceContext(referer, cardData);
-      } else {
-        console.log('[App] 無有效 referrer，依賴資料特徵識別');
-      }
-      
-      console.log('[App] 添加 URL 後的資料:', cardData);
-      
-      // 驗證解析結果
-      if (!window.SimpleCardParser.validateParsedData(cardData)) {
-        this.showNotification('名片資料驗證失敗', 'error');
-        return;
-      }
-      
-      // PWA-24 直接儲存，跳過所有中間處理
+      // 4. 傳遞類型進行儲存（避免重複識別）
       if (this.storage) {
         try {
-          // 確保使用直通儲存方法，不經過任何標準化處理
-          if (typeof this.storage.storeCardDirectly !== 'function') {
-            this.showNotification('直通儲存方法未載入', 'error');
-            return;
-          }
-          
-          const cardId = await this.storage.storeCardDirectly(cardData);
+          const cardId = await this.storage.storeCardDirectly(cardData, cardType);
           
           this.showNotification('名片已儲存', 'success');
+          
+          // 5. 最後清除暫存
+          window.PWAIntegration?.manualClearContext();
           
           await this.updateStats();
           this.navigateTo('cards');
@@ -441,9 +418,7 @@ class PWACardApp {
       case 'add-card':
         this.navigateTo('import');
         break;
-      case 'scan-qr':
-        await this.scanQRCode();
-        break;
+
       case 'import-file':
         document.getElementById('import-file')?.click();
         break;
@@ -645,102 +620,8 @@ class PWACardApp {
     }
   }
 
-  async scanQRCode() {
-    try {
-      
-      if (this.qrScanner) {
-        await this.qrScanner.openScannerModal();
-      } else {
-        this.showNotification('QR 掃描器未初始化', 'error');
-        
-        // 備用方案：顯示簡單的手動輸入介面
-        this.showSimpleQRInput();
-      }
-    } catch (error) {
-      console.error('[PWA] QR scan failed:', error);
-      this.showNotification('QR 掃描功能啟動失敗', 'error');
-      
-      // 備用方案
-      this.showSimpleQRInput();
-    }
-  }
-  
-  /**
-   * 顯示簡單的 QR 輸入介面（備用方案）
-   */
-  showSimpleQRInput() {
-    const modal = document.createElement('div');
-    modal.className = 'modal qr-input-modal';
-    modal.innerHTML = `
-      <div class="modal-overlay"></div>
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>📱 名片匯入</h2>
-          <button class="modal-close">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div class="input-section">
-            <h3>手動輸入名片連結</h3>
-            <p>請貼上完整的名片連結：</p>
-            <input type="url" id="simple-manual-url" placeholder="https://example.com/index.html?data=... 或 ?c=..." class="url-input">
-            <button id="simple-manual-import" class="btn btn-primary">匯入名片</button>
-          </div>
-          <div class="help-section">
-            <h4>💡 使用說明</h4>
-            <ul>
-              <li>從其他人的數位名片複製完整連結</li>
-              <li>確保連結包含 ?data= 或 ?c= 參數</li>
-              <li>支援所有 DB-Card 格式的名片</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    `;
-    
-    const overlay = modal.querySelector('.modal-overlay');
-    const closeBtn = modal.querySelector('.modal-close');
-    const manualImport = modal.querySelector('#simple-manual-import');
-    const manualUrl = modal.querySelector('#simple-manual-url');
-    
-    // 關閉事件
-    const closeModal = () => {
-      modal.remove();
-    };
-    
-    overlay.addEventListener('click', closeModal);
-    closeBtn.addEventListener('click', closeModal);
-    
-    // 手動匯入事件
-    manualImport.addEventListener('click', async () => {
-      const url = manualUrl.value.trim();
-      if (url) {
-        closeModal();
-        try {
-          // 解析 URL 並匯入名片 - 支援雙語版本
-          const urlObj = new URL(url);
-          const data = urlObj.searchParams.get('data') || urlObj.searchParams.get('c');
-          
-          if (data) {
-            await this.importFromUrlData(data);
-          } else if (urlObj.hash && urlObj.hash.startsWith('#c=')) {
-            const hashData = urlObj.hash.substring(3);
-            await this.importFromUrlData(hashData);
-          } else if (urlObj.hash && urlObj.hash.startsWith('#data=')) {
-            const hashData = urlObj.hash.substring(6);
-            await this.importFromUrlData(hashData);
-          } else {
-            this.showNotification('無法解析名片連結，請確認連結格式正確', 'error');
-          }
-        } catch (error) {
-          this.showNotification('連結格式不正確', 'error');
-        }
-      } else {
-        this.showNotification('請輸入名片連結', 'warning');
-      }
-    });
-    
-    document.body.appendChild(modal);
-  }
+
+
 
   async viewCard(cardId) {
     try {
@@ -838,10 +719,23 @@ class PWACardApp {
   }
 
   showCardModal(card) {
+    console.log('[PWA] showCardModal - 原始卡片資料:', card.data);
     
-    const displayData = this.cardManager ? 
-      this.cardManager.getBilingualCardData(card.data, this.currentLanguage) : 
-      card.data;
+    let displayData;
+    if (this.cardManager) {
+      displayData = this.cardManager.getBilingualCardData(card.data, this.currentLanguage);
+      console.log('[PWA] showCardModal - 處理後資料:', displayData);
+    } else {
+      displayData = {
+        ...card.data,
+        email: String(card.data.email || '').trim(),
+        phone: String(card.data.phone || '').trim(),
+        mobile: String(card.data.mobile || '').trim()
+      };
+      console.log('[PWA] showCardModal - 備用處理資料:', displayData);
+    }
+    
+    console.log('[PWA] showCardModal - 最終 email:', displayData.email);
     
     
     const labels = this.getUILabels();
@@ -895,13 +789,13 @@ class PWACardApp {
             <h3 class="card-name">${displayData.name || ''}</h3>
             ${displayData.title ? `<p class="card-title">${displayData.title}</p>` : ''}
             ${displayData.department ? `<p class="card-department">${displayData.department}</p>` : ''}
-            ${displayData.organization ? `<p class="card-organization">${displayData.organization}</p>` : ''}
+            ${this.getCorrectOrganization(displayData, card.type) ? `<p class="card-organization">${this.getCorrectOrganization(displayData, card.type)}</p>` : ''}
           </div>
           <div class="card-details">
-            ${displayData.email ? `<div class="detail-item"><strong>${labels.email}:</strong> <a href="mailto:${displayData.email}" class="contact-link">${displayData.email}</a></div>` : ''}
-            ${displayData.phone ? `<div class="detail-item"><strong>${labels.phone}:</strong> <a href="tel:${displayData.phone}" class="contact-link">${displayData.phone}</a></div>` : ''}
-            ${displayData.mobile ? `<div class="detail-item"><strong>${labels.mobile}:</strong> <a href="tel:${displayData.mobile}" class="contact-link">${displayData.mobile}</a></div>` : ''}
-            ${displayData.address ? `<div class="detail-item"><strong>${labels.address}:</strong> ${displayData.address}</div>` : ''}
+            ${displayData.email ? `<div class="detail-item"><strong>${labels.email}:</strong> <a href="mailto:${displayData.email}" class="contact-link">${displayData.email}</a></div>` : '<!-- 無 email 資料 -->'}
+            ${displayData.phone ? `<div class="detail-item"><strong>${labels.phone}:</strong> <a href="tel:${String(displayData.phone).trim()}" class="contact-link">${String(displayData.phone).trim()}</a></div>` : ''}
+            ${displayData.mobile ? `<div class="detail-item"><strong>${labels.mobile}:</strong> <a href="tel:${String(displayData.mobile).trim()}" class="contact-link">${String(displayData.mobile).trim()}</a></div>` : ''}
+            ${this.getCorrectAddress(displayData, card.type) ? `<div class="detail-item"><strong>${labels.address}:</strong> ${this.getCorrectAddress(displayData, card.type)}</div>` : ''}
 
             ${socialHtml}
           </div>
@@ -932,6 +826,54 @@ class PWACardApp {
     this.setupSocialButtonEvents(modal);
     
     document.body.appendChild(modal);
+  }
+
+  /**
+   * 獲取正確的組織資訊
+   */
+  getCorrectOrganization(displayData, cardType) {
+    // 對於政府機關版本，強制使用預設組織名稱
+    if (cardType === 'index' || cardType === 'index1' || cardType === 'bilingual' || cardType === 'bilingual1') {
+      return this.currentLanguage === 'en' ? 'Ministry of Digital Affairs' : '數位發展部';
+    } else if (cardType === 'en' || cardType === 'en1') {
+      return 'Ministry of Digital Affairs';
+    }
+    
+    // 個人版使用實際的組織資訊
+    if (displayData.organization && typeof displayData.organization === 'string') {
+      return displayData.organization;
+    }
+    
+    return '';
+  }
+  
+  /**
+   * 獲取正確的地址資訊
+   */
+  getCorrectAddress(displayData, cardType) {
+    // 對於政府機關版本，強制使用預設地址
+    if (cardType === 'index' || cardType === 'bilingual') {
+      // 延平大樓
+      return this.currentLanguage === 'en' ? 
+        '143 Yanping S. Rd., Zhongzheng Dist., Taipei City, Taiwan' :
+        '臺北市中正區延平南路143號';
+    } else if (cardType === 'index1' || cardType === 'bilingual1') {
+      // 新光大樓
+      return this.currentLanguage === 'en' ? 
+        '66 Zhongxiao W. Rd. Sec. 1, Zhongzheng Dist., Taipei City, Taiwan (17F, 19F)' :
+        '臺北市中正區忠孝西路一段６６號（１７、１９樓）';
+    } else if (cardType === 'en') {
+      return '143 Yanping S. Rd., Zhongzheng Dist., Taipei City, Taiwan';
+    } else if (cardType === 'en1') {
+      return '66 Zhongxiao W. Rd. Sec. 1, Zhongzheng Dist., Taipei City, Taiwan (17F, 19F)';
+    }
+    
+    // 個人版使用實際的地址資訊
+    if (displayData.address && typeof displayData.address === 'string') {
+      return displayData.address;
+    }
+    
+    return '';
   }
 
   /**

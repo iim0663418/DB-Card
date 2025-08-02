@@ -3,10 +3,10 @@
  * 實作離線優先快取策略與效能優化
  */
 
-const CACHE_NAME = 'pwa-card-storage-v2.3';
-const STATIC_CACHE_NAME = 'pwa-static-v2.3';
-const DYNAMIC_CACHE_NAME = 'pwa-dynamic-v2.3';
-const IMAGE_CACHE_NAME = 'pwa-images-v2.3';
+const CACHE_NAME = 'pwa-card-storage-v2.4';
+const STATIC_CACHE_NAME = 'pwa-static-v2.4';
+const DYNAMIC_CACHE_NAME = 'pwa-dynamic-v2.4';
+const IMAGE_CACHE_NAME = 'pwa-images-v2.4';
 
 // 核心靜態資源（必須快取）
 const CORE_RESOURCES = [
@@ -23,7 +23,7 @@ const CORE_RESOURCES = [
   '/pwa-card-storage/src/features/card-manager.js',
   '/pwa-card-storage/src/features/offline-tools.js',
   '/pwa-card-storage/src/features/transfer-manager.js',
-  '/pwa-card-storage/src/features/qr-scanner.js',
+
   '/pwa-card-storage/src/ui/components/card-list.js',
   '/pwa-card-storage/src/ui/components/card-renderer.js',
   '/pwa-card-storage/src/ui/components/conflict-resolver.js',
@@ -47,7 +47,7 @@ const EXTERNAL_RESOURCES = [
   '/assets/qr-utils.js',
   '/assets/pwa-integration.js',
   '/assets/moda-logo.svg',
-  '/pwa-card-storage/assets/html5-qrcode.min.js'
+
 ];
 
 // 字體資源

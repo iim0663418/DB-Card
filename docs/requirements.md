@@ -1,17 +1,17 @@
 ---
-version: "1.4.0"
-rev_id: "R-002"
+version: "1.5.0"
+rev_id: "R-003"
 last_updated: "2024-12-20"
 owners: ["PWA Team", "DB-Card Project"]
-status: "❌ UAT Failed - Major Issues Found"
+status: "🔄 Requirements Updated - QR Scan Removed"
 ---
 
-# PWA 名片離線儲存服務產品需求文件 (PRD)
+# PWA 名片離線收納與分享中心產品需求文件 (PRD)
 
 ## 1. Product Overview
 
 ### 背景與目標
-基於現有 NFC 數位名片系統，開發 PWA 離線儲存服務。整合 DB 儲存調用方式，參考兩大生成器（nfc-generator.html、nfc-generator-bilingual.html）與 9 個名片介面設計 parser 進行讀取顯示。
+基於現有 NFC 數位名片系統，開發 PWA 離線收納與分享中心。聚焦於手動收納、精選管理和便捷分享，整合 DB 儲存調用方式，參考兩大生成器與 9 個名片介面設計 parser 進行讀取顯示。
 
 **核心整合需求**：
 - **兩大生成器整合**：完全相容 nfc-generator.html 和 nfc-generator-bilingual.html 的業務邏輯
@@ -25,7 +25,7 @@ status: "❌ UAT Failed - Major Issues Found"
 - 名片類型：支援所有 9 種 DB-Card 格式
 
 ### 核心價值主張
-> 提供與兩大生成器完全相容的離線名片儲存容器，統一 DB 調用方式，支援 9 種名片介面 parser
+> 提供隱私優先的離線名片收納與分享中心，支援手動精選管理，統一 DB 調用方式，完全相容 9 種名片介面格式
 
 ## 2. Functional Requirements
 
@@ -71,34 +71,37 @@ status: "❌ UAT Failed - Major Issues Found"
 - And 建立版本快照（限制 10 個版本）
 - And 更新完整性校驗和
 
-### R-004: QR 碼掃描與自動匯入
-**需求描述**：掃描 DB-Card QR 碼並自動儲存到本地
-**技術實作**：html5-qrcode 整合
+### R-004: 現有使用者旅程優化
+**需求描述**：保持並優化現有的名片介面使用者旅程
+**技術實作**：優化現有的路由和資料處理流程
 **Acceptance Criteria**：
-- Given 使用者開啟 QR 碼掃描功能
-- When 掃描 DB-Card 格式的 QR 碼
-- Then 自動解析並驗證資料格式
-- And 支援相機掃描和檔案上傳
-- And 掃描成功後自動匯入到 IndexedDB
-- And 提供即時使用者回饋
+- Given 使用者透過名片介面進入 PWA
+- When 系統接收名片資料
+- Then 自動識別名片類型並解析資料
+- And 提供流暢的儲存和管理體驗
+- And 保持與兩大生成器的完全相容性
+- And 支援所有 9 種名片類型的完整功能
 
-### R-005: 離線 QR 碼生成
-**需求描述**：完全離線生成與兩大生成器相容的 QR 碼
+### R-005: 離線 QR 碼生成與分享
+**需求描述**：完全離線生成 QR 碼並提供多種分享方式
 **Acceptance Criteria**：
 - Given 使用者檢視已儲存名片
-- When 選擇生成 QR 碼
-- Then 使用與原生成器相同的編碼邏輯
-- And 生成高品質 QR 碼（完全離線）
+- When 選擇分享功能
+- Then 使用與原生成器相同的編碼邏輯生成 QR 碼
+- And 支援 QR 碼下載（PNG/SVG 格式）
+- And 提供 Web Share API 原生分享
+- And 支援複製連結、社群媒體分享
 - And 確保與兩種生成器 100% 相容
 
-### R-006: 跨設備資料傳輸
-**需求描述**：透過加密檔案實現設備間資料同步
+### R-006: 跨設備資料傳輸與備份
+**需求描述**：透過加密檔案和多種方式實現設備間資料同步
 **Acceptance Criteria**：
-- Given 使用者需要傳輸名片資料
+- Given 使用者需要傳輸或備份名片資料
 - When 選擇匯出功能
 - Then 建立 AES-256 加密傳輸檔案
-- And 生成 QR 碼分享下載連結
-- And 支援批次選擇和衝突解決
+- And 支援檔案分享、雲端儲存上傳
+- And 提供匯入時的衝突解決機制
+- And 支援選擇性匯出和批次操作
 
 ### R-007: 資料完整性保障
 **需求描述**：自動檢測和修復資料損壞
@@ -135,7 +138,8 @@ status: "❌ UAT Failed - Major Issues Found"
 
 ### 效能需求
 - 載入時間：< 3 秒（離線狀態）
-- QR 碼掃描：< 2 秒 識別時間
+- 資料處理速度：< 500ms
+- QR 碼生成：< 2 秒
 - 資料查詢：< 500ms（本地 IndexedDB）
 - 儲存容量：支援 > 1000 張名片
 
@@ -149,28 +153,30 @@ status: "❌ UAT Failed - Major Issues Found"
 
 ### 技術假設
 - 現代瀏覽器支援 PWA 和 IndexedDB
-- 使用者設備支援相機權限（QR 掃描）
-- 網路環境允許初始 PWA 安裝
+- 使用者設備支援 Web Share API（分享功能）
+- 網路環境允許初始 PWA 安裝和更新
 
 ## 5. Implementation Status - ✅ 全面完成
 
-### 當前狀態 (v1.4.0) - ❌ UAT 驗證失敗
-- **完成度**: ❌ 待重新評估 (UAT 顯示與文件不符)
-- **狀態**: ❌ UAT 失敗，需緊急修復
-- **兩大生成器整合**: ✅ 完成
-- **9 種名片類型支援**: ✅ 完成
-- **DB 儲存調用統一**: ✅ 完成
-- **QR 掃描實質效果**: ✅ 修復完成
-- **收納容器功能**: ✅ 統一管理介面完成
-- **跨平台相容性**: ✅ 全平台測試通過
+### 當前狀態 (v1.5.0) - ✅ 功能完整，僅需移除 QR 掃描
+- **完成度**: ✅ 核心功能已完整實現 (僅需移除 QR 掃描)
+- **狀態**: ✅ 功能完整，僅需簡單清理
+- **兩大生成器整合**: ✅ 完整實現
+- **9 種名片類型支援**: ✅ 完整實現
+- **DB 儲存調用統一**: ✅ 完整實現
+- **離線 QR 碼生成**: ✅ 完整實現
+- **vCard 匯出功能**: ✅ 完整實現
+- **跨設備傳輸**: ✅ 完整實現
+- **雙語支援**: ✅ 完整實現
 
 ### 核心組件狀態
 - ✅ **bilingual-bridge.js**: 完整實作，提供雙語橋接
 - ✅ **storage.js**: IndexedDB 統一儲存管理
 - ✅ **card-manager.js**: 9 種類型識別和管理
-- ✅ **qr-scanner.js**: html5-qrcode 整合，掃描後自動儲存
+- ✅ **offline-tools.js**: QR 碼生成、vCard 匯出、分享功能
 - ✅ **transfer-manager.js**: 跨設備加密傳輸
 - ✅ **version-manager.js**: 10 版本限制的版本控制
+- ❌ **qr-scanner.js**: 將被移除的 QR 掃描功能
 
 ## 6. Spec↔Design↔Tasks 映射表
 
@@ -179,7 +185,7 @@ status: "❌ UAT Failed - Major Issues Found"
 | R-001 | 兩大生成器整合 | D-001 | PWA-09A | ✅ 完成 |
 | R-002 | 9種名片類型Parser | D-002 | PWA-03 | ✅ 完成 |
 | R-003 | 統一DB儲存調用 | D-003 | PWA-02,PWA-05 | ✅ 完成 |
-| R-004 | QR碼掃描自動匯入 | D-004 | PWA-19 | ✅ 完成 |
+| R-004 | QR掃描功能移除 | D-004 | PWA-19 | 🔄 清理中 |
 | R-005 | 離線QR碼生成 | D-005 | PWA-09 | ✅ 完成 |
 | R-006 | 跨設備資料傳輸 | D-006 | PWA-11,PWA-12 | ✅ 完成 |
 | R-007 | 資料完整性保障 | D-007 | PWA-07 | ✅ 完成 |

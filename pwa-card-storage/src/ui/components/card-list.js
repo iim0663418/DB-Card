@@ -130,16 +130,36 @@ class CardListComponent {
     const typeLabel = this.getTypeLabel(card.type);
     const lastModified = this.formatDate(card.modified);
     
-    // 組織資訊顯示（安全處理）
+    // 組織資訊顯示（修復雙語版邏輯）
     const orgInfo = [];
     const safeGetText = (field) => {
       if (!field) return '';
       if (typeof field === 'string') return field;
-      if (typeof field === 'object' && field.zh) return field.zh;
-      return String(field);
+      if (typeof field === 'object' && field !== null) {
+        if (field.zh) return field.zh;
+        if (field.en) return field.en;
+        // 提取第一個有效字串值
+        const firstValue = Object.values(field).find(v => v && typeof v === 'string');
+        if (firstValue) return firstValue;
+        return ''; // 避免 [object Object]
+      }
+      const stringValue = String(field);
+      return stringValue === '[object Object]' ? '' : stringValue;
     };
     
-    const orgText = safeGetText(card.data.organization);
+    // 根據名片類型決定組織資訊顯示邏輯
+    let orgText = '';
+    if (card.type === 'bilingual' || card.type === 'bilingual1' || card.type === 'index' || card.type === 'index1') {
+      // 政府機關版本：強制使用預設組織名稱
+      orgText = '數位發展部';
+    } else if (card.type === 'en' || card.type === 'en1') {
+      // 英文版本：使用英文組織名稱
+      orgText = 'Ministry of Digital Affairs';
+    } else {
+      // 個人版本：使用實際的組織資訊
+      orgText = safeGetText(card.data.organization);
+    }
+    
     const deptText = safeGetText(card.data.department);
     
     if (orgText) orgInfo.push(orgText);
@@ -180,13 +200,13 @@ class CardListComponent {
             ${card.data.email ? `
               <div class="contact-item">
                 <span class="contact-icon">📧</span>
-                <span class="contact-text">${card.data.email}</span>
+                <span class="contact-text">${String(card.data.email).trim()}</span>
               </div>
             ` : ''}
             ${card.data.phone ? `
               <div class="contact-item">
                 <span class="contact-icon">📞</span>
-                <span class="contact-text">${card.data.phone}</span>
+                <span class="contact-text">${String(card.data.phone).trim()}</span>
               </div>
             ` : ''}
             ${card.data.website ? `
@@ -260,16 +280,13 @@ class CardListComponent {
               <span class="btn-icon">📥</span>
               開始匯入名片
             </button>
-            <button class="btn btn-secondary" data-action="scan-qr">
-              <span class="btn-icon">📱</span>
-              掃描 QR 碼
-            </button>
+
           </div>
           <div class="empty-tips">
             <h4>💡 小提示</h4>
             <ul>
               <li>支援從 URL 連結匯入名片</li>
-              <li>可掃描 QR 碼快速新增</li>
+
               <li>支援匯入 JSON 和 vCard 檔案</li>
             </ul>
           </div>
@@ -586,14 +603,7 @@ class CardListComponent {
       });
     }
     
-    const scanBtn = this.container.querySelector('[data-action="scan-qr"]');
-    if (scanBtn) {
-      scanBtn.addEventListener('click', () => {
-        if (window.app) {
-          window.app.startQRScan();
-        }
-      });
-    }
+
     
     const clearFiltersBtn = this.container.querySelector('[data-action="clear-filters"]');
     if (clearFiltersBtn) {

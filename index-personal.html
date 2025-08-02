@@ -460,7 +460,7 @@
 <body>
     <div id="card-container" style="display: none;">
         <div class="card">
-            <a href="https://github.com/moda-gov-tw/DB-Card" target="_blank" class="project-info" title="數位發展部開源專案 - 隱私優先的數位名片系統">
+            <a href="https://github.com/moda-gov-tw/DB-Card" target="_blank" rel="noopener noreferrer" class="project-info" title="數位發展部開源專案 - 隱私優先的數位名片系統">
                 🇹🇼 moda 開源專案
             </a>
             
@@ -820,17 +820,41 @@
         }
 
         function convertCompactToFull(compactData) {
+            // 處理雙語版本的組織資訊
+            let organization = '';
+            if (compactData.o) {
+                if (typeof compactData.o === 'object') {
+                    // 雙語版本：{zh: '', en: ''}
+                    organization = compactData.o.zh || compactData.o.en || '';
+                } else {
+                    // 單語版本：字串
+                    organization = compactData.o;
+                }
+            }
+            
+            // 處理雙語版本的地址資訊
+            let address = '';
+            if (compactData.addr) {
+                if (typeof compactData.addr === 'object') {
+                    // 雙語版本：{zh: '', en: ''}
+                    address = compactData.addr.zh || compactData.addr.en || '';
+                } else {
+                    // 單語版本：字串
+                    address = compactData.addr;
+                }
+            }
+            
             return {
                 data: {
                     name: compactData.n || '',
                     title: compactData.t || '',
                     department: compactData.d || '',
-                    organization: compactData.o || '',
+                    organization: organization,
                     email: compactData.e || '',
                     phone: compactData.p || '',
                     mobile: compactData.m || '',
                     avatar: compactData.a || '',
-                    address: compactData.addr || '',
+                    address: address,
                     greetings: compactData.g || ['歡迎認識我！'],
                     socialLinks: {
                         email: compactData.e ? `mailto:${compactData.e}` : '',
@@ -904,6 +928,19 @@
                 if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
                     alert('Offline storage requires HTTPS connection or local environment');
                     return;
+                }
+                
+                // 立即暫存當前頁面 URL
+                const currentUrl = window.location.href;
+                try {
+                    sessionStorage.setItem('pwa_card_source_url', JSON.stringify({
+                        sourceUrl: currentUrl,
+                        timestamp: Date.now(),
+                        referrer: document.referrer
+                    }));
+                    console.log('[PWA] 已暫存來源 URL:', currentUrl);
+                } catch (error) {
+                    console.error('[PWA] 暫存失敗:', error);
                 }
                 
                 const urlParams = new URLSearchParams(window.location.search);

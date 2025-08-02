@@ -5,9 +5,9 @@
 
 class SimpleCardParser {
   /**
-   * 直接解析 URL 資料，自動識別兩種格式
+   * PWA-38: 直接解析 URL 資料，根據類型解析
    */
-  static parseDirectly(urlData) {
+  static parseDirectly(urlData, cardType) {
     try {
       
       // 檢查是否為未編碼的管道分隔格式（測試用）
@@ -20,10 +20,18 @@ class SimpleCardParser {
         return this.parseJSONFormat(urlData);
       }
       
-      // 嘗試解碼 Base64 資料
-      const decoded = this.decodeUrlData(urlData);
+      // 根據名片類別解碼 Base64 資料
+      const decoded = this.decodeUrlData(urlData, cardType);
       
-      // 自動識別格式
+      // 根據類型選擇解析方法（優先）
+      if (cardType && this.isBilingualType(cardType)) {
+        // 雙語類型優先使用管道格式
+        if (decoded.includes('|')) {
+          return this.parsePipeFormat(decoded);
+        }
+      }
+      
+      // 自動識別格式（備用）
       if (decoded.startsWith('{') || decoded.includes('"n":')) {
         // JSON 格式 (nfc-generator.html)
         return this.parseJSONFormat(decoded);
@@ -31,11 +39,10 @@ class SimpleCardParser {
         // 管道分隔格式 (nfc-generator-bilingual.html)
         return this.parsePipeFormat(decoded);
       } else {
-        console.error('[SimpleParser] PWA-24: Unknown format');
         return null;
       }
     } catch (error) {
-      console.error('[SimpleParser] PWA-24: Parse failed:', error);
+      console.error('[SimpleParser] PWA-38: Parse failed:', error);
       return null;
     }
   }
@@ -87,19 +94,21 @@ class SimpleCardParser {
     try {
       const parts = decoded.split('|');
       
-      // PWA-35: 完整的欄位映射，支援所有雙語欄位
+      // 修復欄位對應：根據 bilingual-common.js 的實際格式
+      // 正確格式：name|title|department|email|phone|mobile|avatar|greetings|socialNote
       const cardData = {
-        name: SimpleCardParser.parseBilingualField(parts[0]),           // 雙語支援
-        title: SimpleCardParser.parseBilingualField(parts[1]),          // 雙語支援
-        department: SimpleCardParser.parseBilingualField(parts[2]),     // 雙語支援
-        organization: SimpleCardParser.parseBilingualField(parts[3]),   // 雙語支援
-        email: parts[4] || '',                              // 單語言
-        phone: parts[5] || '',                              // 單語言
-        mobile: parts[6] || '',                             // 單語言
-        avatar: '',                                         // 單語言
-        address: SimpleCardParser.parseBilingualField(parts[8]),        // 雙語支援
-        greetings: SimpleCardParser.parseGreetingsField(parts[7]),      // 特殊處理
-        socialNote: SimpleCardParser.parseBilingualField(parts[9])      // 雙語支援
+        name: SimpleCardParser.parseBilingualField(parts[0]),           // 0: name (雙語)
+        title: SimpleCardParser.parseBilingualField(parts[1]),          // 1: title (雙語)
+        department: SimpleCardParser.parseBilingualField(parts[2]),     // 2: department (單語)
+        email: parts[3] || '',                                          // 3: email (單語) - 修復
+        phone: parts[4] || '',                                          // 4: phone (單語)
+        mobile: parts[5] || '',                                         // 5: mobile (單語)
+        avatar: parts[6] || '',                                         // 6: avatar (單語) - 修復
+        greetings: SimpleCardParser.parseGreetingsField(parts[7]),      // 7: greetings (雙語)
+        socialNote: SimpleCardParser.parseBilingualField(parts[8]),     // 8: socialNote (單語) - 修復
+        // 組織和地址由前端預設提供，不從 URL 資料中解析
+        organization: { zh: '', en: '' },
+        address: { zh: '', en: '' }
       };
       
       return cardData;
@@ -140,39 +149,87 @@ class SimpleCardParser {
   }
   
   /**
-   * 直接解碼 URL 資料，支援多種編碼格式
+   * 根據名片類別選擇最適合的解碼策略
    */
-  static decodeUrlData(urlData) {
-    try {
-      // 方法 1: URL-safe Base64 解碼 (雙語生成器)
-      const padding = '='.repeat((4 - urlData.length % 4) % 4);
-      const base64Fixed = urlData.replace(/-/g, '+').replace(/_/g, '/') + padding;
-      const decoded = decodeURIComponent(atob(base64Fixed));
-      
-      return decoded;
-    } catch (error) {
-      
+  static decodeUrlData(urlData, cardType = null) {
+    
+    // 策略 1: 雙語版使用舊版解碼 (保持相容性)
+    if (cardType && this.isBilingualType(cardType)) {
       try {
-        // 方法 2: 標準 Base64 解碼 (單語生成器)
-        const decoded = decodeURIComponent(atob(urlData));
-        return decoded;
-      } catch (standardError) {
+        const padding = '='.repeat((4 - urlData.length % 4) % 4);
+        const base64Fixed = urlData.replace(/-/g, '+').replace(/_/g, '/') + padding;
+        let decoded = decodeURIComponent(escape(atob(base64Fixed)));
         
-        try {
-          // 方法 3: UTF-8 解碼 (備用方案)
-          const fixedBase64 = urlData.replace(/\s/g, '+').replace(/-/g, '+').replace(/_/g, '/').trim();
-          const binaryString = atob(fixedBase64);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-          const decoded = new TextDecoder('utf-8').decode(bytes);
-          return decoded;
-        } catch (utf8Error) {
-          throw new Error('Unable to decode URL data');
+        // 檢查是否需要再次 URL 解碼
+        if (decoded.includes('%')) {
+          decoded = decodeURIComponent(decoded);
         }
+        
+        return decoded;
+      } catch (error) {
       }
     }
+    
+    // 策略 2: 單語版使用 UTF-8 解碼 (修復中文字符)
+    if (cardType && !this.isBilingualType(cardType)) {
+      try {
+        const padding = '='.repeat((4 - urlData.length % 4) % 4);
+        const base64Fixed = urlData.replace(/-/g, '+').replace(/_/g, '/') + padding;
+        
+        const binaryString = atob(base64Fixed);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const decoded = new TextDecoder('utf-8').decode(bytes);
+        return decoded;
+      } catch (error) {
+      }
+    }
+    
+    // 策略 3: 未知類別或備用方案 - 智慧嘗試
+    
+    // 3.1: 先嘗試舊版解碼
+    try {
+      const padding = '='.repeat((4 - urlData.length % 4) % 4);
+      const base64Fixed = urlData.replace(/-/g, '+').replace(/_/g, '/') + padding;
+      let decoded = decodeURIComponent(escape(atob(base64Fixed)));
+      
+      // 檢查是否需要再次 URL 解碼
+      if (decoded.includes('%')) {
+        decoded = decodeURIComponent(decoded);
+      }
+      
+      if (decoded.includes('|') || decoded.startsWith('{') || decoded.includes('"n":')) {
+        return decoded;
+      }
+    } catch (error) {
+      // 繼續嘗試下一種方法
+    }
+    
+    // 3.2: 再嘗試 UTF-8 解碼
+    try {
+      const padding = '='.repeat((4 - urlData.length % 4) % 4);
+      const base64Fixed = urlData.replace(/-/g, '+').replace(/_/g, '/') + padding;
+      
+      const binaryString = atob(base64Fixed);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const decoded = new TextDecoder('utf-8').decode(bytes);
+      return decoded;
+    } catch (error) {
+      throw new Error(`Unable to decode URL data for cardType: ${cardType}`);
+    }
+  }
+  
+  /**
+   * PWA-38: 檢查是否為雙語類型
+   */
+  static isBilingualType(cardType) {
+    const bilingualTypes = ['bilingual', 'bilingual1', 'personal-bilingual'];
+    return bilingualTypes.includes(cardType);
   }
   
   /**

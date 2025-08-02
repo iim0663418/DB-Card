@@ -2,6 +2,7 @@ class PWAIntegration {
   constructor() {
     this.STORAGE_KEY = 'pwa_card_source_url';
     this.TEMP_DATA_KEY = 'pwa_temp_card_data';
+    this.EXPIRY_TIME = 30 * 60 * 1000; // 30分鐘
   }
 
   storeSourceContext(originalUrl, cardData) {
@@ -10,13 +11,13 @@ class PWAIntegration {
         sourceUrl: originalUrl,
         timestamp: Date.now(),
         cardData: cardData,
-        userAgent: navigator.userAgent
+        userAgent: navigator.userAgent,
+        referrer: document.referrer
       };
       
       sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(context));
       sessionStorage.setItem(this.TEMP_DATA_KEY, JSON.stringify(cardData));
       
-      console.log('[PWA Integration] 已暫存來源 URL:', originalUrl);
       return true;
     } catch (error) {
       console.error('[PWA Integration] 暫存失敗:', error);
@@ -31,8 +32,9 @@ class PWAIntegration {
       
       const context = JSON.parse(contextStr);
       
-      if (Date.now() - context.timestamp > 30 * 60 * 1000) {
-        this.clearSourceContext();
+      // PWA-38: 檢查是否過期，但不自動清除（由手動控制）
+      if (Date.now() - context.timestamp > this.EXPIRY_TIME) {
+        // 不自動清除，讓手動控制
         return null;
       }
       
@@ -44,39 +46,33 @@ class PWAIntegration {
   }
 
   clearSourceContext() {
-    sessionStorage.removeItem(this.STORAGE_KEY);
-    sessionStorage.removeItem(this.TEMP_DATA_KEY);
+    try {
+      sessionStorage.removeItem(this.STORAGE_KEY);
+      sessionStorage.removeItem(this.TEMP_DATA_KEY);
+    } catch (error) {
+      console.warn('[PWA Integration] 清除暫存失敗:', error);
+    }
+  }
+
+  // 新增：手動清除方法
+  manualClearContext() {
+    this.clearSourceContext();
   }
 
   identifyCardTypeEnhanced(data) {
-    console.log('[PWA Integration] 開始增強版類型識別');
-    
     const sourceContext = this.getSourceContext();
-    console.log('[PWA Integration] 暫存上下文:', sourceContext);
     
+    // 只使用暫存的來源 URL 識別
     if (sourceContext?.sourceUrl) {
-      console.log('[PWA Integration] 找到暫存 URL:', sourceContext.sourceUrl);
       const typeFromUrl = this.parseTypeFromUrl(sourceContext.sourceUrl);
-      console.log('[PWA Integration] 暫存 URL 識別結果:', typeFromUrl);
       if (typeFromUrl) {
-        console.log('[PWA Integration] 使用暫存 URL 識別類型:', typeFromUrl);
+        // 不清除暫存！讓 App.js 控制清除時機
         return typeFromUrl;
       }
     }
 
-    if (data.url) {
-      console.log('[PWA Integration] 檢查當前 URL:', data.url);
-      const typeFromCurrentUrl = this.parseTypeFromUrl(data.url);
-      console.log('[PWA Integration] 當前 URL 識別結果:', typeFromCurrentUrl);
-      if (typeFromCurrentUrl) {
-        return typeFromCurrentUrl;
-      }
-    }
-
-    console.log('[PWA Integration] 使用資料特徵識別');
-    const result = this.identifyByDataFeatures(data);
-    console.log('[PWA Integration] 資料特徵識別結果:', result);
-    return result;
+    // 如果沒有暫存 URL，返回 null 讓其他系統處理
+    return null;
   }
 
   parseTypeFromUrl(url) {
@@ -84,12 +80,12 @@ class PWAIntegration {
     
     const urlLower = url.toLowerCase().trim();
     
-    // 處理 PWA 頁面 URL，從參數中解析原始來源
+    // 處理 PWA 頁面 URL，嘗試從參數中解析
     if (urlLower.includes('pwa-card-storage')) {
-      // 這是 PWA 頁面，無法直接從 URL 判斷類型
-      return null;
+      return this.parseTypeFromPWAUrl(url);
     }
     
+    // 精確匹配名片頁面
     if (urlLower.includes('index-bilingual-personal.html')) return 'personal-bilingual';
     if (urlLower.includes('index1-bilingual.html')) return 'bilingual1';
     if (urlLower.includes('index-bilingual.html')) return 'bilingual';
@@ -101,6 +97,94 @@ class PWAIntegration {
     if (urlLower.includes('index.html')) return 'index';
     
     return null;
+  }
+
+  parseTypeFromPWAUrl(url) {
+    try {
+      const urlObj = new URL(url);
+      const cardParam = urlObj.searchParams.get('c') || urlObj.searchParams.get('data');
+      
+      if (cardParam) {
+        // 嘗試多種解碼方式
+        const decodedData = this.safeDecodeCardData(cardParam);
+        if (decodedData && decodedData.url) {
+          return this.parseTypeFromUrl(decodedData.url);
+        }
+      }
+      
+      // 檢查 hash 參數
+      if (urlObj.hash) {
+        if (urlObj.hash.startsWith('#c=')) {
+          const hashData = urlObj.hash.substring(3);
+          const decodedData = this.safeDecodeCardData(hashData);
+          if (decodedData && decodedData.url) {
+            return this.parseTypeFromUrl(decodedData.url);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('[PWA Integration] PWA URL 解析失敗:', error);
+    }
+    
+    return null;
+  }
+
+  // 安全解碼名片資料，支援多種編碼格式
+  safeDecodeCardData(encodedData) {
+    if (!encodedData) return null;
+    
+    // 方法1: 直接 Base64 解碼
+    try {
+      const decoded = atob(encodedData);
+      const jsonData = JSON.parse(decodeURIComponent(decoded));
+      return jsonData;
+    } catch (error) {
+      // 繼續嘗試其他方法
+    }
+    
+    // 方法2: URL 解碼 + Base64 解碼
+    try {
+      const urlDecoded = decodeURIComponent(encodedData);
+      const base64Decoded = atob(urlDecoded);
+      const jsonData = JSON.parse(decodeURIComponent(base64Decoded));
+      return jsonData;
+    } catch (error) {
+      // 繼續嘗試其他方法
+    }
+    
+    // 方法3: 雙層 URL 解碼 + Base64
+    try {
+      const doubleDecoded = decodeURIComponent(decodeURIComponent(encodedData));
+      const base64Decoded = atob(doubleDecoded);
+      const jsonData = JSON.parse(base64Decoded);
+      return jsonData;
+    } catch (error) {
+      // 繼續嘗試其他方法
+    }
+    
+    // 方法4: 直接 JSON 解析（備用）
+    try {
+      const jsonData = JSON.parse(decodeURIComponent(encodedData));
+      return jsonData;
+    } catch (error) {
+      console.warn('[PWA Integration] 所有解碼方法均失敗:', error);
+      return null;
+    }
+  }
+
+  parseTypeFromReferrer() {
+    if (typeof window === 'undefined' || !document.referrer) {
+      return null;
+    }
+    
+    const referrer = document.referrer;
+    
+    // 避免循環引用：如果 referrer 也是 PWA 頁面，則跳過
+    if (referrer.includes('pwa-card-storage')) {
+      return null;
+    }
+    
+    return this.parseTypeFromUrl(referrer);
   }
 
   identifyByDataFeatures(data) {
@@ -123,6 +207,7 @@ class PWAIntegration {
   }
 
   preparePWATransition(cardData, currentUrl) {
+    // 確保暫存當前頁面的 URL
     this.storeSourceContext(currentUrl, cardData);
     
     const pwaUrl = this.buildPWAUrl(cardData);
@@ -138,6 +223,37 @@ class PWAIntegration {
     const baseUrl = window.location.origin + '/pwa-card-storage/';
     const encodedData = btoa(encodeURIComponent(JSON.stringify(cardData)));
     return `${baseUrl}?c=${encodedData}`;
+  }
+
+  // 新增：手動觸發暫存（用於名片頁面的儲存按鈕）
+  triggerContextStorage() {
+    if (typeof window !== 'undefined' && window.location) {
+      const currentUrl = window.location.href;
+      
+      // 檢查是否為名片頁面
+      if (currentUrl.includes('index') && !currentUrl.includes('pwa-card-storage')) {
+        // 手動觸發上下文暫存
+        
+        // 暫存當前 URL 作為來源
+        const context = {
+          sourceUrl: currentUrl,
+          timestamp: Date.now(),
+          userAgent: navigator.userAgent,
+          referrer: document.referrer,
+          triggered: 'manual'
+        };
+        
+        try {
+          sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(context));
+          return true;
+        } catch (error) {
+          console.error('[PWA Integration] 手動暫存失敗:', error);
+          return false;
+        }
+      }
+    }
+    
+    return false;
   }
 }
 

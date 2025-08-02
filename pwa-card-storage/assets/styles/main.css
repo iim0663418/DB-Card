@@ -859,28 +859,7 @@ body {
   font-weight: 500;
 }
 
-/* QR 掃描模態框樣式 */
-.qr-scan-modal .modal-content {
-  max-width: 500px;
-}
 
-.scan-instructions {
-  margin-top: 1rem;
-  padding: 1rem;
-  background: var(--background-color);
-  border-radius: var(--border-radius);
-  text-align: center;
-}
-
-.scan-instructions p {
-  margin-bottom: 0.5rem;
-  color: var(--text-secondary);
-}
-
-.scan-instructions input {
-  width: 100%;
-  margin: 0.75rem 0;
-}
 
 /* 工具類別 */
 .hidden {
@@ -1138,25 +1117,7 @@ body {
   margin-top: 0.5rem;
 }
 
-/* QR 掃描器樣式改善 */
-.scanner-unavailable-notice {
-  text-align: center;
-  padding: 1.5rem;
-  background: rgba(255, 152, 0, 0.1);
-  border-radius: var(--border-radius);
-  margin-bottom: 1.5rem;
-  border: 1px solid rgba(255, 152, 0, 0.3);
-}
 
-.notice-icon {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
-}
-
-.scanner-unavailable-notice h3 {
-  color: var(--warning-color);
-  margin-bottom: 0.5rem;
-}
 
 .manual-input-section,
 .file-upload-section {

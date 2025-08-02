@@ -6,9 +6,10 @@
     <title>數位發展部數位名片</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=Noto+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="assets/qrcode.min.js"></script>
     <link rel="stylesheet" href="assets/qrcode-style.css">
+    <link rel="stylesheet" href="assets/high-accessibility.css">
     <script src="assets/bilingual-common.js"></script>
     <script src="assets/pwa-integration.js"></script>
     <style>
@@ -179,6 +180,17 @@
             font-weight: 400;
             letter-spacing: 0.01em;
             line-height: 1.5;
+        }
+        
+        .greeting::after {
+            content: '|';
+            animation: blink 1s infinite;
+            color: #6868ac;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
         }
 
         .contact-info {
@@ -406,7 +418,7 @@
                 </div>
                 <div class="contact-item">
                     <span class="contact-icon">📍</span>
-                    <span id="orgAddress" class="contact-text">臺北市中正區延平南路143號</span>
+                    <span id="orgAddress" class="contact-text">臺北市中正區忠孝西路一段６６號（１７、１９樓）</span>
                 </div>
             </div>
             
@@ -428,12 +440,19 @@
                 <button id="save-to-pwa-btn" class="download-btn" style="background: #28a745; border-color: #28a745; margin-left: 10px;">
                     💾 <span id="savePwaText">儲存到離線</span>
                 </button>
+                <div id="vcardGuide" style="background: #f3f5f6; border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px 15px; margin-bottom: 20px; font-size: 0.85em; color: #495057; line-height: 1.5; max-width: 90%;">
+                    <strong id="vcardGuideTitle" style="color: #6868ac;">📱 如何加入聯絡人</strong>
+                    <div id="vcardGuideContent" style="margin-top: 8px;">
+                        <p><strong>Android:</strong> 點擊「開啟」或於通知欄中找到檔案，即可完成新增。</p>
+                        <p><strong>Apple:</strong> 開啟檔案後，請記得不要按左上方的「完成」，要下拉到「加入聯絡人」選項。</p>
+                    </div>
+                </div>
                 
                 <div class="qr-section">
                     <div class="qr-code" id="qrcode">
                         QR 碼載入中...
                     </div>
-                    <div id="qrLabel" class="qr-label">掃描 QR 碼快速開啟</div>
+                    <div id="qrLabel" class="qr-label">這是這張名片的 QR code，你也可以請別人掃描來讀取這張名片</div>
                 </div>
             </div>
         </div>
@@ -492,28 +511,32 @@
                     socialTitle: '🔗 社群連結',
                     downloadBtnText: '加入聯絡人',
                     savePwaText: '儲存到離線',
-                    qrLabel: '掃描 QR 碼快速開啟',
+                    qrLabel: '這是這張名片的 QR code，你也可以請別人掃描來讀取這張名片',
                     loadingTitle: '載入中',
                     loadingText: '正在解析數位名片資料...',
                     errorTitle: '無效資料',
                     errorText: '請使用 NFC 卡片或包含資料的連結訪問。',
                     privacyTitle: '隱私優先設計',
                     projectInfo: '數位發展部開源專案',
-                    privacyDesc: '所有個人資料僅儲存於 NFC 卡片，無後端追蹤、純前端架構、個人資訊完全自主掌控'
+                    privacyDesc: '所有個人資料僅儲存於 NFC 卡片，無後端追蹤、純前端架構、個人資訊完全自主掌控',
+                    vcardGuideTitle: '📱 如何加入聯絡人',
+                    vcardGuideContent: '<p><strong>Android:</strong> 會先下載名片檔，點擊「開啟」或於通知欄中找到檔案，即可完成新增。</p><p><strong>Apple:</strong> 會自動觸發加入通訊錄，請記得不要按左上方的「完成」，要下拉到「加入聯絡人」選項。</p>'
                 },
                 en: {
                     contactTitle: 'Contact Information',
                     socialTitle: '🔗 Social Links',
                     downloadBtnText: 'Add to Contacts',
                     savePwaText: 'Save Offline',
-                    qrLabel: 'Scan QR Code to Open',
+                    qrLabel: 'This is the QR code for this card, you can also ask others to scan it to view this card',
                     loadingTitle: 'Loading',
                     loadingText: 'Parsing digital business card data...',
                     errorTitle: 'Invalid Data',
                     errorText: 'Please access via NFC card or link with data.',
                     privacyTitle: 'Privacy-First Design',
                     projectInfo: 'Open Source Project by Ministry of Digital Affairs',
-                    privacyDesc: 'All personal data is stored only on your NFC card. No backend tracking, pure frontend architecture, complete personal data autonomy.'
+                    privacyDesc: 'All personal data is stored only on your NFC card. No backend tracking, pure frontend architecture, complete personal data autonomy.',
+                    vcardGuideTitle: '📱 How to Add to Contacts',
+                    vcardGuideContent: '<p><strong>Android:</strong> The card file will download first. Tap "Open" or find the file in your notification panel to add the contact.</p><p><strong>Apple:</strong> The contacts app will open automatically. Don\'t tap "Done" in the top left. Instead, scroll down to find the "Add to Contacts" option.</p>'
                 }
             };
             
@@ -530,11 +553,82 @@
             updateElement('projectInfo', text.projectInfo);
             updateElement('privacyDesc', text.privacyDesc);
             
+            // 更新 vCard 引導說明
+            updateElement('vcardGuideTitle', text.vcardGuideTitle);
+            const vcardGuideContent = document.getElementById('vcardGuideContent');
+            if (vcardGuideContent) {
+                vcardGuideContent.innerHTML = text.vcardGuideContent;
+            }
+            
             // 更新社群標題
             const socialTitle = document.querySelector('.social-info-title');
             if (socialTitle) {
                 socialTitle.textContent = text.socialTitle;
             }
+        }
+
+        // 打字機效果相關變數
+        window.typewriterTimeout = null;
+        window.currentGreetingIndex = 0;
+        window.currentGreetings = ['歡迎認識我！'];
+
+        // 打字機效果函數
+        function startGreetingAnimation() {
+            // 清理所有現有的計時器
+            if (window.typewriterTimeout) {
+                clearTimeout(window.typewriterTimeout);
+            }
+            
+            if (!window.currentGreetings || window.currentGreetings.length === 0) {
+                return;
+            }
+            
+            const greetingElement = document.getElementById('greetings');
+            if (!greetingElement) return;
+            
+            let charIndex = 0;
+            let isDeleting = false;
+            
+            function typeWriter() {
+                const currentText = window.currentGreetings[window.currentGreetingIndex];
+                
+                if (!isDeleting) {
+                    // 打字階段
+                    greetingElement.textContent = currentText.substring(0, charIndex + 1);
+                    charIndex++;
+                    
+                    if (charIndex === currentText.length) {
+                        // 完成打字，等待後開始刪除
+                        window.typewriterTimeout = setTimeout(() => {
+                            isDeleting = true;
+                            typeWriter();
+                        }, 4000);
+                        return;
+                    }
+                } else {
+                    // 刪除階段
+                    greetingElement.textContent = currentText.substring(0, charIndex);
+                    charIndex--;
+                    
+                    if (charIndex < 0) {
+                        // 完成刪除，等待後切換到下一個問候語
+                        isDeleting = false;
+                        charIndex = 0;
+                        window.currentGreetingIndex = (window.currentGreetingIndex + 1) % window.currentGreetings.length;
+                        
+                        // 在開始下一個問候語前等待
+                        window.typewriterTimeout = setTimeout(typeWriter, 1000);
+                        return;
+                    }
+                }
+                
+                // 設定下次執行時間
+                const speed = isDeleting ? 50 : 100;
+                window.typewriterTimeout = setTimeout(typeWriter, speed);
+            }
+            
+            // 開始打字機效果
+            typeWriter();
         }
 
         // PWA 儲存功能
@@ -548,82 +642,44 @@
                     return;
                 }
                 
+                // 立即暫存當前頁面 URL
+                const currentUrl = window.location.href;
+                try {
+                    sessionStorage.setItem('pwa_card_source_url', JSON.stringify({
+                        sourceUrl: currentUrl,
+                        timestamp: Date.now(),
+                        referrer: document.referrer
+                    }));
+                    console.log('[PWA] 已暫存來源 URL:', currentUrl);
+                } catch (error) {
+                    console.error('[PWA] 暫存失敗:', error);
+                }
+                
                 const urlParams = new URLSearchParams(window.location.search);
                 const dataParam = urlParams.get('data') || urlParams.get('c');
-                const pwaUrl = window.location.origin + '/pwa-card-storage/?c=' + encodeURIComponent(dataParam);
                 
-                const pwaWindow = window.open(pwaUrl, '_blank');
-                
-                if (pwaWindow) {
-                    const originalText = saveButton.innerHTML;
-                    saveButton.innerHTML = '✅ 已開啟 PWA';
-                    saveButton.style.background = '#6c757d';
-                    saveButton.disabled = true;
-                    
-                    setTimeout(() => {
-                        saveButton.innerHTML = originalText;
-                        saveButton.style.background = '#28a745';
-                        saveButton.disabled = false;
-                    }, 3000);
-                } else {
-                    alert('無法開啟 PWA，請檢查瀏覽器設定');
-                }
-            });
-        }
-
-        // 頁面初始化
-        window.addEventListener('load', function() {
-            setTimeout(() => {
-                const urlParams = new URLSearchParams(window.location.search);
-                const data = urlParams.get('data');
-                
-                if (!data) {
-                    document.getElementById('loading-state').style.display = 'none';
-                    document.getElementById('access-denied').style.display = 'block';
+                if (!dataParam) {
+                    alert('無法獲取名片資料');
                     return;
                 }
                 
-                try {
-                    currentData = decodeCompact(data);
-                    if (!currentData || !currentData.name) {
-                        throw new Error('名片資料格式不正確');
-                    }
-                    
-                    document.getElementById('loading-state').style.display = 'none';
-                    document.getElementById('card-container').style.display = 'block';
-                    
-                    renderBilingualCard(currentData, currentLanguage);
-                    updateUIText(currentLanguage);
-                    generateQRCode();
-                    setupPWASaveButton();
-                    
-                    // 處理頭像
-                    const avatar = document.getElementById('userAvatar');
-                    if (currentData.avatar) {
-                        avatar.src = currentData.avatar;
-                        avatar.style.display = 'block';
-                        avatar.onerror = function() {
-                            this.style.display = 'none';
-                        };
-                    } else {
-                        avatar.style.display = 'none';
-                    }
-                    
-                    // 處理社群資訊
-                    if (currentData.socialNote) {
-                        const socialInfo = document.getElementById('socialInfo');
-                        const socialContent = document.getElementById('socialInfoContent');
-                        socialContent.innerHTML = processSocialLinks(currentData.socialNote);
-                        socialInfo.style.display = 'block';
-                    }
-                    
-                } catch (error) {
-                    console.error('解析失敗:', error);
-                    document.getElementById('loading-state').style.display = 'none';
-                    document.getElementById('access-denied').style.display = 'block';
-                }
-            }, 800);
-        });
+                const pwaUrl = window.location.origin + '/pwa-card-storage/?c=' + encodeURIComponent(dataParam);
+                window.open(pwaUrl, '_blank');
+                
+                const originalText = saveButton.innerHTML;
+                saveButton.innerHTML = '✅ 已開啟 PWA';
+                saveButton.style.background = '#6c757d';
+                saveButton.disabled = true;
+                
+                setTimeout(() => {
+                    saveButton.innerHTML = originalText;
+                    saveButton.style.background = '#28a745';
+                    saveButton.disabled = false;
+                }, 3000);
+            });
+        }
+
+        // 頁面初始化由 bilingual-common.js 統一處理
     </script>
 </body>
 </html>

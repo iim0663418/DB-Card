@@ -128,10 +128,10 @@ class CardRenderer {
   populateCardData(cardData, cardType) {
     const card = this.container.querySelector('.card');
     
-    // PWA-35: 基本資訊 - 支援雙語顯示
-    card.querySelector('.name').textContent = this.displayBilingualField(cardData.name, this.options.language);
-    card.querySelector('.title').textContent = this.displayBilingualField(cardData.title, this.options.language);
-    card.querySelector('.department').textContent = this.displayBilingualField(cardData.department, this.options.language);
+    // PWA-35: 基本資訊 - 支援雙語顯示，確保字串轉換
+    card.querySelector('.name').textContent = String(this.displayBilingualField(cardData.name, this.options.language) || '');
+    card.querySelector('.title').textContent = String(this.displayBilingualField(cardData.title, this.options.language) || '');
+    card.querySelector('.department').textContent = String(this.displayBilingualField(cardData.department, this.options.language) || '');
     
     // 頭像處理
     this.setupAvatar(card, cardData.avatar, this.displayBilingualField(cardData.name, this.options.language));
@@ -152,20 +152,39 @@ class CardRenderer {
   }
   
   /**
-   * PWA-35: 雙語欄位顯示輔助方法
+   * PWA-35: 雙語欄位顯示輔助方法 - 修復 [object Object] 問題
    */
   displayBilingualField(fieldData, currentLang) {
-    if (typeof fieldData === 'object' && fieldData && fieldData.zh && fieldData.en) {
-      return currentLang === 'en' ? fieldData.en : fieldData.zh;
+    // 處理 null 或 undefined
+    if (!fieldData) return '';
+    
+    // 處理雙語物件格式
+    if (typeof fieldData === 'object' && fieldData !== null) {
+      if (fieldData.zh && fieldData.en) {
+        return String(currentLang === 'en' ? fieldData.en : fieldData.zh);
+      }
+      // 如果是其他物件格式，提取第一個有效字串值
+      const firstValue = Object.values(fieldData).find(v => v && typeof v === 'string');
+      if (firstValue) {
+        return String(firstValue);
+      }
+      // 如果沒有有效值，返回空字串而不是 [object Object]
+      return '';
     }
     
-    // 向下相容：處理字串格式的雙語資料
-    if (typeof fieldData === 'string' && fieldData.includes('~')) {
-      const [zh, en] = fieldData.split('~');
-      return currentLang === 'en' ? (en || '').trim() : (zh || '').trim();
+    // 處理字串格式
+    if (typeof fieldData === 'string') {
+      // 向下相容：處理字串格式的雙語資料
+      if (fieldData.includes('~')) {
+        const [zh, en] = fieldData.split('~');
+        return currentLang === 'en' ? (en || '').trim() : (zh || '').trim();
+      }
+      return fieldData;
     }
     
-    return fieldData || '';
+    // 其他類型都轉換為字串，但避免 [object Object]
+    const stringValue = String(fieldData);
+    return stringValue === '[object Object]' ? '' : stringValue;
   }
 
   /**
@@ -232,30 +251,64 @@ class CardRenderer {
     const orgElement = card.querySelector('.organization');
     const addressElement = card.querySelector('.address');
     
-    // PWA-35: 組織名稱 - 支援雙語顯示
+    console.log('[CardRenderer] 設置組織資訊:', {
+      cardType,
+      originalOrg: cardData.organization,
+      originalAddress: cardData.address,
+      language: this.options.language
+    });
+    
+    // PWA-35: 組織名稱 - 支援雙語顯示，確保字串轉換
     let organization = this.displayBilingualField(cardData.organization, this.options.language);
-    if (!organization && this.isGovernmentType(cardType)) {
-      organization = this.options.language === 'en' ? 
-        'Ministry of Digital Affairs' : '數位發展部';
+    
+    // 根據名片類型設定預設組織資訊（強制覆蓋）
+    if (cardType === 'index' || cardType === 'index1' || cardType === 'bilingual' || cardType === 'bilingual1') {
+      // 機關版：強制使用預設組織名稱
+      organization = this.options.language === 'en' ? 'Ministry of Digital Affairs' : '數位發展部';
+    } else if (cardType === 'en' || cardType === 'en1') {
+      // 英文版：強制使用英文組織名稱
+      organization = 'Ministry of Digital Affairs';
+    } else if (!organization) {
+      // 個人版且無組織資訊時不設定預設組織
+      organization = '';
     }
-    orgElement.textContent = organization || '';
+    
+    // 確保組織名稱是字串格式
+    if (orgElement) {
+      orgElement.textContent = String(organization || '');
+    }
     
     // PWA-35: 地址 - 支援雙語顯示
     let address = this.displayBilingualField(cardData.address, this.options.language);
-    if (!address && this.isGovernmentType(cardType)) {
-      const isXinyi = cardType.includes('sg') || cardType.includes('xinyi');
-      if (this.options.language === 'en') {
-        address = isXinyi ? 
-          '66 Zhongxiao W. Rd. Sec. 1, Zhongzheng Dist., Taipei City, Taiwan (17F, 19F)' :
-          '143 Yanping S. Rd., Zhongzheng Dist., Taipei City, Taiwan';
-      } else {
-        address = isXinyi ? 
-          '臺北市中正區忠孝西路一段６６號（１７、１９樓）' :
-          '臺北市中正區延平南路143號';
-      }
+    
+    // 根據名片類型設定預設地址資訊（強制覆蓋）
+    if (cardType === 'index' || cardType === 'bilingual') {
+      // 延平大樓：強制使用預設地址
+      address = this.options.language === 'en' ? 
+        '143 Yanping S. Rd., Zhongzheng Dist., Taipei City, Taiwan' :
+        '臺北市中正區延平南路143號';
+    } else if (cardType === 'index1' || cardType === 'bilingual1') {
+      // 新光大樓：強制使用預設地址
+      address = this.options.language === 'en' ? 
+        '66 Zhongxiao W. Rd. Sec. 1, Zhongzheng Dist., Taipei City, Taiwan (17F, 19F)' :
+        '臺北市中正區忠孝西路一段６６號（１７、１９樓）';
+    } else if (cardType === 'en') {
+      // 英文版延平：強制使用英文地址
+      address = '143 Yanping S. Rd., Zhongzheng Dist., Taipei City, Taiwan';
+    } else if (cardType === 'en1') {
+      // 英文版新光：強制使用英文地址
+      address = '66 Zhongxiao W. Rd. Sec. 1, Zhongzheng Dist., Taipei City, Taiwan (17F, 19F)';
+    } else if (!address) {
+      // 個人版且無地址資訊時不設定預設地址
+      address = '';
     }
     
-    if (address) {
+    console.log('[CardRenderer] 最終組織資訊:', {
+      finalOrg: organization,
+      finalAddress: address
+    });
+    
+    if (addressElement && address) {
       // 處理換行
       const lines = address.split('\n');
       addressElement.innerHTML = '';
@@ -265,6 +318,8 @@ class CardRenderer {
         }
         addressElement.appendChild(document.createTextNode(line));
       });
+    } else if (addressElement) {
+      addressElement.textContent = '';
     }
   }
 

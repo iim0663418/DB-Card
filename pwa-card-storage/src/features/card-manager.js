@@ -627,6 +627,81 @@ class PWACardManager {
       
       if (!data) return null;
 
+      // 雙語版使用不同的編碼方式
+      if (urlObj.pathname.includes('bilingual')) {
+        return this.parseBilingualFormat(data);
+      } else {
+        return this.parseStandardFormat(data);
+      }
+    } catch (error) {
+      console.error('[CardManager] URL parsing failed:', error);
+      return null;
+    }
+  }
+  
+  parseBilingualFormat(data) {
+    try {
+      // 雙語版編碼方式：Base64 + URL 編碼
+      // 第一步：Base64 解碼（先處理 URL 安全字符）
+      const padding = '='.repeat((4 - data.length % 4) % 4);
+      const base64Fixed = data.replace(/-/g, '+').replace(/_/g, '/') + padding;
+      const compact = atob(base64Fixed);
+      
+      // 第二步：URL 解碼
+      const urlDecoded = decodeURIComponent(compact);
+      
+      // 第三步：解析管道分隔格式
+      const fields = urlDecoded.split('|');
+      
+      console.log('[CardManager] 雙語版解析 - 原始資料:', data);
+      console.log('[CardManager] 雙語版解析 - URL解碼後:', urlDecoded);
+      console.log('[CardManager] 雙語版解析 - 欄位分割:', {
+        fieldsLength: fields.length,
+        field0_name: fields[0],
+        field1_title: fields[1], 
+        field2_department: fields[2],
+        field3_email: fields[3],
+        field4_phone: fields[4],
+        field5_mobile: fields[5],
+        field6_avatar: fields[6],
+        field7_greetings: fields[7],
+        field8_socialNote: fields[8]
+      });
+      
+      // 修復欄位對應錯誤：根據 bilingual-common.js 中的 encodeCompact 函數正確對應
+      // 實際格式：name|title|department|email|phone|mobile|avatar|greetings|socialNote
+      const result = {
+        name: fields[0] || '',           // 0: name (雙語)
+        title: fields[1] || '',          // 1: title (雙語) 
+        department: fields[2] || '',     // 2: department (單語)
+        email: fields[3] || '',          // 3: email (單語)
+        phone: fields[4] || '',          // 4: phone (單語)
+        mobile: fields[5] || '',         // 5: mobile (單語)
+        avatar: fields[6] || '',         // 6: avatar (單語)
+        greetings: fields[7] ? fields[7].split(',') : [], // 7: greetings (雙語)
+        socialNote: fields[8] || '',     // 8: socialNote (單語)
+        // 組織和地址由 applyCardTypeDefaults 方法提供，不從 URL 資料中解析
+        organization: '',
+        address: ''
+      };
+      
+      console.log('[CardManager] 雙語版最終結果:', result);
+      console.log('[CardManager] 修復後檢查:', {
+        email: result.email,
+        socialNote: result.socialNote,
+        organization: result.organization,
+        address: result.address
+      });
+      return result;
+    } catch (error) {
+      console.error('[CardManager] Bilingual format parsing failed:', error);
+      return null;
+    }
+  }
+  
+  parseStandardFormat(data) {
+    try {
+      // 標準版編碼方式：JSON + Base64 + UTF-8
       const decoded = decodeURIComponent(data);
       const binaryString = atob(decoded);
       const bytes = new Uint8Array(binaryString.length);
@@ -638,7 +713,7 @@ class PWACardManager {
       
       return this.convertCompactFormat(parsedData);
     } catch (error) {
-      console.error('[CardManager] UTF-8 URL parsing failed:', error);
+      console.error('[CardManager] Standard format parsing failed:', error);
       return null;
     }
   }
@@ -910,16 +985,27 @@ class PWACardManager {
     
     // 完全複製 nfc-generator.html 的邏輯
     const compactData = {
-      n: cardData.name || '',
-      t: cardData.title || '',
-      d: cardData.department || '',
-      e: cardData.email || '',
-      p: cardData.phone || '',
-      m: cardData.mobile || '',
-      a: cardData.avatar || '',
+      n: safeMonolingualStringify(cardData.name),
+      t: safeMonolingualStringify(cardData.title),
+      d: safeMonolingualStringify(cardData.department),
+      e: safeMonolingualStringify(cardData.email),
+      p: safeMonolingualStringify(cardData.phone),
+      m: safeMonolingualStringify(cardData.mobile),
+      a: safeMonolingualStringify(cardData.avatar),
       g: Array.isArray(cardData.greetings) ? cardData.greetings : [],
-      s: cardData.socialNote || ''
+      s: safeMonolingualStringify(cardData.socialNote)
     };
+    
+    // 安全字串化函數
+    function safeMonolingualStringify(field) {
+      if (typeof field === 'string') return field;
+      if (typeof field === 'object' && field !== null) {
+        const firstValue = Object.values(field).find(v => v && typeof v === 'string');
+        return firstValue || '';
+      }
+      const stringValue = String(field || '');
+      return stringValue === '[object Object]' ? '' : stringValue;
+    }
     
     // 個人版本新增組織和地址欄位（與原生成器一致）
     if (cardType === 'personal' || cardType === 'personal-en') {
@@ -975,10 +1061,13 @@ class PWACardManager {
           const result = `${g.zh}~${g.en}`;
           return result;
         } else if (g && typeof g === 'object') {
-          // 處理其他物件格式 - 保持原始值
+          // 修復：安全處理物件，避免 [object Object]
           const firstValue = Object.values(g).find(v => v && typeof v === 'string');
-          const result = firstValue ? String(firstValue) : String(g);
-          return result;
+          if (firstValue) {
+            return String(firstValue);
+          }
+          // 如果沒有有效值，返回預設問候語而不是 [object Object]
+          return '歡迎認識我！~Nice to meet you!';
         }
         
         // 其他情況轉為字串
@@ -1007,18 +1096,36 @@ class PWACardManager {
     }
     
     
-    // PWA-23 修復：使用與 bilingual-common.js 中 encodeCompact 完全相同的管道分隔格式
-    // 確保所有 9 個欄位都存在，特別是最後一個 socialNote
+    // PWA-23 修復：區分雙語欄位和單語欄位
+    const safeBilingualStringify = (field) => {
+      if (typeof field === 'string') return field;
+      if (typeof field === 'object' && field !== null) {
+        if (field.zh && field.en) return `${field.zh}~${field.en}`;
+        const firstValue = Object.values(field).find(v => v && typeof v === 'string');
+        return firstValue || '';
+      }
+      return String(field || '');
+    };
+    
+    const safeMonolingualStringify = (field) => {
+      if (typeof field === 'string') return field;
+      if (typeof field === 'object' && field !== null) {
+        const firstValue = Object.values(field).find(v => v && typeof v === 'string');
+        return firstValue || '';
+      }
+      return String(field || '');
+    };
+    
     const compactFields = [
-      safeCardData.name,           // 0: name
-      safeCardData.title,          // 1: title
-      safeCardData.department,     // 2: department
-      safeCardData.email,          // 3: email
-      safeCardData.phone,          // 4: phone
-      safeCardData.mobile,         // 5: mobile
-      safeCardData.avatar,         // 6: avatar
-      greetingsArray.join(','),    // 7: greetings
-      safeCardData.socialNote      // 8: socialNote - PWA-23 修復重點
+      safeBilingualStringify(safeCardData.name),     // 0: name (雙語)
+      safeBilingualStringify(safeCardData.title),    // 1: title (雙語)
+      safeMonolingualStringify(safeCardData.department), // 2: department (單語)
+      safeMonolingualStringify(safeCardData.email),     // 3: email (單語)
+      safeMonolingualStringify(safeCardData.phone),     // 4: phone (單語)
+      safeMonolingualStringify(safeCardData.mobile),    // 5: mobile (單語)
+      safeMonolingualStringify(safeCardData.avatar),    // 6: avatar (單語)
+      greetingsArray.join(','),                         // 7: greetings (雙語，已處理)
+      safeMonolingualStringify(safeCardData.socialNote) // 8: socialNote (單語)
     ];
     
     const compact = compactFields.join('|');
@@ -1268,19 +1375,44 @@ class PWACardManager {
    */
   preprocessCardData(cardData) {
     
-    // PWA-23 修復：確保所有欄位都有預設值
+    // PWA-23 修復：區分雙語欄位和單語欄位
+    const safeBilingualStringify = (field) => {
+      if (typeof field === 'string') return field;
+      if (typeof field === 'object' && field !== null) {
+        if (field.zh && field.en) return `${field.zh}~${field.en}`;
+        const firstValue = Object.values(field).find(v => v && typeof v === 'string');
+        return firstValue || '';
+      }
+      return String(field || '');
+    };
+    
+    const safeMonolingualStringify = (field) => {
+      if (typeof field === 'string') return field;
+      if (typeof field === 'object' && field !== null) {
+        // 先檢查是否為雙語物件格式
+        if (field.zh && field.en) {
+          return field.zh; // 單語欄位優先使用中文
+        }
+        const firstValue = Object.values(field).find(v => v && typeof v === 'string');
+        return firstValue || '';
+      }
+      // 確保不會返回 [object Object]
+      const stringValue = field ? String(field) : '';
+      return stringValue === '[object Object]' ? '' : stringValue;
+    };
+    
     const processed = {
-      name: cardData.name || '',
-      title: cardData.title || '',
-      department: cardData.department || '',
-      email: cardData.email || '',
-      phone: cardData.phone || '',
-      mobile: cardData.mobile || '',
-      avatar: cardData.avatar || '',
-      greetings: cardData.greetings || [],
-      socialNote: cardData.socialNote || '', // PWA-23: 確保 socialNote 不為 null/undefined
-      organization: cardData.organization || '',
-      address: cardData.address || ''
+      name: String(safeBilingualStringify(cardData.name) || ''),        // 雙語
+      title: String(safeBilingualStringify(cardData.title) || ''),      // 雙語
+      department: String(safeMonolingualStringify(cardData.department) || ''), // 單語
+      email: String(safeMonolingualStringify(cardData.email) || ''),    // 單語
+      phone: String(safeMonolingualStringify(cardData.phone) || ''),    // 單語
+      mobile: String(safeMonolingualStringify(cardData.mobile) || ''),  // 單語
+      avatar: String(safeMonolingualStringify(cardData.avatar) || ''),  // 單語
+      greetings: cardData.greetings || [],               // 雙語，單獨處理
+      socialNote: String(safeMonolingualStringify(cardData.socialNote) || ''), // 單語
+      organization: String(safeMonolingualStringify(cardData.organization) || ''), // 單語
+      address: String(safeMonolingualStringify(cardData.address) || '') // 單語
     };
     
     
@@ -1301,14 +1433,21 @@ class PWACardManager {
             const result = `${greeting.zh}~${greeting.en}`;
             return result;
           }
-          // 如果只有一種語言，使用第一個有效值
+          // 修復：安全處理物件，避免 [object Object]
           const firstValue = Object.values(greeting).find(v => v && typeof v === 'string');
-          const result = firstValue ? String(firstValue) : String(greeting);
-          return result;
+          if (firstValue) {
+            return String(firstValue);
+          }
+          // 如果沒有有效值，返回預設問候語而不是 [object Object]
+          return '歡迎認識我！~Nice to meet you!';
         }
         
         // 已經是字串格式，直接保持
         const result = String(greeting);
+        // 防止 [object Object] 問題
+        if (result === '[object Object]') {
+          return '歡迎認識我！~Nice to meet you!';
+        }
         return result;
       }).filter(g => {
         const isValid = g && g.trim() && g !== '[object Object]';
@@ -1525,12 +1664,12 @@ class PWACardManager {
       department: safeGetField(cardData.department),
       organization: safeGetField(cardData.organization),
       address: safeGetField(cardData.address),
-      email: cardData.email || '',
-      phone: cardData.phone || '',
-      mobile: cardData.mobile || '',
+      email: String(cardData.email || '').trim(),
+      phone: String(cardData.phone || '').trim(),
+      mobile: String(cardData.mobile || '').trim(),
       avatar: cardData.avatar || '',
       greetings: processedGreetings,
-      socialNote: safeGetField(cardData.socialNote) || ''
+      socialNote: String(safeGetField(cardData.socialNote) || '').trim()
     };
   }
 

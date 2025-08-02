@@ -161,19 +161,10 @@ class PWACardManager {
   identifyCardType(data) {
     if (typeof data === 'string') data = { url: data };
     
-    console.log('[CardManager] 開始類型識別，輸入資料:', {
-      hasUrl: !!data.url,
-      url: data.url,
-      name: data.name,
-      hasNameTilde: data.name?.includes?.('~'),
-      hasTitleTilde: data.title?.includes?.('~')
-    });
-    
     // PWA-36 修復：整合 PWA 暫存機制
     if (window.PWAIntegration) {
       const enhancedType = window.PWAIntegration.identifyCardTypeEnhanced(data);
       if (enhancedType) {
-        console.log('[CardManager] ✅ PWA 整合識別類型:', enhancedType);
         return enhancedType;
       }
     }
@@ -181,11 +172,9 @@ class PWACardManager {
     // 1. 最高優先級：檢查資料中的 URL 欄位（絕對優先）
     if (data.url && typeof data.url === 'string') {
       const url = data.url.toLowerCase().trim();
-      console.log('[CardManager] URL 檢測模式，URL:', url);
       
       // PWA-36 修復：處理 PWA 頁面 URL
       if (url.includes('pwa-card-storage')) {
-        console.log('[CardManager] 檢測到 PWA 頁面，嘗試從參數解析');
         const urlParams = new URLSearchParams(url.split('?')[1]);
         const cardParam = urlParams.get('c');
         if (cardParam) {
@@ -193,82 +182,61 @@ class PWACardManager {
             const decodedData = JSON.parse(decodeURIComponent(atob(cardParam)));
             return this.identifyCardType(decodedData);
           } catch (error) {
-            console.log('[CardManager] PWA 參數解析失敗，繼續其他方法');
+            // 繼續其他方法
           }
         }
       }
       
       // 精確匹配，按長度排序避免誤判
       if (url.includes('index-bilingual-personal.html')) {
-        console.log('[CardManager] ✅ URL 匹配: index-bilingual-personal.html -> personal-bilingual');
         return 'personal-bilingual';
       }
       if (url.includes('index1-bilingual.html')) {
-        console.log('[CardManager] ✅ URL 匹配: index1-bilingual.html -> bilingual1');
         return 'bilingual1';
       }
       if (url.includes('index-bilingual.html')) {
-        console.log('[CardManager] ✅ URL 匹配: index-bilingual.html -> bilingual');
         return 'bilingual';
       }
       // 修復：處理不帶 .html 的 URL
       if (url.includes('index-bilingual-personal?') || url.includes('index-bilingual-personal&') || url.endsWith('index-bilingual-personal')) {
-        console.log('[CardManager] ✅ URL 匹配: index-bilingual-personal (無副檔名) -> personal-bilingual');
         return 'personal-bilingual';
       }
       if (url.includes('index1-bilingual?') || url.includes('index1-bilingual&') || url.endsWith('index1-bilingual')) {
-        console.log('[CardManager] ✅ URL 匹配: index1-bilingual (無副檔名) -> bilingual1');
         return 'bilingual1';
       }
       if (url.includes('index-bilingual?') || url.includes('index-bilingual&') || url.endsWith('index-bilingual')) {
-        console.log('[CardManager] ✅ URL 匹配: index-bilingual (無副檔名) -> bilingual');
         return 'bilingual';
       }
       if (url.includes('index-personal-en.html')) {
-        console.log('[CardManager] ✅ URL 匹配: index-personal-en.html -> personal-en');
         return 'personal-en';
       }
       if (url.includes('index1-en.html')) {
-        console.log('[CardManager] ✅ URL 匹配: index1-en.html -> en1');
         return 'en1';
       }
       if (url.includes('index-en.html')) {
-        console.log('[CardManager] ✅ URL 匹配: index-en.html -> en');
         return 'en';
       }
       if (url.includes('index-personal.html')) {
-        console.log('[CardManager] ✅ URL 匹配: index-personal.html -> personal');
         return 'personal';
       }
       if (url.includes('index1.html')) {
-        console.log('[CardManager] ✅ URL 匹配: index1.html -> index1');
         return 'index1';
       }
       if (url.includes('index.html')) {
-        console.log('[CardManager] ✅ URL 匹配: index.html -> index');
         return 'index';
       }
-      
-      console.log('[CardManager] ⚠️ URL 存在但無匹配模式，URL:', url);
     }
     
     // 2. 最後備用：資料特徵識別（僅在無 URL 時使用）
-    console.log('[CardManager] ⚠️ 使用資料特徵識別（備用方案）');
     const isBilingual = data.name?.includes('~') || data.title?.includes('~');
     const isGov = data.organization && data.department;
     const isShinGuang = data.address?.includes('新光') || data.address?.includes('松仁路');
     
-    console.log('[CardManager] 資料特徵分析:', { isBilingual, isGov, isShinGuang });
-    
     if (isBilingual) {
-      const result = isGov ? (isShinGuang ? 'bilingual1' : 'bilingual') : 'personal-bilingual';
-      console.log('[CardManager] 🔄 雙語版識別結果:', result);
-      return result;
+      return isGov ? (isShinGuang ? 'bilingual1' : 'bilingual') : 'personal-bilingual';
     }
     
-    const result = isGov ? (isShinGuang ? 'index1' : 'index') : 'personal';
-    console.log('[CardManager] 🔄 非雙語版識別結果:', result);
-    return result;
+    return isGov ? (isShinGuang ? 'index1' : 'index') : 'personal';
   }
 
   /**

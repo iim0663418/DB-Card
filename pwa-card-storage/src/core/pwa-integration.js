@@ -85,7 +85,7 @@ class PWAIntegration {
       return this.parseTypeFromPWAUrl(url);
     }
     
-    // 精確匹配名片頁面
+    // 精確匹配名片頁面（含 .html）
     if (urlLower.includes('index-bilingual-personal.html')) return 'personal-bilingual';
     if (urlLower.includes('index1-bilingual.html')) return 'bilingual1';
     if (urlLower.includes('index-bilingual.html')) return 'bilingual';
@@ -95,6 +95,11 @@ class PWAIntegration {
     if (urlLower.includes('index-personal.html')) return 'personal';
     if (urlLower.includes('index1.html')) return 'index1';
     if (urlLower.includes('index.html')) return 'index';
+    
+    // 處理不帶 .html 的 URL
+    if (urlLower.includes('index-bilingual-personal?') || urlLower.includes('index-bilingual-personal&') || urlLower.endsWith('index-bilingual-personal')) return 'personal-bilingual';
+    if (urlLower.includes('index1-bilingual?') || urlLower.includes('index1-bilingual&') || urlLower.endsWith('index1-bilingual')) return 'bilingual1';
+    if (urlLower.includes('index-bilingual?') || urlLower.includes('index-bilingual&') || urlLower.endsWith('index-bilingual')) return 'bilingual';
     
     return null;
   }

@@ -1,0 +1,41 @@
+graph TB
+    subgraph "用戶輸入層"
+        A[用戶輸入] --> B[輸入驗證]
+        B --> C[DOMPurify 清理]
+        C --> D[編碼處理]
+    end
+    
+    subgraph "應用程式層"
+        D --> E[PWA App]
+        E --> F[授權檢查]
+        F --> G[業務邏輯]
+    end
+    
+    subgraph "資料處理層"
+        G --> H[資料儲存]
+        G --> I[日誌記錄]
+        I --> J[日誌清理]
+    end
+    
+    subgraph "安全控制"
+        K[安全模態對話框] --> E
+        L[XSS 防護] --> C
+        M[日誌注入防護] --> J
+        N[授權機制] --> F
+    end
+    
+    subgraph "已知漏洞"
+        O[SEC-001: prompt使用] -.-> K
+        P[SEC-004: 日誌注入] -.-> M
+        Q[SEC-005: XSS漏洞] -.-> L
+        R[SEC-006: 授權缺失] -.-> N
+    end
+    
+    style O fill:#ff6b6b
+    style P fill:#ff6b6b
+    style Q fill:#ff6b6b
+    style R fill:#ff6b6b
+    style K fill:#51cf66
+    style L fill:#51cf66
+    style M fill:#51cf66
+    style N fill:#51cf66

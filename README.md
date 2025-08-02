@@ -11,6 +11,7 @@
 - 📱 **一觸即用**：觸碰 NFC 卡片立即開啟數位名片，無需額外步驟
 - 🎨 **動態資料渲染**：即時解析 NFC 資料並渲染精美名片介面
 - 📇 **智慧 vCard 生成**：動態生成並下載 .vcf 聯絡人檔案
+- 💾 **PWA 離線儲存**：支援離線收納與分享，所有名片介面統一功能
 - 🖼 **個人化展示**：支援大頭照、社群連結、職稱資訊與問候語
 - 🌐 **純前端架構**：無需後端服務，可部署至任何靜態托管平台
 - 📱 **跨平台相容**：Android 和 iOS 設備均完美支援
@@ -18,6 +19,7 @@
 - 🌐 **雙語支援**：頁面區隔方式支援雙語
 - 👥 **高齡友善**：大字體設計，240x240 QR 碼，適合所有年齡層使用
 - 🎭 **雙版面設計**：官方版面（含 Logo）與個人版面（自訂內容）
+- ⚡ **功能一致性**：所有 9 個名片介面具備相同的核心功能
 
 ## 📦 專案結構
 
@@ -28,10 +30,41 @@
 ├── index1-en.html                  # 機關版數位名片（英文新光大樓）
 ├── index-personal.html             # 個人版數位名片（中文）
 ├── index-personal-en.html          # 個人版數位名片（英文）
-├── index-bilingual.html            # 雙語版數位名片（機關版）
+├── index-bilingual.html            # 雙語版數位名片（延平大樓）
+├── index1-bilingual.html           # 雙語版數位名片（新光大樓）
 ├── index-bilingual-personal.html   # 雙語版數位名片（個人版）
 ├── nfc-generator.html              # NFC 名片生成器
 ├── nfc-generator-bilingual.html    # 雙語版 NFC 生成器
+├── pwa-card-storage/               # 🆕 PWA 離線收納中心
+│   ├── index.html                  # PWA 主頁面
+│   ├── manifest.json               # PWA 應用清單
+│   ├── sw.js                       # Service Worker
+│   ├── assets/styles/              # PWA 樣式系統
+│   │   ├── main.css                # 主要樣式（整合 moda 設計系統）
+│   │   ├── components.css          # 元件樣式
+│   │   ├── moda-design-system.css  # 🆕 數位發展部設計系統
+│   │   └── language-toggle.css     # 🆕 語言切換樣式
+│   ├── src/                        # PWA 核心邏輯
+│   │   ├── app.js                  # 主應用程式
+│   │   ├── core/                   # 核心功能模組
+│   │   │   ├── storage.js          # IndexedDB 儲存管理
+│   │   │   ├── language-manager.js # 🆕 雙語系統管理
+│   │   │   ├── moda-integration.js # 🆕 moda 設計系統整合
+│   │   │   └── error-handler.js    # 🆕 錯誤處理系統
+│   │   ├── features/               # 功能模組
+│   │   │   ├── card-manager.js     # 名片管理
+│   │   │   ├── offline-tools.js    # 離線工具（QR碼、vCard）
+│   │   │   └── transfer-manager.js # 跨設備傳輸
+│   │   └── ui/components/          # UI 元件
+│   │       ├── card-list.js        # 名片列表元件
+│   │       ├── card-renderer.js    # 名片渲染器
+│   │       └── unified-interface.js # 統一介面元件
+├── src/security/                   # 🆕 v3.0.0 安全架構
+│   ├── SecurityInputHandler.js     # 輸入層安全處理
+│   ├── SecurityAuthHandler.js      # 認證層安全處理
+│   ├── SecurityDataHandler.js      # 資料層安全處理
+│   ├── SecurityMonitor.js          # 24/7 安全監控
+│   └── SecurityTestSuite.js        # 安全測試套件
 ├── assets/                         # 資源檔案目錄
 │   ├── moda-logo.svg               # moda 官方標誌
 │   ├── bilingual-common.js         # 雙語功能核心函數庫
@@ -39,11 +72,15 @@
 │   ├── wu_sheng_fan/               # 範例使用者資源
 │   │   └── photo.jpg               # 範例大頭貼
 │   └── COPYRIGHT.txt               # 版權聲明文件
-├── doc/                            # 文檔目錄
-│   ├── BILINGUAL-PLANNING.md       # 雙語版規劃文件
-│   ├── ENCODING-OPTIMIZATION.md    # 編碼優化技術文件
-│   ├── IMPLEMENTATION-GUIDE.md     # 實作指南
-│   └── ACCESSIBILITY-GUIDE.md      # 高齡友善設計指南
+├── docs/                           # 🆕 v3.0.0 完整文檔系統
+│   ├── SECURITY.md                 # 安全架構文檔
+│   ├── SECURITY-OPERATIONS-MANUAL.md # 安全操作手冊
+│   ├── design.md                   # 技術設計文檔
+│   ├── requirements.md             # 產品需求文檔
+│   ├── tasks.md                    # 任務管理
+│   └── diagrams/                   # 架構圖表
+│       ├── security-architecture.mmd # 安全架構圖
+│       └── moda-design-system-architecture.mmd # 設計系統架構圖
 ├── test-qr-generation.html         # QR 碼生成測試頁面
 ├── NFC-GUIDE.md                    # NFC 操作說明
 ├── VCARD-GUIDE.md                  # vCard 格式指南
@@ -353,11 +390,34 @@ body {
 - ✅ **開源透明**：所有程式碼公開可檢視
 - ✅ **資料可攜性**：使用者可隨時更新或刪除 NFC 卡片資料
 
+### 🔐 企業級安全防護
+本系統已實作完整的三層安全架構，通過專業安全審查：
+
+#### 已修復的安全漏洞
+- ✅ **SEC-001**: 生產環境 prompt() 使用 (Critical)
+- ✅ **SEC-002**: 不安全密碼輸入 (Critical)
+- ✅ **SEC-003**: confirm() 對話框濫用 (Critical)
+- ✅ **SEC-004**: 日誌注入漏洞 CWE-117 (High)
+- ✅ **SEC-005**: XSS漏洞 CWE-79 (High)
+- ✅ **SEC-006**: 授權檢查缺失 CWE-862 (High)
+
+#### 三層安全架構
+- **輸入層**: SecurityInputHandler - 輸入驗證與清理
+- **認證層**: SecurityAuthHandler - 授權檢查與會話管理
+- **資料層**: SecurityDataHandler - XSS防護與安全儲存
+
+#### 持續安全監控
+- **24/7 監控**: SecurityMonitor 系統持續監控安全事件
+- **自動告警**: 基於閾值的智能告警機制
+- **事件回應**: Critical < 15分鐘，High < 1小時回應時間
+
 ### 安全建議
 - 🔐 定期更新 NFC 卡片資料
 - 🔐 避免在公共場合暴露 NFC 卡片
 - 🔐 使用 HTTPS 部署確保傳輸安全
 - 🔐 大頭貼 URL 避免包含敏感資訊
+- 🔐 定期執行安全測試套件
+- 🔐 監控安全告警和系統健康狀態
 
 ## 🆘 常見問題
 
@@ -496,6 +556,35 @@ A: 下載 vCard 後，請依照不同裝置操作：
 - **安全性**：無後端風險，資料完全客戶端處理
 
 ## 🚀 版本歷程
+
+### v3.0.0 (2025-08) - PWA 離線儲存完整旅程版 📱
+透過重新設計的離線儲存旅程，為使用者帶來更安全、更美觀的名片管理體驗：
+
+**🔥 收納旅程優化**：
+- 解決無卡時要收納其他數位名片或要分享名片的需要
+
+**💾 儲存體驗升級**：
+- IndexedDB 儲存，版本管理更智慧，自動備份重要名片變更
+- 備份可以加密，同時提供儲存防護
+
+**📤 分享旅程革新**：
+- 離線 QR 碼生成，無需網路連線即可分享，忘了帶卡也沒關係
+- 檢索機制讓你可以管理多張名片
+
+**🌟 整體體驗提升**：
+- PWA 介面與官網設計完全一致，使用更順手
+- 響應式設計優化，手機平板都有完美體驗
+- 高齡友善字體系統，長輩使用更輕鬆
+
+### v2.1.1 (2025-08) - PWA 功能統一版
+- ✅ **PWA 儲存功能統一**：為所有 9 個名片介面補齊 PWA 離線儲存功能
+- ✅ **功能一致性達成**：確保機關版、個人版、雙語版、英文版具備相同功能
+- ✅ **使用者體驗統一**：統一所有名片介面的功能按鈕和操作流程
+- ✅ **跨版本相容**：PWA 儲存功能在所有名片類型中正常運作
+- ✅ **社群連結顯示修復**：修復雙語版名片中社群連結顯示問題
+- ✅ **安全性增強**：修復 Reverse Tabnabbing 漏洞，強化外部連結安全
+- ✅ **彈出視窗檢測移除**：移除誤導性檢測邏輯，確保 PWA 功能正常運作
+- ✅ **程式碼品質驗證**：通過全面程式碼審查，無發現安全或品質問題
 
 ### v2.1.0 (2025-07) - 手機號碼與 QR 碼本地化版
 - ✅ 新增手機號碼欄位支援，完整支援雙電話聯絡方式

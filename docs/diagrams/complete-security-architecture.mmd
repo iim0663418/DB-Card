@@ -1,0 +1,121 @@
+graph TB
+    subgraph "用戶層 User Layer"
+        U1[NFC 名片用戶]
+        U2[PWA 應用用戶]
+        U3[系統管理員]
+    end
+    
+    subgraph "安全輸入層 Security Input Layer"
+        SI1[SecurityInputHandler]
+        SI2[輸入驗證 Input Validation]
+        SI3[XSS 清理 XSS Sanitization]
+        SI4[安全對話框 Secure Dialogs]
+    end
+    
+    subgraph "安全認證層 Security Auth Layer"
+        SA1[SecurityAuthHandler]
+        SA2[權限驗證 Access Control]
+        SA3[會話管理 Session Management]
+        SA4[審計日誌 Audit Logging]
+    end
+    
+    subgraph "安全資料層 Security Data Layer"
+        SD1[SecurityDataHandler]
+        SD2[輸出編碼 Output Encoding]
+        SD3[資料完整性 Data Integrity]
+        SD4[安全儲存 Secure Storage]
+    end
+    
+    subgraph "應用核心層 Application Core"
+        AC1[NFC 名片系統]
+        AC2[PWA 儲存系統]
+        AC3[雙語處理系統]
+    end
+    
+    subgraph "安全監控層 Security Monitoring"
+        SM1[SecurityMonitor]
+        SM2[實時監控 Real-time Monitoring]
+        SM3[告警系統 Alert System]
+        SM4[健康檢查 Health Check]
+        SM5[SecurityTestSuite]
+    end
+    
+    subgraph "已修復漏洞 Fixed Vulnerabilities"
+        FV1[SEC-001: prompt 使用 ✅]
+        FV2[SEC-002: 不安全密碼輸入 ✅]
+        FV3[SEC-003: confirm 濫用 ✅]
+        FV4[SEC-004: 日誌注入 CWE-117 ✅]
+        FV5[SEC-005: XSS 漏洞 CWE-79 ✅]
+        FV6[SEC-006: 授權檢查缺失 CWE-862 ✅]
+    end
+    
+    subgraph "安全運維 Security Operations"
+        SO1[安全操作手冊]
+        SO2[事件回應程序]
+        SO3[維護檢查清單]
+        SO4[合規性驗證]
+    end
+    
+    %% 用戶到安全層的連接
+    U1 --> SI1
+    U2 --> SI1
+    U3 --> SA1
+    
+    %% 安全層之間的連接
+    SI1 --> SI2
+    SI1 --> SI3
+    SI1 --> SI4
+    
+    SA1 --> SA2
+    SA1 --> SA3
+    SA1 --> SA4
+    
+    SD1 --> SD2
+    SD1 --> SD3
+    SD1 --> SD4
+    
+    %% 安全層到應用核心的連接
+    SI2 --> AC1
+    SI3 --> AC2
+    SI4 --> AC3
+    
+    SA2 --> AC1
+    SA3 --> AC2
+    SA4 --> AC3
+    
+    SD2 --> AC1
+    SD3 --> AC2
+    SD4 --> AC3
+    
+    %% 監控層連接
+    SM1 --> SM2
+    SM1 --> SM3
+    SM1 --> SM4
+    SM5 --> SM1
+    
+    %% 監控到各安全層
+    SM2 --> SI1
+    SM2 --> SA1
+    SM2 --> SD1
+    SM3 --> SO2
+    
+    %% 運維連接
+    SO1 --> SM1
+    SO2 --> SM3
+    SO3 --> SM4
+    SO4 --> FV1
+    
+    %% 樣式設定
+    classDef userLayer fill:#e1f5fe
+    classDef securityLayer fill:#f3e5f5
+    classDef coreLayer fill:#e8f5e8
+    classDef monitorLayer fill:#fff3e0
+    classDef fixedVuln fill:#c8e6c9
+    classDef operations fill:#fce4ec
+    
+    class U1,U2,U3 userLayer
+    class SI1,SI2,SI3,SI4,SA1,SA2,SA3,SA4,SD1,SD2,SD3,SD4 securityLayer
+    class AC1,AC2,AC3 coreLayer
+    class SM1,SM2,SM3,SM4,SM5 monitorLayer
+    class FV1,FV2,FV3,FV4,FV5,FV6 fixedVuln
+    class SO1,SO2,SO3,SO4 operations

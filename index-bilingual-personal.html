@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="assets/qrcode-style.css">
     <link rel="stylesheet" href="assets/high-accessibility.css">
     <script src="assets/bilingual-common.js"></script>
+    <script src="assets/pwa-integration.js"></script>
     <style>
         * {
             margin: 0;
@@ -281,11 +282,14 @@
             cursor: pointer;
             transition: all 0.15s ease;
             text-decoration: none;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             margin-bottom: 25px;
             box-shadow: 0 1px 3px rgba(104,104,172,0.2);
             letter-spacing: 0;
             line-height: 1.5;
+            min-height: 52px;
         }
 
         .download-btn:hover {
@@ -301,6 +305,43 @@
             align-items: center;
             gap: 25px;
             margin-top: 25px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: baseline;
+        }
+
+        .download-btn,
+        .pwa-save-btn {
+            background: #6868ac;
+            color: #fff;
+            border: 1px solid #6868ac;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(104,104,172,0.25);
+            letter-spacing: 0;
+            line-height: 1.5;
+            min-height: 52px;
+            height: 52px;
+        }
+
+        .pwa-save-btn:hover {
+            background: #4e4e81;
+            border-color: #4e4e81;
+            box-shadow: 0 3px 8px rgba(104,104,172,0.35);
+            transform: translateY(-1px);
         }
 
         .qr-section {
@@ -397,6 +438,23 @@
                 margin: 15px;
             }
             
+            .button-group {
+                flex-direction: column;
+                gap: 10px;
+                width: 100%;
+                align-items: center;
+            }
+            
+            .download-btn,
+            .pwa-save-btn {
+                max-width: 320px;
+                width: auto;
+                min-width: 240px;
+                padding: 17px 20px;
+                font-size: 1em;
+                min-height: 54px;
+            }
+            
             .name {
                 font-size: 2.2em;
             }
@@ -419,7 +477,7 @@
     <div id="card-container" style="display: none;">
         <div class="card">
             <!-- 專案連結 -->
-            <a id="projectLink" href="https://github.com/moda-gov-tw/DB-Card" target="_blank" class="project-link">
+            <a id="projectLink" href="https://github.com/moda-gov-tw/DB-Card" target="_blank" rel="noopener noreferrer" class="project-link">
                 🇹🇼 <span id="projectLinkText">moda 開源專案</span>
             </a>
             
@@ -484,9 +542,15 @@
             </div>
             
             <div class="action-section">
-                <button id="downloadBtn" onclick="downloadBilingualVCard(currentData, currentLanguage)" class="download-btn">
-                    📱 <span id="downloadBtnText">加入聯絡人</span>
-                </button>
+                <div class="button-group">
+                    <button id="downloadBtn" onclick="downloadBilingualVCard(currentData, currentLanguage)" class="download-btn">
+                        📱 <span id="downloadBtnText">加入聯絡人</span>
+                    </button>
+                    <button id="save-to-pwa-btn" class="pwa-save-btn">
+                        <span class="icon">💾</span>
+                        <span id="savePwaText">儲存到離線</span>
+                    </button>
+                </div>
                 <div id="vcardGuide" style="background: #f3f5f6; border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px 15px; margin-bottom: 20px; font-size: 0.85em; color: #495057; line-height: 1.5; max-width: 90%;">
                     <strong id="vcardGuideTitle" style="color: #6868ac;">📱 如何加入聯絡人</strong>
                     <div id="vcardGuideContent" style="margin-top: 8px;">
@@ -609,6 +673,7 @@
                     contactTitle: '聯絡資訊',
                     socialTitle: '🔗 社群連結',
                     downloadBtnText: '加入聯絡人',
+                    savePwaText: '儲存到離線',
                     qrLabel: '這是這張名片的 QR code，你也可以請別人掃描來讀取這張名片',
 
                     loadingTitle: '載入中',
@@ -626,6 +691,7 @@
                     contactTitle: 'Contact Information',
                     socialTitle: '🔗 Social Links',
                     downloadBtnText: 'Add to Contacts',
+                    savePwaText: 'Save Offline',
                     qrLabel: 'This is the QR code for this card, you can also ask others to scan it to view this card',
 
                     loadingTitle: 'Loading',
@@ -649,6 +715,7 @@
             updateElement('errorTitle', text.errorTitle);
             updateElement('errorText', text.errorText);
             updateElement('downloadBtnText', text.downloadBtnText);
+            updateElement('savePwaText', text.savePwaText || '儲存到離線');
 
             updateElement('privacyTitle', text.privacyTitle);
             updateElement('projectInfo', text.projectInfo);
@@ -749,6 +816,60 @@
                     startGreetingAnimation();
                 }
             }
+        }
+
+        // PWA 儲存功能
+        function setupPWASaveButton() {
+            const saveButton = document.getElementById('save-to-pwa-btn');
+            if (!saveButton) return;
+            
+            saveButton.addEventListener('click', function() {
+                if (window.location.protocol !== 'https:' && 
+                    window.location.hostname !== 'localhost' && 
+                    window.location.hostname !== '127.0.0.1') {
+                    alert('離線儲存功能需要 HTTPS 連線或本地環境');
+                    return;
+                }
+                
+                // 立即暫存當前頁面 URL
+                const currentUrl = window.location.href;
+                try {
+                    sessionStorage.setItem('pwa_card_source_url', JSON.stringify({
+                        sourceUrl: currentUrl,
+                        timestamp: Date.now(),
+                        referrer: document.referrer
+                    }));
+                    console.log('[PWA] 已暫存來源 URL:', currentUrl);
+                } catch (error) {
+                    console.error('[PWA] 暫存失敗:', error);
+                }
+                
+                const urlParams = new URLSearchParams(window.location.search);
+                const dataParam = urlParams.get('data') || urlParams.get('c');
+                
+                if (!dataParam) {
+                    alert('無法獲取名片資料');
+                    return;
+                }
+                
+                const pwaUrl = window.location.origin + '/pwa-card-storage/?c=' + encodeURIComponent(dataParam);
+                const pwaWindow = window.open(pwaUrl, '_blank');
+                
+                if (pwaWindow) {
+                    const originalText = saveButton.innerHTML;
+                    saveButton.innerHTML = '✅ 已開啟 PWA';
+                    saveButton.style.background = '#6c757d';
+                    saveButton.disabled = true;
+                    
+                    setTimeout(() => {
+                        saveButton.innerHTML = originalText;
+                        saveButton.style.background = '#28a745';
+                        saveButton.disabled = false;
+                    }, 3000);
+                } else {
+                    alert('無法開啟 PWA，請檢查瀏覽器設定');
+                }
+            });
         }
 
         // 頁面初始化由 bilingual-common.js 統一處理

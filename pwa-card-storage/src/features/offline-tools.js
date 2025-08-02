@@ -413,7 +413,7 @@ class OfflineToolsManager {
     lines.push(`REV:${new Date().toISOString()}`);
     
     // 產品識別
-    lines.push('PRODID:-//MODA//PWA Card Storage//EN');
+    lines.push('PRODID:-//moda//PWA Card Storage//EN');
 
     lines.push('END:VCARD');
     return lines.join('\r\n');

@@ -22,30 +22,22 @@ window.addEventListener('beforeinstallprompt', (e) => {
     document.getElementById('install-prompt').classList.remove('hidden');
 });
 
-// 延遲初始化安裝按鈕事件，避免與 app.js 衝突
-setTimeout(() => {
-    const installButton = document.getElementById('install-button');
-    const installDismiss = document.getElementById('install-dismiss');
-    
-    if (installButton && !installButton.hasAttribute('data-initialized')) {
-        installButton.setAttribute('data-initialized', 'true');
-        installButton.addEventListener('click', () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                    }
-                    deferredPrompt = null;
-                    document.getElementById('install-prompt').classList.add('hidden');
-                });
-            }
-        });
-    }
+document.addEventListener('DOMContentLoaded', () => {
+    // 安裝按鈕事件處理
+    document.getElementById('install-button').addEventListener('click', () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                }
+                deferredPrompt = null;
+                document.getElementById('install-prompt').classList.add('hidden');
+            });
+        }
+    });
 
-    if (installDismiss && !installDismiss.hasAttribute('data-initialized')) {
-        installDismiss.setAttribute('data-initialized', 'true');
-        installDismiss.addEventListener('click', () => {
-            document.getElementById('install-prompt').classList.add('hidden');
-        });
-    }
-}, 100);
+    // 關閉安裝提示按鈕事件處理
+    document.getElementById('install-dismiss').addEventListener('click', () => {
+        document.getElementById('install-prompt').classList.add('hidden');
+    });
+});

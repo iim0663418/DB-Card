@@ -1412,13 +1412,7 @@ class PWACardApp {
 }
 
 let app;
-
-// 簡化的初始化邏輯
 document.addEventListener('DOMContentLoaded', () => {
-  if (window.app) {
-    return; // 防止重複初始化
-  }
-  
   app = new PWACardApp();
   window.app = app;
   

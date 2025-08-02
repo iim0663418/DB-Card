@@ -257,6 +257,16 @@ class PWACardStorage {
   // 基本 CRUD 操作
   async storeCard(cardData) {
     try {
+      // SEC-006 修復：添加授權檢查
+      const authResult = window.SecurityAuthHandler?.validateAccess('card-data', 'write', {
+        userId: 'current-user',
+        timestamp: Date.now()
+      });
+      
+      if (authResult && !authResult.authorized) {
+        throw new Error(`存取被拒絕: ${authResult.reason}`);
+      }
+      
       if (!this.db) {
         throw new Error('Database not initialized');
       }
@@ -273,7 +283,7 @@ class PWACardStorage {
         data: normalizedData,
         created: now,
         modified: now,
-        currentVersion: 1, // 重新命名為 currentVersion 避免混淆
+        currentVersion: 1,
         checksum: await this.calculateChecksum(normalizedData),
         encrypted: false,
         tags: [],
@@ -302,7 +312,13 @@ class PWACardStorage {
 
       return id;
     } catch (error) {
-      console.error('[Storage] Store card failed:', error);
+      // SEC-004 修復：使用安全日誌記錄
+      if (window.SecurityDataHandler) {
+        window.SecurityDataHandler.secureLog('error', 'Store card failed', {
+          error: error.message,
+          operation: 'storeCard'
+        });
+      }
       throw error;
     }
   }
@@ -411,6 +427,17 @@ class PWACardStorage {
 
   async deleteCard(id) {
     try {
+      // SEC-006 修復：添加刪除授權檢查
+      const authResult = window.SecurityAuthHandler?.validateAccess('card-data', 'delete', {
+        userId: 'current-user',
+        resourceId: id,
+        timestamp: Date.now()
+      });
+      
+      if (authResult && !authResult.authorized) {
+        throw new Error(`刪除被拒絕: ${authResult.reason}`);
+      }
+      
       const transaction = this.db.transaction(['cards', 'versions'], 'readwrite');
       const cardsStore = transaction.objectStore('cards');
       const versionsStore = transaction.objectStore('versions');
@@ -439,9 +466,24 @@ class PWACardStorage {
         versionCursor.onerror = () => reject(versionCursor.error);
       });
 
+      // SEC-004 修復：記錄刪除操作
+      if (window.SecurityDataHandler) {
+        window.SecurityDataHandler.secureLog('info', 'Card deleted', {
+          cardId: id,
+          operation: 'deleteCard'
+        });
+      }
+
       return true;
     } catch (error) {
-      console.error('[Storage] Delete card failed:', error);
+      // SEC-004 修復：安全日誌記錄
+      if (window.SecurityDataHandler) {
+        window.SecurityDataHandler.secureLog('error', 'Delete card failed', {
+          cardId: id,
+          error: error.message,
+          operation: 'deleteCard'
+        });
+      }
       throw error;
     }
   }

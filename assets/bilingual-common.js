@@ -415,11 +415,15 @@ function renderBilingualCard(data, lang = 'zh') {
         const socialInfo = document.getElementById('socialInfo');
         const socialContent = document.getElementById('socialInfoContent');
         if (socialInfo && socialContent) {
+            // 安全清理現有內容
             while (socialContent.firstChild) {
                 socialContent.removeChild(socialContent.firstChild);
             }
+            // 安全處理社群連結
             const socialLinks = processSocialLinks(data.socialNote, lang);
-            socialContent.appendChild(socialLinks);
+            if (socialLinks) {
+                socialContent.appendChild(socialLinks);
+            }
             socialInfo.style.display = 'block';
         }
     } else {

@@ -526,11 +526,16 @@ class PWACardApp {
       
       // 檢查是否為加密檔案
       if (file.name.endsWith('.enc') && this.transferManager) {
-        const password = prompt('請輸入解密密碼：');
-        if (!password) {
+        const passwordResult = await SecurityInputHandler.securePrompt('請輸入解密密碼', {
+          title: '解密檔案',
+          inputType: 'password',
+          validation: { minLength: 1, allowEmpty: false }
+        });
+        if (!passwordResult.confirmed) {
           this.hideLoading();
           return;
         }
+        const password = passwordResult.value;
         
         const result = await this.transferManager.importData(file, password);
         
@@ -570,11 +575,17 @@ class PWACardApp {
 
       if (this.transferManager && encrypt) {
         // 使用加密匯出
-        const password = prompt('請輸入加密密碼：');
-        if (!password) {
+        const passwordResult = await SecurityInputHandler.securePrompt('請輸入加密密碼', {
+          title: '設定加密密碼',
+          inputType: 'password',
+          validation: { minLength: 6, allowEmpty: false },
+          placeholder: '至少6個字符'
+        });
+        if (!passwordResult.confirmed) {
           this.hideLoading();
           return;
         }
+        const password = passwordResult.value;
         
         const result = await this.transferManager.exportEncrypted({
           exportAll,
@@ -1157,7 +1168,12 @@ class PWACardApp {
     const conflictCount = conflicts.length;
     const message = `發現 ${conflictCount} 個衝突的名片。\n\n選擇處理方式：\n- 確定：覆蓋現有名片\n- 取消：跳過衝突的名片`;
     
-    const shouldReplace = confirm(message);
+    const shouldReplace = await SecurityInputHandler.secureConfirm(message, {
+      title: '衝突解決',
+      confirmText: '覆蓋現有',
+      cancelText: '跳過衝突',
+      danger: true
+    });
     const resolutions = conflicts.map(() => shouldReplace ? 'replace' : 'skip');
     
     try {

@@ -1420,13 +1420,6 @@ let app;
 document.addEventListener('DOMContentLoaded', () => {
   app = new PWACardApp();
   window.app = app;
-  
-  // 註冊 Service Worker 更新處理
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      window.location.reload();
-    });
-  }
 });
 
 window.addEventListener('error', (event) => {

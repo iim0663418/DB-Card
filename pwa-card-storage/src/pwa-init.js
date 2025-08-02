@@ -22,22 +22,26 @@ window.addEventListener('beforeinstallprompt', (e) => {
     document.getElementById('install-prompt').classList.remove('hidden');
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-    // 安裝按鈕事件處理
-    document.getElementById('install-button').addEventListener('click', () => {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') {
-                }
-                deferredPrompt = null;
-                document.getElementById('install-prompt').classList.add('hidden');
-            });
-        }
-    });
+// PWA 安裝按鈕初始化函數，由 app.js 調用
+window.initPWAInstallButtons = function() {
+    const installButton = document.getElementById('install-button');
+    const installDismiss = document.getElementById('install-dismiss');
+    
+    if (installButton) {
+        installButton.addEventListener('click', () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    deferredPrompt = null;
+                    document.getElementById('install-prompt').classList.add('hidden');
+                });
+            }
+        });
+    }
 
-    // 關閉安裝提示按鈕事件處理
-    document.getElementById('install-dismiss').addEventListener('click', () => {
-        document.getElementById('install-prompt').classList.add('hidden');
-    });
-});
+    if (installDismiss) {
+        installDismiss.addEventListener('click', () => {
+            document.getElementById('install-prompt').classList.add('hidden');
+        });
+    }
+};

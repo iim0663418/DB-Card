@@ -8,46 +8,65 @@ const STATIC_CACHE_NAME = 'pwa-static-v2.4';
 const DYNAMIC_CACHE_NAME = 'pwa-dynamic-v2.4';
 const IMAGE_CACHE_NAME = 'pwa-images-v2.4';
 
+// 動態獲取基礎路徑 - 支援 GitHub Pages 和 Cloudflare Pages
+const getBasePath = () => {
+  const location = self.location || { pathname: '/pwa-card-storage/' };
+  const pathParts = location.pathname.split('/').filter(part => part);
+  const pwaIndex = pathParts.findIndex(part => part === 'pwa-card-storage');
+  
+  if (pwaIndex > 0) {
+    // GitHub Pages: /DB-Card/pwa-card-storage/
+    return '/' + pathParts.slice(0, pwaIndex).join('/');
+  } else if (location.hostname.includes('.pages.dev')) {
+    // Cloudflare Pages: 根域名部署
+    return '';
+  } else {
+    // 本地開發或其他環境
+    return '';
+  }
+};
+
+const BASE_PATH = getBasePath();
+
 // 核心靜態資源（必須快取）
 const CORE_RESOURCES = [
-  '/pwa-card-storage/',
-  '/pwa-card-storage/index.html',
-  '/pwa-card-storage/manifest.json',
+  `${BASE_PATH}/pwa-card-storage/`,
+  `${BASE_PATH}/pwa-card-storage/index.html`,
+  `${BASE_PATH}/pwa-card-storage/manifest.json`,
   
   // 核心 JavaScript 檔案
-  '/pwa-card-storage/src/app.js',
-  '/pwa-card-storage/src/pwa-init.js',
-  '/pwa-card-storage/src/core/storage.js',
-  '/pwa-card-storage/src/core/health-manager.js',
-  '/pwa-card-storage/src/core/version-manager.js',
-  '/pwa-card-storage/src/features/card-manager.js',
-  '/pwa-card-storage/src/features/offline-tools.js',
-  '/pwa-card-storage/src/features/transfer-manager.js',
+  `${BASE_PATH}/pwa-card-storage/src/app.js`,
+  `${BASE_PATH}/pwa-card-storage/src/pwa-init.js`,
+  `${BASE_PATH}/pwa-card-storage/src/core/storage.js`,
+  `${BASE_PATH}/pwa-card-storage/src/core/health-manager.js`,
+  `${BASE_PATH}/pwa-card-storage/src/core/version-manager.js`,
+  `${BASE_PATH}/pwa-card-storage/src/features/card-manager.js`,
+  `${BASE_PATH}/pwa-card-storage/src/features/offline-tools.js`,
+  `${BASE_PATH}/pwa-card-storage/src/features/transfer-manager.js`,
 
-  '/pwa-card-storage/src/ui/components/card-list.js',
-  '/pwa-card-storage/src/ui/components/card-renderer.js',
-  '/pwa-card-storage/src/ui/components/conflict-resolver.js',
-  '/pwa-card-storage/src/ui/components/unified-interface.js',
-  '/pwa-card-storage/src/integration/legacy-adapter.js',
-  '/pwa-card-storage/src/integration/bilingual-bridge.js'
+  `${BASE_PATH}/pwa-card-storage/src/ui/components/card-list.js`,
+  `${BASE_PATH}/pwa-card-storage/src/ui/components/card-renderer.js`,
+  `${BASE_PATH}/pwa-card-storage/src/ui/components/conflict-resolver.js`,
+  `${BASE_PATH}/pwa-card-storage/src/ui/components/unified-interface.js`,
+  `${BASE_PATH}/pwa-card-storage/src/integration/legacy-adapter.js`,
+  `${BASE_PATH}/pwa-card-storage/src/integration/bilingual-bridge.js`
 ];
 
 // 樣式資源
 const STYLE_RESOURCES = [
-  '/pwa-card-storage/assets/styles/main.css',
-  '/pwa-card-storage/assets/styles/components.css',
-  '/assets/qrcode-style.css',
-  '/assets/high-accessibility.css'
+  `${BASE_PATH}/pwa-card-storage/assets/styles/main.css`,
+  `${BASE_PATH}/pwa-card-storage/assets/styles/components.css`,
+  `${BASE_PATH}/assets/qrcode-style.css`,
+  `${BASE_PATH}/assets/high-accessibility.css`
 ];
 
 // 外部依賴資源
 const EXTERNAL_RESOURCES = [
-  '/assets/bilingual-common.js',
-  '/assets/qrcode.min.js',
-  '/assets/qr-utils.js',
-  '/assets/pwa-integration.js',
-  '/assets/moda-logo.svg',
-
+  `${BASE_PATH}/assets/bilingual-common.js`,
+  `${BASE_PATH}/assets/qrcode.min.js`,
+  `${BASE_PATH}/assets/qr-utils.js`,
+  `${BASE_PATH}/assets/pwa-integration.js`,
+  `${BASE_PATH}/assets/moda-logo.svg`
 ];
 
 // 字體資源
@@ -238,7 +257,7 @@ async function handleFetchRequest(request) {
     // 如果是導航請求且失敗，返回離線頁面
     if (request.mode === 'navigate') {
       const cache = await caches.open(STATIC_CACHE_NAME);
-      const response = await cache.match('/pwa-card-storage/index.html');
+      const response = await cache.match(`${BASE_PATH}/pwa-card-storage/index.html`);
       return response ? addSecurityHeaders(response, request) : new Response('Offline', {
         status: 503,
         headers: { 'Content-Type': 'text/html; charset=utf-8' }
@@ -359,7 +378,7 @@ function addCacheHeaders(response, status) {
 function getOfflineFallback(request) {
   if (request.mode === 'navigate') {
     return caches.open(STATIC_CACHE_NAME)
-      .then(cache => cache.match('/pwa-card-storage/index.html'))
+      .then(cache => cache.match(`${BASE_PATH}/pwa-card-storage/index.html`))
       .then(response => response || new Response('離線模式', {
         status: 503,
         headers: { 'Content-Type': 'text/html; charset=utf-8' }
@@ -548,7 +567,7 @@ function isStaticResource(request) {
   const url = new URL(request.url);
   
   // PWA 核心檔案
-  if (url.pathname.startsWith('/pwa-card-storage/')) {
+  if (url.pathname.includes('/pwa-card-storage/')) {
     return url.pathname.endsWith('.html') ||
            url.pathname.endsWith('.js') ||
            url.pathname.endsWith('.css') ||
@@ -556,7 +575,7 @@ function isStaticResource(request) {
   }
   
   // 共用資源
-  if (url.pathname.startsWith('/assets/')) {
+  if (url.pathname.includes('/assets/')) {
     return true;
   }
   
@@ -607,8 +626,8 @@ self.addEventListener('push', (event) => {
   
   const options = {
     body: event.data ? event.data.text() : '您有新的名片更新',
-    icon: '/assets/moda-logo.svg',
-    badge: '/assets/moda-logo.svg',
+    icon: `${BASE_PATH}/assets/moda-logo.svg`,
+    badge: `${BASE_PATH}/assets/moda-logo.svg`,
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
@@ -642,7 +661,7 @@ self.addEventListener('notificationclick', (event) => {
   
   if (event.action === 'explore') {
     event.waitUntil(
-      clients.openWindow('/pwa-card-storage/')
+      clients.openWindow(`${BASE_PATH}/pwa-card-storage/`)
     );
   }
 });

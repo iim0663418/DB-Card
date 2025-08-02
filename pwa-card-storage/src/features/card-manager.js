@@ -211,6 +211,19 @@ class PWACardManager {
         console.log('[CardManager] ✅ URL 匹配: index-bilingual.html -> bilingual');
         return 'bilingual';
       }
+      // 修復：處理不帶 .html 的 URL
+      if (url.includes('index-bilingual-personal?') || url.includes('index-bilingual-personal&') || url.endsWith('index-bilingual-personal')) {
+        console.log('[CardManager] ✅ URL 匹配: index-bilingual-personal (無副檔名) -> personal-bilingual');
+        return 'personal-bilingual';
+      }
+      if (url.includes('index1-bilingual?') || url.includes('index1-bilingual&') || url.endsWith('index1-bilingual')) {
+        console.log('[CardManager] ✅ URL 匹配: index1-bilingual (無副檔名) -> bilingual1');
+        return 'bilingual1';
+      }
+      if (url.includes('index-bilingual?') || url.includes('index-bilingual&') || url.endsWith('index-bilingual')) {
+        console.log('[CardManager] ✅ URL 匹配: index-bilingual (無副檔名) -> bilingual');
+        return 'bilingual';
+      }
       if (url.includes('index-personal-en.html')) {
         console.log('[CardManager] ✅ URL 匹配: index-personal-en.html -> personal-en');
         return 'personal-en';

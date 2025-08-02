@@ -25,6 +25,10 @@ function identifyCardType(data) {
     if (url.includes('index1-bilingual.html')) return CARD_TYPES.BILINGUAL1;
     if (url.includes('index-bilingual-personal.html')) return CARD_TYPES.PERSONAL_BILINGUAL;
     if (url.includes('index-bilingual.html')) return CARD_TYPES.BILINGUAL;
+    // 修復：處理不帶 .html 的 URL
+    if (url.includes('index1-bilingual?') || url.includes('index1-bilingual&') || url.endsWith('index1-bilingual')) return CARD_TYPES.BILINGUAL1;
+    if (url.includes('index-bilingual-personal?') || url.includes('index-bilingual-personal&') || url.endsWith('index-bilingual-personal')) return CARD_TYPES.PERSONAL_BILINGUAL;
+    if (url.includes('index-bilingual?') || url.includes('index-bilingual&') || url.endsWith('index-bilingual')) return CARD_TYPES.BILINGUAL;
     if (url.includes('index1-en.html')) return CARD_TYPES.EN1;
     if (url.includes('index-personal-en.html')) return CARD_TYPES.PERSONAL_EN;
     if (url.includes('index-en.html')) return CARD_TYPES.EN;

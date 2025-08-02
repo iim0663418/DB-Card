@@ -1413,16 +1413,10 @@ class PWACardApp {
 
 let app;
 
-// 確保只初始化一次
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeApp);
-} else {
-  initializeApp();
-}
-
-function initializeApp() {
+// 簡化的初始化邏輯
+document.addEventListener('DOMContentLoaded', () => {
   if (window.app) {
-    return; // 已經初始化過了
+    return; // 防止重複初始化
   }
   
   app = new PWACardApp();
@@ -1434,7 +1428,7 @@ function initializeApp() {
       window.location.reload();
     });
   }
-}
+});
 
 window.addEventListener('error', (event) => {
   console.error('[PWA] Global error:', event.error);

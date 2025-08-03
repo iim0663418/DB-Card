@@ -31,15 +31,25 @@
 - **架構清晰化**：精修 `unified-mobile-rwd.css`，移除 200+ 行衝突代碼
 - **職責分離**：專責 Mobile 特有問題，不與原始 RWD 設計衝突
 
+### PWA Deployment
+- **環境相容性**：解決 GitHub Pages 和 Cloudflare Pages 部署路徑問題
+- **動態 manifest**：為 GitHub Pages 創建專用 `manifest-github.json`
+- **CSP 安全修復**：移除 blob URL 方式，符合 `manifest-src 'self'` 政策
+- **版本管理優化**：移除硬編碼版本號，動態從 manifest.json 讀取
+- **Settings Button 強化**：新增 URL 重置功能，清除所有參數回到首頁
+
 ### Files Modified
-- `pwa-card-storage/manifest.json` - 版本號更新至 v1.0.4
+- `pwa-card-storage/manifest.json` - 版本號更新至 v1.0.4 + 路徑相容性修復
 - `pwa-card-storage/src/app.js` - 並行初始化實作
 - `pwa-card-storage/src/core/language-manager.js` - 初始化時間優化
-- `pwa-card-storage/src/pwa-init.js` - PWA 安裝提示修復
+- `pwa-card-storage/src/pwa-init.js` - PWA 安裝提示修復 + 環境檢測 + 版本管理
+- `pwa-card-storage/index.html` - 移除硬編碼版本號
+- `pwa-card-storage/manifest-github.json` - 新增 GitHub Pages 專用 manifest
 - `pwa-card-storage/assets/styles/unified-mobile-rwd.css` - Mobile 觸控優化
-- `docs/design.md` - 完整架構設計更新 + Mobile 觸控設計
-- `docs/requirements.md` - 新增效能優化需求 + Mobile 觸控需求
+- `docs/design.md` - 完整架構設計更新 + Mobile 觸控設計 + PWA 部署設計
+- `docs/requirements.md` - 新增效能優化需求 + Mobile 觸控需求 + PWA 部署需求
 - `docs/diagrams/mobile-touch-optimization.mmd` - Mobile 觸控優化架構圖
+- `docs/diagrams/pwa-deployment-compatibility.mmd` - PWA 部署相容性架構圖
 
 ## [1.0.3] - 2024-12-20
 

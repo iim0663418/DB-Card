@@ -6,6 +6,8 @@
 class PWACardManager {
   constructor(storage) {
     this.storage = storage;
+    this.importCallbacks = new Map(); // 匯入狀態回饋
+    this.language = this.detectLanguage(); // 語言設定
     this.cardTypes = {
       'index': {
         name: '機關版-延平大樓',
@@ -460,22 +462,29 @@ class PWACardManager {
   }
 
   /**
-   * 根據類型套用樣式和預設值
+   * 根據類型套用樣式和預設值 - 增強日誌版本
    */
   applyCardTypeDefaults(cardData, detectedType) {
+    console.log(`[CardManager] 套用類型預設值: ${detectedType}`);
+    
     const typeConfig = this.cardTypes[detectedType];
-    if (!typeConfig) return cardData;
+    if (!typeConfig) {
+      console.warn(`[CardManager] 未找到類型配置: ${detectedType}`);
+      return cardData;
+    }
 
     // 確保深度複製以避免修改原始物件
     const enhancedData = JSON.parse(JSON.stringify(cardData));
 
     // 套用組織預設值
     if (typeConfig.organization && !enhancedData.organization) {
+      console.log(`[CardManager] 套用組織預設值: ${typeConfig.organization}`);
       enhancedData.organization = typeConfig.organization;
     }
 
     // 套用地址預設值
     if (typeConfig.address && !enhancedData.address) {
+      console.log(`[CardManager] 套用地址預設值: ${typeConfig.address}`);
       enhancedData.address = typeConfig.address;
     }
 
@@ -484,6 +493,12 @@ class PWACardManager {
       return this.processBilingualData(enhancedData);
     }
 
+    console.log(`[CardManager] 類型預設值套用完成:`, {
+      type: detectedType,
+      organization: enhancedData.organization,
+      address: enhancedData.address
+    });
+    
     return enhancedData;
   }
 
@@ -700,37 +715,227 @@ class PWACardManager {
   }
 
   /**
-   * 從檔案匯入名片
+   * 設定匯入狀態回饋
    */
-  async importFromFile(file) {
-    try {
+  setImportCallback(operationId, callback) {
+    if (typeof callback === 'function') {
+      this.importCallbacks.set(operationId, callback);
+    }
+  }
 
-      const fileContent = await this.readFile(file);
+  /**
+   * 更新匯入狀態
+   */
+  updateImportStatus(operationId, status, progress = 0, message = '') {
+    const callback = this.importCallbacks.get(operationId);
+    if (callback) {
+      callback({
+        status,
+        progress,
+        message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  /**
+   * 偵測語言
+   */
+  detectLanguage() {
+    if (typeof navigator !== 'undefined') {
+      const lang = navigator.language || navigator.userLanguage;
+      return lang.startsWith('en') ? 'en' : 'zh';
+    }
+    return 'zh';
+  }
+
+  /**
+   * 取得多語言訊息
+   */
+  getMessage(key, params = {}) {
+    const messages = {
+      zh: {
+        importing: '正在匯入...',
+        validating: '正在驗證檔案...',
+        processing: '正在處理資料...',
+        complete: '匯入完成',
+        error: '匯入失敗',
+        invalid_format: '檔案格式不正確',
+        file_too_large: '檔案過大',
+        permission_denied: '沒有權限',
+        card_imported: '已匯入 {count} 張名片',
+        card_skipped: '跳過 {count} 張名片'
+      },
+      en: {
+        importing: 'Importing...',
+        validating: 'Validating file...',
+        processing: 'Processing data...',
+        complete: 'Import complete',
+        error: 'Import failed',
+        invalid_format: 'Invalid file format',
+        file_too_large: 'File too large',
+        permission_denied: 'Permission denied',
+        card_imported: 'Imported {count} cards',
+        card_skipped: 'Skipped {count} cards'
+      }
+    };
+
+    const langMessages = messages[this.language] || messages.zh;
+    let message = langMessages[key] || key;
+    
+    // 替換參數
+    Object.keys(params).forEach(param => {
+      message = message.replace(`{${param}}`, params[param]);
+    });
+    
+    return message;
+  }
+
+  /**
+   * 增強的名片類型檢測 - 支援更多格式
+   */
+  detectCardTypeEnhanced(cardData) {
+    try {
+      // 檢查是否有明確的類型標記
+      if (cardData.cardType) {
+        return cardData.cardType;
+      }
+
+      // 檢查是否為政府機關
+      const isGovernment = cardData.organization && 
+        (cardData.organization.includes('數位發展部') || 
+         cardData.organization.includes('Ministry of Digital Affairs'));
+
+      // 檢查是否為雙語版
+      const isBilingual = cardData.greetings && Array.isArray(cardData.greetings) && 
+        cardData.greetings.length > 1;
+
+      // 檢查地址判斷是否為新光大樓
+      const isShinGuang = cardData.address && 
+        (cardData.address.includes('松仁路') || 
+         cardData.address.includes('Songren'));
+
+      if (isGovernment) {
+        if (isBilingual) {
+          return isShinGuang ? 'bilingual1' : 'bilingual';
+        } else {
+          // 檢查語言
+          const isEnglish = cardData.organization === 'Ministry of Digital Affairs';
+          if (isEnglish) {
+            return isShinGuang ? 'en1' : 'en';
+          } else {
+            return isShinGuang ? 'index1' : 'index';
+          }
+        }
+      } else {
+        // 個人版
+        if (isBilingual) {
+          return 'personal-bilingual';
+        } else {
+          const isEnglish = cardData.name && /^[A-Za-z\s]+$/.test(cardData.name);
+          return isEnglish ? 'personal-en' : 'personal';
+        }
+      }
+    } catch (error) {
+      console.error('[CardManager] Enhanced card type detection failed:', error);
+      return 'personal';
+    }
+  }
+
+  /**
+   * 從檔案匯入名片 - 安全修復版本（增強 UX）
+   */
+  async importFromFile(file, options = {}) {
+    const operationId = options.operationId || 'import_card_' + Date.now();
+    try {
+      this.updateImportStatus(operationId, 'validating', 5, this.getMessage('validating'));
+
+      // SEC-PWA-001: 緊急停用檢查
+      if (window.EMERGENCY_DISABLE_IMPORT) {
+        return { 
+          success: false, 
+          error: this.getMessage('permission_denied'),
+          operationId 
+        };
+      }
+
+      // SEC-PWA-003: 授權檢查
+      if (window.SecurityAuthHandler && !window.SecurityAuthHandler.hasPermission('import')) {
+        return { 
+          success: false, 
+          error: this.getMessage('permission_denied'),
+          operationId 
+        };
+      }
+
+      this.updateImportStatus(operationId, 'validating', 15, '正在檢查檔案格式...');
+
+      // SEC-PWA-001: 檔案類型和大小驗證
+      const allowedTypes = ['application/json', 'text/vcard'];
+      if (!allowedTypes.includes(file.type) && !file.name.endsWith('.json') && !file.name.endsWith('.vcf')) {
+        return { 
+          success: false, 
+          error: this.getMessage('invalid_format'),
+          operationId 
+        };
+      }
+
+      if (file.size > 10 * 1024 * 1024) {
+        return { 
+          success: false, 
+          error: this.getMessage('file_too_large'),
+          operationId 
+        };
+      }
+
+      this.updateImportStatus(operationId, 'processing', 25, this.getMessage('processing'));
+
+      // SEC-PWA-005: 安全的檔案讀取
+      const fileContent = await this.secureReadFile(file);
       let importData;
 
       // 根據檔案類型處理
       if (file.name.endsWith('.json')) {
-        importData = JSON.parse(fileContent);
+        // SEC-PWA-002: 安全的 JSON 解析
+        importData = this.secureJSONParse(fileContent);
+        
+        // 檢查是否為標準匯出檔案格式（包含 cards 陣列）
+        if (importData.cards && Array.isArray(importData.cards)) {
+          return await this.importFromExportFormat(importData);
+        }
       } else if (file.name.endsWith('.vcf')) {
         importData = this.parseVCard(fileContent);
       } else {
         return { success: false, error: '不支援的檔案格式' };
       }
 
+      // SEC-PWA-006: 輸入資料清理
+      const sanitizedData = this.sanitizeCardData(importData);
+      if (!sanitizedData) {
+        return { success: false, error: '無效的資料格式' };
+      }
+
       let importedCount = 0;
       const errors = [];
 
-      // 處理單一名片或名片陣列
-      const cards = Array.isArray(importData) ? importData : [importData];
+      // 處理單一名片或名片陣列（非標準匯出格式）
+      const cards = Array.isArray(sanitizedData) ? sanitizedData : [sanitizedData];
 
       for (const cardData of cards) {
         try {
+          // SEC-PWA-007: 驗證每張名片
+          if (!this.validateSingleCardData(cardData)) {
+            errors.push('名片資料格式錯誤');
+            continue;
+          }
+
           const cardType = this.detectCardType(cardData);
           const enhancedData = this.applyCardTypeDefaults(cardData, cardType);
           await this.storage.storeCard(enhancedData);
           importedCount++;
         } catch (error) {
-          errors.push(`匯入失敗: ${error.message}`);
+          // SEC-PWA-004: 不洩露敏感資料
+          errors.push('名片匯入失敗');
         }
       }
 
@@ -740,21 +945,204 @@ class PWACardManager {
         errors: errors.length > 0 ? errors : undefined
       };
     } catch (error) {
-      console.error('[CardManager] Import from file failed:', error);
-      return { success: false, error: error.message };
+      // SEC-PWA-008: 安全的錯誤處理
+      return this.handleSecureError(error, 'import_from_file');
     }
   }
 
   /**
-   * 讀取檔案內容
+   * 從標準匯出檔案格式匯入 - 安全修復版本
    */
-  readFile(file) {
+  async importFromExportFormat(exportData) {
+    try {
+      // SEC-PWA-006: 輸入資料清理和驗證
+      const sanitizedData = this.sanitizeExportData(exportData);
+      if (!sanitizedData || !Array.isArray(sanitizedData.cards)) {
+        return { success: false, error: '無效的匯出檔案格式' };
+      }
+
+      // SEC-PWA-007: 限制名片數量
+      if (sanitizedData.cards.length > 1000) {
+        return { success: false, error: '名片數量超過限制 (1000)' };
+      }
+
+      let importedCount = 0;
+      const errors = [];
+      
+      for (const cardItem of sanitizedData.cards) {
+        try {
+          // SEC-PWA-007: 驗證每張名片
+          if (!this.validateExportCardItem(cardItem)) {
+            errors.push('名片資料格式錯誤');
+            continue;
+          }
+
+          // 使用匯出檔案中的類型資訊（優先級最高）
+          const cardType = cardItem.type || this.detectCardType(cardItem.data);
+          
+          // 根據類型套用預設值（比照 vCard 生成邏輯）
+          const enhancedData = this.applyCardTypeDefaults(cardItem.data, cardType);
+          
+          // 儲存增強後的資料
+          await this.storage.storeCard(enhancedData);
+          importedCount++;
+        } catch (error) {
+          // SEC-PWA-004: 不洩露敏感資料
+          errors.push('名片匯入失敗');
+        }
+      }
+      
+      return {
+        success: importedCount > 0,
+        count: importedCount,
+        total: sanitizedData.cards.length,
+        errors: errors.length > 0 ? errors : undefined
+      };
+    } catch (error) {
+      // SEC-PWA-008: 安全的錯誤處理
+      return this.handleSecureError(error, 'import_from_export_format');
+    }
+  }
+  
+  // SEC-PWA-005: 安全的檔案讀取
+  secureReadFile(file) {
     return new Promise((resolve, reject) => {
+      // 檔案名稱驗證
+      if (!file.name || file.name.includes('..') || file.name.includes('/') || file.name.includes('\\')) {
+        reject(new Error('不安全的檔案名稱'));
+        return;
+      }
+
       const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
-      reader.onerror = (e) => reject(new Error('檔案讀取失敗'));
+      reader.onload = (e) => {
+        try {
+          const content = e.target.result;
+          if (content.length > 50 * 1024 * 1024) {
+            reject(new Error('檔案內容過大'));
+            return;
+          }
+          resolve(content);
+        } catch (error) {
+          reject(new Error('檔案內容處理失敗'));
+        }
+      };
+      reader.onerror = () => reject(new Error('檔案讀取失敗'));
       reader.readAsText(file);
     });
+  }
+
+  // 保持向下相容性
+  readFile(file) {
+    return this.secureReadFile(file);
+  }
+
+  // SEC-PWA-002: 安全的 JSON 解析
+  secureJSONParse(jsonString) {
+    try {
+      return JSON.parse(jsonString, (key, value) => {
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+          return undefined;
+        }
+        return value;
+      });
+    } catch (error) {
+      throw new Error('JSON 格式錯誤');
+    }
+  }
+
+  // SEC-PWA-006: 名片資料清理
+  sanitizeCardData(data) {
+    if (!data || typeof data !== 'object') {
+      return null;
+    }
+
+    return {
+      name: String(data.name || '').slice(0, 100),
+      title: String(data.title || '').slice(0, 100),
+      department: String(data.department || '').slice(0, 100),
+      organization: String(data.organization || '').slice(0, 100),
+      email: String(data.email || '').slice(0, 100),
+      phone: String(data.phone || '').slice(0, 30),
+      mobile: String(data.mobile || '').slice(0, 30),
+      address: String(data.address || '').slice(0, 200),
+      avatar: String(data.avatar || '').slice(0, 500),
+      socialNote: String(data.socialNote || '').slice(0, 500),
+      greetings: Array.isArray(data.greetings) ? 
+        data.greetings.map(g => String(g || '').slice(0, 200)).slice(0, 10) : []
+    };
+  }
+
+  // SEC-PWA-006: 匯出資料清理
+  sanitizeExportData(data) {
+    if (!data || typeof data !== 'object') {
+      return null;
+    }
+
+    const sanitized = {
+      version: String(data.version || '').slice(0, 10),
+      timestamp: data.timestamp,
+      cards: []
+    };
+
+    if (Array.isArray(data.cards)) {
+      sanitized.cards = data.cards.map(card => {
+        if (!card || typeof card !== 'object') {
+          return null;
+        }
+        return {
+          id: String(card.id || '').slice(0, 50),
+          type: String(card.type || '').slice(0, 30),
+          data: this.sanitizeCardData(card.data),
+          created: card.created,
+          modified: card.modified,
+          version: String(card.version || '').slice(0, 10)
+        };
+      }).filter(Boolean);
+    }
+
+    return sanitized;
+  }
+
+  // SEC-PWA-007: 單張名片驗證
+  validateSingleCardData(data) {
+    if (!data || typeof data !== 'object') {
+      return false;
+    }
+    
+    if (!data.name || typeof data.name !== 'string' || data.name.length > 100) {
+      return false;
+    }
+
+    return true;
+  }
+
+  // SEC-PWA-007: 匯出名片項目驗證
+  validateExportCardItem(item) {
+    if (!item || typeof item !== 'object') {
+      return false;
+    }
+    
+    if (!item.id || !item.type || !item.data) {
+      return false;
+    }
+
+    return this.validateSingleCardData(item.data);
+  }
+
+  // SEC-PWA-008: 安全的錯誤處理
+  handleSecureError(error, context) {
+    // 記錄內部錯誤（不包含敏感資料）
+    if (window.SecurityMonitor) {
+      window.SecurityMonitor.logSecurityEvent('error_occurred', {
+        context,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    return {
+      success: false,
+      error: '操作失敗，請稍後再試'
+    };
   }
 
   /**
@@ -783,31 +1171,55 @@ class PWACardManager {
   }
 
   /**
-   * 匯出名片
+   * 匯出名片 - 完整版本，支援多種格式和進度追蹤
    */
   async exportCards(options = {}) {
+    const operationId = options.operationId || 'export_' + Date.now();
+    const format = options.format || 'json'; // json, vcard, both
+    
     try {
+      this.updateImportStatus(operationId, 'preparing', 10, 
+        this.getMessage('preparing_export', { format }));
 
       const cards = options.exportAll 
         ? await this.storage.listCards()
         : await this.getSelectedCards(options.cardIds);
 
       if (cards.length === 0) {
-        return { success: false, error: '沒有可匯出的名片' };
+        return { 
+          success: false, 
+          error: this.getMessage('no_cards_to_export'),
+          operationId 
+        };
       }
 
-      // 準備匯出資料
+      this.updateImportStatus(operationId, 'processing', 30, 
+        this.getMessage('processing_cards', { count: cards.length }));
+
+      // 準備匯出資料 - 增強版本，確保類型資訊完整
       const exportData = {
-        version: '1.0',
+        version: '3.0.2',
         timestamp: new Date().toISOString(),
-        cards: cards.map(card => ({
-          id: card.id,
-          type: card.type,
-          data: card.data,
-          created: card.created,
-          modified: card.modified
-        }))
+        exportedBy: 'PWA Card Storage v3.0.2',
+        totalCards: cards.length,
+        format: format,
+        cards: cards.map(card => {
+          // 確保每張名片都有正確的類型資訊
+          const cardType = card.type || this.detectCardType(card.data);
+          
+          return {
+            id: card.id,
+            type: cardType,
+            data: card.data,
+            created: card.created,
+            modified: card.modified,
+            version: card.version || '1.0'
+          };
+        })
       };
+
+      this.updateImportStatus(operationId, 'generating', 60, 
+        this.getMessage('generating_files'));
 
       // 包含版本歷史（如果需要）
       if (options.includeVersions) {
@@ -816,21 +1228,343 @@ class PWACardManager {
         }
       }
 
-      // 建立檔案
-      const jsonContent = JSON.stringify(exportData, null, 2);
-      const blob = new Blob([jsonContent], { type: 'application/json' });
-      
+      const results = [];
       const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-      const filename = `cards-export-${timestamp}.json`;
 
+      // JSON 格式匯出
+      if (format === 'json' || format === 'both') {
+        const jsonContent = JSON.stringify(exportData, null, 2);
+        const jsonBlob = new Blob([jsonContent], { type: 'application/json' });
+        
+        results.push({
+          format: 'json',
+          file: jsonBlob,
+          filename: `cards-export-${timestamp}.json`,
+          size: jsonBlob.size,
+          count: cards.length
+        });
+      }
+
+      // vCard 格式匯出
+      if (format === 'vcard' || format === 'both') {
+        const vCardResult = await this.exportVCardBatch(cards, {
+          operationId,
+          language: options.language || 'zh',
+          includeBothLanguages: options.includeBothLanguages || false
+        });
+        
+        if (vCardResult.success) {
+          results.push({
+            format: 'vcard',
+            file: vCardResult.file,
+            filename: vCardResult.filename,
+            size: vCardResult.file.size,
+            count: cards.length
+          });
+        }
+      }
+
+      this.updateImportStatus(operationId, 'completed', 100, 
+        this.getMessage('export_completed'));
+
+      // 自動下載檔案（如果啟用）
+      if (options.autoDownload !== false) {
+        for (const result of results) {
+          await this.downloadFile(result.file, result.filename);
+        }
+      }
+
+      return {
+        success: true,
+        files: results,
+        count: cards.length,
+        operationId,
+        exportData: format === 'json' ? exportData : undefined
+      };
+    } catch (error) {
+      console.error('[CardManager] Export failed:', error);
+      const friendlyError = this.getUserFriendlyError(error, 'export');
+      return { 
+        success: false, 
+        error: friendlyError.message,
+        code: friendlyError.code,
+        operationId 
+      };
+    }
+  }
+
+  /**
+   * 批量匯出 vCard 格式
+   */
+  async exportVCardBatch(cards, options = {}) {
+    try {
+      const { language = 'zh', includeBothLanguages = false } = options;
+      let vCardContent = '';
+      
+      for (const card of cards) {
+        const cardData = card.data;
+        const cardType = card.type || this.detectCardType(cardData);
+        
+        if (includeBothLanguages) {
+          // 雙語版本
+          const zhCard = this.processBilingualCardData(cardData, 'zh');
+          const enCard = this.processBilingualCardData(cardData, 'en');
+          
+          vCardContent += this.generateVCardContent(zhCard, 'zh', cardType) + '\n';
+          vCardContent += this.generateVCardContent(enCard, 'en', cardType) + '\n';
+        } else {
+          // 單語版本
+          const processedData = this.processBilingualCardData(cardData, language);
+          vCardContent += this.generateVCardContent(processedData, language, cardType) + '\n';
+        }
+      }
+      
+      const blob = new Blob([vCardContent], { type: 'text/vcard;charset=utf-8' });
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      const langSuffix = includeBothLanguages ? 'bilingual' : language;
+      const filename = `cards-${langSuffix}-${timestamp}.vcf`;
+      
       return {
         success: true,
         file: blob,
         filename,
+        content: vCardContent,
         count: cards.length
       };
     } catch (error) {
-      console.error('[CardManager] Export failed:', error);
+      console.error('[CardManager] vCard batch export failed:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 生成 vCard 內容
+   */
+  generateVCardContent(cardData, language = 'zh', cardType = 'personal') {
+    const lines = ['BEGIN:VCARD', 'VERSION:3.0'];
+    
+    // 安全字串化函數
+    const safeString = (field) => {
+      if (!field) return '';
+      if (typeof field === 'string') return field;
+      if (typeof field === 'object' && field !== null) {
+        return field[language] || field.zh || field.en || Object.values(field)[0] || '';
+      }
+      return String(field);
+    };
+    
+    // 基本資訊
+    if (cardData.name) lines.push(`FN:${safeString(cardData.name)}`);
+    if (cardData.title) lines.push(`TITLE:${safeString(cardData.title)}`);
+    if (cardData.organization) lines.push(`ORG:${safeString(cardData.organization)}`);
+    if (cardData.department) lines.push(`X-DEPARTMENT:${safeString(cardData.department)}`);
+    
+    // 聯絡資訊
+    if (cardData.email) lines.push(`EMAIL:${safeString(cardData.email)}`);
+    if (cardData.phone) lines.push(`TEL;TYPE=WORK:${safeString(cardData.phone)}`);
+    if (cardData.mobile) lines.push(`TEL;TYPE=CELL:${safeString(cardData.mobile)}`);
+    if (cardData.address) lines.push(`ADR;TYPE=WORK:;;${safeString(cardData.address)};;;`);
+    
+    // 網站和社交
+    if (cardData.website) lines.push(`URL:${safeString(cardData.website)}`);
+    if (cardData.socialNote) lines.push(`NOTE:${safeString(cardData.socialNote)}`);
+    
+    // 問候語（作為備註）
+    if (cardData.greetings && Array.isArray(cardData.greetings) && cardData.greetings.length > 0) {
+      const greetings = cardData.greetings.map(g => safeString(g)).filter(Boolean);
+      if (greetings.length > 0) {
+        lines.push(`X-GREETINGS:${greetings.join('; ')}`);
+      }
+    }
+    
+    // 添加卡片類型資訊
+    lines.push(`X-CARD-TYPE:${cardType}`);
+    lines.push(`X-LANGUAGE:${language}`);
+    
+    lines.push('END:VCARD');
+    return lines.join('\n');
+  }
+
+  /**
+   * 統一的檔案下載處理器
+   */
+  async downloadFile(blob, filename, options = {}) {
+    try {
+      // 檔案大小檢查和警告
+      const sizeWarning = this.checkFileSizeWarning(blob.size);
+      if (sizeWarning.level === 'error') {
+        throw new Error(sizeWarning.message);
+      }
+      
+      // 創建下載連結
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.href = url;
+      link.download = filename;
+      link.style.display = 'none';
+      
+      // 添加到文檔並點擊
+      document.body.appendChild(link);
+      link.click();
+      
+      // 清理
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      
+      return { success: true, filename, size: blob.size };
+    } catch (error) {
+      console.error('[CardManager] File download failed:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 檔案大小警告檢查
+   */
+  checkFileSizeWarning(size) {
+    const MB = 1024 * 1024;
+    
+    if (size > 50 * MB) {
+      return {
+        level: 'error',
+        message: this.getMessage('file_too_large', { size: Math.round(size / MB) })
+      };
+    } else if (size > 10 * MB) {
+      return {
+        level: 'warning',
+        message: this.getMessage('file_large_warning', { size: Math.round(size / MB) })
+      };
+    } else if (size > 5 * MB) {
+      return {
+        level: 'info',
+        message: this.getMessage('file_size_info', { size: Math.round(size / MB) })
+      };
+    }
+    
+    return { level: 'ok', message: '' };
+  }
+
+  /**
+   * 取得選中的名片
+   */
+  async getSelectedCards(cardIds) {
+    if (!cardIds || !Array.isArray(cardIds)) {
+      return [];
+    }
+    
+    const cards = [];
+    for (const cardId of cardIds) {
+      try {
+        const card = await this.storage.getCard(cardId);
+        if (card) {
+          cards.push(card);
+        }
+      } catch (error) {
+        console.warn(`[CardManager] Failed to get card ${cardId}:`, error);
+      }
+    }
+    
+    return cards;
+  }
+
+  /**
+   * 取得名片版本歷史（預留功能）
+   */
+  async getCardVersions(cardId) {
+    // 目前版本暫時返回空陣列，未來可擴展版本控制功能
+    return [];
+  }
+
+  /**
+   * 快速匯出功能 - 提供簡化的匯出選項
+   */
+  async quickExport(format = 'json', options = {}) {
+    const exportOptions = {
+      exportAll: true,
+      format: format,
+      autoDownload: true,
+      ...options
+    };
+    
+    return await this.exportCards(exportOptions);
+  }
+
+  /**
+   * 匯出單張名片
+   */
+  async exportSingleCard(cardId, format = 'vcard', options = {}) {
+    try {
+      const card = await this.storage.getCard(cardId);
+      if (!card) {
+        return { success: false, error: this.getMessage('card_not_found') };
+      }
+
+      const exportOptions = {
+        cardIds: [cardId],
+        format: format,
+        autoDownload: options.autoDownload !== false,
+        language: options.language || 'zh',
+        includeBothLanguages: options.includeBothLanguages || false,
+        ...options
+      };
+
+      return await this.exportCards(exportOptions);
+    } catch (error) {
+      console.error('[CardManager] Single card export failed:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 取得匯出預覽
+   */
+  async getExportPreview(cardIds, format = 'json') {
+    try {
+      const cards = cardIds ? await this.getSelectedCards(cardIds) : await this.storage.listCards();
+      
+      if (cards.length === 0) {
+        return { success: false, error: this.getMessage('no_cards_to_export') };
+      }
+
+      const preview = {
+        totalCards: cards.length,
+        cardTypes: {},
+        estimatedSizes: {},
+        cards: cards.map(card => ({
+          id: card.id,
+          name: card.data.name,
+          type: card.type || this.detectCardType(card.data),
+          size: JSON.stringify(card).length
+        }))
+      };
+
+      // 統計名片類型
+      preview.cards.forEach(card => {
+        preview.cardTypes[card.type] = (preview.cardTypes[card.type] || 0) + 1;
+      });
+
+      // 估算不同格式的檔案大小
+      if (format === 'json' || format === 'both') {
+        const jsonSize = JSON.stringify({
+          version: '3.0.2',
+          cards: cards
+        }).length;
+        preview.estimatedSizes.json = jsonSize;
+      }
+
+      if (format === 'vcard' || format === 'both') {
+        let vCardSize = 0;
+        for (const card of cards) {
+          const vCardContent = this.generateVCardContent(card.data, 'zh', card.type);
+          vCardSize += vCardContent.length;
+        }
+        preview.estimatedSizes.vcard = vCardSize;
+      }
+
+      return { success: true, preview };
+    } catch (error) {
+      console.error('[CardManager] Export preview failed:', error);
       return { success: false, error: error.message };
     }
   }

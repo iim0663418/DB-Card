@@ -1,0 +1,40 @@
+sequenceDiagram
+    participant Monitor as 安全監控
+    participant Alert as 告警系統
+    participant Team as 緊急回應小組
+    participant System as PWA 系統
+    participant Users as 用戶
+    
+    Monitor->>Alert: 檢測到 Critical 級別威脅
+    Alert->>Team: 立即通知 (< 15分鐘)
+    
+    Team->>System: 緊急停用匯入功能
+    Note over System: window.EMERGENCY_DISABLE_IMPORT = true
+    
+    Team->>Users: 發送安全警告
+    Note over Users: 停止使用匯入功能
+    
+    par 並行處理
+        Team->>System: 隔離受影響檔案
+        Team->>System: 清理可疑資料
+        Team->>System: 啟動安全模式
+    end
+    
+    Team->>Team: 評估影響範圍
+    Team->>Team: 制定修復計畫
+    
+    Team->>System: 部署安全補丁
+    System->>Monitor: 驗證修復效果
+    
+    Monitor->>Alert: 確認威脅消除
+    Alert->>Team: 修復完成通知
+    
+    Team->>Users: 發送恢復通知
+    Team->>System: 重新啟用功能
+    
+    Note over Monitor,Users: 持續監控 24 小時
+    
+    style Monitor fill:#e8f5e8,stroke:#2e7d32
+    style Alert fill:#fff3e0,stroke:#ef6c00
+    style Team fill:#e3f2fd,stroke:#1976d2
+    style System fill:#ffebee,stroke:#d32f2f

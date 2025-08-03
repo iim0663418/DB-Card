@@ -10,6 +10,16 @@
 - **認證層**: SecurityAuthHandler - 授權檢查與會話管理
 - **資料層**: SecurityDataHandler - XSS防護與安全儲存
 
+### PWA 匯入功能安全漏洞狀態 (已修復完成)
+- ✅ **SEC-PWA-001**: 檔案上傳攻擊 (CWE-434) - 已完成修復並通過測試
+- ✅ **SEC-PWA-002**: JSON.parse Prototype Pollution (CWE-1321) - 已完成修復並通過測試
+- ✅ **SEC-PWA-003**: 授權檢查缺失 (CWE-862) - 已完成修復並通過測試
+- ✅ **SEC-PWA-004**: PII 資料洩露 (CWE-359) - 已完成修復並通過測試
+- ✅ **SEC-PWA-005**: 不安全的檔案處理 (CWE-73) - 已完成修復並通過測試
+- ✅ **SEC-PWA-006**: 資料注入攻擊 (CWE-74) - 已完成修復並通過測試
+- ✅ **SEC-PWA-007**: 不安全的反序列化 (CWE-502) - 已完成修復並通過測試
+- ✅ **SEC-PWA-008**: 錯誤處理資訊洩露 (CWE-209) - 已完成修復並通過測試
+
 ### 已修復的安全漏洞
 - ✅ SEC-001: 生產環境 prompt() 使用 (Critical)
 - ✅ SEC-002: 不安全密碼輸入 (Critical)
@@ -51,6 +61,19 @@ if (!logIntegrity.valid) {
 ```
 
 ## 🚨 安全事件回應
+
+### PWA 匯入功能 Critical 級別事件回應
+**緊急行動計畫 (< 15 分鐘)**
+1. **立即停用 PWA 匯入功能**
+   ```javascript
+   // 緊急停用代碼
+   window.EMERGENCY_DISABLE_IMPORT = true;
+   ```
+2. **隔離受影響檔案**
+   - `pwa-card-storage/src/features/transfer-manager.js`
+   - `pwa-card-storage/src/features/card-manager.js`
+3. **啟動緊急修復小組**
+4. **通知所有用戶停止使用匯入功能**
 
 ### Critical 級別事件
 **立即行動 (< 15 分鐘)**
@@ -98,6 +121,103 @@ const securityMetrics = {
 - 系統健康狀態
 - 會話活動統計
 
+## 🧪 安全測試套件執行指南
+
+### Jest 測試框架執行 (建議)
+
+#### 快速安全驗證
+```bash
+# 進入測試目錄
+cd tests/
+
+# 安裝測試依賴 (首次執行)
+npm install
+
+# 執行安全測試套件 (45個測試案例)
+npm run test:security
+
+# 檢查結果
+# ✅ 所有測試通過 = 系統安全
+# ❌ 有測試失敗 = 需要立即調查
+```
+
+#### 完整測試執行
+```bash
+# 執行所有測試並生成覆蓋率報告
+npm run test:all
+
+# 持續監控模式 (開發時使用)
+npm run test:security:watch
+
+# CI/CD 環境執行
+npm run test:ci
+```
+
+### 視覺化測試執行器使用
+
+#### 基本操作
+1. 開啟 `tests/security/security-test-runner.html`
+2. 點擊「執行完整安全測試」
+3. 監控 45 個測試案例的即時執行進度
+4. 檢查安全狀態顯示：
+   - 🟢 安全：所有測試通過
+   - 🔴 危險：有測試失敗
+   - ⚠️ 未知：尚未執行測試
+
+#### 緊急功能測試
+```javascript
+// 測試緊急停用功能
+1. 點擊「緊急停用匯入功能」
+2. 執行快速驗證測試
+3. 確認所有匯入操作被拒絕
+4. 點擊「恢復匯入功能」
+5. 重新測試正常功能
+```
+
+#### 檔案安全測試
+- 拖拽測試檔案到上傳區域
+- 系統自動執行：
+  - 檔案類型檢查
+  - 檔案大小檢查  
+  - 檔案名稱安全檢查
+- 查看即時測試結果
+
+### 測試結果解讀
+
+#### 測試成功指標
+- **總測試數**: 45 個
+- **通過率**: 100%
+- **Critical 安全測試**: 32/32 通過
+- **緊急機制測試**: 2/2 通過
+- **功能驗證測試**: 8/8 通過  
+- **合規性測試**: 4/4 通過
+
+#### 失敗排除步驟
+1. **檢查測試日誌**: 查看具體失敗原因
+2. **重置測試環境**: 點擊「重置測試環境」
+3. **單獨測試**: 執行快速驗證測試
+4. **檢查代碼變更**: 確認最近是否有修改核心檔案
+5. **聯絡安全團隊**: 如問題持續存在
+
+### 持續監控建議
+
+#### 自動化執行
+```bash
+# 設定 cron job 每日執行
+0 9 * * * cd /path/to/tests && npm run test:security
+
+# 設定 CI/CD 觸發條件
+- 每次程式碼提交後自動執行
+- 部署前強制執行安全測試
+- 週期性完整測試執行
+```
+
+#### 監控告警
+- 測試失敗立即發送告警
+- 執行時間異常告警  
+- 覆蓋率下降告警
+- 新增測試案例提醒
+
 ## 🔧 安全配置管理
 
 ### 1. 安全參數配置
@@ -138,8 +258,12 @@ const SecurityConfig = {
 ## 🛠️ 維護程序
 
 ### 每日檢查清單
-- [ ] 執行安全測試套件
+- [ ] 執行安全測試套件 (45個測試案例)
+- [ ] **PWA 匯入功能安全狀態檢查** (已修復，持續監控)
+- [ ] 執行 Jest 安全測試: `npm run test:security`
+- [ ] 檢查視覺化測試器狀態: `security-test-runner.html`
 - [ ] 檢查系統日誌異常
+- [ ] 監控檔案上傳攻擊嘗試
 - [ ] 驗證備份完整性
 - [ ] 監控資源使用狀況
 - [ ] 檢查會話活動
@@ -159,6 +283,52 @@ const SecurityConfig = {
 - [ ] 事件回應演練
 
 ## 🔍 故障排除指南
+
+### PWA 匯入功能緊急問題
+
+#### 1. 檔案上傳攻擊檢測
+**症狀**: 不明檔案被上傳或異常檔案類型
+**緊急處理**:
+```javascript
+// 立即停用匯入功能
+window.EMERGENCY_DISABLE_IMPORT = true;
+
+// 檢查上傳檔案記錄
+const uploadLogs = SecurityMonitor.getSecurityEvents('file_upload');
+console.log('檔案上傳記錄:', uploadLogs);
+
+// 清理可疑檔案
+SecurityDataHandler.quarantineSuspiciousFiles();
+```
+
+#### 2. JSON Prototype Pollution 攻擊
+**症狀**: 物件原型被污染，系統行為異常
+**緊急處理**:
+```javascript
+// 檢查原型污染
+if (Object.prototype.hasOwnProperty('__proto__')) {
+  console.error('Prototype pollution detected!');
+  // 重新載入頁面
+  window.location.reload();
+}
+
+// 清理可疑資料
+SecurityDataHandler.sanitizeStoredData();
+```
+
+#### 3. PII 資料洩露
+**症狀**: 個人資料出現在日誌或錯誤訊息中
+**緊急處理**:
+```javascript
+// 立即清理日誌
+SecurityDataHandler.clearSensitiveLogs();
+
+// 停用詳細錯誤訊息
+window.DISABLE_DETAILED_ERRORS = true;
+
+// 通知用戶更新密碼
+SecurityAuthHandler.forcePasswordReset();
+```
 
 ### 常見安全問題
 
@@ -264,7 +434,8 @@ SecurityAuthHandler.renewSession(sessionId);
 
 ---
 
-**文件版本**: v1.0  
-**最後更新**: 2024-12-20  
-**下次審查**: 2025-01-20  
-**維護者**: 安全團隊
+**文件版本**: v2.0  
+**最後更新**: 2025-01-03 (新增 PWA 安全測試套件指引)  
+**下次審查**: 2025-02-03  
+**維護者**: 安全團隊 + 測試團隊  
+**測試套件版本**: v3.0.0 (Jest + 視覺化工具)

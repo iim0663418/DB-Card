@@ -2,7 +2,7 @@
   "name": "NFC 數位名片離線儲存",
   "short_name": "名片儲存",
   "description": "數位發展部 NFC 數位名片離線儲存服務",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "start_url": "./",
   "display": "standalone",
   "orientation": "any",
@@ -11,6 +11,23 @@
   "lang": "zh-TW",
   
   "icons": [
+    {
+      "src": "./assets/icons/icon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "../assets/moda-logo.svg",
       "sizes": "any",

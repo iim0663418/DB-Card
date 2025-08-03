@@ -14,3 +14,90 @@ CLAUDE.md
 # Temporary files
 *.tmp
 *~
+
+# Node.js dependencies (for testing)
+node_modules/
+tests/node_modules/
+
+# Test coverage reports
+coverage/
+*.lcov
+
+# Jest cache
+.jest/
+
+# Test output files
+test-results/
+*.test.log
+
+# Security test artifacts
+tests/security/test-output/
+tests/security/*.json
+
+# PWA build artifacts
+pwa-card-storage/dist/
+pwa-card-storage/.cache/
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Dependency directories
+jspm_packages/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+
+# Backup files
+*.bak
+*.backup
+
+# Security sensitive files
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+
+# Local development files
+local/
+dev/
+
+# Generated documentation
+docs/generated/
+
+# Temporary test files
+test-*.html
+test-*.js
+test-*.json

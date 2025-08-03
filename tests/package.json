@@ -1,0 +1,133 @@
+{
+  "name": "pwa-card-storage-tests",
+  "version": "3.0.0",
+  "description": "PWA 名片儲存系統測試套件",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:security": "jest tests/security/ --verbose",
+    "test:security:watch": "jest tests/security/ --watch",
+    "test:integration": "jest tests/integration/ --verbose",
+    "test:unit": "jest tests/unit/ --verbose",
+    "test:e2e": "jest tests/e2e/ --verbose",
+    "test:smoke": "jest tests/smoke/ --verbose",
+    "test:accessibility": "jest tests/accessibility/ --verbose",
+    "test:all": "jest --verbose --coverage",
+    "test:ci": "jest --ci --coverage --watchAll=false",
+    "lint": "eslint tests/",
+    "lint:fix": "eslint tests/ --fix"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "@jest/globals": "^29.7.0",
+    "babel-jest": "^29.7.0",
+    "@babel/core": "^7.23.0",
+    "@babel/preset-env": "^7.23.0",
+    "eslint": "^8.55.0",
+    "eslint-plugin-jest": "^27.6.0"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "setupFilesAfterEnv": ["<rootDir>/setup.js"],
+    "testMatch": [
+      "<rootDir>/**/*.test.js",
+      "<rootDir>/**/*.spec.js"
+    ],
+    "collectCoverageFrom": [
+      "../pwa-card-storage/src/**/*.js",
+      "../src/**/*.js",
+      "!**/node_modules/**",
+      "!**/coverage/**",
+      "!**/dist/**"
+    ],
+    "coverageDirectory": "./coverage",
+    "coverageReporters": [
+      "text",
+      "html",
+      "lcov",
+      "json-summary",
+      "clover"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 85,
+        "functions": 90,
+        "lines": 90,
+        "statements": 90
+      },
+      "../pwa-card-storage/src/features/card-manager.js": {
+        "branches": 90,
+        "functions": 95,
+        "lines": 95,
+        "statements": 95
+      },
+      "../pwa-card-storage/src/features/transfer-manager.js": {
+        "branches": 90,
+        "functions": 95,
+        "lines": 95,
+        "statements": 95
+      }
+    },
+    "testTimeout": 10000,
+    "verbose": true,
+    "errorOnDeprecated": true,
+    "clearMocks": true,
+    "resetMocks": true,
+    "restoreMocks": true
+  },
+  "babel": {
+    "presets": [
+      ["@babel/preset-env", {
+        "targets": {
+          "node": "current"
+        }
+      }]
+    ]
+  },
+  "eslintConfig": {
+    "env": {
+      "browser": true,
+      "node": true,
+      "jest": true,
+      "es2022": true
+    },
+    "extends": [
+      "eslint:recommended",
+      "plugin:jest/recommended"
+    ],
+    "plugins": ["jest"],
+    "parserOptions": {
+      "ecmaVersion": 2022,
+      "sourceType": "module"
+    },
+    "rules": {
+      "no-console": "warn",
+      "no-unused-vars": "error",
+      "no-undef": "error",
+      "jest/no-disabled-tests": "warn",
+      "jest/no-focused-tests": "error",
+      "jest/no-identical-title": "error",
+      "jest/prefer-to-have-length": "warn",
+      "jest/valid-expect": "error"
+    },
+    "globals": {
+      "global": "readonly",
+      "window": "readonly",
+      "document": "readonly",
+      "navigator": "readonly",
+      "File": "readonly",
+      "FileReader": "readonly",
+      "Blob": "readonly",
+      "URL": "readonly",
+      "URLSearchParams": "readonly",
+      "crypto": "readonly",
+      "TextEncoder": "readonly",
+      "TextDecoder": "readonly",
+      "Uint8Array": "readonly",
+      "atob": "readonly",
+      "btoa": "readonly"
+    }
+  }
+}

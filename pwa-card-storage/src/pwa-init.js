@@ -24,6 +24,20 @@ window.addEventListener('beforeinstallprompt', (e) => {
     }
 });
 
+// 立即載入應用版本
+window.addEventListener('DOMContentLoaded', async () => {
+    const appVersionEl = document.getElementById('app-version');
+    if (appVersionEl) {
+        try {
+            const response = await fetch('./manifest.json');
+            const manifest = await response.json();
+            appVersionEl.textContent = `v${manifest.version}`;
+        } catch (error) {
+            appVersionEl.textContent = '無法取得';
+        }
+    }
+});
+
 // PWA 安裝按鈕初始化函數，由 app.js 調用
 window.initPWAInstallButtons = function() {
     const installButton = document.getElementById('install-button');

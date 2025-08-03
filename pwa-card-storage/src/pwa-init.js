@@ -31,18 +31,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 
 // 版本顯示已由 unified-manifest-manager.js 處理
-window.addEventListener('DOMContentLoaded', () => {
-    // Settings Button 重置網址功能
-    const settingsButton = document.getElementById('settings-button');
-    if (settingsButton) {
-        settingsButton.addEventListener('click', () => {
-            const currentUrl = new URL(window.location);
-            currentUrl.search = '';
-            currentUrl.hash = '';
-            window.history.replaceState({}, '', currentUrl.toString());
-        });
-    }
-});
+// Settings Button 事件處理已移至 app.js 統一管理，避免重複綁定
 
 // PWA 安裝按鈕初始化函數，由 app.js 調用
 window.initPWAInstallButtons = function() {

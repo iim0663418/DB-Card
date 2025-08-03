@@ -121,26 +121,9 @@ class UnifiedMobileManager {
   }
 
   setupEventHandlers() {
-    // Settings Button 增強事件處理 - 避免重複綁定
-    const settingsButton = document.getElementById('settings-button');
-    if (settingsButton && window.app && !settingsButton.dataset.mobileHandlerAdded) {
-      const homeHandler = (e) => {
-        try {
-          e.preventDefault();
-          e.stopPropagation();
-          window.app.navigateTo('home');
-        } catch (error) {
-          console.error('[Mobile] Settings button handler failed:', error);
-        }
-      };
-      
-      // 只在 mobile 端添加 touchend，避免與 click 衝突
-      if (this.isMobile) {
-        settingsButton.addEventListener('touchend', homeHandler, { passive: false });
-      }
-      
-      settingsButton.dataset.mobileHandlerAdded = 'true';
-    }
+    // Settings Button 事件處理已移至 app.js 統一管理
+    // 移除重複的事件監聽器以避免衝突
+    console.log('[Mobile] Settings button handling delegated to app.js');
   }
 
   preventDoubleClick() {

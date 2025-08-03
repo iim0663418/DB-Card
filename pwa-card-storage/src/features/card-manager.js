@@ -1153,7 +1153,7 @@ class PWACardManager {
   }
 
   /**
-   * 匯出 vCard
+   * 匯出 vCard - 修復版本，使用正確的名片類型
    */
   async exportVCard(cardId, language = 'zh') {
     try {
@@ -1162,7 +1162,8 @@ class PWACardManager {
         throw new Error('名片不存在');
       }
 
-      const vCardContent = this.generateVCard(card.data, language);
+      // 重要修復：傳遞名片類型給 vCard 生成器
+      const vCardContent = this.generateVCard(card.data, language, card.type);
       const blob = new Blob([vCardContent], { type: 'text/vcard' });
       
       const name = this.getDisplayName(card.data, language);
@@ -1180,57 +1181,133 @@ class PWACardManager {
   }
 
   /**
-   * 生成 vCard 內容
+   * 生成 vCard 內容 - 修復版本，使用名片類型邏輯
    */
-  generateVCard(cardData, language = 'zh') {
+  generateVCard(cardData, language = 'zh', cardType = 'personal') {
     const lines = ['BEGIN:VCARD', 'VERSION:3.0'];
 
+    // 安全字串化函數 - 修復 [object Object] 問題
+    const safeStringify = (field) => {
+      if (!field) return '';
+      if (typeof field === 'string') return field;
+      if (typeof field === 'object' && field !== null) {
+        // 處理雙語物件格式
+        if (field.zh && field.en) {
+          return language === 'en' ? field.en : field.zh;
+        }
+        // 提取第一個有效字串值
+        const firstValue = Object.values(field).find(v => v && typeof v === 'string');
+        if (firstValue) return firstValue;
+        // 避免 [object Object]
+        return '';
+      }
+      // 其他類型轉字串，但避免 [object Object]
+      const stringValue = String(field);
+      return stringValue === '[object Object]' ? '' : stringValue;
+    };
+
     // 姓名
-    const name = this.getDisplayName(cardData, language);
-    lines.push(`FN:${name}`);
-    lines.push(`N:${name};;;;`);
+    const name = safeStringify(this.getDisplayName(cardData, language));
+    if (name) {
+      lines.push(`FN:${name}`);
+      lines.push(`N:${name};;;;`);
+    }
 
     // 職稱
-    const title = this.getDisplayTitle(cardData, language);
+    const title = safeStringify(this.getDisplayTitle(cardData, language));
     if (title) {
       lines.push(`TITLE:${title}`);
     }
 
-    // 組織
-    if (cardData.organization) {
-      const org = language === 'en' && cardData.organization === '數位發展部' 
-        ? 'Ministry of Digital Affairs' 
-        : cardData.organization;
-      lines.push(`ORG:${org}`);
+    // 組織 - 根據名片類型處理
+    const organization = this.getCorrectOrganizationForVCard(cardData, cardType, language);
+    if (organization) {
+      lines.push(`ORG:${organization}`);
     }
 
     // 電子郵件
-    if (cardData.email) {
-      lines.push(`EMAIL:${cardData.email}`);
+    const email = safeStringify(cardData.email);
+    if (email) {
+      lines.push(`EMAIL:${email}`);
     }
 
     // 電話
-    if (cardData.phone) {
-      lines.push(`TEL:${cardData.phone}`);
+    const phone = safeStringify(cardData.phone);
+    if (phone) {
+      lines.push(`TEL:${phone}`);
     }
 
     // 手機
-    if (cardData.mobile) {
-      lines.push(`TEL;TYPE=CELL:${cardData.mobile}`);
+    const mobile = safeStringify(cardData.mobile);
+    if (mobile) {
+      lines.push(`TEL;TYPE=CELL:${mobile}`);
     }
 
-    // 地址
-    if (cardData.address) {
-      lines.push(`ADR:;;${cardData.address};;;;`);
+    // 地址 - 根據名片類型處理
+    const address = this.getCorrectAddressForVCard(cardData, cardType, language);
+    if (address) {
+      lines.push(`ADR:;;${address};;;;`);
     }
 
     // 頭像
-    if (cardData.avatar) {
-      lines.push(`PHOTO;VALUE=URL:${cardData.avatar}`);
+    const avatar = safeStringify(cardData.avatar);
+    if (avatar) {
+      lines.push(`PHOTO;VALUE=URL:${avatar}`);
     }
 
     lines.push('END:VCARD');
     return lines.join('\r\n');
+  }
+
+  /**
+   * 根據名片類型獲取正確的組織名稱（用於 vCard）
+   */
+  getCorrectOrganizationForVCard(cardData, cardType, language = 'zh') {
+    // 對於政府機關版本，強制使用預設組織名稱
+    if (cardType === 'index' || cardType === 'index1' || cardType === 'bilingual' || cardType === 'bilingual1') {
+      return language === 'en' ? 'Ministry of Digital Affairs' : '數位發展部';
+    } else if (cardType === 'en' || cardType === 'en1') {
+      return 'Ministry of Digital Affairs';
+    }
+    
+    // 個人版使用實際的組織資訊
+    if (cardData.organization) {
+      const org = language === 'en' && cardData.organization === '數位發展部' 
+        ? 'Ministry of Digital Affairs' 
+        : cardData.organization;
+      return org;
+    }
+    
+    return '';
+  }
+
+  /**
+   * 根據名片類型獲取正確的地址（用於 vCard）
+   */
+  getCorrectAddressForVCard(cardData, cardType, language = 'zh') {
+    // 對於政府機關版本，強制使用預設地址
+    if (cardType === 'index' || cardType === 'bilingual') {
+      // 延平大樓
+      return language === 'en' ? 
+        '143 Yanping S. Rd., Zhongzheng Dist., Taipei City, Taiwan' :
+        '臺北市中正區延平南路143號';
+    } else if (cardType === 'index1' || cardType === 'bilingual1') {
+      // 新光大樓
+      return language === 'en' ? 
+        '66 Zhongxiao W. Rd. Sec. 1, Zhongzheng Dist., Taipei City, Taiwan (17F, 19F)' :
+        '臺北市中正區忠孝西路一段６６號（１７、１９樓）';
+    } else if (cardType === 'en') {
+      return '143 Yanping S. Rd., Zhongzheng Dist., Taipei City, Taiwan';
+    } else if (cardType === 'en1') {
+      return '66 Zhongxiao W. Rd. Sec. 1, Zhongzheng Dist., Taipei City, Taiwan (17F, 19F)';
+    }
+    
+    // 個人版使用實際的地址資訊
+    if (cardData.address) {
+      return cardData.address;
+    }
+    
+    return '';
   }
 
   /**
@@ -1243,7 +1320,7 @@ class PWACardManager {
   }
 
   /**
-   * 獲取顯示名稱
+   * 獲取顯示名稱 - 修復 [object Object] 問題
    */
   getDisplayName(cardData, language = 'zh') {
     try {
@@ -1254,43 +1331,66 @@ class PWACardManager {
       if (cardData.name) {
         // 處理物件格式
         if (typeof cardData.name === 'object' && cardData.name !== null) {
-          return language === 'en' ? (cardData.name.en || cardData.name.zh || '') : (cardData.name.zh || cardData.name.en || '');
+          if (cardData.name.zh && cardData.name.en) {
+            return language === 'en' ? cardData.name.en : cardData.name.zh;
+          }
+          // 提取第一個有效字串值
+          const firstValue = Object.values(cardData.name).find(v => v && typeof v === 'string');
+          if (firstValue) return firstValue;
+          // 避免 [object Object]
+          return '';
         }
         
         // 處理字串格式
-        if (typeof cardData.name === 'string' && cardData.name.indexOf('~') !== -1) {
-          const parts = cardData.name.split('~');
-          const chinese = parts[0] ? parts[0].trim() : '';
-          const english = parts[1] ? parts[1].trim() : '';
-          return language === 'en' ? english : chinese;
-        }
-        
-        // 純字串格式
         if (typeof cardData.name === 'string') {
+          if (cardData.name.indexOf('~') !== -1) {
+            const parts = cardData.name.split('~');
+            const chinese = parts[0] ? parts[0].trim() : '';
+            const english = parts[1] ? parts[1].trim() : '';
+            return language === 'en' ? english : chinese;
+          }
           return cardData.name;
         }
       }
       
-      return String(cardData.name || '');
+      return '';
     } catch (error) {
       return '';
     }
   }
 
   /**
-   * 獲取顯示職稱
+   * 獲取顯示職稱 - 修復 [object Object] 問題
    */
   getDisplayTitle(cardData, language = 'zh') {
     if (cardData.titleZh && cardData.titleEn) {
       return language === 'en' ? cardData.titleEn : cardData.titleZh;
     }
     
-    if (cardData.title && typeof cardData.title === 'string' && cardData.title.includes('~')) {
-      const [chinese, english] = cardData.title.split('~');
-      return language === 'en' ? english.trim() : chinese.trim();
+    if (cardData.title) {
+      // 處理物件格式
+      if (typeof cardData.title === 'object' && cardData.title !== null) {
+        if (cardData.title.zh && cardData.title.en) {
+          return language === 'en' ? cardData.title.en : cardData.title.zh;
+        }
+        // 提取第一個有效字串值
+        const firstValue = Object.values(cardData.title).find(v => v && typeof v === 'string');
+        if (firstValue) return firstValue;
+        // 避免 [object Object]
+        return '';
+      }
+      
+      // 處理字串格式
+      if (typeof cardData.title === 'string') {
+        if (cardData.title.includes('~')) {
+          const [chinese, english] = cardData.title.split('~');
+          return language === 'en' ? english.trim() : chinese.trim();
+        }
+        return cardData.title;
+      }
     }
     
-    return cardData.title || '';
+    return '';
   }
 
   /**

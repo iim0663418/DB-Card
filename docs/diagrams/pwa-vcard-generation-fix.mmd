@@ -1,0 +1,26 @@
+flowchart TD
+    A[PWA vCard 請求] --> B{檢查名片類型}
+    B --> C[index/index1<br/>機關版]
+    B --> D[personal<br/>個人版]  
+    B --> E[bilingual<br/>雙語版]
+    
+    C --> F[使用預設組織<br/>數位發展部]
+    C --> G[使用預設地址<br/>延平/新光大樓]
+    
+    D --> H[使用實際組織資訊]
+    D --> I[使用實際地址資訊]
+    
+    E --> J[雙語欄位處理<br/>zh~en格式]
+    
+    F --> K[安全字串化處理]
+    G --> K
+    H --> K  
+    I --> K
+    J --> K
+    
+    K --> L[生成標準 vCard]
+    L --> M[✅ 正確格式輸出<br/>無 [object Object]]
+    
+    style A fill:#6868ac,color:#fff
+    style M fill:#4caf50,color:#fff
+    style K fill:#ff9800,color:#fff

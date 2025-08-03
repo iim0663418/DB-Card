@@ -48,6 +48,9 @@ class PWACardStorage {
       // 開啟資料庫連線
       this.db = await this.openDatabase();
       
+      // 設置連線監聽器
+      this.setupConnectionMonitoring();
+      
       // 初始化加密金鑰
       await this.initializeEncryption();
       
@@ -78,6 +81,19 @@ class PWACardStorage {
 
       request.onsuccess = (event) => {
         const db = event.target.result;
+        
+        // 設置資料庫關閉監聽器
+        db.onclose = () => {
+          console.warn('[Storage] Database connection closed unexpectedly');
+          this.db = null;
+        };
+        
+        db.onversionchange = () => {
+          console.warn('[Storage] Database version changed, closing connection');
+          db.close();
+          this.db = null;
+        };
+        
         resolve(db);
       };
 
@@ -214,10 +230,8 @@ class PWACardStorage {
   async performHealthCheck() {
     try {
       
-      // 檢查資料庫連線
-      if (!this.db) {
-        throw new Error('Database connection lost');
-      }
+      // 檢查並重新建立資料庫連線
+      await this.ensureConnection();
 
       // 檢查各個 store 是否正常
       const storeNames = ['cards', 'versions', 'settings', 'backups'];
@@ -267,10 +281,6 @@ class PWACardStorage {
         throw new Error(`存取被拒絕: ${authResult.reason}`);
       }
       
-      if (!this.db) {
-        throw new Error('Database not initialized');
-      }
-      
       const id = this.generateId();
       const now = new Date();
       
@@ -290,17 +300,17 @@ class PWACardStorage {
         isFavorite: false
       };
 
-      const transaction = this.db.transaction(['cards'], 'readwrite');
-      const store = transaction.objectStore('cards');
-      
-      await new Promise((resolve, reject) => {
-        const request = store.add(card);
-        request.onsuccess = () => {
-          resolve(request.result);
-        };
-        request.onerror = (event) => {
-          reject(new Error(`Failed to store card: ${event.target.error?.message || 'Unknown error'}`));
-        };
+      // 使用安全事務機制
+      await this.safeTransaction(['cards'], 'readwrite', async (transaction) => {
+        const store = transaction.objectStore('cards');
+        
+        return new Promise((resolve, reject) => {
+          const request = store.add(card);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = (event) => {
+            reject(new Error(`Failed to store card: ${event.target.error?.message || 'Unknown error'}`));
+          };
+        });
       });
 
       // 建立版本快照
@@ -372,19 +382,15 @@ class PWACardStorage {
 
   async getCard(id) {
     try {
-      const transaction = this.db.transaction(['cards'], 'readonly');
-      const store = transaction.objectStore('cards');
-      
-      const card = await new Promise((resolve, reject) => {
-        const request = store.get(id);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
+      return await this.safeTransaction(['cards'], 'readonly', async (transaction) => {
+        const store = transaction.objectStore('cards');
+        
+        return new Promise((resolve, reject) => {
+          const request = store.get(id);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
       });
-
-      if (!card) return null;
-
-      // 直接返回資料，不進行解密
-      return card;
     } catch (error) {
       console.error('[Storage] Get card failed:', error);
       throw error;
@@ -490,54 +496,49 @@ class PWACardStorage {
 
   async listCards(filter = {}) {
     try {
-      if (!this.db) {
-        return [];
-      }
-      
-      const transaction = this.db.transaction(['cards'], 'readonly');
-      const store = transaction.objectStore('cards');
-      
-      // 優化的查詢策略
-      let cursor;
-      const maxResults = filter.limit || 100;
-      
-      if (filter.type) {
-        const index = store.index('type');
-        cursor = index.openCursor(IDBKeyRange.only(filter.type));
-      } else if (filter.dateRange) {
-        const index = store.index('created');
-        cursor = index.openCursor(IDBKeyRange.bound(filter.dateRange.start, filter.dateRange.end));
-      } else {
-        cursor = store.openCursor();
-      }
+      return await this.safeTransaction(['cards'], 'readonly', async (transaction) => {
+        const store = transaction.objectStore('cards');
+        
+        // 優化的查詢策略
+        let cursor;
+        const maxResults = filter.limit || 100;
+        
+        if (filter.type) {
+          const index = store.index('type');
+          cursor = index.openCursor(IDBKeyRange.only(filter.type));
+        } else if (filter.dateRange) {
+          const index = store.index('created');
+          cursor = index.openCursor(IDBKeyRange.bound(filter.dateRange.start, filter.dateRange.end));
+        } else {
+          cursor = store.openCursor();
+        }
 
-      const cards = [];
-      let processedCount = 0;
-      
-      await new Promise((resolve, reject) => {
-        cursor.onsuccess = (event) => {
-          const cursor = event.target.result;
-          if (cursor && processedCount < maxResults) {
-            const card = cursor.value;
-            
-            // 應用篩選條件（優化版）
-            if (this.matchesFilter(card, filter)) {
-              // 返回完整的名片資料
-              cards.push(card);
+        const cards = [];
+        let processedCount = 0;
+        
+        return new Promise((resolve, reject) => {
+          cursor.onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (cursor && processedCount < maxResults) {
+              const card = cursor.value;
+              
+              // 應用篩選條件（優化版）
+              if (this.matchesFilter(card, filter)) {
+                // 返回完整的名片資料
+                cards.push(card);
+              }
+              
+              processedCount++;
+              cursor.continue();
+            } else {
+              resolve(cards);
             }
-            
-            processedCount++;
-            cursor.continue();
-          } else {
-            resolve();
-          }
-        };
-        cursor.onerror = (event) => {
-          reject(new Error(`Failed to list cards: ${event.target.error?.message || 'Unknown error'}`));
-        };
+          };
+          cursor.onerror = (event) => {
+            reject(new Error(`Failed to list cards: ${event.target.error?.message || 'Unknown error'}`));
+          };
+        });
       });
-
-      return cards;
     } catch (error) {
       console.error('[Storage] List cards failed:', error);
       return [];
@@ -627,13 +628,14 @@ class PWACardStorage {
   // 設定管理
   async getSetting(key) {
     try {
-      const transaction = this.db.transaction(['settings'], 'readonly');
-      const store = transaction.objectStore('settings');
-      
-      const result = await new Promise((resolve, reject) => {
-        const request = store.get(key);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
+      const result = await this.safeTransaction(['settings'], 'readonly', async (transaction) => {
+        const store = transaction.objectStore('settings');
+        
+        return new Promise((resolve, reject) => {
+          const request = store.get(key);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
       });
 
       return result ? result.value : null;
@@ -645,13 +647,14 @@ class PWACardStorage {
 
   async setSetting(key, value) {
     try {
-      const transaction = this.db.transaction(['settings'], 'readwrite');
-      const store = transaction.objectStore('settings');
-      
-      await new Promise((resolve, reject) => {
-        const request = store.put({ key, value, updated: new Date() });
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
+      await this.safeTransaction(['settings'], 'readwrite', async (transaction) => {
+        const store = transaction.objectStore('settings');
+        
+        return new Promise((resolve, reject) => {
+          const request = store.put({ key, value, updated: new Date() });
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
       });
 
       return true;
@@ -882,6 +885,125 @@ class PWACardStorage {
     }
     
     return '';
+  }
+
+  // ===== 連線管理和監控方法 =====
+  
+  /**
+   * 設置連線監控機制
+   */
+  setupConnectionMonitoring() {
+    // 定期檢查連線狀態（每 30 秒）
+    this.connectionCheckInterval = setInterval(async () => {
+      try {
+        await this.ensureConnection();
+      } catch (error) {
+        console.error('[Storage] Connection check failed:', error);
+      }
+    }, 30000);
+    
+    // 監聽頁面可見性變化
+    document.addEventListener('visibilitychange', async () => {
+      if (!document.hidden) {
+        try {
+          await this.ensureConnection();
+        } catch (error) {
+          console.error('[Storage] Visibility change connection check failed:', error);
+        }
+      }
+    });
+  }
+  
+  /**
+   * 確保資料庫連線有效，如無效則重新建立
+   */
+  async ensureConnection() {
+    try {
+      // 檢查連線是否存在且有效
+      if (!this.db || this.db.readyState === 'closed') {
+        console.log('[Storage] Reconnecting to database...');
+        this.db = await this.openDatabase();
+        console.log('[Storage] Database reconnected successfully');
+        return true;
+      }
+      
+      // 測試連線是否可用
+      try {
+        const transaction = this.db.transaction(['settings'], 'readonly');
+        const store = transaction.objectStore('settings');
+        
+        await new Promise((resolve, reject) => {
+          const request = store.count();
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+          
+          // 設置超時
+          setTimeout(() => reject(new Error('Connection test timeout')), 5000);
+        });
+        
+        return true;
+      } catch (testError) {
+        console.warn('[Storage] Connection test failed, reconnecting...', testError);
+        this.db = await this.openDatabase();
+        return true;
+      }
+    } catch (error) {
+      console.error('[Storage] Failed to ensure connection:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 安全執行資料庫事務
+   */
+  async safeTransaction(storeNames, mode, operation) {
+    const maxRetries = 3;
+    let lastError;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // 確保連線有效
+        await this.ensureConnection();
+        
+        const transaction = this.db.transaction(storeNames, mode);
+        
+        // 設置事務超時
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Transaction timeout')), 10000);
+        });
+        
+        const operationPromise = operation(transaction);
+        
+        return await Promise.race([operationPromise, timeoutPromise]);
+      } catch (error) {
+        lastError = error;
+        console.warn(`[Storage] Transaction attempt ${attempt} failed:`, error.message);
+        
+        if (attempt < maxRetries) {
+          // 等待後重試
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          // 強制重新連線
+          this.db = null;
+        }
+      }
+    }
+    
+    throw new Error(`Transaction failed after ${maxRetries} attempts: ${lastError.message}`);
+  }
+  
+  /**
+   * 清理連線監控
+   */
+  cleanup() {
+    if (this.connectionCheckInterval) {
+      clearInterval(this.connectionCheckInterval);
+      this.connectionCheckInterval = null;
+    }
+    
+    if (this.db) {
+      this.db.close();
+      this.db = null;
+    }
   }
 
   // 工具方法

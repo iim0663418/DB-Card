@@ -2,7 +2,7 @@
   "name": "NFC 數位名片離線儲存",
   "short_name": "名片儲存",
   "description": "數位發展部 NFC 數位名片離線儲存服務",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "start_url": "/pwa-card-storage/",
   "display": "standalone",
   "orientation": "any",

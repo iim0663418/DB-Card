@@ -147,7 +147,7 @@ class CardRenderer {
     
     // 動作按鈕
     if (this.options.showActions) {
-      this.setupActionButtons(card, cardData);
+      this.setupActionButtons(card, cardData, cardType);
     }
   }
   
@@ -382,21 +382,21 @@ class CardRenderer {
   }
 
   /**
-   * 設置動作按鈕
+   * 設置動作按鈕 - 修復版本，傳遞名片類型
    */
-  setupActionButtons(card, cardData) {
+  setupActionButtons(card, cardData, cardType) {
     const vcardBtn = card.querySelector('.vcard-btn');
     const qrBtn = card.querySelector('.qr-btn');
     
     if (vcardBtn) {
       vcardBtn.addEventListener('click', () => {
-        this.generateVCard(cardData);
+        this.generateVCard(cardData, cardType);
       });
     }
     
     if (qrBtn) {
       qrBtn.addEventListener('click', () => {
-        this.generateQRCode(cardData);
+        this.generateQRCode(cardData, cardType);
       });
     }
     
@@ -590,20 +590,163 @@ class CardRenderer {
   }
 
   /**
-   * 生成 vCard
+   * 生成 vCard - 修復版本，傳遞名片類型
    */
-  generateVCard(cardData) {
+  generateVCard(cardData, cardType) {
     if (window.app && window.app.offlineTools) {
-      window.app.offlineTools.exportVCard(this.currentCard.id || 'temp');
+      // 如果有 currentCard.id，使用它；否則創建臨時名片
+      if (this.currentCard && this.currentCard.id) {
+        window.app.offlineTools.exportVCard(this.currentCard.id);
+      } else {
+        // 臨時名片處理，使用直接生成方式
+        this.generateVCardDirect(cardData, cardType);
+      }
     }
   }
 
   /**
-   * 生成 QR 碼
+   * 直接生成 vCard（用於臨時名片）
    */
-  generateQRCode(cardData) {
+  generateVCardDirect(cardData, cardType) {
+    try {
+      // 使用與 OfflineToolsManager 相同的邏輯
+      const vCardContent = this.generateVCardContent(cardData, this.options.language, cardType);
+      const blob = new Blob([vCardContent], { type: 'text/vcard;charset=utf-8' });
+      
+      const name = this.displayBilingualField(cardData.name, this.options.language) || 'card';
+      const safeFilename = `${name.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, '_')}.vcf`;
+      
+      // 下載檔案
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = safeFilename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      
+      console.log('[CardRenderer] vCard generated successfully');
+    } catch (error) {
+      console.error('[CardRenderer] vCard generation failed:', error);
+    }
+  }
+
+  /**
+   * 生成 vCard 內容（簡化版本）
+   */
+  generateVCardContent(cardData, language = 'zh', cardType = 'personal') {
+    const lines = ['BEGIN:VCARD', 'VERSION:3.0'];
+
+    // 安全字串化
+    const safeStringify = (field) => {
+      if (!field) return '';
+      if (typeof field === 'string') return field;
+      if (typeof field === 'object' && field !== null) {
+        const firstValue = Object.values(field).find(v => v && typeof v === 'string');
+        if (firstValue) return firstValue;
+        return '';
+      }
+      const stringValue = String(field);
+      return stringValue === '[object Object]' ? '' : stringValue;
+    };
+
+    // 姓名
+    const name = safeStringify(this.displayBilingualField(cardData.name, language));
+    if (name) {
+      lines.push(`FN:${name}`);
+      lines.push(`N:${name};;;;`);
+    }
+
+    // 職稱
+    const title = safeStringify(this.displayBilingualField(cardData.title, language));
+    if (title) {
+      lines.push(`TITLE:${title}`);
+    }
+
+    // 組織 - 根據名片類型
+    const organization = this.getCorrectOrganizationForCard(cardData, cardType, language);
+    if (organization) {
+      lines.push(`ORG:${organization}`);
+    }
+
+    // 聯絡資訊
+    const email = safeStringify(cardData.email);
+    if (email) {
+      lines.push(`EMAIL:${email}`);
+    }
+
+    const phone = safeStringify(cardData.phone);
+    if (phone) {
+      lines.push(`TEL:${phone}`);
+    }
+
+    const mobile = safeStringify(cardData.mobile);
+    if (mobile) {
+      lines.push(`TEL;TYPE=CELL:${mobile}`);
+    }
+
+    // 地址 - 根據名片類型
+    const address = this.getCorrectAddressForCard(cardData, cardType, language);
+    if (address) {
+      lines.push(`ADR:;;${address};;;;`);
+    }
+
+    // 頭像
+    const avatar = safeStringify(cardData.avatar);
+    if (avatar) {
+      lines.push(`PHOTO;VALUE=URL:${avatar}`);
+    }
+
+    lines.push('END:VCARD');
+    return lines.join('\r\n');
+  }
+
+  /**
+   * 獲取正確的組織名稱（用於名片渲染器）
+   */
+  getCorrectOrganizationForCard(cardData, cardType, language = 'zh') {
+    // 對於政府機關版本，強制使用預設組織名稱
+    if (cardType === 'index' || cardType === 'index1' || cardType === 'bilingual' || cardType === 'bilingual1') {
+      return language === 'en' ? 'Ministry of Digital Affairs' : '數位發展部';
+    } else if (cardType === 'en' || cardType === 'en1') {
+      return 'Ministry of Digital Affairs';
+    }
+    
+    // 個人版使用實際的組織資訊
+    return this.displayBilingualField(cardData.organization, language) || '';
+  }
+
+  /**
+   * 獲取正確的地址（用於名片渲染器）
+   */
+  getCorrectAddressForCard(cardData, cardType, language = 'zh') {
+    // 對於政府機關版本，強制使用預設地址
+    if (cardType === 'index' || cardType === 'bilingual') {
+      return language === 'en' ? 
+        '143 Yanping S. Rd., Zhongzheng Dist., Taipei City, Taiwan' :
+        '臺北市中正區延平南路143號';
+    } else if (cardType === 'index1' || cardType === 'bilingual1') {
+      return language === 'en' ? 
+        '66 Zhongxiao W. Rd. Sec. 1, Zhongzheng Dist., Taipei City, Taiwan (17F, 19F)' :
+        '臺北市中正區忠孝西路一段６６號（１７、１９樓）';
+    } else if (cardType === 'en') {
+      return '143 Yanping S. Rd., Zhongzheng Dist., Taipei City, Taiwan';
+    } else if (cardType === 'en1') {
+      return '66 Zhongxiao W. Rd. Sec. 1, Zhongzheng Dist., Taipei City, Taiwan (17F, 19F)';
+    }
+    
+    // 個人版使用實際的地址資訊
+    return this.displayBilingualField(cardData.address, language) || '';
+  }
+
+  /**
+   * 生成 QR 碼 - 修復版本，傳遞名片類型
+   */
+  generateQRCode(cardData, cardType) {
     if (window.app && window.app.cardManager) {
-      window.app.cardManager.generateQRCode(this.currentCard.id || 'temp');
+      if (this.currentCard && this.currentCard.id) {
+        window.app.cardManager.generateQRCode(this.currentCard.id);
+      } else {
+        console.log('[CardRenderer] No card ID available for QR generation');
+      }
     }
   }
 

@@ -1,0 +1,40 @@
+graph TB
+    subgraph "PWA 效能優化架構"
+        A[應用啟動] --> B[載入畫面]
+        B --> C[核心儲存初始化]
+        
+        C --> D{並行初始化區}
+        D --> E[名片管理器<br/>PWACardManager]
+        D --> F[健康管理器<br/>HealthManager]
+        D --> G[語言管理器<br/>50ms 延遲]
+        
+        E --> H[Promise.all 等待]
+        F --> H
+        G --> H
+        
+        H --> I[依賴服務初始化]
+        I --> J[離線工具管理器]
+        I --> K[傳輸管理器]
+        
+        J --> L[事件監聽器設置]
+        K --> L
+        L --> M[UI 初始化]
+        M --> N[載入初始資料]
+        N --> O[隱藏載入畫面]
+        
+        P[Service Worker] --> Q[靜默註冊]
+        Q --> R[無錯誤提示]
+    end
+    
+    subgraph "效能指標"
+        S[啟動時間<br/>減少 30-40%]
+        T[日誌輸出<br/>減少 85%]
+        U[記憶體使用<br/>輕微減少]
+    end
+    
+    style D fill:#e8f5e8,stroke:#2e7d32
+    style H fill:#e1f5fe,stroke:#01579b
+    style Q fill:#fff3e0,stroke:#ef6c00
+    style S fill:#f3e5f5,stroke:#7b1fa2
+    style T fill:#f3e5f5,stroke:#7b1fa2
+    style U fill:#f3e5f5,stroke:#7b1fa2

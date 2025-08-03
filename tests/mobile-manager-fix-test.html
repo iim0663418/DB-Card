@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Manager Fix Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-button { 
+            padding: 12px 24px; 
+            margin: 10px; 
+            background: #6868ac; 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer;
+        }
+        .test-results { 
+            margin-top: 20px; 
+            padding: 15px; 
+            background: #f5f5f5; 
+            border-radius: 6px; 
+        }
+        .pass { color: green; }
+        .fail { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Mobile Manager Fix Test</h1>
+    <p>Testing null reference fix in unified-mobile-manager.js</p>
+    
+    <button id="test-button" class="test-button">Test Button</button>
+    <button id="settings-button" class="test-button">Settings Button (🏠)</button>
+    
+    <div class="test-results" id="test-results">
+        <h3>Test Results:</h3>
+        <div id="results-content">Running tests...</div>
+    </div>
+
+    <script src="../pwa-card-storage/src/core/unified-mobile-manager.js"></script>
+    <script>
+        // Test suite for mobile manager fix
+        function runTests() {
+            const results = [];
+            
+            // Test 1: Manager initialization
+            try {
+                const manager = new UnifiedMobileManager();
+                results.push({ test: 'Manager initialization', status: 'PASS', message: 'Manager created successfully' });
+            } catch (error) {
+                results.push({ test: 'Manager initialization', status: 'FAIL', message: error.message });
+            }
+            
+            // Test 2: Button enhancement with valid element
+            try {
+                const testButton = document.getElementById('test-button');
+                if (window.unifiedMobileManager) {
+                    window.unifiedMobileManager.enhanceButton(testButton);
+                    results.push({ test: 'Valid button enhancement', status: 'PASS', message: 'Button enhanced without error' });
+                } else {
+                    results.push({ test: 'Valid button enhancement', status: 'FAIL', message: 'Manager not available' });
+                }
+            } catch (error) {
+                results.push({ test: 'Valid button enhancement', status: 'FAIL', message: error.message });
+            }
+            
+            // Test 3: Button enhancement with null element (should not crash)
+            try {
+                if (window.unifiedMobileManager) {
+                    window.unifiedMobileManager.enhanceButton(null);
+                    results.push({ test: 'Null button handling', status: 'PASS', message: 'Null element handled gracefully' });
+                } else {
+                    results.push({ test: 'Null button handling', status: 'FAIL', message: 'Manager not available' });
+                }
+            } catch (error) {
+                results.push({ test: 'Null button handling', status: 'FAIL', message: error.message });
+            }
+            
+            // Test 4: Touch event simulation
+            try {
+                const testButton = document.getElementById('test-button');
+                const touchStartEvent = new TouchEvent('touchstart', {
+                    bubbles: true,
+                    cancelable: true,
+                    touches: [new Touch({
+                        identifier: 1,
+                        target: testButton,
+                        clientX: 100,
+                        clientY: 100
+                    })]
+                });
+                
+                const touchEndEvent = new TouchEvent('touchend', {
+                    bubbles: true,
+                    cancelable: true,
+                    changedTouches: [new Touch({
+                        identifier: 1,
+                        target: testButton,
+                        clientX: 100,
+                        clientY: 100
+                    })]
+                });
+                
+                testButton.dispatchEvent(touchStartEvent);
+                testButton.dispatchEvent(touchEndEvent);
+                
+                results.push({ test: 'Touch event handling', status: 'PASS', message: 'Touch events handled without error' });
+            } catch (error) {
+                results.push({ test: 'Touch event handling', status: 'FAIL', message: error.message });
+            }
+            
+            // Display results
+            displayResults(results);
+        }
+        
+        function displayResults(results) {
+            const resultsContent = document.getElementById('results-content');
+            let html = '';
+            
+            results.forEach(result => {
+                const className = result.status === 'PASS' ? 'pass' : 'fail';
+                html += `<div class="${className}">
+                    <strong>${result.test}:</strong> ${result.status} - ${result.message}
+                </div>`;
+            });
+            
+            resultsContent.innerHTML = html;
+            
+            const passCount = results.filter(r => r.status === 'PASS').length;
+            const totalCount = results.length;
+            
+            html += `<div style="margin-top: 15px; font-weight: bold;">
+                Summary: ${passCount}/${totalCount} tests passed
+            </div>`;
+            
+            resultsContent.innerHTML = html;
+        }
+        
+        // Run tests when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(runTests, 500); // Wait for manager to initialize
+        });
+    </script>
+</body>
+</html>

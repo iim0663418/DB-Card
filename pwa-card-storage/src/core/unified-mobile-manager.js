@@ -30,23 +30,29 @@ class UnifiedMobileManager {
   }
 
   setupTouchOptimization() {
-    const touchElements = document.querySelectorAll('.btn, .nav-item, .action-card, .card-item');
-    touchElements.forEach(element => {
-      element.style.webkitTapHighlightColor = 'rgba(104, 104, 172, 0.2)';
-      element.style.webkitTouchCallout = 'none';
-      element.style.touchAction = 'manipulation';
+    try {
+      const touchElements = document.querySelectorAll('.btn, .nav-item, .action-card, .card-item');
+      touchElements.forEach(element => {
+        if (element && element.style) {
+          element.style.webkitTapHighlightColor = 'rgba(104, 104, 172, 0.2)';
+          element.style.webkitTouchCallout = 'none';
+          element.style.touchAction = 'manipulation';
+          
+          const rect = element.getBoundingClientRect();
+          if (rect.width < 48 || rect.height < 48) {
+            element.style.minWidth = '48px';
+            element.style.minHeight = '48px';
+          }
+        }
+      });
       
-      const rect = element.getBoundingClientRect();
-      if (rect.width < 48 || rect.height < 48) {
-        element.style.minWidth = '48px';
-        element.style.minHeight = '48px';
+      // Settings button 特殊處理
+      const settingsButton = document.getElementById('settings-button');
+      if (settingsButton) {
+        this.enhanceButton(settingsButton);
       }
-    });
-    
-    // Settings button 特殊處理
-    const settingsButton = document.getElementById('settings-button');
-    if (settingsButton) {
-      this.enhanceButton(settingsButton);
+    } catch (error) {
+      console.warn('[Mobile] Touch optimization setup failed:', error);
     }
   }
 
@@ -64,23 +70,37 @@ class UnifiedMobileManager {
   }
 
   enhanceButton(button) {
-    button.style.touchAction = 'manipulation';
-    button.style.webkitTapHighlightColor = 'rgba(104, 104, 172, 0.2)';
+    if (!button || !button.style) {
+      console.warn('[Mobile] Invalid button element provided to enhanceButton');
+      return;
+    }
     
-    // 確保最小觸控尺寸
-    if (button.offsetWidth < 44 || button.offsetHeight < 44) {
-      button.style.minWidth = '44px';
-      button.style.minHeight = '44px';
+    try {
+      button.style.touchAction = 'manipulation';
+      button.style.webkitTapHighlightColor = 'rgba(104, 104, 172, 0.2)';
+      
+      // 確保最小觸控尺寸
+      if (button.offsetWidth < 44 || button.offsetHeight < 44) {
+        button.style.minWidth = '44px';
+        button.style.minHeight = '44px';
+      }
+    } catch (error) {
+      console.warn('[Mobile] Button enhancement failed:', error);
+      return;
     }
 
     // 觸控回饋
     button.addEventListener('touchstart', (e) => {
-      e.currentTarget.style.opacity = '0.7';
+      if (e.currentTarget && e.currentTarget.style) {
+        e.currentTarget.style.opacity = '0.7';
+      }
     }, { passive: true });
 
     button.addEventListener('touchend', (e) => {
       setTimeout(() => {
-        e.currentTarget.style.opacity = '';
+        if (e.currentTarget && e.currentTarget.style) {
+          e.currentTarget.style.opacity = '';
+        }
       }, 150);
     }, { passive: true });
   }

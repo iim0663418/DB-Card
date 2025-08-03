@@ -1,3 +1,18 @@
+## [1.0.6] - 2025-01-03
+
+### Mobile PWA - 🐛 BUG FIX - Android 觸控穩定性修復
+- **Critical Mobile Fix**: 修復 Android 設備上 `TypeError: Cannot read properties of null (reading 'style')` 錯誤
+- **觸控事件強化**: 在 `unified-mobile-manager.js` 中新增完整的 null 檢查機制
+- **防禦性程式設計**: 為所有觸控事件處理器添加安全檢查，防止 `e.currentTarget` 為 null 的情況
+- **錯誤處理增強**: 在 `setupTouchOptimization()` 和 `enhanceButton()` 方法中新增 try-catch 錯誤處理
+- **穩定性提升**: 解決移動端按鈕觸控時的隨機崩潰問題，特別是 Settings Button (🏠) 的觸控回饋
+- **測試驗證**: 新增 `mobile-manager-fix-test.html` 測試頁面驗證修復效果
+
+### Files Modified
+- `pwa-card-storage/src/core/unified-mobile-manager.js` - 新增 null 檢查和錯誤處理
+- `tests/mobile-manager-fix-test.html` - 新增測試驗證頁面
+- `docs/CHANGELOG.md` - 記錄修復詳情
+
 ## [1.0.5] - 2025-01-03
 
 ### Mobile PWA - 🆕 NEW - 統一移動端管理

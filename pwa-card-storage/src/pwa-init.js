@@ -82,6 +82,18 @@ window.addEventListener('DOMContentLoaded', async () => {
             appVersionEl.textContent = '無法取得';
         }
     }
+    
+    // Settings Button 重置網址功能
+    const settingsButton = document.getElementById('settings-button');
+    if (settingsButton) {
+        settingsButton.addEventListener('click', () => {
+            // 清除 URL 參數，重置為首頁
+            const currentUrl = new URL(window.location);
+            currentUrl.search = '';
+            currentUrl.hash = '';
+            window.history.replaceState({}, '', currentUrl.toString());
+        });
+    }
 });
 
 // PWA 安裝按鈕初始化函數，由 app.js 調用

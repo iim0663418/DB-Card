@@ -6,41 +6,19 @@
 // PWA 支援檢查
 const isPWASupported = 'serviceWorker' in navigator && 'BeforeInstallPromptEvent' in window;
 
-// 動態修正 manifest.json 路徑
+// 動態修正 manifest.json 路徑（使用 Service Worker 方式）
 function fixManifestPaths() {
     const currentPath = window.location.pathname;
     const isGitHubPages = window.location.hostname.includes('.github.io');
-    const isCloudflarePages = window.location.hostname.includes('.pages.dev');
     
     if (isGitHubPages && currentPath.includes('/DB-Card/')) {
-        // GitHub Pages 需要完整路徑
+        // 為 GitHub Pages 設定環境變數
+        window.GITHUB_PAGES_BASE_PATH = '/DB-Card/pwa-card-storage';
+        
+        // 更新 manifest 連結為 GitHub Pages 版本
         const manifestLink = document.querySelector('link[rel="manifest"]');
         if (manifestLink) {
-            // 動態生成正確的 manifest 內容
-            fetch('./manifest.json')
-                .then(response => response.json())
-                .then(manifest => {
-                    const basePath = '/DB-Card/pwa-card-storage';
-                    manifest.start_url = basePath + '/';
-                    manifest.scope = basePath + '/';
-                    manifest.id = basePath + '/';
-                    
-                    // 更新 shortcuts
-                    manifest.shortcuts.forEach(shortcut => {
-                        shortcut.url = shortcut.url.replace('./', basePath + '/');
-                    });
-                    
-                    // 更新其他 URL
-                    manifest.protocol_handlers[0].url = manifest.protocol_handlers[0].url.replace('./', basePath + '/');
-                    manifest.share_target.action = basePath + '/';
-                    manifest.file_handlers[0].action = manifest.file_handlers[0].action.replace('./', basePath + '/');
-                    
-                    // 創建新的 manifest blob
-                    const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-                    const manifestUrl = URL.createObjectURL(manifestBlob);
-                    manifestLink.href = manifestUrl;
-                })
-                .catch(() => {});
+            manifestLink.href = './manifest-github.json';
         }
     }
 }

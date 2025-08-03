@@ -471,3 +471,59 @@ sequenceDiagram
   display: none !important; /* 強制隱藏 */
 }
 ```
+
+## D-020: PWA 部署相容性設計 🆕
+
+### 部署環境檢測架構
+
+```mermaid
+graph TB
+    A[PWA 初始化] --> B[環境檢測]
+    B --> C{GitHub Pages?}
+    C -->|Yes| D[使用 manifest-github.json]
+    C -->|No| E[使用原始 manifest.json]
+    
+    D --> F[設定完整路徑]
+    E --> G[使用相對路徑]
+    
+    F --> H[PWA 正常安裝]
+    G --> H
+    
+    style C fill:#fff3e0,stroke:#ef6c00
+    style D fill:#e8f5e8,stroke:#2e7d32
+    style E fill:#e1f5fe,stroke:#01579b
+```
+
+### 技術實作策略
+
+**環境檢測邏輯**：
+```javascript
+function fixManifestPaths() {
+    const isGitHubPages = window.location.hostname.includes('.github.io');
+    
+    if (isGitHubPages && currentPath.includes('/DB-Card/')) {
+        const manifestLink = document.querySelector('link[rel="manifest"]');
+        if (manifestLink) {
+            manifestLink.href = './manifest-github.json';
+        }
+    }
+}
+```
+
+**雙 Manifest 策略**：
+- `manifest.json`: 相對路徑，適用 Cloudflare Pages
+- `manifest-github.json`: 絕對路徑，專用 GitHub Pages
+
+### CSP 安全相容性
+
+**問題解決**：
+- 移除 blob URL 方式，避免 `manifest-src 'self'` 違規
+- 使用靜態檔案方式，符合 CSP 安全政策
+- 保持環境相容性不影響安全性
+
+### 版本管理優化
+
+**移除硬編碼問題**：
+- HTML 中不再硬編碼版本號
+- 初始化時動態從 manifest.json 讀取
+- 錯誤時顯示「無法取得」而非預設值

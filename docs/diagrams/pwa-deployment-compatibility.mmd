@@ -1,0 +1,51 @@
+```mermaid
+graph TB
+    subgraph "PWA 部署環境檢測"
+        A[PWA 初始化] --> B[檢測 hostname]
+        B --> C{GitHub Pages?}
+        B --> D{Cloudflare Pages?}
+    end
+    
+    subgraph "GitHub Pages 路徑"
+        C -->|Yes| E[使用 manifest-github.json]
+        E --> F[設定完整路徑 /DB-Card/pwa-card-storage/]
+        F --> G[PWA 正確安裝到 GitHub Pages]
+    end
+    
+    subgraph "Cloudflare Pages 路徑"
+        D -->|Yes| H[使用原始 manifest.json]
+        H --> I[使用相對路徑 ./]
+        I --> J[PWA 正確安裝到 Cloudflare Pages]
+    end
+    
+    subgraph "版本管理優化"
+        K[移除硬編碼版本] --> L[動態讀取 manifest.json]
+        L --> M{讀取成功?}
+        M -->|Yes| N[顯示實際版本號]
+        M -->|No| O[顯示「無法取得」]
+    end
+    
+    subgraph "CSP 安全相容"
+        P[避免 blob URL] --> Q[使用靜態檔案]
+        Q --> R[符合 manifest-src 'self' 政策]
+    end
+    
+    subgraph "Settings Button 功能"
+        S[點擊 Settings Button] --> T[清除 URL 參數]
+        T --> U[重置為首頁狀態]
+    end
+    
+    G --> K
+    J --> K
+    K --> P
+    P --> S
+    
+    style C fill:#fff3e0,stroke:#ef6c00
+    style E fill:#e8f5e8,stroke:#2e7d32
+    style H fill:#e1f5fe,stroke:#01579b
+    style P fill:#ffebee,stroke:#c62828
+```
+
+**版本**: v1.0.4  
+**更新理由**: 解決 PWA 在不同部署環境下的路徑相容性和 CSP 安全問題  
+**影響範圍**: PWA 安裝流程、版本管理、環境相容性

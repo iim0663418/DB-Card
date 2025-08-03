@@ -1,100 +1,65 @@
 /**
  * 統一移動端管理器
- * 整合所有移動端優化功能
+ * 整合移動端行為優化，不修改樣式
  */
 
 class UnifiedMobileManager {
   constructor() {
     this.isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth <= 768;
-    this.init();
+    this.isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+    this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    this.isAndroid = /Android/i.test(navigator.userAgent);
+    
+    if (this.isMobile) {
+      this.init();
+    }
   }
 
   init() {
-    // Mobile 優化已暫時停用以進行偵錯
-    console.log('[Mobile] Manager disabled for debugging');
-    return;
+    this.setupTouchOptimization();
+    this.setupViewportFix();
+    this.setupKeyboardHandling();
+    this.setupScrollOptimization();
+    this.preventDoubleClick();
+    
+    if (this.isSafari) {
+      this.setupSafariOptimization();
+    }
+    
+    console.log('[Mobile] Manager initialized for', this.getDeviceInfo());
   }
 
-  applyMobileStyles() {
-    const style = document.createElement('style');
-    style.id = 'unified-mobile-styles';
-    style.textContent = `
-      /* 統一移動端樣式 */
-      @media screen and (max-width: 768px) {
-        /* 觸控優化 */
-        .btn, .nav-item, .action-card, .card-item {
-          min-height: 48px;
-          min-width: 48px;
-          -webkit-tap-highlight-color: transparent;
-          touch-action: manipulation;
-        }
-        
-        /* Settings Button 專門修復 */
-        #settings-button {
-          touch-action: manipulation !important;
-          -webkit-tap-highlight-color: rgba(104, 104, 172, 0.3) !important;
-          cursor: pointer !important;
-          position: relative !important;
-          z-index: 1000 !important;
-          min-width: 48px !important;
-          min-height: 48px !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-        }
-        
-        #settings-button .icon {
-          pointer-events: none;
-          user-select: none;
-        }
-        
-        /* 統計卡片優化 */
-        .stat-card {
-          touch-action: none;
-          -webkit-tap-highlight-color: transparent;
-        }
-        
-        .stat-card .stat-number,
-        .stat-card .stat-label {
-          pointer-events: none;
-          user-select: none;
-        }
-        
-        /* 文字處理 */
-        .card-item .card-name,
-        .card-item .card-title,
-        .card-item .card-department,
-        .card-item .card-email,
-        .card-item .card-phone {
-          word-break: break-word;
-          overflow-wrap: break-word;
-          max-width: 100%;
-          white-space: normal;
-        }
-        
-        /* 安全區域支援 */
-        .app-header {
-          padding-top: max(1.25rem, env(safe-area-inset-top, 0px));
-        }
-        
-        .app-footer {
-          padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
-        }
+  setupTouchOptimization() {
+    const touchElements = document.querySelectorAll('.btn, .nav-item, .action-card, .card-item');
+    touchElements.forEach(element => {
+      element.style.webkitTapHighlightColor = 'rgba(104, 104, 172, 0.2)';
+      element.style.webkitTouchCallout = 'none';
+      element.style.touchAction = 'manipulation';
+      
+      const rect = element.getBoundingClientRect();
+      if (rect.width < 48 || rect.height < 48) {
+        element.style.minWidth = '48px';
+        element.style.minHeight = '48px';
       }
-    `;
-    document.head.appendChild(style);
-  }
-
-  fixTouchTargets() {
-    // Settings Button 特殊處理
+    });
+    
+    // Settings button 特殊處理
     const settingsButton = document.getElementById('settings-button');
     if (settingsButton) {
       this.enhanceButton(settingsButton);
     }
+  }
 
-    // 其他按鈕
-    document.querySelectorAll('.btn, .btn-icon, .nav-item').forEach(button => {
-      this.enhanceButton(button);
+  setupViewportFix() {
+    const setViewportHeight = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+    
+    setViewportHeight();
+    window.addEventListener('resize', setViewportHeight);
+    window.addEventListener('orientationchange', () => {
+      setTimeout(setViewportHeight, 100);
     });
   }
 
@@ -120,10 +85,33 @@ class UnifiedMobileManager {
     }, { passive: true });
   }
 
-  setupEventHandlers() {
-    // Settings Button 事件處理已移至 app.js 統一管理
-    // 移除重複的事件監聽器以避免衝突
-    console.log('[Mobile] Settings button handling delegated to app.js');
+  setupKeyboardHandling() {
+    let initialViewportHeight = window.innerHeight;
+    
+    window.addEventListener('resize', () => {
+      const currentHeight = window.innerHeight;
+      const heightDifference = initialViewportHeight - currentHeight;
+      
+      if (heightDifference > 150) {
+        document.documentElement.classList.add('keyboard-open');
+      } else {
+        document.documentElement.classList.remove('keyboard-open');
+      }
+    });
+    
+    const inputs = document.querySelectorAll('input, textarea, select');
+    inputs.forEach(input => {
+      input.addEventListener('focus', () => {
+        setTimeout(() => {
+          const rect = input.getBoundingClientRect();
+          const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+          
+          if (!isVisible) {
+            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 300);
+      });
+    });
   }
 
   preventDoubleClick() {
@@ -137,19 +125,47 @@ class UnifiedMobileManager {
     }, { passive: false });
   }
 
-  // 診斷方法
+  setupScrollOptimization() {
+    const scrollElements = document.querySelectorAll('.main-content, .cards-list, .modal-content');
+    scrollElements.forEach(element => {
+      element.style.webkitOverflowScrolling = 'touch';
+      element.style.overscrollBehavior = 'contain';
+    });
+    
+    document.body.addEventListener('touchmove', (e) => {
+      if (e.target === document.body) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+  }
+  
+  setupSafariOptimization() {
+    document.body.style.webkitFontSmoothing = 'antialiased';
+    
+    const inputs = document.querySelectorAll('input, textarea, select');
+    inputs.forEach(input => {
+      input.style.fontSize = '16px';
+      input.style.webkitTextSizeAdjust = '100%';
+    });
+  }
+  
+  getDeviceInfo() {
+    return {
+      isMobile: this.isMobile,
+      isSafari: this.isSafari,
+      isIOS: this.isIOS,
+      isAndroid: this.isAndroid,
+      viewport: { width: window.innerWidth, height: window.innerHeight }
+    };
+  }
+  
   diagnose() {
     const settingsButton = document.getElementById('settings-button');
     return {
-      isMobile: this.isMobile,
+      ...this.getDeviceInfo(),
       settingsButton: {
         exists: !!settingsButton,
-        touchAction: settingsButton ? getComputedStyle(settingsButton).touchAction : null,
-        zIndex: settingsButton ? getComputedStyle(settingsButton).zIndex : null
-      },
-      viewport: {
-        width: window.innerWidth,
-        height: window.innerHeight
+        touchAction: settingsButton ? getComputedStyle(settingsButton).touchAction : null
       }
     };
   }

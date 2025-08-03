@@ -176,15 +176,8 @@ class PWACardApp {
           e.preventDefault();
           e.stopPropagation();
           
-          // 診斷資訊
-          const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth <= 768;
-          console.log('[PWA] Settings button clicked:', {
-            isMobile,
-            userAgent: navigator.userAgent,
-            windowWidth: window.innerWidth,
-            eventType: e.type
-          });
-          
+          // 清除 URL 參數
+          this.clearUrlParams();
           this.navigateTo('home');
         } catch (error) {
           console.error('[PWA] Settings button navigation failed:', error);
@@ -1457,6 +1450,17 @@ class PWACardApp {
   }
 
 
+
+  clearUrlParams() {
+    try {
+      const url = new URL(window.location);
+      url.search = '';
+      url.hash = '';
+      window.history.replaceState({}, document.title, url.pathname);
+    } catch (error) {
+      console.error('[PWA] Clear URL params failed:', error);
+    }
+  }
 
   debounce(func, wait) {
     let timeout;

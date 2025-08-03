@@ -10,12 +10,9 @@ class UnifiedMobileManager {
   }
 
   init() {
-    if (!this.isMobile) return;
-    
-    this.applyMobileStyles();
-    this.fixTouchTargets();
-    this.setupEventHandlers();
-    this.preventDoubleClick();
+    // Mobile 優化已暫時停用以進行偵錯
+    console.log('[Mobile] Manager disabled for debugging');
+    return;
   }
 
   applyMobileStyles() {

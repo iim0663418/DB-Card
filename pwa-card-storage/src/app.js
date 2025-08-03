@@ -171,8 +171,24 @@ class PWACardApp {
     
     const settingsButton = document.getElementById('settings-button');
     if (settingsButton) {
-      settingsButton.addEventListener('click', () => {
-        this.navigateTo('home');
+      settingsButton.addEventListener('click', (e) => {
+        try {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          // 診斷資訊
+          const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth <= 768;
+          console.log('[PWA] Settings button clicked:', {
+            isMobile,
+            userAgent: navigator.userAgent,
+            windowWidth: window.innerWidth,
+            eventType: e.type
+          });
+          
+          this.navigateTo('home');
+        } catch (error) {
+          console.error('[PWA] Settings button navigation failed:', error);
+        }
       });
     }
     
@@ -388,37 +404,50 @@ class PWACardApp {
 
 
   navigateTo(page) {
-    document.querySelectorAll('.nav-item').forEach(item => {
-      item.classList.remove('active');
-    });
-    document.querySelector(`[data-page="${page}"]`)?.classList.add('active');
+    try {
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      document.querySelector(`[data-page="${page}"]`)?.classList.add('active');
 
-    document.querySelectorAll('.page').forEach(p => {
-      p.classList.remove('active');
-    });
-    document.getElementById(`page-${page}`)?.classList.add('active');
+      document.querySelectorAll('.page').forEach(p => {
+        p.classList.remove('active');
+      });
+      document.getElementById(`page-${page}`)?.classList.add('active');
 
-    this.currentPage = page;
-    this.initializePage(page);
+      this.currentPage = page;
+      this.initializePage(page);
+    } catch (error) {
+      console.error('[PWA] Navigation failed:', error);
+      // 不顯示錯誤通知，因為這是內部導航問題
+    }
   }
 
   async initializePage(page) {
-    switch (page) {
-      case 'home':
-        await this.updateStats();
-        break;
-      case 'cards':
-        await this.initializeCardsList();
-        break;
-      case 'import':
-        const urlInput = document.getElementById('import-url');
-        if (urlInput) urlInput.value = '';
-        break;
-      case 'export':
-        document.getElementById('export-all').checked = true;
-        document.getElementById('export-versions').checked = false;
-        document.getElementById('export-encrypt').checked = false;
-        break;
+    try {
+      switch (page) {
+        case 'home':
+          await this.updateStats();
+          break;
+        case 'cards':
+          await this.initializeCardsList();
+          break;
+        case 'import':
+          const urlInput = document.getElementById('import-url');
+          if (urlInput) urlInput.value = '';
+          break;
+        case 'export':
+          const exportAll = document.getElementById('export-all');
+          const exportVersions = document.getElementById('export-versions');
+          const exportEncrypt = document.getElementById('export-encrypt');
+          if (exportAll) exportAll.checked = true;
+          if (exportVersions) exportVersions.checked = false;
+          if (exportEncrypt) exportEncrypt.checked = false;
+          break;
+      }
+    } catch (error) {
+      console.error(`[PWA] Page initialization failed for ${page}:`, error);
+      // 不顯示錯誤通知，因為這是內部初始化問題
     }
   }
 
@@ -1450,14 +1479,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
 window.addEventListener('error', (event) => {
   console.error('[PWA] Global error:', event.error);
-  if (app) {
+  
+  // 過濾內部導航和初始化錯誤，避免顯示不必要的通知
+  const errorMessage = event.error?.message || '';
+  const isInternalError = errorMessage.includes('Navigation') || 
+                         errorMessage.includes('Page initialization') ||
+                         errorMessage.includes('Settings button') ||
+                         event.filename?.includes('app.js') ||
+                         event.filename?.includes('unified-mobile-manager.js');
+  
+  if (app && !isInternalError) {
     app.showNotification('發生未預期的錯誤', 'error');
   }
 });
 
 window.addEventListener('unhandledrejection', (event) => {
   console.error('[PWA] Unhandled promise rejection:', event.reason);
-  if (app) {
+  
+  // 過濾內部 Promise 錯誤
+  const reason = event.reason?.message || event.reason || '';
+  const isInternalError = String(reason).includes('Navigation') || 
+                         String(reason).includes('Page initialization');
+  
+  if (app && !isInternalError) {
     app.showNotification('操作失敗', 'error');
   }
 });

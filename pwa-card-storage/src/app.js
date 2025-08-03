@@ -90,9 +90,13 @@ class PWACardApp {
 
   setupEventListeners() {
     document.querySelectorAll('.nav-item').forEach(item => {
-      item.addEventListener('click', (e) => {
+      item.addEventListener('click', async (e) => {
         const page = e.currentTarget.dataset.page;
-        this.navigateTo(page);
+        try {
+          await this.navigateTo(page);
+        } catch (error) {
+          console.error(`[PWA] Navigation to ${page} failed:`, error);
+        }
       });
     });
 
@@ -171,10 +175,22 @@ class PWACardApp {
     
     const settingsButton = document.getElementById('settings-button');
     if (settingsButton) {
-      settingsButton.addEventListener('click', (e) => {
+      settingsButton.addEventListener('click', async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        this.clearUrlParams();
+        try {
+          await this.clearUrlParams();
+        } catch (error) {
+          console.error('[PWA] Settings button handler failed:', error);
+          // 備用方案：直接導航到首頁
+          try {
+            await this.navigateTo('home');
+            this.showNotification('已返回首頁', 'success');
+          } catch (fallbackError) {
+            console.error('[PWA] Settings button fallback failed:', fallbackError);
+            this.showNotification('Home 鍵功能異常', 'error');
+          }
+        }
       });
     }
     
@@ -201,7 +217,10 @@ class PWACardApp {
       });
     }
     
-    this.navigateTo('home');
+    // 初始化時導航到首頁
+    this.navigateTo('home').catch(error => {
+      console.error('[PWA] Initial navigation failed:', error);
+    });
     this.handleUrlParams();
   }
   
@@ -263,7 +282,9 @@ class PWACardApp {
         this.importFromUrlData(data);
       }, 1000); // 等待初始化完成
     } else if (action === 'browse') {
-      this.navigateTo('cards');
+      this.navigateTo('cards').catch(error => {
+        console.error('[PWA] Browse navigation failed:', error);
+      });
     }
   }
   
@@ -312,7 +333,7 @@ class PWACardApp {
           window.PWAIntegration?.manualClearContext();
           
           await this.updateStats();
-          this.navigateTo('cards');
+          await this.navigateTo('cards');
         } catch (storeError) {
           this.showNotification(`儲存失敗: ${storeError.message}`, 'error');
         }
@@ -390,7 +411,7 @@ class PWACardApp {
   
 
 
-  navigateTo(page) {
+  async navigateTo(page) {
     try {
       document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.remove('active');
@@ -403,7 +424,14 @@ class PWACardApp {
       document.getElementById(`page-${page}`)?.classList.add('active');
 
       this.currentPage = page;
-      this.initializePage(page);
+      
+      // 正確處理異步頁面初始化
+      try {
+        await this.initializePage(page);
+      } catch (initError) {
+        console.error(`[PWA] Page initialization failed for ${page}:`, initError);
+        // 頁面初始化失敗不影響導航本身
+      }
     } catch (error) {
       console.error('[PWA] Navigation failed:', error);
       // 不顯示錯誤通知，因為這是內部導航問題
@@ -441,14 +469,14 @@ class PWACardApp {
   async handleQuickAction(action) {
     switch (action) {
       case 'add-card':
-        this.navigateTo('import');
+        await this.navigateTo('import');
         break;
 
       case 'import-file':
         document.getElementById('import-file')?.click();
         break;
       case 'backup-all':
-        this.navigateTo('export');
+        await this.navigateTo('export');
         break;
     }
   }
@@ -1445,7 +1473,7 @@ class PWACardApp {
 
 
 
-  clearUrlParams() {
+  async clearUrlParams() {
     try {
       // 方法1: 使用 history.replaceState 清除參數
       const currentUrl = new URL(window.location);
@@ -1453,15 +1481,15 @@ class PWACardApp {
       currentUrl.hash = '';
       window.history.replaceState({}, '', currentUrl.toString());
       
-      // 方法2: 導航到首頁
-      this.navigateTo('home');
+      // 方法2: 正確處理異步導航到首頁
+      await this.navigateTo('home');
       
       this.showNotification('已返回首頁', 'success');
     } catch (error) {
       console.error('[PWA] Clear URL params failed:', error);
       // 備用方案：直接導航到首頁
       try {
-        this.navigateTo('home');
+        await this.navigateTo('home');
         this.showNotification('已返回首頁', 'success');
       } catch (fallbackError) {
         console.error('[PWA] Fallback navigation failed:', fallbackError);
@@ -1497,6 +1525,8 @@ window.addEventListener('error', (event) => {
   const isInternalError = errorMessage.includes('Navigation') || 
                          errorMessage.includes('Page initialization') ||
                          errorMessage.includes('Settings button') ||
+                         errorMessage.includes('Clear URL params') ||
+                         errorMessage.includes('Home 鍵') ||
                          event.filename?.includes('app.js') ||
                          event.filename?.includes('unified-mobile-manager.js');
   
@@ -1511,7 +1541,10 @@ window.addEventListener('unhandledrejection', (event) => {
   // 過濾內部 Promise 錯誤
   const reason = event.reason?.message || event.reason || '';
   const isInternalError = String(reason).includes('Navigation') || 
-                         String(reason).includes('Page initialization');
+                         String(reason).includes('Page initialization') ||
+                         String(reason).includes('Settings button') ||
+                         String(reason).includes('Clear URL params') ||
+                         String(reason).includes('Home 鍵');
   
   if (app && !isInternalError) {
     app.showNotification('操作失敗', 'error');

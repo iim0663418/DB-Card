@@ -3,7 +3,7 @@
   "short_name": "名片儲存",
   "description": "數位發展部 NFC 數位名片離線儲存服務",
   "version": "1.0.4",
-  "start_url": "/pwa-card-storage/",
+  "start_url": "./",
   "display": "standalone",
   "orientation": "any",
   "theme_color": "#1976d2",
@@ -27,27 +27,27 @@
       "name": "匯入名片",
       "short_name": "匯入",
       "description": "快速匯入新的數位名片",
-      "url": "/pwa-card-storage/?action=import"
+      "url": "./?action=import"
     },
     {
       "name": "瀏覽名片",
       "short_name": "瀏覽",
       "description": "瀏覽已儲存的名片",
-      "url": "/pwa-card-storage/?action=browse"
+      "url": "./?action=browse"
     },
     {
       "name": "匯出備份",
       "short_name": "備份",
       "description": "匯出名片備份檔案",
-      "url": "/pwa-card-storage/?action=export"
+      "url": "./?action=export"
     }
   ],
   
   "related_applications": [],
   "prefer_related_applications": false,
   
-  "scope": "/pwa-card-storage/",
-  "id": "/pwa-card-storage/",
+  "scope": "./",
+  "id": "./",
   
   "launch_handler": {
     "client_mode": "focus-existing"
@@ -58,12 +58,12 @@
   "protocol_handlers": [
     {
       "protocol": "web+nfccard",
-      "url": "/pwa-card-storage/?data=%s"
+      "url": "./?data=%s"
     }
   ],
   
   "share_target": {
-    "action": "/pwa-card-storage/",
+    "action": "./",
     "method": "GET",
     "enctype": "application/x-www-form-urlencoded",
     "params": {
@@ -75,7 +75,7 @@
   
   "file_handlers": [
     {
-      "action": "/pwa-card-storage/?import=file",
+      "action": "./?import=file",
       "accept": {
         "application/json": [".json"],
         "text/vcard": [".vcf"],

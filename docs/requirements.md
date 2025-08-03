@@ -289,6 +289,7 @@ status: "✅ Phase 1 Complete, Phase 2-4 Planned"
 | R-016 | 微前端架構準備 | D-016 | PWA-27 | 🔄 計劃中 |
 | R-017 | 效能監控與分析 | D-017 | PWA-28 | 🔄 計劃中 |
 | R-018 | 漸進式載入優化 | D-018 | PWA-29 | 🔄 計劃中 |
+| R-019 | Mobile 觸控優化 | D-019 | PWA-30 | ✅ 完成 |
 
 ### R-010: 版本自動化管理 🆕 NEW
 **需求描述**：應用版本號與 manifest.json 自動同步，避免手動維護多處版本資訊
@@ -428,6 +429,25 @@ status: "✅ Phase 1 Complete, Phase 2-4 Planned"
 - Then 首屏內容在 1.5 秒內可見
 - And 關鍵功能在 2 秒內可交互
 - And 載入過程提供流暢的視覺回饋
+### R-019: Mobile 觸控優化 🆕 NEW
+**需求描述**：解決 Mobile 設備上 Settings Button (🏠) 和統計卡片的觸控問題
+**優先級**：Critical
+**技術實作**：
+- 統一 Mobile 樣式管理：`unified-mobile-rwd.css`
+- 移除干擾觸控的 CSS 屬性：`user-select: none`, `transform: translateZ(0)`
+- 實作事件隔離機制：`pointer-events: none` 給統計卡片內容
+- 設計系統對齊：使用 `--md-primary-2` 官方色彩變數
+
+**Acceptance Criteria**：
+- ✅ Given Mobile 設備用戶點擊 Settings Button (🏠)
+- ✅ When 觸發觸控事件
+- ✅ Then 正常導航至首頁
+- ✅ And 提供適當的觸控回饋效果
+- ✅ Given 用戶查看應用版本統計卡片
+- ✅ When 觸摸統計卡片區域
+- ✅ Then 不發生意外的滾動或事件干擾
+- ✅ And 版本資訊正確顯示
+
 ## 7. 後續優化階段路線圖
 
 ### Phase 2 (v1.1.0) - 模組化與監控

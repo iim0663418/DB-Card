@@ -23,13 +23,21 @@
 - 建立版本更新和回滾策略
 - 完成架構風險評估和緩解措施
 
+### Mobile
+- **觸控優化**：修復 Settings Button (🏠) 在 Mobile 設備上的觸控問題
+- **統計卡片優化**：防止統計卡片區域的事件干擾和意外滾動
+- **設計系統對齊**：使用 `--md-primary-2` 官方色彩變數
+- **統一樣式管理**：新增 `unified-mobile-rwd.css` 統一處理 Mobile 問題
+
 ### Files Modified
 - `pwa-card-storage/manifest.json` - 版本號更新至 v1.0.4
 - `pwa-card-storage/src/app.js` - 並行初始化實作
 - `pwa-card-storage/src/core/language-manager.js` - 初始化時間優化
 - `pwa-card-storage/src/pwa-init.js` - PWA 安裝提示修復
-- `docs/design.md` - 完整架構設計更新
-- `docs/requirements.md` - 新增效能優化需求
+- `pwa-card-storage/assets/styles/unified-mobile-rwd.css` - Mobile 觸控優化
+- `docs/design.md` - 完整架構設計更新 + Mobile 觸控設計
+- `docs/requirements.md` - 新增效能優化需求 + Mobile 觸控需求
+- `docs/diagrams/mobile-touch-optimization.mmd` - Mobile 觸控優化架構圖
 
 ## [1.0.3] - 2024-12-20
 

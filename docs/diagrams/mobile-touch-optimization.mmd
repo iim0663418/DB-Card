@@ -1,0 +1,49 @@
+```mermaid
+graph TB
+    subgraph "Mobile 觸控問題診斷"
+        A[Settings Button 失效] --> B[統計卡片干擾]
+        A --> C[版本顯示異常]
+    end
+    
+    subgraph "問題根源分析"
+        D[user-select: none 干擾] --> E[transform: translateZ(0) 影響]
+        E --> F[缺少事件隔離機制]
+    end
+    
+    subgraph "unified-mobile-rwd.css 解決方案"
+        G[.btn-icon 觸控修復] --> H[touch-action: manipulation]
+        G --> I[官方色彩變數 --md-primary-2]
+        
+        J[.stat-card 優化] --> K[touch-action: none]
+        J --> L[pointer-events: none 隔離]
+        
+        M[效能優化] --> N[移除干擾 transform]
+        M --> O[backface-visibility 保留]
+    end
+    
+    subgraph "設計系統對齊"
+        P[CSS 變數使用] --> Q[--md-primary-2 觸控回饋]
+        P --> R[向下相容 fallback]
+        P --> S[數位發展部官方色彩]
+    end
+    
+    A --> D
+    B --> D
+    C --> D
+    
+    D --> G
+    E --> J
+    F --> M
+    
+    G --> P
+    J --> P
+    M --> P
+    
+    style A fill:#ffebee,stroke:#c62828
+    style G fill:#e8f5e8,stroke:#2e7d32
+    style P fill:#e1f5fe,stroke:#01579b
+```
+
+**版本**: v1.0.4  
+**更新理由**: 統一 Mobile 觸控問題解決方案，確保架構清晰和職責分離  
+**影響範圍**: PWA Mobile 用戶體驗優化

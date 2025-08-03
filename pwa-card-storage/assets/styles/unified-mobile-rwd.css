@@ -46,10 +46,15 @@
   .card-item {
     min-height: 48px;
     min-width: 48px;
-    -webkit-tap-highlight-color: rgba(104, 104, 172, 0.2);
+    -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
+  }
+  
+  /* 特殊按鈕觸控修復 */
+  .btn-icon {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: var(--md-primary-2, rgba(104, 104, 172, 0.1));
+    cursor: pointer;
   }
   
   /* 滾動優化 */
@@ -92,6 +97,12 @@
   .stats-grid {
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 0.75rem;
+  }
+  
+  /* 統計卡片觸控優化 */
+  .stat-card {
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
   }
   
   .action-grid {
@@ -380,12 +391,22 @@
 @media screen and (max-width: 768px) {
   .action-card,
   .card-item,
-  .btn,
   .modal-content,
   .notification {
-    transform: translateZ(0);
     backface-visibility: hidden;
     will-change: transform;
+  }
+  
+  /* 按鈕效能優化（移除干擾的 transform 和 user-select） */
+  .btn {
+    backface-visibility: hidden;
+  }
+  
+  /* 統計卡片觸控優化 */
+  .stat-card .stat-number,
+  .stat-card .stat-label {
+    pointer-events: none;
+    user-select: none;
   }
   
   .cards-list {

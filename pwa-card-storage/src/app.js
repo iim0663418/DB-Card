@@ -1455,8 +1455,7 @@ class PWACardApp {
   clearUrlParams() {
     try {
       if (window.location.search || window.location.hash) {
-        const cleanUrl = window.location.origin + window.location.pathname;
-        window.location.replace(cleanUrl);
+        window.location.href = window.location.pathname;
       }
     } catch (error) {
       console.error('[PWA] Clear URL params failed:', error);

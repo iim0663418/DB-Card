@@ -430,13 +430,15 @@ status: "✅ Phase 1 Complete, Phase 2-4 Planned"
 - And 關鍵功能在 2 秒內可交互
 - And 載入過程提供流暢的視覺回饋
 ### R-019: Mobile 觸控優化 🆕 NEW
-**需求描述**：解決 Mobile 設備上 Settings Button (🏠) 和統計卡片的觸控問題
+**需求描述**：解決 Mobile 設備上 Settings Button (🏠) 和統計卡片的觸控問題，同時修復卡片文字超出範圍問題
 **優先級**：Critical
 **技術實作**：
-- 統一 Mobile 樣式管理：`unified-mobile-rwd.css`
-- 移除干擾觸控的 CSS 屬性：`user-select: none`, `transform: translateZ(0)`
-- 實作事件隔離機制：`pointer-events: none` 給統計卡片內容
-- 設計系統對齊：使用 `--md-primary-2` 官方色彩變數
+- **統一 Mobile 樣式管理**：`unified-mobile-rwd.css` 專責 Mobile 特有問題
+- **觸控優化**：移除干擾觸控的 CSS 屬性，使用官方色彩變數
+- **文字處理**：實作 `word-break: break-word` 和 `overflow-wrap: break-word`
+- **事件隔離**：`pointer-events: none` 給統計卡片內容
+- **設計系統對齊**：使用 `--md-primary-2` 官方色彩變數
+- **架構清晰**：移除與原始 RWD 設計衝突的部分
 
 **Acceptance Criteria**：
 - ✅ Given Mobile 設備用戶點擊 Settings Button (🏠)
@@ -447,6 +449,10 @@ status: "✅ Phase 1 Complete, Phase 2-4 Planned"
 - ✅ When 觸摸統計卡片區域
 - ✅ Then 不發生意外的滾動或事件干擾
 - ✅ And 版本資訊正確顯示
+- ✅ Given 卡片內容包含長文字（Email、姓名、職稱）
+- ✅ When 在 Mobile 設備上顯示
+- ✅ Then 文字自動換行不超出容器範圍
+- ✅ And 保持文字可讀性和版面美觀
 
 ## 7. 後續優化階段路線圖
 

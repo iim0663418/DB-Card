@@ -1,47 +1,50 @@
 ```mermaid
 graph TB
-    subgraph "Mobile 觸控問題診斷"
+    subgraph "Mobile 問題診斷"
         A[Settings Button 失效] --> B[統計卡片干擾]
-        A --> C[版本顯示異常]
+        A --> C[卡片文字超出範圍]
+        B --> D[與原始 RWD 衝突]
     end
     
-    subgraph "問題根源分析"
-        D[user-select: none 干擾] --> E[transform: translateZ(0) 影響]
-        E --> F[缺少事件隔離機制]
+    subgraph "精修前問題"
+        E[重複樣式定義] --> F[衝突的 CSS 屬性]
+        F --> G[200+ 行凗餘代碼]
     end
     
-    subgraph "unified-mobile-rwd.css 解決方案"
-        G[.btn-icon 觸控修復] --> H[touch-action: manipulation]
-        G --> I[官方色彩變數 --md-primary-2]
+    subgraph "精修後 unified-mobile-rwd.css"
+        H[核心觸控優化] --> I[.btn-icon 修復]
+        H --> J[.stat-card 優化]
         
-        J[.stat-card 優化] --> K[touch-action: none]
-        J --> L[pointer-events: none 隔離]
+        K[文字處理優化] --> L[word-break: break-word]
+        K --> M[長文字特殊處理]
         
-        M[效能優化] --> N[移除干擾 transform]
-        M --> O[backface-visibility 保留]
+        N[架構清晰化] --> O[移除衝突樣式]
+        N --> P[職責分離明確]
     end
     
-    subgraph "設計系統對齊"
-        P[CSS 變數使用] --> Q[--md-primary-2 觸控回饋]
-        P --> R[向下相容 fallback]
-        P --> S[數位發展部官方色彩]
+    subgraph "設計系統整合"
+        Q[CSS 變數使用] --> R[--md-primary-2 觸控回饋]
+        Q --> S[向下相容 fallback]
+        Q --> T[數位發展部官方色彩]
     end
     
-    A --> D
-    B --> D
-    C --> D
+    A --> E
+    B --> E
+    C --> E
+    D --> E
     
-    D --> G
-    E --> J
-    F --> M
+    E --> H
+    F --> K
+    G --> N
     
-    G --> P
-    J --> P
-    M --> P
+    H --> Q
+    K --> Q
+    N --> Q
     
     style A fill:#ffebee,stroke:#c62828
-    style G fill:#e8f5e8,stroke:#2e7d32
-    style P fill:#e1f5fe,stroke:#01579b
+    style E fill:#fff3e0,stroke:#ef6c00
+    style H fill:#e8f5e8,stroke:#2e7d32
+    style Q fill:#e1f5fe,stroke:#01579b
 ```
 
 **版本**: v1.0.4  

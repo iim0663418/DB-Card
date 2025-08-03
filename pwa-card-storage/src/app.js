@@ -172,16 +172,9 @@ class PWACardApp {
     const settingsButton = document.getElementById('settings-button');
     if (settingsButton) {
       settingsButton.addEventListener('click', (e) => {
-        try {
-          e.preventDefault();
-          e.stopPropagation();
-          
-          // 清除 URL 參數
-          this.clearUrlParams();
-          this.navigateTo('home');
-        } catch (error) {
-          console.error('[PWA] Settings button navigation failed:', error);
-        }
+        e.preventDefault();
+        e.stopPropagation();
+        this.clearUrlParams();
       });
     }
     
@@ -1454,9 +1447,26 @@ class PWACardApp {
 
   clearUrlParams() {
     try {
-      window.location.assign('./index.html');
+      // 方法1: 使用 history.replaceState 清除參數
+      const currentUrl = new URL(window.location);
+      currentUrl.search = '';
+      currentUrl.hash = '';
+      window.history.replaceState({}, '', currentUrl.toString());
+      
+      // 方法2: 導航到首頁
+      this.navigateTo('home');
+      
+      this.showNotification('已返回首頁', 'success');
     } catch (error) {
       console.error('[PWA] Clear URL params failed:', error);
+      // 備用方案：直接導航到首頁
+      try {
+        this.navigateTo('home');
+        this.showNotification('已返回首頁', 'success');
+      } catch (fallbackError) {
+        console.error('[PWA] Fallback navigation failed:', fallbackError);
+        this.showNotification('導航失敗', 'error');
+      }
     }
   }
 

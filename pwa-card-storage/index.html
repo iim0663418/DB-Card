@@ -18,10 +18,10 @@
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
       script-src 'self' https://unpkg.com 'unsafe-inline';
-      style-src 'self' https://fonts.googleapis.com;
+      style-src 'self' https://fonts.googleapis.com 'unsafe-inline';
       font-src 'self' https://fonts.gstatic.com;
       img-src 'self' data: https:;
-      connect-src 'self';
+      connect-src 'self' https:;
       worker-src 'self';
       manifest-src 'self';
       object-src 'none';
@@ -263,6 +263,9 @@
     <!-- moda Integration (Disabled) -->
     <!-- <script src="src/core/moda-integration.js"></script> -->
     
+    <!-- Unified Manifest Manager (最優先載入) -->
+    <script src="src/core/unified-manifest-manager.js"></script>
+    
     <!-- Security -->
     <script src="../src/security/SecurityInputHandler.js"></script>
     <script src="../src/security/SecurityDataHandler.js"></script>
@@ -274,6 +277,9 @@
     
     <!-- Language Manager -->
     <script src="src/core/language-manager.js"></script>
+    
+    <!-- Mobile Diagnostic (開發用) -->
+    <script src="src/utils/mobile-diagnostic.js"></script>
 
     <!-- <script src="src/integration/legacy-adapter.js"></script>
     <script src="src/integration/bilingual-bridge.js"></script> -->

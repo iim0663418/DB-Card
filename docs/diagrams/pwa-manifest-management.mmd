@@ -1,0 +1,23 @@
+graph TD
+    A[PWA 應用啟動] --> B[UnifiedManifestManager 初始化]
+    B --> C{檢測部署環境}
+    C -->|GitHub Pages| D[載入 manifest-github.json]
+    C -->|其他環境| E[載入 manifest.json]
+    D --> F[解析 Manifest 資料]
+    E --> F
+    F --> G{載入成功?}
+    G -->|是| H[更新版本顯示]
+    G -->|否| I[使用備用 Manifest]
+    I --> H
+    H --> J[設置診斷工具]
+    J --> K[PWA 就緒]
+    
+    L[移動端診斷] --> M[showManifestDiagnostic()]
+    M --> N[收集環境資訊]
+    N --> O[測試 Manifest URLs]
+    O --> P[生成診斷報告]
+    
+    style B fill:#e1f5fe
+    style F fill:#f3e5f5
+    style H fill:#e8f5e8
+    style P fill:#fff3e0

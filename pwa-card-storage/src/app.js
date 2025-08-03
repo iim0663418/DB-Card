@@ -453,10 +453,10 @@ class PWACardApp {
       if (totalCardsEl) totalCardsEl.textContent = stats.totalCards || 0;
       if (storageUsedEl) storageUsedEl.textContent = `${stats.storageUsedPercent || 0}%`;
       
-      // 更新應用版本顯示（從 manifest.json 讀取）
+      // 更新應用版本顯示
       const appVersionEl = document.getElementById('app-version');
-      if (appVersionEl) {
-        this.loadAppVersion(appVersionEl);
+      if (appVersionEl && window.manifestManager) {
+        appVersionEl.textContent = `v${window.manifestManager.getVersion()}`;
       }
 
       const storageStatus = document.getElementById('storage-status');
@@ -1427,18 +1427,7 @@ class PWACardApp {
     }
   }
 
-  /**
-   * 讀取應用版本（從 manifest.json）
-   */
-  async loadAppVersion(element) {
-    try {
-      const response = await fetch('./manifest.json');
-      const manifest = await response.json();
-      element.textContent = `v${manifest.version || '1.0.0'}`;
-    } catch (error) {
-      element.textContent = 'v1.0.2'; // 備用版本
-    }
-  }
+
 
   debounce(func, wait) {
     let timeout;

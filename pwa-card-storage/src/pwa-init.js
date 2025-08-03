@@ -6,25 +6,7 @@
 // PWA 支援檢查
 const isPWASupported = 'serviceWorker' in navigator && 'BeforeInstallPromptEvent' in window;
 
-// 動態修正 manifest.json 路徑（使用 Service Worker 方式）
-function fixManifestPaths() {
-    const currentPath = window.location.pathname;
-    const isGitHubPages = window.location.hostname.includes('.github.io');
-    
-    if (isGitHubPages && currentPath.includes('/DB-Card/')) {
-        // 為 GitHub Pages 設定環境變數
-        window.GITHUB_PAGES_BASE_PATH = '/DB-Card/pwa-card-storage';
-        
-        // 更新 manifest 連結為 GitHub Pages 版本
-        const manifestLink = document.querySelector('link[rel="manifest"]');
-        if (manifestLink) {
-            manifestLink.href = './manifest-github.json';
-        }
-    }
-}
-
-// 在頁面載入時修正路徑
-fixManifestPaths();
+// Manifest 管理已由 unified-manifest-manager.js 處理
 
 // Service Worker 註冊
 if ('serviceWorker' in navigator) {
@@ -48,24 +30,12 @@ window.addEventListener('beforeinstallprompt', (e) => {
     }, 100);
 });
 
-// 立即載入應用版本
-window.addEventListener('DOMContentLoaded', async () => {
-    const appVersionEl = document.getElementById('app-version');
-    if (appVersionEl) {
-        try {
-            const response = await fetch('./manifest.json');
-            const manifest = await response.json();
-            appVersionEl.textContent = `v${manifest.version}`;
-        } catch (error) {
-            appVersionEl.textContent = '無法取得';
-        }
-    }
-    
+// 版本顯示已由 unified-manifest-manager.js 處理
+window.addEventListener('DOMContentLoaded', () => {
     // Settings Button 重置網址功能
     const settingsButton = document.getElementById('settings-button');
     if (settingsButton) {
         settingsButton.addEventListener('click', () => {
-            // 清除 URL 參數，重置為首頁
             const currentUrl = new URL(window.location);
             currentUrl.search = '';
             currentUrl.hash = '';

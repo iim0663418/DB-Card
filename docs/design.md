@@ -472,6 +472,100 @@ sequenceDiagram
 }
 ```
 
+## D-015: PWA Manifest 統一管理架構 🆕
+
+### 統一 Manifest 管理器設計
+
+```mermaid
+graph TD
+    A[PWA 應用啟動] --> B[UnifiedManifestManager 初始化]
+    B --> C{檢測部署環境}
+    C -->|GitHub Pages| D[載入 manifest-github.json]
+    C -->|其他環境| E[載入 manifest.json]
+    D --> F[解析 Manifest 資料]
+    E --> F
+    F --> G{載入成功?}
+    G -->|是| H[更新版本顯示]
+    G -->|否| I[使用備用 Manifest]
+    I --> H
+    H --> J[設置診斷工具]
+    J --> K[PWA 就緒]
+    
+    L[移動端診斷] --> M[showManifestDiagnostic()]
+    M --> N[收集環境資訊]
+    N --> O[測試 Manifest URLs]
+    O --> P[生成診斷報告]
+    
+    style B fill:#e1f5fe
+    style F fill:#f3e5f5
+    style H fill:#e8f5e8
+    style P fill:#fff3e0
+```
+
+### 核心組件架構
+
+**UnifiedManifestManager 類別設計**：
+```typescript
+class UnifiedManifestManager {
+  private manifestData: ManifestData | null;
+  private currentVersion: string;
+  private isInitialized: boolean;
+  
+  // 核心方法
+  init(): void;
+  fixManifestLink(): void;
+  loadManifest(): Promise<ManifestData>;
+  getManifestUrls(): string[];
+  getFallbackManifest(): ManifestData;
+  setupVersionDisplay(): void;
+  getVersion(): string;
+  isReady(): boolean;
+}
+```
+
+### 環境檢測與適配策略
+
+| 環境 | 檢測方式 | Manifest 檔案 | 特殊處理 |
+|------|----------|---------------|----------|
+| GitHub Pages | `hostname.includes('.github.io')` | `manifest-github.json` | 絕對路徑 |
+| 本地開發 | `hostname === 'localhost'` | `manifest.json` | 相對路徑 |
+| Cloudflare Pages | `hostname.includes('.pages.dev')` | `manifest.json` | 相對路徑 |
+| 其他環境 | 預設 | `manifest.json` | 備用方案 |
+
+### 移動端載入優化
+
+**問題解決機制**：
+- **載入超時處理**：3 秒超時 + 備用方案
+- **版本顯示修復**：解決「載入中...」持續顯示問題
+- **網路錯誤恢復**：多層備用載入策略
+- **快取策略**：使用 `cache: 'no-cache'` 確保最新版本
+
+### 診斷工具設計
+
+**移動端診斷功能**：
+```javascript
+// 快速診斷命令
+showManifestDiagnostic() // 顯示完整診斷資訊
+
+// 診斷資料結構
+interface DiagnosticResult {
+  environment: EnvironmentInfo;
+  manifest: ManifestTestResult;
+  tests: LoadTestResult[];
+}
+```
+
+### 向後相容性保證
+
+**API 相容性**：
+```javascript
+// 保持現有 API 可用
+window.manifestLoader = window.manifestManager;
+window.loadAppVersion = (element) => {
+  element.textContent = `v${window.manifestManager.getVersion()}`;
+};
+```
+
 ## D-020: PWA 部署相容性設計 🆕
 
 ### 部署環境檢測架構

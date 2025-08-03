@@ -273,9 +273,70 @@ graph LR
 - **影響範圍**：manifest.json, 統計顯示, 快取策略
 - **回滾計畫**：保留 v1.0.2 配置作為備用
 
-## 9. Future Architecture Considerations
+## 9. Mobile Touch Optimization Design 🆕
 
-### 9.1 可擴展性設計
+### 9.1 Mobile 觸控問題診斷
+
+**問題根源分析**：
+- `user-select: none` 干擾觸控事件處理
+- `transform: translateZ(0)` 影響按鈕響應性能
+- 統計卡片內容缺少事件隔離機制
+
+### 9.2 統一 Mobile 樣式架構
+
+```mermaid
+graph TB
+    A[unified-mobile-rwd.css] --> B[觸控優化]
+    A --> C[效能優化]
+    A --> D[設計系統對齊]
+    
+    B --> E[.btn-icon 修復]
+    B --> F[.stat-card 優化]
+    
+    C --> G[移除 transform 干擾]
+    C --> H[pointer-events 隔離]
+    
+    D --> I[使用 --md-primary-2]
+    D --> J[官方色彩變數]
+    
+    style A fill:#e8f5e8,stroke:#2e7d32
+    style B fill:#e1f5fe,stroke:#01579b
+    style D fill:#fff3e0,stroke:#ef6c00
+```
+
+### 9.3 觸控優化技術實作
+
+```css
+/* Settings Button (🏠) 觸控修復 */
+.btn-icon {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: var(--md-primary-2, rgba(104, 104, 172, 0.1));
+  cursor: pointer;
+}
+
+/* 統計卡片觸控優化 */
+.stat-card {
+  touch-action: none; /* 防止意外滾動 */
+  -webkit-tap-highlight-color: transparent;
+}
+
+.stat-card .stat-number,
+.stat-card .stat-label {
+  pointer-events: none; /* 事件隔離 */
+  user-select: none;
+}
+```
+
+### 9.4 設計系統整合
+
+**CSS 變數使用**：
+- 觸控回饋色彩：`var(--md-primary-2)` 替代硬編碼值
+- 向下相容：提供 fallback 色彩值
+- 設計一致性：與數位發展部官網保持統一
+
+## 10. Future Architecture Considerations
+
+### 10.1 可擴展性設計
 
 ```typescript
 interface FutureEnhancements {
@@ -291,12 +352,17 @@ interface FutureEnhancements {
     realUserMetrics: boolean;
     performanceObserver: boolean;
   };
+  mobileOptimization: {
+    touchResponse: number;
+    gestureSupport: boolean;
+    accessibilityEnhanced: boolean;
+  };
 }
 ```
 
-### 9.2 架構演進路徑
+### 10.2 架構演進路徑
 
-1. **Phase 1 (v1.0.4)**：並行初始化 + 日誌優化
+1. **Phase 1 (v1.0.4)**：並行初始化 + 日誌優化 + Mobile 觸控修復
 2. **Phase 2 (v1.1.0)**：模組懶載入
 3. **Phase 3 (v1.2.0)**：智慧快取策略
 4. **Phase 4 (v2.0.0)**：微前端架構

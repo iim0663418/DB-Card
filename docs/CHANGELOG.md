@@ -26,8 +26,10 @@
 ### Mobile
 - **觸控優化**：修復 Settings Button (🏠) 在 Mobile 設備上的觸控問題
 - **統計卡片優化**：防止統計卡片區域的事件干擾和意外滾動
+- **文字處理修復**：解決卡片文字超出範圍問題，實作自動換行
 - **設計系統對齊**：使用 `--md-primary-2` 官方色彩變數
-- **統一樣式管理**：新增 `unified-mobile-rwd.css` 統一處理 Mobile 問題
+- **架構清晰化**：精修 `unified-mobile-rwd.css`，移除 200+ 行衝突代碼
+- **職責分離**：專責 Mobile 特有問題，不與原始 RWD 設計衝突
 
 ### Files Modified
 - `pwa-card-storage/manifest.json` - 版本號更新至 v1.0.4

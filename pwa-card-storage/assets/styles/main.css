@@ -209,6 +209,11 @@ body {
   letter-spacing: var(--senior-letter-spacing);
 }
 
+/* 深色模式支援 */
+.dark .page-header h2 {
+  color: var(--md-white-1);
+}
+
 .page-actions {
   display: flex;
   gap: 1rem;
@@ -421,6 +426,11 @@ body {
   letter-spacing: var(--senior-letter-spacing);
 }
 
+/* 深色模式支援 */
+.dark .page-header h2 {
+  color: var(--md-white-1);
+}
+
 .page-actions {
   display: flex;
   flex-direction: column;
@@ -509,6 +519,11 @@ body {
   
   .page-header h2 {
     font-size: 1.75rem;
+  }
+  
+  /* 深色模式支援 */
+  .dark .page-header h2 {
+    color: var(--md-white-1);
   }
   
   .page-actions {

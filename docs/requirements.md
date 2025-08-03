@@ -291,6 +291,7 @@ status: "✅ Phase 1 Complete, Phase 2-4 Planned"
 | R-018 | 漸進式載入優化 | D-018 | PWA-29 | 🔄 計劃中 |
 | R-019 | Mobile 觸控優化 | D-019 | PWA-30 | ✅ 完成 |
 | R-020 | PWA 部署相容性 | D-020 | PWA-31 | ✅ 完成 |
+| R-021 | PWA Manifest 統一管理 | D-015 | PWA-32 | ✅ 完成 |
 
 ### R-010: 版本自動化管理 🆕 NEW
 **需求描述**：應用版本號與 manifest.json 自動同步，避免手動維護多處版本資訊
@@ -478,6 +479,24 @@ status: "✅ Phase 1 Complete, Phase 2-4 Planned"
 - ✅ When 在 Mobile 設備上顯示
 - ✅ Then 文字自動換行不超出容器範圍
 - ✅ And 保持文字可讀性和版面美觀
+
+### R-021: PWA Manifest 統一管理 🆕 NEW
+**需求描述**：整合所有 manifest 相關補救措施，解決移動端載入問題
+**優先級**：Critical
+**技術實作**：
+- **統一管理器**：`UnifiedManifestManager` 整合所有 manifest 操作
+- **環境檢測**：自動識別 GitHub Pages vs 其他部署環境
+- **版本管理**：統一版本號顯示與更新機制
+- **診斷工具**：提供 `showManifestDiagnostic()` 快速問題診斷
+- **向後相容**：保持與現有代碼完全相容
+
+**Acceptance Criteria**：
+- ✅ Given 移動設備用戶訪問 PWA
+- ✅ When 系統初始化 manifest 管理器
+- ✅ Then 自動檢測部署環境並載入正確的 manifest 檔案
+- ✅ And 版本號正確顯示為 v1.0.5（不再是「載入中...」）
+- ✅ And 提供診斷工具協助問題排除
+- ✅ And 保持與現有 API 的完全相容性
 
 ## 7. 後續優化階段路線圖
 

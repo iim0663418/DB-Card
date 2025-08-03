@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA 移動端測試</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .test-card {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 PWA 移動端測試工具</h1>
+    
+    <div class="test-card">
+        <h3>基本環境檢測</h3>
+        <div id="env-status">檢測中...</div>
+        <button onclick="checkEnvironment()">重新檢測</button>
+    </div>
+
+    <div class="test-card">
+        <h3>Manifest 載入測試</h3>
+        <div id="manifest-status">檢測中...</div>
+        <button onclick="testManifest()">測試 Manifest</button>
+    </div>
+
+    <div class="test-card">
+        <h3>Service Worker 狀態</h3>
+        <div id="sw-status">檢測中...</div>
+        <button onclick="testServiceWorker()">測試 SW</button>
+    </div>
+
+    <div class="test-card">
+        <h3>快速診斷</h3>
+        <button onclick="runFullDiagnostic()">完整診斷</button>
+        <button onclick="exportResults()">導出結果</button>
+        <div id="diagnostic-results"></div>
+    </div>
+
+    <script>
+        let testResults = {};
+
+        function checkEnvironment() {
+            const env = {
+                userAgent: navigator.userAgent,
+                url: window.location.href,
+                hostname: window.location.hostname,
+                pathname: window.location.pathname,
+                isOnline: navigator.onLine,
+                serviceWorkerSupported: 'serviceWorker' in navigator,
+                indexedDBSupported: 'indexedDB' in window,
+                manifestSupported: 'manifest' in document.createElement('link'),
+                screenSize: `${screen.width}x${screen.height}`,
+                viewportSize: `${window.innerWidth}x${window.innerHeight}`,
+                devicePixelRatio: window.devicePixelRatio
+            };
+
+            testResults.environment = env;
+
+            const statusEl = document.getElementById('env-status');
+            const isGitHubPages = env.hostname.includes('.github.io');
+            const isMobile = /Mobi|Android/i.test(env.userAgent);
+
+            statusEl.innerHTML = `
+                <div class="status ${isGitHubPages ? 'success' : 'warning'}">
+                    部署環境: ${isGitHubPages ? 'GitHub Pages' : '其他環境'}
+                </div>
+                <div class="status ${isMobile ? 'success' : 'warning'}">
+                    設備類型: ${isMobile ? '移動設備' : '桌面設備'}
+                </div>
+                <div class="status ${env.serviceWorkerSupported ? 'success' : 'error'}">
+                    Service Worker: ${env.serviceWorkerSupported ? '支援' : '不支援'}
+                </div>
+                <div class="status ${env.isOnline ? 'success' : 'warning'}">
+                    網路狀態: ${env.isOnline ? '線上' : '離線'}
+                </div>
+                <pre>${JSON.stringify(env, null, 2)}</pre>
+            `;
+        }
+
+        async function testManifest() {
+            const results = {
+                manifestLink: null,
+                loadTests: []
+            };
+
+            // 檢查 HTML 中的 manifest 連結
+            const manifestLink = document.querySelector('link[rel="manifest"]');
+            results.manifestLink = manifestLink ? manifestLink.href : null;
+
+            // 測試不同的 manifest URL
+            const testUrls = [
+                './manifest.json',
+                './manifest-github.json',
+                '/DB-Card/pwa-card-storage/manifest.json',
+                '/DB-Card/pwa-card-storage/manifest-github.json'
+            ];
+
+            for (const url of testUrls) {
+                try {
+                    const response = await fetch(url, { cache: 'no-cache' });
+                    const result = {
+                        url,
+                        status: response.status,
+                        ok: response.ok
+                    };
+
+                    if (response.ok) {
+                        try {
+                            const manifest = await response.json();
+                            result.version = manifest.version;
+                            result.name = manifest.name;
+                        } catch (e) {
+                            result.parseError = e.message;
+                        }
+                    }
+
+                    results.loadTests.push(result);
+                } catch (error) {
+                    results.loadTests.push({
+                        url,
+                        error: error.message
+                    });
+                }
+            }
+
+            testResults.manifest = results;
+
+            const statusEl = document.getElementById('manifest-status');
+            const successfulLoads = results.loadTests.filter(t => t.ok);
+            
+            statusEl.innerHTML = `
+                <div class="status ${results.manifestLink ? 'success' : 'error'}">
+                    HTML Manifest 連結: ${results.manifestLink || '未找到'}
+                </div>
+                <div class="status ${successfulLoads.length > 0 ? 'success' : 'error'}">
+                    成功載入: ${successfulLoads.length}/${results.loadTests.length}
+                </div>
+                <pre>${JSON.stringify(results, null, 2)}</pre>
+            `;
+        }
+
+        async function testServiceWorker() {
+            const results = {
+                supported: 'serviceWorker' in navigator,
+                registration: null,
+                error: null
+            };
+
+            if (results.supported) {
+                try {
+                    const registration = await navigator.serviceWorker.getRegistration();
+                    if (registration) {
+                        results.registration = {
+                            scope: registration.scope,
+                            active: registration.active?.state,
+                            installing: registration.installing?.state,
+                            waiting: registration.waiting?.state
+                        };
+                    }
+                } catch (error) {
+                    results.error = error.message;
+                }
+            }
+
+            testResults.serviceWorker = results;
+
+            const statusEl = document.getElementById('sw-status');
+            statusEl.innerHTML = `
+                <div class="status ${results.supported ? 'success' : 'error'}">
+                    Service Worker 支援: ${results.supported ? '是' : '否'}
+                </div>
+                <div class="status ${results.registration ? 'success' : 'warning'}">
+                    註冊狀態: ${results.registration ? '已註冊' : '未註冊'}
+                </div>
+                <pre>${JSON.stringify(results, null, 2)}</pre>
+            `;
+        }
+
+        async function runFullDiagnostic() {
+            document.getElementById('diagnostic-results').innerHTML = '<div>執行完整診斷中...</div>';
+            
+            checkEnvironment();
+            await testManifest();
+            await testServiceWorker();
+
+            const summary = {
+                timestamp: new Date().toISOString(),
+                environment: testResults.environment,
+                manifest: testResults.manifest,
+                serviceWorker: testResults.serviceWorker,
+                recommendations: generateRecommendations()
+            };
+
+            document.getElementById('diagnostic-results').innerHTML = `
+                <h4>診斷完成</h4>
+                <pre>${JSON.stringify(summary, null, 2)}</pre>
+            `;
+
+            testResults.fullDiagnostic = summary;
+        }
+
+        function generateRecommendations() {
+            const recommendations = [];
+
+            if (!testResults.environment?.serviceWorkerSupported) {
+                recommendations.push('設備不支援 Service Worker，PWA 功能受限');
+            }
+
+            if (!testResults.manifest?.loadTests?.some(t => t.ok)) {
+                recommendations.push('無法載入任何 manifest 檔案，檢查檔案路徑和網路連線');
+            }
+
+            if (!testResults.serviceWorker?.registration) {
+                recommendations.push('Service Worker 未註冊，可能影響離線功能');
+            }
+
+            if (testResults.environment?.hostname?.includes('.github.io') && 
+                !testResults.manifest?.loadTests?.find(t => t.url.includes('github'))?.ok) {
+                recommendations.push('GitHub Pages 環境建議使用 manifest-github.json');
+            }
+
+            return recommendations;
+        }
+
+        function exportResults() {
+            const data = {
+                timestamp: new Date().toISOString(),
+                testResults,
+                userAgent: navigator.userAgent,
+                url: window.location.href
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `pwa-mobile-test-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 自動執行初始檢測
+        window.addEventListener('load', () => {
+            checkEnvironment();
+            setTimeout(testManifest, 1000);
+            setTimeout(testServiceWorker, 2000);
+        });
+    </script>
+</body>
+</html>

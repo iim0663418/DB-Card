@@ -10,14 +10,20 @@ const IMAGE_CACHE_NAME = 'pwa-images-v2.4';
 
 // 動態獲取基礎路徑 - 支援 GitHub Pages 和 Cloudflare Pages
 const getBasePath = () => {
-  const location = self.location || { pathname: '/pwa-card-storage/' };
+  const location = self.location || { pathname: '/pwa-card-storage/', hostname: 'localhost' };
   const pathParts = location.pathname.split('/').filter(part => part);
   const pwaIndex = pathParts.findIndex(part => part === 'pwa-card-storage');
   
-  if (pwaIndex > 0) {
-    // GitHub Pages: /DB-Card/pwa-card-storage/
-    return '/' + pathParts.slice(0, pwaIndex).join('/');
-  } else if (location.hostname.includes('.pages.dev')) {
+  // GitHub Pages 檢測
+  if (location.hostname && location.hostname.includes('.github.io')) {
+    if (pwaIndex > 0) {
+      // GitHub Pages: /DB-Card/pwa-card-storage/
+      return '/' + pathParts.slice(0, pwaIndex).join('/');
+    } else {
+      // 備用方案
+      return '/DB-Card';
+    }
+  } else if (location.hostname && location.hostname.includes('.pages.dev')) {
     // Cloudflare Pages: 根域名部署
     return '';
   } else {

@@ -3,14 +3,13 @@
  * 從 index.html 移出以符合 CSP 安全政策
  */
 
-// PWA 安裝和初始化
+// PWA 支援檢查
+const isPWASupported = 'serviceWorker' in navigator && 'BeforeInstallPromptEvent' in window;
+
+// Service Worker 註冊
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-            .then(registration => {
-            })
-            .catch(registrationError => {
-            });
+        navigator.serviceWorker.register('sw.js').catch(() => {});
     });
 }
 
@@ -19,7 +18,10 @@ let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    document.getElementById('install-prompt').classList.remove('hidden');
+    const installPrompt = document.getElementById('install-prompt');
+    if (installPrompt) {
+        installPrompt.classList.remove('hidden');
+    }
 });
 
 // PWA 安裝按鈕初始化函數，由 app.js 調用
@@ -33,7 +35,10 @@ window.initPWAInstallButtons = function() {
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then((choiceResult) => {
                     deferredPrompt = null;
-                    document.getElementById('install-prompt').classList.add('hidden');
+                    const installPrompt = document.getElementById('install-prompt');
+                    if (installPrompt) {
+                        installPrompt.classList.add('hidden');
+                    }
                 });
             }
         });
@@ -41,7 +46,18 @@ window.initPWAInstallButtons = function() {
 
     if (installDismiss) {
         installDismiss.addEventListener('click', () => {
-            document.getElementById('install-prompt').classList.add('hidden');
+            const installPrompt = document.getElementById('install-prompt');
+            if (installPrompt) {
+                installPrompt.classList.add('hidden');
+            }
         });
+    }
+    
+    // 檢查是否已安裝
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+        const installPrompt = document.getElementById('install-prompt');
+        if (installPrompt) {
+            installPrompt.classList.add('hidden');
+        }
     }
 };

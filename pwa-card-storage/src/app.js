@@ -17,95 +17,65 @@ class PWACardApp {
 
   async init() {
     try {
-      window.pwaErrorHandler?.logStep('App Init Start', 'STARTED');
-      
       this.showLoading('初始化應用程式...');
       
-      window.pwaErrorHandler?.logStep('Initialize Services', 'STARTING');
       await this.initializeServices();
-      window.pwaErrorHandler?.logStep('Initialize Services', 'COMPLETED');
-      
-      window.pwaErrorHandler?.logStep('Setup Event Listeners', 'STARTING');
       this.setupEventListeners();
-      window.pwaErrorHandler?.logStep('Setup Event Listeners', 'COMPLETED');
-      
-      window.pwaErrorHandler?.logStep('Initialize UI', 'STARTING');
       this.initializeUI();
-      window.pwaErrorHandler?.logStep('Initialize UI', 'COMPLETED');
-      
-      window.pwaErrorHandler?.logStep('Load Initial Data', 'STARTING');
       await this.loadInitialData();
-      window.pwaErrorHandler?.logStep('Load Initial Data', 'COMPLETED');
       
       this.hideLoading();
-      window.pwaErrorHandler?.logStep('App Init Complete', 'SUCCESS');
       
     } catch (error) {
       console.error('[PWA] Initialization failed:', error);
-      window.pwaErrorHandler?.logError(error, 'App Initialization');
-      
       this.hideLoading();
-      
-      // 顯示診斷介面
-      if (window.pwaErrorHandler) {
-        const diagnosis = await window.pwaErrorHandler.diagnoseInitializationFailure();
-        window.pwaErrorHandler.showDiagnosticModal(diagnosis);
-      } else {
-        this.showNotification('應用程式初始化失敗', 'error');
-      }
+      this.showNotification('應用程式初始化失敗', 'error');
     }
   }
 
   async initializeServices() {
     try {
-      window.pwaErrorHandler?.logStep('Check PWACardStorage', 'CHECKING');
-      
       // 初始化核心儲存
       if (typeof PWACardStorage !== 'undefined') {
-        window.pwaErrorHandler?.logStep('PWACardStorage Found', 'SUCCESS');
-        
-        window.pwaErrorHandler?.logStep('Create Storage Instance', 'STARTING');
         this.storage = new PWACardStorage();
-        window.pwaErrorHandler?.logStep('Create Storage Instance', 'SUCCESS');
-        
-        window.pwaErrorHandler?.logStep('Storage Initialize', 'STARTING');
         await this.storage.initialize();
-        window.pwaErrorHandler?.logStep('Storage Initialize', 'SUCCESS');
-        
+        this.setupCleanupHandlers();
       } else {
-        window.pwaErrorHandler?.logStep('PWACardStorage Check', 'FAILED', 'PWACardStorage class not found');
         throw new Error('PWACardStorage not available');
       }
       
-      // 初始化名片管理器
+      // 並行初始化其他服務
+      const initPromises = [];
+      
       if (typeof PWACardManager !== 'undefined') {
-        try {
-          this.cardManager = new PWACardManager(this.storage);
-          await this.cardManager.initialize();
-        } catch (error) {
-          console.error('[PWA] Card manager initialization failed:', error);
-          this.cardManager = null;
-        }
-      } else {
-        this.cardManager = null;
+        initPromises.push(
+          (async () => {
+            try {
+              this.cardManager = new PWACardManager(this.storage);
+              await this.cardManager.initialize();
+            } catch (error) {
+              this.cardManager = null;
+            }
+          })()
+        );
       }
       
-      // 初始化健康管理器
       if (typeof HealthManager !== 'undefined' && this.storage) {
-        this.healthManager = new HealthManager(this.storage);
-        await this.healthManager.initialize();
+        initPromises.push(
+          (async () => {
+            this.healthManager = new HealthManager(this.storage);
+            await this.healthManager.initialize();
+          })()
+        );
       }
       
-      // 版本管理功能現在已整合到 storage 中
+      await Promise.all(initPromises);
       
-      // 資料遷移功能已移除
-      
-      // 初始化離線工具
+      // 初始化依賴服務
       if (typeof OfflineToolsManager !== 'undefined' && this.cardManager) {
         this.offlineTools = new OfflineToolsManager(this.cardManager);
       }
       
-      // 初始化傳輸管理器
       if (typeof TransferManager !== 'undefined' && this.cardManager) {
         this.transferManager = new TransferManager(this.cardManager);
       }
@@ -196,6 +166,13 @@ class PWACardApp {
     if (themeToggle) {
       themeToggle.addEventListener('click', () => {
         this.toggleTheme();
+      });
+    }
+    
+    const settingsButton = document.getElementById('settings-button');
+    if (settingsButton) {
+      settingsButton.addEventListener('click', () => {
+        this.navigateTo('home');
       });
     }
     
@@ -353,26 +330,18 @@ class PWACardApp {
    * 實現零資料遺失的直通管道處理
    */
 
-  /**
-   * 簡化的問候語字串提取 - 用於顯示
-   */
   extractStringFromGreeting(greeting, language = 'zh') {
     if (!greeting) return '';
-    
     if (typeof greeting === 'string') {
-      // PWA-24: 直接使用字串，支援雙語格式 "中文~English"
       if (greeting.includes('~')) {
         const parts = greeting.split('~');
         return language === 'en' ? (parts[1] || parts[0]) : parts[0];
       }
       return greeting;
     }
-    
-    // 物件格式處理
     if (typeof greeting === 'object' && greeting !== null) {
       return greeting[language] || greeting.zh || greeting.en || '';
     }
-    
     return String(greeting || '');
   }
   
@@ -484,14 +453,10 @@ class PWACardApp {
       if (totalCardsEl) totalCardsEl.textContent = stats.totalCards || 0;
       if (storageUsedEl) storageUsedEl.textContent = `${stats.storageUsedPercent || 0}%`;
       
-      // 獲取版本統計資訊
-      try {
-        const versionStats = await this.storage.getVersionStats();
-        if (lastSyncEl) {
-          lastSyncEl.textContent = versionStats.totalVersions > 0 ? '已同步' : '從未';
-        }
-      } catch (error) {
-        if (lastSyncEl) lastSyncEl.textContent = '從未';
+      // 更新應用版本顯示（從 manifest.json 讀取）
+      const appVersionEl = document.getElementById('app-version');
+      if (appVersionEl) {
+        this.loadAppVersion(appVersionEl);
       }
 
       const storageStatus = document.getElementById('storage-status');
@@ -726,12 +691,13 @@ class PWACardApp {
 
   async exportVCard(cardId) {
     try {
-      if (!this.cardManager) {
-        this.showNotification('名片管理器未初始化', 'error');
+      if (!this.offlineTools) {
+        this.showNotification('離線工具未初始化', 'error');
         return;
       }
       
-      const result = await this.cardManager.exportVCard(cardId, this.currentLanguage);
+      // 使用 OfflineToolsManager 的 exportVCard 方法，確保名片類型正確傳遞
+      const result = await this.offlineTools.exportVCard(cardId, this.currentLanguage);
       if (result.success) {
         // 直接下載 vCard 檔案
         const link = document.createElement('a');
@@ -1400,6 +1366,77 @@ class PWACardApp {
     } catch (error) {
       console.error('[PWA] Conflict resolution failed:', error);
       this.showNotification('衝突解決失敗', 'error');
+    }
+  }
+
+  /**
+   * 設置清理處理器，確保應用程式關閉時正確清理資源
+   */
+  setupCleanupHandlers() {
+    // 頁面關閉時清理
+    window.addEventListener('beforeunload', () => {
+      this.cleanup();
+    });
+    
+    // 頁面隱藏時清理（移動設備切換應用）
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        this.cleanup();
+      }
+    });
+    
+    // PWA 安裝時的特殊處理
+    window.addEventListener('appinstalled', () => {
+      console.log('[PWA] App installed, reinitializing storage...');
+      this.reinitializeStorage();
+    });
+  }
+  
+  /**
+   * 清理資源
+   */
+  cleanup() {
+    try {
+      if (this.storage && typeof this.storage.cleanup === 'function') {
+        this.storage.cleanup();
+      }
+      
+      // 清理通知計時器
+      if (this.notificationTimer) {
+        clearTimeout(this.notificationTimer);
+        this.notificationTimer = null;
+      }
+    } catch (error) {
+      console.error('[PWA] Cleanup failed:', error);
+    }
+  }
+  
+  /**
+   * 重新初始化儲存（用於連線復原）
+   */
+  async reinitializeStorage() {
+    try {
+      if (this.storage) {
+        this.storage.cleanup();
+        await this.storage.initialize();
+        console.log('[PWA] Storage reinitialized successfully');
+      }
+    } catch (error) {
+      console.error('[PWA] Storage reinitialization failed:', error);
+      this.showNotification('資料庫重新連線失敗', 'error');
+    }
+  }
+
+  /**
+   * 讀取應用版本（從 manifest.json）
+   */
+  async loadAppVersion(element) {
+    try {
+      const response = await fetch('./manifest.json');
+      const manifest = await response.json();
+      element.textContent = `v${manifest.version || '1.0.0'}`;
+    } catch (error) {
+      element.textContent = 'v1.0.2'; // 備用版本
     }
   }
 

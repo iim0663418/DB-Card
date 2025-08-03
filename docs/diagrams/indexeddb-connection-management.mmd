@@ -1,0 +1,19 @@
+stateDiagram-v2
+    [*] --> Initializing
+    Initializing --> Connected: 連線成功
+    Connected --> Monitoring: 開始監控
+    
+    Monitoring --> Connected: 連線正常
+    Monitoring --> Reconnecting: 連線中斷
+    
+    Reconnecting --> Connected: 重連成功
+    Reconnecting --> Failed: 重試失敗
+    
+    Failed --> Reconnecting: 等待重試
+    
+    Connected --> Transaction: 執行操作
+    Transaction --> Connected: 操作完成
+    Transaction --> Retry: 操作失敗
+    
+    Retry --> Transaction: 重試操作
+    Retry --> Failed: 超過重試次數

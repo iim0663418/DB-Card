@@ -38,8 +38,7 @@ class LanguageManager {
         appSubtitle: '離線儲存服務',
         themeToggle: '主題切換',
         languageToggle: '語言切換',
-        syncData: '同步資料',
-        settings: '設定',
+        backToHome: '回到首頁',
 
         // 導航
         home: '首頁',
@@ -52,7 +51,7 @@ class LanguageManager {
         welcomeDesc: '安全地儲存和管理您的數位名片，完全離線運作',
         totalCards: '已儲存名片',
         storageUsed: '儲存空間',
-        lastSync: '最後同步',
+        appVersion: '應用版本',
         quickActions: '快速操作',
         addCard: '新增名片',
         addCardDesc: '從 URL 或檔案新增',
@@ -150,8 +149,7 @@ class LanguageManager {
         appSubtitle: 'Offline Storage Service',
         themeToggle: 'Toggle Theme',
         languageToggle: 'Switch Language',
-        syncData: 'Sync Data',
-        settings: 'Settings',
+        backToHome: 'Back to Home',
 
         // Navigation
         home: 'Home',
@@ -164,7 +162,7 @@ class LanguageManager {
         welcomeDesc: 'Securely store and manage your digital business cards, completely offline',
         totalCards: 'Stored Cards',
         storageUsed: 'Storage Used',
-        lastSync: 'Last Sync',
+        appVersion: 'App Version',
         quickActions: 'Quick Actions',
         addCard: 'Add Card',
         addCardDesc: 'Add from URL or file',
@@ -331,8 +329,7 @@ class LanguageManager {
     // 更新按鈕標題
     this.updateButtonTitle('theme-toggle', 'themeToggle');
     this.updateButtonTitle('lang-toggle', 'languageToggle');
-    this.updateButtonTitle('sync-button', 'syncData');
-    this.updateButtonTitle('settings-button', 'settings');
+    this.updateButtonTitle('settings-button', 'backToHome');
     
     // 更新導航
     this.updateNavigation();
@@ -397,7 +394,7 @@ class LanguageManager {
     const statElements = [
       { id: 'stat-total-cards', key: 'totalCards' },
       { id: 'stat-storage-used', key: 'storageUsed' },
-      { id: 'stat-last-sync', key: 'lastSync' }
+      { id: 'stat-app-version', key: 'appVersion' }
     ];
     
     statElements.forEach(({ id, key }) => {
@@ -666,19 +663,9 @@ class LanguageManager {
     return type; // 回傳原始訊息作為備用
   }
 
-  /**
-   * 初始化語言管理器
-   */
   initialize() {
-    // 設定初始語言
     document.documentElement.lang = this.currentLanguage === 'zh' ? 'zh-TW' : 'en';
-    
-    // 延遲更新 UI，確保 DOM 已載入
-    setTimeout(() => {
-      this.updateAllUIElements();
-    }, 100);
-    
-    console.log('[LanguageManager] Initialized with language:', this.currentLanguage);
+    setTimeout(() => this.updateAllUIElements(), 50);
   }
 }
 

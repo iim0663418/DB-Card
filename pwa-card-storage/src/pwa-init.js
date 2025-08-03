@@ -6,6 +6,48 @@
 // PWA 支援檢查
 const isPWASupported = 'serviceWorker' in navigator && 'BeforeInstallPromptEvent' in window;
 
+// 動態修正 manifest.json 路徑
+function fixManifestPaths() {
+    const currentPath = window.location.pathname;
+    const isGitHubPages = window.location.hostname.includes('.github.io');
+    const isCloudflarePages = window.location.hostname.includes('.pages.dev');
+    
+    if (isGitHubPages && currentPath.includes('/DB-Card/')) {
+        // GitHub Pages 需要完整路徑
+        const manifestLink = document.querySelector('link[rel="manifest"]');
+        if (manifestLink) {
+            // 動態生成正確的 manifest 內容
+            fetch('./manifest.json')
+                .then(response => response.json())
+                .then(manifest => {
+                    const basePath = '/DB-Card/pwa-card-storage';
+                    manifest.start_url = basePath + '/';
+                    manifest.scope = basePath + '/';
+                    manifest.id = basePath + '/';
+                    
+                    // 更新 shortcuts
+                    manifest.shortcuts.forEach(shortcut => {
+                        shortcut.url = shortcut.url.replace('./', basePath + '/');
+                    });
+                    
+                    // 更新其他 URL
+                    manifest.protocol_handlers[0].url = manifest.protocol_handlers[0].url.replace('./', basePath + '/');
+                    manifest.share_target.action = basePath + '/';
+                    manifest.file_handlers[0].action = manifest.file_handlers[0].action.replace('./', basePath + '/');
+                    
+                    // 創建新的 manifest blob
+                    const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+                    const manifestUrl = URL.createObjectURL(manifestBlob);
+                    manifestLink.href = manifestUrl;
+                })
+                .catch(() => {});
+        }
+    }
+}
+
+// 在頁面載入時修正路徑
+fixManifestPaths();
+
 // Service Worker 註冊
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -18,10 +60,14 @@ let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    const installPrompt = document.getElementById('install-prompt');
-    if (installPrompt) {
-        installPrompt.classList.remove('hidden');
-    }
+    
+    // 確保 manifest 路徑已修正
+    setTimeout(() => {
+        const installPrompt = document.getElementById('install-prompt');
+        if (installPrompt) {
+            installPrompt.classList.remove('hidden');
+        }
+    }, 100);
 });
 
 // 立即載入應用版本

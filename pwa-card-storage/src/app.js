@@ -263,6 +263,7 @@ class PWACardApp {
     }
 
 
+
     if (data) {
       // 自動匯入名片資料
       setTimeout(() => {
@@ -1453,10 +1454,9 @@ class PWACardApp {
 
   clearUrlParams() {
     try {
-      const url = new URL(window.location);
-      url.search = '';
-      url.hash = '';
-      window.history.replaceState({}, document.title, url.pathname);
+      if (window.location.search || window.location.hash) {
+        window.location.replace(window.location.pathname);
+      }
     } catch (error) {
       console.error('[PWA] Clear URL params failed:', error);
     }

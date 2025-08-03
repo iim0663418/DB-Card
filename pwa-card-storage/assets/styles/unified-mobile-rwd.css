@@ -7,7 +7,6 @@
   .app-container {
     min-height: 100vh;
     min-height: -webkit-fill-available;
-    min-height: stretch;
     min-height: calc(var(--vh, 1vh) * 100);
   }
   
@@ -22,21 +21,6 @@
     padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
     padding-left: max(1rem, env(safe-area-inset-left, 0px));
     padding-right: max(1rem, env(safe-area-inset-right, 0px));
-  }
-  
-  .main-content {
-    padding-left: max(1rem, env(safe-area-inset-left, 0px));
-    padding-right: max(1rem, env(safe-area-inset-right, 0px));
-  }
-  
-  /* 輸入框優化 - 防止縮放 */
-  .search-input,
-  .url-input,
-  .file-input,
-  .filter-select {
-    font-size: 16px !important;
-    -webkit-text-size-adjust: 100%;
-    text-size-adjust: 100%;
   }
   
   /* 觸控優化 */
@@ -58,45 +42,11 @@
   }
   
   /* 滾動優化 */
-  .app-nav,
   .modal-content,
   .cards-list {
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
     overscroll-behavior: contain;
-  }
-  
-  /* 導航列優化 */
-  .app-nav {
-    position: sticky;
-    top: 0;
-    z-index: 99;
-    padding: 0;
-  }
-  
-  .nav-item {
-    flex: 1;
-    min-width: 0;
-    padding: 0.75rem 0.5rem;
-  }
-  
-  /* 頁面佈局優化 */
-  .page-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
-    padding: 0 1rem;
-  }
-  
-  .page-actions {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-  
-  /* 統計和操作卡片 */
-  .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 0.75rem;
   }
   
   /* 統計卡片觸控優化 */
@@ -105,50 +55,31 @@
     -webkit-tap-highlight-color: transparent;
   }
   
-  .action-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
+  /* 名片列表文字處理 */
+  .card-item .card-name,
+  .card-item .card-title,
+  .card-item .card-department,
+  .card-item .card-email,
+  .card-item .card-phone {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    white-space: normal;
   }
   
-  /* 名片列表 */
-  .card-item {
-    flex-direction: column;
-    text-align: center;
-    padding: 1.5rem;
-    gap: 1rem;
+  /* 長文字特殊處理 */
+  .card-item .card-email {
+    font-size: 0.875rem;
+    line-height: 1.4;
   }
   
-  .card-actions {
-    margin-top: 1rem;
-    justify-content: center;
-    gap: 0.75rem;
-  }
-  
-  /* 模態框 */
-  .modal {
-    padding: 1rem;
-  }
-  
-  .modal-content {
-    max-height: calc(100vh - 2rem);
-    margin: 0;
-    border-radius: 12px;
-  }
-  
-  /* 通知 */
+  /* 通知安全區域 */
   .notification {
     top: max(1rem, env(safe-area-inset-top, 0px));
     right: max(1rem, env(safe-area-inset-right, 0px));
     left: max(1rem, env(safe-area-inset-left, 0px));
     max-width: none;
     width: auto;
-  }
-  
-  /* 狀態列 */
-  .app-footer {
-    flex-direction: column;
-    text-align: center;
-    gap: 1rem;
   }
 }
 
@@ -230,190 +161,44 @@
 
 /* 超小螢幕優化 */
 @media screen and (max-width: 480px) {
-  .header-content {
-    gap: 0.5rem;
+  /* 名片內容文字優化 */
+  .card-item .card-name {
+    font-size: 1.25rem;
+    line-height: 1.3;
   }
   
-  .header-logo {
-    width: 36px;
-    height: 36px;
-  }
-  
-  .header-text h1 {
-    font-size: 1.125rem;
-  }
-  
-  .nav-item {
-    padding: 0.5rem 0.25rem;
-    min-width: 60px;
-  }
-  
-  .main-content {
-    padding: 0.5rem;
-  }
-  
-  .modal {
-    padding: 0;
-  }
-  
-  .modal-content {
-    height: 100vh;
-    max-height: 100vh;
-    border-radius: 0;
-  }
-  
-  .card-actions {
-    flex-direction: column;
-    gap: 0.5rem;
+  .card-item .card-title,
+  .card-item .card-department {
+    font-size: 0.875rem;
+    line-height: 1.4;
   }
   
   .card-actions .btn {
-    width: 100%;
+    font-size: 0.875rem;
+    padding: 0.75rem 1rem;
   }
-}
-
-/* 橫向緊湊模式 */
-.mobile-landscape-compact .app-header {
-  padding: 0.5rem 1rem;
-}
-
-.mobile-landscape-compact .header-logo {
-  width: 32px;
-  height: 32px;
-}
-
-.mobile-landscape-compact .header-text h1 {
-  font-size: 1rem;
-}
-
-.mobile-landscape-compact .nav-item {
-  padding: 0.375rem 0.5rem;
 }
 
 /* 橫向模式優化 */
 @media screen and (max-width: 768px) and (orientation: landscape) and (max-height: 500px) {
-  .header-text p {
-    display: none;
-  }
-  
   .modal-content {
     max-height: calc(100vh - 1rem);
     margin: 0.5rem;
   }
-  
-  .stats-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
 }
 
-/* 深色模式 Mobile 優化 */
-@media screen and (max-width: 768px) and (prefers-color-scheme: dark) {
-  .app-header {
-    background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
-  }
-  
-  .app-nav {
-    background: #1a1a1a;
-    border-bottom-color: #333;
-  }
-  
-  .search-input,
-  .url-input,
-  .file-input,
-  .filter-select {
-    background-color: #2a2a2a;
-    border-color: #444;
-    color: #fff;
-  }
-  
-  /* Safari 深色模式滾動條 */
-  @supports (-webkit-appearance: none) {
-    ::-webkit-scrollbar-track {
-      background: #2a2a2a;
-    }
-    
-    ::-webkit-scrollbar-thumb {
-      background: #555;
-    }
-    
-    ::-webkit-scrollbar-thumb:hover {
-      background: #777;
-    }
-  }
-}
 
-/* 高解析度螢幕優化 */
-@media screen and (max-width: 768px) and (min-resolution: 2dppx) {
-  .header-logo,
-  .card-avatar,
-  .avatar-image {
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
-  }
-  
-  .card-item,
-  .modal-content,
-  .notification {
-    border-width: 0.5px;
-  }
-}
 
-/* 無障礙優化 */
-@media screen and (max-width: 768px) {
-  @media (prefers-contrast: high) {
-    .btn,
-    .card-item,
-    .modal-content {
-      border-width: 2px;
-    }
-  }
-  
-  @media (prefers-reduced-motion: reduce) {
-    * {
-      animation-duration: 0.01ms !important;
-      transition-duration: 0.01ms !important;
-    }
-  }
-  
-  @media (prefers-font-size: large) {
-    body {
-      font-size: 1.25rem;
-    }
-    
-    .btn {
-      font-size: 1.125rem;
-      padding: 1.25rem 2rem;
-    }
-  }
-}
+
+
+
 
 /* 效能優化 */
 @media screen and (max-width: 768px) {
-  .action-card,
-  .card-item,
-  .modal-content,
-  .notification {
-    backface-visibility: hidden;
-    will-change: transform;
-  }
-  
-  /* 按鈕效能優化（移除干擾的 transform 和 user-select） */
-  .btn {
-    backface-visibility: hidden;
-  }
-  
   /* 統計卡片觸控優化 */
   .stat-card .stat-number,
   .stat-card .stat-label {
     pointer-events: none;
     user-select: none;
-  }
-  
-  .cards-list {
-    contain: layout style paint;
-  }
-  
-  .avatar-image {
-    loading: lazy;
   }
 }

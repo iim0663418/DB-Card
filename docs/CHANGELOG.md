@@ -1,12 +1,14 @@
 ## [1.0.5] - 2025-01-03
 
-### Mobile PWA - 🆕 NEW - Manifest 整合修復
+### Mobile PWA - 🆕 NEW - 統一移動端管理
 - **統一 Manifest 管理器**: 整合所有 manifest 相關補救措施到 `UnifiedManifestManager`
+- **統一移動端管理器**: 整合所有移動端優化到 `UnifiedMobileManager`
 - **移動端載入修復**: 解決真實移動設備上「載入中...」持續顯示問題
+- **移動端觸控修復**: 修復右上角 home 鍵失效問題，增強所有按鈕觸控響應
 - **環境自動檢測**: 自動識別 GitHub Pages 環境並載入正確的 manifest 檔案
 - **版本顯示統一**: 確保所有環境下版本號正確顯示為 v1.0.5
-- **簡化診斷工具**: 提供 `showManifestDiagnostic()` 快速診斷 manifest 問題
-- **向後相容性**: 保持與現有代碼的完全相容
+- **簡化診斷工具**: 提供 `showManifestDiagnostic()` 和 `diagnoseMobile()` 快速診斷
+- **架構簡化**: 移除重複樣式和腳本，提升維護性和效能
 
 ### Security - ✅ 修復完成
 - **Critical Security Fixes**: PWA 匯入功能 8 個 Critical 級別安全漏洞已完全修復
@@ -71,9 +73,10 @@
 
 ### Files Modified
 - `pwa-card-storage/src/core/unified-manifest-manager.js` - 新增統一 Manifest 管理器
-- `pwa-card-storage/src/utils/mobile-diagnostic.js` - 簡化的移動端診斷工具
-- `pwa-card-storage/index.html` - 整合 Manifest 管理器並移除重複腳本
-- `pwa-card-storage/src/app.js` - 簡化版本載入邏輯
+- `pwa-card-storage/src/core/unified-mobile-manager.js` - 新增統一移動端管理器
+- `pwa-card-storage/assets/styles/unified-mobile-rwd.css` - 精簡移動端樣式，移除重複內容
+- `pwa-card-storage/index.html` - 整合統一管理器，移除重複腳本
+- `pwa-card-storage/src/app.js` - 簡化 settings button 事件處理
 - `pwa-card-storage/src/pwa-init.js` - 移除重複的 manifest 處理邏輯
 - `pwa-card-storage/src/features/transfer-manager.js` - 修復 8 個安全漏洞 + SEC-PWA-007/008 最終修復
 - `pwa-card-storage/src/features/card-manager.js` - 修復匯入功能安全問題

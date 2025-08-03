@@ -1,44 +1,10 @@
-/* 統一 Mobile RWD 樣式 - 整合 Safari 和通用 Mobile 優化 */
+/* 統一 Mobile RWD 樣式 - 精簡版 */
 
-/* 通用 Mobile 基礎樣式 */
 @media screen and (max-width: 768px) {
-  
-  /* 視窗高度修正 - 支援所有瀏覽器 */
+  /* 視窗高度修正 */
   .app-container {
     min-height: 100vh;
     min-height: -webkit-fill-available;
-    min-height: calc(var(--vh, 1vh) * 100);
-  }
-  
-  /* 安全區域支援 */
-  .app-header {
-    padding-top: max(1.25rem, env(safe-area-inset-top, 0px));
-    padding-left: max(1rem, env(safe-area-inset-left, 0px));
-    padding-right: max(1rem, env(safe-area-inset-right, 0px));
-  }
-  
-  .app-footer {
-    padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
-    padding-left: max(1rem, env(safe-area-inset-left, 0px));
-    padding-right: max(1rem, env(safe-area-inset-right, 0px));
-  }
-  
-  /* 觸控優化 */
-  .btn,
-  .nav-item,
-  .action-card,
-  .card-item {
-    min-height: 48px;
-    min-width: 48px;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-  }
-  
-  /* 特殊按鈕觸控修復 */
-  .btn-icon {
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: var(--md-primary-2, rgba(104, 104, 172, 0.1));
-    cursor: pointer;
   }
   
   /* 滾動優化 */
@@ -46,31 +12,6 @@
   .cards-list {
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
-    overscroll-behavior: contain;
-  }
-  
-  /* 統計卡片觸控優化 */
-  .stat-card {
-    touch-action: none;
-    -webkit-tap-highlight-color: transparent;
-  }
-  
-  /* 名片列表文字處理 */
-  .card-item .card-name,
-  .card-item .card-title,
-  .card-item .card-department,
-  .card-item .card-email,
-  .card-item .card-phone {
-    word-break: break-word;
-    overflow-wrap: break-word;
-    max-width: 100%;
-    white-space: normal;
-  }
-  
-  /* 長文字特殊處理 */
-  .card-item .card-email {
-    font-size: 0.875rem;
-    line-height: 1.4;
   }
   
   /* 通知安全區域 */
@@ -78,8 +19,6 @@
     top: max(1rem, env(safe-area-inset-top, 0px));
     right: max(1rem, env(safe-area-inset-right, 0px));
     left: max(1rem, env(safe-area-inset-left, 0px));
-    max-width: none;
-    width: auto;
   }
 }
 

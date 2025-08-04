@@ -11,6 +11,10 @@ class PWACardStorage {
     this.encryptionKey = null;
     this.maxVersions = 10; // 版本控制限制
     
+    // 專用管理器實例
+    this.duplicateDetector = null;
+    this.versionManager = null;
+    
     // 資料庫結構定義
     this.stores = {
       cards: {
@@ -55,6 +59,9 @@ class PWACardStorage {
       // 初始化加密金鑰
       await this.initializeEncryption();
       
+      // 初始化專用管理器
+      await this.initializeManagers();
+      
       // 執行健康檢查
       await this.performHealthCheck();
       
@@ -62,6 +69,27 @@ class PWACardStorage {
     } catch (error) {
       console.error('[Storage] Initialization failed:', error);
       throw error;
+    }
+  }
+
+  /**
+   * 初始化專用管理器
+   */
+  async initializeManagers() {
+    try {
+      // 初始化重複檢測器
+      if (typeof DuplicateDetector !== 'undefined') {
+        this.duplicateDetector = new DuplicateDetector(this);
+        await this.duplicateDetector.initialize();
+      }
+      
+      // 初始化版本管理器
+      if (typeof VersionManager !== 'undefined') {
+        this.versionManager = new VersionManager(this);
+      }
+    } catch (error) {
+      console.error('[Storage] Manager initialization failed:', error);
+      // 不阻斷主要初始化流程
     }
   }
 
@@ -297,8 +325,8 @@ class PWACardStorage {
       // 在儲存前標準化資料格式，確保 greetings 是字串陣列
       const normalizedData = this.normalizeCardDataForStorage(cardData);
       
-      // 生成指紋
-      const fingerprint = await this.generateFingerprint(normalizedData);
+      // 生成指紋 - 使用專用管理器
+      const fingerprint = await this.generateFingerprintSafe(normalizedData);
       
       const card = {
         id,
@@ -327,9 +355,9 @@ class PWACardStorage {
         });
       });
 
-      // 建立版本快照
+      // 建立版本快照 - 使用專用管理器
       try {
-        await this.createVersionSnapshot(id, normalizedData, 'create');
+        await this.createVersionSnapshotSafe(id, normalizedData, 'create');
       } catch (versionError) {
         // 不阻斷主要操作
       }
@@ -424,7 +452,7 @@ class PWACardStorage {
       card.modified = new Date();
       card.currentVersion += 1;
       card.checksum = await this.calculateChecksum(updatedData);
-      card.fingerprint = await this.generateFingerprint(updatedData);
+      card.fingerprint = await this.generateFingerprintSafe(updatedData);
       card.encrypted = false;
 
       const transaction = this.db.transaction(['cards'], 'readwrite');
@@ -436,8 +464,8 @@ class PWACardStorage {
         request.onerror = () => reject(request.error);
       });
 
-      // 建立版本快照
-      await this.createVersionSnapshot(id, updatedData, 'update');
+      // 建立版本快照 - 使用專用管理器
+      await this.createVersionSnapshotSafe(id, updatedData, 'update');
 
       return true;
     } catch (error) {
@@ -584,10 +612,16 @@ class PWACardStorage {
     }
   }
 
-  // 版本控制 - 統一架構版本
-  async createVersionSnapshot(cardId, data, changeType = 'update', description = '') {
+  /**
+   * 安全建立版本快照 - 使用專用管理器或備用方案
+   */
+  async createVersionSnapshotSafe(cardId, data, changeType = 'update', description = '') {
     try {
-      // 獲取當前名片的版本號
+      if (this.versionManager) {
+        return await this.versionManager.createVersionSnapshot(cardId, data, changeType, description);
+      }
+      
+      // 備用方案：直接實作
       const card = await this.getCard(cardId);
       const currentVersion = card ? card.currentVersion : 1;
       
@@ -596,7 +630,7 @@ class PWACardStorage {
         id: versionId,
         cardId,
         version: currentVersion,
-        data: JSON.parse(JSON.stringify(data)), // 深拷貝
+        data: JSON.parse(JSON.stringify(data)),
         timestamp: new Date(),
         changeType,
         description,
@@ -607,14 +641,12 @@ class PWACardStorage {
       const store = transaction.objectStore('versions');
       
       await new Promise((resolve, reject) => {
-        const request = store.put(version); // 使用 put 而非 add，允許覆蓋
+        const request = store.put(version);
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
       });
 
-      // 清理舊版本（保留最近指定數量）
       await this.cleanupOldVersions(cardId);
-
       return version;
     } catch (error) {
       console.error('[Storage] Create version snapshot failed:', error);
@@ -1051,22 +1083,26 @@ class PWACardStorage {
   }
 
   /**
-   * 生成內容指紋 - STORAGE-01
+   * 安全生成指紋 - 使用專用管理器或備用方案
    */
-  async generateFingerprint(cardData) {
+  async generateFingerprintSafe(cardData) {
     try {
-      if (!window.ContentFingerprintGenerator) {
-        // 備用方案：簡單雜湊
-        const content = `${cardData.name || ''}|${cardData.email || ''}`;
-        const hash = await this.calculateChecksum({ content });
-        return `fingerprint_${hash.substring(0, 16)}`;
+      if (this.duplicateDetector) {
+        return await this.duplicateDetector.generateFingerprint(cardData);
       }
       
-      const generator = new window.ContentFingerprintGenerator();
-      return await generator.generateFingerprint(cardData);
+      // 備用方案：直接使用ContentFingerprintGenerator
+      if (window.ContentFingerprintGenerator) {
+        const generator = new window.ContentFingerprintGenerator();
+        return await generator.generateFingerprint(cardData);
+      }
+      
+      // 最終備用方案：簡單雜湊
+      const content = `${cardData.name || ''}|${cardData.email || ''}`;
+      const hash = await this.calculateChecksum({ content });
+      return `fingerprint_${hash.substring(0, 16)}`;
     } catch (error) {
       console.error('[Storage] Generate fingerprint failed:', error);
-      // 最終備用方案
       const timestamp = Date.now();
       const random = Math.random().toString(36).substring(2, 8);
       return `fingerprint_fallback_${timestamp}_${random}`;
@@ -1506,10 +1542,15 @@ class PWACardStorage {
   // ===== 版本控制相關方法 (整合自 VersionManager) =====
 
   /**
-   * 獲取版本歷史
+   * 獲取版本歷史 - 使用專用管理器或備用方案
    */
   async getVersionHistory(cardId) {
     try {
+      if (this.versionManager) {
+        return await this.versionManager.getVersionHistory(cardId);
+      }
+      
+      // 備用方案：直接實作
       if (!this.db) {
         throw new Error('Database not initialized');
       }
@@ -1547,28 +1588,28 @@ class PWACardStorage {
   }
 
   /**
-   * 還原到指定版本
+   * 還原到指定版本 - 使用專用管理器或備用方案
    */
   async restoreVersion(cardId, targetVersion) {
     try {
+      if (this.versionManager) {
+        return await this.versionManager.restoreToVersion(cardId, targetVersion);
+      }
       
-      // 獲取目標版本資料
+      // 備用方案：直接實作
       const versionSnapshot = await this.getVersionSnapshot(cardId, targetVersion);
       if (!versionSnapshot) {
         throw new Error(`Version ${targetVersion} not found for card ${cardId}`);
       }
 
-      // 驗證資料完整性
       const calculatedChecksum = await this.calculateChecksum(versionSnapshot.data);
       if (calculatedChecksum !== versionSnapshot.checksum) {
-        // 繼續執行，但記錄警告
+        console.warn('[Storage] Version checksum mismatch, continuing anyway');
       }
 
-      // 更新主要名片資料
       await this.updateCard(cardId, versionSnapshot.data);
 
-      // 建立還原操作的版本快照
-      await this.createVersionSnapshot(
+      await this.createVersionSnapshotSafe(
         cardId, 
         versionSnapshot.data, 
         'restore', 

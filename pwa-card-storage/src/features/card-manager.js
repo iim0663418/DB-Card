@@ -1049,6 +1049,7 @@ class PWACardManager {
 
       let importedCount = 0;
       const errors = [];
+      const duplicates = [];
       
       for (let i = 0; i < exportData.cards.length; i++) {
         const cardItem = exportData.cards[i];
@@ -1073,6 +1074,21 @@ class PWACardManager {
           
           // 使用匯出檔案中的類型資訊（優先級最高）
           const cardType = cardItem.type || this.detectCardType(preprocessedData);
+          
+          // 重複檢測
+          if (this.duplicateDetector) {
+            const duplicateResult = await this.duplicateDetector.detectDuplicates(preprocessedData);
+            if (duplicateResult.isDuplicate) {
+              duplicates.push({
+                index: i + 1,
+                name: preprocessedData.name,
+                existingCards: duplicateResult.existingCards
+              });
+              console.log(`[CardManager] 名片 ${i + 1} 檢測為重複:`, duplicateResult);
+              // 跳過重複名片或根據策略處理
+              continue;
+            }
+          }
           
           console.log(`[CardManager] 名片 ${i + 1} 類型識別:`, {
             originalType: cardItem.type,
@@ -1102,14 +1118,16 @@ class PWACardManager {
       console.log('[CardManager] 匯入完成:', {
         importedCount,
         totalCards: exportData.cards.length,
-        errorCount: errors.length
+        errorCount: errors.length,
+        duplicateCount: duplicates.length
       });
       
       return {
         success: importedCount > 0,
         count: importedCount,
         total: exportData.cards.length,
-        errors: errors.length > 0 ? errors : undefined
+        errors: errors.length > 0 ? errors : undefined,
+        duplicates: duplicates.length > 0 ? duplicates : undefined
       };
     } catch (error) {
       console.error('[CardManager] 匯入匯出格式失敗:', error);

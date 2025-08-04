@@ -47,12 +47,34 @@ class PWACardApp {
       // 並行初始化其他服務
       const initPromises = [];
       
+      // 初始化版本管理器
+      if (typeof VersionManager !== 'undefined') {
+        initPromises.push(
+          (async () => {
+            this.versionManager = new VersionManager(this.storage);
+          })()
+        );
+      }
+      
+      // 初始化重複檢測器
+      if (typeof DuplicateDetector !== 'undefined') {
+        initPromises.push(
+          (async () => {
+            this.duplicateDetector = new DuplicateDetector(this.storage);
+            await this.duplicateDetector.initialize();
+          })()
+        );
+      }
+      
       if (typeof PWACardManager !== 'undefined') {
         initPromises.push(
           (async () => {
             try {
               this.cardManager = new PWACardManager(this.storage);
               await this.cardManager.initialize();
+              // 整合版本管理和重複檢測
+              if (this.versionManager) this.cardManager.versionManager = this.versionManager;
+              if (this.duplicateDetector) this.cardManager.duplicateDetector = this.duplicateDetector;
             } catch (error) {
               this.cardManager = null;
             }

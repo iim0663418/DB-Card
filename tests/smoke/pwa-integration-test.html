@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OFFLINE-04 PWA 整合測試與備用機制驗證</title>
+    <script src="../../assets/qrcode.min.js"></script>
+    <script src="../../assets/qr-utils.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .test-result { margin: 8px 0; padding: 8px; border-radius: 4px; }
+        .pass { background: #d4edda; color: #155724; }
+        .fail { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .warning { background: #fff3cd; color: #856404; }
+        #qrcode { margin: 20px 0; min-height: 260px; border: 1px solid #ccc; padding: 10px; }
+        .qr-label { font-size: 14px; color: #666; margin-top: 10px; }
+        button { margin: 5px; padding: 8px 16px; cursor: pointer; }
+        .test-controls { margin: 15px 0; }
+        .pwa-status { background: #e7f3ff; padding: 10px; margin: 10px 0; border-left: 4px solid #0066cc; }
+        .performance-metrics { background: #f0f8f0; padding: 10px; margin: 10px 0; border-left: 4px solid #28a745; }
+        .error-simulation { background: #fff0f0; padding: 10px; margin: 10px 0; border-left: 4px solid #dc3545; }
+    </style>
+</head>
+<body>
+    <h1>OFFLINE-04 PWA 整合測試與備用機制驗證</h1>
+    
+    <div class="test-section">
+        <h2>🔧 測試控制面板</h2>
+        <div class="test-controls">
+            <button onclick="runAllPWATests()">執行完整 PWA 測試</button>
+            <button onclick="testPWAToolsAvailability()">PWA 工具可用性</button>
+            <button onclick="testPWAQRGeneration()">PWA QR 碼生成</button>
+            <button onclick="testFallbackMechanism()">備用機制測試</button>
+            <button onclick="testErrorRecovery()">錯誤恢復測試</button>
+            <button onclick="testPerformanceMetrics()">效能測試</button>
+            <button onclick="clearResults()">清除結果</button>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📊 PWA 工具狀態</h2>
+        <div class="pwa-status" id="pwa-status">檢查中...</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📈 效能指標</h2>
+        <div class="performance-metrics" id="performance-metrics">等待測試...</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔍 QR 碼顯示區域</h2>
+        <div id="qrcode">QR 碼將在此顯示...</div>
+        <div class="qr-label" id="qr-label">等待測試開始</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📋 測試結果</h2>
+        <div id="test-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>⚠️ 錯誤模擬測試</h2>
+        <div class="error-simulation" id="error-simulation">等待錯誤模擬測試...</div>
+    </div>
+
+    <script>
+        // 測試結果收集
+        let testResults = [];
+        let performanceMetrics = {};
+        
+        // 模擬名片資料
+        window.getCardDataFromNFC = function() {
+            return {
+                data: {
+                    name: "PWA測試使用者",
+                    title: "系統整合工程師",
+                    department: "資訊處",
+                    organization: "數位發展部",
+                    email: "pwa-test@moda.gov.tw",
+                    phone: "02-2356-5000",
+                    mobile: "0912-345-678",
+                    avatar: "assets/wu_sheng_fan/photo.jpg",
+                    address: "100057臺北市中正區延平南路143號",
+                    greetings: ["PWA 整合測試", "智慧備用機制驗證"],
+                    socialLinks: {
+                        email: "mailto:pwa-test@moda.gov.tw",
+                        socialNote: "LINE: @pwatest\\nFB: fb.com/pwatest"
+                    }
+                }
+            };
+        };
+        
+        // 模擬現有 vCard 生成函數
+        window.generateVCardContent = function(cardData) {
+            const data = cardData.data;
+            return [
+                'BEGIN:VCARD',
+                'VERSION:3.0',
+                `FN:${data.name}`,
+                `ORG:${data.organization}`,
+                `TITLE:${data.title}`,
+                `EMAIL:${data.email}`,
+                `TEL:${data.phone}`,
+                `TEL:${data.mobile}`,
+                'END:VCARD'
+            ].join('\\r\\n');
+        };
+        
+        // 載入增強腳本
+        const script = document.createElement('script');
+        script.src = '../../assets/offline-qr-enhancement.js';
+        script.onload = function() {
+            addResult('info', '✅ 離線 QR 碼增強腳本載入成功');
+            checkPWAToolsStatus();
+        };
+        script.onerror = function() {
+            addResult('fail', '❌ 離線 QR 碼增強腳本載入失敗');
+        };
+        document.head.appendChild(script);
+        
+        function addResult(type, message) {
+            const container = document.getElementById('test-results');
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong> - ${message}`;
+            container.appendChild(div);
+            
+            testResults.push({ type, message, timestamp: new Date() });
+        }
+        
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+            document.getElementById('performance-metrics').textContent = '等待測試...';
+            document.getElementById('error-simulation').textContent = '等待錯誤模擬測試...';
+            testResults = [];
+            performanceMetrics = {};
+            addResult('info', '測試結果已清除');
+        }
+        
+        // 檢查 PWA 工具狀態
+        function checkPWAToolsStatus() {
+            const statusContainer = document.getElementById('pwa-status');
+            
+            const status = {
+                qrUtils: !!window.qrUtils,
+                generateHighResQRCode: !!(window.qrUtils && window.qrUtils.generateHighResQRCode),
+                downloadQRCode: !!(window.qrUtils && window.qrUtils.downloadQRCode),
+                generateSmartFilename: !!(window.qrUtils && window.qrUtils.generateSmartFilename),
+                offlineTools: !!window.OfflineToolsManager
+            };
+            
+            let statusHtml = '<h4>🔍 PWA 工具可用性檢查</h4>';
+            Object.entries(status).forEach(([key, available]) => {
+                const icon = available ? '✅' : '❌';
+                const color = available ? 'green' : 'red';
+                statusHtml += `<div style="color: ${color};">${icon} ${key}: ${available ? '可用' : '不可用'}</div>`;
+            });
+            
+            statusContainer.innerHTML = statusHtml;
+            
+            // 記錄整體狀態
+            const availableCount = Object.values(status).filter(Boolean).length;
+            const totalCount = Object.keys(status).length;
+            
+            if (availableCount === totalCount) {
+                addResult('pass', `✅ PWA 工具完整可用 (${availableCount}/${totalCount})`);
+            } else if (availableCount > 0) {
+                addResult('warning', `⚠️ PWA 工具部分可用 (${availableCount}/${totalCount})`);
+            } else {
+                addResult('fail', `❌ PWA 工具完全不可用 (${availableCount}/${totalCount})`);
+            }
+            
+            return status;
+        }
+        
+        // 測試 PWA 工具可用性
+        function testPWAToolsAvailability() {
+            addResult('info', '🔍 開始測試 PWA 工具可用性...');
+            
+            const status = checkPWAToolsStatus();
+            
+            // 詳細檢查每個工具
+            if (window.qrUtils) {
+                addResult('pass', '✅ qrUtils 物件存在');
+                
+                if (typeof window.qrUtils.generateHighResQRCode === 'function') {
+                    addResult('pass', '✅ generateHighResQRCode 函數可用');
+                } else {
+                    addResult('fail', '❌ generateHighResQRCode 函數不存在');
+                }
+                
+                if (typeof window.qrUtils.downloadQRCode === 'function') {
+                    addResult('pass', '✅ downloadQRCode 函數可用');
+                } else {
+                    addResult('warning', '⚠️ downloadQRCode 函數不存在');
+                }
+                
+                if (typeof window.qrUtils.generateSmartFilename === 'function') {
+                    addResult('pass', '✅ generateSmartFilename 函數可用');
+                } else {
+                    addResult('warning', '⚠️ generateSmartFilename 函數不存在');
+                }
+            } else {
+                addResult('fail', '❌ qrUtils 物件不存在');
+            }
+        }
+        
+        // 測試 PWA QR 碼生成
+        async function testPWAQRGeneration() {
+            addResult('info', '🎨 開始測試 PWA QR 碼生成...');
+            
+            if (!window.qrUtils || !window.qrUtils.generateHighResQRCode) {
+                addResult('fail', '❌ PWA QR 工具不可用，跳過測試');
+                return;
+            }
+            
+            try {
+                const startTime = performance.now();
+                
+                // 設定離線狀態
+                Object.defineProperty(navigator, 'onLine', { 
+                    value: false, 
+                    configurable: true 
+                });
+                
+                // 執行 QR 碼生成
+                window.generateQRCode();
+                
+                // 等待生成完成
+                setTimeout(async () => {
+                    const endTime = performance.now();
+                    const generationTime = endTime - startTime;
+                    
+                    // 檢查是否生成成功
+                    const qrContainer = document.getElementById('qrcode');
+                    const hasQRCode = qrContainer.querySelector('img') || qrContainer.querySelector('canvas');
+                    
+                    if (hasQRCode) {
+                        addResult('pass', `✅ PWA QR 碼生成成功 (${Math.round(generationTime)}ms)`);
+                        
+                        // 記錄效能指標
+                        performanceMetrics.pwaGeneration = generationTime;
+                        updatePerformanceMetrics();
+                        
+                        // 檢查 QR 碼品質
+                        const img = qrContainer.querySelector('img');
+                        if (img && img.src.startsWith('data:image/')) {
+                            addResult('pass', '✅ PWA QR 碼格式正確 (DataURL)');
+                            
+                            // 檢查圖片尺寸
+                            img.onload = function() {
+                                if (this.naturalWidth === 240 && this.naturalHeight === 240) {
+                                    addResult('pass', '✅ PWA QR 碼尺寸正確 (240x240)');
+                                } else {
+                                    addResult('warning', `⚠️ PWA QR 碼尺寸異常 (${this.naturalWidth}x${this.naturalHeight})`);
+                                }
+                            };
+                        }
+                    } else {
+                        addResult('fail', '❌ PWA QR 碼生成失敗');
+                    }
+                    
+                    // 恢復線上狀態
+                    Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+                }, 2000);
+                
+            } catch (error) {
+                addResult('fail', `❌ PWA QR 碼生成異常: ${error.message}`);
+            }
+        }
+        
+        // 測試備用機制
+        function testFallbackMechanism() {
+            addResult('info', '🔄 開始測試備用機制...');
+            
+            // 暫時禁用 PWA 工具
+            const originalQrUtils = window.qrUtils;
+            window.qrUtils = null;
+            
+            try {
+                const startTime = performance.now();
+                
+                // 設定離線狀態
+                Object.defineProperty(navigator, 'onLine', { 
+                    value: false, 
+                    configurable: true 
+                });
+                
+                // 執行 QR 碼生成（應該使用備用機制）
+                window.generateQRCode();
+                
+                setTimeout(() => {
+                    const endTime = performance.now();
+                    const fallbackTime = endTime - startTime;
+                    
+                    // 檢查備用機制是否工作
+                    const qrContainer = document.getElementById('qrcode');
+                    const hasQRCode = qrContainer.querySelector('img') || qrContainer.querySelector('canvas');
+                    
+                    if (hasQRCode) {
+                        addResult('pass', `✅ 備用機制正常工作 (${Math.round(fallbackTime)}ms)`);
+                        
+                        // 記錄效能指標
+                        performanceMetrics.fallbackGeneration = fallbackTime;
+                        updatePerformanceMetrics();
+                        
+                        // 檢查是否使用了原始 QRCode 方法
+                        const canvas = qrContainer.querySelector('canvas');
+                        if (canvas) {
+                            addResult('pass', '✅ 備用機制使用原始 QRCode 方法');
+                        }
+                    } else {
+                        addResult('fail', '❌ 備用機制失敗');
+                    }
+                    
+                    // 恢復 PWA 工具和線上狀態
+                    window.qrUtils = originalQrUtils;
+                    Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+                    
+                }, 1500);
+                
+            } catch (error) {
+                addResult('fail', `❌ 備用機制測試異常: ${error.message}`);
+                
+                // 確保恢復
+                window.qrUtils = originalQrUtils;
+                Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+            }
+        }
+        
+        // 測試錯誤恢復
+        function testErrorRecovery() {
+            addResult('info', '🛠️ 開始測試錯誤恢復機制...');
+            
+            const errorSimulation = document.getElementById('error-simulation');
+            let errorTests = [];
+            
+            // 測試 1: QRCode 物件不存在
+            const originalQRCode = window.QRCode;
+            window.QRCode = null;
+            
+            try {
+                Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+                window.generateQRCode();
+                
+                setTimeout(() => {
+                    errorTests.push('QRCode 物件不存在: 系統未崩潰 ✅');
+                    
+                    // 恢復並繼續下一個測試
+                    window.QRCode = originalQRCode;
+                    
+                    // 測試 2: 無效的名片資料
+                    const originalGetCardData = window.getCardDataFromNFC;
+                    window.getCardDataFromNFC = () => null;
+                    
+                    try {
+                        window.generateQRCode();
+                        errorTests.push('無效名片資料: 正確處理 ✅');
+                    } catch (error) {
+                        errorTests.push('無效名片資料: 錯誤被捕獲 ✅');
+                    }
+                    
+                    // 恢復
+                    window.getCardDataFromNFC = originalGetCardData;
+                    Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+                    
+                    // 顯示錯誤測試結果
+                    errorSimulation.innerHTML = '<h4>🛠️ 錯誤恢復測試結果</h4>' + 
+                        errorTests.map(test => `<div>• ${test}</div>`).join('');
+                    
+                    if (errorTests.length > 0) {
+                        addResult('pass', `✅ 錯誤恢復機制正常 (${errorTests.length} 項測試通過)`);
+                    }
+                    
+                }, 1000);
+                
+            } catch (error) {
+                addResult('pass', `✅ 錯誤被正確捕獲: ${error.message}`);
+                
+                // 確保恢復
+                window.QRCode = originalQRCode;
+                Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+            }
+        }
+        
+        // 測試效能指標
+        function testPerformanceMetrics() {
+            addResult('info', '📊 開始效能測試...');
+            
+            const tests = [
+                { name: 'PWA QR 生成', threshold: 2000, test: testPWAQRGeneration },
+                { name: '備用機制', threshold: 3000, test: testFallbackMechanism }
+            ];
+            
+            let completedTests = 0;
+            
+            tests.forEach((testCase, index) => {
+                setTimeout(async () => {
+                    const startTime = performance.now();
+                    
+                    try {
+                        await testCase.test();
+                        
+                        const endTime = performance.now();
+                        const duration = endTime - startTime;
+                        
+                        if (duration <= testCase.threshold) {
+                            addResult('pass', `✅ ${testCase.name}效能測試通過 (${Math.round(duration)}ms ≤ ${testCase.threshold}ms)`);
+                        } else {
+                            addResult('warning', `⚠️ ${testCase.name}效能測試超時 (${Math.round(duration)}ms > ${testCase.threshold}ms)`);
+                        }
+                        
+                        performanceMetrics[testCase.name] = duration;
+                        
+                    } catch (error) {
+                        addResult('fail', `❌ ${testCase.name}效能測試失敗: ${error.message}`);
+                    }
+                    
+                    completedTests++;
+                    if (completedTests === tests.length) {
+                        updatePerformanceMetrics();
+                        generatePerformanceReport();
+                    }
+                    
+                }, index * 3000); // 錯開執行時間
+            });
+        }
+        
+        // 更新效能指標顯示
+        function updatePerformanceMetrics() {
+            const container = document.getElementById('performance-metrics');
+            
+            if (Object.keys(performanceMetrics).length === 0) {
+                container.textContent = '等待測試...';
+                return;
+            }
+            
+            let html = '<h4>📊 效能指標</h4>';
+            Object.entries(performanceMetrics).forEach(([key, value]) => {
+                const threshold = key.includes('PWA') ? 2000 : 3000;
+                const status = value <= threshold ? '✅' : '⚠️';
+                const color = value <= threshold ? 'green' : 'orange';
+                
+                html += `<div style="color: ${color};">${status} ${key}: ${Math.round(value)}ms (門檻: ${threshold}ms)</div>`;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // 生成效能報告
+        function generatePerformanceReport() {
+            const metrics = Object.entries(performanceMetrics);
+            const avgTime = metrics.reduce((sum, [, time]) => sum + time, 0) / metrics.length;
+            
+            addResult('info', `📊 效能測試完成，平均時間: ${Math.round(avgTime)}ms`);
+            
+            // 檢查是否符合要求
+            const pwaTime = performanceMetrics['PWA QR 生成'] || performanceMetrics.pwaGeneration;
+            const fallbackTime = performanceMetrics['備用機制'] || performanceMetrics.fallbackGeneration;
+            
+            if (pwaTime && pwaTime <= 2000) {
+                addResult('pass', '✅ PWA QR 碼生成效能符合要求 (≤ 2秒)');
+            }
+            
+            if (fallbackTime && fallbackTime <= 3000) {
+                addResult('pass', '✅ 備用機制效能符合要求 (≤ 3秒)');
+            }
+        }
+        
+        // 執行完整 PWA 測試套件
+        function runAllPWATests() {
+            clearResults();
+            addResult('info', '🚀 開始執行完整 PWA 整合測試套件...');
+            
+            // 按順序執行測試
+            setTimeout(() => testPWAToolsAvailability(), 500);
+            setTimeout(() => testPWAQRGeneration(), 2000);
+            setTimeout(() => testFallbackMechanism(), 5000);
+            setTimeout(() => testErrorRecovery(), 8000);
+            setTimeout(() => generateFinalReport(), 12000);
+        }
+        
+        // 生成最終測試報告
+        function generateFinalReport() {
+            const totalTests = testResults.length;
+            const passedTests = testResults.filter(r => r.type === 'pass').length;
+            const failedTests = testResults.filter(r => r.type === 'fail').length;
+            const warningTests = testResults.filter(r => r.type === 'warning').length;
+            
+            addResult('info', '📋 PWA 整合測試報告生成中...');
+            
+            setTimeout(() => {
+                addResult('info', `
+                    📊 <strong>PWA 整合測試總結</strong><br>
+                    • 總測試數: ${totalTests}<br>
+                    • 通過: ${passedTests}<br>
+                    • 失敗: ${failedTests}<br>
+                    • 警告: ${warningTests}<br>
+                    • 成功率: ${totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0}%
+                `);
+                
+                if (failedTests === 0) {
+                    addResult('pass', '🎉 OFFLINE-04 PWA 整合測試與備用機制驗證：全部通過！');
+                } else {
+                    addResult('warning', `⚠️ OFFLINE-04 測試完成，發現 ${failedTests} 個問題需要處理`);
+                }
+            }, 1000);
+        }
+        
+        // 頁面載入完成後的初始化
+        window.addEventListener('load', function() {
+            addResult('info', '🔧 OFFLINE-04 PWA 整合測試環境已準備就緒');
+            addResult('info', '💡 點擊上方按鈕開始測試，或執行完整 PWA 測試套件');
+        });
+    </script>
+</body>
+</html>

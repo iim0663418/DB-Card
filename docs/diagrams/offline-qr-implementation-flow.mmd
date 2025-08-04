@@ -1,0 +1,43 @@
+```mermaid
+graph TD
+    A[頁面載入] --> B[初始化離線QR增強功能]
+    B --> C[保存原始generateQRCode函數]
+    C --> D[重新定義generateQRCode函數]
+    D --> E[設置網路狀態監聽器]
+    
+    E --> F{使用者觸發QR碼生成}
+    F --> G{檢查navigator.onLine}
+    
+    G -->|線上| H[執行原始generateQRCode邏輯]
+    H --> I[生成URL QR碼]
+    I --> J[更新標籤為線上模式]
+    
+    G -->|離線| K[執行generateOfflineVCardQR]
+    K --> L[獲取名片資料]
+    L --> M{檢查PWA工具可用性}
+    
+    M -->|可用| N[使用PWA統一工具]
+    N --> O[generateOfflineVCardQRWithPWA]
+    O --> P{PWA工具成功?}
+    P -->|成功| Q[渲染高解析度QR碼]
+    P -->|失敗| R[降級到備用方法]
+    
+    M -->|不可用| R[generateOfflineVCardQRFallback]
+    R --> S[生成vCard內容]
+    S --> T[使用原始QRCode庫]
+    T --> U[生成240x240 QR碼]
+    
+    Q --> V[更新標籤為離線模式]
+    U --> V
+    V --> W[完成QR碼生成]
+    
+    X[網路狀態變化] --> Y{線上/離線切換}
+    Y --> Z[自動重新生成QR碼]
+    Z --> F
+    
+    style A fill:#e1f5fe
+    style K fill:#fff3e0
+    style N fill:#e8f5e8
+    style R fill:#fce4ec
+    style W fill:#f3e5f5
+```

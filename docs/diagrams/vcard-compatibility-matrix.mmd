@@ -1,0 +1,59 @@
+```mermaid
+graph TB
+    subgraph "vCard 3.0 格式相容性矩陣"
+        A[vCard 生成] --> B[基本欄位]
+        A --> C[進階欄位]
+        A --> D[字符編碼]
+        
+        B --> B1[FN;CHARSET=UTF-8:姓名]
+        B --> B2[N;CHARSET=UTF-8:姓;名;;;]
+        B --> B3[ORG;CHARSET=UTF-8:組織]
+        B --> B4[TITLE;CHARSET=UTF-8:職稱]
+        B --> B5[EMAIL;TYPE=work:信箱]
+        
+        C --> C1[TEL;TYPE=work,voice:工作電話]
+        C --> C2[TEL;TYPE=cell,voice:手機]
+        C --> C3[ADR;TYPE=work;CHARSET=UTF-8:地址]
+        C --> C4[NOTE;CHARSET=UTF-8:社群連結]
+        C --> C5[PHOTO;TYPE=JPEG:頭像URL]
+        C --> C6[REV:時間戳]
+        C --> C7[PRODID:產品識別]
+        
+        D --> D1[UTF-8 編碼支援]
+        D --> D2[CRLF 行結束符]
+        D --> D3[特殊字符轉義]
+    end
+    
+    subgraph "跨平台相容性"
+        E[iOS 設備] --> E1[原生聯絡人 App]
+        E --> E2[第三方掃描器]
+        
+        F[Android 設備] --> F1[Google 聯絡人]
+        F --> F2[Samsung 聯絡人]
+        F --> F3[第三方 App]
+        
+        G[桌面瀏覽器] --> G1[Chrome/Edge]
+        G --> G2[Safari]
+        G --> G3[Firefox]
+    end
+    
+    subgraph "QR 碼規格"
+        H[QR Code 設定] --> H1[240x240 像素]
+        H --> H2[錯誤修正等級 H]
+        H --> H3[UTF-8 內容編碼]
+        H --> H4[vCard 格式驗證]
+    end
+    
+    B1 --> E1
+    B2 --> F1
+    C1 --> E2
+    C2 --> F2
+    D1 --> G1
+    D2 --> G2
+    
+    style A fill:#e1f5fe
+    style E fill:#e8f5e8
+    style F fill:#fff3e0
+    style G fill:#f3e5f5
+    style H fill:#fce4ec
+```

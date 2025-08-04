@@ -1,547 +1,388 @@
 ---
-version: "2.0.0"
-rev_id: "R-018"
-last_updated: "2024-12-20"
-owners: ["PWA Team", "DB-Card Project", "Performance Team"]
-status: "✅ Phase 1 Complete, Phase 2-4 Planned"
+version: "v3.1.0"
+rev_id: 3
+last_updated: "2025-01-27"
+owners: ["prd-writer", "main-orchestrator"]
+feature_scope: "card-version-management-duplicate-detection"
+security_level: "standard"
+cognitive_complexity: "low"
+reuse_policy: "reuse-then-extend-then-build"
+migration_policy:
+  compatibility: "100% 向下相容"
+  dual_track_period: "無需雙軌，零破壞性修改"
+  rollback_strategy: "資料庫版本回滾機制"
+  data_migration: "自動資料結構升級"
 ---
 
-# PWA 名片離線收納與分享中心產品需求文件 (PRD)
+# 名片版本管理與重複識別功能需求文檔
 
 ## 1. Product Overview
 
-### 背景與目標
-基於現有 NFC 數位名片系統，開發 PWA 離線收納與分享中心。聚焦於手動收納、精選管理和便捷分享，整合 DB 儲存調用方式，參考兩大生成器與 9 個名片介面設計 parser 進行讀取顯示。
+### 1.1 背景與動機
+基於專案現狀分析，系統已具備：
+- ✅ **基礎版本控制**：`PWACardStorage` 提供版本快照功能
+- ✅ **IndexedDB 儲存**：完整的本地資料庫架構
+- ✅ **名片匯入功能**：支援 JSON 和 vCard 格式匯入
 
-**核心整合需求**：
-- **兩大生成器整合**：完全相容 nfc-generator.html 和 nfc-generator-bilingual.html 的業務邏輯
-- **9 種名片類型支援**：機關版延平/新光、個人版、雙語版、英文版等完整類型識別
-- **DB 儲存調用統一**：IndexedDB + bilingual-common.js 橋接，確保資料格式一致性
+**需求缺口**：從匯出檔案 `cards-export-2025-08-04T21-27-49.json` 分析發現：
+1. **重複名片問題**：同一人（蔡孟諭）的 3 張名片被當作不同名片儲存
+2. **版本號固定**：所有名片版本都是 "1.0"，沒有遞增機制
+3. **缺乏唯一識別**：無法識別相同名片的不同版本
+4. **資料格式不一致**：新舊格式混合，影響識別準確性
 
-### 目標使用者
-**主要使用者**：數位發展部員工
-- 使用場景：離線瀏覽和儲存名片
-- 設備：智慧手機（iOS/Android）、平板
-- 名片類型：支援所有 9 種 DB-Card 格式
+### 1.2 產品目標
+- **主要目標**：建立基於內容指紋的名片版本管理機制
+- **次要目標**：提供版本歷史查看和還原功能
+- **長期目標**：建立智慧重複檢測和合併建議系統
 
-### 核心價值主張
-> 提供隱私優先的離線名片收納與分享中心，支援手動精選管理，統一 DB 調用方式，完全相容 9 種名片介面格式
+### 1.3 目標使用者
+- **主要使用者**：PWA 名片管理系統使用者
+- **使用場景**：匯入名片時自動檢測重複、管理名片版本歷史
+- **技術水平**：一般使用者，期望自動化處理
+
+### 1.4 商業價值
+- 提升資料品質，避免重複儲存
+- 增強版本控制能力，支援名片演進追蹤
+- 改善使用者體驗，減少手動清理工作
+
+### 1.5 關鍵績效指標 (KPI)
+- **重複檢測準確率**：≥ 95%（基於姓名+電子郵件指紋）
+- **版本管理效率**：版本建立時間 ≤ 500ms
+- **儲存空間優化**：重複名片減少 ≥ 80%
+- **使用者滿意度**：版本管理功能使用率 ≥ 60%
 
 ## 2. Functional Requirements
 
-### R-001: 兩大生成器整合
-**需求描述**：完全整合現有兩大生成器的業務邏輯
-**Acceptance Criteria**：
-- Given 使用者從任一生成器產生的名片
-- When PWA 接收名片資料
-- Then 正確解析並儲存，保持 100% 相容性
-- And 支援兩種生成器的 QR 碼格式
+### 2.1 內容指紋生成機制
+**User Story**: 作為系統，我需要為每張名片生成唯一的內容指紋，以識別相同名片的不同版本。
 
-### R-002: 9 種名片類型 Parser
-**需求描述**：自動識別並正確顯示 9 種名片類型
-**支援類型**：
-- gov-yp (機關版-延平大樓)
-- gov-sg (機關版-新光大樓)  
-- personal (個人版)
-- bilingual (雙語版)
-- personal-bilingual (個人雙語版)
-- en (英文版)
-- personal-en (個人英文版)
-- gov-yp-en (機關版延平英文)
-- gov-sg-en (機關版新光英文)
+**Acceptance Criteria**:
+- **Given** 使用者匯入或新增名片資料
+- **When** 系統處理名片資料（包含姓名、電子郵件等關鍵欄位）
+- **Then** 自動生成基於 `name + email` 的 SHA-256 內容指紋
+- **And** 指紋格式為 `fingerprint_[hash]`，長度固定 64 字元
+- **And** 支援雙語名片的標準化處理（"蔡孟諭~Tsai Meng-Yu" → "蔡孟諭"）
+- **And** 處理空值和特殊字元，確保指紋穩定性
 
-**Acceptance Criteria**：
-- Given 任一類型的名片資料
-- When 系統進行類型識別
-- Then 自動套用對應的樣式和佈局
-- And 正確處理各類型的特殊欄位
+**Priority**: P0 (Critical)
+**Dependencies**: 現有 `PWACardStorage.calculateChecksum()` 方法、Web Crypto API
 
-### R-003: 統一 DB 儲存調用
-**需求描述**：建立統一的資料庫儲存和調用機制
-**技術架構**：
-- **主儲存**：IndexedDB (cards, versions, settings, backups)
-- **橋接層**：bilingual-bridge.js 整合現有 bilingual-common.js
-- **加密層**：AES-256 本地加密
-- **完整性**：SHA-256 校驗和驗證
+### 2.2 智慧重複檢測與版本遞增
+**User Story**: 作為使用者，我希望匯入名片時系統能自動檢測重複並管理版本號。
 
-**Acceptance Criteria**：
-- Given 名片資料需要儲存
-- When 呼叫統一儲存 API
-- Then 資料加密儲存到 IndexedDB
-- And 建立版本快照（限制 10 個版本）
-- And 更新完整性校驗和
+**Acceptance Criteria**:
+- **Given** 使用者匯入名片資料
+- **When** 系統檢測到相同指紋的名片已存在
+- **Then** 自動將版本號遞增（1.0 → 1.1 → 1.2）
+- **And** 保留所有歷史版本，最多保存 10 個版本
+- **And** 顯示重複檢測提示："發現相同名片，已建立版本 1.2"
+- **And** 提供選項：「覆蓋現有版本」或「建立新版本」
+- **And** 自動清理超過限制的舊版本（FIFO 策略）
 
-### R-004: 現有使用者旅程優化
-**需求描述**：保持並優化現有的名片介面使用者旅程
-**技術實作**：優化現有的路由和資料處理流程
-**Acceptance Criteria**：
-- Given 使用者透過名片介面進入 PWA
-- When 系統接收名片資料
-- Then 自動識別名片類型並解析資料
-- And 提供流暢的儲存和管理體驗
-- And 保持與兩大生成器的完全相容性
-- And 支援所有 9 種名片類型的完整功能
+**Priority**: P0 (Critical)
+**Dependencies**: 內容指紋機制、現有版本控制系統
 
-### R-005: 離線 QR 碼生成與分享 ✅ 完成
-**需求描述**：完全離線生成 QR 碼並提供多種分享方式
-**最新狀態**：✅ vCard 生成機制已修復，解決 [object Object] 問題
-**Acceptance Criteria**：
-- ✅ Given 使用者檢視已儲存名片
-- ✅ When 選擇分享功能  
-- ✅ Then 使用與原生成器相同的編碼邏輯生成 QR 碼
-- ✅ And 支援 QR 碼下載（PNG/SVG 格式）
-- ✅ And 提供 Web Share API 原生分享
-- ✅ And 支援複製連結、社群媒體分享
-- ✅ And 確保與兩種生成器 100% 相容
-- ✅ **NEW**: vCard 匯出正確處理所有名片類型，無格式錯誤
+### 2.3 版本歷史管理介面
+**User Story**: 作為使用者，我希望能查看和管理名片的版本歷史。
 
-### R-006: 跨設備資料傳輸與備份
-**需求描述**：透過加密檔案和多種方式實現設備間資料同步
-**Acceptance Criteria**：
-- Given 使用者需要傳輸或備份名片資料
-- When 選擇匯出功能
-- Then 建立 AES-256 加密傳輸檔案
-- And 支援檔案分享、雲端儲存上傳
-- And 提供匯入時的衝突解決機制
-- And 支援選擇性匯出和批次操作
+**Acceptance Criteria**:
+- **Given** 名片存在多個版本
+- **When** 使用者點擊「版本歷史」按鈕
+- **Then** 顯示版本列表，包含版本號、修改時間、變更摘要
+- **And** 支援版本比較功能，高亮顯示差異欄位
+- **And** 提供「還原到此版本」功能
+- **And** 顯示版本統計：總版本數、最後修改時間、儲存空間使用
+- **And** 支援版本匯出功能（單一版本或完整歷史）
 
-### R-007: 資料完整性保障
-**需求描述**：自動檢測和修復資料損壞
-**Acceptance Criteria**：
-- Given PWA 啟動或關鍵操作
-- When 執行健康檢查
-- Then 驗證所有名片資料完整性
-- And 自動修復可修復的損壞
-- And 記錄無法修復的問題
+**Priority**: P1 (High)
+**Dependencies**: 現有 `getVersionHistory()` 方法、UI 元件系統
 
-### R-008: 雙語支援整合
-**需求描述**：完整支援中英文雙語切換
-**技術實作**：bilingual-bridge.js 橋接現有系統
-**Acceptance Criteria**：
-- Given 雙語名片資料
-- When 使用者切換語言
-- Then 正確顯示對應語言內容
-- And 保持所有功能正常運作
+### 2.4 匯入時重複處理流程
+**User Story**: 作為使用者，我希望匯入檔案時能智慧處理重複名片。
 
-### R-009: 數位發展部設計系統對齊 ⭐ NEW
-**需求描述**：PWA介面完全對齊數位發展部全球資訊網設計系統，確保視覺一致性
-**優先級**：High
-**技術實作**：
-- 導入完整 `--md-*` CSS變數系統
-- 實作 `.dark` 類別深色模式切換
-- 整合 Bootstrap 5 + 數位發展部自訂變數
-- 統一字體系統：PingFang TC, Noto Sans TC
+**Acceptance Criteria**:
+- **Given** 使用者匯入包含重複名片的檔案
+- **When** 系統檢測到重複名片（相同指紋）
+- **Then** 顯示重複處理對話框，包含：
+  - 現有名片資訊（版本、最後修改時間）
+  - 新名片資訊（來源、差異摘要）
+  - 處理選項：跳過、覆蓋、建立新版本、批量處理
+- **And** 支援批量處理模式：「全部跳過」、「全部建立新版本」
+- **And** 提供預覽功能，顯示處理結果統計
+- **And** 完成後顯示匯入報告：新增、更新、跳過的名片數量
 
-**Acceptance Criteria**：
-- Given PWA載入時
-- When 系統初始化設計系統
-- Then 所有介面元素使用數位發展部官方色彩變數
-- And 字體系統與官網完全一致
-- And 支援深色模式自動切換
-- And 響應式佈局符合官網標準
-- And 視覺一致性達到100%
+**Priority**: P0 (Critical)
+**Dependencies**: 匯入流程、重複檢測機制、UI 對話框元件
 
-**設計系統規格**：
-- **主色系**：`--md-primary-1: #6868ac`
-- **次要色系**：`--md-secondary-1: #565e62`
-- **中性色系**：`--md-neutral-*` 完整色階
-- **基礎色**：`--md-white-1`, `--md-black-1`
-- **字體**：`'PingFang TC', 'Noto Sans TC', sans-serif`
-- **字重**：300 (輕量)
-- **基準字體大小**：0.875rem
-- **佈局**：flexbox + Bootstrap 5 類別
+### 2.5 版本合併與清理功能
+**User Story**: 作為使用者，我希望能合併相似版本並清理不需要的歷史版本。
+
+**Acceptance Criteria**:
+- **Given** 名片存在多個相似版本
+- **When** 使用者選擇「版本管理」功能
+- **Then** 系統分析版本差異，提供合併建議
+- **And** 支援手動選擇要保留的版本
+- **And** 提供批量清理功能：清理 30 天前的版本、清理相似版本
+- **And** 清理前顯示影響範圍和確認對話框
+- **And** 支援清理操作的撤銷功能（24 小時內）
+
+**Priority**: P2 (Medium)
+**Dependencies**: 版本比較算法、批量操作機制
 
 ## 3. Non-Functional Requirements
 
-### Secure by Default 清單
-- ✅ **本地加密儲存**：AES-256 加密所有敏感資料
-- ✅ **CSP 安全政策**：嚴格的 Content Security Policy
-- ✅ **輸入驗證**：所有資料輸入嚴格驗證和清理
-- ✅ **最小權限**：僅請求必要的系統權限
-- ✅ **完整性驗證**：SHA-256 校驗和檢查
+### 3.1 Secure by Default 檢查清單
+- ✅ **資料完整性**：使用 SHA-256 確保指紋唯一性和防篡改
+- ✅ **輸入驗證**：所有名片資料進行格式驗證和清理
+- ✅ **授權檢查**：版本操作需要適當的使用者權限驗證
+- ✅ **安全日誌**：記錄版本操作，但不洩露 PII 資訊
+- ✅ **錯誤處理**：版本衝突和異常情況的安全處理
 
-### Cognitive Load-Friendly 清單
-- ✅ **直觀操作**：操作步驟不超過 3 步
-- ✅ **即時回饋**：所有操作提供視覺確認
-- ✅ **錯誤預防**：重要操作提供確認機制
-- ✅ **無障礙設計**：符合 WCAG 2.1 AA 標準
-- 🔄 **視覺一致性**：與數位發展部官網100%一致
-- 🔄 **設計系統統一**：使用官方設計變數和元件
+### 3.2 Cognitive Load-Friendly 檢查清單
+- ✅ **自動化處理**：重複檢測和版本管理對使用者透明
+- ✅ **清楚提示**：版本狀態和操作結果有明確的視覺回饋
+- ✅ **簡化選擇**：提供預設選項和批量處理模式
+- ✅ **可理解標籤**：版本號使用語義化命名（1.0, 1.1, 1.2）
+- ✅ **錯誤恢復**：提供撤銷和還原機制
 
-### 效能需求
-- 載入時間：< 3 秒（離線狀態）
-- 資料處理速度：< 500ms
-- QR 碼生成：< 2 秒
-- 資料查詢：< 500ms（本地 IndexedDB）
-- 儲存容量：支援 > 1000 張名片
-- **設計系統效能**：CSS變數切換 < 100ms，深色模式切換 < 200ms
+### 3.3 效能需求
+- **指紋生成時間**：≤ 100ms per card
+- **重複檢測時間**：≤ 200ms per card
+- **版本歷史載入**：≤ 500ms for 10 versions
+- **批量處理效率**：≥ 50 cards/second
+
+### 3.4 可用性需求
+- **離線可用性**：100% 離線環境下功能正常
+- **資料一致性**：版本操作的 ACID 特性保證
+- **錯誤恢復**：異常中斷後自動恢復到一致狀態
 
 ## 4. Technical Constraints & Assumptions
 
-### DB 整合約束
-- 必須與現有 bilingual-common.js 完全相容
-- 支援兩大生成器的所有資料格式
-- 保持 9 種名片類型的完整功能
-- 純前端架構，無後端依賴
+### 4.1 技術限制
+- **必須複用現有組件**：`PWACardStorage`、`PWACardManager`、IndexedDB 架構
+- **保持 API 一致性**：不改變現有 `storeCard()` 和 `importFromFile()` 函數簽名
+- **資料庫結構擴展**：在現有 schema 基礎上新增欄位，不破壞相容性
+- **瀏覽器相容性**：支援 IndexedDB 和 Web Crypto API 的現代瀏覽器
 
-### 設計系統約束 ⭐ NEW
-- 必須使用數位發展部官方CSS變數系統
-- 保持與官網字體系統一致（PingFang TC, Noto Sans TC）
-- 支援深色模式自動切換機制
-- 使用Bootstrap 5佈局系統並整合自訂變數
-- 維持現有PWA功能完整性，僅更新視覺層
+### 4.2 現有依賴與整合點
+- **儲存層**：`PWACardStorage` 的版本控制機制
+- **管理層**：`PWACardManager` 的匯入和類型識別邏輯
+- **資料結構**：現有的 `cards` 和 `versions` ObjectStore
+- **加密機制**：現有的 SHA-256 校驗和計算方法
 
-### 技術假設
-- 現代瀏覽器支援 PWA 和 IndexedDB
-- 使用者設備支援 Web Share API（分享功能）
-- 網路環境允許初始 PWA 安裝和更新
-- 瀏覽器支援CSS自訂屬性（CSS Variables）
-- 使用者設備支援現代字體渲染（PingFang TC, Noto Sans TC）
+### 4.3 假設條件
+- 使用者理解版本管理的基本概念
+- 姓名+電子郵件組合足以唯一識別一個人
+- 版本歷史不會無限增長（10 版本限制合理）
 
-## 5. UX Principles & Design System ⭐ NEW
+## 5. Architecture Reuse Plan
 
-### 數位發展部設計系統核心原則
-- **視覺一致性**：與官網保持100%視覺一致
-- **色彩系統**：使用官方色彩變數，支援深色模式
-- **字體系統**：統一使用PingFang TC和Noto Sans TC
-- **佈局系統**：Bootstrap 5 flexbox + 自訂變數
-- **響應式設計**：支援多設備尺寸自適應
+### 5.1 Reuse Mapping
+| 新需求功能 | 現有模組/API | 複用方式 | 擴展需求 |
+|-----------|-------------|----------|----------|
+| 內容指紋生成 | `calculateChecksum()` | 直接複用 | 新增指紋標準化邏輯 |
+| 版本儲存 | `createVersionSnapshot()` | 擴展複用 | 新增指紋欄位 |
+| 重複檢測 | `listCards()` | 擴展複用 | 新增指紋索引查詢 |
+| 版本歷史 | `getVersionHistory()` | 直接複用 | 無需修改 |
+| 匯入處理 | `importFromExportFormat()` | 擴展複用 | 新增重複檢測邏輯 |
 
-### 關鍵使用者旅程設計原則
-1. **視覺一致性保障**：使用者從官網進入PWA時無縫體驗
-2. **設計系統統一**：所有介面元素使用相同設計變數
-3. **深色模式支援**：自動識別使用者偏好並切換
-4. **無障礙設計**：符合WCAG 2.1 AA標準的色彩對比和字體大小
+### 5.2 Extension Plan
+**資料庫 Schema 擴展**：
+```javascript
+// 擴展 cards ObjectStore
+{
+  id: 'card_xxx',
+  fingerprint: 'fingerprint_[hash]', // 新增：內容指紋
+  type: 'bilingual',
+  data: { /* 名片資料 */ },
+  created: Date,
+  modified: Date,
+  version: '1.2', // 擴展：語義化版本號
+  currentVersion: 2, // 保留：數字版本號
+  // ... 其他現有欄位
+}
 
-### 設計令牌（Design Tokens）
-```css
-/* 主色系 */
---md-primary-1: #6868ac;
---md-primary-2: rgba(104, 104, 172, 0.89);
---md-primary-3: #4e4e81;
---md-primary-4: #a4a4cd;
---md-primary-5: #dbdbeb;
-
-/* 次要色系 */
---md-secondary-1: #565e62;
---md-secondary-2: #6E777C;
---md-secondary-3: #7b868c;
-
-/* 中性色系 */
---md-neutral-1: #1a1a1a;
---md-neutral-2: #3e4346;
---md-neutral-9: #f3f5f6;
---md-neutral-10: #f4f6f7;
-
-/* 基礎色 */
---md-white-1: #fff;
---md-black-1: #000;
-
-/* 字體系統 */
---bs-body-font-family: 'PingFang TC', 'Noto Sans TC', sans-serif;
---bs-body-font-weight: 300;
---bs-body-font-size: 0.875rem;
+// 擴展 versions ObjectStore
+{
+  id: 'card_xxx_v1.2',
+  cardId: 'card_xxx',
+  fingerprint: 'fingerprint_[hash]', // 新增：版本指紋
+  version: '1.2', // 擴展：語義化版本號
+  // ... 其他現有欄位
+}
 ```
 
-## 6. Implementation Status - ✅ Phase 1 Complete, Phase 2-4 Roadmap
+**新增索引**：
+```javascript
+// 新增指紋索引以支援快速重複檢測
+cardsStore.createIndex('fingerprint', 'fingerprint', { unique: false });
+versionsStore.createIndex('fingerprint', 'fingerprint', { unique: false });
+```
 
-### 當前狀態 (v1.0.4) - ✅ 效能優化完成
-- **Phase 1 (v1.0.4)**: ✅ 並行初始化 + 效能優化完成
-- **Phase 2 (v1.1.0)**: 🔄 模組懶載入 + 效能監控計劃中
-- **Phase 3 (v1.2.0)**: 🔄 智慧快取策略計劃中
-- **Phase 4 (v2.0.0)**: 🔄 微前端架構計劃中
-- **兩大生成器整合**: ✅ 完整實現
-- **9 種名片類型支援**: ✅ 完整實現
-- **DB 儲存調用統一**: ✅ 完整實現
-- **離線 QR 碼生成**: ✅ 完整實現
-- **vCard 匯出功能**: ✅ 完整實現，[object Object] 問題已修復
-- **跨設備傳輸**: ✅ 完整實現
-- **雙語支援**: ✅ 完整實現
+### 5.3 Build vs. Buy vs. Reuse 分析
+| 功能模組 | 決策 | 理由 | 成本評估 |
+|---------|------|------|----------|
+| 指紋生成算法 | Reuse | 現有 SHA-256 機制成熟 | 低：僅需包裝函數 |
+| 版本比較邏輯 | Build | 業務邏輯特殊，需客製化 | 中：約 200 行程式碼 |
+| 重複檢測 UI | Build | 需要特定的使用者互動流程 | 中：約 300 行程式碼 |
+| 版本歷史 UI | Extend | 基於現有 UI 元件擴展 | 低：約 150 行程式碼 |
 
-### 核心組件狀態
-- ✅ **bilingual-bridge.js**: 完整實作，提供雙語橋接
-- ✅ **storage.js**: IndexedDB 統一儲存管理
-- ✅ **card-manager.js**: 9 種類型識別和管理
-- ✅ **offline-tools.js**: QR 碼生成、vCard 匯出、分享功能
-- ✅ **transfer-manager.js**: 跨設備加密傳輸
-- ✅ **version-manager.js**: 10 版本限制的版本控制
-- ❌ **qr-scanner.js**: 將被移除的 QR 掃描功能
+### 5.4 Migration & Deprecation
+**資料遷移策略**：
+1. **Phase 1**：新增指紋欄位，現有資料保持不變
+2. **Phase 2**：背景任務為現有名片生成指紋
+3. **Phase 3**：啟用重複檢測功能
+4. **Phase 4**：清理重複資料（可選，使用者確認）
 
-## 6. Spec↔Design↔Tasks 映射表
+**向下相容性**：
+- 現有 API 保持不變，新功能通過可選參數提供
+- 舊版本資料自動升級，無需使用者干預
+- 提供降級機制，可關閉新功能回到原始行為
 
-| ReqID | Requirement | DesignID | TaskID | Status |
-|-------|-------------|----------|---------|---------|
-| R-001 | 兩大生成器整合 | D-001 | PWA-09A | ✅ 完成 |
-| R-002 | 9種名片類型Parser | D-002 | PWA-03 | ✅ 完成 |
-| R-003 | 統一DB儲存調用 | D-003 | PWA-02,PWA-05 | ✅ 完成 |
-| R-004 | QR掃描功能移除 | D-004 | PWA-19 | 🔄 清理中 |
-| R-005 | 離線QR碼生成 | D-005 | PWA-09 | ✅ 完成 + vCard修復 |
-| R-006 | 跨設備資料傳輸 | D-006 | PWA-11,PWA-12 | ✅ 完成 |
-| R-007 | 資料完整性保障 | D-007 | PWA-07 | ✅ 完成 |
-| R-008 | 雙語支援整合 | D-008 | PWA-04 | ✅ 完成 |
-| R-009 | 數位發展部設計系統對齊 | D-009 | PWA-20 | ✅ 完成 |
-| R-010 | 版本自動化管理 | D-010 | PWA-21 | ✅ 完成 |
-| R-011 | IndexedDB連線穩定性 | D-011 | PWA-22 | ✅ 完成 |
-| R-012 | PWA初始化效能優化 | D-012 | PWA-23 | ✅ 完成 |
-| R-013 | PWA安裝提示修復 | D-013 | PWA-24 | ✅ 完成 |
-| R-014 | 模組懶載入架構 | D-014 | PWA-25 | 🔄 計劃中 |
-| R-015 | 智慧快取策略 | D-015 | PWA-26 | 🔄 計劃中 |
-| R-016 | 微前端架構準備 | D-016 | PWA-27 | 🔄 計劃中 |
-| R-017 | 效能監控與分析 | D-017 | PWA-28 | 🔄 計劃中 |
-| R-018 | 漸進式載入優化 | D-018 | PWA-29 | 🔄 計劃中 |
-| R-019 | Mobile 觸控優化 | D-019 | PWA-30 | ✅ 完成 |
-| R-020 | PWA 部署相容性 | D-020 | PWA-31 | ✅ 完成 |
-| R-021 | PWA Manifest 統一管理 | D-015 | PWA-32 | ✅ 完成 |
+## 6. Security & Privacy Requirements
 
-### R-010: 版本自動化管理 🆕 NEW
-**需求描述**：應用版本號與 manifest.json 自動同步，避免手動維護多處版本資訊
-**優先級**：Medium
-**技術實作**：
-- PWA 啟動時動態讀取 `manifest.json` 的 `version` 欄位
-- 統計卡片顯示格式：`v{version}`
-- 網路錯誤時使用備用版本號
+### 6.1 威脅模型概覽
+| 威脅類型 | 風險等級 | 緩解措施 |
+|---------|---------|----------|
+| 指紋碰撞攻擊 | Medium | 使用 SHA-256 + 鹽值，碰撞機率極低 |
+| 版本資料篡改 | Medium | 版本校驗和驗證，檢測資料完整性 |
+| 重複檢測繞過 | Low | 多重驗證機制，防止惡意重複 |
+| 版本歷史洩露 | Low | 本地儲存，無網路傳輸風險 |
 
-**Acceptance Criteria**：
-- ✅ Given 開發者更新 manifest.json 版本
-- ✅ When PWA 重新載入
-- ✅ Then 自動顯示新版本號
-- ✅ And 無需手動更新其他檔案
+### 6.2 資料分類與最小權限
+- **敏感資料**：姓名、電子郵件（用於指紋生成）
+- **處理原則**：指紋生成後立即清理中間資料
+- **存取控制**：版本操作需要明確的使用者授權
+- **日誌記錄**：記錄操作類型和時間，不記錄具體內容
 
-### R-011: IndexedDB連線穩定性 🆕 NEW
-**需求描述**：解決 PWA 離線狀態下長時間使用導致的 IndexedDB 連線關閉問題
-**優先級**：Critical
-**技術實作**：
-- 自動重連機制：`ensureConnection()` 方法
-- 安全事務處理：`safeTransaction()` 含重試機制
-- 連線狀態監控：每 30 秒檢查連線健康狀態
+### 6.3 審計需求
+- 版本建立、修改、刪除操作的完整日誌
+- 重複檢測結果和使用者選擇的記錄
+- 異常情況和錯誤處理的追蹤記錄
 
-**Acceptance Criteria**：
-- ✅ Given PWA 離線狀態下長時間運行
-- ✅ When IndexedDB 連線中斷
-- ✅ Then 自動重新建立連線
-- ✅ And 所有資料庫操作正常運作
-- ✅ And 使用者無感知連線問題
-### R-012: PWA 初始化效能優化 🆕 NEW
-**需求描述**：優化 PWA 應用啟動速度和初始化流程，提升用戶體驗
-**優先級**：High
-**技術實作**：
-- 移除冗餘調試日誌，減少控制台輸出 85%
-- 實作並行服務初始化，縮短啟動時間 30-40%
-- 語言管理器初始化時間從 100ms 優化至 50ms
-- Service Worker 靜默註冊，避免不必要的錯誤提示
+## 7. Measurement & Validation Plan
 
-**Acceptance Criteria**：
-- ✅ Given PWA 應用啟動
-- ✅ When 執行初始化流程
-- ✅ Then 載入時間減少 30-40%
-- ✅ And 控制台日誌輸出減少 85%
-- ✅ And 用戶體驗更加流暢
+### 7.1 功能驗證
+**單元測試**：
+- 指紋生成算法的一致性和唯一性測試
+- 版本遞增邏輯的正確性測試
+- 重複檢測算法的準確性測試
 
-### R-013: PWA 安裝提示修復 🆕 NEW
-**需求描述**：修復 PWA 安裝提示不顯示的問題，改善安裝體驗
-**優先級**：Medium
-**技術實作**：
-- 添加 DOM 元素存在性檢查
-- 修復 CSS 顯示/隱藏邏輯
-- 實作已安裝狀態檢測機制
-- 添加淡入動畫效果
+**整合測試**：
+- 匯入流程中重複處理的端到端測試
+- 版本管理 UI 的互動測試
+- 資料庫操作的事務性測試
 
-**Acceptance Criteria**：
-- ✅ Given 用戶首次訪問且支援 PWA
-- ✅ When 觸發安裝提示事件
-- ✅ Then 正確顯示安裝提示
-- ✅ And 已安裝時自動隱藏提示
-- ✅ And 提供流暢的動畫效果
-### R-014: 模組懶載入架構 🆕 NEW (v1.1.0)
-**需求描述**：實作按需載入模組機制，進一步優化初始載入時間和記憶體使用
-**優先級**：Medium
-**技術實作**：
-- 非核心模組延遲載入（QR 生成器、vCard 匯出器、傳輸管理器）
-- 實作動態 import() 機制
-- 建立模組載入狀態管理
-- 用戶操作觸發時才載入對應模組
+**端到端測試**：
+- 完整的名片匯入和版本管理流程
+- 異常情況下的錯誤恢復測試
+- 大量資料的效能壓力測試
 
-**Acceptance Criteria**：
-- Given 用戶首次載入 PWA
-- When 應用初始化完成
-- Then 僅載入核心模組，初始載入時間再減少 20%
-- And 非核心功能首次使用時動態載入
-- And 載入狀態提供視覺回饋
+### 7.2 效能監控
+- **指紋生成效能**：批量處理 1000 張名片的時間
+- **重複檢測效能**：在 10000 張名片中檢測重複的時間
+- **版本歷史載入**：複雜版本樹的渲染時間
+- **儲存空間使用**：版本資料的空間效率
 
-### R-015: 智慧快取策略 🆕 NEW (v1.2.0)
-**需求描述**：實作智慧快取機制，優化資料存取效能和離線體驗
-**優先級**：Medium
-**技術實作**：
-- 實作多層快取架構（記憶體快取 + IndexedDB + Service Worker）
-- 智慧快取失效策略（LRU + TTL）
-- 預測性快取（基於使用模式）
-- 快取壓縮和優化
+### 7.3 使用者體驗測試
+- **可用性測試**：新使用者完成版本管理任務的成功率
+- **認知負荷測試**：版本概念理解和操作複雜度評估
+- **錯誤恢復測試**：使用者在操作失誤後的恢復能力
 
-**Acceptance Criteria**：
-- Given 用戶頻繁使用特定名片
-- When 系統分析使用模式
-- Then 自動預載入相關資料到快取
-- And 快取命中率達到 85% 以上
-- And 離線狀態下資料存取時間 < 100ms
+## 8. Appendix
 
-### R-016: 微前端架構準備 🆕 NEW (v2.0.0)
-**需求描述**：為未來微前端架構奠定基礎，實現模組化和可擴展性
-**優先級**：Low
-**技術實作**：
-- 模組邊界清晰化，實作模組間通訊機制
-- 建立統一的狀態管理和事件系統
-- 實作模組熱更新機制
-- 準備模組獨立部署能力
+### 8.1 內容指紋算法規格
+```javascript
+/**
+ * 生成名片內容指紋
+ * @param {Object} cardData - 名片資料
+ * @returns {string} 指紋字串，格式：fingerprint_[64字元hash]
+ */
+function generateCardFingerprint(cardData) {
+  // 1. 標準化姓名（處理雙語格式）
+  const normalizedName = normalizeName(cardData.name);
+  
+  // 2. 標準化電子郵件（轉小寫，去空格）
+  const normalizedEmail = normalizeEmail(cardData.email);
+  
+  // 3. 組合關鍵欄位
+  const fingerprintSource = `${normalizedName}|${normalizedEmail}`;
+  
+  // 4. 生成 SHA-256 雜湊
+  const hash = await crypto.subtle.digest('SHA-256', 
+    new TextEncoder().encode(fingerprintSource));
+  
+  // 5. 轉換為十六進位字串
+  const hashHex = Array.from(new Uint8Array(hash))
+    .map(b => b.toString(16).padStart(2, '0')).join('');
+  
+  return `fingerprint_${hashHex}`;
+}
+```
 
-**Acceptance Criteria**：
-- Given 系統需要新增功能模組
-- When 開發新功能
-- Then 可以獨立開發和部署模組
-- And 模組間通訊穩定可靠
-- And 支援模組熱更新不影響其他功能
+### 8.2 版本號規則
+- **格式**：`major.minor`（如：1.0, 1.1, 1.2）
+- **遞增規則**：同一指紋的名片，minor 版本號遞增
+- **重置規則**：不同指紋視為不同名片，重新從 1.0 開始
+- **顯示規則**：UI 中顯示為「版本 1.2」，資料庫儲存為字串 "1.2"
 
-### R-017: 效能監控與分析 🆕 NEW (v1.1.0)
-**需求描述**：建立完整的效能監控體系，持續優化用戶體驗
-**優先級**：High
-**技術實作**：
-- 實作 Real User Monitoring (RUM)
-- 建立效能指標儀表板
-- 自動效能回歸檢測
-- 用戶體驗指標追蹤（Core Web Vitals）
+### 8.3 重複檢測流程圖
+```mermaid
+flowchart TD
+    A[匯入名片] --> B[生成指紋]
+    B --> C{檢查指紋是否存在}
+    C -->|不存在| D[建立新名片 v1.0]
+    C -->|存在| E[顯示重複對話框]
+    E --> F{使用者選擇}
+    F -->|跳過| G[跳過此名片]
+    F -->|覆蓋| H[更新現有名片]
+    F -->|新版本| I[建立新版本 v1.x]
+    H --> J[建立版本快照]
+    I --> J
+    J --> K[完成匯入]
+```
 
-**Acceptance Criteria**：
-- Given PWA 在生產環境運行
-- When 收集用戶使用數據
-- Then 提供詳細的效能分析報告
-- And 自動檢測效能回歸並告警
-- And 支援 A/B 測試效能對比
+### 8.4 資料庫索引策略
+```sql
+-- 指紋索引（支援快速重複檢測）
+CREATE INDEX idx_cards_fingerprint ON cards(fingerprint);
+CREATE INDEX idx_versions_fingerprint ON versions(fingerprint);
 
-### R-018: 漸進式載入優化 🆕 NEW (v1.1.0)
-**需求描述**：實作漸進式載入策略，優化首屏渲染和用戶感知效能
-**優先級**：High
-**技術實作**：
-- 關鍵渲染路徑優化
-- 資源優先級管理
-- 骨架屏和載入狀態優化
-- 圖片和資源懶載入
+-- 複合索引（支援版本查詢）
+CREATE INDEX idx_versions_card_version ON versions(cardId, version);
 
-**Acceptance Criteria**：
-- Given 用戶訪問 PWA
-- When 頁面開始載入
-- Then 首屏內容在 1.5 秒內可見
-- And 關鍵功能在 2 秒內可交互
-- And 載入過程提供流暢的視覺回饋
-### R-019: Mobile 觸控優化 🆕 NEW
-**需求描述**：解決 Mobile 設備上 Settings Button (🏠) 和統計卡片的觸控問題，同時修復卡片文字超出範圍問題
-**優先級**：Critical
-**技術實作**：
-- **統一 Mobile 樣式管理**：`unified-mobile-rwd.css` 專責 Mobile 特有問題
-- **觸控優化**：移除干擾觸控的 CSS 屬性，使用官方色彩變數
-- **文字處理**：實作 `word-break: break-word` 和 `overflow-wrap: break-word`
-- **事件隔離**：`pointer-events: none` 給統計卡片內容
-- **設計系統對齊**：使用 `--md-primary-2` 官方色彩變數
-- **架構清晰**：移除與原始 RWD 設計衝突的部分
+-- 時間索引（支援清理操作）
+CREATE INDEX idx_versions_timestamp ON versions(timestamp);
+```
 
-**Acceptance Criteria**：
-- ✅ Given Mobile 設備用戶點擊 Settings Button (🏠)
-- ✅ When 觸發觸控事件
-- ✅ Then 正常導航至首頁
-- ✅ And 提供適當的觸控回饋效果
-- ✅ Given 用戶查看應用版本統計卡片
-- ✅ When 觸摸統計卡片區域
-- ✅ Then 不發生意外的滾動或事件干擾
-- ✅ And 版本資訊正確顯示
+### 8.5 錯誤處理策略
+| 錯誤類型 | 處理策略 | 使用者體驗 |
+|---------|----------|------------|
+| 指紋生成失敗 | 使用備用算法（時間戳+隨機數） | 顯示警告，功能降級 |
+| 版本衝突 | 自動重試，遞增版本號 | 透明處理，無感知 |
+| 儲存空間不足 | 自動清理舊版本 | 提示清理結果 |
+| 資料庫損壞 | 嘗試修復，備份重要資料 | 顯示修復進度 |
 
-### R-020: PWA 部署相容性 🆕 NEW
-**需求描述**：解決 PWA 在不同部署環境（GitHub Pages、Cloudflare Pages）下的路徑相容性問題
-**優先級**：Critical
-**技術實作**：
-- **環境檢測**：自動識別 GitHub Pages 和 Cloudflare Pages 環境
-- **動態 manifest**：為 GitHub Pages 創建專用 `manifest-github.json`
-- **CSP 相容**：避免使用 blob URL，符合安全政策
-- **版本管理**：移除硬編碼版本號，動態讀取 manifest.json
-- **URL 重置**：Settings Button 提供首頁重置功能
+### 8.6 技術名詞表
+- **內容指紋 (Content Fingerprint)**：基於名片關鍵欄位生成的唯一識別碼
+- **版本快照 (Version Snapshot)**：特定時間點的名片資料完整副本
+- **重複檢測 (Duplicate Detection)**：識別相同名片不同版本的算法
+- **語義化版本 (Semantic Versioning)**：使用 major.minor 格式的版本號系統
 
-**Acceptance Criteria**：
-- ✅ Given PWA 部署在 GitHub Pages
-- ✅ When 用戶安裝 PWA
-- ✅ Then 正確導向至 `/DB-Card/pwa-card-storage/` 路徑
-- ✅ And 不出現 404 錯誤
-- ✅ Given PWA 部署在 Cloudflare Pages
-- ✅ When 用戶安裝 PWA
-- ✅ Then 使用相對路徑正常運作
-- ✅ And 不觸發 CSP 違規錯誤
-- ✅ Given 用戶點擊 Settings Button
-- ✅ When 觸發重置功能
-- ✅ Then URL 清除所有參數重置為首頁
-- ✅ And 版本號從 manifest.json 動態讀取顯示
-- ✅ Given 卡片內容包含長文字（Email、姓名、職稱）
-- ✅ When 在 Mobile 設備上顯示
-- ✅ Then 文字自動換行不超出容器範圍
-- ✅ And 保持文字可讀性和版面美觀
+### 8.7 參考文件
+- [現有專案 README.md](../README.md)
+- [PWA 儲存架構文檔](../pwa-card-storage/README.md)
+- [安全架構文檔](SECURITY.md)
+- [IndexedDB 最佳實踐](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)
 
-### R-021: PWA Manifest 統一管理 🆕 NEW
-**需求描述**：整合所有 manifest 相關補救措施，解決移動端載入問題
-**優先級**：Critical
-**技術實作**：
-- **統一管理器**：`UnifiedManifestManager` 整合所有 manifest 操作
-- **環境檢測**：自動識別 GitHub Pages vs 其他部署環境
-- **版本管理**：統一版本號顯示與更新機制
-- **診斷工具**：提供 `showManifestDiagnostic()` 快速問題診斷
-- **向後相容**：保持與現有代碼完全相容
+---
 
-**Acceptance Criteria**：
-- ✅ Given 移動設備用戶訪問 PWA
-- ✅ When 系統初始化 manifest 管理器
-- ✅ Then 自動檢測部署環境並載入正確的 manifest 檔案
-- ✅ And 版本號正確顯示為 v1.0.5（不再是「載入中...」）
-- ✅ And 提供診斷工具協助問題排除
-- ✅ And 保持與現有 API 的完全相容性
+## Spec↔Design↔Tasks 映射表
 
-## 7. 後續優化階段路線圖
-
-### Phase 2 (v1.1.0) - 模組化與監控
-**目標發布時間**：2025 Q1
-**核心功能**：
-- R-014: 模組懶載入架構
-- R-017: 效能監控與分析  
-- R-018: 漸進式載入優化
-
-**預期效益**：
-- 初始載入時間再減少 20%
-- 首屏渲染時間 < 1.5 秒
-- 建立完整效能監控體系
-
-### Phase 3 (v1.2.0) - 智慧化優化
-**目標發布時間**：2025 Q2
-**核心功能**：
-- R-015: 智慧快取策略
-- 用戶行為分析與預測
-- 自適應效能調整
-
-**預期效益**：
-- 快取命中率 > 85%
-- 離線資料存取 < 100ms
-- 智慧預載入機制
-
-### Phase 4 (v2.0.0) - 架構現代化
-**目標發布時間**：2025 Q3
-**核心功能**：
-- R-016: 微前端架構準備
-- 模組獨立部署能力
-- 熱更新機制
-
-**預期效益**：
-- 模組化開發和部署
-- 支援功能熱更新
-- 為未來擴展奠定基礎
-
-### 效能目標對比
-
-| 指標 | v1.0.4 | v1.1.0 目標 | v1.2.0 目標 | v2.0.0 目標 |
-|------|--------|-------------|-------------|-------------|
-| 初始載入時間 | 480ms | 380ms | 300ms | 250ms |
-| 首屏渲染 | 2.0s | 1.5s | 1.2s | 1.0s |
-| 快取命中率 | 60% | 75% | 85% | 90% |
-| 記憶體使用 | 基準 | -10% | -15% | -20% |
-| 模組化程度 | 低 | 中 | 高 | 完全 |
+| 需求編號 | 功能需求 | 現有基礎 | 實作任務 | 測試案例 |
+|---------|---------|---------|---------|---------|
+| REQ-001 | 內容指紋生成機制 | `calculateChecksum()` | 新增 `generateCardFingerprint()` 函數 | 指紋唯一性和一致性測試 |
+| REQ-002 | 智慧重複檢測與版本遞增 | `storeCard()` 方法 | 擴展匯入邏輯，新增重複檢測 | 重複檢測準確率測試 |
+| REQ-003 | 版本歷史管理介面 | `getVersionHistory()` | 新增版本管理 UI 元件 | 版本歷史顯示和操作測試 |
+| REQ-004 | 匯入時重複處理流程 | `importFromExportFormat()` | 新增重複處理對話框 | 匯入流程端到端測試 |
+| REQ-005 | 版本合併與清理功能 | 版本控制系統 | 新增批量清理和合併邏輯 | 清理操作安全性測試 |

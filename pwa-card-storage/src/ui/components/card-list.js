@@ -134,7 +134,14 @@ class CardListComponent {
     const orgInfo = [];
     const safeGetText = (field) => {
       if (!field) return '';
-      if (typeof field === 'string') return field;
+      if (typeof field === 'string') {
+        // 處理雙語格式 "中文~English"
+        if (field.includes('~')) {
+          const [chinese] = field.split('~');
+          return chinese ? chinese.trim() : '';
+        }
+        return field.trim();
+      }
       if (typeof field === 'object' && field !== null) {
         if (field.zh) return field.zh;
         if (field.en) return field.en;

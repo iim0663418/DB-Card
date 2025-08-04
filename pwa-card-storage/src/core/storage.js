@@ -6,7 +6,7 @@
 class PWACardStorage {
   constructor() {
     this.dbName = 'PWACardStorage';
-    this.dbVersion = 2; // 升級版本以支援統一架構
+    this.dbVersion = 3; // v3: 新增 fingerprint 欄位與索引
     this.db = null;
     this.encryptionKey = null;
     this.maxVersions = 10; // 版本控制限制
@@ -19,7 +19,8 @@ class PWACardStorage {
           type: 'type',
           created: 'created',
           modified: 'modified',
-          name: ['data', 'name']
+          name: ['data', 'name'],
+          fingerprint: 'fingerprint'
         }
       },
       versions: {
@@ -101,12 +102,21 @@ class PWACardStorage {
         const db = event.target.result;
 
         try {
-          // 建立 cards store
+          // 建立或升級 cards store
+          let cardsStore;
           if (!db.objectStoreNames.contains('cards')) {
-            const cardsStore = db.createObjectStore('cards', { keyPath: 'id' });
+            cardsStore = db.createObjectStore('cards', { keyPath: 'id' });
             cardsStore.createIndex('type', 'type', { unique: false });
             cardsStore.createIndex('created', 'created', { unique: false });
             cardsStore.createIndex('modified', 'modified', { unique: false });
+            cardsStore.createIndex('fingerprint', 'fingerprint', { unique: false });
+          } else {
+            // v3 升級：新增 fingerprint 索引
+            const transaction = event.target.transaction;
+            cardsStore = transaction.objectStore('cards');
+            if (!cardsStore.indexNames.contains('fingerprint')) {
+              cardsStore.createIndex('fingerprint', 'fingerprint', { unique: false });
+            }
           }
 
           // 建立 versions store
@@ -287,6 +297,9 @@ class PWACardStorage {
       // 在儲存前標準化資料格式，確保 greetings 是字串陣列
       const normalizedData = this.normalizeCardDataForStorage(cardData);
       
+      // 生成指紋
+      const fingerprint = await this.generateFingerprint(normalizedData);
+      
       const card = {
         id,
         type: this.detectCardType(normalizedData),
@@ -295,6 +308,7 @@ class PWACardStorage {
         modified: now,
         currentVersion: 1,
         checksum: await this.calculateChecksum(normalizedData),
+        fingerprint,
         encrypted: false,
         tags: [],
         isFavorite: false
@@ -410,6 +424,7 @@ class PWACardStorage {
       card.modified = new Date();
       card.currentVersion += 1;
       card.checksum = await this.calculateChecksum(updatedData);
+      card.fingerprint = await this.generateFingerprint(updatedData);
       card.encrypted = false;
 
       const transaction = this.db.transaction(['cards'], 'readwrite');
@@ -494,6 +509,27 @@ class PWACardStorage {
     }
   }
 
+  /**
+   * 按指紋查詢名片 - STORAGE-01
+   */
+  async findCardsByFingerprint(fingerprint) {
+    try {
+      return await this.safeTransaction(['cards'], 'readonly', async (transaction) => {
+        const store = transaction.objectStore('cards');
+        const index = store.index('fingerprint');
+        
+        return new Promise((resolve, reject) => {
+          const request = index.getAll(fingerprint);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      });
+    } catch (error) {
+      console.error('[Storage] Find cards by fingerprint failed:', error);
+      return [];
+    }
+  }
+
   async listCards(filter = {}) {
     try {
       return await this.safeTransaction(['cards'], 'readonly', async (transaction) => {
@@ -503,7 +539,10 @@ class PWACardStorage {
         let cursor;
         const maxResults = filter.limit || 100;
         
-        if (filter.type) {
+        if (filter.fingerprint) {
+          const index = store.index('fingerprint');
+          cursor = index.openCursor(IDBKeyRange.only(filter.fingerprint));
+        } else if (filter.type) {
           const index = store.index('type');
           cursor = index.openCursor(IDBKeyRange.only(filter.type));
         } else if (filter.dateRange) {
@@ -1009,6 +1048,29 @@ class PWACardStorage {
   // 工具方法
   generateId() {
     return 'card_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
+  }
+
+  /**
+   * 生成內容指紋 - STORAGE-01
+   */
+  async generateFingerprint(cardData) {
+    try {
+      if (!window.ContentFingerprintGenerator) {
+        // 備用方案：簡單雜湊
+        const content = `${cardData.name || ''}|${cardData.email || ''}`;
+        const hash = await this.calculateChecksum({ content });
+        return `fingerprint_${hash.substring(0, 16)}`;
+      }
+      
+      const generator = new window.ContentFingerprintGenerator();
+      return await generator.generateFingerprint(cardData);
+    } catch (error) {
+      console.error('[Storage] Generate fingerprint failed:', error);
+      // 最終備用方案
+      const timestamp = Date.now();
+      const random = Math.random().toString(36).substring(2, 8);
+      return `fingerprint_fallback_${timestamp}_${random}`;
+    }
   }
 
   // 保留備用識別（僅在沒有傳遞類型時使用）
@@ -1751,4 +1813,11 @@ class PWACardStorage {
       };
     }
   }
+}
+
+// 匯出類別
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = PWACardStorage;
+} else if (typeof window !== 'undefined') {
+  window.PWACardStorage = PWACardStorage;
 }

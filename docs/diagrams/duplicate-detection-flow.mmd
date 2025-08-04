@@ -1,0 +1,70 @@
+flowchart TD
+    A[匯入名片資料] --> B[ContentFingerprintGenerator]
+    B --> |生成SHA-256指紋| C[fingerprint_abc123...]
+    
+    C --> D[DuplicateDetector.detectDuplicates]
+    D --> |查詢fingerprint索引| E{檢查指紋是否存在}
+    
+    E -->|不存在| F[建立新名片 v1.0]
+    E -->|存在| G[計算相似度]
+    
+    G --> H{相似度判斷}
+    H -->|100%相同| I[完全重複]
+    H -->|>80%相似| J[相似重複]
+    H -->|<80%相似| K[不同名片]
+    
+    I --> L[顯示重複對話框]
+    J --> L
+    K --> F
+    
+    L --> M{使用者選擇}
+    M -->|跳過| N[跳過此名片]
+    M -->|覆蓋| O[更新現有名片]
+    M -->|新版本| P[建立新版本]
+    
+    O --> Q[VersionManager.incrementVersion]
+    P --> Q
+    Q --> |1.0→1.1→1.2| R[更新版本號]
+    
+    R --> S[createVersionSnapshot]
+    S --> |儲存版本快照| T[versions ObjectStore]
+    
+    F --> U[PWACardStorage.storeCard]
+    O --> U
+    P --> U
+    U --> |更新主要記錄| V[cards ObjectStore]
+    
+    V --> W[完成匯入]
+    T --> W
+    N --> W
+    
+    subgraph "資料庫層"
+        V
+        T
+        X[fingerprint Index]
+        Y[cardId Index]
+    end
+    
+    subgraph "核心邏輯"
+        B
+        D
+        Q
+        S
+    end
+    
+    subgraph "使用者互動"
+        L
+        M
+    end
+    
+    classDef startEnd fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    classDef process fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef decision fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef storage fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef userAction fill:#ffebee,stroke:#c62828,stroke-width:2px
+    
+    class A,W startEnd
+    class B,C,D,F,O,P,Q,R,S,U process
+    class E,H,M decision
+    class V,T,X,Y storage
+    class L,N userAction

@@ -1,0 +1,47 @@
+graph TB
+    subgraph "Browser Environment"
+        subgraph "Card Pages (9 variants)"
+            CP[Card Page] --> CSD[Connection Status Detector]
+            CP --> QRG[Smart QR Generator]
+            CP --> VCG[Unified vCard Generator]
+            CP --> UIM[Offline UI Manager]
+        end
+        
+        subgraph "Existing Components"
+            QRU[qr-utils.js] --> QRJS[qrcode.min.js]
+            VCL[Existing vCard Logic] --> VCG
+            PWA[PWA Offline Tools] --> VCG
+        end
+        
+        subgraph "New Components"
+            CSD --> OSM[Offline Status Manager]
+            OSM --> QRG
+            QRG --> UIM
+        end
+        
+        subgraph "Security Layer"
+            SV[Security Validator] --> VCG
+            EH[Error Handler] --> QRG
+            MM[Memory Manager] --> QRG
+        end
+    end
+    
+    subgraph "External Environment"
+        NET[Network Status] --> CSD
+        SCAN[QR Scanner] --> QRC[QR Code]
+        QRC --> CONT[Device Contacts]
+        CONT --> VCRD[vCard Import]
+    end
+    
+    QRG --> QRC
+    VCG --> QRG
+    
+    classDef existing fill:#e1f5fe
+    classDef new fill:#f3e5f5
+    classDef security fill:#fff3e0
+    classDef external fill:#e8f5e8
+    
+    class QRU,VCL,PWA existing
+    class CSD,OSM,UIM new
+    class SV,EH,MM security
+    class NET,SCAN,QRC,CONT,VCRD external

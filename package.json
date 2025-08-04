@@ -1,0 +1,20 @@
+{
+  "name": "db-card-tests",
+  "version": "3.1.0",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/test-runner.js",
+    "test:unit": "jest tests/unit/",
+    "test:watch": "jest --watch"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.22.0",
+    "@babel/preset-env": "^7.22.0",
+    "babel-jest": "^29.5.0",
+    "jest": "^29.5.0",
+    "jest-environment-jsdom": "^29.5.0",
+    "fake-indexeddb": "^4.0.2",
+    "@playwright/test": "^1.40.0",
+    "@axe-core/playwright": "^4.8.0"
+  }
+}

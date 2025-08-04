@@ -95,6 +95,69 @@ class PWACardManager {
     
   }
 
+  /**
+   * 安全日誌記錄 - 防止 PII 洩漏
+   */
+  secureLog(level, message, data = {}) {
+    // 生產環境檢查
+    if (typeof window !== 'undefined' && window.location && 
+        (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') &&
+        level === 'debug') {
+      return; // 生產環境不輸出 debug 日誌
+    }
+
+    if (window.SecurityDataHandler) {
+      window.SecurityDataHandler.secureLog(level, message, data);
+    } else {
+      // 基本的資料遮罩
+      const sensitiveFields = ['name', 'nameZh', 'nameEn', 'email', 'phone', 'mobile', 'avatar', 'socialNote', 'originalData', 'processedData'];
+      const sanitizedData = this.sanitizeLogData(data, sensitiveFields);
+      console.log(`[${level.toUpperCase()}] ${message}`, sanitizedData);
+    }
+  }
+
+  /**
+   * 遞歸清理日誌資料中的敏感資訊
+   */
+  sanitizeLogData(data, sensitiveFields) {
+    if (!data || typeof data !== 'object') {
+      return data;
+    }
+
+    if (Array.isArray(data)) {
+      return data.map(item => this.sanitizeLogData(item, sensitiveFields));
+    }
+
+    const sanitized = {};
+    Object.keys(data).forEach(key => {
+      const value = data[key];
+      
+      if (sensitiveFields.includes(key)) {
+        // 敏感欄位完全遮罩
+        sanitized[key] = value ? '[REDACTED]' : null;
+      } else if (typeof value === 'string') {
+        // 檢查字串中是否包含電子郵件或電話
+        if (value.includes('@') && value.includes('.')) {
+          sanitized[key] = '[EMAIL_REDACTED]';
+        } else if (/\d{2,4}-\d{4,8}/.test(value) || /09\d{8}/.test(value)) {
+          sanitized[key] = '[PHONE_REDACTED]';
+        } else if (value.length > 50) {
+          // 長字串截斷
+          sanitized[key] = value.substring(0, 50) + '...[TRUNCATED]';
+        } else {
+          sanitized[key] = value;
+        }
+      } else if (typeof value === 'object' && value !== null) {
+        // 遞歸處理巢狀物件
+        sanitized[key] = this.sanitizeLogData(value, sensitiveFields);
+      } else {
+        sanitized[key] = value;
+      }
+    });
+
+    return sanitized;
+  }
+
   async loadBilingualSupport() {
     try {
       // 載入雙語翻譯字典
@@ -649,19 +712,19 @@ class PWACardManager {
       // 第三步：解析管道分隔格式
       const fields = urlDecoded.split('|');
       
-      console.log('[CardManager] 雙語版解析 - 原始資料:', data);
-      console.log('[CardManager] 雙語版解析 - URL解碼後:', urlDecoded);
-      console.log('[CardManager] 雙語版解析 - 欄位分割:', {
+      console.log('[CardManager] 雙語版解析 - 資料長度:', data.length);
+      console.log('[CardManager] 雙語版解析 - 解碼狀態: 成功');
+      console.log('[CardManager] 雙語版解析 - 欄位統計:', {
         fieldsLength: fields.length,
-        field0_name: fields[0],
-        field1_title: fields[1], 
-        field2_department: fields[2],
-        field3_email: fields[3],
-        field4_phone: fields[4],
-        field5_mobile: fields[5],
-        field6_avatar: fields[6],
-        field7_greetings: fields[7],
-        field8_socialNote: fields[8]
+        hasName: !!fields[0],
+        hasTitle: !!fields[1],
+        hasDepartment: !!fields[2],
+        hasEmail: !!fields[3],
+        hasPhone: !!fields[4],
+        hasMobile: !!fields[5],
+        hasAvatar: !!fields[6],
+        hasGreetings: !!fields[7],
+        hasSocialNote: !!fields[8]
       });
       
       // 修復欄位對應錯誤：根據 bilingual-common.js 中的 encodeCompact 函數正確對應
@@ -681,12 +744,12 @@ class PWACardManager {
         address: ''
       };
       
-      console.log('[CardManager] 雙語版最終結果:', result);
+      console.log('[CardManager] 雙語版解析完成');
       console.log('[CardManager] 修復後檢查:', {
-        email: result.email,
-        socialNote: result.socialNote,
-        organization: result.organization,
-        address: result.address
+        hasEmail: !!result.email,
+        hasSocialNote: !!result.socialNote,
+        hasOrganization: !!result.organization,
+        hasAddress: !!result.address
       });
       return result;
     } catch (error) {
@@ -843,39 +906,28 @@ class PWACardManager {
   }
 
   /**
-   * 從檔案匯入名片 - 安全修復版本（增強 UX）
+   * 從檔案匯入名片 - 修復版本
    */
   async importFromFile(file, options = {}) {
     const operationId = options.operationId || 'import_card_' + Date.now();
     try {
+      console.log('[CardManager] 開始檔案匯入:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type
+      });
+
       this.updateImportStatus(operationId, 'validating', 5, this.getMessage('validating'));
 
-      // SEC-PWA-001: 緊急停用檢查
-      if (window.EMERGENCY_DISABLE_IMPORT) {
+      // 檔案類型和大小驗證 - 放寬檔案類型檢查
+      const isJsonFile = file.name.endsWith('.json') || file.type === 'application/json' || file.type === 'text/plain';
+      const isVcfFile = file.name.endsWith('.vcf') || file.type === 'text/vcard';
+      
+      if (!isJsonFile && !isVcfFile) {
+        console.error('[CardManager] 不支援的檔案類型:', { name: file.name, type: file.type });
         return { 
           success: false, 
-          error: this.getMessage('permission_denied'),
-          operationId 
-        };
-      }
-
-      // SEC-PWA-003: 授權檢查
-      if (window.SecurityAuthHandler && !window.SecurityAuthHandler.hasPermission('import')) {
-        return { 
-          success: false, 
-          error: this.getMessage('permission_denied'),
-          operationId 
-        };
-      }
-
-      this.updateImportStatus(operationId, 'validating', 15, '正在檢查檔案格式...');
-
-      // SEC-PWA-001: 檔案類型和大小驗證
-      const allowedTypes = ['application/json', 'text/vcard'];
-      if (!allowedTypes.includes(file.type) && !file.name.endsWith('.json') && !file.name.endsWith('.vcf')) {
-        return { 
-          success: false, 
-          error: this.getMessage('invalid_format'),
+          error: '不支援的檔案格式，請使用 .json 或 .vcf 檔案',
           operationId 
         };
       }
@@ -883,49 +935,66 @@ class PWACardManager {
       if (file.size > 10 * 1024 * 1024) {
         return { 
           success: false, 
-          error: this.getMessage('file_too_large'),
+          error: '檔案過大（超過 10MB）',
           operationId 
         };
       }
 
-      this.updateImportStatus(operationId, 'processing', 25, this.getMessage('processing'));
+      this.updateImportStatus(operationId, 'processing', 25, '正在讀取檔案內容...');
 
-      // SEC-PWA-005: 安全的檔案讀取
+      // 讀取檔案內容
       const fileContent = await this.secureReadFile(file);
+      console.log('[CardManager] 檔案內容讀取完成:', {
+        contentLength: fileContent.length,
+        contentPreview: fileContent.substring(0, 200)
+      });
+
       let importData;
 
       // 根據檔案類型處理
-      if (file.name.endsWith('.json')) {
-        // SEC-PWA-002: 安全的 JSON 解析
-        importData = this.secureJSONParse(fileContent);
+      if (isJsonFile) {
+        try {
+          importData = JSON.parse(fileContent);
+          console.log('[CardManager] JSON 解析成功:', {
+            hasCards: !!importData.cards,
+            cardsLength: importData.cards ? importData.cards.length : 0,
+            topLevelKeys: Object.keys(importData)
+          });
+        } catch (parseError) {
+          console.error('[CardManager] JSON 解析失敗:', parseError);
+          return { 
+            success: false, 
+            error: 'JSON 格式錯誤: ' + parseError.message,
+            operationId 
+          };
+        }
         
         // 檢查是否為標準匯出檔案格式（包含 cards 陣列）
         if (importData.cards && Array.isArray(importData.cards)) {
+          console.log('[CardManager] 識別為標準匯出格式，轉交專用處理器');
           return await this.importFromExportFormat(importData);
         }
-      } else if (file.name.endsWith('.vcf')) {
+      } else if (isVcfFile) {
         importData = this.parseVCard(fileContent);
       } else {
-        return { success: false, error: '不支援的檔案格式' };
+        return { success: false, error: '不支援的檔案格式', operationId };
       }
 
-      // SEC-PWA-006: 輸入資料清理
-      const sanitizedData = this.sanitizeCardData(importData);
-      if (!sanitizedData) {
-        return { success: false, error: '無效的資料格式' };
-      }
-
+      // 處理非標準格式的資料
+      console.log('[CardManager] 處理非標準格式資料');
+      
       let importedCount = 0;
       const errors = [];
 
       // 處理單一名片或名片陣列（非標準匯出格式）
-      const cards = Array.isArray(sanitizedData) ? sanitizedData : [sanitizedData];
+      const cards = Array.isArray(importData) ? importData : [importData];
 
-      for (const cardData of cards) {
+      for (let i = 0; i < cards.length; i++) {
+        const cardData = cards[i];
         try {
-          // SEC-PWA-007: 驗證每張名片
-          if (!this.validateSingleCardData(cardData)) {
-            errors.push('名片資料格式錯誤');
+          // 基本驗證
+          if (!cardData || !cardData.name) {
+            errors.push(`名片 ${i + 1}: 缺少必要資料`);
             continue;
           }
 
@@ -934,73 +1003,120 @@ class PWACardManager {
           await this.storage.storeCard(enhancedData);
           importedCount++;
         } catch (error) {
-          // SEC-PWA-004: 不洩露敏感資料
-          errors.push('名片匯入失敗');
+          console.error(`[CardManager] 名片 ${i + 1} 匯入失敗:`, error);
+          errors.push(`名片 ${i + 1}: 匯入失敗`);
         }
       }
 
       return {
         success: importedCount > 0,
         count: importedCount,
-        errors: errors.length > 0 ? errors : undefined
+        total: cards.length,
+        errors: errors.length > 0 ? errors : undefined,
+        operationId
       };
     } catch (error) {
-      // SEC-PWA-008: 安全的錯誤處理
-      return this.handleSecureError(error, 'import_from_file');
+      console.error('[CardManager] 檔案匯入失敗:', error);
+      return {
+        success: false,
+        error: '匯入失敗: ' + error.message,
+        operationId
+      };
     }
   }
 
   /**
-   * 從標準匯出檔案格式匯入 - 安全修復版本
+   * 從標準匯出檔案格式匯入 - 修復版本
    */
   async importFromExportFormat(exportData) {
     try {
-      // SEC-PWA-006: 輸入資料清理和驗證
-      const sanitizedData = this.sanitizeExportData(exportData);
-      if (!sanitizedData || !Array.isArray(sanitizedData.cards)) {
+      console.log('[CardManager] 開始匯入匯出格式資料:', {
+        hasCards: !!exportData.cards,
+        cardsLength: exportData.cards ? exportData.cards.length : 0,
+        version: exportData.version
+      });
+
+      // 驗證基本格式
+      if (!exportData || !exportData.cards || !Array.isArray(exportData.cards)) {
+        console.error('[CardManager] 無效的匯出檔案格式:', exportData);
         return { success: false, error: '無效的匯出檔案格式' };
       }
 
-      // SEC-PWA-007: 限制名片數量
-      if (sanitizedData.cards.length > 1000) {
+      // 限制名片數量
+      if (exportData.cards.length > 1000) {
         return { success: false, error: '名片數量超過限制 (1000)' };
       }
 
       let importedCount = 0;
       const errors = [];
       
-      for (const cardItem of sanitizedData.cards) {
+      for (let i = 0; i < exportData.cards.length; i++) {
+        const cardItem = exportData.cards[i];
+        
         try {
-          // SEC-PWA-007: 驗證每張名片
-          if (!this.validateExportCardItem(cardItem)) {
-            errors.push('名片資料格式錯誤');
+          console.log(`[CardManager] 處理名片 ${i + 1}/${exportData.cards.length}:`, {
+            hasId: !!cardItem.id,
+            hasType: !!cardItem.type,
+            hasData: !!cardItem.data,
+            dataKeys: cardItem.data ? Object.keys(cardItem.data) : []
+          });
+
+          // 基本驗證
+          if (!cardItem || !cardItem.data) {
+            console.warn(`[CardManager] 跳過無效名片項目 ${i + 1}`);
+            errors.push(`名片 ${i + 1}: 資料格式錯誤`);
             continue;
           }
 
+          // 預處理名片資料 - 確保格式一致性
+          const preprocessedData = this.preprocessCardDataForImport(cardItem.data);
+          
           // 使用匯出檔案中的類型資訊（優先級最高）
-          const cardType = cardItem.type || this.detectCardType(cardItem.data);
+          const cardType = cardItem.type || this.detectCardType(preprocessedData);
           
-          // 根據類型套用預設值（比照 vCard 生成邏輯）
-          const enhancedData = this.applyCardTypeDefaults(cardItem.data, cardType);
+          console.log(`[CardManager] 名片 ${i + 1} 類型識別:`, {
+            originalType: cardItem.type,
+            detectedType: cardType,
+            finalType: cardType
+          });
           
-          // 儲存增強後的資料
-          await this.storage.storeCard(enhancedData);
+          // 根據類型套用預設值
+          const enhancedData = this.applyCardTypeDefaults(preprocessedData, cardType);
+          
+          // 使用 storage 的直接儲存方法，傳遞類型資訊
+          const cardId = await this.storage.storeCardDirectly(enhancedData, cardType);
+          
+          console.log(`[CardManager] 名片 ${i + 1} 匯入成功:`, {
+            cardId,
+            type: cardType,
+            name: enhancedData.name
+          });
+          
           importedCount++;
         } catch (error) {
-          // SEC-PWA-004: 不洩露敏感資料
-          errors.push('名片匯入失敗');
+          console.error(`[CardManager] 名片 ${i + 1} 匯入失敗:`, error);
+          errors.push(`名片 ${i + 1}: ${error.message || '匯入失敗'}`);
         }
       }
+      
+      console.log('[CardManager] 匯入完成:', {
+        importedCount,
+        totalCards: exportData.cards.length,
+        errorCount: errors.length
+      });
       
       return {
         success: importedCount > 0,
         count: importedCount,
-        total: sanitizedData.cards.length,
+        total: exportData.cards.length,
         errors: errors.length > 0 ? errors : undefined
       };
     } catch (error) {
-      // SEC-PWA-008: 安全的錯誤處理
-      return this.handleSecureError(error, 'import_from_export_format');
+      console.error('[CardManager] 匯入匯出格式失敗:', error);
+      return {
+        success: false,
+        error: '匯入過程發生錯誤: ' + error.message
+      };
     }
   }
   
@@ -1050,98 +1166,93 @@ class PWACardManager {
     }
   }
 
-  // SEC-PWA-006: 名片資料清理
+  // 名片資料清理 - 修復版本
   sanitizeCardData(data) {
     if (!data || typeof data !== 'object') {
+      console.warn('[CardManager] 無效的資料格式:', data);
       return null;
     }
 
-    return {
-      name: String(data.name || '').slice(0, 100),
-      title: String(data.title || '').slice(0, 100),
-      department: String(data.department || '').slice(0, 100),
-      organization: String(data.organization || '').slice(0, 100),
-      email: String(data.email || '').slice(0, 100),
-      phone: String(data.phone || '').slice(0, 30),
-      mobile: String(data.mobile || '').slice(0, 30),
-      address: String(data.address || '').slice(0, 200),
-      avatar: String(data.avatar || '').slice(0, 500),
-      socialNote: String(data.socialNote || '').slice(0, 500),
-      greetings: Array.isArray(data.greetings) ? 
-        data.greetings.map(g => String(g || '').slice(0, 200)).slice(0, 10) : []
+    // 安全字串化函數
+    const safeStringify = (value, maxLength = 500) => {
+      if (value === null || value === undefined) return '';
+      if (typeof value === 'string') return value.slice(0, maxLength);
+      if (typeof value === 'object' && value !== null) {
+        // 處理雙語物件格式
+        if (value.zh && value.en) {
+          return `${value.zh}~${value.en}`.slice(0, maxLength);
+        }
+        // 提取第一個有效值
+        const firstValue = Object.values(value).find(v => v && typeof v === 'string');
+        return firstValue ? String(firstValue).slice(0, maxLength) : '';
+      }
+      return String(value).slice(0, maxLength);
     };
-  }
-
-  // SEC-PWA-006: 匯出資料清理
-  sanitizeExportData(data) {
-    if (!data || typeof data !== 'object') {
-      return null;
-    }
 
     const sanitized = {
-      version: String(data.version || '').slice(0, 10),
-      timestamp: data.timestamp,
-      cards: []
+      name: safeStringify(data.name, 100),
+      title: safeStringify(data.title, 100),
+      department: safeStringify(data.department, 100),
+      organization: safeStringify(data.organization, 100),
+      email: safeStringify(data.email, 100),
+      phone: safeStringify(data.phone, 30),
+      mobile: safeStringify(data.mobile, 30),
+      address: safeStringify(data.address, 200),
+      avatar: safeStringify(data.avatar, 500),
+      socialNote: safeStringify(data.socialNote, 500),
+      greetings: []
     };
 
-    if (Array.isArray(data.cards)) {
-      sanitized.cards = data.cards.map(card => {
-        if (!card || typeof card !== 'object') {
-          return null;
-        }
-        return {
-          id: String(card.id || '').slice(0, 50),
-          type: String(card.type || '').slice(0, 30),
-          data: this.sanitizeCardData(card.data),
-          created: card.created,
-          modified: card.modified,
-          version: String(card.version || '').slice(0, 10)
-        };
-      }).filter(Boolean);
+    // 特別處理問候語
+    if (Array.isArray(data.greetings)) {
+      sanitized.greetings = data.greetings
+        .map(g => safeStringify(g, 200))
+        .filter(g => g && g.trim())
+        .slice(0, 10);
+    } else if (data.greetings) {
+      const greeting = safeStringify(data.greetings, 200);
+      if (greeting && greeting.trim()) {
+        sanitized.greetings = [greeting];
+      }
     }
+
+    // 如果沒有有效問候語，設定預設值
+    if (sanitized.greetings.length === 0) {
+      sanitized.greetings = ['歡迎認識我！~Nice to meet you!'];
+    }
+
+    this.secureLog('debug', '資料清理完成', {
+      originalKeysCount: Object.keys(data).length,
+      sanitizedKeysCount: Object.keys(sanitized).length,
+      greetingsCount: sanitized.greetings ? sanitized.greetings.length : 0
+    });
 
     return sanitized;
   }
 
-  // SEC-PWA-007: 單張名片驗證
-  validateSingleCardData(data) {
+  // 匯出資料清理 - 移除，不再需要
+  // 直接在 importFromExportFormat 中進行基本驗證即可
+
+  // 基本資料驗證 - 簡化版本
+  validateCardData(data) {
     if (!data || typeof data !== 'object') {
       return false;
     }
     
-    if (!data.name || typeof data.name !== 'string' || data.name.length > 100) {
+    // 只檢查最基本的必要欄位
+    if (!data.name) {
       return false;
     }
 
     return true;
   }
 
-  // SEC-PWA-007: 匯出名片項目驗證
-  validateExportCardItem(item) {
-    if (!item || typeof item !== 'object') {
-      return false;
-    }
-    
-    if (!item.id || !item.type || !item.data) {
-      return false;
-    }
-
-    return this.validateSingleCardData(item.data);
-  }
-
-  // SEC-PWA-008: 安全的錯誤處理
-  handleSecureError(error, context) {
-    // 記錄內部錯誤（不包含敏感資料）
-    if (window.SecurityMonitor) {
-      window.SecurityMonitor.logSecurityEvent('error_occurred', {
-        context,
-        timestamp: new Date().toISOString()
-      });
-    }
-
+  // 簡化的錯誤處理
+  handleError(error, context) {
+    console.error(`[CardManager] ${context} failed:`, error);
     return {
       success: false,
-      error: '操作失敗，請稍後再試'
+      error: error.message || '操作失敗，請稍後再試'
     };
   }
 
@@ -1200,7 +1311,7 @@ class PWACardManager {
       const exportData = {
         version: '3.0.2',
         timestamp: new Date().toISOString(),
-        exportedBy: 'PWA Card Storage v3.0.2',
+        exportedBy: 'PWA Card Storage v1.1.0',
         totalCards: cards.length,
         format: format,
         cards: cards.map(card => {
@@ -2255,6 +2366,71 @@ class PWACardManager {
       console.error('[CardManager] Add card failed:', error);
       return { success: false, error: error.message };
     }
+  }
+
+  /**
+   * 預處理匯入的名片資料 - 修復版本
+   * 專門處理從匯出檔案匯入時的資料格式問題
+   */
+  preprocessCardDataForImport(cardData) {
+    this.secureLog('debug', '預處理匯入資料', {
+      hasName: !!cardData.name,
+      nameType: typeof cardData.name,
+      hasGreetings: !!cardData.greetings,
+      greetingsType: typeof cardData.greetings
+    });
+
+    // 深度複製以避免修改原始資料
+    const processed = JSON.parse(JSON.stringify(cardData));
+
+    // 處理混合格式的資料
+    const stringFields = ['name', 'title', 'department', 'organization', 'email', 'phone', 'mobile', 'avatar', 'address', 'socialNote'];
+    
+    stringFields.forEach(field => {
+      if (processed[field] !== undefined && processed[field] !== null) {
+        if (typeof processed[field] === 'object' && processed[field] !== null) {
+          // 處理物件格式 {zh: "中文", en: "English"}
+          if (processed[field].zh && processed[field].en) {
+            processed[field] = `${processed[field].zh}~${processed[field].en}`;
+          } else {
+            // 提取第一個有效值
+            const firstValue = Object.values(processed[field]).find(v => v && typeof v === 'string');
+            processed[field] = firstValue || '';
+          }
+        } else if (typeof processed[field] !== 'string') {
+          processed[field] = String(processed[field] || '');
+        }
+      } else {
+        processed[field] = '';
+      }
+    });
+
+    // 特別處理問候語
+    if (processed.greetings) {
+      if (!Array.isArray(processed.greetings)) {
+        processed.greetings = [processed.greetings];
+      }
+      
+      processed.greetings = processed.greetings.map(greeting => {
+        if (typeof greeting === 'object' && greeting !== null) {
+          if (greeting.zh && greeting.en) {
+            return `${greeting.zh}~${greeting.en}`;
+          }
+          const firstValue = Object.values(greeting).find(v => v && typeof v === 'string');
+          return firstValue || '歡迎認識我！~Nice to meet you!';
+        }
+        return String(greeting || '歡迎認識我！~Nice to meet you!');
+      }).filter(g => g && g.trim());
+    } else {
+      processed.greetings = ['歡迎認識我！~Nice to meet you!'];
+    }
+
+    this.secureLog('debug', '預處理完成', {
+      hasProcessedData: !!processed,
+      greetingsLength: processed.greetings ? processed.greetings.length : 0
+    });
+
+    return processed;
   }
 
   /**

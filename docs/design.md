@@ -258,6 +258,9 @@ graph LR
 | R-013 | PWA 安裝提示修復 | D-015 | 安裝提示流程設計 | T-015 |
 | R-010 | 版本自動化管理 | D-010 | 版本同步機制 | T-010 |
 | R-011 | IndexedDB連線穩定性 | D-011 | 連線管理架構 | T-011 |
+| R-014 | PWA 腳本架構優化 | D-021 | 無用腳本清除與架構簡化 | T-021 |
+| R-015 | Service Worker 快取優化 | D-021 | 快取資源列表準確性提升 | T-021 |
+| R-016 | HTML 結構優化 | D-021 | 腳本載入順序重組 | T-021 |
 
 ## 8. Architecture Risk Assessment
 
@@ -621,3 +624,124 @@ function fixManifestPaths() {
 - HTML 中不再硬編碼版本號
 - 初始化時動態從 manifest.json 讀取
 - 錯誤時顯示「無法取得」而非預設值
+
+## D-021: PWA 腳本架構優化設計 🆕
+
+### 無用腳本清除策略
+
+```mermaid
+graph TD
+    A[腳本架構分析] --> B[識別無用檔案]
+    B --> C[檢查引用關係]
+    C --> D[安全移除檔案]
+    D --> E[更新 Service Worker]
+    E --> F[清理 HTML 引用]
+    F --> G[架構優化完成]
+    
+    H[已移除檔案] --> I[app-card-support.js]
+    H --> J[version-manager.js]
+    H --> K[card-renderer.js]
+    H --> L[conflict-resolver.js]
+    H --> M[unified-interface.js]
+    
+    style A fill:#e8f5e8,stroke:#2e7d32
+    style G fill:#e1f5fe,stroke:#01579b
+    style H fill:#ffebee,stroke:#d32f2f
+```
+
+### 清理範圍與影響
+
+**已移除的無用檔案**：
+- `pwa-card-storage/src/app-card-support.js` - 未被引用的名片支援模組
+- `pwa-card-storage/src/core/version-manager.js` - 功能已被 unified-manifest-manager 取代
+- `pwa-card-storage/src/ui/components/card-renderer.js` - 未使用的卡片渲染器
+- `pwa-card-storage/src/ui/components/conflict-resolver.js` - 未使用的衝突解決器
+- `pwa-card-storage/src/ui/components/unified-interface.js` - 未使用的統一介面
+
+**已清理的目錄結構**：
+- `pwa-card-storage/assets/screenshots/` - 空的截圖目錄
+- `pwa-card-storage/src/ui/pages/` - 空的頁面目錄
+- `pwa-card-storage/src/integration/` - 整個整合目錄（已清空）
+
+### Service Worker 快取優化
+
+**更新前後對比**：
+
+| 資源類型 | 更新前 | 更新後 | 改善效果 |
+|----------|--------|--------|----------|
+| 核心 JS 檔案 | 包含無用檔案 | 僅實際使用檔案 | 減少無效快取 |
+| 樣式資源 | 包含不存在檔案 | 完整樣式檔案列表 | 提升快取準確性 |
+| 外部資源 | 缺少安全模組 | 包含完整依賴 | 確保離線功能 |
+| 快取版本 | v2.4 | v1.0.8 | 與應用版本一致 |
+
+### HTML 結構優化
+
+**腳本載入順序重組**：
+```html
+<!-- Scripts -->
+<!-- Unified Manifest Manager (最優先載入) -->
+<script src="src/core/unified-manifest-manager.js"></script>
+
+<!-- Security -->
+<script src="../src/security/SecurityInputHandler.js"></script>
+<script src="../src/security/SecurityDataHandler.js"></script>
+<script src="../src/security/SecurityAuthHandler.js"></script>
+<script src="src/core/error-handler.js"></script>
+<script src="../assets/bilingual-common.js"></script>
+<script src="../assets/qrcode.min.js"></script>
+<script src="../assets/qr-utils.js"></script>
+
+<!-- Language Manager -->
+<script src="src/core/language-manager.js"></script>
+
+<!-- Unified Mobile Manager -->
+<script src="src/core/unified-mobile-manager.js"></script>
+
+<!-- PWA Core Modules -->
+<script src="src/core/pwa-integration.js"></script>
+<script src="src/core/storage.js"></script>
+<script src="src/core/health-manager.js"></script>
+<script src="src/features/card-manager.js"></script>
+<script src="src/features/offline-tools.js"></script>
+<script src="src/features/transfer-manager.js"></script>
+
+<!-- UI Components -->
+<script src="src/ui/components/card-list.js"></script>
+
+<!-- Utilities -->
+<script src="src/utils/simple-card-parser.js"></script>
+<script src="src/utils/pwa-performance.js"></script>
+
+<!-- Application -->
+<script src="src/app.js"></script>
+<script src="src/pwa-init.js"></script>
+```
+
+### 架構清理效益
+
+**效能提升**：
+- 減少 Service Worker 無效快取嘗試
+- 降低 HTML 解析負擔
+- 提升應用啟動速度
+
+**維護性改善**：
+- 清晰的檔案結構和引用關係
+- 移除冗餘和過時的程式碼
+- 統一的腳本載入順序
+
+**安全性增強**：
+- 移除未使用的潛在攻擊面
+- 確保 Service Worker 快取的檔案都是實際需要的
+- 清理過時的註解和引用
+
+### 風險評估
+
+**低風險變更**：
+- 移除的檔案均未被實際使用
+- Service Worker 更新不影響現有功能
+- HTML 結構優化保持向下相容
+
+**緩解措施**：
+- 保留完整的 git 歷史記錄
+- Service Worker 版本更新觸發快取重建
+- 漸進式部署確保穩定性

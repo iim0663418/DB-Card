@@ -1,4 +1,4 @@
-# PWA 名片系統架構文件
+# PWA 名片系統完整架構文件
 
 ## 系統概覽
 
@@ -139,6 +139,83 @@ name|title|department|email|phone|mobile|avatar|greetings|socialNote
 }
 ```
 
+## PWA 按鈕設計系統
+
+### 設計演進歷程
+
+#### v1.0 - 基礎設計
+- 使用單調綠色背景 (`#28a745`)
+- 簡單內聯樣式，缺乏視覺層次
+
+#### v2.0 - 漸層優化
+- 導入現代漸層設計 (`linear-gradient(135deg, #20c997 0%, #17a2b8 100%)`)
+- 添加立體效果和互動動畫
+- 圖標與文字分離設計
+
+#### v3.0 - moda 設計系統對齊
+- 使用 moda 次要色彩漸層 (`#8e8ec7` 到 `#7a7ab8`)
+- 響應式設計修復，限制最大寬度
+- 統一 9 個名片模板的視覺效果
+
+#### v4.0 - 樣式統一 (當前版本)
+- 與「加入聯絡人」按鈕完全統一樣式
+- 使用純色背景 `#6868ac`
+- 簡化佈局邏輯，移除複雜 flex 屬性
+
+### 當前設計規範
+
+```css
+.pwa-save-btn {
+    background: #6868ac;
+    color: #fff;
+    border: 1px solid #6868ac;
+    padding: 12px 20px; /* 機關版 */
+    border-radius: 6px;
+    transition: all 0.15s ease;
+    display: inline-block;
+}
+
+.pwa-save-btn:hover {
+    background: #4e4e81;
+    border-color: #4e4e81;
+    transform: translateY(-1px);
+}
+```
+
+### 響應式佈局
+
+```css
+.button-group {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: stretch; /* 水平對齊修復 */
+}
+
+@media (max-width: 480px) {
+    .button-group {
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+    }
+    
+    .pwa-save-btn {
+        max-width: 280px; /* 限制最大寬度 */
+        width: auto;
+        min-width: 200px;
+    }
+}
+```
+
+### 版本差異化設計
+
+| 版本類型 | padding | border-radius | max-width (mobile) |
+|----------|---------|---------------|-------------------|
+| 機關版 | 12px 20px | 6px | 280px |
+| 個人版 | 14px 24px | 8px | 300px |
+| 雙語個人版 | 15px 26px | 8px | 320px |
+
 ## 安全考量
 
 ### 資料隱私
@@ -168,10 +245,53 @@ name|title|department|email|phone|mobile|avatar|greetings|socialNote
 - 索引策略優化查詢效能
 - 批次操作減少 I/O
 
+## 無障礙設計
+
+### 對比度
+- 白色文字在背景上保持足夠對比度
+- 符合 WCAG 2.1 AA 標準
+
+### 觸控友善
+- 最小觸控目標 48px 高度
+- 適當間距避免誤觸
+- 清晰的懸停和點擊狀態
+
 ## 版本歷史
 
+- **v4.0 (2025-01)**: PWA 按鈕樣式統一，與聯絡人按鈕一致
+- **v3.0 (2024-12)**: moda 設計系統對齊，響應式修復
+- **v2.0 (2024-12)**: 漸層設計優化，互動效果提升
 - **v1.5.12**: 修復 SimpleCardParser 欄位對應錯誤
 - **v1.5.11**: 識別資料庫清理需求
 - **v1.5.10**: 修復 CardManager 解析邏輯
 - **v1.5.4**: 修復分享連結生成問題
 - **v1.5.3**: 實作 PWA 離線收納功能
+
+## 測試與品質保證
+
+### 跨瀏覽器測試
+- Chrome, Firefox, Safari, Edge 兼容性
+- 不同螢幕尺寸響應式測試
+- PWA 功能完整性驗證
+
+### 視覺回歸測試
+- 按鈕對齊效果驗證
+- 色彩一致性檢查
+- 動畫效果流暢度測試
+
+### 功能測試
+- PWA 離線儲存功能
+- 名片解析準確性
+- 跨設備同步能力
+
+## 未來發展規劃
+
+### 短期目標
+- 建立統一的設計系統文檔
+- 抽取共用 CSS 類別
+- 定期樣式一致性檢查
+
+### 長期目標
+- 模組化架構重構
+- 智慧快取策略
+- 微前端架構演進

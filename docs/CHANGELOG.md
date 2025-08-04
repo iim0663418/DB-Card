@@ -1,5 +1,61 @@
 ## [1.0.8] - 2025-08-04
 
+### PWA Architecture - 🔧 OPTIMIZATION - 樣式架構優化與 Manifest 統一
+
+#### 樣式架構優化
+- **CSS 整合優化**: 將分散的修復樣式檔案整合到主樣式檔案
+  - 整合 `csp-fix.css` 到 `main.css`：CSP 修復樣式統一管理
+  - 整合 `pwa-ui-fix.css` 到 `main.css`：PWA UI 修復樣式統一管理
+  - 移除重複的樣式檔案引用，減少 HTTP 請求數量
+- **效能提升**: 樣式載入效能優化
+  - 從 3 個樣式檔案減少到 1 個主檔案
+  - 減少檔案數量，加快頁面載入速度
+  - 統一樣式優先級和覆蓋邏輯，避免樣式衝突
+- **維護性改善**: 簡化樣式架構
+  - 所有修復樣式集中在 `main.css` 中管理
+  - 統一的樣式命名和組織結構
+  - 降低維護複雜度和認知負擔
+
+#### Manifest 配置統一
+- **版本同步**: 統一更新 manifest 版本至 v1.0.8
+  - `manifest.json` 版本更新
+  - `manifest-github.json` 版本更新
+  - 確保版本號與 CHANGELOG.md 保持一致
+- **Icons 配置修復**: 統一兩個 manifest 檔案的 icons 設定
+  - 修復 GitHub Pages 版本缺少 PNG icons 的問題
+  - 統一 icons 配置：32x32、192x192、512x512 PNG + SVG Logo
+  - 修正 SVG icon 的 purpose 屬性，移除不適當的 maskable 設定
+- **PWA 安裝體驗改善**: 確保所有環境下 PWA 安裝圖示正常顯示
+  - 本地環境和 GitHub Pages 環境圖示一致性
+  - 支援多種尺寸和格式的應用程式圖示
+  - 優化 PWA 安裝提示和圖示顯示
+
+#### 檔案異動
+- `pwa-card-storage/assets/styles/main.css` - 整合 CSP 和 PWA UI 修復樣式
+- `pwa-card-storage/index.html` - 移除重複樣式檔案引用
+- `pwa-card-storage/manifest.json` - 版本更新至 v1.0.8，修正 icons 配置
+- `pwa-card-storage/manifest-github.json` - 版本更新至 v1.0.8，統一 icons 配置
+- `pwa-card-storage/assets/styles/csp-fix.css` - 已刪除（整合至 main.css）
+- `pwa-card-storage/assets/styles/pwa-ui-fix.css` - 已刪除（整合至 main.css）
+- `docs/CHANGELOG.md` - 記錄架構優化詳情
+
+#### 技術改進
+- **載入效能優化**: 減少 HTTP 請求，提升首次載入速度
+- **樣式管理統一**: 集中式樣式管理，降低維護成本
+- **PWA 標準合規**: 確保 manifest 配置符合 PWA 最佳實踐
+- **跨環境一致性**: 統一本地和 GitHub Pages 環境的配置
+
+#### 測試驗證
+- ✅ **樣式載入測試**: 確認整合後樣式正常載入和顯示
+- ✅ **PWA 安裝測試**: 驗證兩個環境下 PWA 安裝圖示正常
+- ✅ **版本一致性檢查**: 確認所有配置檔案版本號統一
+- ✅ **效能測試**: 驗證樣式整合後載入速度提升
+
+#### 部署影響
+- ✅ **向後相容**: 樣式整合不影響現有功能
+- ✅ **零停機更新**: 可直接部署，無需額外配置
+- ✅ **效能提升**: 使用者將體驗到更快的載入速度
+
 ### Format Alignment - 🔧 CRITICAL ENHANCEMENT - 完整匯出匯入格式對齊
 
 #### 核心成就
@@ -85,14 +141,13 @@
   - 解決格式預覽不準確的問題
   - 修復混合格式匯出的檔案命名
 
-#### 檔案異動
+#### 檔案異動（格式對齊功能）
 - `pwa-card-storage/src/features/card-manager.js` - 強化 vCard 生成和 JSON 匯出邏輯
 - `pwa-card-storage/src/features/transfer-manager.js` - 增強 vCard 解析和格式驗證
 - `pwa-card-storage/src/app.js` - 更新格式選擇 UI 整合
 - `pwa-card-storage/index.html` - 新增格式選擇下拉選單
 - `tests/unit/format-alignment.test.js` - 新增格式對齊驗證測試
 - `tests/integration/export-import-roundtrip.test.js` - 新增循環測試驗證
-- `docs/CHANGELOG.md` - 記錄格式對齊改進詳情
 
 #### 測試驗證結果
 - ✅ **Format Alignment Tests**: 28 個測試案例全部通過

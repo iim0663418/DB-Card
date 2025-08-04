@@ -83,6 +83,10 @@ class LanguageManager {
         exportAll: '匯出所有名片',
         includeVersions: '包含版本歷史',
         encryptFile: '加密匯出檔案',
+        exportFormat: '匯出格式',
+        jsonFormat: 'JSON 格式',
+        vcardFormat: 'vCard 格式',
+        bothFormats: '兩種格式',
         startExport: '開始匯出',
 
         // 名片詳細資訊
@@ -194,6 +198,10 @@ class LanguageManager {
         exportAll: 'Export all cards',
         includeVersions: 'Include version history',
         encryptFile: 'Encrypt export file',
+        exportFormat: 'Export Format',
+        jsonFormat: 'JSON Format',
+        vcardFormat: 'vCard Format',
+        bothFormats: 'Both Formats',
         startExport: 'Start Export',
 
         // Card Details
@@ -522,10 +530,34 @@ class LanguageManager {
       { id: 'export-versions-label', key: 'includeVersions' },
       { id: 'export-encrypt-label', key: 'encryptFile' }
     ];
+    
+    // 更新格式選擇選項
+    this.updateSelectOptions();
 
     exportLabels.forEach(({ id, key }) => {
       this.updateElement(id, key);
     });
+  }
+
+  /**
+   * 更新選擇框選項
+   */
+  updateSelectOptions() {
+    const formatSelect = document.getElementById('export-format');
+    if (formatSelect) {
+      const options = formatSelect.querySelectorAll('option');
+      if (options.length >= 3) {
+        options[0].textContent = this.getText('jsonFormat');
+        options[1].textContent = this.getText('vcardFormat');
+        options[2].textContent = this.getText('bothFormats');
+      }
+    }
+    
+    // 更新格式選擇標籤
+    const formatLabel = document.querySelector('label[for="export-format"]');
+    if (formatLabel) {
+      formatLabel.textContent = this.getText('exportFormat') + ':';
+    }
   }
 
   /**

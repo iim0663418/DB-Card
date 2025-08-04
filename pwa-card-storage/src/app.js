@@ -619,6 +619,7 @@ class PWACardApp {
       const exportAll = document.getElementById('export-all')?.checked;
       const includeVersions = document.getElementById('export-versions')?.checked;
       const encrypt = document.getElementById('export-encrypt')?.checked;
+      const format = document.getElementById('export-format')?.value || 'json';
 
       this.showLoading('匯出資料中...');
 
@@ -654,20 +655,16 @@ class PWACardApp {
           this.showNotification(result.error || '匯出失敗', 'error');
         }
       } else if (this.cardManager) {
-        // 使用一般匯出
+        // 使用新的匯出功能（會自動下載檔案）
         const result = await this.cardManager.exportCards({
           exportAll,
           includeVersions,
-          encrypt: false
+          format: format, // 使用用戶選擇的格式
+          autoDownload: true // 自動下載檔案
         });
 
         if (result.success) {
-          const link = document.createElement('a');
-          link.href = URL.createObjectURL(result.file);
-          link.download = result.filename;
-          link.click();
-          
-          this.showNotification('匯出成功', 'success');
+          this.showNotification(`成功匯出 ${result.count} 張名片`, 'success');
         } else {
           this.showNotification(result.error || '匯出失敗', 'error');
         }

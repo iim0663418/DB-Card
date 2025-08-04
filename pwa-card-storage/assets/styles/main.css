@@ -548,6 +548,40 @@ body {
   box-shadow: 0 2px 8px rgba(104, 104, 172, 0.12);
 }
 
+.format-selection {
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.format-selection label {
+  font-weight: 500;
+  color: var(--md-neutral-3);
+  font-size: 0.9rem;
+}
+
+.format-selection select {
+  padding: 0.75rem;
+  border: 2px solid var(--md-neutral-8);
+  border-radius: 8px;
+  background: var(--md-white-1);
+  color: var(--md-neutral-1);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.format-selection select:focus {
+  outline: none;
+  border-color: var(--md-primary-2);
+  box-shadow: 0 0 0 3px rgba(104, 104, 172, 0.1);
+}
+
+.format-selection select:hover {
+  border-color: var(--md-primary-3);
+}
+
 .import-card h3,
 .export-card h3 {
   font-size: 1.125rem;

@@ -1164,32 +1164,80 @@ class TransferManager {
    */
   convertVCardToJSON(vcardData) {
     try {
-      // 簡化的 vCard 解析 - 可根據需要擴展
+      // 完整的 vCard 解析，支援所有匯出欄位
       const lines = vcardData.split('\n');
       const cardData = {};
+      let greetings = [];
       
       lines.forEach(line => {
-        const [key, value] = line.split(':');
-        if (key && value) {
-          switch(key.trim().toUpperCase()) {
-            case 'FN':
-              cardData.name = value.trim();
-              break;
-            case 'ORG':
-              cardData.organization = value.trim();
-              break;
-            case 'EMAIL':
-              cardData.email = value.trim();
-              break;
-            case 'TEL':
-              cardData.phone = value.trim();
-              break;
-            case 'TITLE':
-              cardData.title = value.trim();
-              break;
-          }
+        const colonIndex = line.indexOf(':');
+        if (colonIndex === -1) return;
+        
+        const key = line.substring(0, colonIndex).trim();
+        const value = line.substring(colonIndex + 1).trim();
+        
+        if (!value) return;
+        
+        // 處理帶參數的欄位 (如 TEL;TYPE=WORK)
+        const [fieldName, params] = key.split(';');
+        const upperFieldName = fieldName.toUpperCase();
+        
+        switch(upperFieldName) {
+          case 'FN':
+            cardData.name = value;
+            break;
+          case 'TITLE':
+            cardData.title = value;
+            break;
+          case 'ORG':
+            cardData.organization = value;
+            break;
+          case 'X-DEPARTMENT':
+            cardData.department = value;
+            break;
+          case 'EMAIL':
+            cardData.email = value;
+            break;
+          case 'TEL':
+            // 處理不同類型的電話
+            if (params && params.includes('TYPE=CELL')) {
+              cardData.mobile = value;
+            } else {
+              cardData.phone = value;
+            }
+            break;
+          case 'ADR':
+            // vCard 地址格式: PO Box;Extended;Street;City;State;Postal;Country
+            // 我們取 Street 部分
+            const addressParts = value.split(';');
+            if (addressParts.length >= 3 && addressParts[2]) {
+              cardData.address = addressParts[2];
+            }
+            break;
+          case 'URL':
+            cardData.website = value;
+            break;
+          case 'NOTE':
+            cardData.socialNote = value;
+            break;
+          case 'X-GREETING':
+            greetings.push(value);
+            break;
+          case 'X-GREETINGS':
+            // 處理複數形式，可能包含多個問候語用分號分隔
+            const greetingsList = value.split(';').map(g => g.trim()).filter(Boolean);
+            greetings.push(...greetingsList);
+            break;
+          case 'X-CARD-TYPE':
+            cardData.type = value;
+            break;
         }
       });
+      
+      // 設定問候語陣列
+      if (greetings.length > 0) {
+        cardData.greetings = greetings;
+      }
       
       return { success: true, data: cardData };
     } catch (error) {

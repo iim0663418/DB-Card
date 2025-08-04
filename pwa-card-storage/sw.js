@@ -3,10 +3,10 @@
  * 實作離線優先快取策略與效能優化
  */
 
-const CACHE_NAME = 'pwa-card-storage-v2.4';
-const STATIC_CACHE_NAME = 'pwa-static-v2.4';
-const DYNAMIC_CACHE_NAME = 'pwa-dynamic-v2.4';
-const IMAGE_CACHE_NAME = 'pwa-images-v2.4';
+const CACHE_NAME = 'pwa-card-storage-v1.0.8';
+const STATIC_CACHE_NAME = 'pwa-static-v1.0.8';
+const DYNAMIC_CACHE_NAME = 'pwa-dynamic-v1.0.8';
+const IMAGE_CACHE_NAME = 'pwa-images-v1.0.8';
 
 // 動態獲取基礎路徑 - 支援 GitHub Pages 和 Cloudflare Pages
 const getBasePath = () => {
@@ -45,24 +45,25 @@ const CORE_RESOURCES = [
   `${BASE_PATH}/pwa-card-storage/src/pwa-init.js`,
   `${BASE_PATH}/pwa-card-storage/src/core/storage.js`,
   `${BASE_PATH}/pwa-card-storage/src/core/health-manager.js`,
-  `${BASE_PATH}/pwa-card-storage/src/core/version-manager.js`,
+  `${BASE_PATH}/pwa-card-storage/src/core/language-manager.js`,
+  `${BASE_PATH}/pwa-card-storage/src/core/unified-manifest-manager.js`,
+  `${BASE_PATH}/pwa-card-storage/src/core/unified-mobile-manager.js`,
   `${BASE_PATH}/pwa-card-storage/src/features/card-manager.js`,
   `${BASE_PATH}/pwa-card-storage/src/features/offline-tools.js`,
   `${BASE_PATH}/pwa-card-storage/src/features/transfer-manager.js`,
-
   `${BASE_PATH}/pwa-card-storage/src/ui/components/card-list.js`,
-  `${BASE_PATH}/pwa-card-storage/src/ui/components/card-renderer.js`,
-  `${BASE_PATH}/pwa-card-storage/src/ui/components/conflict-resolver.js`,
-  `${BASE_PATH}/pwa-card-storage/src/ui/components/unified-interface.js`,
-  `${BASE_PATH}/pwa-card-storage/src/integration/legacy-adapter.js`,
-  `${BASE_PATH}/pwa-card-storage/src/integration/bilingual-bridge.js`
+  `${BASE_PATH}/pwa-card-storage/src/utils/simple-card-parser.js`,
+  `${BASE_PATH}/pwa-card-storage/src/utils/pwa-performance.js`
 ];
 
 // 樣式資源
 const STYLE_RESOURCES = [
   `${BASE_PATH}/pwa-card-storage/assets/styles/main.css`,
   `${BASE_PATH}/pwa-card-storage/assets/styles/components.css`,
-  `${BASE_PATH}/assets/qrcode-style.css`,
+  `${BASE_PATH}/pwa-card-storage/assets/styles/modal-styles.css`,
+  `${BASE_PATH}/pwa-card-storage/assets/styles/visual-enhancements.css`,
+  `${BASE_PATH}/pwa-card-storage/assets/styles/language-toggle.css`,
+  `${BASE_PATH}/pwa-card-storage/assets/styles/moda-design-system.css`,
   `${BASE_PATH}/assets/high-accessibility.css`
 ];
 
@@ -71,8 +72,12 @@ const EXTERNAL_RESOURCES = [
   `${BASE_PATH}/assets/bilingual-common.js`,
   `${BASE_PATH}/assets/qrcode.min.js`,
   `${BASE_PATH}/assets/qr-utils.js`,
-  `${BASE_PATH}/assets/pwa-integration.js`,
-  `${BASE_PATH}/assets/moda-logo.svg`
+  `${BASE_PATH}/assets/moda-logo.svg`,
+  `${BASE_PATH}/src/security/SecurityInputHandler.js`,
+  `${BASE_PATH}/src/security/SecurityDataHandler.js`,
+  `${BASE_PATH}/src/security/SecurityAuthHandler.js`,
+  `${BASE_PATH}/pwa-card-storage/src/core/error-handler.js`,
+  `${BASE_PATH}/pwa-card-storage/src/core/pwa-integration.js`
 ];
 
 // 字體資源

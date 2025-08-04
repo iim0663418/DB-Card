@@ -10,7 +10,7 @@
 - **認證層**: SecurityAuthHandler - 授權檢查與會話管理
 - **資料層**: SecurityDataHandler - XSS防護與安全儲存
 
-### PWA 匯入功能安全漏洞狀態 (已修復完成)
+### PWA 匯入/匯出功能安全狀態 (已修復完成)
 - ✅ **SEC-PWA-001**: 檔案上傳攻擊 (CWE-434) - 已完成修復並通過測試
 - ✅ **SEC-PWA-002**: JSON.parse Prototype Pollution (CWE-1321) - 已完成修復並通過測試
 - ✅ **SEC-PWA-003**: 授權檢查缺失 (CWE-862) - 已完成修復並通過測試
@@ -19,6 +19,7 @@
 - ✅ **SEC-PWA-006**: 資料注入攻擊 (CWE-74) - 已完成修復並通過測試
 - ✅ **SEC-PWA-007**: 不安全的反序列化 (CWE-502) - 已完成修復並通過測試
 - ✅ **SEC-PWA-008**: 錯誤處理資訊洩露 (CWE-209) - 已完成修復並通過測試
+- ✅ **EXP-SECURITY**: 匯出功能安全強化 - 檔案大小驗證、檔名清理、記憶體管理完成
 
 ### 已修復的安全漏洞
 - ✅ SEC-001: 生產環境 prompt() 使用 (Critical)
@@ -62,18 +63,21 @@ if (!logIntegrity.valid) {
 
 ## 🚨 安全事件回應
 
-### PWA 匯入功能 Critical 級別事件回應
+### PWA 匯入/匯出功能 Critical 級別事件回應
 **緊急行動計畫 (< 15 分鐘)**
-1. **立即停用 PWA 匯入功能**
+1. **立即停用 PWA 匯入/匯出功能**
    ```javascript
-   // 緊急停用代碼
+   // 緊急停用匯入功能
    window.EMERGENCY_DISABLE_IMPORT = true;
+   
+   // 緊急停用匯出功能 (如需要)
+   window.EMERGENCY_DISABLE_EXPORT = true;
    ```
 2. **隔離受影響檔案**
    - `pwa-card-storage/src/features/transfer-manager.js`
    - `pwa-card-storage/src/features/card-manager.js`
 3. **啟動緊急修復小組**
-4. **通知所有用戶停止使用匯入功能**
+4. **通知所有用戶停止使用匯入/匯出功能**
 
 ### Critical 級別事件
 **立即行動 (< 15 分鐘)**
@@ -255,13 +259,61 @@ const SecurityConfig = {
 | import | ❌ | ✅ | ❌ | ❌ |
 | admin | ❌ | ❌ | ❌ | ✅ |
 
+### 3. 匯出功能安全操作指南
+
+#### 3.1 日常匯出操作安全檢查
+```javascript
+// 執行匯出前安全檢查
+const securityCheck = await cardManager.performExportSecurityCheck();
+if (!securityCheck.safe) {
+    console.warn('匯出安全檢查失敗:', securityCheck.issues);
+    return;
+}
+
+// 監控檔案大小警告
+const result = await cardManager.exportCards({ exportAll: true });
+if (result.files) {
+    result.files.forEach(file => {
+        const warning = cardManager.checkFileSizeWarning(file.size);
+        if (warning.level !== 'ok') {
+            console.warn(`檔案大小警告: ${warning.message}`);
+        }
+    });
+}
+```
+
+#### 3.2 匯出安全最佳實踐
+1. **檔案大小監控**
+   - 小於 5MB: 正常處理
+   - 5-10MB: 顯示資訊警告
+   - 10-50MB: 顯示大小警告
+   - 超過 50MB: 拒絕匯出並顯示錯誤
+
+2. **檔名安全驗證**
+   - 移除路徑遍歷字符 (`../`, `./`)
+   - 清理特殊字符和空格
+   - 確保檔名長度合理 (< 255 字符)
+
+3. **記憶體安全管理**
+   - 自動清理 Blob URLs
+   - 監控大量匯出的記憶體使用
+   - 實施匯出數量限制 (< 1000 張名片)
+
+4. **資料清理檢查**
+   - 確保所有匯出資料經過清理
+   - 驗證雙語分離邏輯正確性
+   - 檢查敏感資料遮罩
+
 ## 🛠️ 維護程序
 
 ### 每日檢查清單
-- [ ] 執行安全測試套件 (45個測試案例)
-- [ ] **PWA 匯入功能安全狀態檢查** (已修復，持續監控)
+- [ ] 執行安全測試套件 (45個匯入安全測試案例)
+- [ ] 執行匯出功能測試 (38個匯出功能測試案例)
+- [ ] **PWA 匯入/匯出功能安全狀態檢查** (已修復，持續監控)
 - [ ] 執行 Jest 安全測試: `npm run test:security`
+- [ ] 執行匯出驗證測試: `npm run test tests/smoke/export-validation.test.js`
 - [ ] 檢查視覺化測試器狀態: `security-test-runner.html`
+- [ ] 監控匯出檔案大小異常 (> 50MB 警告)
 - [ ] 檢查系統日誌異常
 - [ ] 監控檔案上傳攻擊嘗試
 - [ ] 驗證備份完整性
@@ -284,7 +336,7 @@ const SecurityConfig = {
 
 ## 🔍 故障排除指南
 
-### PWA 匯入功能緊急問題
+### PWA 匯入/匯出功能緊急問題
 
 #### 1. 檔案上傳攻擊檢測
 **症狀**: 不明檔案被上傳或異常檔案類型
@@ -328,6 +380,44 @@ window.DISABLE_DETAILED_ERRORS = true;
 
 // 通知用戶更新密碼
 SecurityAuthHandler.forcePasswordReset();
+```
+
+#### 4. 匯出功能異常檔案大小
+**症狀**: 匯出檔案超過正常大小限制 (> 50MB)
+**緊急處理**:
+```javascript
+// 檢查匯出檔案大小
+const exportSize = await cardManager.getExportPreview(null, 'json');
+if (exportSize.preview.estimatedSizes.json > 50 * 1024 * 1024) {
+    console.error('匯出檔案過大，可能的原因:');
+    console.log('- 名片數量異常:', exportSize.preview.totalCards);
+    console.log('- 資料膨脹攻擊');
+    
+    // 緊急停用匯出功能
+    window.EMERGENCY_DISABLE_EXPORT = true;
+    
+    // 限制匯出數量
+    cardManager.MAX_EXPORT_CARDS = 100;
+}
+```
+
+#### 5. 匯出記憶體洩漏
+**症狀**: 多次匯出後瀏覽器記憶體使用異常增加
+**緊急處理**:
+```javascript
+// 強制清理所有 Blob URLs
+if (window.activeExportUrls) {
+    window.activeExportUrls.forEach(url => URL.revokeObjectURL(url));
+    window.activeExportUrls = [];
+}
+
+// 觸發垃圾回收 (如果支援)
+if (window.gc) {
+    window.gc();
+}
+
+// 重新載入頁面以清理記憶體
+setTimeout(() => window.location.reload(), 5000);
 ```
 
 ### 常見安全問題

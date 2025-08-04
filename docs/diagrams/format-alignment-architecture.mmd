@@ -1,0 +1,165 @@
+```mermaid
+graph TB
+    subgraph "Format Alignment Architecture v1.0.8"
+        subgraph "Data Sources"
+            A1[名片資料庫<br/>IndexedDB]
+            A2[用戶輸入資料<br/>Forms]
+            A3[匯入檔案<br/>JSON/vCard]
+        end
+
+        subgraph "Export Process"
+            B1[資料收集<br/>Data Collection]
+            B2[格式選擇<br/>Format Selection]
+            B3[資料預處理<br/>Data Preprocessing]
+            
+            subgraph "Format Generation"
+                C1[JSON 生成器<br/>JSON Generator]
+                C2[vCard 生成器<br/>vCard Generator]
+                C3[雙語處理器<br/>Bilingual Processor]
+            end
+            
+            B4[檔案生成<br/>File Generation]
+            B5[安全驗證<br/>Security Validation]
+            B6[下載處理<br/>Download Handler]
+        end
+
+        subgraph "Import Process"
+            D1[檔案上傳<br/>File Upload]
+            D2[格式檢測<br/>Format Detection]
+            D3[安全掃描<br/>Security Scan]
+            
+            subgraph "Format Parsing"
+                E1[JSON 解析器<br/>JSON Parser]
+                E2[vCard 解析器<br/>vCard Parser]
+                E3[雙語分離器<br/>Bilingual Separator]
+            end
+            
+            D4[資料驗證<br/>Data Validation]
+            D5[格式對齊<br/>Format Alignment]
+            D6[資料儲存<br/>Data Storage]
+        end
+
+        subgraph "Format Alignment Engine"
+            F1[欄位對應表<br/>Field Mapping]
+            F2[格式轉換器<br/>Format Converter]
+            F3[循環驗證器<br/>Roundtrip Validator]
+            F4[一致性檢查<br/>Consistency Checker]
+        end
+
+        subgraph "Testing & Validation"
+            G1[單元測試<br/>Unit Tests]
+            G2[循環測試<br/>Roundtrip Tests]
+            G3[安全測試<br/>Security Tests]
+            G4[整合測試<br/>Integration Tests]
+        end
+    end
+
+    %% 資料流連接
+    A1 --> B1
+    A2 --> B1
+    B1 --> B2
+    B2 --> B3
+    B3 --> C1
+    B3 --> C2
+    B3 --> C3
+    C1 --> B4
+    C2 --> B4
+    C3 --> B4
+    B4 --> B5
+    B5 --> B6
+
+    A3 --> D1
+    D1 --> D2
+    D2 --> D3
+    D3 --> E1
+    D3 --> E2
+    D3 --> E3
+    E1 --> D4
+    E2 --> D4
+    E3 --> D4
+    D4 --> D5
+    D5 --> D6
+    D6 --> A1
+
+    %% 格式對齊引擎連接
+    F1 --> C1
+    F1 --> C2
+    F1 --> E1
+    F1 --> E2
+    F2 --> D5
+    F3 --> D5
+    F4 --> D5
+
+    %% 測試連接
+    G1 --> F1
+    G2 --> F3
+    G3 --> B5
+    G3 --> D3
+    G4 --> F4
+
+    %% 樣式定義
+    classDef exportProcess fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef importProcess fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef alignmentEngine fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef testingProcess fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef dataSource fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+
+    class B1,B2,B3,C1,C2,C3,B4,B5,B6 exportProcess
+    class D1,D2,D3,E1,E2,E3,D4,D5,D6 importProcess
+    class F1,F2,F3,F4 alignmentEngine
+    class G1,G2,G3,G4 testingProcess
+    class A1,A2,A3 dataSource
+```
+
+## 格式對齊架構說明
+
+### 核心組件
+
+#### 1. Export Process (匯出流程)
+- **資料收集**: 從 IndexedDB 或表單收集名片資料
+- **格式選擇**: 支援 JSON、vCard、Both 三種選項
+- **格式生成**: 獨立的 JSON、vCard、雙語生成器
+- **安全驗證**: 檔案大小、內容安全檢查
+
+#### 2. Import Process (匯入流程)
+- **格式檢測**: 自動識別 JSON/vCard 格式
+- **格式解析**: 專門的解析器處理不同格式
+- **格式對齊**: 確保匯入資料與系統格式一致
+
+#### 3. Format Alignment Engine (格式對齊引擎)
+- **欄位對應表**: 13+ 欄位的完整對應關係
+- **格式轉換器**: JSON ↔ vCard 雙向轉換
+- **循環驗證器**: Export → Import 一致性驗證
+- **一致性檢查**: 資料完整性保證
+
+### 關鍵改進
+
+#### vCard 欄位對應 (13+ 欄位)
+```
+FN: → data.name
+TITLE: → data.title
+ORG: → data.organization
+X-DEPARTMENT: → data.department
+EMAIL: → data.email
+TEL;TYPE=WORK: → data.phone
+TEL;TYPE=CELL: → data.mobile
+ADR;TYPE=WORK: → data.address
+URL: → data.website
+NOTE: → data.socialNote
+X-GREETINGS: → data.greetings[]
+X-CARD-TYPE: → type
+X-LANGUAGE: → language
+```
+
+#### 雙語處理邏輯
+```
+原始資料: "張三~John Zhang"
+中文處理: "張三"
+英文處理: "John Zhang"
+```
+
+#### 安全驗證機制
+- 格式注入防護
+- XSS 攻擊防護
+- 原型污染防護
+- 資料完整性驗證

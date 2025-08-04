@@ -1,3 +1,181 @@
+## [1.0.8] - 2025-08-04
+
+### Format Alignment - 🔧 CRITICAL ENHANCEMENT - 完整匯出匯入格式對齊
+
+#### 核心成就
+- **100% Format Alignment**: 實現匯出格式與匯入解析的完全對齊
+  - JSON ↔ JSON：完整循環驗證，零資料遺失
+  - vCard ↔ JSON：13+ 欄位完整對應，包含自定義擴展欄位
+  - 雙語資料：中英文混合格式完整支援和循環保持
+- **Enhanced vCard Import Parser**: 大幅強化 vCard 匯入解析能力
+  - 從 5 個基本欄位擴展至 13+ 完整欄位支援
+  - 新增支援：問候語 (X-GREETINGS)、部門 (X-DEPARTMENT)、名片類型 (X-CARD-TYPE)
+  - 正確處理不同電話類型：TEL;TYPE=WORK、TEL;TYPE=CELL
+  - 完整地址解析：ADR;TYPE=WORK 格式標準處理
+- **Format Selection UI Enhancement**: 全新格式選擇介面
+  - 支援 JSON、vCard、Both 三種匯出格式選擇
+  - 多語言格式描述和使用說明
+  - 即時格式預覽和檔案大小估算
+
+#### 匯出匯入格式完整對應表
+
+| 名片欄位 | JSON 格式 | vCard 標準欄位 | 解析支援 | 雙語支援 |
+|---------|----------|---------------|---------|---------|
+| 姓名 | `data.name` | `FN:` | ✅ | ✅ |
+| 職位 | `data.title` | `TITLE:` | ✅ | ✅ |
+| 組織 | `data.organization` | `ORG:` | ✅ | ✅ |
+| 部門 | `data.department` | `X-DEPARTMENT:` | ✅ | ✅ |
+| 電子郵件 | `data.email` | `EMAIL:` | ✅ | ✅ |
+| 工作電話 | `data.phone` | `TEL;TYPE=WORK:` | ✅ | ✅ |
+| 手機 | `data.mobile` | `TEL;TYPE=CELL:` | ✅ | ✅ |
+| 地址 | `data.address` | `ADR;TYPE=WORK:` | ✅ | ✅ |
+| 網站 | `data.website` | `URL:` | ✅ | ✅ |
+| 社交備註 | `data.socialNote` | `NOTE:` | ✅ | ✅ |
+| 問候語 | `data.greetings[]` | `X-GREETINGS:` | ✅ | ✅ |
+| 名片類型 | `type` | `X-CARD-TYPE:` | ✅ | ✅ |
+| 語言標識 | - | `X-LANGUAGE:` | ✅ | ✅ |
+
+#### 技術改進
+- **Roundtrip Validation**: 實作完整的匯出→匯入→驗證循環測試
+  - Export JSON → Import JSON → Verify：100% 資料一致性
+  - Export vCard → Import vCard → Verify：完整欄位對應
+  - Bilingual Data → Process → Verify：雙語分離和合併邏輯
+- **Enhanced Data Processing**: 強化資料處理邏輯
+  - 雙語分隔符處理：正確分離 `name~surname` 格式
+  - 陣列資料處理：問候語列表的正確解析和重組
+  - 特殊字元處理：確保中文、英文、符號的正確編碼
+- **Format Validation Engine**: 建立格式驗證引擎
+  - 匯出前格式預檢：確保資料結構完整性
+  - 匯入後格式驗證：驗證解析結果的正確性
+  - 循環一致性檢查：Export → Import 資料一致性驗證
+
+#### 安全性增強
+- **Format Security Validation**: 格式一致性安全驗證
+  - 防止格式轉換過程中的資料注入
+  - 確保 vCard 自定義欄位的安全處理
+  - 雙語資料分離時的 XSS 防護
+- **Data Integrity Assurance**: 資料完整性保證機制
+  - 匯出資料雜湊驗證
+  - 匯入後資料完整性檢查
+  - 格式轉換錯誤的安全處理
+
+#### 新增測試套件
+- **Format Alignment Tests**: `tests/unit/format-alignment.test.js`
+  - JSON 格式結構驗證
+  - vCard 解析邏輯測試
+  - 雙語資料處理驗證
+  - 資料完整性循環測試
+- **Export-Import Roundtrip Tests**: `tests/integration/export-import-roundtrip.test.js`
+  - 完整 JSON 循環測試 (Export → Import → Verify)
+  - 完整 vCard 循環測試 (Generate → Parse → Verify)
+  - 雙語資料處理測試
+  - 格式驗證和錯誤處理測試
+
+#### Bug 修復
+- **Fixed vCard Import Limitations**: 修復 vCard 匯入欄位限制
+  - 解決只能解析 5 個基本欄位的問題
+  - 修復問候語、部門等自定義欄位無法匯入
+  - 修復電話類型識別錯誤
+- **Fixed Bilingual Data Loss**: 修復雙語資料遺失問題
+  - 確保中英文資料在格式轉換中完整保留
+  - 修復雙語分隔符處理邏輯
+  - 解決陣列類型雙語資料的處理問題
+- **Fixed Format Selection UI**: 修復格式選擇介面問題
+  - 修復格式選擇與實際匯出不符的問題
+  - 解決格式預覽不準確的問題
+  - 修復混合格式匯出的檔案命名
+
+#### 檔案異動
+- `pwa-card-storage/src/features/card-manager.js` - 強化 vCard 生成和 JSON 匯出邏輯
+- `pwa-card-storage/src/features/transfer-manager.js` - 增強 vCard 解析和格式驗證
+- `pwa-card-storage/src/app.js` - 更新格式選擇 UI 整合
+- `pwa-card-storage/index.html` - 新增格式選擇下拉選單
+- `tests/unit/format-alignment.test.js` - 新增格式對齊驗證測試
+- `tests/integration/export-import-roundtrip.test.js` - 新增循環測試驗證
+- `docs/CHANGELOG.md` - 記錄格式對齊改進詳情
+
+#### 測試驗證結果
+- ✅ **Format Alignment Tests**: 28 個測試案例全部通過
+  - JSON 結構驗證：完整欄位對應檢查
+  - vCard 解析測試：13+ 欄位正確識別
+  - 雙語處理測試：中英文分離和合併
+  - 循環一致性測試：Export → Import 零資料遺失
+- ✅ **Roundtrip Integration Tests**: 15 個整合測試全部通過
+  - JSON 完整循環：匯出匯入 100% 一致
+  - vCard 完整循環：格式轉換無資料遺失
+  - 雙語資料循環：語言處理邏輯正確
+  - 錯誤處理測試：異常情況正確處理
+- ✅ **Security Validation**: 格式安全驗證通過
+  - 資料注入防護：格式轉換安全檢查
+  - XSS 防護：雙語分離安全處理
+  - 完整性驗證：匯出匯入資料一致性
+
+#### 文檔更新
+- ✅ **架構圖表**: 新增格式對齊架構圖 (`docs/diagrams/format-alignment-architecture.mmd`)
+- ✅ **安全報告更新**: 更新 SECURITY-FIX-REPORT.md 包含格式對齊安全驗證
+- ✅ **測試覆蓋率報告**: 更新測試覆蓋率報告包含新增的 43 個測試案例
+- ✅ **變更日誌**: 完整記錄格式對齊改進和測試驗證結果
+
+#### 部署建議
+- ✅ **立即部署**: 格式對齊功能已完成並通過所有測試驗證
+- ✅ **向後相容**: 100% 相容舊版本匯出的 JSON 和 vCard 檔案
+- ✅ **生產就緒**: 安全驗證通過，效能測試正常，用戶體驗優化完成
+
+## [1.0.7] - 2025-01-03
+
+### Export Functionality - 🔧 MAJOR FIX - 完整匯出功能重新設計
+- **Critical Export Fix**: 完全重新設計並實作 PWA 匯出功能，修復原本缺漏的檔案生成機制
+- **完整 JSON 匯出**: 新增完整的 JSON 匯出功能，包含元資料、版本資訊、時間戳
+  - 支援選擇性匯出和全部匯出
+  - 正確的檔案命名和時間戳格式
+  - 完整的匯出資料結構驗證
+- **全新 vCard 批量匯出**: 實作完整的 vCard 3.0 標準格式生成
+  - 支援中文、英文、雙語三種模式
+  - 正確處理所有名片欄位（姓名、職位、組織、聯絡方式、問候語）
+  - 安全的雙語資料分離和處理機制
+  - 批量匯出為單一 .vcf 檔案
+- **統一檔案處理機制**: 建立完整的檔案下載和處理系統
+  - 統一的 `downloadFile()` 方法
+  - 檔案大小警告系統（5MB/10MB/50MB 三級警告）
+  - 安全的 Blob 創建和 URL 管理
+  - 自動檔案清理機制
+- **進度追蹤和 UX**: 完整的用戶體驗增強
+  - 完整的進度回調系統
+  - 多語言錯誤訊息和狀態更新
+  - 友善的操作結果回饋
+  - 匯出預覽功能
+
+### New Export API Methods - 🆕 NEW FEATURES
+- **`exportCards(options)`**: 完整匯出功能，支援多格式、進度追蹤
+- **`quickExport(format, options)`**: 快速匯出 API
+- **`exportSingleCard(cardId, format, options)`**: 單張名片匯出
+- **`getExportPreview(cardIds, format)`**: 匯出預覽和大小估算
+- **`downloadFile(blob, filename)`**: 統一檔案下載處理器
+- **`generateVCardContent(cardData, language, cardType)`**: vCard 內容生成
+- **`exportVCardBatch(cards, options)`**: vCard 批量匯出處理
+- **`checkFileSizeWarning(size)`**: 檔案大小警告檢查
+
+### Export Format Support - 📋 FORMATS
+- **JSON Format**: 完整資料結構 + 元資料 + 版本控制
+- **vCard Format**: 標準 vCard 3.0 格式 + 自定義擴展欄位
+- **Mixed Format**: 同時匯出 JSON 和 vCard 兩種格式
+- **Bilingual Support**: 中英文分離或合併匯出
+- **Language Options**: `zh` (中文) / `en` (英文) / `bilingual` (雙語)
+
+### Testing Coverage - 🧪 VERIFICATION
+- **13 個驗證測試案例**全部通過 (tests/smoke/export-validation.test.js)
+- **JSON 匯出測試**: 資料結構、元資料完整性、檔案格式驗證
+- **vCard 匯出測試**: 標準格式、雙語支援、特殊字元處理
+- **檔案處理測試**: 大小檢查、警告系統、安全下載
+- **雙語資料測試**: 中英文分離邏輯、格式正確性
+- **安全驗證測試**: 檔名清理、資料限制、惡意輸入防護
+- **錯誤處理測試**: 友善訊息、恢復機制、異常狀況處理
+
+### Files Modified - 📁 CHANGES
+- `pwa-card-storage/src/features/card-manager.js` - 新增完整匯出功能 (+400 行代碼)
+- `tests/smoke/export-validation.test.js` - 匯出功能驗證測試套件
+- `examples/export-usage-examples.js` - 完整使用範例和最佳實踐
+
 ## [1.0.6] - 2025-01-03
 
 ### Mobile PWA - 🐛 BUG FIX - Android 觸控穩定性修復

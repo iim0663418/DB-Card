@@ -1,747 +1,221 @@
 ---
-version: "2.1.0"
-rev_id: "D-014"
-last_updated: "2024-12-20"
-owners: ["Technical Architecture Team", "PWA Performance Team"]
-status: "✅ Performance Architecture Complete"
+version: "v3.1.0"
+rev_id: 4
+last_updated: "2025-01-27"
+owners: ["technical-architect", "prd-writer"]
+feature_scope: "card-version-management-duplicate-detection"
+security_level: "standard"
+cognitive_complexity: "low"
+reuse_policy: "reuse-then-extend-then-build"
 ---
 
-# PWA 名片系統技術設計文件
+# 名片版本管理與重複識別技術設計文檔
 
 ## 1. System Architecture Overview
 
-### 整體架構影響評估
-
-PWA 效能優化對系統架構產生以下關鍵影響：
+### 1.1 核心架構設計
+基於現有 PWA 架構的最小化擴展策略：
 
 ```mermaid
 graph TB
-    subgraph "效能優化前後架構對比"
-        subgraph "優化前 (v1.0.2)"
-            A1[串行初始化] --> B1[逐一載入服務]
-            B1 --> C1[大量日誌輸出]
-            C1 --> D1[用戶等待時間長]
-        end
-        
-        subgraph "優化後 (v1.0.4)"
-            A2[並行初始化] --> B2[Promise.all 同步載入]
-            B2 --> C2[精簡日誌輸出]
-            C2 --> D2[快速用戶體驗]
-        end
-    end
+    A[PWACardManager] --> B[ContentFingerprintGenerator]
+    A --> C[DuplicateDetector] 
+    A --> D[VersionManager]
     
-    subgraph "架構層級影響"
-        E[應用層] --> F[服務層]
-        F --> G[資料層]
-        G --> H[基礎設施層]
-    end
+    B --> E[PWACardStorage]
+    C --> E
+    D --> E
     
-    style A2 fill:#e8f5e8,stroke:#2e7d32
-    style B2 fill:#e1f5fe,stroke:#01579b
-    style C2 fill:#fff3e0,stroke:#ef6c00
+    E --> F[IndexedDB]
+    F --> G[cards ObjectStore]
+    F --> H[versions ObjectStore]
+    
+    G --> I[fingerprint Index]
+    H --> J[fingerprint Index]
 ```
 
-### 核心架構變更
+### 1.2 模組責任劃分
+- **ContentFingerprintGenerator**: 生成基於 name+email 的 SHA-256 指紋
+- **DuplicateDetector**: 檢測重複名片並提供處理選項
+- **VersionManager**: 管理版本歷史和語義化版本號
+- **PWACardStorage**: 擴展現有儲存層，新增指紋索引
 
-#### 1.1 初始化流程重構
-- **變更前**：8 步串行初始化，總時間 ~800ms
-- **變更後**：4 步並行初始化，總時間 ~480ms
-- **架構影響**：服務依賴關係扁平化，減少阻塞點
+## 2. Data Models
 
-#### 1.2 服務層解耦
+### 2.1 擴展的 Card Schema
 ```typescript
-// 新架構：並行服務初始化
-interface ServiceInitializer {
-  initializeParallel(): Promise<ServiceGroup[]>;
-  initializeSequential(): Promise<DependentService[]>;
-}
-
-interface ServiceGroup {
-  cardManager: PWACardManager;
-  healthManager: HealthManager;
-  languageManager: LanguageManager;
-}
-```
-
-## 2. Performance Architecture Design
-
-### 2.1 並行初始化架構
-
-```mermaid
-sequenceDiagram
-    participant App as PWA App
-    participant Storage as Core Storage
-    participant PM as Promise Manager
-    participant CM as Card Manager
-    participant HM as Health Manager
-    participant LM as Language Manager
-    
-    App->>Storage: 初始化核心儲存
-    Storage-->>App: 儲存就緒
-    
-    App->>PM: 啟動並行初始化
-    
-    par 並行執行
-        PM->>CM: 初始化名片管理器
-        PM->>HM: 初始化健康管理器
-        PM->>LM: 初始化語言管理器 (50ms)
-    end
-    
-    CM-->>PM: 完成
-    HM-->>PM: 完成
-    LM-->>PM: 完成
-    
-    PM-->>App: 所有服務就緒
-    App->>App: 設置事件監聽器
-```
-
-### 2.2 日誌架構優化
-
-```typescript
-interface LoggingStrategy {
-  production: {
-    level: 'error' | 'warn';
-    output: 'console' | 'silent';
-  };
-  development: {
-    level: 'debug' | 'info' | 'warn' | 'error';
-    output: 'console';
-  };
-}
-
-// 實作精簡日誌策略
-const loggingConfig: LoggingStrategy = {
-  production: {
-    level: 'error',
-    output: 'silent'
-  },
-  development: {
-    level: 'warn',
-    output: 'console'
-  }
-};
-```
-
-## 3. Data Models & State Management
-
-### 3.1 效能監控資料模型
-
-```typescript
-interface PerformanceMetrics {
-  initializationTime: number;
-  serviceLoadTimes: {
-    storage: number;
-    cardManager: number;
-    healthManager: number;
-    languageManager: number;
-  };
-  logOutputReduction: number;
-  userExperienceScore: number;
-}
-
-interface VersionInfo {
-  current: string;
-  previous: string;
-  updateTimestamp: Date;
-  performanceImpact: PerformanceMetrics;
-}
-```
-
-### 3.2 服務狀態管理
-
-```typescript
-interface ServiceState {
+interface EnhancedCard {
+  // 現有欄位保持不變
   id: string;
-  status: 'initializing' | 'ready' | 'error';
-  loadTime: number;
-  dependencies: string[];
-  parallelGroup?: string;
-}
-
-interface AppState {
-  version: string;
-  services: ServiceState[];
-  performanceMetrics: PerformanceMetrics;
-  initializationComplete: boolean;
+  type: string;
+  data: CardData;
+  created: Date;
+  modified: Date;
+  currentVersion: number;
+  
+  // 新增欄位
+  fingerprint: string;           // 格式: fingerprint_[64字元hash]
+  version: string;               // 語義化版本: "1.0", "1.1", "1.2"
+  duplicateGroup?: string;       // 重複群組ID (可選)
 }
 ```
 
-## 4. API Design & Integration Points
-
-### 4.1 效能監控 API
-
-```yaml
-# docs/openapi/performance-api.yaml
-openapi: 3.0.0
-info:
-  title: PWA Performance Monitoring API
-  version: 1.0.4
-paths:
-  /api/performance/metrics:
-    get:
-      summary: 獲取效能指標
-      responses:
-        '200':
-          description: 效能指標資料
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PerformanceMetrics'
-components:
-  schemas:
-    PerformanceMetrics:
-      type: object
-      properties:
-        initializationTime:
-          type: number
-          description: 初始化時間 (ms)
-        logOutputReduction:
-          type: number
-          description: 日誌輸出減少百分比
-```
-
-## 5. Security & Best Practices
-
-### 5.1 效能優化安全考量
-
-- **日誌安全**：移除調試日誌不影響安全監控
-- **並行安全**：服務初始化互不干擾，避免競態條件
-- **版本安全**：版本更新不暴露敏感資訊
-
-### 5.2 監控與觀測性
-
+### 2.2 版本快照擴展
 ```typescript
-interface SecurityAuditLog {
+interface EnhancedVersionSnapshot {
+  // 現有欄位保持不變
+  id: string;
+  cardId: string;
+  version: number;
+  data: CardData;
   timestamp: Date;
-  event: 'performance_optimization' | 'version_update';
-  impact: 'low' | 'medium' | 'high';
-  details: {
-    oldVersion?: string;
-    newVersion?: string;
-    performanceGain?: number;
-  };
+  changeType: string;
+  
+  // 新增欄位
+  fingerprint: string;           // 版本指紋
+  semanticVersion: string;       // 語義化版本號
+  changeDescription?: string;    // 變更描述
 }
 ```
 
-## 6. Deployment & Rollback Strategy
+## 3. API Design
 
-### 6.1 版本更新策略
-
-```mermaid
-graph LR
-    A[v1.0.2] --> B[效能測試]
-    B --> C[v1.0.4 部署]
-    C --> D[監控指標]
-    D --> E{效能達標?}
-    E -->|是| F[完成更新]
-    E -->|否| G[回滾至 v1.0.2]
-    
-    style C fill:#e8f5e8
-    style F fill:#e1f5fe
-    style G fill:#ffebee
-```
-
-### 6.2 效能基準測試
-
-| 指標 | v1.0.2 | v1.0.4 | 改善幅度 |
-|------|--------|--------|----------|
-| 初始化時間 | ~800ms | ~480ms | 40% ↓ |
-| 日誌輸出 | 14 條 | 2 條 | 85% ↓ |
-| 記憶體使用 | 基準 | -5% | 5% ↓ |
-| 用戶感知延遲 | 高 | 低 | 顯著改善 |
-
-## 7. Spec↔Design Mapping
-
-| ReqID | Requirement | DesignID | Brief Desc | TaskID |
-|-------|-------------|----------|------------|---------|
-| R-012 | PWA 初始化效能優化 | D-014 | 並行初始化架構設計 | T-014 |
-| R-013 | PWA 安裝提示修復 | D-015 | 安裝提示流程設計 | T-015 |
-| R-010 | 版本自動化管理 | D-010 | 版本同步機制 | T-010 |
-| R-011 | IndexedDB連線穩定性 | D-011 | 連線管理架構 | T-011 |
-| R-014 | PWA 腳本架構優化 | D-021 | 無用腳本清除與架構簡化 | T-021 |
-| R-015 | Service Worker 快取優化 | D-021 | 快取資源列表準確性提升 | T-021 |
-| R-016 | HTML 結構優化 | D-021 | 腳本載入順序重組 | T-021 |
-
-## 8. Architecture Risk Assessment
-
-### 8.1 效能優化風險
-
-- **低風險**：日誌減少不影響核心功能
-- **中風險**：並行初始化可能產生時序問題
-- **緩解策略**：保持核心服務串行，僅輔助服務並行
-
-### 8.2 版本更新風險
-
-- **低風險**：版本號更新為純數值變更
-- **影響範圍**：manifest.json, 統計顯示, 快取策略
-- **回滾計畫**：保留 v1.0.2 配置作為備用
-
-## 9. Mobile Touch Optimization Design 🆕
-
-### 9.1 Mobile 觸控問題診斷
-
-**問題根源分析**：
-- `user-select: none` 干擾觸控事件處理
-- `transform: translateZ(0)` 影響按鈕響應性能
-- 統計卡片內容缺少事件隔離機制
-- 卡片文字超出範圍，影響用戶體驗
-- 與原始 RWD 設計產生樣式衝突
-
-### 9.2 統一 Mobile 樣式架構
-
-```mermaid
-graph TB
-    A[unified-mobile-rwd.css] --> B[觸控優化]
-    A --> C[效能優化]
-    A --> D[設計系統對齊]
-    
-    B --> E[.btn-icon 修復]
-    B --> F[.stat-card 優化]
-    
-    C --> G[移除 transform 干擾]
-    C --> H[pointer-events 隔離]
-    
-    D --> I[使用 --md-primary-2]
-    D --> J[官方色彩變數]
-    
-    style A fill:#e8f5e8,stroke:#2e7d32
-    style B fill:#e1f5fe,stroke:#01579b
-    style D fill:#fff3e0,stroke:#ef6c00
-```
-
-### 9.3 精修後的技術實作
-
-```css
-/* Settings Button (🏠) 觸控修復 */
-.btn-icon {
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: var(--md-primary-2, rgba(104, 104, 172, 0.1));
-  cursor: pointer;
-}
-
-/* 統計卡片觸控優化 */
-.stat-card {
-  touch-action: none; /* 防止意外滾動 */
-  -webkit-tap-highlight-color: transparent;
-}
-
-.stat-card .stat-number,
-.stat-card .stat-label {
-  pointer-events: none; /* 事件隔離 */
-  user-select: none;
-}
-
-/* 卡片文字處理 - 防止超出範圍 */
-.card-item .card-name,
-.card-item .card-title,
-.card-item .card-department,
-.card-item .card-email,
-.card-item .card-phone {
-  word-break: break-word;
-  overflow-wrap: break-word;
-  max-width: 100%;
-  white-space: normal;
-}
-
-/* 長文字特殊處理 */
-.card-item .card-email {
-  font-size: 0.875rem;
-  line-height: 1.4;
-}
-```
-
-### 9.4 架構清晰化與設計系統整合
-
-**架構清晰化原則**：
-- **職責分離**：`unified-mobile-rwd.css` 專責 Mobile 特有問題
-- **移除衝突**：不與 `main.css` 中的原始 RWD 設計產生衝突
-- **最小化影響**：僅修復必要的觸控和文字處理問題
-
-**CSS 變數使用**：
-- 觸控回饋色彩：`var(--md-primary-2)` 替代硬編碼值
-- 向下相容：提供 fallback 色彩值
-- 設計一致性：與數位發展部官網保持統一
-
-**精修成果**：
-- 移除 200+ 行重複或衝突的 CSS 代碼
-- 保留核心觸控優化和文字處理功能
-- 確保與原始 RWD 設計的相容性
-
-## 10. Future Architecture Considerations
-
-### 10.1 可擴展性設計
-
+### 3.1 內容指紋生成 API
 ```typescript
-interface FutureEnhancements {
-  lazyLoading: {
-    modules: string[];
-    loadOnDemand: boolean;
-  };
-  caching: {
-    strategy: 'aggressive' | 'conservative';
-    ttl: number;
-  };
-  monitoring: {
-    realUserMetrics: boolean;
-    performanceObserver: boolean;
-  };
-  mobileOptimization: {
-    touchResponse: number;
-    gestureSupport: boolean;
-    accessibilityEnhanced: boolean;
-  };
+class ContentFingerprintGenerator {
+  async generateFingerprint(cardData: CardData): Promise<string> {
+    const normalizedName = this.normalizeName(cardData.name);
+    const normalizedEmail = this.normalizeEmail(cardData.email);
+    const source = `${normalizedName}|${normalizedEmail}`;
+    
+    const hash = await crypto.subtle.digest('SHA-256', 
+      new TextEncoder().encode(source));
+    const hashHex = Array.from(new Uint8Array(hash))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    return `fingerprint_${hashHex}`;
+  }
+  
+  private normalizeName(name: string): string {
+    if (!name) return '';
+    // 處理雙語格式: "蔡孟諭~Tsai Meng-Yu" → "蔡孟諭"
+    return name.split('~')[0].trim().toLowerCase();
+  }
+  
+  private normalizeEmail(email: string): string {
+    return (email || '').trim().toLowerCase();
+  }
 }
 ```
 
-### 10.2 架構演進路徑
-
-1. **Phase 1 (v1.0.4)**：並行初始化 + 日誌優化 + Mobile 觸控修復
-2. **Phase 2 (v1.1.0)**：模組懶載入
-3. **Phase 3 (v1.2.0)**：智慧快取策略
-4. **Phase 4 (v2.0.0)**：微前端架構
-
-## D-012: PWA 初始化效能優化設計 🆕
-
-### 設計目標
-- 減少應用啟動時間 30-40%
-- 降低控制台日誌噪音 85%
-- 提升用戶感知效能
-
-### 並行初始化架構
-```mermaid
-graph TD
-    A[PWA 啟動] --> B[顯示載入畫面]
-    B --> C[核心儲存初始化]
-    C --> D{並行初始化}
+### 3.2 重複檢測 API
+```typescript
+class DuplicateDetector {
+  async detectDuplicates(fingerprint: string): Promise<Card[]> {
+    const transaction = this.storage.db.transaction(['cards'], 'readonly');
+    const store = transaction.objectStore('cards');
+    const index = store.index('fingerprint');
     
-    D --> E[名片管理器]
-    D --> F[健康管理器]
-    D --> G[語言管理器]
+    return new Promise((resolve, reject) => {
+      const request = index.getAll(fingerprint);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+  
+  async getNextVersion(fingerprint: string): Promise<string> {
+    const duplicates = await this.detectDuplicates(fingerprint);
+    if (duplicates.length === 0) return "1.0";
     
-    E --> H[初始化完成]
-    F --> H
-    G --> H
-    
-    H --> I[設置事件監聽器]
-    I --> J[載入初始資料]
-    J --> K[隱藏載入畫面]
-    
-    style D fill:#e8f5e8
-    style H fill:#e1f5fe
+    const versions = duplicates.map(card => parseFloat(card.version || "1.0"));
+    const maxVersion = Math.max(...versions);
+    return (maxVersion + 0.1).toFixed(1);
+  }
+}
 ```
 
-### 效能優化策略
-1. **日誌優化**：移除 14 個調試日誌
-2. **並行處理**：服務初始化改為 Promise.all()
-3. **時間優化**：語言管理器延遲 100ms → 50ms
-4. **靜默處理**：Service Worker 註冊不顯示錯誤
+## 4. Process & Module Structure
 
-## D-013: PWA 安裝提示修復設計 🆕
-
-### 問題診斷
-- DOM 元素檢查缺失
-- CSS 顯示邏輯不明確
-- 缺少已安裝狀態檢測
-
-### 修復流程
+### 4.1 匯入時重複處理流程
 ```mermaid
 sequenceDiagram
-    participant B as Browser
-    participant PWA as PWA App
-    participant DOM as DOM Elements
-    participant UI as User Interface
+    participant U as User
+    participant CM as CardManager
+    participant FG as FingerprintGenerator
+    participant DD as DuplicateDetector
+    participant S as Storage
     
-    B->>PWA: beforeinstallprompt 事件
-    PWA->>DOM: 檢查 install-prompt 元素
-    DOM-->>PWA: 元素存在確認
-    PWA->>UI: 移除 hidden 類別
-    UI->>UI: 淡入動畫
+    U->>CM: importCard(cardData)
+    CM->>FG: generateFingerprint(cardData)
+    FG-->>CM: fingerprint
+    CM->>DD: detectDuplicates(fingerprint)
+    DD-->>CM: existingCards[]
     
-    Note over PWA,UI: 安全的 DOM 操作
+    alt No duplicates
+        CM->>S: storeCard(cardData, "1.0")
+    else Duplicates found
+        CM->>U: showDuplicateDialog(options)
+        U-->>CM: userChoice
+        alt Create new version
+            CM->>DD: getNextVersion(fingerprint)
+            DD-->>CM: newVersion
+            CM->>S: storeCard(cardData, newVersion)
+        else Skip/Overwrite
+            CM->>S: handleUserChoice()
+        end
+    end
 ```
 
-### CSS 顯示邏輯
-```css
-.install-prompt {
-  display: none; /* 預設隱藏 */
-}
-
-.install-prompt:not(.hidden) {
-  display: flex !important; /* 強制顯示 */
-}
-
-.install-prompt.hidden {
-  display: none !important; /* 強制隱藏 */
-}
-```
-
-## D-015: PWA Manifest 統一管理架構 🆕
-
-### 統一 Manifest 管理器設計
-
-```mermaid
-graph TD
-    A[PWA 應用啟動] --> B[UnifiedManifestManager 初始化]
-    B --> C{檢測部署環境}
-    C -->|GitHub Pages| D[載入 manifest-github.json]
-    C -->|其他環境| E[載入 manifest.json]
-    D --> F[解析 Manifest 資料]
-    E --> F
-    F --> G{載入成功?}
-    G -->|是| H[更新版本顯示]
-    G -->|否| I[使用備用 Manifest]
-    I --> H
-    H --> J[設置診斷工具]
-    J --> K[PWA 就緒]
-    
-    L[移動端診斷] --> M[showManifestDiagnostic()]
-    M --> N[收集環境資訊]
-    N --> O[測試 Manifest URLs]
-    O --> P[生成診斷報告]
-    
-    style B fill:#e1f5fe
-    style F fill:#f3e5f5
-    style H fill:#e8f5e8
-    style P fill:#fff3e0
-```
-
-### 核心組件架構
-
-**UnifiedManifestManager 類別設計**：
+### 4.2 版本管理模組結構
 ```typescript
-class UnifiedManifestManager {
-  private manifestData: ManifestData | null;
-  private currentVersion: string;
-  private isInitialized: boolean;
-  
-  // 核心方法
-  init(): void;
-  fixManifestLink(): void;
-  loadManifest(): Promise<ManifestData>;
-  getManifestUrls(): string[];
-  getFallbackManifest(): ManifestData;
-  setupVersionDisplay(): void;
-  getVersion(): string;
-  isReady(): boolean;
+class VersionManager {
+  async createVersionSnapshot(cardId: string, data: CardData, 
+                            changeType: string): Promise<void> {
+    const card = await this.storage.getCard(cardId);
+    const fingerprint = await this.fingerprintGenerator
+      .generateFingerprint(data);
+    
+    const version = {
+      id: `${cardId}_v${card.version}`,
+      cardId,
+      fingerprint,
+      semanticVersion: card.version,
+      data: JSON.parse(JSON.stringify(data)),
+      timestamp: new Date(),
+      changeType,
+      checksum: await this.storage.calculateChecksum(data)
+    };
+    
+    await this.storage.safeTransaction(['versions'], 'readwrite', 
+      async (transaction) => {
+        const store = transaction.objectStore('versions');
+        store.put(version);
+      });
+  }
 }
 ```
 
-### 環境檢測與適配策略
+## 5. Security & Best Practices Appendix
 
-| 環境 | 檢測方式 | Manifest 檔案 | 特殊處理 |
-|------|----------|---------------|----------|
-| GitHub Pages | `hostname.includes('.github.io')` | `manifest-github.json` | 絕對路徑 |
-| 本地開發 | `hostname === 'localhost'` | `manifest.json` | 相對路徑 |
-| Cloudflare Pages | `hostname.includes('.pages.dev')` | `manifest.json` | 相對路徑 |
-| 其他環境 | 預設 | `manifest.json` | 備用方案 |
+### 5.1 安全設計原則
+- **輸入驗證**: 所有名片資料進行格式驗證和清理
+- **指紋防碰撞**: 使用 SHA-256 + 標準化處理，碰撞機率極低
+- **授權檢查**: 版本操作需要適當的使用者權限驗證
+- **安全日誌**: 記錄版本操作，但不洩露 PII 資訊
+- **錯誤處理**: 版本衝突和異常情況的安全處理
 
-### 移動端載入優化
+### 5.2 認知負荷最小化
+- **自動化處理**: 重複檢測和版本管理對使用者透明
+- **清楚提示**: 版本狀態和操作結果有明確的視覺回饋
+- **簡化選擇**: 提供預設選項和批量處理模式
+- **可理解標籤**: 版本號使用語義化命名（1.0, 1.1, 1.2）
 
-**問題解決機制**：
-- **載入超時處理**：3 秒超時 + 備用方案
-- **版本顯示修復**：解決「載入中...」持續顯示問題
-- **網路錯誤恢復**：多層備用載入策略
-- **快取策略**：使用 `cache: 'no-cache'` 確保最新版本
+## 6. Spec↔Design Mapping
 
-### 診斷工具設計
-
-**移動端診斷功能**：
-```javascript
-// 快速診斷命令
-showManifestDiagnostic() // 顯示完整診斷資訊
-
-// 診斷資料結構
-interface DiagnosticResult {
-  environment: EnvironmentInfo;
-  manifest: ManifestTestResult;
-  tests: LoadTestResult[];
-}
-```
-
-### 向後相容性保證
-
-**API 相容性**：
-```javascript
-// 保持現有 API 可用
-window.manifestLoader = window.manifestManager;
-window.loadAppVersion = (element) => {
-  element.textContent = `v${window.manifestManager.getVersion()}`;
-};
-```
-
-## D-020: PWA 部署相容性設計 🆕
-
-### 部署環境檢測架構
-
-```mermaid
-graph TB
-    A[PWA 初始化] --> B[環境檢測]
-    B --> C{GitHub Pages?}
-    C -->|Yes| D[使用 manifest-github.json]
-    C -->|No| E[使用原始 manifest.json]
-    
-    D --> F[設定完整路徑]
-    E --> G[使用相對路徑]
-    
-    F --> H[PWA 正常安裝]
-    G --> H
-    
-    style C fill:#fff3e0,stroke:#ef6c00
-    style D fill:#e8f5e8,stroke:#2e7d32
-    style E fill:#e1f5fe,stroke:#01579b
-```
-
-### 技術實作策略
-
-**環境檢測邏輯**：
-```javascript
-function fixManifestPaths() {
-    const isGitHubPages = window.location.hostname.includes('.github.io');
-    
-    if (isGitHubPages && currentPath.includes('/DB-Card/')) {
-        const manifestLink = document.querySelector('link[rel="manifest"]');
-        if (manifestLink) {
-            manifestLink.href = './manifest-github.json';
-        }
-    }
-}
-```
-
-**雙 Manifest 策略**：
-- `manifest.json`: 相對路徑，適用 Cloudflare Pages
-- `manifest-github.json`: 絕對路徑，專用 GitHub Pages
-
-### CSP 安全相容性
-
-**問題解決**：
-- 移除 blob URL 方式，避免 `manifest-src 'self'` 違規
-- 使用靜態檔案方式，符合 CSP 安全政策
-- 保持環境相容性不影響安全性
-
-### 版本管理優化
-
-**移除硬編碼問題**：
-- HTML 中不再硬編碼版本號
-- 初始化時動態從 manifest.json 讀取
-- 錯誤時顯示「無法取得」而非預設值
-
-## D-021: PWA 腳本架構優化設計 🆕
-
-### 無用腳本清除策略
-
-```mermaid
-graph TD
-    A[腳本架構分析] --> B[識別無用檔案]
-    B --> C[檢查引用關係]
-    C --> D[安全移除檔案]
-    D --> E[更新 Service Worker]
-    E --> F[清理 HTML 引用]
-    F --> G[架構優化完成]
-    
-    H[已移除檔案] --> I[app-card-support.js]
-    H --> J[version-manager.js]
-    H --> K[card-renderer.js]
-    H --> L[conflict-resolver.js]
-    H --> M[unified-interface.js]
-    
-    style A fill:#e8f5e8,stroke:#2e7d32
-    style G fill:#e1f5fe,stroke:#01579b
-    style H fill:#ffebee,stroke:#d32f2f
-```
-
-### 清理範圍與影響
-
-**已移除的無用檔案**：
-- `pwa-card-storage/src/app-card-support.js` - 未被引用的名片支援模組
-- `pwa-card-storage/src/core/version-manager.js` - 功能已被 unified-manifest-manager 取代
-- `pwa-card-storage/src/ui/components/card-renderer.js` - 未使用的卡片渲染器
-- `pwa-card-storage/src/ui/components/conflict-resolver.js` - 未使用的衝突解決器
-- `pwa-card-storage/src/ui/components/unified-interface.js` - 未使用的統一介面
-
-**已清理的目錄結構**：
-- `pwa-card-storage/assets/screenshots/` - 空的截圖目錄
-- `pwa-card-storage/src/ui/pages/` - 空的頁面目錄
-- `pwa-card-storage/src/integration/` - 整個整合目錄（已清空）
-
-### Service Worker 快取優化
-
-**更新前後對比**：
-
-| 資源類型 | 更新前 | 更新後 | 改善效果 |
-|----------|--------|--------|----------|
-| 核心 JS 檔案 | 包含無用檔案 | 僅實際使用檔案 | 減少無效快取 |
-| 樣式資源 | 包含不存在檔案 | 完整樣式檔案列表 | 提升快取準確性 |
-| 外部資源 | 缺少安全模組 | 包含完整依賴 | 確保離線功能 |
-| 快取版本 | v2.4 | v1.0.8 | 與應用版本一致 |
-
-### HTML 結構優化
-
-**腳本載入順序重組**：
-```html
-<!-- Scripts -->
-<!-- Unified Manifest Manager (最優先載入) -->
-<script src="src/core/unified-manifest-manager.js"></script>
-
-<!-- Security -->
-<script src="../src/security/SecurityInputHandler.js"></script>
-<script src="../src/security/SecurityDataHandler.js"></script>
-<script src="../src/security/SecurityAuthHandler.js"></script>
-<script src="src/core/error-handler.js"></script>
-<script src="../assets/bilingual-common.js"></script>
-<script src="../assets/qrcode.min.js"></script>
-<script src="../assets/qr-utils.js"></script>
-
-<!-- Language Manager -->
-<script src="src/core/language-manager.js"></script>
-
-<!-- Unified Mobile Manager -->
-<script src="src/core/unified-mobile-manager.js"></script>
-
-<!-- PWA Core Modules -->
-<script src="src/core/pwa-integration.js"></script>
-<script src="src/core/storage.js"></script>
-<script src="src/core/health-manager.js"></script>
-<script src="src/features/card-manager.js"></script>
-<script src="src/features/offline-tools.js"></script>
-<script src="src/features/transfer-manager.js"></script>
-
-<!-- UI Components -->
-<script src="src/ui/components/card-list.js"></script>
-
-<!-- Utilities -->
-<script src="src/utils/simple-card-parser.js"></script>
-<script src="src/utils/pwa-performance.js"></script>
-
-<!-- Application -->
-<script src="src/app.js"></script>
-<script src="src/pwa-init.js"></script>
-```
-
-### 架構清理效益
-
-**效能提升**：
-- 減少 Service Worker 無效快取嘗試
-- 降低 HTML 解析負擔
-- 提升應用啟動速度
-
-**維護性改善**：
-- 清晰的檔案結構和引用關係
-- 移除冗餘和過時的程式碼
-- 統一的腳本載入順序
-
-**安全性增強**：
-- 移除未使用的潛在攻擊面
-- 確保 Service Worker 快取的檔案都是實際需要的
-- 清理過時的註解和引用
-
-### 風險評估
-
-**低風險變更**：
-- 移除的檔案均未被實際使用
-- Service Worker 更新不影響現有功能
-- HTML 結構優化保持向下相容
-
-**緩解措施**：
-- 保留完整的 git 歷史記錄
-- Service Worker 版本更新觸發快取重建
-- 漸進式部署確保穩定性
+| 需求編號 | 設計模組 | 實作方法 | 測試策略 |
+|---------|---------|---------|---------|
+| REQ-001 | ContentFingerprintGenerator | generateFingerprint() | 指紋唯一性測試 |
+| REQ-002 | DuplicateDetector | detectDuplicates() | 重複檢測準確率測試 |
+| REQ-003 | VersionManager | getVersionHistory() | 版本歷史顯示測試 |
+| REQ-004 | DuplicateDialog | showDuplicateDialog() | 匯入流程端到端測試 |
+| REQ-005 | VersionCleaner | cleanupOldVersions() | 清理操作安全性測試 |

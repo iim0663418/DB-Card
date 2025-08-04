@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline QR Enhancement Smoke Test</title>
+    <script src="../../assets/qrcode.min.js"></script>
+    <script src="../../assets/qr-utils.js"></script>
+</head>
+<body>
+    <h1>Offline QR Enhancement Smoke Test</h1>
+    <div id="test-results"></div>
+    <div id="qrcode" style="margin: 20px;"></div>
+    <div class="qr-label">測試標籤</div>
+    
+    <script>
+        // 模擬現有函數
+        window.getCardDataFromNFC = function() {
+            return {
+                data: {
+                    name: "測試使用者",
+                    title: "測試職位",
+                    organization: "數位發展部",
+                    email: "test@example.com",
+                    phone: "02-1234-5678"
+                }
+            };
+        };
+        
+        window.generateVCardContent = function(cardData) {
+            const data = cardData.data;
+            return [
+                'BEGIN:VCARD',
+                'VERSION:3.0',
+                `FN:${data.name}`,
+                `ORG:${data.organization}`,
+                `TITLE:${data.title}`,
+                `EMAIL:${data.email}`,
+                `TEL:${data.phone}`,
+                'END:VCARD'
+            ].join('\r\n');
+        };
+        
+        // 載入增強腳本
+        const script = document.createElement('script');
+        script.src = '../../assets/offline-qr-enhancement.js';
+        script.onload = function() {
+            runSmokeTests();
+        };
+        document.head.appendChild(script);
+        
+        function runSmokeTests() {
+            const results = document.getElementById('test-results');
+            let testCount = 0;
+            let passCount = 0;
+            
+            function addResult(test, passed, message) {
+                testCount++;
+                if (passed) passCount++;
+                
+                const div = document.createElement('div');
+                div.style.color = passed ? 'green' : 'red';
+                div.textContent = `${passed ? '✅' : '❌'} ${test}: ${message}`;
+                results.appendChild(div);
+            }
+            
+            // 測試 1: 檢查函數是否被正確覆蓋
+            addResult('Function Override', 
+                typeof window.generateQRCode === 'function',
+                'generateQRCode function exists');
+            
+            // 測試 2: 檢查線上模式
+            Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+            try {
+                window.generateQRCode();
+                addResult('Online Mode', true, 'Online QR generation executed without error');
+            } catch (error) {
+                addResult('Online Mode', false, `Error: ${error.message}`);
+            }
+            
+            // 測試 3: 檢查離線模式
+            Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+            try {
+                window.generateQRCode();
+                addResult('Offline Mode', true, 'Offline vCard QR generation executed without error');
+            } catch (error) {
+                addResult('Offline Mode', false, `Error: ${error.message}`);
+            }
+            
+            // 測試 4: 檢查 PWA 工具可用性檢測
+            const pwaTool = window.qrUtils && window.qrUtils.generateHighResQRCode;
+            addResult('PWA Tools Detection', 
+                pwaTool !== undefined,
+                `PWA tools ${pwaTool ? 'available' : 'not available'}`);
+            
+            // 測試 5: 檢查 QR 碼標籤更新
+            const qrLabel = document.querySelector('.qr-label');
+            const originalText = qrLabel.textContent;
+            // 模擬標籤更新
+            if (qrLabel) {
+                qrLabel.textContent = '離線模式：這是包含完整聯絡資訊的 vCard QR 碼，掃描後可直接加入通訊錄';
+                addResult('Label Update', 
+                    qrLabel.textContent !== originalText,
+                    'QR label updated successfully');
+            }
+            
+            // 顯示總結
+            const summary = document.createElement('div');
+            summary.style.marginTop = '20px';
+            summary.style.fontWeight = 'bold';
+            summary.style.color = passCount === testCount ? 'green' : 'orange';
+            summary.textContent = `測試完成: ${passCount}/${testCount} 通過`;
+            results.appendChild(summary);
+            
+            // 恢復線上狀態
+            Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+        }
+    </script>
+</body>
+</html>

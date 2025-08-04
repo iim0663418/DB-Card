@@ -290,11 +290,13 @@ class PWACardApp {
   
   async importFromUrlData(data) {
     try {
-      this.showLoading('讀取名片資料...');
+      // 第一階段：初始化讀取
+      this.showLoading('📝 正在讀取名片資料...');
       
       const currentUrl = window.location.href;
       
-      // 1. 單次識別，獲取類型
+      // 第二階段：識別名片類型
+      this.showLoading('🔍 正在識別名片類型...');
       let cardType = null;
       if (window.PWAIntegration) {
         const tempData = { url: currentUrl };
@@ -306,7 +308,8 @@ class PWACardApp {
         return;
       }
       
-      // 2. 根據類型解析資料
+      // 第三階段：解析資料
+      this.showLoading('⚙️ 正在解析名片資料...');
       if (!window.SimpleCardParser) {
         this.showNotification('解析器未載入', 'error');
         return;
@@ -319,17 +322,22 @@ class PWACardApp {
         return;
       }
       
-      // 3. 添加 URL 資訊
+      // 第四階段：準備儲存
+      this.showLoading('💾 正在準備儲存...');
       cardData.url = currentUrl;
       
-      // 4. 傳遞類型進行儲存（避免重複識別）
+      // 第五階段：儲存名片
+      this.showLoading('💾 正在儲存名片...');
       if (this.storage) {
         try {
           const cardId = await this.storage.storeCardDirectly(cardData, cardType);
           
-          this.showNotification('名片已儲存', 'success');
+          // 第六階段：完成儲存
+          this.showLoading('✅ 儲存完成，正在更新...');
           
-          // 5. 最後清除暫存
+          this.showNotification('名片已成功儲存到離線收納', 'success');
+          
+          // 清除暫存
           window.PWAIntegration?.manualClearContext();
           
           await this.updateStats();
@@ -342,7 +350,7 @@ class PWACardApp {
       }
     } catch (error) {
       console.error('[App] Import from URL data failed:', error);
-      this.showNotification('讀取名片失敗', 'error');
+      this.showNotification('讀取名片失敗，請稍後再試', 'error');
     } finally {
       this.hideLoading();
     }

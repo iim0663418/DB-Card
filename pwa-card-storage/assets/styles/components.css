@@ -120,6 +120,7 @@
 .card-info {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 
 .card-name {
@@ -147,6 +148,9 @@
   margin: 0;
   font-family: var(--pwa-font-family);
   line-height: var(--senior-line-height-normal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .card-type-badge {

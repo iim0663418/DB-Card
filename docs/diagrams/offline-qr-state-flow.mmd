@@ -1,0 +1,45 @@
+stateDiagram-v2
+    [*] --> Initializing
+    Initializing --> CheckingConnection : Page Load
+    
+    CheckingConnection --> Online : Network Available
+    CheckingConnection --> Offline : Network Unavailable
+    
+    Online --> Offline : Connection Lost
+    Offline --> Online : Connection Restored
+    
+    state Online {
+        [*] --> URLMode
+        URLMode --> GeneratingURLQR : Generate QR
+        GeneratingURLQR --> DisplayingURLQR : Success
+        GeneratingURLQR --> URLError : Failed
+        URLError --> URLMode : Retry
+    }
+    
+    state Offline {
+        [*] --> VCardMode
+        VCardMode --> GeneratingVCardQR : Generate QR
+        GeneratingVCardQR --> DisplayingVCardQR : Success
+        GeneratingVCardQR --> VCardError : Failed
+        VCardError --> VCardMode : Retry
+    }
+    
+    DisplayingURLQR --> Online : Status Change
+    DisplayingVCardQR --> Offline : Status Change
+    
+    Online --> UpdateUI : Mode Change
+    Offline --> UpdateUI : Mode Change
+    UpdateUI --> Online : Online Mode
+    UpdateUI --> Offline : Offline Mode
+    
+    note right of Online
+        QR Code contains:
+        - Current page URL
+        - Redirects to card page
+    end note
+    
+    note right of Offline
+        QR Code contains:
+        - vCard 3.0 format data
+        - Direct contact import
+    end note

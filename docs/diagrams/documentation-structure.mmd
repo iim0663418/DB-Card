@@ -1,0 +1,65 @@
+graph TB
+    subgraph "📚 核心文檔"
+        REQ[requirements.md<br/>產品需求規格書]
+        DES[design.md<br/>技術設計文檔]
+        TASK[tasks.md<br/>任務拆解與管理]
+        CHANGE[CHANGELOG.md<br/>版本變更記錄]
+    end
+    
+    subgraph "🏗️ 架構文檔"
+        PWA[PWA-ARCHITECTURE.md<br/>PWA 系統架構]
+        SEC[SECURITY.md<br/>安全架構文檔]
+        DIAG[diagrams/<br/>架構圖表集合]
+    end
+    
+    subgraph "🔧 實作指南"
+        IMPL[IMPLEMENTATION-GUIDE.md<br/>實作指南]
+        TEST[TEST-EXECUTION-GUIDE.md<br/>測試執行指南]
+        TROUBLE[TROUBLESHOOTING.md<br/>故障排除指南]
+    end
+    
+    subgraph "📊 品質保證"
+        REPORT[TEST-REPORTS.md<br/>測試報告]
+        REVIEW[CODE-REVIEWS.md<br/>程式碼審查記錄]
+        BUG[BUGFIXES.md<br/>錯誤修復記錄]
+    end
+    
+    subgraph "📋 文檔政策"
+        REUSE[reuse_policy:<br/>reuse-then-extend-then-build]
+        MIGRATE[migration_policy:<br/>100% 向下相容]
+    end
+    
+    %% 文檔關聯
+    REQ --> DES
+    DES --> TASK
+    TASK --> IMPL
+    IMPL --> TEST
+    TEST --> REPORT
+    
+    %% 架構關聯
+    DES --> PWA
+    DES --> SEC
+    SEC --> DIAG
+    
+    %% 品質關聯
+    TEST --> REVIEW
+    REVIEW --> BUG
+    BUG --> CHANGE
+    
+    %% 政策關聯
+    REUSE --> REQ
+    REUSE --> DES
+    MIGRATE --> REQ
+    MIGRATE --> DES
+    
+    classDef core fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef arch fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef impl fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
+    classDef quality fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef policy fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    
+    class REQ,DES,TASK,CHANGE core
+    class PWA,SEC,DIAG arch
+    class IMPL,TEST,TROUBLE impl
+    class REPORT,REVIEW,BUG quality
+    class REUSE,MIGRATE policy

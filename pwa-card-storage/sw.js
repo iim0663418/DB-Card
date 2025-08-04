@@ -3,10 +3,10 @@
  * 實作離線優先快取策略與效能優化
  */
 
-const CACHE_NAME = 'pwa-card-storage-v1.0.8';
-const STATIC_CACHE_NAME = 'pwa-static-v1.0.8';
-const DYNAMIC_CACHE_NAME = 'pwa-dynamic-v1.0.8';
-const IMAGE_CACHE_NAME = 'pwa-images-v1.0.8';
+const CACHE_NAME = 'pwa-card-storage-v1.1.0';
+const STATIC_CACHE_NAME = 'pwa-static-v1.1.0';
+const DYNAMIC_CACHE_NAME = 'pwa-dynamic-v1.1.0';
+const IMAGE_CACHE_NAME = 'pwa-images-v1.1.0';
 
 // 動態獲取基礎路徑 - 支援 GitHub Pages 和 Cloudflare Pages
 const getBasePath = () => {

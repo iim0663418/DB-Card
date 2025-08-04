@@ -1,0 +1,58 @@
+graph TB
+    subgraph "PWA 前端層"
+        A[PWACardManager] --> B[ContentFingerprintGenerator]
+        A --> C[DuplicateDetector] 
+        A --> D[VersionManager]
+        A --> E[PWACardStorage]
+    end
+    
+    subgraph "核心邏輯層"
+        B --> |SHA-256指紋生成| F[指紋標準化]
+        C --> |重複檢測邏輯| G[相似度計算]
+        D --> |版本管理| H[版本比較]
+        
+        F --> |雙語處理| F1["蔡孟諭~Tsai Meng-Yu"]
+        F --> |物件處理| F2["{zh:'蔡孟諭', en:'Tsai Meng-Yu'}"]
+        
+        G --> |指紋比較| G1[精確匹配]
+        G --> |內容比較| G2[相似度 > 80%]
+        
+        H --> |語義版本| H1["1.0 → 1.1 → 1.2"]
+        H --> |版本快照| H2[資料完整性校驗]
+    end
+    
+    subgraph "資料儲存層"
+        E --> I[IndexedDB]
+        I --> J[cards ObjectStore]
+        I --> K[versions ObjectStore]
+        I --> L[settings ObjectStore]
+        I --> M[backups ObjectStore]
+        
+        J --> |新增索引| N[fingerprint Index]
+        K --> |新增索引| O[fingerprint Index]
+        K --> |版本查詢| P[cardId + version Index]
+    end
+    
+    subgraph "安全與監控層"
+        Q[SecurityAuthHandler] --> |授權檢查| A
+        R[SecurityDataHandler] --> |安全日誌| E
+        S[SecurityInputHandler] --> |輸入驗證| B
+        T[SecurityMonitor] --> |24/7監控| I
+    end
+    
+    subgraph "使用者介面層"
+        U[重複處理對話框] --> C
+        V[版本歷史介面] --> D
+        W[名片管理介面] --> A
+        X[匯入匯出功能] --> E
+    end
+    
+    classDef coreModule fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef storageModule fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef securityModule fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef uiModule fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    
+    class B,C,D coreModule
+    class E,I,J,K,L,M storageModule
+    class Q,R,S,T securityModule
+    class U,V,W,X uiModule

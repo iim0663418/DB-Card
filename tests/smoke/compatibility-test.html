@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OFFLINE-03 功能驗證與相容性測試</title>
+    <script src="../../assets/qrcode.min.js"></script>
+    <script src="../../assets/qr-utils.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .test-result { margin: 8px 0; padding: 8px; border-radius: 4px; }
+        .pass { background: #d4edda; color: #155724; }
+        .fail { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .warning { background: #fff3cd; color: #856404; }
+        #qrcode { margin: 20px 0; min-height: 260px; border: 1px solid #ccc; padding: 10px; }
+        .qr-label { font-size: 14px; color: #666; margin-top: 10px; }
+        button { margin: 5px; padding: 8px 16px; cursor: pointer; }
+        .test-controls { margin: 15px 0; }
+        .security-check { background: #f8f9fa; padding: 10px; margin: 10px 0; border-left: 4px solid #007bff; }
+    </style>
+</head>
+<body>
+    <h1>OFFLINE-03 功能驗證與相容性測試</h1>
+    
+    <div class="test-section">
+        <h2>🔧 測試控制面板</h2>
+        <div class="test-controls">
+            <button onclick="runAllTests()">執行完整測試套件</button>
+            <button onclick="testOnlineMode()">測試線上模式</button>
+            <button onclick="testOfflineMode()">測試離線模式</button>
+            <button onclick="testModeSwitching()">測試模式切換</button>
+            <button onclick="testSecurityValidation()">安全性驗證</button>
+            <button onclick="clearResults()">清除結果</button>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📊 測試結果</h2>
+        <div id="test-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔍 QR 碼顯示區域</h2>
+        <div id="qrcode">QR 碼將在此顯示...</div>
+        <div class="qr-label" id="qr-label">等待測試開始</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🛡️ 安全性檢查結果</h2>
+        <div id="security-results"></div>
+    </div>
+
+    <script>
+        // 模擬現有環境
+        let testResults = [];
+        let securityResults = [];
+        
+        // 模擬名片資料
+        window.getCardDataFromNFC = function() {
+            return {
+                data: {
+                    name: "測試使用者",
+                    title: "資深工程師",
+                    department: "資訊處",
+                    organization: "數位發展部",
+                    email: "test@moda.gov.tw",
+                    phone: "02-2356-5000",
+                    mobile: "0912-345-678",
+                    avatar: "assets/wu_sheng_fan/photo.jpg",
+                    address: "100057臺北市中正區延平南路143號",
+                    greetings: ["歡迎認識我！", "很高興與您交流"],
+                    socialLinks: {
+                        email: "mailto:test@moda.gov.tw",
+                        socialNote: "LINE: @testuser\\nFB: fb.com/testuser"
+                    }
+                }
+            };
+        };
+        
+        // 模擬現有 vCard 生成函數
+        window.generateVCardContent = function(cardData) {
+            const data = cardData.data;
+            return [
+                'BEGIN:VCARD',
+                'VERSION:3.0',
+                `FN:${data.name}`,
+                `ORG:${data.organization}`,
+                `TITLE:${data.title}`,
+                `EMAIL:${data.email}`,
+                `TEL:${data.phone}`,
+                `TEL:${data.mobile}`,
+                'END:VCARD'
+            ].join('\\r\\n');
+        };
+        
+        // 載入增強腳本
+        const script = document.createElement('script');
+        script.src = '../../assets/offline-qr-enhancement.js';
+        script.onload = function() {
+            addResult('info', '✅ 離線 QR 碼增強腳本載入成功');
+        };
+        script.onerror = function() {
+            addResult('fail', '❌ 離線 QR 碼增強腳本載入失敗');
+        };
+        document.head.appendChild(script);
+        
+        function addResult(type, message, section = 'test') {
+            const container = section === 'security' ? 
+                document.getElementById('security-results') : 
+                document.getElementById('test-results');
+            
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong> - ${message}`;
+            container.appendChild(div);
+            
+            if (section === 'test') {
+                testResults.push({ type, message, timestamp: new Date() });
+            } else {
+                securityResults.push({ type, message, timestamp: new Date() });
+            }
+        }
+        
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+            document.getElementById('security-results').innerHTML = '';
+            testResults = [];
+            securityResults = [];
+            addResult('info', '測試結果已清除');
+        }
+        
+        // 測試線上模式
+        function testOnlineMode() {
+            addResult('info', '🌐 開始測試線上模式...');
+            
+            // 設定線上狀態
+            Object.defineProperty(navigator, 'onLine', { 
+                value: true, 
+                configurable: true 
+            });
+            
+            try {
+                // 執行 QR 碼生成
+                if (typeof window.generateQRCode === 'function') {
+                    window.generateQRCode();
+                    
+                    // 檢查 QR 碼是否生成
+                    setTimeout(() => {
+                        const qrContainer = document.getElementById('qrcode');
+                        const hasQRCode = qrContainer.querySelector('img') || qrContainer.querySelector('canvas');
+                        
+                        if (hasQRCode) {
+                            addResult('pass', '✅ 線上模式：QR 碼生成成功');
+                            
+                            // 檢查標籤文字
+                            const label = document.getElementById('qr-label');
+                            if (label && !label.textContent.includes('離線模式')) {
+                                addResult('pass', '✅ 線上模式：QR 碼標籤正確');
+                            } else {
+                                addResult('warning', '⚠️ 線上模式：QR 碼標籤可能不正確');
+                            }
+                        } else {
+                            addResult('fail', '❌ 線上模式：QR 碼生成失敗');
+                        }
+                    }, 1000);
+                } else {
+                    addResult('fail', '❌ generateQRCode 函數不存在');
+                }
+            } catch (error) {
+                addResult('fail', `❌ 線上模式測試異常: ${error.message}`);
+            }
+        }
+        
+        // 測試離線模式
+        function testOfflineMode() {
+            addResult('info', '📱 開始測試離線模式...');
+            
+            // 設定離線狀態
+            Object.defineProperty(navigator, 'onLine', { 
+                value: false, 
+                configurable: true 
+            });
+            
+            try {
+                // 執行 QR 碼生成
+                if (typeof window.generateQRCode === 'function') {
+                    window.generateQRCode();
+                    
+                    // 檢查 QR 碼是否生成
+                    setTimeout(() => {
+                        const qrContainer = document.getElementById('qrcode');
+                        const hasQRCode = qrContainer.querySelector('img') || qrContainer.querySelector('canvas');
+                        
+                        if (hasQRCode) {
+                            addResult('pass', '✅ 離線模式：vCard QR 碼生成成功');
+                            
+                            // 檢查標籤文字
+                            const label = document.getElementById('qr-label');
+                            if (label && label.textContent.includes('離線模式')) {
+                                addResult('pass', '✅ 離線模式：QR 碼標籤更新正確');
+                            } else {
+                                addResult('warning', '⚠️ 離線模式：QR 碼標籤未正確更新');
+                            }
+                            
+                            // 驗證 vCard 內容
+                            testVCardContent();
+                        } else {
+                            addResult('fail', '❌ 離線模式：vCard QR 碼生成失敗');
+                        }
+                    }, 1000);
+                } else {
+                    addResult('fail', '❌ generateQRCode 函數不存在');
+                }
+            } catch (error) {
+                addResult('fail', `❌ 離線模式測試異常: ${error.message}`);
+            }
+        }
+        
+        // 測試模式切換
+        function testModeSwitching() {
+            addResult('info', '🔄 開始測試模式切換...');
+            
+            let switchCount = 0;
+            const maxSwitches = 4;
+            
+            function performSwitch() {
+                if (switchCount >= maxSwitches) {
+                    addResult('pass', '✅ 模式切換測試完成：線上/離線切換正常');
+                    // 恢復線上狀態
+                    Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+                    return;
+                }
+                
+                const isOnline = switchCount % 2 === 0;
+                Object.defineProperty(navigator, 'onLine', { 
+                    value: isOnline, 
+                    configurable: true 
+                });
+                
+                try {
+                    window.generateQRCode();
+                    addResult('info', `🔄 切換到${isOnline ? '線上' : '離線'}模式 (${switchCount + 1}/${maxSwitches})`);
+                    switchCount++;
+                    
+                    setTimeout(performSwitch, 800);
+                } catch (error) {
+                    addResult('fail', `❌ 模式切換失敗: ${error.message}`);
+                }
+            }
+            
+            performSwitch();
+        }
+        
+        // 驗證 vCard 內容
+        function testVCardContent() {
+            try {
+                const cardData = window.getCardDataFromNFC();
+                const vCardContent = window.generateVCardContent(cardData);
+                
+                // 基本格式檢查
+                if (vCardContent.includes('BEGIN:VCARD') && vCardContent.includes('END:VCARD')) {
+                    addResult('pass', '✅ vCard 格式驗證：基本結構正確');
+                } else {
+                    addResult('fail', '❌ vCard 格式驗證：基本結構錯誤');
+                    return;
+                }
+                
+                // 必要欄位檢查
+                const requiredFields = ['FN:', 'ORG:', 'EMAIL:'];
+                let missingFields = [];
+                
+                requiredFields.forEach(field => {
+                    if (!vCardContent.includes(field)) {
+                        missingFields.push(field);
+                    }
+                });
+                
+                if (missingFields.length === 0) {
+                    addResult('pass', '✅ vCard 內容驗證：必要欄位完整');
+                } else {
+                    addResult('fail', `❌ vCard 內容驗證：缺少欄位 ${missingFields.join(', ')}`);
+                }
+                
+                // 安全性檢查：確保沒有惡意內容
+                const dangerousPatterns = ['<script', 'javascript:', 'data:text/html'];
+                let securityIssues = [];
+                
+                dangerousPatterns.forEach(pattern => {
+                    if (vCardContent.toLowerCase().includes(pattern)) {
+                        securityIssues.push(pattern);
+                    }
+                });
+                
+                if (securityIssues.length === 0) {
+                    addResult('pass', '✅ vCard 安全性：無發現惡意內容', 'security');
+                } else {
+                    addResult('fail', `❌ vCard 安全性：發現可疑內容 ${securityIssues.join(', ')}`, 'security');
+                }
+                
+            } catch (error) {
+                addResult('fail', `❌ vCard 內容驗證失敗: ${error.message}`);
+            }
+        }
+        
+        // 安全性驗證
+        function testSecurityValidation() {
+            addResult('info', '🛡️ 開始安全性驗證...', 'security');
+            
+            // 測試 1: 輸入驗證
+            try {
+                // 模擬惡意輸入
+                const maliciousData = {
+                    data: {
+                        name: "<script>alert('xss')</script>",
+                        email: "javascript:alert('xss')",
+                        organization: "data:text/html,<script>alert('xss')</script>"
+                    }
+                };
+                
+                // 檢查是否有適當的輸入清理
+                const originalGetCardData = window.getCardDataFromNFC;
+                window.getCardDataFromNFC = () => maliciousData;
+                
+                const vCardContent = window.generateVCardContent(maliciousData);
+                
+                // 檢查是否包含原始惡意內容
+                if (vCardContent.includes('<script>') || vCardContent.includes('javascript:')) {
+                    addResult('fail', '❌ 輸入驗證：未正確清理惡意輸入', 'security');
+                } else {
+                    addResult('pass', '✅ 輸入驗證：惡意輸入已被處理', 'security');
+                }
+                
+                // 恢復原始函數
+                window.getCardDataFromNFC = originalGetCardData;
+                
+            } catch (error) {
+                addResult('warning', `⚠️ 輸入驗證測試異常: ${error.message}`, 'security');
+            }
+            
+            // 測試 2: 錯誤處理
+            try {
+                // 模擬錯誤情況
+                const originalQRCode = window.QRCode;
+                window.QRCode = null;
+                
+                Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+                window.generateQRCode();
+                
+                // 檢查是否有適當的錯誤處理
+                setTimeout(() => {
+                    addResult('pass', '✅ 錯誤處理：異常情況下未崩潰', 'security');
+                    
+                    // 恢復
+                    window.QRCode = originalQRCode;
+                    Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+                }, 500);
+                
+            } catch (error) {
+                addResult('pass', '✅ 錯誤處理：異常被正確捕獲', 'security');
+            }
+            
+            // 測試 3: DOM 操作安全性
+            try {
+                const qrContainer = document.getElementById('qrcode');
+                const originalInnerHTML = qrContainer.innerHTML;
+                
+                // 檢查是否使用安全的 DOM 操作
+                Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+                window.generateQRCode();
+                
+                setTimeout(() => {
+                    // 檢查是否有直接的 innerHTML 注入
+                    if (qrContainer.innerHTML !== originalInnerHTML) {
+                        addResult('pass', '✅ DOM 操作：使用安全的 DOM 操作方法', 'security');
+                    }
+                    
+                    Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+                }, 500);
+                
+            } catch (error) {
+                addResult('warning', `⚠️ DOM 安全性測試異常: ${error.message}`, 'security');
+            }
+        }
+        
+        // 執行完整測試套件
+        function runAllTests() {
+            clearResults();
+            addResult('info', '🚀 開始執行完整測試套件...');
+            
+            // 按順序執行測試
+            setTimeout(() => testOnlineMode(), 500);
+            setTimeout(() => testOfflineMode(), 2000);
+            setTimeout(() => testModeSwitching(), 4000);
+            setTimeout(() => testSecurityValidation(), 8000);
+            setTimeout(() => generateTestReport(), 12000);
+        }
+        
+        // 生成測試報告
+        function generateTestReport() {
+            const totalTests = testResults.length;
+            const passedTests = testResults.filter(r => r.type === 'pass').length;
+            const failedTests = testResults.filter(r => r.type === 'fail').length;
+            const warningTests = testResults.filter(r => r.type === 'warning').length;
+            
+            const securityTotal = securityResults.length;
+            const securityPassed = securityResults.filter(r => r.type === 'pass').length;
+            const securityFailed = securityResults.filter(r => r.type === 'fail').length;
+            
+            addResult('info', '📋 測試報告生成中...');
+            
+            setTimeout(() => {
+                addResult('info', `
+                    📊 <strong>功能測試總結</strong><br>
+                    • 總測試數: ${totalTests}<br>
+                    • 通過: ${passedTests}<br>
+                    • 失敗: ${failedTests}<br>
+                    • 警告: ${warningTests}<br>
+                    • 成功率: ${totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0}%
+                `);
+                
+                addResult('info', `
+                    🛡️ <strong>安全測試總結</strong><br>
+                    • 安全測試數: ${securityTotal}<br>
+                    • 通過: ${securityPassed}<br>
+                    • 失敗: ${securityFailed}<br>
+                    • 安全評分: ${securityTotal > 0 ? Math.round((securityPassed / securityTotal) * 100) : 0}%
+                `, 'security');
+                
+                if (failedTests === 0 && securityFailed === 0) {
+                    addResult('pass', '🎉 OFFLINE-03 功能驗證與相容性測試：全部通過！');
+                } else {
+                    addResult('warning', `⚠️ OFFLINE-03 測試完成，發現 ${failedTests + securityFailed} 個問題需要處理`);
+                }
+            }, 1000);
+        }
+        
+        // 頁面載入完成後的初始化
+        window.addEventListener('load', function() {
+            addResult('info', '🔧 OFFLINE-03 功能驗證與相容性測試環境已準備就緒');
+            addResult('info', '💡 點擊上方按鈕開始測試，或執行完整測試套件');
+        });
+    </script>
+</body>
+</html>

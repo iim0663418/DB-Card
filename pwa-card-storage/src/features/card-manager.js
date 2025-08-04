@@ -1604,9 +1604,11 @@ class PWACardManager {
             success: true,
             dataUrl: result.dataUrl,
             url: cardUrl,
-            size: result.size
+            size: result.size,
+            deviceInfo: result.deviceInfo
           };
         } else {
+          console.warn('[CardManager] QRUtils failed, trying fallback:', result.error);
         }
       }
       
@@ -1615,58 +1617,129 @@ class PWACardManager {
         return await this.generateQRCodeFallback(cardUrl, options);
       }
       
-      throw new Error('QR 碼生成工具未載入');
+      throw new Error('QR 碼生成工具未載入 - 請確認 qrcode.min.js 已正確載入');
     } catch (error) {
-      console.error('[CardManager] QR code generation failed:', error);
-      return { success: false, error: error.message };
+      console.error('[CardManager] QR code generation failed:', {
+        error: error.message,
+        cardId,
+        urlLength: cardUrl ? cardUrl.length : 0,
+        userAgent: navigator.userAgent
+      });
+      return { 
+        success: false, 
+        error: error.message,
+        debug: {
+          cardId,
+          urlLength: cardUrl ? cardUrl.length : 0,
+          hasQRUtils: !!window.qrUtils,
+          hasQRCode: !!window.QRCode
+        }
+      };
     }
   }
   
   /**
-   * QR 碼生成備用方案（直接使用 QRCode.js）
+   * QR 碼生成備用方案（直接使用 QRCode.js）- Android 相容性增強版本
    */
   async generateQRCodeFallback(url, options = {}) {
     return new Promise((resolve) => {
+      let tempContainer = null;
+      
       try {
+        // 檢測設備類型
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+        
         // 創建臨時容器
-        const tempContainer = document.createElement('div');
-        tempContainer.style.display = 'none';
+        tempContainer = document.createElement('div');
+        tempContainer.style.cssText = 'position: absolute; left: -9999px; top: -9999px; visibility: hidden;';
+        tempContainer.id = 'qr-fallback-' + Date.now();
         document.body.appendChild(tempContainer);
+        
+        // 保持原始設計尺寸
+        const size = options.size || 800;
         
         // 使用與原生成器相同的設定
         const qr = new window.QRCode(tempContainer, {
           text: url,
-          width: options.size || 800,
-          height: options.size || 800,
+          width: size,
+          height: size,
           colorDark: options.colorDark || '#6b7280',
           colorLight: options.colorLight || '#ffffff',
           correctLevel: window.QRCode.CorrectLevel.H
         });
         
+        // 動態等待時間：Android 設備需要更長時間
+        const waitTime = isAndroid ? (isMobile ? 600 : 400) : 250;
+        console.log(`[CardManager] Fallback waiting ${waitTime}ms for QR generation (Android: ${isAndroid})`);
+        
         // 等待生成完成
         setTimeout(() => {
           try {
             const img = tempContainer.querySelector('img');
-            if (img && img.src) {
-              const dataUrl = img.src;
-              document.body.removeChild(tempContainer);
+            const canvas = tempContainer.querySelector('canvas');
+            
+            let dataUrl = null;
+            
+            // 優先嘗試從 img 元素獲取
+            if (img && img.src && img.src.startsWith('data:')) {
+              dataUrl = img.src;
+            }
+            // 備用方案：從 canvas 獲取
+            else if (canvas && canvas.width > 0 && canvas.height > 0) {
+              try {
+                dataUrl = canvas.toDataURL('image/png');
+              } catch (canvasError) {
+                console.warn('[CardManager] Canvas fallback failed:', canvasError);
+              }
+            }
+            
+            if (dataUrl && dataUrl.length > 100) {
+              if (tempContainer.parentNode) {
+                document.body.removeChild(tempContainer);
+              }
               resolve({
                 success: true,
                 dataUrl,
                 url,
-                size: options.size || 800
+                size,
+                fallback: true,
+                deviceInfo: { isAndroid, isMobile, waitTime }
               });
             } else {
-              document.body.removeChild(tempContainer);
-              resolve({ success: false, error: 'QR 碼圖片生成失敗' });
+              if (tempContainer.parentNode) {
+                document.body.removeChild(tempContainer);
+              }
+              resolve({ 
+                success: false, 
+                error: 'QR 碼圖片生成失敗 - 無有效資料',
+                deviceInfo: { isAndroid, isMobile, waitTime }
+              });
             }
           } catch (error) {
-            document.body.removeChild(tempContainer);
-            resolve({ success: false, error: error.message });
+            if (tempContainer && tempContainer.parentNode) {
+              document.body.removeChild(tempContainer);
+            }
+            resolve({ 
+              success: false, 
+              error: error.message,
+              deviceInfo: { isAndroid, isMobile, waitTime }
+            });
           }
-        }, 200);
+        }, waitTime);
       } catch (error) {
-        resolve({ success: false, error: error.message });
+        if (tempContainer && tempContainer.parentNode) {
+          try {
+            document.body.removeChild(tempContainer);
+          } catch (cleanupError) {
+            console.warn('[CardManager] Cleanup failed:', cleanupError);
+          }
+        }
+        resolve({ 
+          success: false, 
+          error: error.message,
+          fallback: true
+        });
       }
     });
   }

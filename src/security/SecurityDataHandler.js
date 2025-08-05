@@ -183,14 +183,8 @@ class SecurityDataHandler {
      * 安全日誌記錄 - 防止日誌注入
      */
     static secureLog(level, message, details = {}) {
-        // Authorization check for logging
-        if (window.SecurityAuthHandler) {
-            const authResult = window.SecurityAuthHandler.validateAccess('logging', 'write');
-            if (!authResult.authorized) {
-                // Silent fail for logging to prevent infinite loops
-                return;
-            }
-        }
+        // 移除授權檢查以防止無限循環
+        // 日誌記錄應該是基礎功能，不需要額外的授權檢查
         
         const sanitizedMessage = this.#sanitizeLogMessage(message);
         const sanitizedDetails = this.#sanitizeLogDetails(details);

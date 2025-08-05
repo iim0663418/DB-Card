@@ -12,259 +12,208 @@ class ContentFingerprintGenerator {
   /**
    * 生成名片內容指紋
    * @param {Object} cardData - 名片資料
-   * @returns {Promise<string>} - fingerprint_[64字元hash] 格式指紋
+   * @returns {Promise<string>} - 指紋字串，格式：fingerprint_[64字元hash]
    */
   async generateFingerprint(cardData) {
     try {
-      // 輸入驗證與清理
-      const cleanedData = this.sanitizeInput(cardData);
+      // 1. 標準化姓名（處理雙語格式）
+      const normalizedName = this.normalizeName(cardData.name);
       
-      // 雙語標準化
-      const normalizedData = this.normalizeBilingualContent(cleanedData);
+      // 2. 標準化電子郵件（轉小寫，去空格）
+      const normalizedEmail = this.normalizeEmail(cardData.email);
       
-      // 提取核心識別欄位 (name + email)
-      const coreContent = this.extractCoreContent(normalizedData);
+      // 3. 組合關鍵欄位
+      const fingerprintSource = `${normalizedName}|${normalizedEmail}`;
       
-      // 生成 SHA-256 指紋
-      const hash = await this.computeHash(coreContent);
+      // 4. 生成 SHA-256 雜湊
+      const hash = await this.calculateSHA256(fingerprintSource);
       
       return `fingerprint_${hash}`;
     } catch (error) {
       console.error('[ContentFingerprintGenerator] Generate fingerprint failed:', error);
-      // 備用算法
+      // CRS-V31-004: 備用方法
       return this.generateFallbackFingerprint(cardData);
     }
   }
 
   /**
-   * 輸入驗證與清理
+   * 標準化姓名處理
+   * @param {string|Object} name - 姓名資料
+   * @returns {string} - 標準化後的姓名
    */
-  sanitizeInput(cardData) {
-    if (!cardData || typeof cardData !== 'object') {
-      throw new Error('Invalid card data');
-    }
-
-    const cleaned = {};
+  normalizeName(name) {
+    if (!name) return '';
     
-    // 清理 name 欄位
-    if (cardData.name) {
-      cleaned.name = this.cleanString(cardData.name);
-    }
-    
-    // 清理 email 欄位
-    if (cardData.email) {
-      cleaned.email = this.cleanString(cardData.email).toLowerCase();
-    }
-
-    if (!cleaned.name && !cleaned.email) {
-      throw new Error('Missing required fields: name or email');
-    }
-
-    return cleaned;
-  }
-
-  /**
-   * 清理字串，移除特殊字元和空值
-   */
-  cleanString(input) {
-    if (typeof input === 'string') {
-      return input.trim().replace(/[\x00-\x1F\x7F]/g, '');
-    }
-    
-    if (typeof input === 'object' && input !== null) {
-      // 處理雙語物件格式
-      if (input.zh || input.en) {
-        const zh = input.zh ? String(input.zh).trim() : '';
-        const en = input.en ? String(input.en).trim() : '';
-        return zh && en ? `${zh}~${en}` : (zh || en);
+    // 處理雙語格式 "蔡孟諭~Tsai Meng-Yu" → "蔡孟諭"
+    if (typeof name === 'string') {
+      if (name.includes('~')) {
+        const [chinese] = name.split('~');
+        return chinese.trim();
       }
+      return name.trim();
     }
     
-    return String(input || '').trim();
+    // 處理物件格式 {zh: "蔡孟諭", en: "Tsai Meng-Yu"}
+    if (typeof name === 'object' && name !== null) {
+      if (name.zh) return String(name.zh).trim();
+      if (name.en) return String(name.en).trim();
+    }
+    
+    return String(name || '').trim();
   }
 
   /**
-   * 雙語內容標準化
+   * 標準化電子郵件處理
+   * @param {string|Object} email - 電子郵件資料
+   * @returns {string} - 標準化後的電子郵件
    */
-  normalizeBilingualContent(data) {
-    const normalized = { ...data };
-
-    // 標準化 name 欄位
-    if (normalized.name) {
-      normalized.name = this.normalizeBilingualField(normalized.name);
+  normalizeEmail(email) {
+    if (!email) return '';
+    
+    let emailStr = '';
+    if (typeof email === 'string') {
+      emailStr = email;
+    } else if (typeof email === 'object' && email !== null) {
+      emailStr = email.zh || email.en || String(email);
+    } else {
+      emailStr = String(email || '');
     }
-
-    // 標準化 email 欄位 (通常不需要雙語處理，但保持一致性)
-    if (normalized.email) {
-      normalized.email = this.normalizeBilingualField(normalized.email);
-    }
-
-    return normalized;
+    
+    // 轉小寫，去空格，移除無效字符
+    return emailStr.toLowerCase().trim().replace(/\s+/g, '');
   }
 
   /**
-   * 標準化雙語欄位
+   * 計算 SHA-256 雜湊
+   * @param {string} data - 要雜湊的資料
+   * @returns {Promise<string>} - 十六進位雜湊字串
    */
-  normalizeBilingualField(field) {
-    if (typeof field === 'string') {
-      // 處理 "中文~English" 格式
-      if (field.includes('~')) {
-        const [zh, en] = field.split('~').map(s => s.trim());
-        return zh && en ? `${zh}~${en}` : field;
-      }
-      return field;
-    }
-    
-    if (typeof field === 'object' && field !== null) {
-      // 處理 {zh: "中文", en: "English"} 格式
-      if (field.zh && field.en) {
-        return `${field.zh.trim()}~${field.en.trim()}`;
-      }
-      return field.zh || field.en || '';
-    }
-    
-    return String(field || '');
-  }
-
-  /**
-   * 提取核心內容用於指紋生成
-   */
-  extractCoreContent(data) {
-    const parts = [];
-    
-    if (data.name) {
-      parts.push(`name:${data.name}`);
-    }
-    
-    if (data.email) {
-      parts.push(`email:${data.email}`);
-    }
-    
-    return parts.join('|');
-  }
-
-  /**
-   * 計算 SHA-256 雜湊值
-   */
-  async computeHash(content) {
+  async calculateSHA256(data) {
     try {
       const encoder = new TextEncoder();
-      const data = encoder.encode(content);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const dataBuffer = encoder.encode(data);
+      
+      const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
+      
       return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     } catch (error) {
-      console.error('[ContentFingerprintGenerator] SHA-256 computation failed:', error);
+      console.error('[ContentFingerprintGenerator] SHA-256 calculation failed:', error);
       throw error;
     }
   }
 
   /**
-   * 備用指紋生成算法
+   * CRS-V31-004: 備用指紋生成方法
+   * @param {Object} cardData - 名片資料
+   * @returns {string} - 備用指紋
    */
   generateFallbackFingerprint(cardData) {
     try {
       const timestamp = Date.now();
-      const random = Math.random().toString(36).substring(2);
-      const name = cardData?.name || 'unknown';
-      const email = cardData?.email || 'unknown';
+      const random = Math.random().toString(36).substring(2, 8);
+      const nameHash = this.simpleHash(this.normalizeName(cardData.name));
+      const emailHash = this.simpleHash(this.normalizeEmail(cardData.email));
       
-      // 簡單雜湊算法作為備用
-      const content = `${name}|${email}|${timestamp}|${random}`;
-      let hash = 0;
-      
-      for (let i = 0; i < content.length; i++) {
-        const char = content.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // 轉換為 32 位整數
-      }
-      
-      const fallbackHash = Math.abs(hash).toString(16).padStart(8, '0');
-      return `fingerprint_fallback_${fallbackHash}_${timestamp}`;
+      return `fingerprint_fallback_${nameHash}_${emailHash}_${timestamp}_${random}`;
     } catch (error) {
       console.error('[ContentFingerprintGenerator] Fallback generation failed:', error);
-      return `fingerprint_error_${Date.now()}`;
+      const timestamp = Date.now();
+      const random = Math.random().toString(36).substring(2, 8);
+      return `fingerprint_emergency_${timestamp}_${random}`;
     }
   }
 
   /**
-   * 驗證指紋格式
+   * 簡單雜湊函數（備用）
+   * @param {string} str - 要雜湊的字串
+   * @returns {string} - 簡單雜湊結果
    */
-  validateFingerprint(fingerprint) {
-    if (typeof fingerprint !== 'string') {
+  simpleHash(str) {
+    if (!str) return '0';
+    
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // 轉換為32位整數
+    }
+    
+    return Math.abs(hash).toString(16);
+  }
+
+  /**
+   * 驗證指紋格式
+   * @param {string} fingerprint - 指紋字串
+   * @returns {boolean} - 是否為有效格式
+   */
+  isValidFingerprint(fingerprint) {
+    if (!fingerprint || typeof fingerprint !== 'string') {
       return false;
     }
     
-    // 標準格式: fingerprint_[64字元hex]
+    // 檢查標準格式：fingerprint_[64字元hex]
     const standardPattern = /^fingerprint_[a-f0-9]{64}$/i;
     if (standardPattern.test(fingerprint)) {
       return true;
     }
     
-    // 備用格式: fingerprint_fallback_[8字元hex]_[timestamp]
-    const fallbackPattern = /^fingerprint_fallback_[a-f0-9]{8}_\d+$/i;
-    if (fallbackPattern.test(fingerprint)) {
-      return true;
-    }
-    
-    // 錯誤格式: fingerprint_error_[timestamp]
-    const errorPattern = /^fingerprint_error_\d+$/i;
-    return errorPattern.test(fingerprint);
+    // 檢查備用格式
+    const fallbackPattern = /^fingerprint_(fallback|emergency)_/i;
+    return fallbackPattern.test(fingerprint);
   }
 
   /**
    * 比較兩個指紋是否相同
+   * @param {string} fingerprint1 - 指紋1
+   * @param {string} fingerprint2 - 指紋2
+   * @returns {boolean} - 是否相同
    */
   compareFingerprints(fingerprint1, fingerprint2) {
-    if (!this.validateFingerprint(fingerprint1) || !this.validateFingerprint(fingerprint2)) {
-      return false;
-    }
-    
+    if (!fingerprint1 || !fingerprint2) return false;
     return fingerprint1 === fingerprint2;
   }
 
   /**
-   * 從指紋中提取雜湊值
+   * 從指紋中提取雜湊部分
+   * @param {string} fingerprint - 完整指紋
+   * @returns {string} - 雜湊部分
    */
-  extractHashFromFingerprint(fingerprint) {
-    if (!this.validateFingerprint(fingerprint)) {
-      return null;
+  extractHash(fingerprint) {
+    if (!fingerprint || typeof fingerprint !== 'string') {
+      return '';
     }
     
-    // 標準格式
-    const standardMatch = fingerprint.match(/^fingerprint_([a-f0-9]{64})$/i);
-    if (standardMatch) {
-      return standardMatch[1];
+    if (fingerprint.startsWith('fingerprint_')) {
+      return fingerprint.substring(12); // 移除 "fingerprint_" 前綴
     }
     
-    // 備用格式
-    const fallbackMatch = fingerprint.match(/^fingerprint_fallback_([a-f0-9]{8})_\d+$/i);
-    if (fallbackMatch) {
-      return fallbackMatch[1];
-    }
-    
-    return null;
+    return fingerprint;
   }
 
   /**
    * 批量生成指紋
+   * @param {Array<Object>} cardDataArray - 名片資料陣列
+   * @returns {Promise<Array<{cardData: Object, fingerprint: string}>>} - 指紋結果陣列
    */
   async generateBatchFingerprints(cardDataArray) {
+    if (!Array.isArray(cardDataArray)) {
+      throw new Error('Input must be an array');
+    }
+    
     const results = [];
     
     for (const cardData of cardDataArray) {
       try {
         const fingerprint = await this.generateFingerprint(cardData);
-        results.push({
-          success: true,
-          fingerprint,
-          cardData
-        });
+        results.push({ cardData, fingerprint, success: true });
       } catch (error) {
-        results.push({
-          success: false,
-          error: error.message,
-          cardData
+        console.error('[ContentFingerprintGenerator] Batch generation failed for card:', error);
+        results.push({ 
+          cardData, 
+          fingerprint: null, 
+          success: false, 
+          error: error.message 
         });
       }
     }

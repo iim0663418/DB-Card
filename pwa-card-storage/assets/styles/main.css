@@ -88,7 +88,7 @@ body {
 .app-header {
   background: linear-gradient(135deg, var(--md-primary-1), var(--md-primary-3));
   border-bottom: none;
-  padding: 1.25rem 1rem;
+  padding: 1rem;
   position: sticky;
   top: 0;
   z-index: 100;
@@ -98,34 +98,37 @@ body {
 .header-content {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.header-logo {
-  width: 48px;
-  height: 48px;
+.header-text {
+  flex: 1;
+  min-width: 0;
 }
 
 .header-text h1 {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
   color: white;
-  margin: 0;
+  margin: 0 0 0.125rem 0;
   font-family: inherit;
+  line-height: 1.2;
 }
 
 .header-text p {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: white;
-  opacity: 0.9;
+  opacity: 0.85;
   margin: 0;
   font-family: inherit;
+  line-height: 1.2;
 }
 
 .header-actions {
-  margin-left: auto;
   display: flex;
-  gap: 0.5rem;
+  gap: 0.25rem;
+  flex-shrink: 0;
 }
 
 /* 導航列 */
@@ -1437,6 +1440,22 @@ body {
     margin: 0;
   }
   
+  .app-header {
+    padding: 0.875rem 1rem;
+  }
+  
+  .header-content {
+    /* Logo removed, no gap needed */
+  }
+  
+  .header-text h1 {
+    font-size: 1.1875rem;
+  }
+  
+  .header-text p {
+    font-size: 0.775rem;
+  }
+  
   .main-content {
     padding: 0.75rem;
   }
@@ -1516,16 +1535,15 @@ body {
 
 @media (max-width: 480px) {
   .header-content {
-    gap: 0.75rem;
-  }
-  
-  .header-logo {
-    width: 40px;
-    height: 40px;
+    padding: 0 0.5rem;
   }
   
   .header-text h1 {
-    font-size: 1.25rem;
+    font-size: 1.125rem;
+  }
+  
+  .header-text p {
+    font-size: 0.75rem;
   }
   
   .nav-item {
@@ -1725,11 +1743,7 @@ body {
   margin: 0 auto;
 }
 
-.header-logo {
-  width: 32px;
-  height: 32px;
-  margin-right: 12px;
-}
+/* Header logo removed */
 
 .header-text h1 {
   margin: 0;

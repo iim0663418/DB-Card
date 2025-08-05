@@ -93,6 +93,18 @@ class PWACardApp {
       
       await Promise.all(initPromises);
       
+      // 將版本管理器和重複檢測器整合到 storage 中
+      if (this.storage) {
+        if (this.versionManager) {
+          this.storage.versionManager = this.versionManager;
+          console.log('[PWA] VersionManager integrated to storage');
+        }
+        if (this.duplicateDetector) {
+          this.storage.duplicateDetector = this.duplicateDetector;
+          console.log('[PWA] DuplicateDetector integrated to storage');
+        }
+      }
+      
       // 初始化依賴服務
       if (typeof OfflineToolsManager !== 'undefined' && this.cardManager) {
         this.offlineTools = new OfflineToolsManager(this.cardManager);
@@ -348,16 +360,99 @@ class PWACardApp {
       this.showLoading('💾 正在準備儲存...');
       cardData.url = currentUrl;
       
-      // 第五階段：儲存名片
-      this.showLoading('💾 正在儲存名片...');
+      // 第五階段：指紋檢測與版本控制
+      this.showLoading('🔍 正在檢查重複名片...');
       if (this.storage) {
         try {
-          const cardId = await this.storage.storeCardDirectly(cardData, cardType);
+          let cardId;
+          let message = '名片已成功儲存到離線收納';
           
-          // 第六階段：完成儲存
+          // UI-02: 修正重複處理邏輯與 cardId 處理
+          if (this.storage.duplicateDetector) {
+            const duplicateResult = await this.storage.duplicateDetector.detectDuplicates(cardData);
+            
+            if (duplicateResult.isDuplicate && duplicateResult.existingCards.length > 0) {
+              // 發現重複，顯示重複處理對話框
+              this.showLoading('🔄 發現重複名片，等待使用者選擇...');
+              
+              // 使用 DuplicateDialogManager 顯示對話框
+              if (window.DuplicateDialogManager) {
+                const dialogManager = new window.DuplicateDialogManager();
+                const userChoice = await dialogManager.showDuplicateDialog(
+                  duplicateResult.existingCards,
+                  cardData
+                );
+                
+                if (userChoice.action === 'cancel') {
+                  this.showNotification('匯入已取消', 'info');
+                  return;
+                }
+                
+                this.showLoading(`🔄 正在執行 ${userChoice.action} 操作...`);
+                
+                const handleResult = await this.storage.duplicateDetector.handleDuplicate(
+                  cardData,
+                  userChoice.action,
+                  userChoice.targetCardId
+                );
+                
+                if (handleResult.success) {
+                  cardId = handleResult.cardId;
+                  const actionMessages = {
+                    'skip': '已跳過重複名片',
+                    'overwrite': '已覆蓋現有名片',
+                    'version': '已建立名片新版本'
+                  };
+                  message = actionMessages[userChoice.action] || '名片處理完成';
+                } else {
+                  throw new Error(handleResult.error);
+                }
+              } else {
+                // 備用方案：自動建立新版本
+                const existingCard = duplicateResult.existingCards[0];
+                const handleResult = await this.storage.duplicateDetector.handleDuplicate(
+                  cardData, 
+                  'version',
+                  existingCard.id
+                );
+                
+                if (handleResult.success) {
+                  cardId = handleResult.cardId;
+                  message = '已建立名片新版本';
+                } else {
+                  throw new Error(handleResult.error);
+                }
+              }
+            } else {
+              // 無重複，建立新名片
+              this.showLoading('💾 正在儲存新名片...');
+              cardId = await this.storage.storeCardDirectly(cardData, cardType);
+            }
+          } else {
+            // 無重複檢測器，直接儲存
+            this.showLoading('💾 正在儲存名片...');
+            cardId = await this.storage.storeCardDirectly(cardData, cardType);
+          }
+          
+          // 第六階段：完成儲存與狀態驗證
           this.showLoading('✅ 儲存完成，正在更新...');
           
-          this.showNotification('名片已成功儲存到離線收納', 'success');
+          // UI-02: 驗證 cardId 有效性
+          if (!cardId) {
+            throw new Error('名片儲存失敗：未獲得有效的名片ID');
+          }
+          
+          // 記錄使用者選擇到安全日誌
+          if (window.SecurityDataHandler) {
+            window.SecurityDataHandler.secureLog('info', 'Card import completed', {
+              cardId: cardId.substring(0, 8) + '...',
+              cardType,
+              hasFingerprint: !!cardData.fingerprint,
+              operation: 'importFromUrlData'
+            });
+          }
+          
+          this.showNotification(message, 'success');
           
           // 清除暫存
           window.PWAIntegration?.manualClearContext();
@@ -365,13 +460,54 @@ class PWACardApp {
           await this.updateStats();
           await this.navigateTo('cards');
         } catch (storeError) {
-          this.showNotification(`儲存失敗: ${storeError.message}`, 'error');
+          console.error('[App] Store card failed:', storeError);
+          
+          // UI-02: 錯誤處理與回滾機制
+          if (window.SecurityDataHandler) {
+            window.SecurityDataHandler.secureLog('error', 'Card import failed', {
+              error: storeError.message,
+              cardType,
+              operation: 'importFromUrlData'
+            });
+          }
+          
+          // 提供更友好的錯誤信息
+          let errorMessage = '儲存失敗';
+          if (storeError.message.includes('duplicate')) {
+            errorMessage = '重複名片處理失敗';
+          } else if (storeError.message.includes('fingerprint')) {
+            errorMessage = '指紋生成失敗，請稍後再試';
+          } else if (storeError.message.includes('version')) {
+            errorMessage = '版本管理失敗';
+          } else {
+            errorMessage = `儲存失敗: ${storeError.message}`;
+          }
+          
+          this.showNotification(errorMessage, 'error');
         }
       } else {
         this.showNotification('儲存服務未初始化', 'error');
       }
     } catch (error) {
       console.error('[App] Import from URL data failed:', error);
+      
+      // UI-02: 流程驗證與狀態一致性檢查
+      if (window.SecurityDataHandler) {
+        window.SecurityDataHandler.secureLog('error', 'Import flow failed', {
+          error: error.message,
+          stage: 'importFromUrlData',
+          hasStorage: !!this.storage,
+          hasDetector: !!this.storage?.duplicateDetector
+        });
+      }
+      
+      // 防止狀態不一致：清理可能的部分資料
+      try {
+        window.PWAIntegration?.manualClearContext();
+      } catch (cleanupError) {
+        console.warn('[App] Cleanup failed:', cleanupError);
+      }
+      
       this.showNotification('讀取名片失敗，請稍後再試', 'error');
     } finally {
       this.hideLoading();
@@ -379,10 +515,25 @@ class PWACardApp {
   }
 
   /**
-   * PWA-24 直通處理：舊的複雜處理方法已移除
-   * 現在使用 SimpleCardParser.parseDirectly() 和 storage.storeCardDirectly()
-   * 實現零資料遺失的直通管道處理
+   * PWA-24 直通處理：使用 SimpleCardParser.parseDirectly() 和指紋版本控制
+   * 實現零資料遺失的直通管道處理，同時支援基於指紋的重複檢測
    */
+
+  /**
+   * CRS-V31-001: 語義化版本計算備用方法
+   */
+  calculateSemanticVersion(currentVersion) {
+    const version = parseFloat(currentVersion) || 1.0;
+    const major = Math.floor(version);
+    const minor = Math.round((version - major) * 10);
+    const nextMinor = minor + 1;
+    
+    if (nextMinor >= 10) {
+      return `${major + 1}.0`;
+    } else {
+      return `${major}.${nextMinor}`;
+    }
+  }
 
   extractStringFromGreeting(greeting, language = 'zh') {
     if (!greeting) return '';
@@ -731,6 +882,34 @@ class PWACardApp {
     }
   }
 
+  /**
+   * UI-03: 顯示版本管理介面
+   */
+  async showVersionManagement(cardId) {
+    try {
+      if (!this.storage || !this.versionManager) {
+        this.showNotification('版本管理功能未初始化', 'error');
+        return;
+      }
+
+      const card = await this.storage.getCard(cardId);
+      if (!card) {
+        this.showNotification('名片不存在', 'error');
+        return;
+      }
+
+      // 初始化版本管理介面
+      if (!this.versionInterface) {
+        this.versionInterface = new VersionManagementInterface(this.storage, this.versionManager);
+      }
+
+      await this.versionInterface.showVersionDialog(cardId, card);
+    } catch (error) {
+      console.error('[PWA] Show version management failed:', error);
+      this.showNotification('版本管理開啟失敗', 'error');
+    }
+  }
+
   async generateQR(cardId) {
     try {
       
@@ -888,6 +1067,9 @@ class PWACardApp {
             <button class="btn btn-secondary export-vcard-btn" data-card-id="${card.id}">
               ${labels.downloadVCard}
             </button>
+            <button class="btn btn-secondary version-management-btn" data-card-id="${card.id}">
+              📋 版本管理
+            </button>
           </div>
         </div>
       </div>
@@ -898,11 +1080,18 @@ class PWACardApp {
     const closeBtn = modal.querySelector('.modal-close');
     const generateQRBtn = modal.querySelector('.generate-qr-btn');
     const exportVCardBtn = modal.querySelector('.export-vcard-btn');
+    const versionManagementBtn = modal.querySelector('.version-management-btn');
     
     overlay.addEventListener('click', () => modal.remove());
     closeBtn.addEventListener('click', () => modal.remove());
     generateQRBtn.addEventListener('click', () => this.generateQR(card.id));
     exportVCardBtn.addEventListener('click', () => this.exportVCard(card.id));
+    if (versionManagementBtn) {
+      versionManagementBtn.addEventListener('click', () => {
+        modal.remove();
+        this.showVersionManagement(card.id);
+      });
+    }
     
     // 設置社群按鈕事件
     this.setupSocialButtonEvents(modal);

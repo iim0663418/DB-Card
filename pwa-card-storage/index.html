@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="數位發展部 NFC 數位名片離線儲存服務">
+    <meta name="description" content="數位發展部數位名片收納 - 離線儲存中心">
     <meta name="theme-color" content="#1976d2">
     
     <!-- PWA Meta Tags -->
@@ -29,7 +29,7 @@
       form-action 'self';
     ">
     
-    <title>NFC 數位名片離線儲存</title>
+    <title>數位名片收納 - 離線儲存中心</title>
     
     <!-- Styles -->
     <link rel="stylesheet" href="assets/styles/moda-design-system.css">
@@ -64,10 +64,9 @@
         <!-- 標題列 -->
         <header class="app-header">
             <div class="header-content">
-                <img src="../assets/moda-logo.svg" alt="moda Logo" class="header-logo">
                 <div class="header-text">
-                    <h1 id="app-title">NFC 數位名片</h1>
-                    <p id="app-subtitle">離線儲存服務</p>
+                    <h1 id="app-title">數位名片收納</h1>
+                    <p id="app-subtitle">離線儲存中心</p>
                 </div>
                 <div class="header-actions">
                     <button id="theme-toggle" class="btn btn-icon" title="主題切換">
@@ -289,7 +288,11 @@
     <!-- PWA Core Modules -->
     <script src="src/core/content-fingerprint-generator.js"></script>
     <script src="src/core/duplicate-detector.js"></script>
+    <script src="src/core/database-migration-validator.js"></script>
+    <script src="src/core/batch-data-migrator.js"></script>
+    <script src="src/core/migration-log-manager.js"></script>
     <script src="src/core/version-manager.js"></script>
+    <script src="src/core/version-manager-utils.js"></script>
     <script src="src/core/pwa-integration.js"></script>
     <script src="src/core/storage.js"></script>
     <script src="src/core/health-manager.js"></script>
@@ -299,6 +302,7 @@
     
     <!-- UI Components -->
     <script src="src/ui/components/card-list.js"></script>
+    <script src="src/ui/version-management-interface.js"></script>
     
     <!-- Utilities -->
     <script src="src/utils/simple-card-parser.js"></script>

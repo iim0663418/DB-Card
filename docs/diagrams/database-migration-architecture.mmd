@@ -1,0 +1,74 @@
+graph TB
+    subgraph "PWA Card Storage System"
+        A[PWACardApp] --> B[DatabaseMigrationValidator]
+        A --> C[BatchDataMigrator]
+        A --> D[PWACardStorage]
+        
+        B --> E[Migration Validation]
+        B --> F[Safe Migration Process]
+        B --> G[Rollback Mechanism]
+        
+        C --> H[Batch Processing]
+        C --> I[Progress Monitoring]
+        C --> J[Error Handling]
+        
+        D --> K[IndexedDB Interface]
+    end
+    
+    subgraph "Migration Validation Process"
+        E --> E1[Version Compatibility Check]
+        E --> E2[Data Integrity Check]
+        E --> E3[Index Consistency Check]
+        E --> E4[Storage Space Check]
+        E --> E5[Backup Capability Check]
+    end
+    
+    subgraph "Safe Migration Process"
+        F --> F1[Create Migration Log]
+        F --> F2[Create Full Backup]
+        F --> F3[Execute Migration Steps]
+        F --> F4[Validate Migration Result]
+        F --> F5[Complete or Rollback]
+    end
+    
+    subgraph "Batch Processing"
+        H --> H1[Split into Batches]
+        H --> H2[Process Each Batch]
+        H --> H3[Generate Fingerprints]
+        H --> H4[Update Cards]
+        H --> H5[Progress Reporting]
+    end
+    
+    subgraph "IndexedDB Structure"
+        K --> L[cards ObjectStore]
+        K --> M[versions ObjectStore]
+        K --> N[migration_log ObjectStore]
+        K --> O[backups ObjectStore]
+        
+        L --> L1[fingerprint Index]
+        M --> M1[fingerprint Index]
+        N --> N1[migration_version Index]
+        O --> O1[timestamp Index]
+    end
+    
+    subgraph "Migration States"
+        P[pending] --> Q[in_progress]
+        Q --> R[completed]
+        Q --> S[failed]
+        S --> T[rollback]
+        T --> U[rollback_completed]
+    end
+    
+    classDef validator fill:#ff6b6b,stroke:#d63031,color:#fff
+    classDef migrator fill:#fdcb6e,stroke:#e17055,color:#000
+    classDef storage fill:#74b9ff,stroke:#0984e3,color:#fff
+    classDef process fill:#55a3ff,stroke:#2d8cff,color:#fff
+    classDef database fill:#a29bfe,stroke:#6c5ce7,color:#fff
+    classDef state fill:#fd79a8,stroke:#e84393,color:#fff
+    
+    class B,E,E1,E2,E3,E4,E5 validator
+    class C,H,H1,H2,H3,H4,H5,I,J migrator
+    class D,K storage
+    class F,F1,F2,F3,F4,F5,G process
+    class L,M,N,O,L1,M1,N1,O1 database
+    class P,Q,R,S,T,U state

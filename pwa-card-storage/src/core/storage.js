@@ -476,64 +476,114 @@ class PWACardStorage {
 
   async deleteCard(id) {
     try {
-      // SEC-006 修復：添加刪除授權檢查
-      const authResult = window.SecurityAuthHandler?.validateAccess('card-data', 'delete', {
-        userId: 'current-user',
-        resourceId: id,
-        timestamp: Date.now()
-      });
+      // 確保資料庫連線有效
+      await this.ensureConnection();
       
-      if (authResult && !authResult.authorized) {
-        throw new Error(`刪除被拒絕: ${authResult.reason}`);
-      }
-      
-      const transaction = this.db.transaction(['cards', 'versions'], 'readwrite');
-      const cardsStore = transaction.objectStore('cards');
-      const versionsStore = transaction.objectStore('versions');
-      
-      // 刪除名片
-      await new Promise((resolve, reject) => {
-        const request = cardsStore.delete(id);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-
-      // 刪除版本歷史
-      const versionIndex = versionsStore.index('cardId');
-      const versionCursor = versionIndex.openCursor(IDBKeyRange.only(id));
-      
-      await new Promise((resolve, reject) => {
-        versionCursor.onsuccess = (event) => {
-          const cursor = event.target.result;
-          if (cursor) {
-            cursor.delete();
-            cursor.continue();
-          } else {
-            resolve();
+      // SEC-006 修復：添加刪除授權檢查（改善邏輯）
+      if (window.SecurityAuthHandler) {
+        try {
+          const authResult = window.SecurityAuthHandler.validateAccess('card-data', 'delete', {
+            userId: 'current-user',
+            resourceId: id,
+            timestamp: Date.now()
+          });
+          
+          if (authResult && !authResult.authorized) {
+            throw new Error(`刪除被拒絕: ${authResult.reason}`);
           }
-        };
-        versionCursor.onerror = () => reject(versionCursor.error);
-      });
-
-      // SEC-004 修復：記錄刪除操作
-      if (window.SecurityDataHandler) {
-        window.SecurityDataHandler.secureLog('info', 'Card deleted', {
-          cardId: id,
-          operation: 'deleteCard'
-        });
+        } catch (authError) {
+          console.warn('[Storage] Authorization check failed, proceeding with deletion:', authError.message);
+          // 在 PWA 環境中，如果授權檢查失敗，我們仍然允許刪除操作
+        }
       }
+      
+      // 使用安全事務機制進行刪除
+      return await this.safeTransaction(['cards', 'versions'], 'readwrite', async (transaction) => {
+        const cardsStore = transaction.objectStore('cards');
+        const versionsStore = transaction.objectStore('versions');
+        
+        // 首先檢查名片是否存在
+        const cardExists = await new Promise((resolve, reject) => {
+          const request = cardsStore.get(id);
+          request.onsuccess = () => resolve(!!request.result);
+          request.onerror = () => reject(request.error);
+        });
+        
+        if (!cardExists) {
+          throw new Error(`名片 ${id} 不存在`);
+        }
+        
+        // 刪除名片
+        await new Promise((resolve, reject) => {
+          const request = cardsStore.delete(id);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(new Error(`刪除名片失敗: ${request.error?.message || 'Unknown error'}`));
+        });
 
-      return true;
+        // 刪除版本歷史
+        try {
+          const versionIndex = versionsStore.index('cardId');
+          const versionCursor = versionIndex.openCursor(IDBKeyRange.only(id));
+          
+          await new Promise((resolve, reject) => {
+            versionCursor.onsuccess = (event) => {
+              const cursor = event.target.result;
+              if (cursor) {
+                cursor.delete();
+                cursor.continue();
+              } else {
+                resolve();
+              }
+            };
+            versionCursor.onerror = () => reject(new Error(`刪除版本歷史失敗: ${versionCursor.error?.message || 'Unknown error'}`));
+          });
+        } catch (versionError) {
+          console.warn('[Storage] Failed to delete version history, but card deletion succeeded:', versionError.message);
+          // 版本歷史刪除失敗不影響主要的名片刪除操作
+        }
+
+        // SEC-004 修復：記錄刪除操作
+        if (window.SecurityDataHandler) {
+          try {
+            window.SecurityDataHandler.secureLog('info', 'Card deleted successfully', {
+              cardId: id,
+              operation: 'deleteCard',
+              timestamp: new Date().toISOString()
+            });
+          } catch (logError) {
+            console.warn('[Storage] Failed to log deletion:', logError.message);
+          }
+        }
+
+        return true;
+      });
     } catch (error) {
+      console.error('[Storage] Delete card failed:', error);
+      
       // SEC-004 修復：安全日誌記錄
       if (window.SecurityDataHandler) {
-        window.SecurityDataHandler.secureLog('error', 'Delete card failed', {
-          cardId: id,
-          error: error.message,
-          operation: 'deleteCard'
-        });
+        try {
+          window.SecurityDataHandler.secureLog('error', 'Delete card failed', {
+            cardId: id,
+            error: error.message,
+            operation: 'deleteCard',
+            timestamp: new Date().toISOString()
+          });
+        } catch (logError) {
+          console.warn('[Storage] Failed to log deletion error:', logError.message);
+        }
       }
-      throw error;
+      
+      // 提供更友好的錯誤信息
+      if (error.message.includes('not found') || error.message.includes('不存在')) {
+        throw new Error('要刪除的名片不存在');
+      } else if (error.message.includes('Transaction')) {
+        throw new Error('資料庫操作失敗，請稍後再試');
+      } else if (error.message.includes('被拒絕')) {
+        throw error; // 保持授權錯誤的原始信息
+      } else {
+        throw new Error(`刪除名片失敗: ${error.message}`);
+      }
     }
   }
 

@@ -41,7 +41,9 @@ class SecurityMonitor {
             this.cleanupExpiredData();
         }, 5 * 60 * 1000);
 
-        console.log('[SecurityMonitor] 安全監控已啟動');
+        if (window.SecurityDataHandler) {
+            window.SecurityDataHandler.secureLog('info', 'Security monitoring started', {});
+        }
     }
 
     /**
@@ -49,25 +51,29 @@ class SecurityMonitor {
      */
     static recordEvent(eventType, details = {}) {
         const timestamp = Date.now();
+        const sanitizedEventType = this.#sanitizeEventType(eventType);
         const event = {
-            type: eventType,
+            type: sanitizedEventType,
             timestamp,
             details: this.#sanitizeDetails(details)
         };
 
         // 更新指標
-        if (!this.#metrics.has(eventType)) {
-            this.#metrics.set(eventType, []);
+        if (!this.#metrics.has(sanitizedEventType)) {
+            this.#metrics.set(sanitizedEventType, []);
         }
         
-        this.#metrics.get(eventType).push(event);
+        this.#metrics.get(sanitizedEventType).push(event);
         
         // 檢查是否觸發告警
-        this.#checkAlert(eventType);
+        this.#checkAlert(sanitizedEventType);
         
-        // 記錄到安全日誌
+        // 記錄到安全日誌 - 使用已清理的資料
         if (window.SecurityDataHandler) {
-            window.SecurityDataHandler.secureLog('info', `Security event: ${eventType}`, details);
+            window.SecurityDataHandler.secureLog('info', 'Security event recorded', {
+                eventType: sanitizedEventType,
+                timestamp: timestamp
+            });
         }
     }
 
@@ -107,26 +113,41 @@ class SecurityMonitor {
         // 發送告警通知
         this.#sendAlert(alert);
         
-        console.warn(`[SecurityMonitor] 安全告警觸發: ${eventType} (${count}/${config.threshold})`);
+        // Use secure logging instead of direct console output
+        if (window.SecurityDataHandler) {
+            window.SecurityDataHandler.secureLog('warn', 'Security alert triggered', {
+                eventType: this.#sanitizeEventType(eventType),
+                count: parseInt(count) || 0,
+                threshold: parseInt(config.threshold) || 0
+            });
+        }
     }
 
     /**
      * 發送告警通知
      */
     static #sendAlert(alert) {
-        // 控制台告警
-        const message = `🚨 安全告警: ${alert.type} - 檢測到 ${alert.count} 次事件 (閾值: ${alert.threshold})`;
+        // 控制台告警 - 使用已清理的資料
+        const sanitizedType = this.#sanitizeEventType(alert.type);
+        const alertData = {
+            type: sanitizedType,
+            count: parseInt(alert.count) || 0,
+            threshold: parseInt(alert.threshold) || 0,
+            severity: this.#sanitizeSeverity(alert.severity)
+        };
         
-        if (alert.severity === 'critical') {
-            console.error(message);
-        } else if (alert.severity === 'high') {
-            console.warn(message);
+        const message = `Security alert: ${alertData.type} - ${alertData.count}/${alertData.threshold} events`;
+        
+        if (alertData.severity === 'critical') {
+            console.error('[SECURITY-ALERT]', JSON.stringify(alertData));
+        } else if (alertData.severity === 'high') {
+            console.warn('[SECURITY-ALERT]', JSON.stringify(alertData));
         } else {
-            console.log(message);
+            console.log('[SECURITY-ALERT]', JSON.stringify(alertData));
         }
 
         // 可擴展：發送到外部告警系統
-        this.#sendToExternalSystem(alert);
+        this.#sendToExternalSystem(alertData);
     }
 
     /**
@@ -363,17 +384,41 @@ class SecurityMonitor {
      * 工具方法
      */
     static #sanitizeDetails(details) {
+        const MAX_STRING_LENGTH = 200;
         const sanitized = {};
+        
+        if (!details || typeof details !== 'object') {
+            return {};
+        }
+        
         for (const [key, value] of Object.entries(details)) {
+            const sanitizedKey = String(key).replace(/[\r\n\t<>"'&]/g, '').substring(0, 50);
+            
             if (typeof value === 'string') {
-                sanitized[key] = value.substring(0, 200); // 限制長度
-            } else if (typeof value === 'object') {
-                sanitized[key] = '[Object]';
+                sanitized[sanitizedKey] = value
+                    .replace(/[\r\n\t<>"'&]/g, '')
+                    .substring(0, MAX_STRING_LENGTH);
+            } else if (typeof value === 'number') {
+                sanitized[sanitizedKey] = isNaN(value) ? 0 : Number(value);
+            } else if (typeof value === 'boolean') {
+                sanitized[sanitizedKey] = Boolean(value);
             } else {
-                sanitized[key] = value;
+                sanitized[sanitizedKey] = '[Object]';
             }
         }
         return sanitized;
+    }
+    
+    static #sanitizeEventType(eventType) {
+        return String(eventType)
+            .replace(/[^a-zA-Z0-9_-]/g, '')
+            .substring(0, 50);
+    }
+    
+    static #sanitizeSeverity(severity) {
+        const validSeverities = ['low', 'medium', 'high', 'critical'];
+        const cleaned = String(severity).toLowerCase().replace(/[^a-z]/g, '');
+        return validSeverities.includes(cleaned) ? cleaned : 'low';
     }
 
     static #generateAlertId() {
@@ -396,8 +441,15 @@ class SecurityMonitor {
     static #sendToExternalSystem(alert) {
         // 預留接口：發送到外部監控系統
         // 例如：Slack、Email、SIEM 系統等
-        if (window.externalAlertHandler) {
-            window.externalAlertHandler(alert);
+        try {
+            if (window.externalAlertHandler && typeof window.externalAlertHandler === 'function') {
+                window.externalAlertHandler(alert);
+            }
+        } catch (error) {
+            // Silent fail to prevent cascading errors
+            if (window.SecurityDataHandler) {
+                window.SecurityDataHandler.secureLog('error', 'External alert handler failed', {});
+            }
         }
     }
 }

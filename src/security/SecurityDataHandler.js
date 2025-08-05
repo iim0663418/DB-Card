@@ -59,6 +59,14 @@ class SecurityDataHandler {
      * 安全儲存機制
      */
     static async secureStorage(key, value, options = {}) {
+        // Authorization check
+        if (window.SecurityAuthHandler) {
+            const authResult = window.SecurityAuthHandler.validateAccess('storage', 'write');
+            if (!authResult.authorized) {
+                return { success: false, error: '無權限執行儲存操作' };
+            }
+        }
+        
         const {
             encrypt = false,
             expiry = null,
@@ -99,9 +107,10 @@ class SecurityDataHandler {
             
             return { success: true };
         } catch (error) {
+            // Don't expose internal error details
             return { 
                 success: false, 
-                error: `儲存失敗: ${error.message}` 
+                error: '儲存操作失敗' 
             };
         }
     }
@@ -110,6 +119,14 @@ class SecurityDataHandler {
      * 安全資料檢索
      */
     static async secureRetrieve(key, options = {}) {
+        // Authorization check
+        if (window.SecurityAuthHandler) {
+            const authResult = window.SecurityAuthHandler.validateAccess('storage', 'read');
+            if (!authResult.authorized) {
+                return { success: false, error: '無權限執行讀取操作' };
+            }
+        }
+        
         const {
             decrypt = false,
             verifyIntegrity = true
@@ -154,9 +171,10 @@ class SecurityDataHandler {
                 metadata 
             };
         } catch (error) {
+            // Don't expose internal error details
             return { 
                 success: false, 
-                error: `檢索失敗: ${error.message}` 
+                error: '讀取操作失敗' 
             };
         }
     }
@@ -165,30 +183,40 @@ class SecurityDataHandler {
      * 安全日誌記錄 - 防止日誌注入
      */
     static secureLog(level, message, details = {}) {
+        // Authorization check for logging
+        if (window.SecurityAuthHandler) {
+            const authResult = window.SecurityAuthHandler.validateAccess('logging', 'write');
+            if (!authResult.authorized) {
+                // Silent fail for logging to prevent infinite loops
+                return;
+            }
+        }
+        
         const sanitizedMessage = this.#sanitizeLogMessage(message);
         const sanitizedDetails = this.#sanitizeLogDetails(details);
         
         const logEntry = {
             timestamp: new Date().toISOString(),
-            level: level.toUpperCase(),
+            level: this.#sanitizeLogMessage(level.toUpperCase()),
             message: sanitizedMessage,
             details: sanitizedDetails,
             source: 'SecurityDataHandler'
         };
 
-        // 根據級別決定輸出方式
-        switch (level.toLowerCase()) {
+        // 根據級別決定輸出方式 - 使用已清理的資料
+        const safeLevel = level.toLowerCase().replace(/[^a-z]/g, '');
+        switch (safeLevel) {
             case 'error':
-                console.error('[SECURITY]', logEntry);
+                console.error('[SECURITY]', JSON.stringify(logEntry));
                 break;
             case 'warn':
-                console.warn('[SECURITY]', logEntry);
+                console.warn('[SECURITY]', JSON.stringify(logEntry));
                 break;
             case 'info':
-                console.info('[SECURITY]', logEntry);
+                console.info('[SECURITY]', JSON.stringify(logEntry));
                 break;
             default:
-                console.log('[SECURITY]', logEntry);
+                console.log('[SECURITY]', JSON.stringify(logEntry));
         }
 
         // 可選：發送到遠端日誌服務
@@ -262,10 +290,11 @@ class SecurityDataHandler {
         
         // 移除潛在的日誌注入字符
         return message
-            .replace(/[\r\n]/g, ' ')
-            .replace(/\t/g, ' ')
-            .replace(/\x00-\x1f/g, '')
-            .substring(0, 1000); // 限制長度
+            .replace(/[\r\n]/g, ' ')  // Remove line breaks
+            .replace(/\t/g, ' ')      // Replace tabs with spaces
+            .replace(/[\x00-\x1f\x7f]/g, '') // Remove all control characters
+            .replace(/[<>"'&]/g, '')  // Remove potential HTML/script chars
+            .substring(0, 1000);      // Limit length
     }
 
     /**
@@ -315,7 +344,7 @@ class SecurityDataHandler {
 
             return btoa(String.fromCharCode(...combined));
         } catch (error) {
-            throw new Error(`加密失敗: ${error.message}`);
+            throw new Error('資料處理失敗');
         }
     }
 
@@ -346,7 +375,7 @@ class SecurityDataHandler {
             
             return JSON.parse(decryptedString);
         } catch (error) {
-            throw new Error(`解密失敗: ${error.message}`);
+            throw new Error('資料處理失敗');
         }
     }
 

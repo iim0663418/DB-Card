@@ -10,49 +10,57 @@ class SecurityAuthHandler {
      * 驗證資源存取權限
      */
     static validateAccess(resource, operation, context = {}) {
-        const {
-            userId = 'anonymous',
-            sessionId = null,
-            timestamp = Date.now()
-        } = context;
+        try {
+            const {
+                userId = 'anonymous',
+                sessionId = null,
+                timestamp = Date.now()
+            } = context;
 
-        // 基本資源權限檢查
-        const resourcePermissions = this.#getResourcePermissions(resource);
-        if (!resourcePermissions) {
+            // 基本資源權限檢查
+            const resourcePermissions = this.#getResourcePermissions(resource);
+            if (!resourcePermissions) {
+                return {
+                    authorized: false,
+                    reason: '未知資源'
+                };
+            }
+
+            // 操作權限檢查
+            if (!resourcePermissions.operations.includes(operation)) {
+                return {
+                    authorized: false,
+                    reason: '不支援的操作'
+                };
+            }
+
+            // 會話驗證
+            if (sessionId && !this.#validateSession(sessionId, userId)) {
+                return {
+                    authorized: false,
+                    reason: '會話無效'
+                };
+            }
+
+            // 記錄存取日誌
+            this.#auditLog('access_check', {
+                resource: this.#sanitizeLogField(resource),
+                operation: this.#sanitizeLogField(operation),
+                userId: this.#sanitizeLogField(userId),
+                authorized: true
+            });
+
+            return {
+                authorized: true,
+                reason: '授權通過'
+            };
+        } catch (error) {
+            this.#auditLog('access_check_error', { error: 'Validation failed' }, 'error');
             return {
                 authorized: false,
-                reason: '未知資源'
+                reason: '授權檢查失敗'
             };
         }
-
-        // 操作權限檢查
-        if (!resourcePermissions.operations.includes(operation)) {
-            return {
-                authorized: false,
-                reason: '不支援的操作'
-            };
-        }
-
-        // 會話驗證
-        if (sessionId && !this.#validateSession(sessionId, userId)) {
-            return {
-                authorized: false,
-                reason: '會話無效'
-            };
-        }
-
-        // 記錄存取日誌
-        this.#auditLog('access_check', {
-            resource,
-            operation,
-            userId,
-            authorized: true
-        });
-
-        return {
-            authorized: true,
-            reason: '授權通過'
-        };
     }
 
     /**
@@ -85,7 +93,7 @@ class SecurityAuthHandler {
             
             return { success: true, hashedPassword };
         } catch (error) {
-            this.#auditLog('password_input_error', { error: error.message }, 'error');
+            this.#auditLog('password_input_error', { error: 'Password input failed' }, 'error');
             return { success: false, hashedPassword: null };
         }
     }
@@ -106,8 +114,10 @@ class SecurityAuthHandler {
         if (window.SecurityDataHandler) {
             window.SecurityDataHandler.secureLog(severity, action, details);
         } else {
-            // 備用日誌方式
-            console.log('[SECURITY-AUTH]', logEntry);
+            // 備用日誌方式 - 只在開發環境使用
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                console.log('[SECURITY-AUTH]', JSON.stringify(logEntry));
+            }
         }
     }
 
@@ -134,26 +144,34 @@ class SecurityAuthHandler {
      * 驗證會話
      */
     static validateSession(sessionId, userId = null) {
-        const session = this.#sessions.get(sessionId);
-        
-        if (!session) {
+        try {
+            const session = this.#sessions.get(sessionId);
+            
+            if (!session) {
+                return false;
+            }
+
+            if (Date.now() > session.expires) {
+                this.#sessions.delete(sessionId);
+                this.#auditLog('session_expired', { sessionId: this.#sanitizeLogField(sessionId) });
+                return false;
+            }
+
+            if (userId && session.userId !== userId) {
+                this.#auditLog('session_user_mismatch', { 
+                    sessionId: this.#sanitizeLogField(sessionId), 
+                    expectedUser: this.#sanitizeLogField(userId) 
+                });
+                return false;
+            }
+
+            // 更新最後存取時間
+            session.lastAccess = Date.now();
+            return true;
+        } catch (error) {
+            this.#auditLog('session_validation_error', { error: 'Session validation failed' }, 'error');
             return false;
         }
-
-        if (Date.now() > session.expires) {
-            this.#sessions.delete(sessionId);
-            this.#auditLog('session_expired', { sessionId });
-            return false;
-        }
-
-        if (userId && session.userId !== userId) {
-            this.#auditLog('session_user_mismatch', { sessionId, expectedUser: userId });
-            return false;
-        }
-
-        // 更新最後存取時間
-        session.lastAccess = Date.now();
-        return true;
     }
 
     /**
@@ -180,6 +198,10 @@ class SecurityAuthHandler {
             },
             'storage': {
                 operations: ['read', 'write'],
+                requireAuth: false
+            },
+            'logging': {
+                operations: ['write'],
                 requireAuth: false
             },
             'export': {
@@ -216,14 +238,31 @@ class SecurityAuthHandler {
     }
 
     /**
-     * 密碼雜湊
+     * 密碼雜湊 - 使用更安全的方法
+     * 注意：這是簡化實作，生產環境應使用 bcrypt 或 Argon2
      */
     static async #hashPassword(password) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(password);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        try {
+            // Add salt for better security
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            const encoder = new TextEncoder();
+            const passwordData = encoder.encode(password + Array.from(salt).join(''));
+            
+            // Use multiple iterations for better security
+            let hash = passwordData;
+            for (let i = 0; i < 10000; i++) {
+                hash = new Uint8Array(await crypto.subtle.digest('SHA-256', hash));
+            }
+            
+            // Combine salt and hash
+            const combined = new Uint8Array(salt.length + hash.length);
+            combined.set(salt);
+            combined.set(hash, salt.length);
+            
+            return Array.from(combined).map(b => b.toString(16).padStart(2, '0')).join('');
+        } catch (error) {
+            throw new Error('密碼處理失敗');
+        }
     }
 
     /**

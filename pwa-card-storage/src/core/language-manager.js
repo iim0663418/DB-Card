@@ -34,8 +34,8 @@ class LanguageManager {
     return {
       zh: {
         // 標題列
-        appTitle: 'NFC 數位名片',
-        appSubtitle: '離線儲存服務',
+        appTitle: '數位名片收納',
+        appSubtitle: '離線儲存中心',
         themeToggle: '主題切換',
         languageToggle: '語言切換',
         backToHome: '回到首頁',
@@ -149,8 +149,8 @@ class LanguageManager {
       },
       en: {
         // Header
-        appTitle: 'NFC Digital Card',
-        appSubtitle: 'Offline Storage Service',
+        appTitle: 'Digital Card Hub',
+        appSubtitle: 'Offline Storage Center',
         themeToggle: 'Toggle Theme',
         languageToggle: 'Switch Language',
         backToHome: 'Back to Home',

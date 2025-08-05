@@ -1,0 +1,58 @@
+```mermaid
+graph TB
+    subgraph "v3.1.0 Implementation Status"
+        A[ContentFingerprintGenerator ✅]
+        B[DuplicateDetector ✅]
+        C[DuplicateDialogManager ✅]
+        D[VersionManager 🔄]
+        E[PWACardStorage 🔄]
+        F[UI Components ⚠️]
+        G[Database Migration ⚠️]
+        H[Batch Processing ⚠️]
+    end
+    
+    subgraph "Completed Features"
+        A --> A1[SHA-256 Fingerprint Generation]
+        A --> A2[Bilingual Name Normalization]
+        A --> A3[Fallback Mechanism]
+        
+        B --> B1[Duplicate Detection Logic]
+        B --> B2[Handle Actions: skip/overwrite/version]
+        B --> B3[Batch Duplicate Processing]
+        
+        C --> C1[Accessible Dialog Interface]
+        C --> C2[Keyboard Navigation]
+        C --> C3[moda Design System Integration]
+    end
+    
+    subgraph "Partially Fixed"
+        D --> D1[Semantic Version Calculation ✅]
+        D --> D2[Version Snapshot Creation ✅]
+        D --> D3[Version History Management ⚠️]
+        
+        E --> E1[Fingerprint Integration ✅]
+        E --> E2[Safe Transaction Handling ✅]
+        E --> E3[Index Optimization ⚠️]
+    end
+    
+    subgraph "Pending Tasks"
+        F --> F1[Version History UI]
+        F --> F2[Import Flow Corrections]
+        
+        G --> G1[Database Schema Upgrade]
+        G --> G2[Migration Validation]
+        
+        H --> H1[Batch Data Migration]
+        H --> H2[Background Processing]
+    end
+    
+    classDef completed fill:#4ade80,stroke:#16a34a,color:#000
+    classDef partial fill:#fbbf24,stroke:#f59e0b,color:#000
+    classDef pending fill:#f87171,stroke:#ef4444,color:#000
+    
+    class A,B,C,A1,A2,A3,B1,B2,B3,C1,C2,C3,D1,D2,E1,E2 completed
+    class D,E partial
+    class F,G,H,D3,E3,F1,F2,G1,G2,H1,H2 pending
+```
+
+**Rationale & Versioning**: 此圖表反映 v3.1.0 實作的實際狀態，顯示已完成的核心模組（綠色）、部分修復的模組（黃色）和待實作的功能（紅色）。更新於 2025-08-05，對應 code-executor 完成的 4 個關鍵任務。

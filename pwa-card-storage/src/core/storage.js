@@ -49,9 +49,64 @@ class PWACardStorage {
 
   async initialize() {
     try {
+      console.log('[Storage] Starting initialization...');
       
       // 開啟資料庫連線
       this.db = await this.openDatabase();
+      
+      // STORAGE-04: 初始化遷移日誌管理器
+      this.migrationLogManager = new MigrationLogManager(this);
+      
+      // 初始化遷移驗證器 - CRS-V31-005
+      this.migrationValidator = new DatabaseMigrationValidator(this);
+      this.batchMigrator = new BatchDataMigrator(this, this.migrationValidator);
+      
+      // STORAGE-04: 檢查是否需要遷移並執行自動升級
+      const migrationNeeded = await this.checkMigrationNeeded();
+      if (migrationNeeded.required) {
+        console.log('[Storage] Migration required:', migrationNeeded.reason);
+        
+        // 建立遷移日誌
+        const logId = await this.migrationLogManager.createMigrationLog(this.dbVersion, {
+          reason: migrationNeeded.reason,
+          fromVersion: migrationNeeded.fromVersion,
+          toVersion: migrationNeeded.toVersion,
+          beforeChecksum: await this.calculateSystemChecksum()
+        });
+        
+        try {
+          // 執行安全遷移
+          const migrationResult = await this.migrationValidator.performSafeMigration(this.dbVersion);
+          
+          if (migrationResult.success) {
+            // 完成遷移日誌
+            await this.migrationLogManager.completeMigrationLog(logId, 'completed', {
+              processedCards: migrationResult.processedCards || 0,
+              checksums: {
+                beforeMigration: await this.calculateSystemChecksum(),
+                afterMigration: await this.calculateSystemChecksum()
+              }
+            });
+            
+            console.log('[Storage] Migration completed successfully');
+          } else {
+            throw new Error(migrationResult.error);
+          }
+        } catch (migrationError) {
+          // 記錄遷移失敗
+          await this.migrationLogManager.completeMigrationLog(logId, 'failed', {
+            error: migrationError.message
+          });
+          
+          console.warn('[Storage] Migration failed, attempting graceful degradation:', migrationError.message);
+          
+          // STORAGE-04: 安全降級處理
+          const degradationResult = await this.handleMigrationFailure(migrationError);
+          if (!degradationResult.canContinue) {
+            throw new Error(`Critical migration failure: ${migrationError.message}`);
+          }
+        }
+      }
       
       // 設置連線監聽器
       this.setupConnectionMonitoring();
@@ -63,11 +118,19 @@ class PWACardStorage {
       await this.initializeManagers();
       
       // 執行健康檢查
-      await this.performHealthCheck();
+      const healthResult = await this.performHealthCheck();
       
+      // STORAGE-04: 記錄初始化完成
+      await this.recordInitializationComplete(healthResult);
+      
+      console.log('[Storage] Initialization completed successfully');
       return true;
     } catch (error) {
       console.error('[Storage] Initialization failed:', error);
+      
+      // STORAGE-04: 記錄初始化失敗
+      await this.recordInitializationFailure(error);
+      
       throw error;
     }
   }
@@ -87,6 +150,11 @@ class PWACardStorage {
       if (typeof VersionManager !== 'undefined') {
         this.versionManager = new VersionManager(this);
       }
+      
+      // 確保批量遷移器已初始化
+      if (!this.batchMigrator && typeof BatchDataMigrator !== 'undefined') {
+        this.batchMigrator = new BatchDataMigrator(this, this.migrationValidator);
+      }
     } catch (error) {
       console.error('[Storage] Manager initialization failed:', error);
       // 不阻斷主要初始化流程
@@ -100,6 +168,9 @@ class PWACardStorage {
         reject(new Error('IndexedDB not supported'));
         return;
       }
+      
+      // CRS-V31-005: 新增資料庫遷移驗證
+      this.validateDatabaseMigration();
       
       const request = indexedDB.open(this.dbName, this.dbVersion);
 
@@ -170,6 +241,14 @@ class PWACardStorage {
           if (!db.objectStoreNames.contains('backups')) {
             const backupsStore = db.createObjectStore('backups', { keyPath: 'id' });
             backupsStore.createIndex('timestamp', 'timestamp', { unique: false });
+          }
+          
+          // STORAGE-03: 建立 migration_log store
+          if (!db.objectStoreNames.contains('migration_log')) {
+            const migrationLogStore = db.createObjectStore('migration_log', { keyPath: 'id' });
+            migrationLogStore.createIndex('migrationVersion', 'migrationVersion', { unique: false });
+            migrationLogStore.createIndex('status', 'status', { unique: false });
+            migrationLogStore.createIndex('startTime', 'startTime', { unique: false });
           }
           
         } catch (error) {
@@ -392,6 +471,14 @@ class PWACardStorage {
       
 
       
+      // CRS-V31-002: 新增指紋生成到 storeCardDirectly 方法
+      const fingerprint = await this.generateFingerprintSafe(cardData);
+      
+      // CRS-V31-004: 備用方法 - 如果指紋生成失敗，使用時間戳+隨機數
+      if (!fingerprint || fingerprint.includes('fallback') || fingerprint.includes('emergency')) {
+        console.warn('[Storage] Using fallback fingerprint for card:', cardData.name);
+      }
+      
       const card = {
         id,
         type: finalCardType,  // 直接使用傳遞的類型
@@ -399,6 +486,7 @@ class PWACardStorage {
         created: now,
         modified: now,
         currentVersion: 1,
+        fingerprint, // 新增指紋欄位
         encrypted: false,
         tags: [],
         isFavorite: false,
@@ -588,23 +676,113 @@ class PWACardStorage {
   }
 
   /**
-   * 按指紋查詢名片 - STORAGE-01
+   * CORE-03: 指紋索引與查詢優化
+   * 高效能指紋查詢，支援批量查詢和快取
    */
-  async findCardsByFingerprint(fingerprint) {
+  async findCardsByFingerprint(fingerprint, options = {}) {
+    const startTime = performance.now();
+    
     try {
-      return await this.safeTransaction(['cards'], 'readonly', async (transaction) => {
+      // 輸入驗證
+      if (!fingerprint || typeof fingerprint !== 'string') {
+        throw new Error('Invalid fingerprint parameter');
+      }
+      
+      // 支援批量查詢
+      if (Array.isArray(fingerprint)) {
+        return await this.batchFindCardsByFingerprints(fingerprint, options);
+      }
+      
+      const result = await this.safeTransaction(['cards'], 'readonly', async (transaction) => {
         const store = transaction.objectStore('cards');
         const index = store.index('fingerprint');
         
         return new Promise((resolve, reject) => {
           const request = index.getAll(fingerprint);
-          request.onsuccess = () => resolve(request.result);
+          
+          request.onsuccess = () => {
+            const cards = request.result;
+            
+            // 應用額外篩選
+            let filteredCards = cards;
+            if (options.includeDeleted === false) {
+              filteredCards = cards.filter(card => !card.deleted);
+            }
+            if (options.limit && options.limit > 0) {
+              filteredCards = filteredCards.slice(0, options.limit);
+            }
+            
+            resolve(filteredCards);
+          };
+          
           request.onerror = () => reject(request.error);
         });
       });
+      
+      const duration = performance.now() - startTime;
+      
+      // 效能監控
+      if (duration > 200) {
+        console.warn(`[Storage] Slow fingerprint query: ${duration.toFixed(2)}ms for ${fingerprint}`);
+      }
+      
+      // 安全日誌
+      if (window.SecurityDataHandler) {
+        window.SecurityDataHandler.secureLog('info', 'Fingerprint query completed', {
+          fingerprint: fingerprint.substring(0, 16) + '...',
+          resultCount: result.length,
+          duration: Math.round(duration)
+        });
+      }
+      
+      return result;
     } catch (error) {
       console.error('[Storage] Find cards by fingerprint failed:', error);
+      
+      // 安全日誌記錄錯誤
+      if (window.SecurityDataHandler) {
+        window.SecurityDataHandler.secureLog('error', 'Fingerprint query failed', {
+          error: error.message,
+          fingerprint: fingerprint ? fingerprint.substring(0, 16) + '...' : 'invalid'
+        });
+      }
+      
       return [];
+    }
+  }
+  
+  /**
+   * CORE-03: 批量指紋查詢優化
+   */
+  async batchFindCardsByFingerprints(fingerprints, options = {}) {
+    try {
+      const batchSize = options.batchSize || 10;
+      const results = new Map();
+      
+      // 分批處理避免阻塞
+      for (let i = 0; i < fingerprints.length; i += batchSize) {
+        const batch = fingerprints.slice(i, i + batchSize);
+        
+        const batchPromises = batch.map(async (fp) => {
+          const cards = await this.findCardsByFingerprint(fp, { ...options, limit: options.limit });
+          return { fingerprint: fp, cards };
+        });
+        
+        const batchResults = await Promise.all(batchPromises);
+        batchResults.forEach(({ fingerprint, cards }) => {
+          results.set(fingerprint, cards);
+        });
+        
+        // 避免阻塞 UI
+        if (i + batchSize < fingerprints.length) {
+          await new Promise(resolve => setTimeout(resolve, 1));
+        }
+      }
+      
+      return results;
+    } catch (error) {
+      console.error('[Storage] Batch fingerprint query failed:', error);
+      return new Map();
     }
   }
 
@@ -915,6 +1093,12 @@ class PWACardStorage {
    */
   extractStringFromGreeting(greeting) {
     
+    // CRS-V31-001: 修復 undefined invalidStrings 變數
+    const invalidStrings = [
+      '[object Object]', 'undefined', 'null', '[object Undefined]', 
+      '[object Null]', 'NaN', '[object NaN]', 'false', 'true'
+    ];
+    
     // PWA-23 修復：處理 null, undefined, 空值情況
     if (greeting === null || greeting === undefined) {
       return '';
@@ -929,11 +1113,7 @@ class PWACardStorage {
         return '';
       }
       
-      // PWA-23 修復：更嚴格的無效字串檢查
-      const invalidStrings = [
-        '[object Object]', 'undefined', 'null', '[object Undefined]', 
-        '[object Null]', 'NaN', '[object NaN]', 'false', 'true'
-      ];
+      // PWA-23 修復：使用方法級別定義的 invalidStrings
       
       if (invalidStrings.includes(trimmed)) {
         return '';
@@ -1130,6 +1310,94 @@ class PWACardStorage {
   // 工具方法
   generateId() {
     return 'card_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
+  }
+
+  /**
+   * CRS-V31-005: 檢查是否需要遷移
+   */
+  async checkMigrationNeeded() {
+    try {
+      const storedVersion = localStorage.getItem('pwa-db-version');
+      const currentVersion = this.dbVersion;
+      
+      if (!storedVersion) {
+        return {
+          required: true,
+          reason: 'First time initialization',
+          fromVersion: 0,
+          toVersion: currentVersion
+        };
+      }
+      
+      const stored = parseInt(storedVersion);
+      if (stored < currentVersion) {
+        return {
+          required: true,
+          reason: 'Database upgrade required',
+          fromVersion: stored,
+          toVersion: currentVersion
+        };
+      }
+      
+      // 檢查是否有名片缺少指紋
+      const cardsWithoutFingerprints = await this.countCardsWithoutFingerprints();
+      if (cardsWithoutFingerprints > 0) {
+        return {
+          required: true,
+          reason: `${cardsWithoutFingerprints} cards missing fingerprints`,
+          fromVersion: stored,
+          toVersion: currentVersion
+        };
+      }
+      
+      return {
+        required: false,
+        reason: 'Database up to date'
+      };
+    } catch (error) {
+      return {
+        required: true,
+        reason: `Migration check failed: ${error.message}`,
+        fromVersion: 0,
+        toVersion: this.dbVersion
+      };
+    }
+  }
+
+  /**
+   * 統計缺少指紋的名片數量
+   */
+  async countCardsWithoutFingerprints() {
+    try {
+      const cards = await this.listCards();
+      return cards.filter(card => 
+        !card.fingerprint || 
+        !card.fingerprint.startsWith('fingerprint_')
+      ).length;
+    } catch (error) {
+      console.error('[Storage] Count cards without fingerprints failed:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * CRS-V31-005: 資料庫遷移驗證 (舊方法保留相容性)
+   */
+  validateDatabaseMigration() {
+    try {
+      const currentVersion = this.dbVersion;
+      const storedVersion = localStorage.getItem('pwa-db-version');
+      
+      if (storedVersion && parseInt(storedVersion) > currentVersion) {
+        console.warn('[Storage] Database downgrade detected, clearing storage');
+        // 在降級情況下清理儲存
+        localStorage.removeItem('pwa-db-version');
+      }
+      
+      localStorage.setItem('pwa-db-version', currentVersion.toString());
+    } catch (error) {
+      console.error('[Storage] Migration validation failed:', error);
+    }
   }
 
   /**
@@ -1513,6 +1781,165 @@ class PWACardStorage {
     }
   }
 
+  /**
+   * STORAGE-04: 處理遷移失敗
+   */
+  async handleMigrationFailure(error) {
+    try {
+      console.warn('[Storage] Handling migration failure:', error.message);
+      
+      // 檢查是否為非關鍵性錯誤
+      const isNonCritical = this.isNonCriticalMigrationError(error);
+      
+      if (isNonCritical) {
+        console.log('[Storage] Non-critical migration error, continuing with degraded functionality');
+        return {
+          canContinue: true,
+          degradedMode: true,
+          reason: error.message
+        };
+      }
+      
+      // 關鍵性錯誤，嘗試清理和重試
+      console.error('[Storage] Critical migration error, attempting cleanup');
+      
+      try {
+        // 清理部分遷移資料
+        await this.cleanupPartialMigration();
+        
+        return {
+          canContinue: false,
+          requiresManualIntervention: true,
+          reason: error.message
+        };
+      } catch (cleanupError) {
+        console.error('[Storage] Cleanup also failed:', cleanupError);
+        return {
+          canContinue: false,
+          criticalFailure: true,
+          reason: `Migration and cleanup failed: ${error.message}`
+        };
+      }
+    } catch (handlerError) {
+      console.error('[Storage] Migration failure handler failed:', handlerError);
+      return {
+        canContinue: false,
+        criticalFailure: true,
+        reason: 'Migration failure handler crashed'
+      };
+    }
+  }
+  
+  /**
+   * STORAGE-04: 判斷是否為非關鍵性遷移錯誤
+   */
+  isNonCriticalMigrationError(error) {
+    const nonCriticalPatterns = [
+      'fingerprint generation failed',
+      'version snapshot creation failed',
+      'cleanup failed',
+      'statistics update failed'
+    ];
+    
+    const errorMessage = error.message.toLowerCase();
+    return nonCriticalPatterns.some(pattern => errorMessage.includes(pattern));
+  }
+  
+  /**
+   * STORAGE-04: 清理部分遷移資料
+   */
+  async cleanupPartialMigration() {
+    try {
+      console.log('[Storage] Cleaning up partial migration data...');
+      
+      // 清理可能的部分更新
+      const cards = await this.listCards();
+      let cleanedCount = 0;
+      
+      for (const card of cards) {
+        // 檢查是否有部分更新的標記
+        if (card.migrationStatus === 'pending' || card.migrationStatus === 'failed') {
+          try {
+            // 重設遷移狀態
+            card.migrationStatus = null;
+            await this.safeTransaction(['cards'], 'readwrite', async (transaction) => {
+              const store = transaction.objectStore('cards');
+              store.put(card);
+            });
+            cleanedCount++;
+          } catch (cleanupError) {
+            console.warn(`[Storage] Failed to cleanup card ${card.id}:`, cleanupError);
+          }
+        }
+      }
+      
+      console.log(`[Storage] Cleaned up ${cleanedCount} partially migrated cards`);
+    } catch (error) {
+      console.error('[Storage] Cleanup partial migration failed:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * STORAGE-04: 計算系統校驗和
+   */
+  async calculateSystemChecksum() {
+    try {
+      const cards = await this.listCards();
+      const cardChecksums = cards.map(card => card.checksum || '').join('|');
+      const systemData = {
+        dbVersion: this.dbVersion,
+        cardCount: cards.length,
+        cardChecksums,
+        timestamp: Date.now()
+      };
+      
+      return await this.calculateChecksum(systemData);
+    } catch (error) {
+      console.error('[Storage] Calculate system checksum failed:', error);
+      return '';
+    }
+  }
+  
+  /**
+   * STORAGE-04: 記錄初始化完成
+   */
+  async recordInitializationComplete(healthResult) {
+    try {
+      await this.setSetting('lastInitialization', {
+        timestamp: new Date().toISOString(),
+        dbVersion: this.dbVersion,
+        healthStatus: healthResult.healthy ? 'healthy' : 'warning',
+        corruptedCards: healthResult.corruptedCount || 0,
+        managersInitialized: {
+          migrationValidator: !!this.migrationValidator,
+          batchMigrator: !!this.batchMigrator,
+          migrationLogManager: !!this.migrationLogManager,
+          duplicateDetector: !!this.duplicateDetector,
+          versionManager: !!this.versionManager
+        }
+      });
+    } catch (error) {
+      console.warn('[Storage] Failed to record initialization completion:', error);
+    }
+  }
+  
+  /**
+   * STORAGE-04: 記錄初始化失敗
+   */
+  async recordInitializationFailure(error) {
+    try {
+      await this.setSetting('lastInitializationFailure', {
+        timestamp: new Date().toISOString(),
+        error: error.message,
+        stack: error.stack?.substring(0, 1000),
+        dbVersion: this.dbVersion
+      });
+    } catch (recordError) {
+      console.warn('[Storage] Failed to record initialization failure:', recordError);
+    }
+  }
+
   // 清理和維護
   async cleanup() {
     try {
@@ -1522,6 +1949,15 @@ class PWACardStorage {
       
       // 清理孤立的版本記錄
       await this.cleanupOrphanedVersions();
+      
+      // STORAGE-04: 清理舊的遷移日誌
+      if (this.migrationLogManager) {
+        try {
+          await this.migrationLogManager.cleanupOldLogs({ daysOld: 90 });
+        } catch (logCleanupError) {
+          console.warn('[Storage] Migration log cleanup failed:', logCleanupError);
+        }
+      }
       
     } catch (error) {
       console.error('[Storage] Cleanup failed:', error);

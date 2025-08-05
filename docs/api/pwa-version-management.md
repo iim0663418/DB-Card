@@ -311,5 +311,5 @@ async restoreToVersion(cardId, targetVersion)
 ---
 
 **最後更新**: 2025-08-04  
-**API 版本**: v3.1.0  
+**API 版本**: v3.1.1  
 **相容性**: PWA Card Storage v1.1.0+

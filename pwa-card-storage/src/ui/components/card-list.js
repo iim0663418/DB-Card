@@ -372,21 +372,89 @@ class CardListComponent {
 
 
   async deleteCard(cardId) {
-    if (!confirm('確定要刪除這張名片嗎？此操作無法復原。')) {
+    // 使用更安全的確認對話框
+    let confirmResult;
+    if (window.SecurityInputHandler && window.SecurityInputHandler.secureConfirm) {
+      confirmResult = await window.SecurityInputHandler.secureConfirm(
+        '確定要刪除這張名片嗎？\n\n此操作無法復原，名片資料將永久刪除。', 
+        {
+          title: '刪除名片',
+          confirmText: '確定刪除',
+          cancelText: '取消',
+          danger: true
+        }
+      );
+    } else {
+      // 備用方案：使用標準 confirm
+      confirmResult = confirm('確定要刪除這張名片嗎？此操作無法復原。');
+    }
+    
+    if (!confirmResult) {
       return;
+    }
+
+    // 顯示刪除進度
+    if (window.app && window.app.showLoading) {
+      window.app.showLoading('正在刪除名片...');
     }
 
     try {
       if (!this.storage) {
-        throw new Error('Storage not available');
+        throw new Error('儲存服務不可用');
       }
       
+      // 獲取名片資料以便顯示更好的成功消息
+      let cardName = '名片';
+      try {
+        const card = await this.storage.getCard(cardId);
+        if (card && card.data && card.data.name) {
+          cardName = this.getDisplayName(card.data);
+        }
+      } catch (getError) {
+        console.warn('[CardList] Failed to get card name for deletion message:', getError.message);
+      }
+      
+      // 執行刪除操作
       await this.storage.deleteCard(cardId);
-      await this.loadCards(); // 重新載入列表
-      this.showNotification('名片已刪除', 'success');
+      
+      // 重新載入列表
+      await this.loadCards();
+      
+      // 顯示成功消息
+      this.showNotification(`「${cardName}」已成功刪除`, 'success');
+      
     } catch (error) {
       console.error('[CardList] Delete card failed:', error);
-      this.showNotification('刪除失敗', 'error');
+      
+      // 提供更詳細的錯誤信息
+      let errorMessage = '刪除失敗';
+      if (error.message.includes('不存在')) {
+        errorMessage = '要刪除的名片不存在';
+      } else if (error.message.includes('被拒絕')) {
+        errorMessage = '沒有權限刪除此名片';
+      } else if (error.message.includes('資料庫')) {
+        errorMessage = '資料庫錯誤，請稍後再試';
+      } else if (error.message.includes('Storage not available')) {
+        errorMessage = '儲存服務不可用，請重新整理頁面';
+      } else {
+        errorMessage = `刪除失敗: ${error.message}`;
+      }
+      
+      this.showNotification(errorMessage, 'error');
+      
+      // 在某些情況下，仍然嘗試重新載入列表以確保狀態同步
+      if (!error.message.includes('Storage not available')) {
+        try {
+          await this.loadCards();
+        } catch (reloadError) {
+          console.warn('[CardList] Failed to reload cards after deletion error:', reloadError.message);
+        }
+      }
+    } finally {
+      // 隱藏載入指示器
+      if (window.app && window.app.hideLoading) {
+        window.app.hideLoading();
+      }
     }
   }
 

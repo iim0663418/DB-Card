@@ -9,23 +9,24 @@ class SecurityInputHandler {
      * 驗證並清理用戶輸入
      */
     static validateAndSanitize(input, type = 'text', options = {}) {
-        const {
-            maxLength = 1000,
-            allowEmpty = false,
-            customPattern = null
-        } = options;
+        try {
+            const {
+                maxLength = 1000,
+                allowEmpty = false,
+                customPattern = null
+            } = options;
 
-        const errors = [];
-        
-        if (!input && !allowEmpty) {
-            errors.push('輸入不能為空');
-        }
-        
-        if (input && input.length > maxLength) {
-            errors.push(`輸入長度不能超過 ${maxLength} 字符`);
-        }
+            const errors = [];
+            
+            if (!input && !allowEmpty) {
+                errors.push('輸入不能為空');
+            }
+            
+            if (input && input.length > maxLength) {
+                errors.push(`輸入長度不能超過 ${maxLength} 字符`);
+            }
 
-        let sanitized = input ? this.#sanitizeInput(input) : '';
+            let sanitized = input ? this.#sanitizeInput(input) : '';
 
         // 類型驗證
         switch (type) {
@@ -50,11 +51,18 @@ class SecurityInputHandler {
             errors.push('輸入格式不正確');
         }
 
-        return {
-            isValid: errors.length === 0,
-            sanitized,
-            errors
-        };
+            return {
+                isValid: errors.length === 0,
+                sanitized,
+                errors
+            };
+        } catch (error) {
+            return {
+                isValid: false,
+                sanitized: '',
+                errors: ['輸入處理失敗']
+            };
+        }
     }
 
     /**
@@ -150,22 +158,48 @@ class SecurityInputHandler {
             min-width: 320px; max-width: 480px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         `;
 
-        dialog.innerHTML = `
-            <h3 style="margin: 0 0 16px 0; color: #333;">${this.#escapeHtml(config.title)}</h3>
-            <p style="margin: 0 0 16px 0; color: #666;">${this.#escapeHtml(config.message)}</p>
-            <input type="${config.inputType}" placeholder="${this.#escapeHtml(config.placeholder)}" 
-                   value="${this.#escapeHtml(config.defaultValue)}" 
-                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 16px;">
-            <div class="error-messages" style="color: #e74c3c; margin-bottom: 16px; display: none;"></div>
-            <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                <button class="cancel-btn" style="padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">取消</button>
-                <button class="confirm-btn" style="padding: 8px 16px; border: none; background: #007bff; color: white; border-radius: 4px; cursor: pointer;">確認</button>
-            </div>
-        `;
+        // Create elements safely without innerHTML
+        const title = document.createElement('h3');
+        title.style.cssText = 'margin: 0 0 16px 0; color: #333;';
+        title.textContent = config.title;
+        
+        const message = document.createElement('p');
+        message.style.cssText = 'margin: 0 0 16px 0; color: #666;';
+        message.textContent = config.message;
+        
+        const input = document.createElement('input');
+        input.type = config.inputType;
+        input.placeholder = config.placeholder;
+        input.value = config.defaultValue;
+        input.style.cssText = 'width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 16px;';
+        
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-messages';
+        errorDiv.style.cssText = 'color: #e74c3c; margin-bottom: 16px; display: none;';
+        
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.cssText = 'display: flex; gap: 8px; justify-content: flex-end;';
+        
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'cancel-btn';
+        cancelBtn.textContent = '取消';
+        cancelBtn.style.cssText = 'padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;';
+        
+        const confirmBtn = document.createElement('button');
+        confirmBtn.className = 'confirm-btn';
+        confirmBtn.textContent = '確認';
+        confirmBtn.style.cssText = 'padding: 8px 16px; border: none; background: #007bff; color: white; border-radius: 4px; cursor: pointer;';
+        
+        buttonContainer.appendChild(cancelBtn);
+        buttonContainer.appendChild(confirmBtn);
+        
+        dialog.appendChild(title);
+        dialog.appendChild(message);
+        dialog.appendChild(input);
+        dialog.appendChild(errorDiv);
+        dialog.appendChild(buttonContainer);
 
-        const input = dialog.querySelector('input');
-        const confirmBtn = dialog.querySelector('.confirm-btn');
-        const cancelBtn = dialog.querySelector('.cancel-btn');
+        // Elements are already created above
 
         confirmBtn.onclick = () => config.onConfirm(input.value);
         cancelBtn.onclick = config.onCancel;
@@ -205,17 +239,36 @@ class SecurityInputHandler {
             ? 'padding: 8px 16px; border: none; background: #dc3545; color: white; border-radius: 4px; cursor: pointer;'
             : 'padding: 8px 16px; border: none; background: #007bff; color: white; border-radius: 4px; cursor: pointer;';
 
-        dialog.innerHTML = `
-            <h3 style="margin: 0 0 16px 0; color: #333;">${this.#escapeHtml(config.title)}</h3>
-            <p style="margin: 0 0 24px 0; color: #666;">${this.#escapeHtml(config.message)}</p>
-            <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                <button class="cancel-btn" style="padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">${this.#escapeHtml(config.cancelText)}</button>
-                <button class="confirm-btn" style="${confirmBtnStyle}">${this.#escapeHtml(config.confirmText)}</button>
-            </div>
-        `;
+        // Create elements safely without innerHTML
+        const title = document.createElement('h3');
+        title.style.cssText = 'margin: 0 0 16px 0; color: #333;';
+        title.textContent = config.title;
+        
+        const message = document.createElement('p');
+        message.style.cssText = 'margin: 0 0 24px 0; color: #666;';
+        message.textContent = config.message;
+        
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.cssText = 'display: flex; gap: 8px; justify-content: flex-end;';
+        
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'cancel-btn';
+        cancelBtn.textContent = config.cancelText;
+        cancelBtn.style.cssText = 'padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;';
+        
+        const confirmBtn = document.createElement('button');
+        confirmBtn.className = 'confirm-btn';
+        confirmBtn.textContent = config.confirmText;
+        confirmBtn.style.cssText = confirmBtnStyle;
+        
+        buttonContainer.appendChild(cancelBtn);
+        buttonContainer.appendChild(confirmBtn);
+        
+        dialog.appendChild(title);
+        dialog.appendChild(message);
+        dialog.appendChild(buttonContainer);
 
-        const confirmBtn = dialog.querySelector('.confirm-btn');
-        const cancelBtn = dialog.querySelector('.cancel-btn');
+        // Elements are already created above
 
         confirmBtn.onclick = config.onConfirm;
         cancelBtn.onclick = config.onCancel;
@@ -224,9 +277,13 @@ class SecurityInputHandler {
             if (e.target === overlay) config.onCancel();
         };
 
-        document.onkeydown = (e) => {
-            if (e.key === 'Escape') config.onCancel();
+        const escapeHandler = (e) => {
+            if (e.key === 'Escape') {
+                document.removeEventListener('keydown', escapeHandler);
+                config.onCancel();
+            }
         };
+        document.addEventListener('keydown', escapeHandler);
 
         overlay.appendChild(dialog);
         document.body.appendChild(overlay);
@@ -255,7 +312,7 @@ class SecurityInputHandler {
         if (this.#activeDialog) {
             document.body.removeChild(this.#activeDialog);
             this.#activeDialog = null;
-            document.onkeydown = null;
+            // Event listeners are cleaned up in their respective handlers
         }
     }
 

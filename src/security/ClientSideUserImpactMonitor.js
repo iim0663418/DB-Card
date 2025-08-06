@@ -16,10 +16,10 @@ class ClientSideUserImpactMonitor {
       accessibility: {}
     };
     this.thresholds = {
-      pageLoadTime: 3000, // 3 seconds
-      interactionDelay: 100, // 100ms
-      errorRate: 0.05, // 5%
-      accessibilityScore: 0.8 // 80%
+      pageLoadTime: 5000, // 5 seconds (更寬鬆)
+      interactionDelay: 200, // 200ms (更寬鬆)
+      errorRate: 0.1, // 10% (更寬鬆)
+      accessibilityScore: 0.7 // 70% (更寬鬆)
     };
     this.observers = [];
     this.startTime = Date.now();
@@ -561,8 +561,8 @@ class ClientSideUserImpactMonitor {
       });
     }
     
-    // Interaction alerts
-    if (analysis.interactions.responsiveness < 80) {
+    // Interaction alerts (調整為更寬鬆的閾值)
+    if (analysis.interactions.responsiveness < 60) {
       alerts.push({
         type: 'interaction',
         severity: 'medium',

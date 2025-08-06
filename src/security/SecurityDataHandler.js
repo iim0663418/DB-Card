@@ -6,7 +6,7 @@ class SecurityDataHandler {
     static #encryptionKey = null;
 
     /**
-     * 清理輸出資料防止XSS
+     * 清理輸出資料防止XSS - 增強版本
      */
     static sanitizeOutput(data, context = 'html') {
         if (data === null || data === undefined) {
@@ -14,6 +14,11 @@ class SecurityDataHandler {
         }
 
         const str = String(data);
+        
+        // 預先檢查是否包含危險內容
+        if (this.#containsMaliciousContent(str)) {
+            return '[BLOCKED: Potentially malicious content]';
+        }
         
         switch (context) {
             case 'html':
@@ -24,9 +29,30 @@ class SecurityDataHandler {
                 return this.#escapeJavaScript(str);
             case 'css':
                 return this.#escapeCss(str);
+            case 'text':
+                return str; // 純文字不需轉義
             default:
                 return this.#escapeHtml(str);
         }
+    }
+
+    /**
+     * 檢測惡意內容
+     */
+    static #containsMaliciousContent(str) {
+        const maliciousPatterns = [
+            /<script[^>]*>/i,
+            /<iframe[^>]*>/i,
+            /<object[^>]*>/i,
+            /<embed[^>]*>/i,
+            /javascript:/i,
+            /vbscript:/i,
+            /data:text\/html/i,
+            /on\w+\s*=/i,
+            /<\w+[^>]*\son\w+/i
+        ];
+        
+        return maliciousPatterns.some(pattern => pattern.test(str));
     }
 
     /**
@@ -180,45 +206,64 @@ class SecurityDataHandler {
     }
 
     /**
-     * 安全日誌記錄 - 防止日誌注入
+     * 安全日誌記錄 - 防止日誌注入 (增強版)
      */
     static secureLog(level, message, details = {}) {
-        // 移除授權檢查以防止無限循環
-        // 日誌記錄應該是基礎功能，不需要額外的授權檢查
-        
-        const sanitizedMessage = this.#sanitizeLogMessage(message);
-        const sanitizedDetails = this.#sanitizeLogDetails(details);
-        
-        const logEntry = {
-            timestamp: new Date().toISOString(),
-            level: this.#sanitizeLogMessage(level.toUpperCase()),
-            message: sanitizedMessage,
-            details: sanitizedDetails,
-            source: 'SecurityDataHandler'
-        };
+        try {
+            const sanitizedMessage = this.#sanitizeLogMessage(message);
+            const sanitizedDetails = this.#sanitizeLogDetails(details);
+            
+            const logEntry = {
+                timestamp: new Date().toISOString(),
+                level: this.#sanitizeLogMessage(level.toUpperCase()),
+                message: sanitizedMessage,
+                details: sanitizedDetails,
+                source: 'SecurityDataHandler',
+                sessionId: this.#getSessionId()
+            };
 
-        // 根據級別決定輸出方式 - 使用已清理的資料
-        const safeLevel = level.toLowerCase().replace(/[^a-z]/g, '');
-        switch (safeLevel) {
-            case 'error':
-                console.error('[SECURITY]', JSON.stringify(logEntry));
-                break;
-            case 'warn':
-                console.warn('[SECURITY]', JSON.stringify(logEntry));
-                break;
-            case 'info':
-                console.info('[SECURITY]', JSON.stringify(logEntry));
-                break;
-            default:
-                console.log('[SECURITY]', JSON.stringify(logEntry));
+            // 檢查日誌大小限制
+            const logSize = JSON.stringify(logEntry).length;
+            if (logSize > 10000) {
+                logEntry.details = { error: 'Log entry too large, details truncated' };
+            }
+
+            // 根據級別決定輸出方式
+            const safeLevel = level.toLowerCase().replace(/[^a-z]/g, '');
+            switch (safeLevel) {
+                case 'error':
+                    console.error('[SECURITY]', JSON.stringify(logEntry));
+                    break;
+                case 'warn':
+                    console.warn('[SECURITY]', JSON.stringify(logEntry));
+                    break;
+                case 'info':
+                    console.info('[SECURITY]', JSON.stringify(logEntry));
+                    break;
+                default:
+                    console.log('[SECURITY]', JSON.stringify(logEntry));
+            }
+
+            // 可選：發送到遠端日誌服務
+            this.#sendToLogService(logEntry);
+        } catch (error) {
+            // 日誌系統本身出錯時的備用記錄
+            console.error('[SECURITY-LOG-ERROR]', 'Failed to log security event:', error.message);
         }
-
-        // 可選：發送到遠端日誌服務
-        this.#sendToLogService(logEntry);
     }
 
     /**
-     * HTML 轉義
+     * 獲取會話 ID
+     */
+    static #getSessionId() {
+        if (!this._sessionId) {
+            this._sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+        return this._sessionId;
+    }
+
+    /**
+     * HTML 轉義 - 增強 XSS 防護
      */
     static #escapeHtml(str) {
         const htmlEscapes = {
@@ -227,10 +272,65 @@ class SecurityDataHandler {
             '>': '&gt;',
             '"': '&quot;',
             "'": '&#x27;',
-            '/': '&#x2F;'
+            '/': '&#x2F;',
+            '`': '&#x60;',
+            '=': '&#x3D;'
         };
         
-        return str.replace(/[&<>"'/]/g, (match) => htmlEscapes[match]);
+        return str.replace(/[&<>"'/`=]/g, (match) => htmlEscapes[match]);
+    }
+
+    /**
+     * 安全 DOM 操作 - 防護 XSS
+     */
+    static createSafeElement(tagName, attributes = {}, textContent = '') {
+        const element = document.createElement(tagName);
+        
+        // 安全設定屬性
+        for (const [key, value] of Object.entries(attributes)) {
+            if (this.#isSafeAttribute(key)) {
+                element.setAttribute(key, this.sanitizeOutput(value, 'attribute'));
+            }
+        }
+        
+        // 安全設定文字內容
+        if (textContent) {
+            element.textContent = textContent;
+        }
+        
+        return element;
+    }
+
+    /**
+     * 檢查安全屬性
+     */
+    static #isSafeAttribute(attr) {
+        const dangerousAttrs = [
+            'onclick', 'onload', 'onerror', 'onmouseover',
+            'onfocus', 'onblur', 'onchange', 'onsubmit',
+            'javascript:', 'vbscript:', 'data:',
+            'srcdoc', 'sandbox'
+        ];
+        
+        return !dangerousAttrs.some(dangerous => 
+            attr.toLowerCase().includes(dangerous.toLowerCase())
+        );
+    }
+
+    /**
+     * 安全更新 DOM 內容
+     */
+    static updateElementSafely(element, content, context = 'html') {
+        if (!element) return;
+        
+        const sanitizedContent = this.sanitizeOutput(content, context);
+        
+        if (context === 'text') {
+            element.textContent = sanitizedContent;
+        } else {
+            // 使用 textContent 而非 innerHTML 防止 XSS
+            element.textContent = sanitizedContent;
+        }
     }
 
     /**
@@ -275,7 +375,7 @@ class SecurityDataHandler {
     }
 
     /**
-     * 清理日誌訊息
+     * 清理日誌訊息 - 增強版
      */
     static #sanitizeLogMessage(message) {
         if (typeof message !== 'string') {
@@ -288,11 +388,14 @@ class SecurityDataHandler {
             .replace(/\t/g, ' ')      // Replace tabs with spaces
             .replace(/[\x00-\x1f\x7f]/g, '') // Remove all control characters
             .replace(/[<>"'&]/g, '')  // Remove potential HTML/script chars
+            .replace(/\${.*?}/g, '')  // Remove template literals
+            .replace(/eval\s*\(/gi, '') // Remove eval attempts
+            .replace(/Function\s*\(/gi, '') // Remove Function constructor
             .substring(0, 1000);      // Limit length
     }
 
     /**
-     * 清理日誌詳情
+     * 清理日誌詳情 - 增強版
      */
     static #sanitizeLogDetails(details) {
         if (!details || typeof details !== 'object') {
@@ -300,16 +403,60 @@ class SecurityDataHandler {
         }
 
         const sanitized = {};
+        let entryCount = 0;
+        const maxEntries = 20; // 限制詳情項目數量
+        
         for (const [key, value] of Object.entries(details)) {
-            const sanitizedKey = this.#sanitizeLogMessage(key);
-            const sanitizedValue = typeof value === 'string' ? 
-                this.#sanitizeLogMessage(value) : 
-                JSON.stringify(value).substring(0, 500);
+            if (entryCount >= maxEntries) {
+                sanitized['...truncated'] = `${Object.keys(details).length - maxEntries} more entries`;
+                break;
+            }
             
-            sanitized[sanitizedKey] = sanitizedValue;
+            // 過濾敏感鍵名
+            if (this.#isSensitiveKey(key)) {
+                sanitized[this.#sanitizeLogMessage(key)] = '[REDACTED]';
+            } else {
+                const sanitizedKey = this.#sanitizeLogMessage(key);
+                const sanitizedValue = this.#sanitizeLogValue(value);
+                sanitized[sanitizedKey] = sanitizedValue;
+            }
+            
+            entryCount++;
         }
         
         return sanitized;
+    }
+
+    /**
+     * 檢查敏感鍵名
+     */
+    static #isSensitiveKey(key) {
+        const sensitiveKeys = [
+            'password', 'token', 'secret', 'key', 'auth',
+            'credential', 'session', 'cookie', 'pin',
+            'ssn', 'credit', 'card', 'phone', 'email'
+        ];
+        
+        const lowerKey = key.toLowerCase();
+        return sensitiveKeys.some(sensitive => lowerKey.includes(sensitive));
+    }
+
+    /**
+     * 清理日誌值
+     */
+    static #sanitizeLogValue(value) {
+        if (typeof value === 'string') {
+            return this.#sanitizeLogMessage(value);
+        } else if (typeof value === 'object' && value !== null) {
+            try {
+                const jsonStr = JSON.stringify(value, null, 0);
+                return jsonStr.substring(0, 500);
+            } catch (error) {
+                return '[Object - cannot serialize]';
+            }
+        } else {
+            return String(value).substring(0, 100);
+        }
     }
 
     /**

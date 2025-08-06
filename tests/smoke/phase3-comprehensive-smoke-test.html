@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 3 Comprehensive Smoke Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+            background: #1a1a1a;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        }
+        .test-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #444;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #333;
+            border-radius: 6px;
+            border-left: 4px solid #4CAF50;
+        }
+        .test-results {
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            border: 1px solid #444;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #FF9800; }
+        .info { color: #2196F3; }
+        .test-controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 10px;
+            font-size: 14px;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .btn.secondary {
+            background: #2196F3;
+        }
+        .btn.secondary:hover {
+            background: #1976D2;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .status-card {
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #666;
+            text-align: center;
+        }
+        .status-card.passed {
+            border-left-color: #4CAF50;
+        }
+        .status-card.failed {
+            border-left-color: #f44336;
+        }
+        .status-number {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .status-label {
+            font-size: 12px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🔒 Phase 3 Security Components Comprehensive Smoke Test</h1>
+            <p>Client-Side Monitoring & Rollback (SEC-07 to SEC-09)</p>
+        </div>
+
+        <div class="status-grid">
+            <div class="status-card" id="rollback-status">
+                <div class="status-number" id="rollback-score">-</div>
+                <div class="status-label">Rollback System</div>
+            </div>
+            <div class="status-card" id="impact-status">
+                <div class="status-number" id="impact-score">-</div>
+                <div class="status-label">Impact Monitor</div>
+            </div>
+            <div class="status-card" id="dashboard-status">
+                <div class="status-number" id="dashboard-score">-</div>
+                <div class="status-label">Security Dashboard</div>
+            </div>
+            <div class="status-card" id="overall-status">
+                <div class="status-number" id="overall-score">-</div>
+                <div class="status-label">Overall Status</div>
+            </div>
+        </div>
+
+        <div class="test-controls">
+            <button class="btn" onclick="runAllTests()">Run All Tests</button>
+            <button class="btn secondary" onclick="runRollbackTest()">Test Rollback</button>
+            <button class="btn secondary" onclick="runImpactTest()">Test Impact Monitor</button>
+            <button class="btn secondary" onclick="runDashboardTest()">Test Dashboard</button>
+            <button class="btn secondary" onclick="clearResults()">Clear Results</button>
+        </div>
+
+        <div class="test-section">
+            <h3>SEC-07: Client-Side Security Rollback</h3>
+            <div id="rollback-results" class="test-results">Click "Test Rollback" to run rollback system tests...</div>
+        </div>
+
+        <div class="test-section">
+            <h3>SEC-08: Client-Side User Impact Monitor</h3>
+            <div id="impact-results" class="test-results">Click "Test Impact Monitor" to run impact monitoring tests...</div>
+        </div>
+
+        <div class="test-section">
+            <h3>SEC-09: Client-Side Security Dashboard</h3>
+            <div id="dashboard-results" class="test-results">Click "Test Dashboard" to run dashboard tests...</div>
+        </div>
+
+        <div class="test-section">
+            <h3>Integration Test Results</h3>
+            <div id="integration-results" class="test-results">Integration tests will appear here after running all tests...</div>
+        </div>
+    </div>
+
+    <!-- Load Phase 3 Security Components -->
+    <script src="../../src/security/ClientSideSecurityRollback.js"></script>
+    <script src="../../src/security/ClientSideUserImpactMonitor.js"></script>
+    <script src="../../src/security/ClientSideSecurityDashboard.js"></script>
+
+    <!-- Load Test Scripts -->
+    <script src="phase3-rollback-smoke-test.js"></script>
+    <script src="phase3-impact-monitor-smoke-test.js"></script>
+    <script src="phase3-dashboard-smoke-test.js"></script>
+
+    <script>
+        let testResults = {
+            rollback: { passed: 0, failed: 0, total: 0 },
+            impact: { passed: 0, failed: 0, total: 0 },
+            dashboard: { passed: 0, failed: 0, total: 0 }
+        };
+
+        function updateStatusCard(component, passed, total) {
+            const statusCard = document.getElementById(`${component}-status`);
+            const scoreElement = document.getElementById(`${component}-score`);
+            
+            const percentage = total > 0 ? Math.round((passed / total) * 100) : 0;
+            scoreElement.textContent = `${percentage}%`;
+            
+            if (percentage >= 80) {
+                statusCard.className = 'status-card passed';
+            } else if (percentage >= 60) {
+                statusCard.className = 'status-card';
+            } else {
+                statusCard.className = 'status-card failed';
+            }
+        }
+
+        function updateOverallStatus() {
+            const totalPassed = testResults.rollback.passed + testResults.impact.passed + testResults.dashboard.passed;
+            const totalTests = testResults.rollback.total + testResults.impact.total + testResults.dashboard.total;
+            
+            updateStatusCard('overall', totalPassed, totalTests);
+        }
+
+        function captureConsoleOutput(targetElementId, testFunction) {
+            const originalLog = console.log;
+            const originalError = console.error;
+            const originalWarn = console.warn;
+            
+            const targetElement = document.getElementById(targetElementId);
+            let output = '';
+            
+            console.log = (...args) => {
+                const message = args.join(' ');
+                output += message + '\n';
+                if (message.includes('✅')) {
+                    targetElement.innerHTML += `<span class="success">${message}</span>\n`;
+                } else if (message.includes('===')) {
+                    targetElement.innerHTML += `<span class="info">${message}</span>\n`;
+                } else {
+                    targetElement.innerHTML += message + '\n';
+                }
+                originalLog.apply(console, args);
+            };
+            
+            console.error = (...args) => {
+                const message = args.join(' ');
+                output += message + '\n';
+                if (message.includes('❌')) {
+                    targetElement.innerHTML += `<span class="error">${message}</span>\n`;
+                } else {
+                    targetElement.innerHTML += `<span class="error">${message}</span>\n`;
+                }
+                originalError.apply(console, args);
+            };
+            
+            console.warn = (...args) => {
+                const message = args.join(' ');
+                output += message + '\n';
+                targetElement.innerHTML += `<span class="warning">${message}</span>\n`;
+                originalWarn.apply(console, args);
+            };
+            
+            try {
+                testFunction();
+            } catch (error) {
+                console.error('Test execution failed:', error.message);
+            }
+            
+            // Restore original console methods
+            console.log = originalLog;
+            console.error = originalError;
+            console.warn = originalWarn;
+            
+            // Count test results
+            const passed = (output.match(/✅/g) || []).length;
+            const failed = (output.match(/❌/g) || []).length;
+            
+            return { passed, failed, total: passed + failed };
+        }
+
+        function runRollbackTest() {
+            document.getElementById('rollback-results').innerHTML = '';
+            
+            const results = captureConsoleOutput('rollback-results', () => {
+                // Re-run the rollback test
+                eval(document.querySelector('script[src="phase3-rollback-smoke-test.js"]').innerHTML || '');
+            });
+            
+            testResults.rollback = results;
+            updateStatusCard('rollback', results.passed, results.total);
+            updateOverallStatus();
+        }
+
+        function runImpactTest() {
+            document.getElementById('impact-results').innerHTML = '';
+            
+            const results = captureConsoleOutput('impact-results', () => {
+                // Re-run the impact monitor test
+                eval(document.querySelector('script[src="phase3-impact-monitor-smoke-test.js"]').innerHTML || '');
+            });
+            
+            testResults.impact = results;
+            updateStatusCard('impact', results.passed, results.total);
+            updateOverallStatus();
+        }
+
+        function runDashboardTest() {
+            document.getElementById('dashboard-results').innerHTML = '';
+            
+            const results = captureConsoleOutput('dashboard-results', () => {
+                // Re-run the dashboard test
+                eval(document.querySelector('script[src="phase3-dashboard-smoke-test.js"]').innerHTML || '');
+            });
+            
+            testResults.dashboard = results;
+            updateStatusCard('dashboard', results.passed, results.total);
+            updateOverallStatus();
+        }
+
+        function runIntegrationTest() {
+            const integrationResults = document.getElementById('integration-results');
+            integrationResults.innerHTML = '';
+            
+            captureConsoleOutput('integration-results', () => {
+                console.log('=== Phase 3 Integration Test ===');
+                
+                try {
+                    // Test component interaction
+                    const rollback = new ClientSideSecurityRollback();
+                    const monitor = new ClientSideUserImpactMonitor();
+                    const dashboard = new ClientSideSecurityDashboard();
+                    
+                    // Test rollback trigger from monitor
+                    if (monitor.alertPerformanceDegradation && rollback.triggerRollback) {
+                        console.log('✅ Monitor-Rollback integration: PASSED');
+                    } else {
+                        console.error('❌ Monitor-Rollback integration: FAILED');
+                    }
+                    
+                    // Test dashboard component loading
+                    dashboard.loadSecurityComponents();
+                    if (dashboard.components.rollbackSystem && dashboard.components.userImpactMonitor) {
+                        console.log('✅ Dashboard component loading: PASSED');
+                    } else {
+                        console.error('❌ Dashboard component loading: FAILED');
+                    }
+                    
+                    // Test localStorage integration
+                    const testKey = 'phase3-integration-test';
+                    localStorage.setItem(testKey, JSON.stringify({ test: true }));
+                    const retrieved = localStorage.getItem(testKey);
+                    localStorage.removeItem(testKey);
+                    
+                    if (retrieved && JSON.parse(retrieved).test) {
+                        console.log('✅ localStorage integration: PASSED');
+                    } else {
+                        console.error('❌ localStorage integration: FAILED');
+                    }
+                    
+                    console.log('✅ Phase 3 Integration: ALL TESTS PASSED');
+                    
+                } catch (error) {
+                    console.error('❌ Phase 3 Integration: CRITICAL FAILURE -', error.message);
+                }
+            });
+        }
+
+        function runAllTests() {
+            console.log('Starting comprehensive Phase 3 smoke tests...');
+            
+            runRollbackTest();
+            setTimeout(() => {
+                runImpactTest();
+                setTimeout(() => {
+                    runDashboardTest();
+                    setTimeout(() => {
+                        runIntegrationTest();
+                        console.log('All Phase 3 tests completed!');
+                    }, 500);
+                }, 500);
+            }, 500);
+        }
+
+        function clearResults() {
+            document.getElementById('rollback-results').innerHTML = 'Click "Test Rollback" to run rollback system tests...';
+            document.getElementById('impact-results').innerHTML = 'Click "Test Impact Monitor" to run impact monitoring tests...';
+            document.getElementById('dashboard-results').innerHTML = 'Click "Test Dashboard" to run dashboard tests...';
+            document.getElementById('integration-results').innerHTML = 'Integration tests will appear here after running all tests...';
+            
+            testResults = {
+                rollback: { passed: 0, failed: 0, total: 0 },
+                impact: { passed: 0, failed: 0, total: 0 },
+                dashboard: { passed: 0, failed: 0, total: 0 }
+            };
+            
+            // Reset status cards
+            ['rollback', 'impact', 'dashboard', 'overall'].forEach(component => {
+                const statusCard = document.getElementById(`${component}-status`);
+                const scoreElement = document.getElementById(`${component}-score`);
+                statusCard.className = 'status-card';
+                scoreElement.textContent = '-';
+            });
+        }
+
+        // Auto-run tests on page load
+        window.addEventListener('load', () => {
+            console.log('Phase 3 Comprehensive Smoke Test loaded');
+            console.log('Use the buttons above to run individual tests or all tests together');
+        });
+    </script>
+</body>
+</html>

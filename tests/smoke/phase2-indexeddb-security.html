@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 2 IndexedDB Security - Smoke Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 3px; }
+        .pass { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .fail { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button { margin: 5px; padding: 10px 15px; cursor: pointer; }
+        .test-details { font-family: monospace; font-size: 12px; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Phase 2 IndexedDB Security - Smoke Test</h1>
+    <p>Testing PWA-05 (Field-level Encryption), PWA-06 (Database Access Control), PWA-07 (Secure Backup/Restore)</p>
+    
+    <div class="test-section">
+        <h2>Test Controls</h2>
+        <button onclick="runAllTests()">Run All Tests</button>
+        <button onclick="clearResults()">Clear Results</button>
+        <button onclick="resetDatabase()">Reset Database</button>
+    </div>
+
+    <div class="test-section">
+        <h2>PWA-05: Field-Level Encryption Tests</h2>
+        <div id="encryption-results"></div>
+        <button onclick="testFieldEncryption()">Test Field Encryption</button>
+        <button onclick="testEncryptionKeys()">Test Encryption Keys</button>
+        <button onclick="testSensitiveFieldHandling()">Test Sensitive Field Handling</button>
+    </div>
+
+    <div class="test-section">
+        <h2>PWA-06: Database Access Control Tests</h2>
+        <div id="access-control-results"></div>
+        <button onclick="testDatabaseAccess()">Test Database Access</button>
+        <button onclick="testRateLimiting()">Test Rate Limiting</button>
+        <button onclick="testPermissionValidation()">Test Permission Validation</button>
+    </div>
+
+    <div class="test-section">
+        <h2>PWA-07: Secure Backup/Restore Tests</h2>
+        <div id="backup-results"></div>
+        <button onclick="testSecureBackup()">Test Secure Backup</button>
+        <button onclick="testBackupRestore()">Test Backup Restore</button>
+        <button onclick="testBackupIntegrity()">Test Backup Integrity</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Integration Tests</h2>
+        <div id="integration-results"></div>
+        <button onclick="testEndToEndSecurity()">Test End-to-End Security</button>
+        <button onclick="testPerformanceImpact()">Test Performance Impact</button>
+    </div>
+
+    <script src="/pwa-card-storage/src/core/storage.js"></script>
+    <script src="/src/security/SecurityAuthHandler.js"></script>
+    <script src="/src/security/SecurityDataHandler.js"></script>
+    
+    <script>
+        let storage = null;
+        let testResults = [];
+
+        async function initializeStorage() {
+            try {
+                storage = new PWACardStorage();
+                await storage.initialize();
+                return true;
+            } catch (error) {
+                console.error('Storage initialization failed:', error);
+                return false;
+            }
+        }
+
+        function logResult(testName, passed, details = '', section = 'general') {
+            const result = {
+                test: testName,
+                passed,
+                details,
+                timestamp: new Date().toISOString(),
+                section
+            };
+            testResults.push(result);
+            
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            resultDiv.innerHTML = `
+                <strong>${passed ? '✓' : '✗'} ${testName}</strong>
+                ${details ? `<div class="test-details">${details}</div>` : ''}
+            `;
+            
+            const sectionId = section === 'encryption' ? 'encryption-results' :
+                            section === 'access' ? 'access-control-results' :
+                            section === 'backup' ? 'backup-results' :
+                            'integration-results';
+            
+            document.getElementById(sectionId).appendChild(resultDiv);
+        }
+
+        // PWA-05: Field-Level Encryption Tests
+        async function testFieldEncryption() {
+            const testData = {
+                name: 'Test User',
+                email: 'test@example.com',
+                phone: '+1234567890',
+                mobile: '+0987654321',
+                address: '123 Test Street',
+                socialNote: 'Facebook: testuser'
+            };
+
+            try {
+                if (!storage) await initializeStorage();
+                
+                // Test encryption of sensitive fields
+                const encryptedData = await storage.encryptCardData(testData);
+                
+                // Verify sensitive fields are encrypted
+                const sensitiveFields = ['email', 'phone', 'mobile', 'address', 'socialNote'];
+                let encryptedCount = 0;
+                
+                for (const field of sensitiveFields) {
+                    if (encryptedData[field] && typeof encryptedData[field] === 'object' && encryptedData[field].encrypted) {
+                        encryptedCount++;
+                    }
+                }
+                
+                const allEncrypted = encryptedCount === sensitiveFields.length;
+                logResult('Field Encryption', allEncrypted, 
+                    `Encrypted ${encryptedCount}/${sensitiveFields.length} sensitive fields`, 'encryption');
+                
+                // Test decryption
+                const decryptedData = await storage.decryptCardData(encryptedData);
+                const decryptionWorked = decryptedData.email === testData.email && 
+                                       decryptedData.phone === testData.phone;
+                
+                logResult('Field Decryption', decryptionWorked, 
+                    `Decryption restored original values: ${decryptionWorked}`, 'encryption');
+                
+            } catch (error) {
+                logResult('Field Encryption', false, `Error: ${error.message}`, 'encryption');
+            }
+        }
+
+        async function testEncryptionKeys() {
+            try {
+                if (!storage) await initializeStorage();
+                
+                // Test encryption key generation
+                const hasEncryptionKey = !!storage.encryptionKey;
+                const hasFieldKeys = !!storage.fieldEncryptionKeys;
+                
+                logResult('Encryption Key Generation', hasEncryptionKey, 
+                    `Main encryption key: ${hasEncryptionKey}`, 'encryption');
+                
+                logResult('Field Encryption Keys', hasFieldKeys, 
+                    `Field-level keys: ${hasFieldKeys}`, 'encryption');
+                
+                // Test encryption status
+                const encryptionEnabled = storage.encryptionStatus?.enabled === true;
+                const fieldLevelEnabled = storage.encryptionStatus?.fieldLevel === true;
+                
+                logResult('Encryption Status', encryptionEnabled && fieldLevelEnabled, 
+                    `Encryption enabled: ${encryptionEnabled}, Field-level: ${fieldLevelEnabled}`, 'encryption');
+                
+            } catch (error) {
+                logResult('Encryption Keys', false, `Error: ${error.message}`, 'encryption');
+            }
+        }
+
+        async function testSensitiveFieldHandling() {
+            try {
+                if (!storage) await initializeStorage();
+                
+                // Test individual field encryption
+                const testEmail = 'sensitive@example.com';
+                const encryptedEmail = await storage.encryptSensitiveField('email', testEmail);
+                
+                const isEncrypted = typeof encryptedEmail === 'object' && encryptedEmail.encrypted === true;
+                logResult('Individual Field Encryption', isEncrypted, 
+                    `Email field encrypted: ${isEncrypted}`, 'encryption');
+                
+                // Test individual field decryption
+                const decryptedEmail = await storage.decryptSensitiveField('email', encryptedEmail);
+                const decryptionCorrect = decryptedEmail === testEmail;
+                
+                logResult('Individual Field Decryption', decryptionCorrect, 
+                    `Email decryption correct: ${decryptionCorrect}`, 'encryption');
+                
+            } catch (error) {
+                logResult('Sensitive Field Handling', false, `Error: ${error.message}`, 'encryption');
+            }
+        }
+
+        // PWA-06: Database Access Control Tests
+        async function testDatabaseAccess() {
+            try {
+                if (!storage) await initializeStorage();
+                
+                // Test read access validation
+                const readAccess = await storage.validateDatabaseAccess('read', 'card-data');
+                const readAuthorized = readAccess.authorized === true;
+                
+                logResult('Read Access Validation', readAuthorized, 
+                    `Read access authorized: ${readAuthorized}`, 'access');
+                
+                // Test write access validation
+                const writeAccess = await storage.validateDatabaseAccess('write', 'card-data');
+                const writeAuthorized = writeAccess.authorized === true;
+                
+                logResult('Write Access Validation', writeAuthorized, 
+                    `Write access authorized: ${writeAuthorized}`, 'access');
+                
+                // Test permission checking
+                const permissions = await storage.checkDatabasePermissions('read', 'card-data');
+                const permissionsValid = permissions.allowed === true;
+                
+                logResult('Permission Checking', permissionsValid, 
+                    `Permissions valid: ${permissionsValid}`, 'access');
+                
+            } catch (error) {
+                logResult('Database Access', false, `Error: ${error.message}`, 'access');
+            }
+        }
+
+        async function testRateLimiting() {
+            try {
+                if (!storage) await initializeStorage();
+                
+                // Test rate limiting for read operations
+                const rateLimitResults = [];
+                for (let i = 0; i < 5; i++) {
+                    const result = await storage.checkRateLimit('read', 100);
+                    rateLimitResults.push(result.allowed);
+                }
+                
+                const allAllowed = rateLimitResults.every(allowed => allowed === true);
+                logResult('Rate Limiting - Normal Load', allAllowed, 
+                    `5 read operations allowed: ${allAllowed}`, 'access');
+                
+                // Test rate limit enforcement (simulate high load)
+                const highLoadResults = [];
+                for (let i = 0; i < 105; i++) {
+                    const result = await storage.checkRateLimit('test_high_load', 100);
+                    highLoadResults.push(result.allowed);
+                }
+                
+                const someBlocked = highLoadResults.includes(false);
+                logResult('Rate Limiting - High Load', someBlocked, 
+                    `Rate limiting activated under high load: ${someBlocked}`, 'access');
+                
+            } catch (error) {
+                logResult('Rate Limiting', false, `Error: ${error.message}`, 'access');
+            }
+        }
+
+        async function testPermissionValidation() {
+            try {
+                if (!storage) await initializeStorage();
+                
+                // Test valid operation permissions
+                const validOps = ['read', 'write', 'delete'];
+                const validationResults = [];
+                
+                for (const op of validOps) {
+                    const result = await storage.checkDatabasePermissions(op, 'card-data');
+                    validationResults.push(result.allowed);
+                }
+                
+                const allValid = validationResults.every(allowed => allowed === true);
+                logResult('Permission Validation', allValid, 
+                    `All standard operations permitted: ${allValid}`, 'access');
+                
+            } catch (error) {
+                logResult('Permission Validation', false, `Error: ${error.message}`, 'access');
+            }
+        }
+
+        // PWA-07: Secure Backup/Restore Tests
+        async function testSecureBackup() {
+            try {
+                if (!storage) await initializeStorage();
+                
+                // Create test data
+                const testCard = {
+                    name: 'Backup Test User',
+                    email: 'backup@test.com',
+                    phone: '+1111111111',
+                    title: 'Test Manager'
+                };
+                
+                const cardId = await storage.storeCard(testCard);
+                
+                // Create secure backup
+                const backupResult = await storage.createSecureBackup({
+                    encrypt: true,
+                    includeVersions: false
+                });
+                
+                const backupSuccess = backupResult.success === true;
+                logResult('Secure Backup Creation', backupSuccess, 
+                    `Backup created: ${backupSuccess}, Size: ${backupResult.size} bytes`, 'backup');
+                
+                // Verify backup is encrypted
+                const isEncrypted = backupResult.data && backupResult.data.encrypted === true;
+                logResult('Backup Encryption', isEncrypted, 
+                    `Backup data encrypted: ${isEncrypted}`, 'backup');
+                
+                // Clean up test data
+                await storage.deleteCard(cardId);
+                
+            } catch (error) {
+                logResult('Secure Backup', false, `Error: ${error.message}`, 'backup');
+            }
+        }
+
+        async function testBackupRestore() {
+            try {
+                if (!storage) await initializeStorage();
+                
+                // Create test data
+                const testCard = {
+                    name: 'Restore Test User',
+                    email: 'restore@test.com',
+                    phone: '+2222222222',
+                    title: 'Restore Manager'
+                };
+                
+                const cardId = await storage.storeCard(testCard);
+                
+                // Create backup
+                const backupResult = await storage.createSecureBackup({ encrypt: true });
+                
+                // Delete original data
+                await storage.deleteCard(cardId);
+                
+                // Restore from backup
+                const restoreResult = await storage.restoreFromSecureBackup(backupResult.data, {
+                    overwriteExisting: true,
+                    verifyIntegrity: true
+                });
+                
+                const restoreSuccess = restoreResult.success === true;
+                logResult('Backup Restore', restoreSuccess, 
+                    `Restored ${restoreResult.restoredCards} cards`, 'backup');
+                
+                // Verify restored data
+                const restoredCard = await storage.getCard(cardId);
+                const dataIntact = restoredCard && restoredCard.data.name === testCard.name;
+                
+                logResult('Restored Data Integrity', dataIntact, 
+                    `Original data preserved: ${dataIntact}`, 'backup');
+                
+                // Clean up
+                if (restoredCard) {
+                    await storage.deleteCard(cardId);
+                }
+                
+            } catch (error) {
+                logResult('Backup Restore', false, `Error: ${error.message}`, 'backup');
+            }
+        }
+
+        async function testBackupIntegrity() {
+            try {
+                if (!storage) await initializeStorage();
+                
+                // Create test data
+                const testCard = {
+                    name: 'Integrity Test User',
+                    email: 'integrity@test.com'
+                };
+                
+                const cardId = await storage.storeCard(testCard);
+                
+                // Create backup with integrity checking
+                const backupResult = await storage.createSecureBackup({ encrypt: true });
+                
+                // Verify integrity hash exists
+                const hasIntegrityHash = backupResult.metadata && backupResult.metadata.integrityHash;
+                logResult('Backup Integrity Hash', hasIntegrityHash, 
+                    `Integrity hash generated: ${hasIntegrityHash}`, 'backup');
+                
+                // Test integrity verification during restore
+                const restoreResult = await storage.restoreFromSecureBackup(backupResult.data, {
+                    verifyIntegrity: true
+                });
+                
+                const integrityVerified = restoreResult.success === true;
+                logResult('Integrity Verification', integrityVerified, 
+                    `Integrity verification passed: ${integrityVerified}`, 'backup');
+                
+                // Clean up
+                await storage.deleteCard(cardId);
+                
+            } catch (error) {
+                logResult('Backup Integrity', false, `Error: ${error.message}`, 'backup');
+            }
+        }
+
+        // Integration Tests
+        async function testEndToEndSecurity() {
+            try {
+                if (!storage) await initializeStorage();
+                
+                // Test complete security flow: Store -> Encrypt -> Backup -> Restore -> Decrypt
+                const testCard = {
+                    name: 'E2E Security Test',
+                    email: 'e2e@security.test',
+                    phone: '+3333333333',
+                    address: '456 Security Lane'
+                };
+                
+                // Store with encryption
+                const cardId = await storage.storeCard(testCard);
+                
+                // Verify card is encrypted in storage
+                const storedCard = await storage.safeTransaction(['cards'], 'readonly', async (transaction) => {
+                    const store = transaction.objectStore('cards');
+                    return new Promise((resolve) => {
+                        const request = store.get(cardId);
+                        request.onsuccess = () => resolve(request.result);
+                    });
+                });
+                
+                const isStoredEncrypted = storedCard.encrypted === true;
+                
+                // Retrieve and verify decryption works
+                const retrievedCard = await storage.getCard(cardId);
+                const decryptionWorks = retrievedCard.data.email === testCard.email;
+                
+                // Create backup
+                const backupResult = await storage.createSecureBackup({ encrypt: true });
+                
+                // Delete and restore
+                await storage.deleteCard(cardId);
+                const restoreResult = await storage.restoreFromSecureBackup(backupResult.data);
+                
+                // Final verification
+                const finalCard = await storage.getCard(cardId);
+                const e2eSuccess = finalCard && finalCard.data.email === testCard.email;
+                
+                logResult('End-to-End Security', e2eSuccess, 
+                    `Complete security flow: Store(${!!cardId}) -> Encrypt(${isStoredEncrypted}) -> Decrypt(${decryptionWorks}) -> Backup(${backupResult.success}) -> Restore(${restoreResult.success}) -> Verify(${e2eSuccess})`, 'integration');
+                
+                // Clean up
+                if (finalCard) {
+                    await storage.deleteCard(cardId);
+                }
+                
+            } catch (error) {
+                logResult('End-to-End Security', false, `Error: ${error.message}`, 'integration');
+            }
+        }
+
+        async function testPerformanceImpact() {
+            try {
+                if (!storage) await initializeStorage();
+                
+                const testCard = {
+                    name: 'Performance Test',
+                    email: 'perf@test.com',
+                    phone: '+4444444444'
+                };
+                
+                // Measure encryption performance
+                const encryptStart = performance.now();
+                const encryptedData = await storage.encryptCardData(testCard);
+                const encryptTime = performance.now() - encryptStart;
+                
+                // Measure decryption performance
+                const decryptStart = performance.now();
+                const decryptedData = await storage.decryptCardData(encryptedData);
+                const decryptTime = performance.now() - decryptStart;
+                
+                // Measure storage performance
+                const storeStart = performance.now();
+                const cardId = await storage.storeCard(testCard);
+                const storeTime = performance.now() - storeStart;
+                
+                // Measure retrieval performance
+                const retrieveStart = performance.now();
+                const retrievedCard = await storage.getCard(cardId);
+                const retrieveTime = performance.now() - retrieveStart;
+                
+                const performanceAcceptable = encryptTime < 100 && decryptTime < 100 && 
+                                            storeTime < 500 && retrieveTime < 500;
+                
+                logResult('Performance Impact', performanceAcceptable, 
+                    `Encrypt: ${encryptTime.toFixed(2)}ms, Decrypt: ${decryptTime.toFixed(2)}ms, Store: ${storeTime.toFixed(2)}ms, Retrieve: ${retrieveTime.toFixed(2)}ms`, 'integration');
+                
+                // Clean up
+                await storage.deleteCard(cardId);
+                
+            } catch (error) {
+                logResult('Performance Impact', false, `Error: ${error.message}`, 'integration');
+            }
+        }
+
+        // Utility functions
+        async function runAllTests() {
+            clearResults();
+            
+            const initSuccess = await initializeStorage();
+            if (!initSuccess) {
+                logResult('Storage Initialization', false, 'Failed to initialize storage', 'general');
+                return;
+            }
+            
+            logResult('Storage Initialization', true, 'Storage initialized successfully', 'general');
+            
+            // Run all test suites
+            await testFieldEncryption();
+            await testEncryptionKeys();
+            await testSensitiveFieldHandling();
+            
+            await testDatabaseAccess();
+            await testRateLimiting();
+            await testPermissionValidation();
+            
+            await testSecureBackup();
+            await testBackupRestore();
+            await testBackupIntegrity();
+            
+            await testEndToEndSecurity();
+            await testPerformanceImpact();
+            
+            // Summary
+            const totalTests = testResults.length;
+            const passedTests = testResults.filter(r => r.passed).length;
+            const failedTests = totalTests - passedTests;
+            
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = `test-result ${failedTests === 0 ? 'pass' : 'fail'}`;
+            summaryDiv.innerHTML = `
+                <strong>Test Summary: ${passedTests}/${totalTests} tests passed</strong>
+                <div class="test-details">
+                    Passed: ${passedTests}, Failed: ${failedTests}
+                    ${failedTests > 0 ? '<br>⚠️ Some security features may not be working correctly' : '<br>✅ All Phase 2 security features are working correctly'}
+                </div>
+            `;
+            
+            document.getElementById('integration-results').appendChild(summaryDiv);
+        }
+
+        function clearResults() {
+            testResults = [];
+            const resultSections = ['encryption-results', 'access-control-results', 'backup-results', 'integration-results'];
+            resultSections.forEach(sectionId => {
+                document.getElementById(sectionId).innerHTML = '';
+            });
+        }
+
+        async function resetDatabase() {
+            try {
+                if (storage) {
+                    await storage.cleanup();
+                }
+                
+                // Clear IndexedDB
+                const databases = await indexedDB.databases();
+                for (const db of databases) {
+                    if (db.name === 'PWACardStorage') {
+                        indexedDB.deleteDatabase(db.name);
+                    }
+                }
+                
+                storage = null;
+                
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'test-result info';
+                infoDiv.innerHTML = '<strong>Database Reset</strong><div class="test-details">Database cleared and ready for testing</div>';
+                document.getElementById('integration-results').appendChild(infoDiv);
+                
+            } catch (error) {
+                console.error('Database reset failed:', error);
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', async () => {
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'test-result info';
+            infoDiv.innerHTML = '<strong>Phase 2 IndexedDB Security Test Suite Ready</strong><div class="test-details">Click "Run All Tests" to validate PWA-05, PWA-06, and PWA-07 implementations</div>';
+            document.getElementById('integration-results').appendChild(infoDiv);
+        });
+    </script>
+</body>
+</html>

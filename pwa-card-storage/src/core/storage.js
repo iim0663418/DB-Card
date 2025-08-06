@@ -11,6 +11,17 @@ class PWACardStorage {
     this.encryptionKey = null;
     this.maxVersions = 10; // 版本控制限制
     
+    // SEC-01: Initialize static hosting security components
+    this.securityToggle = null;
+    this.compatibilityLayer = null;
+    this.healthMonitor = null;
+    this.gracefulDegradation = null;
+    this.errorRecovery = null;
+    this.rollbackSystem = null; // SEC-07
+    this.userImpactMonitor = null; // SEC-08
+    this.securityDashboard = null; // SEC-09
+    this.securityMode = 'compatibility'; // compatibility, secure, fallback
+    
     // 專用管理器實例
     this.duplicateDetector = null;
     this.versionManager = null;
@@ -50,6 +61,9 @@ class PWACardStorage {
   async initialize() {
     try {
       console.log('[Storage] Starting initialization...');
+      
+      // SEC-01: Initialize security components first
+      await this.initializeSecurityComponents();
       
       // 開啟資料庫連線
       this.db = await this.openDatabase();
@@ -123,15 +137,136 @@ class PWACardStorage {
       // STORAGE-04: 記錄初始化完成
       await this.recordInitializationComplete(healthResult);
       
+      // SEC-03: Start health monitoring
+      if (this.healthMonitor) {
+        await this.healthMonitor.initialize();
+      }
+      
       console.log('[Storage] Initialization completed successfully');
       return true;
     } catch (error) {
       console.error('[Storage] Initialization failed:', error);
       
+      // SEC-02: Record initialization failure
+      if (this.healthMonitor) {
+        await this.healthMonitor.recordSecurityEvent('initialization_failure', {
+          error: error.message,
+          timestamp: Date.now()
+        });
+      }
+      
+      // SEC-04: Handle initialization failure with graceful degradation
+      if (this.gracefulDegradation) {
+        await this.gracefulDegradation.handleModuleFailure('storage', error, {
+          operation: 'initialization',
+          timestamp: Date.now()
+        });
+      }
+      
+      // SEC-06: Attempt error recovery
+      if (this.errorRecovery) {
+        const recoveryResult = await this.errorRecovery.handleSecurityError(error, {
+          module: 'storage',
+          operation: 'initialization'
+        });
+        
+        if (recoveryResult.recovered) {
+          console.log('[Storage] Initialization recovered automatically');
+          return this.initialize(); // Retry initialization
+        }
+      }
+      
       // STORAGE-04: 記錄初始化失敗
       await this.recordInitializationFailure(error);
       
       throw error;
+    }
+  }
+
+  /**
+   * SEC-01: Initialize security components for static hosting
+   */
+  async initializeSecurityComponents() {
+    try {
+      // Initialize security toggle
+      if (window.StaticHostingSecurityToggle) {
+        this.securityToggle = new window.StaticHostingSecurityToggle();
+      }
+      
+      // Initialize compatibility layer
+      if (window.StaticHostingCompatibilityLayer) {
+        this.compatibilityLayer = new window.StaticHostingCompatibilityLayer();
+        await this.compatibilityLayer.initialize();
+        
+        // Determine security mode based on available features
+        const status = this.compatibilityLayer.getStatus();
+        if (status.secureStorageAvailable && status.authHandlerAvailable) {
+          this.securityMode = 'secure';
+        } else if (status.fallbackAvailable) {
+          this.securityMode = 'compatibility';
+        } else {
+          this.securityMode = 'fallback';
+        }
+      }
+      
+      // Initialize health monitor
+      if (window.ClientSideSecurityHealthMonitor) {
+        this.healthMonitor = new window.ClientSideSecurityHealthMonitor();
+      }
+      
+      // SEC-04: Initialize graceful degradation
+      if (window.ClientSideGracefulDegradation) {
+        this.gracefulDegradation = new window.ClientSideGracefulDegradation();
+        await this.gracefulDegradation.initialize();
+      }
+      
+      // SEC-06: Initialize error recovery
+      if (window.ClientSideSecurityErrorRecovery) {
+        this.errorRecovery = new window.ClientSideSecurityErrorRecovery();
+        await this.errorRecovery.initialize();
+      }
+      
+      // SEC-07: Initialize rollback system
+      if (window.ClientSideSecurityRollback) {
+        this.rollbackSystem = new window.ClientSideSecurityRollback();
+        await this.rollbackSystem.initialize();
+      }
+      
+      // SEC-08: Initialize user impact monitor
+      if (window.ClientSideUserImpactMonitor) {
+        this.userImpactMonitor = new window.ClientSideUserImpactMonitor();
+        await this.userImpactMonitor.initialize();
+      }
+      
+      // SEC-09: Initialize security dashboard
+      if (window.ClientSideSecurityDashboard) {
+        this.securityDashboard = new window.ClientSideSecurityDashboard();
+        await this.securityDashboard.initialize();
+      }
+      
+      // SEC-10 to SEC-12: Initialize Phase 4 User Experience Components
+      if (window.ClientSideUserCommunication) {
+        this.userCommunication = new window.ClientSideUserCommunication();
+        await this.userCommunication.init();
+      }
+      
+      if (window.ClientSideSecurityOnboarding) {
+        this.securityOnboarding = new window.ClientSideSecurityOnboarding();
+        await this.securityOnboarding.init();
+      }
+      
+      if (window.ClientSideSecuritySettings) {
+        this.securitySettings = new window.ClientSideSecuritySettings();
+        await this.securitySettings.init();
+      }
+      
+      console.log(`[Storage] Security mode: ${this.securityMode}`);
+      console.log(`[Storage] Phase 2 components: degradation=${!!this.gracefulDegradation}, recovery=${!!this.errorRecovery}`);
+      console.log(`[Storage] Phase 3 components: rollback=${!!this.rollbackSystem}, impact=${!!this.userImpactMonitor}, dashboard=${!!this.securityDashboard}`);
+      console.log(`[Storage] Phase 4 components: communication=${!!this.userCommunication}, onboarding=${!!this.securityOnboarding}, settings=${!!this.securitySettings}`);
+    } catch (error) {
+      console.warn('[Storage] Security components initialization failed:', error);
+      this.securityMode = 'fallback';
     }
   }
 
@@ -264,41 +399,59 @@ class PWACardStorage {
 
   async initializeEncryption() {
     try {
-      // 檢查是否已有加密金鑰資料
+      // PWA-05: Enhanced field-level encryption initialization
       let keyData = await this.getSetting('encryptionKey');
       
       if (!keyData) {
-        // 生成新的加密金鑰資料
+        // Generate new encryption key with enhanced security
         const salt = crypto.getRandomValues(new Uint8Array(32));
         const keyMaterial = await this.deriveKeyFromPBKDF2('default-password', salt);
         
         this.encryptionKey = keyMaterial;
         this.encryptionSalt = salt;
         
-        // 儲存金鑰資料（不儲存實際金鑰）
+        // PWA-05: Initialize field-level encryption keys
+        this.fieldEncryptionKeys = await this.generateFieldEncryptionKeys();
+        
+        // Store key metadata (never store actual keys)
         await this.setSetting('encryptionKey', {
           created: new Date().toISOString(),
           algorithm: 'AES-GCM',
           keyDerivation: 'PBKDF2',
           iterations: 100000,
           saltLength: 32,
-          salt: Array.from(salt)
+          salt: Array.from(salt),
+          fieldEncryption: true,
+          version: '2.0'
         });
         
       } else {
-        // 使用已存在的鹽值重新生成金鑰
+        // Use existing salt to regenerate keys
         const salt = new Uint8Array(keyData.salt);
         const keyMaterial = await this.deriveKeyFromPBKDF2('default-password', salt);
         
         this.encryptionKey = keyMaterial;
         this.encryptionSalt = salt;
         
+        // PWA-05: Regenerate field-level encryption keys
+        this.fieldEncryptionKeys = await this.generateFieldEncryptionKeys();
       }
+      
+      // PWA-05: Initialize encryption status tracking
+      this.encryptionStatus = {
+        enabled: true,
+        fieldLevel: true,
+        algorithm: 'AES-GCM',
+        keyDerivation: 'PBKDF2'
+      };
+      
     } catch (error) {
       console.error('[Storage] Encryption initialization failed:', error);
-      // 繼續運作但不加密
+      // Continue operation without encryption
       this.encryptionKey = null;
       this.encryptionSalt = null;
+      this.fieldEncryptionKeys = null;
+      this.encryptionStatus = { enabled: false };
     }
   }
 
@@ -388,40 +541,47 @@ class PWACardStorage {
   // 基本 CRUD 操作
   async storeCard(cardData) {
     try {
-      // SEC-006 修復：添加授權檢查
-      const authResult = window.SecurityAuthHandler?.validateAccess('card-data', 'write', {
-        userId: 'current-user',
-        timestamp: Date.now()
-      });
+      // SEC-02: Use compatibility layer for access validation
+      let authResult;
+      if (this.compatibilityLayer) {
+        authResult = await this.compatibilityLayer.validateAccess('write', 'card-data');
+      } else {
+        // Fallback to original validation
+        authResult = await this.validateDatabaseAccess('write', 'card-data');
+      }
       
-      if (authResult && !authResult.authorized) {
+      if (!authResult.authorized) {
         throw new Error(`存取被拒絕: ${authResult.reason}`);
       }
       
       const id = this.generateId();
       const now = new Date();
       
-      // 在儲存前標準化資料格式，確保 greetings 是字串陣列
+      // Normalize data format
       const normalizedData = this.normalizeCardDataForStorage(cardData);
       
-      // 生成指紋 - 使用專用管理器
+      // PWA-05: Apply field-level encryption to sensitive data
+      const encryptedData = await this.encryptCardData(normalizedData);
+      
+      // Generate fingerprint
       const fingerprint = await this.generateFingerprintSafe(normalizedData);
       
       const card = {
         id,
         type: this.detectCardType(normalizedData),
-        data: normalizedData,
+        data: encryptedData,
         created: now,
         modified: now,
         currentVersion: 1,
         checksum: await this.calculateChecksum(normalizedData),
         fingerprint,
-        encrypted: false,
+        encrypted: true, // PWA-05: Mark as encrypted
+        encryptionVersion: '2.0',
         tags: [],
         isFavorite: false
       };
 
-      // 使用安全事務機制
+      // PWA-06: Use secure transaction with integrity checks
       await this.safeTransaction(['cards'], 'readwrite', async (transaction) => {
         const store = transaction.objectStore('cards');
         
@@ -434,16 +594,32 @@ class PWACardStorage {
         });
       });
 
-      // 建立版本快照 - 使用專用管理器
+      // Create version snapshot with encrypted data
       try {
         await this.createVersionSnapshotSafe(id, normalizedData, 'create');
       } catch (versionError) {
-        // 不阻斷主要操作
+        console.warn('[Storage] Version snapshot creation failed:', versionError);
       }
 
+      // SEC-03: Record successful storage
+      if (this.healthMonitor) {
+        await this.healthMonitor.recordEvent('card_stored', {
+          cardId: id.substring(0, 8) + '...',
+          securityMode: this.securityMode
+        });
+      }
+      
       return id;
     } catch (error) {
-      // SEC-004 修復：使用安全日誌記錄
+      // SEC-03: Record storage failure
+      if (this.healthMonitor) {
+        await this.healthMonitor.recordSecurityEvent('store_card_failed', {
+          error: error.message,
+          operation: 'storeCard',
+          securityMode: this.securityMode
+        });
+      }
+      
       if (window.SecurityDataHandler) {
         window.SecurityDataHandler.secureLog('error', 'Store card failed', {
           error: error.message,
@@ -512,7 +688,19 @@ class PWACardStorage {
 
   async getCard(id) {
     try {
-      return await this.safeTransaction(['cards'], 'readonly', async (transaction) => {
+      // SEC-02: Use compatibility layer for access validation
+      let authResult;
+      if (this.compatibilityLayer) {
+        authResult = await this.compatibilityLayer.validateAccess('read', 'card-data');
+      } else {
+        authResult = await this.validateDatabaseAccess('read', 'card-data');
+      }
+      
+      if (!authResult.authorized) {
+        throw new Error(`讀取被拒絕: ${authResult.reason}`);
+      }
+      
+      const card = await this.safeTransaction(['cards'], 'readonly', async (transaction) => {
         const store = transaction.objectStore('cards');
         
         return new Promise((resolve, reject) => {
@@ -521,6 +709,15 @@ class PWACardStorage {
           request.onerror = () => reject(request.error);
         });
       });
+      
+      if (!card) return null;
+      
+      // PWA-05: Decrypt sensitive fields if encrypted
+      if (card.encrypted && card.data) {
+        card.data = await this.decryptCardData(card.data);
+      }
+      
+      return card;
     } catch (error) {
       console.error('[Storage] Get card failed:', error);
       throw error;
@@ -1653,7 +1850,143 @@ class PWACardStorage {
     return true;
   }
 
-  // 加密/解密方法
+  // PWA-05: Enhanced field-level encryption methods
+  async generateFieldEncryptionKeys() {
+    try {
+      const sensitiveFields = ['email', 'phone', 'mobile', 'address', 'socialNote'];
+      const keys = {};
+      
+      for (const field of sensitiveFields) {
+        // Derive unique key for each sensitive field
+        const fieldSalt = crypto.getRandomValues(new Uint8Array(16));
+        const fieldKey = await crypto.subtle.deriveKey(
+          {
+            name: 'PBKDF2',
+            salt: fieldSalt,
+            iterations: 50000,
+            hash: 'SHA-256'
+          },
+          await crypto.subtle.importKey(
+            'raw',
+            new TextEncoder().encode(`field-${field}-${Date.now()}`),
+            'PBKDF2',
+            false,
+            ['deriveKey']
+          ),
+          {
+            name: 'AES-GCM',
+            length: 256
+          },
+          false,
+          ['encrypt', 'decrypt']
+        );
+        
+        keys[field] = { key: fieldKey, salt: fieldSalt };
+      }
+      
+      return keys;
+    } catch (error) {
+      console.error('[Storage] Field encryption key generation failed:', error);
+      return null;
+    }
+  }
+
+  async encryptSensitiveField(fieldName, value) {
+    if (!this.fieldEncryptionKeys || !this.fieldEncryptionKeys[fieldName] || !value) {
+      return value;
+    }
+
+    try {
+      const { key } = this.fieldEncryptionKeys[fieldName];
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const encodedData = new TextEncoder().encode(String(value));
+      
+      const encrypted = await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv },
+        key,
+        encodedData
+      );
+      
+      return {
+        encrypted: true,
+        data: Array.from(new Uint8Array(encrypted)),
+        iv: Array.from(iv),
+        field: fieldName,
+        timestamp: Date.now()
+      };
+    } catch (error) {
+      console.error(`[Storage] Field encryption failed for ${fieldName}:`, error);
+      return value;
+    }
+  }
+
+  async decryptSensitiveField(fieldName, encryptedValue) {
+    if (!encryptedValue || typeof encryptedValue !== 'object' || !encryptedValue.encrypted) {
+      return encryptedValue;
+    }
+
+    if (!this.fieldEncryptionKeys || !this.fieldEncryptionKeys[fieldName]) {
+      console.warn(`[Storage] No decryption key for field: ${fieldName}`);
+      return '[ENCRYPTED]';
+    }
+
+    try {
+      const { key } = this.fieldEncryptionKeys[fieldName];
+      
+      const decrypted = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: new Uint8Array(encryptedValue.iv) },
+        key,
+        new Uint8Array(encryptedValue.data)
+      );
+      
+      return new TextDecoder().decode(decrypted);
+    } catch (error) {
+      console.error(`[Storage] Field decryption failed for ${fieldName}:`, error);
+      return '[DECRYPTION_FAILED]';
+    }
+  }
+
+  async encryptCardData(cardData) {
+    if (!this.fieldEncryptionKeys) return cardData;
+
+    try {
+      const encryptedData = { ...cardData };
+      const sensitiveFields = ['email', 'phone', 'mobile', 'address', 'socialNote'];
+      
+      for (const field of sensitiveFields) {
+        if (encryptedData[field]) {
+          encryptedData[field] = await this.encryptSensitiveField(field, encryptedData[field]);
+        }
+      }
+      
+      return encryptedData;
+    } catch (error) {
+      console.error('[Storage] Card data encryption failed:', error);
+      return cardData;
+    }
+  }
+
+  async decryptCardData(cardData) {
+    if (!this.fieldEncryptionKeys) return cardData;
+
+    try {
+      const decryptedData = { ...cardData };
+      const sensitiveFields = ['email', 'phone', 'mobile', 'address', 'socialNote'];
+      
+      for (const field of sensitiveFields) {
+        if (decryptedData[field]) {
+          decryptedData[field] = await this.decryptSensitiveField(field, decryptedData[field]);
+        }
+      }
+      
+      return decryptedData;
+    } catch (error) {
+      console.error('[Storage] Card data decryption failed:', error);
+      return cardData;
+    }
+  }
+
+  // Legacy encryption methods (maintained for compatibility)
   async encryptData(data) {
     if (!this.encryptionKey) return data;
 
@@ -1687,7 +2020,6 @@ class PWACardStorage {
     }
 
     try {
-      // 驗證加密資料格式
       if (!encryptedData.data || !encryptedData.iv) {
         throw new Error('Invalid encrypted data format');
       }
@@ -1706,6 +2038,129 @@ class PWACardStorage {
     }
   }
 
+  // PWA-06: Database access control methods
+  async validateDatabaseAccess(operation, resourceType, context = {}) {
+    try {
+      // Check if WebAuthn authentication is available and valid
+      if (window.SecurityAuthHandler) {
+        const authResult = window.SecurityAuthHandler.validateAccess(resourceType, operation, {
+          userId: 'current-user',
+          timestamp: Date.now(),
+          ...context
+        });
+        
+        if (authResult && !authResult.authorized) {
+          return {
+            authorized: false,
+            reason: authResult.reason || 'Access denied'
+          };
+        }
+      }
+      
+      // Additional database-level access checks
+      const dbAccessResult = await this.checkDatabasePermissions(operation, resourceType);
+      if (!dbAccessResult.allowed) {
+        return {
+          authorized: false,
+          reason: dbAccessResult.reason
+        };
+      }
+      
+      return {
+        authorized: true,
+        timestamp: Date.now()
+      };
+    } catch (error) {
+      console.error('[Storage] Database access validation failed:', error);
+      return {
+        authorized: false,
+        reason: 'Access validation failed'
+      };
+    }
+  }
+
+  async checkDatabasePermissions(operation, resourceType) {
+    try {
+      // Check database connection health
+      if (!this.db || this.db.readyState === 'closed') {
+        return {
+          allowed: false,
+          reason: 'Database connection unavailable'
+        };
+      }
+      
+      // Check operation-specific permissions
+      const operationLimits = {
+        read: { maxPerMinute: 100 },
+        write: { maxPerMinute: 50 },
+        delete: { maxPerMinute: 10 }
+      };
+      
+      const currentLimit = operationLimits[operation];
+      if (currentLimit) {
+        const rateLimitResult = await this.checkRateLimit(operation, currentLimit.maxPerMinute);
+        if (!rateLimitResult.allowed) {
+          return {
+            allowed: false,
+            reason: `Rate limit exceeded for ${operation} operations`
+          };
+        }
+      }
+      
+      return {
+        allowed: true,
+        timestamp: Date.now()
+      };
+    } catch (error) {
+      console.error('[Storage] Permission check failed:', error);
+      return {
+        allowed: false,
+        reason: 'Permission check failed'
+      };
+    }
+  }
+
+  async checkRateLimit(operation, maxPerMinute) {
+    try {
+      const rateLimitKey = `rateLimit_${operation}`;
+      const now = Date.now();
+      const oneMinuteAgo = now - 60000;
+      
+      // Get current rate limit data
+      let rateLimitData = await this.getSetting(rateLimitKey) || {
+        operations: [],
+        lastCleanup: now
+      };
+      
+      // Clean up old entries
+      rateLimitData.operations = rateLimitData.operations.filter(timestamp => timestamp > oneMinuteAgo);
+      
+      // Check if limit exceeded
+      if (rateLimitData.operations.length >= maxPerMinute) {
+        return {
+          allowed: false,
+          reason: `Rate limit exceeded: ${rateLimitData.operations.length}/${maxPerMinute} per minute`
+        };
+      }
+      
+      // Add current operation
+      rateLimitData.operations.push(now);
+      rateLimitData.lastCleanup = now;
+      
+      // Update rate limit data
+      await this.setSetting(rateLimitKey, rateLimitData);
+      
+      return {
+        allowed: true,
+        remaining: maxPerMinute - rateLimitData.operations.length
+      };
+    } catch (error) {
+      console.error('[Storage] Rate limit check failed:', error);
+      // Allow operation if rate limit check fails
+      return { allowed: true };
+    }
+  }
+
   // 統計資訊
   async getStorageStats() {
     try {
@@ -1717,7 +2172,8 @@ class PWACardStorage {
         storageUsed: estimate.usage || 0,
         storageQuota: estimate.quota || 0,
         storageUsedPercent: estimate.quota ? Math.round((estimate.usage / estimate.quota) * 100) : 0,
-        lastHealthCheck: await this.getSetting('lastHealthCheck')
+        lastHealthCheck: await this.getSetting('lastHealthCheck'),
+        encryptionStatus: this.encryptionStatus || { enabled: false }
       };
     } catch (error) {
       console.error('[Storage] Get storage stats failed:', error);
@@ -1725,7 +2181,8 @@ class PWACardStorage {
         totalCards: 0,
         storageUsed: 0,
         storageQuota: 0,
-        storageUsedPercent: 0
+        storageUsedPercent: 0,
+        encryptionStatus: { enabled: false }
       };
     }
   }
@@ -1940,6 +2397,282 @@ class PWACardStorage {
     }
   }
 
+  // PWA-07: Secure data backup and restore functionality
+  async createSecureBackup(options = {}) {
+    try {
+      // Validate backup permissions
+      const authResult = await this.validateDatabaseAccess('read', 'backup-data');
+      if (!authResult.authorized) {
+        throw new Error(`Backup access denied: ${authResult.reason}`);
+      }
+      
+      const {
+        includeVersions = false,
+        encrypt = true,
+        compressionLevel = 'medium'
+      } = options;
+      
+      console.log('[Storage] Creating secure backup...');
+      
+      // Collect all data
+      const cards = await this.listCards();
+      const settings = await this.getAllSettings();
+      let versions = [];
+      
+      if (includeVersions) {
+        versions = await this.getAllVersions();
+      }
+      
+      // Decrypt cards for backup (they'll be re-encrypted with backup key)
+      const decryptedCards = [];
+      for (const card of cards) {
+        if (card.encrypted && card.data) {
+          const decryptedCard = { ...card };
+          decryptedCard.data = await this.decryptCardData(card.data);
+          decryptedCards.push(decryptedCard);
+        } else {
+          decryptedCards.push(card);
+        }
+      }
+      
+      const backupData = {
+        metadata: {
+          version: '2.0',
+          created: new Date().toISOString(),
+          dbVersion: this.dbVersion,
+          totalCards: decryptedCards.length,
+          includeVersions,
+          encrypted: encrypt,
+          compressionLevel
+        },
+        cards: decryptedCards,
+        settings: settings.filter(s => !s.key.includes('encryptionKey')), // Exclude encryption keys
+        versions: versions
+      };
+      
+      // Calculate integrity hash
+      const integrityHash = await this.calculateChecksum(backupData);
+      backupData.metadata.integrityHash = integrityHash;
+      
+      let finalBackupData = backupData;
+      
+      // Encrypt backup if requested
+      if (encrypt) {
+        finalBackupData = await this.encryptBackupData(backupData);
+      }
+      
+      // Store backup record
+      const backupId = `backup_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+      const backupRecord = {
+        id: backupId,
+        timestamp: new Date(),
+        size: JSON.stringify(finalBackupData).length,
+        encrypted: encrypt,
+        integrityHash,
+        metadata: backupData.metadata
+      };
+      
+      await this.safeTransaction(['backups'], 'readwrite', async (transaction) => {
+        const store = transaction.objectStore('backups');
+        return new Promise((resolve, reject) => {
+          const request = store.add(backupRecord);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      });
+      
+      console.log(`[Storage] Secure backup created: ${backupId}`);
+      
+      return {
+        success: true,
+        backupId,
+        data: finalBackupData,
+        metadata: backupData.metadata,
+        size: backupRecord.size
+      };
+    } catch (error) {
+      console.error('[Storage] Secure backup creation failed:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  async restoreFromSecureBackup(backupData, options = {}) {
+    try {
+      // Validate restore permissions
+      const authResult = await this.validateDatabaseAccess('write', 'backup-data');
+      if (!authResult.authorized) {
+        throw new Error(`Restore access denied: ${authResult.reason}`);
+      }
+      
+      const {
+        overwriteExisting = false,
+        verifyIntegrity = true
+      } = options;
+      
+      console.log('[Storage] Restoring from secure backup...');
+      
+      let processedBackupData = backupData;
+      
+      // Decrypt backup if encrypted
+      if (backupData.encrypted) {
+        processedBackupData = await this.decryptBackupData(backupData);
+      }
+      
+      // Verify backup integrity
+      if (verifyIntegrity && processedBackupData.metadata?.integrityHash) {
+        const currentHash = await this.calculateChecksum({
+          cards: processedBackupData.cards,
+          settings: processedBackupData.settings,
+          versions: processedBackupData.versions
+        });
+        
+        if (currentHash !== processedBackupData.metadata.integrityHash) {
+          throw new Error('Backup integrity verification failed');
+        }
+      }
+      
+      // Restore cards
+      let restoredCards = 0;
+      let skippedCards = 0;
+      
+      for (const cardData of processedBackupData.cards || []) {
+        try {
+          const existingCard = await this.getCard(cardData.id);
+          
+          if (existingCard && !overwriteExisting) {
+            skippedCards++;
+            continue;
+          }
+          
+          // Re-encrypt sensitive fields
+          const encryptedData = await this.encryptCardData(cardData.data);
+          const restoredCard = {
+            ...cardData,
+            data: encryptedData,
+            encrypted: true,
+            restored: true,
+            restoredAt: new Date()
+          };
+          
+          await this.safeTransaction(['cards'], 'readwrite', async (transaction) => {
+            const store = transaction.objectStore('cards');
+            return new Promise((resolve, reject) => {
+              const request = overwriteExisting ? store.put(restoredCard) : store.add(restoredCard);
+              request.onsuccess = () => resolve(request.result);
+              request.onerror = () => reject(request.error);
+            });
+          });
+          
+          restoredCards++;
+        } catch (cardError) {
+          console.warn(`[Storage] Failed to restore card ${cardData.id}:`, cardError);
+          skippedCards++;
+        }
+      }
+      
+      console.log(`[Storage] Backup restore completed: ${restoredCards} restored, ${skippedCards} skipped`);
+      
+      return {
+        success: true,
+        restoredCards,
+        skippedCards,
+        totalCards: (processedBackupData.cards || []).length
+      };
+    } catch (error) {
+      console.error('[Storage] Secure backup restore failed:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  async encryptBackupData(backupData) {
+    try {
+      if (!this.encryptionKey) {
+        throw new Error('Encryption key not available');
+      }
+      
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const encodedData = new TextEncoder().encode(JSON.stringify(backupData));
+      
+      const encrypted = await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv },
+        this.encryptionKey,
+        encodedData
+      );
+      
+      return {
+        encrypted: true,
+        data: Array.from(new Uint8Array(encrypted)),
+        iv: Array.from(iv),
+        algorithm: 'AES-GCM',
+        timestamp: Date.now()
+      };
+    } catch (error) {
+      console.error('[Storage] Backup encryption failed:', error);
+      throw error;
+    }
+  }
+
+  async decryptBackupData(encryptedBackup) {
+    try {
+      if (!this.encryptionKey) {
+        throw new Error('Encryption key not available');
+      }
+      
+      const decrypted = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: new Uint8Array(encryptedBackup.iv) },
+        this.encryptionKey,
+        new Uint8Array(encryptedBackup.data)
+      );
+      
+      const decryptedText = new TextDecoder().decode(decrypted);
+      return JSON.parse(decryptedText);
+    } catch (error) {
+      console.error('[Storage] Backup decryption failed:', error);
+      throw error;
+    }
+  }
+
+  async getAllSettings() {
+    try {
+      return await this.safeTransaction(['settings'], 'readonly', async (transaction) => {
+        const store = transaction.objectStore('settings');
+        return new Promise((resolve, reject) => {
+          const request = store.getAll();
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      });
+    } catch (error) {
+      console.error('[Storage] Get all settings failed:', error);
+      return [];
+    }
+  }
+
+  async listBackups() {
+    try {
+      return await this.safeTransaction(['backups'], 'readonly', async (transaction) => {
+        const store = transaction.objectStore('backups');
+        return new Promise((resolve, reject) => {
+          const request = store.getAll();
+          request.onsuccess = () => {
+            const backups = request.result.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            resolve(backups);
+          };
+          request.onerror = () => reject(request.error);
+        });
+      });
+    } catch (error) {
+      console.error('[Storage] List backups failed:', error);
+      return [];
+    }
+  }
+
   // 清理和維護
   async cleanup() {
     try {
@@ -1957,6 +2690,54 @@ class PWACardStorage {
         } catch (logCleanupError) {
           console.warn('[Storage] Migration log cleanup failed:', logCleanupError);
         }
+      }
+      
+      // SEC-03: Cleanup security components
+      if (this.healthMonitor) {
+        await this.healthMonitor.cleanup(7); // Keep 7 days of health data
+        this.healthMonitor.cleanup();
+      }
+      
+      if (this.compatibilityLayer) {
+        this.compatibilityLayer.cleanup();
+      }
+      
+      // SEC-04: Cleanup graceful degradation
+      if (this.gracefulDegradation) {
+        await this.gracefulDegradation.resetDegradation();
+      }
+      
+      // SEC-06: Cleanup error recovery
+      if (this.errorRecovery) {
+        this.errorRecovery.resetRecovery();
+      }
+      
+      // SEC-07: Cleanup rollback system
+      if (this.rollbackSystem) {
+        this.rollbackSystem.cleanup();
+      }
+      
+      // SEC-08: Cleanup user impact monitor
+      if (this.userImpactMonitor) {
+        this.userImpactMonitor.cleanup();
+      }
+      
+      // SEC-09: Cleanup security dashboard
+      if (this.securityDashboard) {
+        this.securityDashboard.cleanup();
+      }
+      
+      // SEC-10 to SEC-12: Cleanup Phase 4 User Experience Components
+      if (this.userCommunication) {
+        this.userCommunication.clearAllMessages();
+      }
+      
+      if (this.securityOnboarding) {
+        this.securityOnboarding.hideOnboarding();
+      }
+      
+      if (this.securitySettings) {
+        this.securitySettings.hideSettings();
       }
       
     } catch (error) {

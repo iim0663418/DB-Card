@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 3 Input Validation - Smoke Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .test-section h3 { margin-top: 0; color: #333; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .pass { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .fail { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .test-button { background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        .test-button:hover { background: #0056b3; }
+        .test-input { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }
+        .test-output { background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 10px 0; font-family: monospace; white-space: pre-wrap; }
+        .summary { background: #e9ecef; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .progress { width: 100%; height: 20px; background: #e9ecef; border-radius: 10px; overflow: hidden; margin: 10px 0; }
+        .progress-bar { height: 100%; background: #28a745; transition: width 0.3s ease; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔒 Phase 3 (P1) - Client-Side Input Validation</h1>
+        <p>測試 PWA-08 到 PWA-11 的輸入驗證功能</p>
+
+        <div class="summary">
+            <h3>測試進度</h3>
+            <div class="progress">
+                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+            </div>
+            <p id="progressText">準備開始測試...</p>
+        </div>
+
+        <!-- PWA-08: Prototype Pollution Protection -->
+        <div class="test-section">
+            <h3>🛡️ PWA-08: 原型污染防護測試</h3>
+            <button class="test-button" onclick="testPrototypePollution()">執行原型污染測試</button>
+            <div id="prototypePollutionResults"></div>
+        </div>
+
+        <!-- PWA-09: Client-Side XSS Prevention -->
+        <div class="test-section">
+            <h3>🚫 PWA-09: XSS 防護測試</h3>
+            <button class="test-button" onclick="testXSSPrevention()">執行 XSS 防護測試</button>
+            <div id="xssPreventionResults"></div>
+        </div>
+
+        <!-- PWA-10: Card Rendering Security -->
+        <div class="test-section">
+            <h3>🎨 PWA-10: 名片渲染安全測試</h3>
+            <button class="test-button" onclick="testCardRenderingSecurity()">執行名片渲染安全測試</button>
+            <div id="cardRenderingResults"></div>
+        </div>
+
+        <!-- PWA-11: Input Validation Schema -->
+        <div class="test-section">
+            <h3>📋 PWA-11: 輸入驗證架構測試</h3>
+            <button class="test-button" onclick="testInputValidationSchema()">執行 Schema 驗證測試</button>
+            <div id="schemaValidationResults"></div>
+        </div>
+
+        <!-- Interactive Testing -->
+        <div class="test-section">
+            <h3>🧪 互動式測試</h3>
+            <div>
+                <label>測試輸入:</label>
+                <input type="text" id="testInput" class="test-input" placeholder="輸入要測試的內容...">
+                <button class="test-button" onclick="testUserInput()">測試輸入驗證</button>
+            </div>
+            <div id="interactiveResults"></div>
+        </div>
+
+        <div class="summary" id="finalSummary" style="display: none;">
+            <h3>📊 測試總結</h3>
+            <div id="summaryContent"></div>
+        </div>
+    </div>
+
+    <!-- Load Security Modules -->
+    <script src="../../src/security/SecurityInputHandler.js"></script>
+    <script src="../../src/security/SecurityDataHandler.js"></script>
+    <script src="../../src/security/InputValidationSchema.js"></script>
+
+    <script>
+        let testResults = {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            details: []
+        };
+
+        function updateProgress() {
+            const progress = (testResults.total > 0) ? (testResults.passed / testResults.total) * 100 : 0;
+            document.getElementById('progressBar').style.width = progress + '%';
+            document.getElementById('progressText').textContent = 
+                `已完成 ${testResults.total} 項測試，通過 ${testResults.passed} 項，失敗 ${testResults.failed} 項`;
+        }
+
+        function addTestResult(name, passed, details) {
+            testResults.total++;
+            if (passed) {
+                testResults.passed++;
+            } else {
+                testResults.failed++;
+            }
+            testResults.details.push({ name, passed, details });
+            updateProgress();
+        }
+
+        function displayResult(containerId, title, passed, details) {
+            const container = document.getElementById(containerId);
+            const resultClass = passed ? 'pass' : 'fail';
+            const resultIcon = passed ? '✅' : '❌';
+            
+            container.innerHTML += `
+                <div class="test-result ${resultClass}">
+                    <strong>${resultIcon} ${title}</strong>
+                    <div class="test-output">${details}</div>
+                </div>
+            `;
+        }
+
+        // PWA-08: 原型污染防護測試
+        function testPrototypePollution() {
+            const container = document.getElementById('prototypePollutionResults');
+            container.innerHTML = '<div class="info">執行原型污染防護測試...</div>';
+
+            try {
+                // 測試 1: 基本原型污染檢測
+                const maliciousInputs = [
+                    '__proto__.polluted = true',
+                    'constructor.prototype.polluted = true',
+                    '{"__proto__": {"polluted": true}}',
+                    'Object.prototype.polluted = true'
+                ];
+
+                let allPassed = true;
+                let testDetails = '';
+
+                maliciousInputs.forEach((input, index) => {
+                    try {
+                        const result = SecurityInputHandler.validateAndSanitize(input, 'text');
+                        const passed = !result.isValid || !result.sanitized.includes('__proto__');
+                        
+                        testDetails += `測試 ${index + 1}: ${input.substring(0, 30)}... - ${passed ? '通過' : '失敗'}\n`;
+                        if (!passed) allPassed = false;
+                        
+                        addTestResult(`原型污染檢測 ${index + 1}`, passed, input);
+                    } catch (error) {
+                        testDetails += `測試 ${index + 1}: 拋出異常 (正確行為) - 通過\n`;
+                        addTestResult(`原型污染檢測 ${index + 1}`, true, '正確拋出異常');
+                    }
+                });
+
+                // 測試 2: 物件清理功能
+                try {
+                    const maliciousObj = {
+                        name: 'test',
+                        '__proto__': { polluted: true },
+                        'constructor': { polluted: true }
+                    };
+                    
+                    const sanitized = SecurityInputHandler.sanitizeObject(maliciousObj);
+                    const objPassed = !('__proto__' in sanitized) && !('constructor' in sanitized);
+                    
+                    testDetails += `物件清理測試: ${objPassed ? '通過' : '失敗'}\n`;
+                    addTestResult('物件清理', objPassed, '移除危險屬性');
+                    
+                    if (!objPassed) allPassed = false;
+                } catch (error) {
+                    testDetails += `物件清理測試: 拋出異常 - ${error.message}\n`;
+                    addTestResult('物件清理', false, error.message);
+                    allPassed = false;
+                }
+
+                displayResult('prototypePollutionResults', '原型污染防護測試', allPassed, testDetails);
+
+            } catch (error) {
+                displayResult('prototypePollutionResults', '原型污染防護測試', false, `測試執行失敗: ${error.message}`);
+                addTestResult('原型污染防護', false, error.message);
+            }
+        }
+
+        // PWA-09: XSS 防護測試
+        function testXSSPrevention() {
+            const container = document.getElementById('xssPreventionResults');
+            container.innerHTML = '<div class="info">執行 XSS 防護測試...</div>';
+
+            try {
+                const xssPayloads = [
+                    '<script>alert("XSS")</script>',
+                    '<img src="x" onerror="alert(1)">',
+                    'javascript:alert("XSS")',
+                    '<iframe src="javascript:alert(1)"></iframe>',
+                    '<div onclick="alert(1)">Click me</div>'
+                ];
+
+                let allPassed = true;
+                let testDetails = '';
+
+                xssPayloads.forEach((payload, index) => {
+                    const sanitized = SecurityDataHandler.sanitizeOutput(payload, 'html');
+                    const passed = !sanitized.includes('<script') && 
+                                  !sanitized.includes('javascript:') && 
+                                  !sanitized.includes('onerror=') &&
+                                  !sanitized.includes('onclick=');
+                    
+                    testDetails += `XSS 測試 ${index + 1}: ${payload.substring(0, 30)}...\n`;
+                    testDetails += `清理結果: ${sanitized}\n`;
+                    testDetails += `狀態: ${passed ? '通過' : '失敗'}\n\n`;
+                    
+                    addTestResult(`XSS 防護 ${index + 1}`, passed, payload);
+                    if (!passed) allPassed = false;
+                });
+
+                // 測試安全 DOM 操作
+                try {
+                    const safeElement = SecurityDataHandler.createSafeElement('div', 
+                        { class: 'test', 'data-safe': 'true' }, 
+                        'Safe content'
+                    );
+                    const domPassed = safeElement.tagName === 'DIV' && 
+                                     safeElement.textContent === 'Safe content';
+                    
+                    testDetails += `安全 DOM 操作: ${domPassed ? '通過' : '失敗'}\n`;
+                    addTestResult('安全 DOM 操作', domPassed, '創建安全元素');
+                    
+                    if (!domPassed) allPassed = false;
+                } catch (error) {
+                    testDetails += `安全 DOM 操作: 失敗 - ${error.message}\n`;
+                    addTestResult('安全 DOM 操作', false, error.message);
+                    allPassed = false;
+                }
+
+                displayResult('xssPreventionResults', 'XSS 防護測試', allPassed, testDetails);
+
+            } catch (error) {
+                displayResult('xssPreventionResults', 'XSS 防護測試', false, `測試執行失敗: ${error.message}`);
+                addTestResult('XSS 防護', false, error.message);
+            }
+        }
+
+        // PWA-10: 名片渲染安全測試
+        function testCardRenderingSecurity() {
+            const container = document.getElementById('cardRenderingResults');
+            container.innerHTML = '<div class="info">執行名片渲染安全測試...</div>';
+
+            try {
+                // 模擬惡意名片資料
+                const maliciousCard = {
+                    id: '<script>alert("XSS")</script>',
+                    data: {
+                        name: '<img src="x" onerror="alert(1)">',
+                        title: 'javascript:alert("XSS")',
+                        email: '<script>document.cookie</script>@evil.com',
+                        phone: '<iframe src="javascript:alert(1)"></iframe>',
+                        avatar: 'javascript:alert("XSS")',
+                        organization: '<div onclick="alert(1)">Evil Org</div>'
+                    },
+                    type: 'personal',
+                    modified: new Date().toISOString()
+                };
+
+                let allPassed = true;
+                let testDetails = '';
+
+                // 測試各個欄位的清理
+                const fields = ['name', 'title', 'email', 'phone', 'avatar', 'organization'];
+                fields.forEach(field => {
+                    const originalValue = maliciousCard.data[field];
+                    const sanitized = SecurityDataHandler.sanitizeOutput(originalValue, 'html');
+                    
+                    const passed = !sanitized.includes('<script') && 
+                                  !sanitized.includes('javascript:') && 
+                                  !sanitized.includes('onerror=') &&
+                                  !sanitized.includes('onclick=') &&
+                                  !sanitized.includes('<iframe');
+                    
+                    testDetails += `${field} 欄位清理: ${passed ? '通過' : '失敗'}\n`;
+                    testDetails += `原始: ${originalValue}\n`;
+                    testDetails += `清理後: ${sanitized}\n\n`;
+                    
+                    addTestResult(`名片欄位清理 ${field}`, passed, originalValue);
+                    if (!passed) allPassed = false;
+                });
+
+                // 測試 ID 清理
+                const sanitizedId = SecurityDataHandler.sanitizeOutput(maliciousCard.id, 'attribute');
+                const idPassed = !sanitizedId.includes('<script');
+                testDetails += `ID 清理: ${idPassed ? '通過' : '失敗'}\n`;
+                addTestResult('名片 ID 清理', idPassed, maliciousCard.id);
+                if (!idPassed) allPassed = false;
+
+                displayResult('cardRenderingResults', '名片渲染安全測試', allPassed, testDetails);
+
+            } catch (error) {
+                displayResult('cardRenderingResults', '名片渲染安全測試', false, `測試執行失敗: ${error.message}`);
+                addTestResult('名片渲染安全', false, error.message);
+            }
+        }
+
+        // PWA-11: 輸入驗證架構測試
+        function testInputValidationSchema() {
+            const container = document.getElementById('schemaValidationResults');
+            container.innerHTML = '<div class="info">執行輸入驗證架構測試...</div>';
+
+            try {
+                let allPassed = true;
+                let testDetails = '';
+
+                // 測試 1: 有效名片資料
+                const validCardData = {
+                    name: '張三',
+                    title: '軟體工程師',
+                    email: 'zhang@example.com',
+                    phone: '02-1234-5678'
+                };
+
+                const validResult = InputValidationSchema.validateCardData(validCardData);
+                const validPassed = validResult.valid;
+                testDetails += `有效名片資料驗證: ${validPassed ? '通過' : '失敗'}\n`;
+                if (!validPassed) {
+                    testDetails += `錯誤: ${validResult.errors.join(', ')}\n`;
+                }
+                addTestResult('有效名片資料驗證', validPassed, '標準名片資料');
+                if (!validPassed) allPassed = false;
+
+                // 測試 2: 無效名片資料
+                const invalidCardData = {
+                    name: '', // 空名稱
+                    email: 'invalid-email', // 無效 email
+                    phone: 'abc123', // 無效電話
+                    extraField: 'not allowed' // 不允許的欄位
+                };
+
+                const invalidResult = InputValidationSchema.validateCardData(invalidCardData);
+                const invalidPassed = !invalidResult.valid && invalidResult.errors.length > 0;
+                testDetails += `無效名片資料驗證: ${invalidPassed ? '通過' : '失敗'}\n`;
+                testDetails += `檢測到錯誤: ${invalidResult.errors.join(', ')}\n`;
+                addTestResult('無效名片資料驗證', invalidPassed, '應該拒絕無效資料');
+                if (!invalidPassed) allPassed = false;
+
+                // 測試 3: 使用者輸入驗證
+                const userInput = {
+                    searchTerm: '張三',
+                    filterType: 'personal'
+                };
+
+                const userInputResult = InputValidationSchema.validateUserInput(userInput);
+                const userInputPassed = userInputResult.valid;
+                testDetails += `使用者輸入驗證: ${userInputPassed ? '通過' : '失敗'}\n`;
+                addTestResult('使用者輸入驗證', userInputPassed, '搜尋和篩選輸入');
+                if (!userInputPassed) allPassed = false;
+
+                // 測試 4: 檔案匯入驗證
+                const fileImport = {
+                    type: 'json',
+                    data: validCardData,
+                    metadata: {
+                        filename: 'card.json',
+                        size: 1024,
+                        timestamp: new Date().toISOString()
+                    }
+                };
+
+                const fileImportResult = InputValidationSchema.validateFileImport(fileImport);
+                const fileImportPassed = fileImportResult.valid;
+                testDetails += `檔案匯入驗證: ${fileImportPassed ? '通過' : '失敗'}\n`;
+                addTestResult('檔案匯入驗證', fileImportPassed, 'JSON 檔案匯入');
+                if (!fileImportPassed) allPassed = false;
+
+                // 測試 5: Schema 列表
+                const schemas = InputValidationSchema.getAvailableSchemas();
+                const schemasPassed = schemas.includes('cardData') && 
+                                    schemas.includes('userInput') && 
+                                    schemas.includes('fileImport');
+                testDetails += `Schema 註冊檢查: ${schemasPassed ? '通過' : '失敗'}\n`;
+                testDetails += `可用 Schema: ${schemas.join(', ')}\n`;
+                addTestResult('Schema 註冊', schemasPassed, '檢查預設 Schema');
+                if (!schemasPassed) allPassed = false;
+
+                displayResult('schemaValidationResults', '輸入驗證架構測試', allPassed, testDetails);
+
+            } catch (error) {
+                displayResult('schemaValidationResults', '輸入驗證架構測試', false, `測試執行失敗: ${error.message}`);
+                addTestResult('輸入驗證架構', false, error.message);
+            }
+        }
+
+        // 互動式測試
+        function testUserInput() {
+            const input = document.getElementById('testInput').value;
+            const container = document.getElementById('interactiveResults');
+            
+            if (!input.trim()) {
+                container.innerHTML = '<div class="info">請輸入要測試的內容</div>';
+                return;
+            }
+
+            try {
+                let testDetails = `測試輸入: ${input}\n\n`;
+
+                // 1. 基本清理測試
+                const sanitized = SecurityInputHandler.validateAndSanitize(input, 'text');
+                testDetails += `基本驗證: ${sanitized.isValid ? '通過' : '失敗'}\n`;
+                testDetails += `清理結果: ${sanitized.sanitized}\n`;
+                if (sanitized.errors.length > 0) {
+                    testDetails += `錯誤: ${sanitized.errors.join(', ')}\n`;
+                }
+                testDetails += '\n';
+
+                // 2. XSS 防護測試
+                const xssCleaned = SecurityDataHandler.sanitizeOutput(input, 'html');
+                testDetails += `XSS 防護清理: ${xssCleaned}\n\n`;
+
+                // 3. 原型污染檢測
+                try {
+                    const objCleaned = SecurityInputHandler.sanitizeObject({ test: input });
+                    testDetails += `物件清理: 成功\n`;
+                    testDetails += `結果: ${JSON.stringify(objCleaned)}\n`;
+                } catch (error) {
+                    testDetails += `物件清理: 檢測到危險內容 - ${error.message}\n`;
+                }
+
+                container.innerHTML = `<div class="test-output">${testDetails}</div>`;
+
+            } catch (error) {
+                container.innerHTML = `<div class="fail">測試失敗: ${error.message}</div>`;
+            }
+        }
+
+        // 執行所有測試
+        function runAllTests() {
+            testResults = { total: 0, passed: 0, failed: 0, details: [] };
+            
+            setTimeout(() => testPrototypePollution(), 100);
+            setTimeout(() => testXSSPrevention(), 500);
+            setTimeout(() => testCardRenderingSecurity(), 1000);
+            setTimeout(() => testInputValidationSchema(), 1500);
+            
+            setTimeout(() => {
+                showFinalSummary();
+            }, 2000);
+        }
+
+        function showFinalSummary() {
+            const summary = document.getElementById('finalSummary');
+            const content = document.getElementById('summaryContent');
+            
+            const passRate = testResults.total > 0 ? 
+                ((testResults.passed / testResults.total) * 100).toFixed(1) : 0;
+            
+            let summaryHtml = `
+                <p><strong>總測試數:</strong> ${testResults.total}</p>
+                <p><strong>通過:</strong> ${testResults.passed}</p>
+                <p><strong>失敗:</strong> ${testResults.failed}</p>
+                <p><strong>通過率:</strong> ${passRate}%</p>
+                <h4>詳細結果:</h4>
+                <ul>
+            `;
+            
+            testResults.details.forEach(test => {
+                const icon = test.passed ? '✅' : '❌';
+                summaryHtml += `<li>${icon} ${test.name}</li>`;
+            });
+            
+            summaryHtml += '</ul>';
+            
+            if (testResults.failed === 0) {
+                summaryHtml += '<div class="pass"><strong>🎉 所有測試通過！Phase 3 輸入驗證功能正常運作。</strong></div>';
+            } else {
+                summaryHtml += '<div class="fail"><strong>⚠️ 部分測試失敗，請檢查相關功能。</strong></div>';
+            }
+            
+            content.innerHTML = summaryHtml;
+            summary.style.display = 'block';
+        }
+
+        // 頁面載入完成後自動執行測試
+        window.addEventListener('load', () => {
+            console.log('Phase 3 Input Validation Test Suite Loaded');
+            document.getElementById('progressText').textContent = '測試套件已載入，點擊按鈕開始測試';
+        });
+    </script>
+</body>
+</html>

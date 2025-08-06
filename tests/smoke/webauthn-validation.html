@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAuthn Implementation Validation</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        #log { background: #f8f9fa; padding: 10px; border-radius: 5px; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>WebAuthn Implementation Validation</h1>
+    
+    <div class="test-section info">
+        <h3>Environment Check</h3>
+        <div id="env-check"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>WebAuthn Authentication Test</h3>
+        <button onclick="testWebAuthnAuth()">Test WebAuthn Authentication</button>
+        <button onclick="testFallbackAuth()">Test Fallback Authentication</button>
+        <button onclick="testSessionManagement()">Test Session Management</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test Results</h3>
+        <div id="log"></div>
+    </div>
+
+    <script src="../../src/security/SecurityAuthHandler.js"></script>
+    <script>
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            logDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function checkEnvironment() {
+            const envDiv = document.getElementById('env-check');
+            let html = '';
+            
+            // Check WebAuthn support
+            const webAuthnSupported = !!(window.PublicKeyCredential && 
+                                        navigator.credentials && 
+                                        navigator.credentials.create && 
+                                        navigator.credentials.get);
+            html += `<p>WebAuthn Support: <strong>${webAuthnSupported ? '✅ Supported' : '❌ Not Supported'}</strong></p>`;
+            
+            // Check IndexedDB support
+            const indexedDBSupported = !!window.indexedDB;
+            html += `<p>IndexedDB Support: <strong>${indexedDBSupported ? '✅ Supported' : '❌ Not Supported'}</strong></p>`;
+            
+            // Check Crypto API support
+            const cryptoSupported = !!(window.crypto && window.crypto.subtle);
+            html += `<p>Web Crypto API: <strong>${cryptoSupported ? '✅ Supported' : '❌ Not Supported'}</strong></p>`;
+            
+            // Check SecurityAuthHandler loading
+            const securityHandlerLoaded = typeof SecurityAuthHandler !== 'undefined';
+            html += `<p>SecurityAuthHandler: <strong>${securityHandlerLoaded ? '✅ Loaded' : '❌ Not Loaded'}</strong></p>`;
+            
+            envDiv.innerHTML = html;
+            
+            if (webAuthnSupported && indexedDBSupported && cryptoSupported && securityHandlerLoaded) {
+                envDiv.parentElement.className = 'test-section success';
+                log('Environment check passed - all required APIs available', 'success');
+            } else {
+                envDiv.parentElement.className = 'test-section error';
+                log('Environment check failed - some APIs missing', 'error');
+            }
+        }
+
+        async function testWebAuthnAuth() {
+            log('Testing WebAuthn authentication...');
+            
+            try {
+                const result = await SecurityAuthHandler.authenticateWithWebAuthn({
+                    userDisplayName: 'Test User',
+                    timeout: 30000
+                });
+                
+                if (result.success) {
+                    log(`WebAuthn authentication successful: ${JSON.stringify(result)}`, 'success');
+                } else {
+                    log(`WebAuthn authentication failed: ${result.error || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                log(`WebAuthn authentication error: ${error.message}`, 'error');
+                
+                // This is expected in many environments, so also test fallback
+                log('Testing fallback authentication due to WebAuthn unavailability...');
+                await testFallbackAuth();
+            }
+        }
+
+        async function testFallbackAuth() {
+            log('Testing fallback authentication (PIN)...');
+            
+            try {
+                // Mock the secure prompt for testing
+                const originalSecurePrompt = SecurityAuthHandler.constructor.prototype.constructor;
+                
+                log('Fallback authentication test initiated', 'info');
+                log('Note: In a real scenario, this would show a PIN input dialog', 'info');
+                
+            } catch (error) {
+                log(`Fallback authentication error: ${error.message}`, 'error');
+            }
+        }
+
+        function testSessionManagement() {
+            log('Testing session management...');
+            
+            try {
+                // Test session creation
+                const userId = 'test-user-123';
+                const permissions = ['read', 'write'];
+                const sessionId = SecurityAuthHandler.createSession(userId, permissions);
+                
+                if (sessionId) {
+                    log(`Session created successfully: ${sessionId}`, 'success');
+                    
+                    // Test session validation
+                    const isValid = SecurityAuthHandler.validateSession(sessionId, userId);
+                    log(`Session validation: ${isValid ? 'Valid' : 'Invalid'}`, isValid ? 'success' : 'error');
+                    
+                    // Test access validation
+                    const accessResult = SecurityAuthHandler.validateAccess('card-data', 'read', {
+                        userId,
+                        sessionId,
+                        timestamp: Date.now()
+                    });
+                    log(`Access validation: ${accessResult.authorized ? 'Authorized' : 'Denied'} - ${accessResult.reason}`, 
+                        accessResult.authorized ? 'success' : 'error');
+                    
+                    // Test session destruction
+                    const destroyed = SecurityAuthHandler.destroySession(sessionId);
+                    log(`Session destruction: ${destroyed ? 'Success' : 'Failed'}`, destroyed ? 'success' : 'error');
+                    
+                    // Verify session is invalid after destruction
+                    const isValidAfterDestroy = SecurityAuthHandler.validateSession(sessionId, userId);
+                    log(`Session validation after destruction: ${isValidAfterDestroy ? 'Still Valid (ERROR)' : 'Invalid (CORRECT)'}`, 
+                        !isValidAfterDestroy ? 'success' : 'error');
+                    
+                } else {
+                    log('Failed to create session', 'error');
+                }
+            } catch (error) {
+                log(`Session management error: ${error.message}`, 'error');
+            }
+        }
+
+        function testAuditLogging() {
+            log('Testing audit logging...');
+            
+            try {
+                SecurityAuthHandler.auditLog('test_action', {
+                    testData: 'test_value',
+                    userId: 'test-user'
+                }, 'info');
+                
+                log('Audit logging test completed - check browser console for log output', 'success');
+            } catch (error) {
+                log(`Audit logging error: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize tests
+        document.addEventListener('DOMContentLoaded', () => {
+            checkEnvironment();
+            log('WebAuthn validation page loaded', 'info');
+            
+            // Auto-run session management test as it doesn't require user interaction
+            setTimeout(() => {
+                testSessionManagement();
+                testAuditLogging();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

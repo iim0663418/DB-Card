@@ -59,6 +59,8 @@ class LanguageManager {
         importFileDesc: '批次匯入名片',
         backupData: '備份資料',
         backupDataDesc: '匯出所有名片',
+        securitySettings: '安全設定',
+        securitySettingsDesc: '管理安全功能與隱私',
 
         // 名片頁面
         myCards: '我的名片',
@@ -136,6 +138,28 @@ class LanguageManager {
         cardNotFound: '名片不存在',
         invalidUrl: '請輸入名片連結',
 
+        // 重複處理對話框
+        duplicateFound: '發現重複名片',
+        duplicateDetected: '檢測到',
+        similarCards: '張相似名片',
+        batchProcessing: '批量處理模式',
+        existingCard: '現有名片',
+        newCard: '新名片',
+        createdTime: '建立時間',
+        version: '版本',
+        aboutToImport: '即將匯入',
+        skip: '跳過',
+        skipDesc: '保留現有名片，不匯入新名片',
+        overwrite: '覆蓋',
+        overwriteDesc: '用新名片資料覆蓋現有名片',
+        createVersion: '新版本',
+        createVersionDesc: '建立新版本，保留兩張名片',
+        applyToAll: '將此選擇套用到所有重複項目',
+        applyToAllBtn: '套用到全部',
+        selectAction: '請先選擇一個處理方式',
+        closeDialog: '關閉對話框',
+        unknown: '未知',
+
         // 其他
         processing: '處理中...',
         loading: '載入中...',
@@ -174,6 +198,8 @@ class LanguageManager {
         importFileDesc: 'Batch import cards',
         backupData: 'Backup Data',
         backupDataDesc: 'Export all cards',
+        securitySettings: 'Security Settings',
+        securitySettingsDesc: 'Manage security and privacy',
 
         // Cards Page
         myCards: 'My Cards',
@@ -250,6 +276,28 @@ class LanguageManager {
         initFailed: 'Application initialization failed',
         cardNotFound: 'Card not found',
         invalidUrl: 'Please enter card link',
+
+        // Duplicate Dialog
+        duplicateFound: 'Duplicate Card Found',
+        duplicateDetected: 'Detected',
+        similarCards: 'similar cards',
+        batchProcessing: 'Batch Processing Mode',
+        existingCard: 'Existing Card',
+        newCard: 'New Card',
+        createdTime: 'Created',
+        version: 'Version',
+        aboutToImport: 'About to import',
+        skip: 'Skip',
+        skipDesc: 'Keep existing card, do not import new card',
+        overwrite: 'Overwrite',
+        overwriteDesc: 'Replace existing card with new card data',
+        createVersion: 'New Version',
+        createVersionDesc: 'Create new version, keep both cards',
+        applyToAll: 'Apply this choice to all duplicate items',
+        applyToAllBtn: 'Apply to All',
+        selectAction: 'Please select an action first',
+        closeDialog: 'Close Dialog',
+        unknown: 'Unknown',
 
         // Others
         processing: 'Processing...',
@@ -421,7 +469,8 @@ class LanguageManager {
     const actionElements = [
       { titleId: 'action-add-card', descId: 'action-add-card-desc', titleKey: 'addCard', descKey: 'addCardDesc' },
       { titleId: 'action-import-file', descId: 'action-import-file-desc', titleKey: 'importFile', descKey: 'importFileDesc' },
-      { titleId: 'action-backup-all', descId: 'action-backup-all-desc', titleKey: 'backupData', descKey: 'backupDataDesc' }
+      { titleId: 'action-backup-all', descId: 'action-backup-all-desc', titleKey: 'backupData', descKey: 'backupDataDesc' },
+      { titleId: 'action-security-settings', descId: 'action-security-settings-desc', titleKey: 'securitySettings', descKey: 'securitySettingsDesc' }
     ];
 
     actionElements.forEach(({ titleId, descId, titleKey, descKey }) => {

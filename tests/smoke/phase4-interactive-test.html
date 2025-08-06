@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 4 User Experience Components Interactive Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        
+        .header p {
+            margin: 10px 0 0;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .test-section h3 {
+            margin: 0 0 15px;
+            color: #333;
+            font-size: 18px;
+        }
+        
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .btn.secondary {
+            background: #6c757d;
+        }
+        
+        .btn.secondary:hover {
+            background: #545b62;
+        }
+        
+        .btn.success {
+            background: #28a745;
+        }
+        
+        .btn.success:hover {
+            background: #1e7e34;
+        }
+        
+        .btn.warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .btn.warning:hover {
+            background: #e0a800;
+        }
+        
+        .test-output {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-passed { background: #28a745; }
+        .status-failed { background: #dc3545; }
+        .status-warning { background: #ffc107; }
+        .status-skipped { background: #6c757d; }
+        
+        .test-results {
+            margin-top: 20px;
+        }
+        
+        .result-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 3px solid #dee2e6;
+        }
+        
+        .result-item.passed { border-left-color: #28a745; }
+        .result-item.failed { border-left-color: #dc3545; }
+        .result-item.warning { border-left-color: #ffc107; }
+        .result-item.skipped { border-left-color: #6c757d; }
+        
+        .result-text {
+            flex: 1;
+            font-size: 14px;
+        }
+        
+        .result-details {
+            font-size: 12px;
+            color: #666;
+            margin-left: 20px;
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: 600;
+            color: #007bff;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .demo-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            margin-top: 15px;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .input-group input,
+        .input-group select,
+        .input-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .input-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 8px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .test-controls {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Phase 4 User Experience Components</h1>
+            <p>Interactive Testing Interface for SEC-10 to SEC-12</p>
+        </div>
+        
+        <div class="content">
+            <!-- SEC-10: User Communication System -->
+            <div class="test-section">
+                <h3>💬 SEC-10: User Communication System</h3>
+                <div class="test-controls">
+                    <button class="btn" onclick="testShowMessage()">Show Test Message</button>
+                    <button class="btn secondary" onclick="testSecurityEnhancement()">Security Enhancement</button>
+                    <button class="btn warning" onclick="testSecurityIssue()">Security Issue</button>
+                    <button class="btn" onclick="testClearMessages()">Clear All Messages</button>
+                </div>
+                
+                <div class="input-group">
+                    <label for="messageType">Message Type:</label>
+                    <select id="messageType">
+                        <option value="info">Info</option>
+                        <option value="success">Success</option>
+                        <option value="warning">Warning</option>
+                        <option value="error">Error</option>
+                        <option value="security-enhancement">Security Enhancement</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label for="messageTitle">Message Title:</label>
+                    <input type="text" id="messageTitle" value="Test Message" placeholder="Enter message title">
+                </div>
+                
+                <div class="input-group">
+                    <label for="messageContent">Message Content:</label>
+                    <textarea id="messageContent" placeholder="Enter message content">This is a test message for the user communication system.</textarea>
+                </div>
+                
+                <div class="demo-area">
+                    <p>Messages will appear in the top-right corner of the page</p>
+                </div>
+            </div>
+            
+            <!-- SEC-11: Security Feature Onboarding -->
+            <div class="test-section">
+                <h3>🎯 SEC-11: Security Feature Onboarding</h3>
+                <div class="test-controls">
+                    <button class="btn" onclick="testShowOnboarding()">Show Onboarding</button>
+                    <button class="btn secondary" onclick="testResetOnboarding()">Reset Onboarding</button>
+                    <button class="btn" onclick="testGetPreferences()">Get Preferences</button>
+                    <button class="btn warning" onclick="testNewFeature()">Simulate New Feature</button>
+                </div>
+                
+                <div class="test-output" id="onboardingOutput">
+                    Click buttons above to test onboarding functionality...
+                </div>
+            </div>
+            
+            <!-- SEC-12: Security Settings Management -->
+            <div class="test-section">
+                <h3>⚙️ SEC-12: Security Settings Management</h3>
+                <div class="test-controls">
+                    <button class="btn" onclick="testShowSettings()">Show Settings</button>
+                    <button class="btn secondary" onclick="testGetAllPreferences()">Get All Preferences</button>
+                    <button class="btn" onclick="testUpdatePreference()">Update Preference</button>
+                    <button class="btn warning" onclick="testResetSettings()">Reset Settings</button>
+                </div>
+                
+                <div class="input-group">
+                    <label for="preferenceKey">Preference Key:</label>
+                    <select id="preferenceKey">
+                        <option value="webauthn.enabled">WebAuthn Enabled</option>
+                        <option value="encryption.enabled">Encryption Enabled</option>
+                        <option value="monitoring.enabled">Monitoring Enabled</option>
+                        <option value="privacy.analytics">Privacy Analytics</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label for="preferenceValue">Preference Value:</label>
+                    <select id="preferenceValue">
+                        <option value="true">True</option>
+                        <option value="false">False</option>
+                    </select>
+                </div>
+                
+                <div class="test-output" id="settingsOutput">
+                    Click buttons above to test settings functionality...
+                </div>
+            </div>
+            
+            <!-- Comprehensive Test Runner -->
+            <div class="test-section">
+                <h3>🧪 Comprehensive Test Runner</h3>
+                <div class="test-controls">
+                    <button class="btn success" onclick="runAllTests()">Run All Tests</button>
+                    <button class="btn secondary" onclick="clearTestResults()">Clear Results</button>
+                </div>
+                
+                <div class="summary-stats" id="testStats" style="display: none;">
+                    <div class="stat-card">
+                        <div class="stat-number" id="passedCount">0</div>
+                        <div class="stat-label">Passed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="failedCount">0</div>
+                        <div class="stat-label">Failed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="warningCount">0</div>
+                        <div class="stat-label">Warnings</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="successRate">0%</div>
+                        <div class="stat-label">Success Rate</div>
+                    </div>
+                </div>
+                
+                <div class="test-results" id="testResults"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Phase 4 Components -->
+    <script src="../../src/security/ClientSideUserCommunication.js"></script>
+    <script src="../../src/security/ClientSideSecurityOnboarding.js"></script>
+    <script src="../../src/security/ClientSideSecuritySettings.js"></script>
+    <script src="phase4-user-experience-smoke-test.js"></script>
+
+    <script>
+        // Test functions for SEC-10: User Communication System
+        function testShowMessage() {
+            const type = document.getElementById('messageType').value;
+            const title = document.getElementById('messageTitle').value;
+            const content = document.getElementById('messageContent').value;
+            
+            if (window.userCommunication) {
+                const messageId = window.userCommunication.showMessage({
+                    type: type,
+                    title: title,
+                    content: content,
+                    actions: [
+                        { id: 'test-action', label: 'Test Action' },
+                        { id: 'dismiss', label: 'Dismiss', type: 'secondary' }
+                    ]
+                });
+                console.log('Message shown with ID:', messageId);
+            } else {
+                alert('User Communication component not available');
+            }
+        }
+        
+        function testSecurityEnhancement() {
+            if (window.userCommunication) {
+                window.userCommunication.showSecurityEnhancement({
+                    feature: 'Test Security Feature'
+                });
+            } else {
+                alert('User Communication component not available');
+            }
+        }
+        
+        function testSecurityIssue() {
+            if (window.userCommunication) {
+                window.userCommunication.showSecurityIssue({
+                    message: 'This is a test security issue notification',
+                    critical: false
+                });
+            } else {
+                alert('User Communication component not available');
+            }
+        }
+        
+        function testClearMessages() {
+            if (window.userCommunication) {
+                window.userCommunication.clearAllMessages();
+                console.log('All messages cleared');
+            } else {
+                alert('User Communication component not available');
+            }
+        }
+        
+        // Test functions for SEC-11: Security Feature Onboarding
+        function testShowOnboarding() {
+            if (window.securityOnboarding) {
+                window.securityOnboarding.showOnboarding();
+                updateOutput('onboardingOutput', 'Onboarding modal displayed');
+            } else {
+                updateOutput('onboardingOutput', 'ERROR: Security Onboarding component not available');
+            }
+        }
+        
+        function testResetOnboarding() {
+            if (window.securityOnboarding) {
+                window.securityOnboarding.resetOnboarding();
+                updateOutput('onboardingOutput', 'Onboarding reset successfully');
+            } else {
+                updateOutput('onboardingOutput', 'ERROR: Security Onboarding component not available');
+            }
+        }
+        
+        function testGetPreferences() {
+            if (window.securityOnboarding) {
+                const preferences = window.securityOnboarding.getPreferences();
+                updateOutput('onboardingOutput', 'Current preferences:\\n' + JSON.stringify(preferences, null, 2));
+            } else {
+                updateOutput('onboardingOutput', 'ERROR: Security Onboarding component not available');
+            }
+        }
+        
+        function testNewFeature() {
+            if (window.securityOnboarding) {
+                window.securityOnboarding.handleNewFeature({
+                    key: 'test-new-feature',
+                    name: 'Test New Feature',
+                    description: 'This is a simulated new security feature',
+                    benefits: ['Enhanced security', 'Better user experience'],
+                    risks: ['May require additional setup'],
+                    defaultEnabled: false
+                });
+                updateOutput('onboardingOutput', 'New feature notification triggered');
+            } else {
+                updateOutput('onboardingOutput', 'ERROR: Security Onboarding component not available');
+            }
+        }
+        
+        // Test functions for SEC-12: Security Settings Management
+        function testShowSettings() {
+            if (window.securitySettings) {
+                window.securitySettings.showSettings();
+                updateOutput('settingsOutput', 'Security settings modal displayed');
+            } else {
+                updateOutput('settingsOutput', 'ERROR: Security Settings component not available');
+            }
+        }
+        
+        function testGetAllPreferences() {
+            if (window.securitySettings) {
+                const preferences = window.securitySettings.getPreferences();
+                updateOutput('settingsOutput', 'All preferences:\\n' + JSON.stringify(preferences, null, 2));
+            } else {
+                updateOutput('settingsOutput', 'ERROR: Security Settings component not available');
+            }
+        }
+        
+        function testUpdatePreference() {
+            const key = document.getElementById('preferenceKey').value;
+            const value = document.getElementById('preferenceValue').value === 'true';
+            
+            if (window.securitySettings) {
+                window.securitySettings.setPreference(key, value);
+                updateOutput('settingsOutput', `Preference updated: ${key} = ${value}`);
+            } else {
+                updateOutput('settingsOutput', 'ERROR: Security Settings component not available');
+            }
+        }
+        
+        function testResetSettings() {
+            if (window.securitySettings) {
+                window.securitySettings.resetSettings();
+                updateOutput('settingsOutput', 'Settings reset to defaults');
+            } else {
+                updateOutput('settingsOutput', 'ERROR: Security Settings component not available');
+            }
+        }
+        
+        // Comprehensive test runner
+        async function runAllTests() {
+            const tester = new Phase4UserExperienceSmokeTest();
+            const results = await tester.runAllTests();
+            
+            displayTestResults(results);
+        }
+        
+        function clearTestResults() {
+            document.getElementById('testResults').innerHTML = '';
+            document.getElementById('testStats').style.display = 'none';
+        }
+        
+        function displayTestResults(results) {
+            const resultsContainer = document.getElementById('testResults');
+            const statsContainer = document.getElementById('testStats');
+            
+            // Calculate statistics
+            const passed = results.filter(r => r.status === 'PASSED').length;
+            const failed = results.filter(r => r.status === 'FAILED').length;
+            const warnings = results.filter(r => r.status === 'WARNING').length;
+            const skipped = results.filter(r => r.status === 'SKIPPED').length;
+            const successRate = Math.round((passed / (passed + failed)) * 100) || 0;
+            
+            // Update statistics
+            document.getElementById('passedCount').textContent = passed;
+            document.getElementById('failedCount').textContent = failed;
+            document.getElementById('warningCount').textContent = warnings;
+            document.getElementById('successRate').textContent = successRate + '%';
+            statsContainer.style.display = 'grid';
+            
+            // Display individual results
+            resultsContainer.innerHTML = results.map(result => `
+                <div class="result-item ${result.status.toLowerCase()}">
+                    <span class="status-indicator status-${result.status.toLowerCase()}"></span>
+                    <div class="result-text">
+                        <strong>${result.test}</strong>
+                        <div class="result-details">${result.details}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function updateOutput(elementId, text) {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            element.textContent = `[${timestamp}] ${text}`;
+        }
+        
+        // Initialize components status check
+        document.addEventListener('DOMContentLoaded', () => {
+            const components = [
+                { name: 'User Communication', instance: window.userCommunication },
+                { name: 'Security Onboarding', instance: window.securityOnboarding },
+                { name: 'Security Settings', instance: window.securitySettings }
+            ];
+            
+            console.log('Phase 4 Components Status:');
+            components.forEach(comp => {
+                const status = comp.instance ? '✅ Available' : '❌ Not Available';
+                console.log(`${comp.name}: ${status}`);
+            });
+        });
+    </script>
+</body>
+</html>

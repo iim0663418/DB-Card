@@ -124,10 +124,19 @@ class CardListComponent {
   }
 
   renderCard(card) {
-    const displayName = this.getDisplayName(card.data);
-    const displayTitle = this.getDisplayTitle(card.data);
-    const displayGreetings = this.getDisplayGreetings(card.data);
-    const typeLabel = this.getTypeLabel(card.type);
+    // 安全清理所有顯示資料
+    const displayName = window.SecurityDataHandler ? 
+      window.SecurityDataHandler.sanitizeOutput(this.getDisplayName(card.data), 'html') : 
+      this.getDisplayName(card.data);
+    const displayTitle = window.SecurityDataHandler ? 
+      window.SecurityDataHandler.sanitizeOutput(this.getDisplayTitle(card.data), 'html') : 
+      this.getDisplayTitle(card.data);
+    const displayGreetings = window.SecurityDataHandler ? 
+      window.SecurityDataHandler.sanitizeOutput(this.getDisplayGreetings(card.data), 'html') : 
+      this.getDisplayGreetings(card.data);
+    const typeLabel = window.SecurityDataHandler ? 
+      window.SecurityDataHandler.sanitizeOutput(this.getTypeLabel(card.type), 'html') : 
+      this.getTypeLabel(card.type);
     const lastModified = this.formatDate(card.modified);
     
     // 組織資訊顯示（修復雙語版邏輯）
@@ -173,14 +182,30 @@ class CardListComponent {
     if (deptText) orgInfo.push(deptText);
     const orgDisplay = orgInfo.join(' · ');
     
+    // 安全清理所有輸出資料
+    const safeCardId = window.SecurityDataHandler ? 
+      window.SecurityDataHandler.sanitizeOutput(card.id, 'attribute') : card.id;
+    const safeOrgDisplay = window.SecurityDataHandler ? 
+      window.SecurityDataHandler.sanitizeOutput(orgDisplay, 'html') : orgDisplay;
+    const safeAvatarUrl = card.data.avatar && window.SecurityDataHandler ? 
+      window.SecurityDataHandler.sanitizeOutput(card.data.avatar, 'attribute') : card.data.avatar;
+    const safeEmail = card.data.email && window.SecurityDataHandler ? 
+      window.SecurityDataHandler.sanitizeOutput(String(card.data.email).trim(), 'html') : 
+      (card.data.email ? String(card.data.email).trim() : '');
+    const safePhone = card.data.phone && window.SecurityDataHandler ? 
+      window.SecurityDataHandler.sanitizeOutput(String(card.data.phone).trim(), 'html') : 
+      (card.data.phone ? String(card.data.phone).trim() : '');
+    const safeWebsite = card.data.website && window.SecurityDataHandler ? 
+      window.SecurityDataHandler.sanitizeOutput(card.data.website, 'html') : card.data.website;
+    
     return `
-      <div class="card-item" data-card-id="${card.id}">
+      <div class="card-item" data-card-id="${safeCardId}">
         <div class="card-content">
           <div class="card-main">
             <div class="card-identity">
               <div class="card-avatar">
-                ${card.data.avatar ? 
-                  `<img src="${card.data.avatar}" alt="${displayName}" class="avatar-image">` :
+                ${safeAvatarUrl ? 
+                  `<img src="${safeAvatarUrl}" alt="${displayName}" class="avatar-image">` :
                   `<div class="avatar-placeholder">${displayName.charAt(0)}</div>`
                 }
               </div>
@@ -188,7 +213,7 @@ class CardListComponent {
               <div class="card-info">
                 <h3 class="card-name">${displayName}</h3>
                 ${displayTitle ? `<p class="card-title">${displayTitle}</p>` : ''}
-                ${orgDisplay ? `<p class="card-org">${orgDisplay}</p>` : ''}
+                ${safeOrgDisplay ? `<p class="card-org">${safeOrgDisplay}</p>` : ''}
               </div>
             </div>
             
@@ -204,22 +229,22 @@ class CardListComponent {
           ` : ''}
           
           <div class="card-contact">
-            ${card.data.email ? `
+            ${safeEmail ? `
               <div class="contact-item">
                 <span class="contact-icon">📧</span>
-                <span class="contact-text">${String(card.data.email).trim()}</span>
+                <span class="contact-text">${safeEmail}</span>
               </div>
             ` : ''}
-            ${card.data.phone ? `
+            ${safePhone ? `
               <div class="contact-item">
                 <span class="contact-icon">📞</span>
-                <span class="contact-text">${String(card.data.phone).trim()}</span>
+                <span class="contact-text">${safePhone}</span>
               </div>
             ` : ''}
-            ${card.data.website ? `
+            ${safeWebsite ? `
               <div class="contact-item">
                 <span class="contact-icon">🌐</span>
-                <span class="contact-text">${card.data.website}</span>
+                <span class="contact-text">${safeWebsite}</span>
               </div>
             ` : ''}
           </div>
@@ -372,7 +397,10 @@ class CardListComponent {
 
 
   async deleteCard(cardId) {
-    // 使用更安全的確認對話框
+    // 使用安全的確認對話框並進行輸入驗證
+    const sanitizedCardId = window.SecurityDataHandler ? 
+      window.SecurityDataHandler.sanitizeOutput(cardId, 'text') : cardId;
+    
     let confirmResult;
     if (window.SecurityInputHandler && window.SecurityInputHandler.secureConfirm) {
       confirmResult = await window.SecurityInputHandler.secureConfirm(
@@ -406,21 +434,24 @@ class CardListComponent {
       // 獲取名片資料以便顯示更好的成功消息
       let cardName = '名片';
       try {
-        const card = await this.storage.getCard(cardId);
+        const card = await this.storage.getCard(sanitizedCardId);
         if (card && card.data && card.data.name) {
-          cardName = this.getDisplayName(card.data);
+          const rawName = this.getDisplayName(card.data);
+          // 安全清理名片名稱用於顯示
+          cardName = window.SecurityDataHandler ? 
+            window.SecurityDataHandler.sanitizeOutput(rawName, 'text') : rawName;
         }
       } catch (getError) {
         console.warn('[CardList] Failed to get card name for deletion message:', getError.message);
       }
       
       // 執行刪除操作
-      await this.storage.deleteCard(cardId);
+      await this.storage.deleteCard(sanitizedCardId);
       
       // 重新載入列表
       await this.loadCards();
       
-      // 顯示成功消息
+      // 顯示成功消息（使用已清理的名稱）
       this.showNotification(`「${cardName}」已成功刪除`, 'success');
       
     } catch (error) {

@@ -17,8 +17,8 @@
     <!-- Security Headers -->
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
-      script-src 'self' https://unpkg.com 'unsafe-inline';
-      style-src 'self' https://fonts.googleapis.com 'unsafe-inline';
+      script-src 'self' 'unsafe-inline' https://unpkg.com;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       font-src 'self' https://fonts.gstatic.com;
       img-src 'self' data: https:;
       connect-src 'self' https:;
@@ -145,6 +145,11 @@
                             <span class="action-title" id="action-backup-all">備份資料</span>
                             <span class="action-desc" id="action-backup-all-desc">匯出所有名片</span>
                         </button>
+                        <button class="action-card" data-action="security-settings">
+                            <span class="action-icon">🔒</span>
+                            <span class="action-title" id="action-security-settings">安全設定</span>
+                            <span class="action-desc" id="action-security-settings-desc">管理安全功能與隱私</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -251,21 +256,6 @@
     </div>
 
     <!-- Scripts -->
-    <!-- Design System Loader (Disabled) -->
-    <!-- <script type="module" src="src/core/design-system-loader.js"></script> -->
-    
-    <!-- moda Design System (Disabled) -->
-    <!-- <script src="../src/design-system/MODADesignSystemManager.js"></script>
-    <script src="../src/design-system/ThemeController.js"></script>
-    <script src="../src/design-system/CSSVariablesManager.js"></script>
-    <script src="../src/design-system/TypographyManager.js"></script>
-    <script src="../src/design-system/AccessibilityManager.js"></script>
-    <script src="../src/integration/BootstrapIntegration.js"></script>
-    <script src="../src/design-system/CSSSecurityManager.js"></script>
-    <script src="../src/design-system/DesignSystemMonitor.js"></script> -->
-    
-    <!-- moda Integration (Disabled) -->
-    <!-- <script src="src/core/moda-integration.js"></script> -->
     
     <!-- Unified Manifest Manager (最優先載入) -->
     <script src="src/core/unified-manifest-manager.js"></script>
@@ -274,6 +264,26 @@
     <script src="../src/security/SecurityInputHandler.js"></script>
     <script src="../src/security/SecurityDataHandler.js"></script>
     <script src="../src/security/SecurityAuthHandler.js"></script>
+    
+    <!-- SEC-01: Static Hosting Security Components -->
+    <script src="../src/security/StaticHostingSecurityToggle.js"></script>
+    <script src="../src/security/StaticHostingCompatibilityLayer.js"></script>
+    <script src="../src/security/ClientSideSecurityHealthMonitor.js"></script>
+    
+    <!-- SEC-04 to SEC-06: Phase 2 Security Components -->
+    <script src="../src/security/ClientSideGracefulDegradation.js"></script>
+    <script src="../src/security/ClientSideSecurityErrorRecovery.js"></script>
+    
+    <!-- SEC-07 to SEC-09: Phase 3 Security Components -->
+    <script src="../src/security/ClientSideSecurityRollback.js"></script>
+    <script src="../src/security/ClientSideUserImpactMonitor.js"></script>
+    <script src="../src/security/ClientSideSecurityDashboard.js"></script>
+    
+    <!-- SEC-10 to SEC-12: Phase 4 User Experience Components -->
+    <script src="../src/security/ClientSideUserCommunication.js"></script>
+    <script src="../src/security/ClientSideSecurityOnboarding.js"></script>
+    <script src="../src/security/ClientSideSecuritySettings.js"></script>
+    
     <script src="src/core/error-handler.js"></script>
     <script src="../assets/bilingual-common.js"></script>
     <script src="../assets/qrcode.min.js"></script>

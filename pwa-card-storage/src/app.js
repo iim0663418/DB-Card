@@ -38,6 +38,9 @@ class PWACardApp {
       // SEC-01: Load security components first
       await this.loadSecurityComponents();
       
+      // Initialize Enhanced Language Manager first
+      await this.initializeEnhancedLanguageManager();
+      
       // 初始化核心儲存
       if (typeof PWACardStorage !== 'undefined') {
         this.storage = new PWACardStorage();
@@ -132,6 +135,67 @@ class PWACardApp {
       
       throw error;
     }
+  }
+
+  /**
+   * Initialize Enhanced Language Manager
+   */
+  async initializeEnhancedLanguageManager() {
+    try {
+      if (typeof EnhancedLanguageManager !== 'undefined') {
+        // Create enhanced language manager from existing language manager
+        const existingManager = window.languageManager || null;
+        this.enhancedLanguageManager = new EnhancedLanguageManager(existingManager);
+        await this.enhancedLanguageManager.initialize();
+        
+        // Replace global language manager with enhanced version
+        window.enhancedLanguageManager = this.enhancedLanguageManager;
+        
+        console.log('[PWA] Enhanced Language Manager initialized successfully');
+      } else {
+        console.warn('[PWA] EnhancedLanguageManager not available, using fallback');
+      }
+    } catch (error) {
+      console.error('[PWA] Enhanced Language Manager initialization failed:', error);
+      // Continue with existing language manager as fallback
+    }
+  }
+
+  /**
+   * Get localized text using Enhanced Language Manager
+   */
+  getLocalizedText(key, fallback = null) {
+    try {
+      if (this.enhancedLanguageManager) {
+        const text = this.enhancedLanguageManager.getUnifiedText(key);
+        if (text !== key) return text;
+      }
+      
+      if (window.languageManager && window.languageManager.getText) {
+        const text = window.languageManager.getText(key.split('.').pop());
+        if (text !== key.split('.').pop()) return text;
+      }
+      
+      return fallback || key;
+    } catch (error) {
+      console.error('[PWA] Failed to get localized text:', error);
+      return fallback || key;
+    }
+  }
+
+  /**
+   * Update navigation labels with current language
+   */
+  updateNavigationLabels() {
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+      const page = item.dataset.page;
+      if (page) {
+        const textElement = item.querySelector('.nav-text') || item;
+        const labelKey = `pwa.navigation.${page}`;
+        textElement.textContent = this.getLocalizedText(labelKey, textElement.textContent);
+      }
+    });
   }
 
   /**
@@ -320,12 +384,21 @@ class PWACardApp {
     this.loadThemePreference();
     this.updateThemeUI();
     
-    // 初始化語言管理器
-    if (window.languageManager) {
-      this.currentLanguage = window.languageManager.getCurrentLanguage();
+    // 使用 Enhanced Language Manager
+    if (this.enhancedLanguageManager) {
+      this.currentLanguage = this.enhancedLanguageManager.getCurrentLanguage();
       this.updateLanguageUI();
       
       // 註冊語言變更觀察者
+      this.enhancedLanguageManager.addObserver((lang) => {
+        this.currentLanguage = lang;
+        this.updateLanguageUI();
+      });
+    } else if (window.languageManager) {
+      // Fallback to original language manager
+      this.currentLanguage = window.languageManager.getCurrentLanguage();
+      this.updateLanguageUI();
+      
       window.languageManager.addObserver((lang) => {
         this.currentLanguage = lang;
         this.updateLanguageUI();
@@ -1336,40 +1409,59 @@ class PWACardApp {
     }
   }
 
-  toggleLanguage() {
-    if (!window.languageManager) {
-      console.error('[PWA] Language manager not available');
-      return;
-    }
-    
-    const newLang = window.languageManager.toggleLanguage();
-    this.currentLanguage = newLang;
-    
-    // 重新載入名片列表
-    if (this.currentPage === 'cards' && window.cardList) {
-      window.cardList.refresh();
-    }
-    
-    // 如果有開啟的名片模態視窗，重新渲染
-    const existingModal = document.querySelector('.modal.card-modal');
-    if (existingModal) {
-      const cardId = existingModal.querySelector('.generate-qr-btn')?.dataset.cardId;
-      if (cardId) {
-        existingModal.remove();
-        this.viewCard(cardId);
+  async toggleLanguage() {
+    try {
+      let newLang;
+      
+      // Use Enhanced Language Manager if available
+      if (this.enhancedLanguageManager) {
+        newLang = await this.enhancedLanguageManager.toggleLanguage();
+      } else if (window.languageManager) {
+        // Fallback to original language manager
+        newLang = window.languageManager.toggleLanguage();
+      } else {
+        console.error('[PWA] No language manager available');
+        return;
       }
+      
+      this.currentLanguage = newLang;
+      
+      // 重新載入名片列表
+      if (this.currentPage === 'cards' && window.cardList) {
+        await window.cardList.refresh();
+      }
+      
+      // 如果有開啟的名片模態視窗，重新渲染
+      const existingModal = document.querySelector('.modal.card-modal');
+      if (existingModal) {
+        const cardId = existingModal.querySelector('.generate-qr-btn')?.dataset.cardId;
+        if (cardId) {
+          existingModal.remove();
+          await this.viewCard(cardId);
+        }
+      }
+      
+      // 獲取本地化訊息
+      const message = this.getLocalizedText('notifications.languageChanged');
+      this.showNotification(message, 'success');
+      
+    } catch (error) {
+      console.error('[PWA] Language toggle failed:', error);
+      const errorMessage = this.getLocalizedText('notifications.operationFailed');
+      this.showNotification(errorMessage, 'error');
     }
-    
-    // 使用語言管理器獲取本地化訊息
-    const message = window.languageManager.getNotificationMessage('languageChanged');
-    this.showNotification(message, 'success');
   }
 
   updateLanguageUI() {
-    // 語言 UI 更新現在由 LanguageManager 處理
-    if (window.languageManager) {
+    // 語言 UI 更新現在由 Enhanced Language Manager 處理
+    if (this.enhancedLanguageManager && this.enhancedLanguageManager.baseManager.updateLanguageButton) {
+      this.enhancedLanguageManager.baseManager.updateLanguageButton();
+    } else if (window.languageManager) {
       window.languageManager.updateLanguageButton();
     }
+    
+    // Update navigation labels
+    this.updateNavigationLabels();
   }
 
   updateThemeUI() {

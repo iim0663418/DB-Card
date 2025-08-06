@@ -1,7 +1,7 @@
 ---
 version: "v3.1.1"
 rev_id: 3
-last_updated: "2025-01-27"
+last_updated: "2025-08-06"
 owners: ["prd-writer", "main-orchestrator"]
 feature_scope: "card-version-management-duplicate-detection"
 security_level: "standard"

@@ -1,130 +1,117 @@
 ---
-version: "v3.1.2-language-architecture"
-rev_id: 9
-last_updated: "2025-01-27"
-owners: ["task-breakdown-planner", "implementation-planner"]
-feature_scope: "unified-language-switching-architecture"
+version: "v3.1.4-strategic-improvements"
+rev_id: 11
+last_updated: "2025-08-06"
+owners: ["implementation-planner", "technical-architect", "code-reviewer"]
+feature_scope: "unified-language-architecture-strategic-improvements"
 security_level: "standard"
 cognitive_complexity: "low"
 total_tasks: 12
-critical_path_duration: "6-8 days"
-implementation_phases: 4
+critical_path_duration: "5-7 days"
+implementation_phases: 3
+architecture_score: "8.2/10"
+strategic_focus: ["quality-assurance", "performance", "developer-experience", "security", "accessibility", "maintainability"]
 ---
 
-# 統一語言切換架構任務分解計劃
+# 統一語言管理架構策略性改進任務計劃
 
 ## 1️⃣ Task Overview
 
 ### 模組分組摘要
-- **Phase 1 - 核心架構** (4 tasks): 建立統一語言管理基礎架構
-- **Phase 2 - 安全組件整合** (4 tasks): 解決安全組件語言切換問題
-- **Phase 3 - 無障礙支援** (2 tasks): 實作 ARIA 標籤和螢幕閱讀器支援
-- **Phase 4 - 整合測試** (2 tasks): 完整測試和效能優化
+基於架構分析結果（8.2/10分，生產環境就緒），專注於戰略性改進而非緊急修復：
+- **Phase 1 - 品質保證** (5 tasks): TypeScript化、測試覆蓋率、錯誤處理強化
+- **Phase 2 - 效能優化** (4 tasks): 監控指標、快取策略、記憶體管理、載入優化  
+- **Phase 3 - 開發者體驗** (3 tasks): 調試工具、文件完善、重用性提升
 
 ### Critical Path 與里程碑
-- **里程碑 1** (Day 3): 核心架構完成，支援基礎語言切換
-- **里程碑 2** (Day 6): 安全組件整合完成，解決 CRS-LANG-001~003
-- **里程碑 3** (Day 8): 無障礙支援和整合測試完成
+- **里程碑 1** (Day 3): 品質保證改善，TypeScript支援完成
+- **里程碑 2** (Day 5): 效能監控與優化機制部署
+- **里程碑 3** (Day 7): 開發者工具與文件化完成
 
-**總 CTX-Units**: 9.2 (Claude-4-Sonnet), 14.7 (GPT-4.1)
+**總 CTX-Units**: 8.7 (Claude-4-Sonnet), 13.6 (GPT-4.1)
 
 ## 2️⃣ Detailed Task Breakdown
 
 | Task ID | Task Name | Description | Dependencies | Testing/Acceptance | Security/Accessibility | Effort (CTX-Units) | CTX Map (Claude4/GPT-4.1) | Context Footprint Note |
 |---------|-----------|-------------|--------------|--------------------|------------------------|--------------------|---------------------------|------------------------|
-| LANG-01 | 建立統一翻譯註冊表 | 實作 TranslationRegistry 類別，管理所有翻譯資源，支援點記法查詢和快取機制 | 無 | **Given** 翻譯資料結構定義完成<br>**When** 呼叫 getTranslation(lang, key)<br>**Then** 正確返回翻譯文字，支援嵌套鍵值查詢<br>**And** 快取機制運作正常，重複查詢效能提升 | **Security**: 翻譯內容 XSS 防護，HTML 轉義<br>**Accessibility**: 支援 ARIA 標籤翻譯鍵值 | 0.6 | {"claude-4-sonnet": 0.6, "gpt-4.1": 0.9} | 基礎資料結構，程式碼量適中 |
-| LANG-02 | 實作統一語言觀察者 | 建立 UnifiedLanguageObserver，支援觀察者註冊、依賴管理、批次更新和錯誤處理 | LANG-01 | **Given** 多個語言觀察者註冊<br>**When** 觸發語言變更事件<br>**Then** 按優先級和依賴順序更新所有觀察者<br>**And** 單一觀察者失敗不影響其他組件<br>**And** 更新完成時間 ≤ 300ms | **Security**: 觀察者註冊驗證，防止惡意註冊<br>**Accessibility**: 無障礙組件優先更新 | 0.8 | {"claude-4-sonnet": 0.8, "gpt-4.1": 1.3} | 複雜事件管理邏輯，需要錯誤處理 |
-| LANG-03 | 擴展語言管理器核心 | 擴展現有 LanguageManager，新增 getUnifiedText()、觀察者整合、佇列管理功能 | LANG-01, LANG-02 | **Given** 現有 LanguageManager 功能保持不變<br>**When** 呼叫 switchLanguage(lang)<br>**Then** 統一更新所有註冊組件<br>**And** 支援並發請求佇列處理<br>**And** 向下相容現有 API | **Security**: 語言參數驗證，僅允許支援語言<br>**Accessibility**: 自動更新 document.lang 屬性 | 0.7 | {"claude-4-sonnet": 0.7, "gpt-4.1": 1.1} | 擴展現有類別，需要保持相容性 |
-| LANG-04 | 建立翻譯資源檔案 | 建立安全組件和無障礙翻譯 JSON 檔案，包含完整中英文翻譯內容 | 無 | **Given** 翻譯鍵值結構定義<br>**When** 載入翻譯檔案<br>**Then** 所有必要翻譯鍵值存在<br>**And** 中英文翻譯內容完整且準確<br>**And** JSON 格式驗證通過 | **Security**: 翻譯內容安全審查，無惡意腳本<br>**Accessibility**: WCAG 2.1 AA 相容文字內容 | 0.4 | {"claude-4-sonnet": 0.4, "gpt-4.1": 0.6} | 主要是資料建立，程式碼量少 |
-| LANG-05 | 實作安全組件語言適配器 | 建立 SecurityComponentsLanguageAdapter，處理 UserCommunication 和 SecurityOnboarding 語言更新 | LANG-01, LANG-02, LANG-04 | **Given** 安全組件已載入<br>**When** 語言切換觸發<br>**Then** DOM 元素文字內容正確更新<br>**And** 焦點狀態保持不變<br>**And** 不可見組件延遲更新 | **Security**: DOM 更新 XSS 防護，安全的 innerHTML 替代<br>**Accessibility**: 焦點管理，ARIA 標籤同步更新 | 0.9 | {"claude-4-sonnet": 0.9, "gpt-4.1": 1.4} | 複雜 DOM 操作，多種更新策略 |
-| LANG-06 | 優化使用者溝通系統整合 | 修改 ClientSideUserCommunication，移除硬編碼中文標籤，整合統一語言管理器 | LANG-03, LANG-05 | **Given** 使用者溝通容器存在<br>**When** 語言切換或新訊息顯示<br>**Then** 容器標籤和訊息文字使用正確語言<br>**And** 現有功能保持不變<br>**And** 效能無明顯影響 | **Security**: 訊息內容安全過濾<br>**Accessibility**: 容器 aria-label 動態更新 | 0.5 | {"claude-4-sonnet": 0.5, "gpt-4.1": 0.8} | 修改現有組件，邏輯相對簡單 |
-| LANG-07 | 修復安全引導模態框語言切換 | 優化 ClientSideSecurityOnboarding 語言切換邏輯，解決焦點丟失和記憶體洩漏問題 | LANG-03, LANG-05 | **Given** 安全引導模態框開啟<br>**When** 使用者切換語言<br>**Then** 模態框內容正確更新<br>**And** 焦點元素保持不變<br>**And** 無記憶體洩漏<br>**And** 觀察者正確清理 | **Security**: 模態框內容 XSS 防護<br>**Accessibility**: 焦點管理，螢幕閱讀器相容 | 0.8 | {"claude-4-sonnet": 0.8, "gpt-4.1": 1.2} | 修復現有問題，需要仔細處理 |
-| LANG-08 | 建立 PWA UI 語言適配器 | 實作 PWAUILanguageAdapter，整合現有 PWA 組件語言更新邏輯 | LANG-02, LANG-03 | **Given** PWA UI 組件已載入<br>**When** 語言切換事件觸發<br>**Then** 所有 UI 元素正確更新<br>**And** 卡片列表、對話框等組件語言一致<br>**And** 更新效能符合要求 | **Security**: UI 更新安全性檢查<br>**Accessibility**: UI 元素 ARIA 屬性更新 | 0.6 | {"claude-4-sonnet": 0.6, "gpt-4.1": 0.9} | 整合現有邏輯，中等複雜度 |
-| LANG-09 | 實作無障礙語言管理器 | 建立 AccessibilityLanguageManager，處理 ARIA 標籤、螢幕閱讀器文字、表單標籤雙語支援 | LANG-01, LANG-04 | **Given** 頁面包含無障礙元素<br>**When** 語言切換觸發<br>**Then** 所有 ARIA 標籤更新為正確語言<br>**And** 螢幕閱讀器文字同步更新<br>**And** 表單標籤雙語化<br>**And** WCAG 2.1 AA 相容性測試通過 | **Security**: 無障礙文字內容安全過濾<br>**Accessibility**: 完整 WCAG 2.1 AA 支援，螢幕閱讀器測試 | 0.7 | {"claude-4-sonnet": 0.7, "gpt-4.1": 1.1} | 專門的無障礙功能，需要深度測試 |
-| LANG-10 | 建立無障礙翻譯資源 | 建立 accessibility-zh.json 和 accessibility-en.json，包含 ARIA 標籤和螢幕閱讀器文字翻譯 | LANG-09 | **Given** 無障礙元素識別完成<br>**When** 載入無障礙翻譯檔案<br>**Then** 所有 ARIA 標籤翻譯存在<br>**And** 螢幕閱讀器文字翻譯完整<br>**And** 表單標籤翻譯準確 | **Security**: 翻譯內容安全審查<br>**Accessibility**: 翻譯內容符合無障礙標準，語意清晰 | 0.3 | {"claude-4-sonnet": 0.3, "gpt-4.1": 0.5} | 主要是翻譯資料建立 |
-| LANG-11 | 語言切換整合測試 | 建立完整的語言切換整合測試，包含單元測試、整合測試、無障礙測試 | LANG-01~LANG-10 | **Given** 所有語言管理組件實作完成<br>**When** 執行完整測試套件<br>**Then** 單元測試覆蓋率 ≥ 90%<br>**And** 整合測試通過率 100%<br>**And** 無障礙測試符合 WCAG 2.1 AA<br>**And** 效能測試符合 ≤ 300ms 要求 | **Security**: 安全測試包含 XSS 防護驗證<br>**Accessibility**: 完整無障礙測試，包含螢幕閱讀器測試 | 0.8 | {"claude-4-sonnet": 0.8, "gpt-4.1": 1.2} | 綜合測試，需要多種測試策略 |
-| LANG-12 | 效能優化與記憶體管理 | 優化語言切換效能，實作記憶體洩漏檢測，完善錯誤處理機制 | LANG-11 | **Given** 基礎功能測試通過<br>**When** 進行效能和記憶體測試<br>**Then** 語言切換響應時間 ≤ 300ms<br>**And** 長時間使用無記憶體洩漏<br>**And** 錯誤恢復率 ≥ 95%<br>**And** CPU 使用率 ≤ 30% | **Security**: 錯誤處理不洩露敏感資訊<br>**Accessibility**: 效能優化不影響無障礙功能 | 0.6 | {"claude-4-sonnet": 0.6, "gpt-4.1": 0.9} | 效能調優，相對獨立的任務 |
+| **QA-01** | TypeScript 類型定義實作 | 為所有核心語言管理類別新增 TypeScript 類型定義，提升開發者體驗和程式碼品質 | 無 | **Given** 現有 JavaScript 實作<br>**When** 新增 .d.ts 類型檔案<br>**Then** TypeScript 編輯器提供自動完成<br>**And** 型別檢查捕獲潛在錯誤<br>**And** 所有公開 API 有完整類型 | **Security**: 類型檢查防止不當參數傳遞<br>**Accessibility**: 介面類型確保無障礙屬性正確 | 0.9 | {"claude-4-sonnet": 0.9, "gpt-4.1": 1.4} | 類型定義，需要理解現有實作 |
+| **QA-02** | 翻譯完整性驗證系統 | 實作自動檢測缺失翻譯鍵值和語言間不一致的驗證機制 | 無 | **Given** 多語言翻譯資源<br>**When** 執行完整性檢查<br>**Then** 識別缺失的翻譯鍵值<br>**And** 報告語言間不一致項目<br>**And** 提供修復建議 | **Security**: 驗證翻譯內容防止 XSS<br>**Accessibility**: 確保無障礙文字完整性 | 0.7 | {"claude-4-sonnet": 0.7, "gpt-4.1": 1.1} | 翻譯驗證邏輯，中等複雜度 |
+| **QA-03** | 自動錯誤恢復機制強化 | 實作Circuit Breaker模式和自動重試，提升系統可靠性 | 無 | **Given** 組件更新失敗<br>**When** 觸發錯誤恢復<br>**Then** 使用 Circuit Breaker 防止級聯失敗<br>**And** 自動重試失敗的組件更新<br>**And** 優雅降級不影響使用者體驗 | **Security**: 錯誤資訊不洩露敏感資料<br>**Accessibility**: 錯誤狀態提供無障礙回饋 | 0.8 | {"claude-4-sonnet": 0.8, "gpt-4.1": 1.2} | Circuit Breaker 實作 |
+| **QA-04** | 整合測試覆蓋率提升 | 擴展現有測試套件，重點加強端對端語言切換場景 | QA-01 | **Given** 現有測試基礎<br>**When** 執行完整測試套件<br>**Then** 語言切換場景覆蓋率 ≥ 95%<br>**And** 跨組件整合測試涵蓋所有路徑<br>**And** 效能回歸測試確保 <300ms | **Security**: 安全測試涵蓋翻譯注入<br>**Accessibility**: 無障礙相容性自動化測試 | 0.6 | {"claude-4-sonnet": 0.6, "gpt-4.1": 0.9} | 測試案例擴展 |
+| **QA-05** | 安全性審核與強化 | 實施語言管理系統的全面安全審核，強化輸入驗證和 XSS 防護 | QA-02 | **Given** 語言切換和翻譯系統<br>**When** 執行安全測試<br>**Then** 所有使用者輸入通過嚴格驗證<br>**And** XSS 攻擊向量被阻止<br>**And** 安全審核報告顯示無重大風險 | **Security**: 全面安全檢查和加固<br>**Accessibility**: 安全措施不影響無障礙功能 | 0.5 | {"claude-4-sonnet": 0.5, "gpt-4.1": 0.8} | 安全審核相對標準化 |
+| **PERF-01** | 效能監控指標系統 | 實作詳細的效能監控和指標收集，基於現有 PerformanceOptimizer 擴展 | 無 | **Given** 語言切換操作<br>**When** 執行效能監控<br>**Then** 收集詳細的時間、記憶體指標<br>**And** 提供效能趨勢分析<br>**And** 自動警報效能異常 | **Security**: 指標資料不包含敏感資訊<br>**Accessibility**: 效能監控不影響無障礙體驗 | 0.8 | {"claude-4-sonnet": 0.8, "gpt-4.1": 1.2} | 效能指標收集系統 |
+| **PERF-02** | 進階快取策略實作 | 實作 LRU + TTL 快取機制，優化翻譯資源記憶體使用 | PERF-01 | **Given** 頻繁的翻譯查詢<br>**When** 使用進階快取策略<br>**Then** 快取命中率 ≥ 90%<br>**And** 記憶體使用控制在合理範圍<br>**And** 過期翻譯自動清理 | **Security**: 快取清理防止資料洩露<br>**Accessibility**: 快取策略確保翻譯可用性 | 0.7 | {"claude-4-sonnet": 0.7, "gpt-4.1": 1.1} | LRU+TTL 快取實作 |
+| **PERF-03** | 記憶體管理優化 | 強化觀察者生命週期管理，防止記憶體洩漏 | QA-03 | **Given** 長時間運行應用<br>**When** 多次語言切換操作<br>**Then** 記憶體使用保持穩定<br>**And** 無未清理的觀察者引用<br>**And** 記憶體洩漏測試通過 | **Security**: 記憶體清理防止資料殘留<br>**Accessibility**: 記憶體優化不影響功能穩定性 | 0.6 | {"claude-4-sonnet": 0.6, "gpt-4.1": 0.9} | 記憶體管理優化 |
+| **PERF-04** | 串流翻譯更新機制 | 實作部分翻譯更新替代完整重載，提升大型應用效能 | PERF-02 | **Given** 大量翻譯內容<br>**When** 語言切換或翻譯更新<br>**Then** 僅更新變更的翻譯區塊<br>**And** 更新時間 ≤ 100ms<br>**And** 使用者感知無延遲 | **Security**: 部分更新完整性驗證<br>**Accessibility**: 串流更新不影響螢幕閱讀器 | 0.9 | {"claude-4-sonnet": 0.9, "gpt-4.1": 1.4} | 串流更新機制，複雜度較高 |
+| **DEV-01** | 語言管理調試工具 | 開發瀏覽器開發工具擴展，提供語言切換狀態視覺化 | QA-01, PERF-01 | **Given** 開發或調試語言功能<br>**When** 使用調試工具<br>**Then** 視覺化語言切換狀態和效能<br>**And** 檢視翻譯快取和觀察者狀態<br>**And** 模擬語言切換問題場景 | **Security**: 調試工具僅開發環境可用<br>**Accessibility**: 調試介面符合無障礙標準 | 0.8 | {"claude-4-sonnet": 0.8, "gpt-4.1": 1.2} | 調試工具開發 |
+| **DEV-02** | API 文件與最佳實踐指南 | 撰寫完整的 API 文件和語言管理最佳實踐指南 | QA-01, QA-02 | **Given** 完整的語言管理 API<br>**When** 開發者查閱文件<br>**Then** 所有 API 有詳細說明和範例<br>**And** 最佳實踐指南涵蓋常見場景<br>**And** 疑難排解指南協助問題解決 | **Security**: 文件包含安全使用指導<br>**Accessibility**: 文件範例展示無障礙實作 | 0.5 | {"claude-4-sonnet": 0.5, "gpt-4.1": 0.8} | 文件撰寫，相對標準化 |
+| **DEV-03** | 可重用函式庫封裝 | 將語言管理功能封裝為獨立的可重用函式庫 | DEV-01, DEV-02 | **Given** 完整的語言管理實作<br>**When** 封裝為獨立函式庫<br>**Then** 支援多種框架整合（React、Vue、Angular）<br>**And** 提供簡潔的安裝和設定流程<br>**And** 向下相容現有專案 | **Security**: 函式庫安全性審核和簽名<br>**Accessibility**: 函式庫內建無障礙支援 | 1.0 | {"claude-4-sonnet": 1.0, "gpt-4.1": 1.6} | 函式庫封裝，需重構現有程式碼 |
 
 ## 3️⃣ Test Coverage Plan
 
-### Unit Testing Matrix
-| 模組 | 測試類型 | 覆蓋率目標 | 關鍵測試案例 |
-|------|---------|-----------|-------------|
-| TranslationRegistry | Unit | 95% | 翻譯查詢、快取機制、錯誤處理 |
-| UnifiedLanguageObserver | Unit | 90% | 觀察者註冊、事件分發、依賴管理 |
-| EnhancedLanguageManager | Unit | 90% | 語言切換、佇列管理、API 相容性 |
-| SecurityComponentsLanguageAdapter | Unit | 85% | DOM 更新、策略選擇、錯誤恢復 |
-| AccessibilityLanguageManager | Unit | 90% | ARIA 更新、螢幕閱讀器支援 |
+### 策略性測試矩陣
+| 測試層級 | 目標覆蓋率 | 重點測試領域 | 自動化程度 |
+|----------|-----------|-------------|-----------|
+| **單元測試** | 95% | 類型安全、錯誤處理、核心邏輯 | 100% 自動化 |
+| **整合測試** | 90% | 組件間協作、語言切換流程 | 95% 自動化 |
+| **端對端測試** | 85% | 完整使用者場景、效能基準 | 80% 自動化 |
+| **安全測試** | 100% | 輸入驗證、XSS 防護、資料完整性 | 90% 自動化 |
+| **無障礙測試** | 95% | WCAG 2.1 AA 相容性、螢幕閱讀器支援 | 70% 自動化 |
+| **效能測試** | 100% | 回應時間、記憶體使用、壓力測試 | 100% 自動化 |
 
-### Integration Testing Scope
-- **語言切換完整流程**: 從使用者點擊到所有組件更新完成
-- **安全組件整合**: UserCommunication 和 SecurityOnboarding 語言同步
-- **PWA 組件整合**: 卡片列表、對話框、通知系統語言一致性
-- **無障礙整合**: ARIA 標籤、螢幕閱讀器、鍵盤導航雙語支援
+### 回歸測試策略
+- **API 相容性**: 確保所有改進維持 100% 向下相容性
+- **效能基準**: 語言切換時間維持 ≤ 300ms 目標
+- **記憶體穩定性**: 長期執行無記憶體洩漏
+- **跨瀏覽器相容**: Chrome、Firefox、Safari、Edge 一致行為
 
-### E2E Testing Scenarios
-- **多語言切換**: 快速連續切換語言，驗證狀態一致性
-- **並發請求**: 同時觸發多個語言切換請求，驗證佇列機制
-- **錯誤恢復**: 模擬組件更新失敗，驗證回滾機制
-- **記憶體測試**: 長時間使用後檢測記憶體洩漏
-
-### Security Testing Focus
-- **XSS 防護**: 翻譯內容注入測試
-- **輸入驗證**: 語言參數邊界測試
-- **錯誤處理**: 敏感資訊洩露檢測
-- **授權檢查**: 語言切換權限驗證
-
-### Accessibility Testing Requirements
-- **WCAG 2.1 AA 相容性**: 自動化無障礙測試
-- **螢幕閱讀器測試**: NVDA、JAWS、VoiceOver 相容性
-- **鍵盤導航**: Tab 順序和快捷鍵功能
-- **色彩對比**: 雙語文字可讀性檢測
+### 測試自動化工具鏈
+- **單元測試**: Jest + Sinon.js (TypeScript 支援)
+- **整合測試**: Testing Library + MSW 
+- **E2E 測試**: Playwright (多瀏覽器並行)
+- **效能測試**: Lighthouse CI + 自定義效能指標
+- **無障礙測試**: axe-core + Pa11y 自動化掃描
 
 ## 4️⃣ Dependency Relationship Diagram
 
 ```mermaid
 graph TD
-    LANG-01["LANG-01: 翻譯註冊表 (CTX=0.6)"] --> LANG-02["LANG-02: 統一觀察者 (CTX=0.8)"]
-    LANG-01 --> LANG-04["LANG-04: 翻譯資源檔案 (CTX=0.4)"]
-    LANG-01 --> LANG-09["LANG-09: 無障礙管理器 (CTX=0.7)"]
+    QA01[QA-01: TypeScript 定義<br/>CTX=0.9] 
+    QA02[QA-02: 翻譯驗證<br/>CTX=0.7]
+    QA03[QA-03: 錯誤恢復<br/>CTX=0.8]
+    QA04[QA-04: 測試覆蓋<br/>CTX=0.6]
+    QA05[QA-05: 安全審核<br/>CTX=0.5]
     
-    LANG-02 --> LANG-03["LANG-03: 語言管理器擴展 (CTX=0.7)"]
-    LANG-02 --> LANG-08["LANG-08: PWA UI 適配器 (CTX=0.6)"]
+    PERF01[PERF-01: 效能監控<br/>CTX=0.8]
+    PERF02[PERF-02: 進階快取<br/>CTX=0.7]
+    PERF03[PERF-03: 記憶體管理<br/>CTX=0.6]
+    PERF04[PERF-04: 串流更新<br/>CTX=0.9]
     
-    LANG-01 --> LANG-05["LANG-05: 安全組件適配器 (CTX=0.9)"]
-    LANG-02 --> LANG-05
-    LANG-04 --> LANG-05
+    DEV01[DEV-01: 調試工具<br/>CTX=0.8]
+    DEV02[DEV-02: API 文件<br/>CTX=0.5]
+    DEV03[DEV-03: 可重用函式庫<br/>CTX=1.0]
     
-    LANG-03 --> LANG-06["LANG-06: 使用者溝通整合 (CTX=0.5)"]
-    LANG-05 --> LANG-06
+    QA01 --> QA04
+    QA02 --> QA05
+    QA03 --> PERF03
     
-    LANG-03 --> LANG-07["LANG-07: 安全引導修復 (CTX=0.8)"]
-    LANG-05 --> LANG-07
+    PERF01 --> PERF02
+    PERF02 --> PERF04
     
-    LANG-09 --> LANG-10["LANG-10: 無障礙翻譯資源 (CTX=0.3)"]
+    QA01 --> DEV01
+    PERF01 --> DEV01
+    QA01 --> DEV02
+    QA02 --> DEV02
+    DEV01 --> DEV03
+    DEV02 --> DEV03
     
-    LANG-01 --> LANG-11["LANG-11: 整合測試 (CTX=0.8)"]
-    LANG-02 --> LANG-11
-    LANG-03 --> LANG-11
-    LANG-04 --> LANG-11
-    LANG-05 --> LANG-11
-    LANG-06 --> LANG-11
-    LANG-07 --> LANG-11
-    LANG-08 --> LANG-11
-    LANG-09 --> LANG-11
-    LANG-10 --> LANG-11
+    classDef qa fill:#3b82f6,stroke:#1d4ed8,color:#fff
+    classDef perf fill:#059669,stroke:#047857,color:#fff  
+    classDef dev fill:#8b5cf6,stroke:#7c3aed,color:#fff
     
-    LANG-11 --> LANG-12["LANG-12: 效能優化 (CTX=0.6)"]
-    
-    classDef phase1 fill:#4ade80,stroke:#16a34a,color:#000
-    classDef phase2 fill:#fbbf24,stroke:#f59e0b,color:#000
-    classDef phase3 fill:#94a3b8,stroke:#64748b,color:#000
-    classDef phase4 fill:#f87171,stroke:#dc2626,color:#000
-    
-    class LANG-01,LANG-02,LANG-03,LANG-04 phase1
-    class LANG-05,LANG-06,LANG-07,LANG-08 phase2
-    class LANG-09,LANG-10 phase3
-    class LANG-11,LANG-12 phase4
+    class QA01,QA02,QA03,QA04,QA05 qa
+    class PERF01,PERF02,PERF03,PERF04 perf
+    class DEV01,DEV02,DEV03 dev
 ```
 
 ### CTX-CALC-CONFIG
@@ -144,81 +131,113 @@ failover: "if any field missing -> set effort_ctx_units='TBD' and raise clarific
 -->
 ```
 
-## 5️⃣ Implementation Phases & Timeline
+## 5️⃣ Strategic Implementation Roadmap
 
-### Phase 1: 核心架構建立 (Days 1-3)
-**目標**: 建立統一語言管理基礎架構
-- **並行任務**: LANG-01 + LANG-04 (Day 1)
-- **依序任務**: LANG-02 (Day 2), LANG-03 (Day 3)
-- **里程碑**: 基礎語言切換功能可用
+### Phase 1: 品質保證基礎建設 (Days 1-3)
+**目標**: 建立堅實的程式碼品質和可靠性基礎
 
-### Phase 2: 安全組件整合 (Days 4-6)
-**目標**: 解決 CRS-LANG-001, CRS-LANG-002, CRS-LANG-003
-- **並行任務**: LANG-05 + LANG-08 (Days 4-5)
-- **依序任務**: LANG-06, LANG-07 (Day 6)
-- **里程碑**: 安全組件語言切換問題完全解決
+**並行執行組**:
+- **Group A**: QA-01 + QA-02 (Day 1-2)
+- **Group B**: QA-03 + QA-05 (Day 2-3)  
+- **Group C**: QA-04 (Day 3)
 
-### Phase 3: 無障礙支援 (Days 7-8)
-**目標**: 實作完整無障礙雙語支援
-- **並行任務**: LANG-09 + LANG-10 (Days 7-8)
-- **里程碑**: WCAG 2.1 AA 相容性達成
+**里程碑檢查點**:
+- TypeScript 類型定義完整，IDE 支援正常
+- 翻譯完整性驗證通過，無缺失鍵值
+- 錯誤恢復機制測試通過
+- 安全審核無重大風險
 
-### Phase 4: 整合測試與優化 (Days 9-10)
-**目標**: 完整測試和效能優化
-- **依序任務**: LANG-11 (Day 9), LANG-12 (Day 10)
-- **里程碑**: 生產就緒，效能目標達成
+### Phase 2: 效能優化與監控 (Days 4-5)  
+**目標**: 實現生產級別的效能監控和優化
 
-## 6️⃣ Risk Mitigation & Contingency Plans
+**序列執行**:
+- **Day 4**: PERF-01 → PERF-02 
+- **Day 5**: PERF-03 + PERF-04 (並行)
 
-### 高風險任務識別
-- **LANG-05** (CTX=0.9): 複雜 DOM 操作，多種更新策略
-  - **風險**: DOM 更新邏輯複雜，可能影響現有功能
-  - **緩解**: 詳細測試現有功能，漸進式實作
-  
-- **LANG-07** (CTX=0.8): 修復現有問題，需要仔細處理
-  - **風險**: 焦點管理和記憶體洩漏修復可能引入新問題
-  - **緩解**: 建立專門的焦點和記憶體測試案例
+**效能驗收標準**:
+- 語言切換平均時間 ≤ 200ms (改善目標)
+- 記憶體使用穩定，無洩漏
+- 快取命中率 ≥ 90%
+- 串流更新響應 ≤ 100ms
 
-### 依賴風險管理
-- **Critical Path**: LANG-01 → LANG-02 → LANG-03 → LANG-05 → LANG-06/07
-- **風險**: 核心架構延遲影響後續所有任務
-- **緩解**: Phase 1 任務優先資源分配，每日進度檢查
+### Phase 3: 開發者體驗與生態建設 (Days 6-7)
+**目標**: 提升開發者體驗，建立可重用的生態系統
 
-### 效能風險控制
-- **目標**: 語言切換 ≤ 300ms
-- **風險**: 複雜的觀察者模式可能影響效能
-- **緩解**: LANG-12 專門處理效能優化，必要時簡化架構
+**序列執行**:
+- **Day 6**: DEV-01 (依賴 QA-01 + PERF-01)
+- **Day 7**: DEV-02 → DEV-03
 
-## 7️⃣ Quality Gates & Acceptance Criteria
+**交付成果**:
+- 功能完整的調試工具
+- 詳細的 API 文件和最佳實踐指南  
+- 獨立可重用的語言管理函式庫
 
-### Phase 完成標準
-- **Phase 1**: 基礎語言切換功能可用，單元測試通過
-- **Phase 2**: 安全組件語言同步，整合測試通過
-- **Phase 3**: 無障礙測試通過 WCAG 2.1 AA
-- **Phase 4**: 效能測試達標，記憶體洩漏檢測通過
+### 風險管控與品質閘門
 
-### 程式碼品質要求
-- **測試覆蓋率**: 單元測試 ≥ 90%，整合測試 100%
-- **效能基準**: 語言切換 ≤ 300ms，記憶體使用 ≤ 10MB
-- **安全標準**: XSS 防護，輸入驗證，錯誤處理
-- **無障礙標準**: WCAG 2.1 AA 相容，螢幕閱讀器支援
+**每個 Phase 的品質閘門**:
+1. **自動化測試通過率**: ≥ 95%
+2. **效能回歸檢查**: 無超過 5% 的效能退化
+3. **安全掃描**: 無中高風險安全問題
+4. **無障礙檢查**: WCAG 2.1 AA 合規性維持
 
-### 交付物檢查清單
-- [ ] 所有新建檔案符合專案程式碼規範
-- [ ] 現有檔案修改保持向下相容性
-- [ ] 翻譯資源檔案完整且準確
-- [ ] 測試檔案覆蓋所有關鍵功能
-- [ ] 文檔更新反映架構變更
-- [ ] 效能基準測試通過
-- [ ] 安全審查通過
-- [ ] 無障礙測試通過
+**風險緩解策略**:
+- **技術風險**: 每個任務都有明確的回滾策略
+- **時程風險**: 關鍵路徑任務有 20% 緩衝時間
+- **品質風險**: 每日自動化測試和程式碼審查
+
+## 6️⃣ 架構分析基準改進目標
+
+### 當前架構評分基準
+基於技術分析報告的 8.2/10 分，各面向改進目標：
+
+| 評估面向 | 目前分數 | 目標分數 | 改進策略 | 對應任務 |
+|---------|---------|---------|---------|---------|
+| **可擴展性** | 8.0/10 | 9.0/10 | 串流更新、進階快取 | PERF-02, PERF-04 |
+| **安全性** | 8.5/10 | 9.5/10 | 全面安全審核、輸入驗證強化 | QA-05 |
+| **效能影響** | 8.0/10 | 9.0/10 | 效能監控、記憶體優化 | PERF-01, PERF-03 |
+| **維護性** | 7.5/10 | 9.0/10 | TypeScript 化、API 文件 | QA-01, DEV-02 |
+| **開發者體驗** | 7.0/10 | 8.5/10 | 調試工具、最佳實踐指南 | DEV-01, DEV-02 |
+
+### 目標架構評分: 9.0/10
+**改進重點**: 從"生產環境就緒"提升至"業界最佳實踐標準"
+
+## 7️⃣ Security & Accessibility Compliance Matrix
+
+### 安全合規檢查清單
+| 安全領域 | 目前狀態 | 改進任務 | 驗收標準 |
+|---------|---------|---------|---------|
+| **輸入驗證** | ✅ 基礎驗證 | QA-05 | OWASP Top 10 合規 |
+| **XSS 防護** | ✅ textContent 使用 | QA-05 | 自動化 XSS 掃描通過 |
+| **資料完整性** | ✅ 原子更新 | QA-03 | 狀態一致性測試 100% |
+| **記憶體安全** | ⚠️ 需改進 | PERF-03 | 記憶體洩漏檢測通過 |
+| **錯誤處理** | ⚠️ 需強化 | QA-03 | Circuit Breaker 模式 |
+
+### 無障礙合規檢查清單 (WCAG 2.1 AA)
+| 無障礙領域 | 目前狀態 | 改進任務 | 驗收標準 |
+|-----------|---------|---------|---------|
+| **鍵盤導航** | ✅ 基礎支援 | QA-04 | 100% 鍵盤可存取 |
+| **螢幕閱讀器** | ✅ ARIA 標籤 | QA-04 | NVDA/JAWS 測試通過 |
+| **色彩對比** | ✅ AA 等級 | DEV-02 | 自動化對比檢測 |
+| **語言聲明** | ✅ HTML lang | QA-04 | 多語言正確聲明 |
+| **焦點管理** | ⚠️ 需改進 | QA-04 | 語言切換焦點保持 |
+
+## 8️⃣ Performance Benchmarks & SLA
+
+### 效能服務水準協議 (SLA)
+| 效能指標 | 目前基準 | 改進目標 | 監控任務 |
+|---------|---------|---------|---------|
+| **語言切換時間** | 150-200ms | ≤ 150ms | PERF-01 |
+| **初始化時間** | ~50ms | ≤ 30ms | PERF-01 |
+| **記憶體使用** | +2-3MB | ≤ +2MB | PERF-03 |
+| **快取命中率** | ~70% | ≥ 90% | PERF-02 |
+| **錯誤恢復時間** | 未測量 | ≤ 100ms | QA-03 |
+
+### 壓力測試基準
+- **併發語言切換**: 支援 50 次/秒
+- **長期運行穩定性**: 24 小時無記憶體增長
+- **大規模翻譯**: 支援 10,000+ 翻譯鍵值
+- **多組件更新**: 100+ 組件同步更新 ≤ 200ms
 
 ---
 
-**下一步**: 通知 `code-executor` 開始實作 Phase 1 任務 (LANG-01, LANG-04)，建立統一語言管理基礎架構。
-
-**預期效益**:
-- 解決安全組件與 PWA 語言管理分離問題
-- 提升語言切換一致性和效能
-- 增強無障礙支援和使用者體驗
-- 建立可擴展的多語言架構基礎
+**策略重點**: 基於現有優秀架構（8.2/10），專注於品質、效能和開發者體驗的戰略性提升，目標達到業界最佳實踐水準（9.0/10）。

@@ -120,7 +120,7 @@ async function runSmokeTests() {
   try {
     const dialog = new DuplicateDialog();
     
-    const date1 = dialog.formatDate('2025-01-27T10:30:00.000Z');
+    const date1 = dialog.formatDate('2025-08-06T10:30:00.000Z');
     const date2 = dialog.formatDate('invalid-date');
     const date3 = dialog.formatDate(null);
     

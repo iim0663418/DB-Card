@@ -258,7 +258,7 @@ name|title|department|email|phone|mobile|avatar|greetings|socialNote
 
 ## 版本歷史
 
-- **v4.0 (2025-01)**: PWA 按鈕樣式統一，與聯絡人按鈕一致
+- **v4.0 (2025-08)**: PWA 按鈕樣式統一，與聯絡人按鈕一致
 - **v3.0 (2024-12)**: moda 設計系統對齊，響應式修復
 - **v2.0 (2024-12)**: 漸層設計優化，互動效果提升
 - **v1.5.12**: 修復 SimpleCardParser 欄位對應錯誤

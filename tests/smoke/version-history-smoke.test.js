@@ -27,21 +27,21 @@ const mockVersionManager = {
       versions: [
         {
           version: 1.2,
-          timestamp: '2025-01-27T10:30:00.000Z',
+          timestamp: '2025-08-06T10:30:00.000Z',
           changeType: 'update',
           description: '更新聯絡資訊',
           data: { name: '測試用戶', email: 'test@example.com', title: '工程師' }
         },
         {
           version: 1.1,
-          timestamp: '2025-01-26T15:20:00.000Z',
+          timestamp: '2025-08-26T15:20:00.000Z',
           changeType: 'update',
           description: '更新職稱',
           data: { name: '測試用戶', email: 'test@example.com', title: '資深工程師' }
         },
         {
           version: 1.0,
-          timestamp: '2025-01-25T09:00:00.000Z',
+          timestamp: '2025-08-25T09:00:00.000Z',
           changeType: 'create',
           description: '建立名片',
           data: { name: '測試用戶', email: 'test@example.com' }
@@ -128,7 +128,7 @@ async function runSmokeTests() {
     versionHistory.versions = [
       {
         version: 1.1,
-        timestamp: '2025-01-27T10:30:00.000Z',
+        timestamp: '2025-08-06T10:30:00.000Z',
         changeType: 'update',
         description: '測試更新',
         data: { name: '測試用戶', email: 'test@example.com' }
@@ -198,7 +198,7 @@ async function runSmokeTests() {
   try {
     const versionHistory = new VersionHistory(mockStorage, mockVersionManager);
     
-    const date1 = versionHistory.formatDate('2025-01-27T10:30:00.000Z');
+    const date1 = versionHistory.formatDate('2025-08-06T10:30:00.000Z');
     const date2 = versionHistory.formatDate('invalid-date');
     
     if ((date1.includes('2025') || date1.includes('Invalid Date')) && (date2 === '未知時間' || date2.includes('Invalid Date'))) {

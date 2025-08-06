@@ -993,3 +993,49 @@ tests/security/security-initialization-minimal.test.js  # 10 個核心功能測�
 ---
 
 **總結**: v3.1.2 版本專注於解決安全架構實作可能造成的服務中斷風險，通過建立完整的共存機制、漸進式部署策略和即時回滾能力，確保在實現安全增強的同時維持 100% 服務連續性。v3.1.2-security-testing 進一步建立了完整的測試基礎設施，確保所有安全功能的品質與可靠性。
+
+### 2025-08-05 - PWA Code Cleanup: Design System Loader Removal ✅
+
+#### 🧹 Code Maintenance & Architecture Simplification
+- **檔案**: `pwa-card-storage/index.html` (PWA 主頁面程式碼清理)
+- **變更**: 移除註解的 Design System Loader 程式碼區塊
+- **影響**: 提升程式碼可讀性，移除無用註解，簡化維護複雜度
+
+#### 📝 Removed Code Blocks
+```html
+<!-- 已移除的註解程式碼 -->
+<!-- Design System Loader (Disabled) -->
+<!-- <script type="module" src="src/core/design-system-loader.js"></script> -->
+
+<!-- moda Design System (Disabled) -->
+<!-- 多個已停用的設計系統腳本載入 -->
+
+<!-- moda Integration (Disabled) -->
+<!-- <script src="src/core/moda-integration.js"></script> -->
+```
+
+#### 🔧 Current Architecture Confirmation
+**實際使用的設計系統架構**:
+- ✅ **CSS-based Design System**: 使用 `moda-design-system.css` 直接載入
+- ✅ **Unified Resource Management**: 透過 `unified-manifest-manager.js` 統一管理
+- ✅ **Simplified Theme System**: CSS 變數系統實現主題切換
+- ✅ **No JavaScript Loader**: 不需要複雜的 JavaScript 設計系統載入器
+
+#### 📊 Impact & Benefits
+- **Code Cleanliness**: 移除 16 行無用註解，提升程式碼整潔度
+- **Maintenance Simplification**: 減少開發者混淆，避免誤以為需要這些檔案
+- **Performance**: 微幅減少 HTML 檔案大小
+- **Architecture Clarity**: 當前 CSS 變數 + 統一管理器架構更清晰
+
+#### 🧪 Validation Results
+- **HTML Structure**: ✅ 結構完整性維持
+- **Script Loading Order**: ✅ 載入順序正確保持
+- **Functionality**: ✅ 所有 PWA 功能正常運作
+- **Design System**: ✅ moda 設計系統透過 CSS 正常載入
+
+#### 📋 Documentation Sync
+- **README.md**: ✅ 同步更新 PWA 核心模組結構說明
+- **Project Structure**: ✅ 反映實際檔案架構
+- **Technical Documentation**: ✅ 確保文檔與程式碼一致性
+
+**Summary**: 成功移除 PWA index.html 中的無用註解程式碼，簡化架構並提升維護性。當前系統使用更簡潔的 CSS-based 設計系統，無需複雜的 JavaScript 載入器。

@@ -29,6 +29,12 @@ class ClientSideSecurityHealthMonitor {
   async initialize() {
     try {
       await this._initDatabase();
+      
+      // Only proceed if database is properly initialized
+      if (!this.db) {
+        throw new Error('Database initialization failed');
+      }
+      
       await this._loadHealthMetrics();
       this._setupPerformanceMonitoring();
       this._startHealthChecks();
@@ -38,6 +44,7 @@ class ClientSideSecurityHealthMonitor {
       return { success: true, monitoring: true };
     } catch (error) {
       console.error('[HealthMonitor] Initialization failed:', error);
+      this.monitoring = false;
       return { success: false, error: error.message };
     }
   }
@@ -88,6 +95,10 @@ class ClientSideSecurityHealthMonitor {
    * Record security module health status
    */
   async recordModuleHealth(moduleName, status, metrics = {}) {
+    if (!this.monitoring || !this.db) {
+      return { success: false, error: 'Monitoring not initialized' };
+    }
+    
     try {
       const healthRecord = {
         module: moduleName,
@@ -123,6 +134,10 @@ class ClientSideSecurityHealthMonitor {
    * Record performance metrics
    */
   async recordPerformanceMetric(operation, duration, success = true, metadata = {}) {
+    if (!this.monitoring || !this.db) {
+      return { success: false, error: 'Monitoring not initialized' };
+    }
+    
     try {
       const perfRecord = {
         operation,
@@ -170,6 +185,10 @@ class ClientSideSecurityHealthMonitor {
    * Record security event
    */
   async recordSecurityEvent(eventType, details = {}) {
+    if (!this.monitoring || !this.db) {
+      return { success: false, error: 'Monitoring not initialized' };
+    }
+    
     try {
       const severity = this._calculateEventSeverity(eventType, details);
       
@@ -532,6 +551,11 @@ class ClientSideSecurityHealthMonitor {
    * Store health record in IndexedDB
    */
   async _storeHealthRecord(record) {
+    if (!this.db) {
+      console.warn('[HealthMonitor] Database not initialized, skipping health record');
+      return Promise.resolve(null);
+    }
+    
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction(['healthMetrics'], 'readwrite');
       const store = transaction.objectStore('healthMetrics');
@@ -546,6 +570,11 @@ class ClientSideSecurityHealthMonitor {
    * Store performance record in IndexedDB
    */
   async _storePerformanceRecord(record) {
+    if (!this.db) {
+      console.warn('[HealthMonitor] Database not initialized, skipping performance record');
+      return Promise.resolve(null);
+    }
+    
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction(['performanceMetrics'], 'readwrite');
       const store = transaction.objectStore('performanceMetrics');
@@ -560,6 +589,11 @@ class ClientSideSecurityHealthMonitor {
    * Store security event in IndexedDB
    */
   async _storeSecurityEvent(event) {
+    if (!this.db) {
+      console.warn('[HealthMonitor] Database not initialized, skipping security event');
+      return Promise.resolve(null);
+    }
+    
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction(['securityEvents'], 'readwrite');
       const store = transaction.objectStore('securityEvents');
@@ -608,9 +642,13 @@ class ClientSideSecurityHealthMonitor {
    * Get recent records from IndexedDB
    */
   async _getRecentRecords(storeName, limit = 100) {
+    if (!this.db) {
+      return Promise.resolve([]);
+    }
+    
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction([storeName], 'readonly');
-      const store = transaction.objectStore('storeName');
+      const store = transaction.objectStore(storeName);
       const index = store.index('timestamp');
       const request = index.openCursor(null, 'prev');
       

@@ -817,8 +817,8 @@ function addSecurityHeaders(response, request) {
   if (url.pathname.endsWith('.html') || request.mode === 'navigate') {
     headers.set('Content-Security-Policy', 
       "default-src 'self'; " +
-      "script-src 'self' https://unpkg.com 'strict-dynamic'; " +
-      "style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; " +
+      "script-src 'self' 'unsafe-inline' https://unpkg.com; " +
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
       "font-src 'self' https://fonts.gstatic.com; " +
       "img-src 'self' data: https:; " +
       "connect-src 'self' https:; " +

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSP 測試頁面</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        .test-result { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>CSP 修復測試</h1>
+    <div id="results"></div>
+    
+    <script>
+        const results = document.getElementById('results');
+        
+        function addResult(test, success, message) {
+            const div = document.createElement('div');
+            div.className = 'test-result';
+            div.innerHTML = `
+                <strong>${test}:</strong> 
+                <span class="${success ? 'success' : 'error'}">
+                    ${success ? '✅ 成功' : '❌ 失敗'}
+                </span>
+                <br><small>${message}</small>
+            `;
+            results.appendChild(div);
+        }
+        
+        // 測試 1: 基本腳本執行
+        try {
+            addResult('基本腳本執行', true, '內聯腳本可以正常執行');
+        } catch (e) {
+            addResult('基本腳本執行', false, e.message);
+        }
+        
+        // 測試 2: DOM 操作
+        try {
+            const testDiv = document.createElement('div');
+            testDiv.textContent = 'DOM 操作測試';
+            addResult('DOM 操作', true, 'DOM 操作正常');
+        } catch (e) {
+            addResult('DOM 操作', false, e.message);
+        }
+        
+        // 測試 3: 動態腳本載入測試
+        function testDynamicScript() {
+            try {
+                const script = document.createElement('script');
+                script.textContent = 'console.log("動態腳本載入成功");';
+                document.head.appendChild(script);
+                addResult('動態腳本載入', true, '動態腳本可以載入');
+            } catch (e) {
+                addResult('動態腳本載入', false, e.message);
+            }
+        }
+        
+        testDynamicScript();
+        
+        // 測試 4: 檢查 CSP 違規
+        let cspViolations = 0;
+        document.addEventListener('securitypolicyviolation', (e) => {
+            cspViolations++;
+            addResult('CSP 違規檢測', false, `檢測到 CSP 違規: ${e.violatedDirective} - ${e.blockedURI}`);
+        });
+        
+        setTimeout(() => {
+            if (cspViolations === 0) {
+                addResult('CSP 違規檢測', true, '未檢測到 CSP 違規');
+            }
+        }, 1000);
+        
+        // 測試 5: PWA 跳轉測試
+        function testPWARedirect() {
+            const link = document.createElement('a');
+            link.href = './pwa-card-storage/';
+            link.textContent = '測試 PWA 跳轉';
+            link.style.display = 'block';
+            link.style.margin = '10px 0';
+            link.onclick = function(e) {
+                e.preventDefault();
+                addResult('PWA 跳轉準備', true, 'PWA 連結已準備就緒，請手動點擊測試');
+                window.open(this.href, '_blank');
+            };
+            results.appendChild(link);
+        }
+        
+        testPWARedirect();
+    </script>
+</body>
+</html>

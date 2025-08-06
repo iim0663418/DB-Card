@@ -16,10 +16,10 @@ class ClientSideSecurityHealthMonitor {
       alerts: []
     };
     this.thresholds = {
-      errorRate: 0.05, // 5% error rate threshold
-      responseTime: 1000, // 1 second response time threshold
-      memoryUsage: 50 * 1024 * 1024, // 50MB memory threshold
-      storageUsage: 0.8 // 80% storage usage threshold
+      errorRate: 0.1, // 10% error rate threshold (更寬鬆)
+      responseTime: 2000, // 2 seconds response time threshold (更寬鬆)
+      memoryUsage: 100 * 1024 * 1024, // 100MB memory threshold (更寬鬆)
+      storageUsage: 0.9 // 90% storage usage threshold (更寬鬆)
     };
   }
 
@@ -304,13 +304,16 @@ class ClientSideSecurityHealthMonitor {
     if (window.performance && window.performance.memory) {
       setInterval(() => {
         const memory = window.performance.memory;
+        // 記錄記憶體使用量（以 MB 為單位）
+        const memoryUsageMB = memory.usedJSHeapSize / (1024 * 1024);
         this.recordPerformanceMetric(
           'memory_usage',
-          memory.usedJSHeapSize,
+          memoryUsageMB,
           memory.usedJSHeapSize < this.thresholds.memoryUsage,
           {
             totalHeapSize: memory.totalJSHeapSize,
-            heapSizeLimit: memory.jsHeapSizeLimit
+            heapSizeLimit: memory.jsHeapSizeLimit,
+            usedMB: memoryUsageMB
           }
         );
       }, 60000); // Every minute

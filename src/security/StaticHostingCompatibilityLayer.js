@@ -4,9 +4,9 @@
  */
 
 class StaticHostingCompatibilityLayer {
-  constructor() {
+  constructor(existingStorage = null) {
     this.toggle = new StaticHostingSecurityToggle();
-    this.fallbackStorage = null;
+    this.fallbackStorage = existingStorage; // Use passed storage instead of creating new one
     this.secureStorage = null;
     this.initializationPromise = null;
     this.healthStatus = { healthy: true, issues: [] };
@@ -26,8 +26,8 @@ class StaticHostingCompatibilityLayer {
 
   async _performInitialization() {
     try {
-      // Initialize fallback storage (always available)
-      if (window.PWACardStorage) {
+      // Only initialize fallback storage if not provided
+      if (!this.fallbackStorage && window.PWACardStorage) {
         this.fallbackStorage = new window.PWACardStorage();
         await this.fallbackStorage.initialize();
       }

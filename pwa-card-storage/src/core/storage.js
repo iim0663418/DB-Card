@@ -195,7 +195,7 @@ class PWACardStorage {
       
       // Initialize compatibility layer
       if (window.StaticHostingCompatibilityLayer) {
-        this.compatibilityLayer = new window.StaticHostingCompatibilityLayer();
+        this.compatibilityLayer = new window.StaticHostingCompatibilityLayer(this);
         await this.compatibilityLayer.initialize();
         
         // Determine security mode based on available features

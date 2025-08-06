@@ -10,6 +10,8 @@ class ClientSideUserCommunication {
         this.messageQueue = [];
         this.activeMessages = new Map();
         this.initialized = false;
+        this.currentLanguage = this.detectLanguage();
+        this.languageObserver = null;
         
         this.messageTypes = {
             SECURITY_ENHANCEMENT: 'security-enhancement',
@@ -30,6 +32,7 @@ class ClientSideUserCommunication {
             this.loadStoredMessages();
             this.createMessageContainer();
             this.setupEventListeners();
+            this.setupLanguageObserver();
             this.initialized = true;
             
             // Process any queued messages
@@ -76,7 +79,7 @@ class ClientSideUserCommunication {
         container.id = 'user-communication-container';
         container.className = 'user-communication-container';
         container.setAttribute('role', 'region');
-        container.setAttribute('aria-label', '系統通知');
+        container.setAttribute('aria-label', this.getLocalizedText('containerLabel'));
         
         // Add CSS styles
         const style = document.createElement('style');
@@ -226,7 +229,7 @@ class ClientSideUserCommunication {
         const message = {
             id: messageId,
             type: options.type || this.messageTypes.INFO,
-            title: options.title || '系統通知',
+            title: options.title || this.getLocalizedText('defaultTitle'),
             content: options.content || '',
             actions: options.actions || [],
             persistent: options.persistent || false,
@@ -274,7 +277,7 @@ class ClientSideUserCommunication {
                 <h4 class="message-title">${message.title}</h4>
                 <button class="message-close" 
                         onclick="window.userCommunication?.dismissMessage('${message.id}')"
-                        aria-label="關閉通知">×</button>
+                        aria-label="${this.getLocalizedText('actions.close')}">×</button>
             </div>
             <div class="message-content">${message.content}</div>
             ${actionsHtml ? `<div class="message-actions">${actionsHtml}</div>` : ''}
@@ -327,17 +330,17 @@ class ClientSideUserCommunication {
     showSecurityEnhancement(details) {
         this.showMessage({
             type: this.messageTypes.SECURITY_ENHANCEMENT,
-            title: '安全功能已啟用',
-            content: `${details.feature || '新的安全功能'}已成功啟用，您的資料將獲得更好的保護。`,
+            title: this.getLocalizedText('messageTypes.securityEnhancement'),
+            content: `${details.feature || this.getLocalizedText('defaultFeatureName')}${this.getLocalizedText('enhancementMessage')}`,
             actions: [
                 {
                     id: 'learn-more',
-                    label: '了解更多',
+                    label: this.getLocalizedText('actions.learnMore'),
                     href: '#security-settings'
                 },
                 {
                     id: 'dismiss',
-                    label: '知道了',
+                    label: this.getLocalizedText('actions.dismiss'),
                     type: 'secondary'
                 }
             ]
@@ -347,18 +350,18 @@ class ClientSideUserCommunication {
     showSecurityIssue(details) {
         this.showMessage({
             type: this.messageTypes.SECURITY_ISSUE,
-            title: '安全提醒',
-            content: details.message || '檢測到潛在的安全問題，建議您檢查安全設定。',
+            title: this.getLocalizedText('messageTypes.securityIssue'),
+            content: details.message || this.getLocalizedText('defaultSecurityIssueMessage'),
             persistent: details.critical || false,
             actions: [
                 {
                     id: 'check-settings',
-                    label: '檢查設定',
+                    label: this.getLocalizedText('actions.checkSettings'),
                     callback: () => this.openSecuritySettings()
                 },
                 {
                     id: 'ignore',
-                    label: '暫時忽略',
+                    label: this.getLocalizedText('actions.dismiss'),
                     type: 'secondary'
                 }
             ]
@@ -368,17 +371,17 @@ class ClientSideUserCommunication {
     showFeatureDisabled(details) {
         this.showMessage({
             type: this.messageTypes.WARNING,
-            title: '功能已停用',
-            content: `${details.feature || '某項功能'}已暫時停用以確保系統穩定運行。`,
+            title: this.getLocalizedText('messageTypes.featureDisabled'),
+            content: `${details.feature || this.getLocalizedText('defaultFeatureName')}${this.getLocalizedText('featureDisabledMessage')}`,
             actions: [
                 {
                     id: 'retry',
-                    label: '重試',
+                    label: this.getLocalizedText('actions.retry'),
                     callback: () => details.retryCallback?.()
                 },
                 {
                     id: 'settings',
-                    label: '設定',
+                    label: this.getLocalizedText('actions.settings'),
                     type: 'secondary',
                     callback: () => this.openSecuritySettings()
                 }
@@ -414,6 +417,111 @@ class ClientSideUserCommunication {
     
     getActiveMessages() {
         return Array.from(this.activeMessages.values());
+    }
+    
+    /**
+     * Detect current language
+     */
+    detectLanguage() {
+        return window.languageManager ? window.languageManager.getCurrentLanguage() : 'zh';
+    }
+    
+    /**
+     * Setup language observer for unified language management
+     */
+    setupLanguageObserver() {
+        if (window.languageManager && window.languageManager.registerObserver) {
+            this.languageObserver = {
+                id: 'user-communication',
+                priority: 5,
+                updateCallback: (newLanguage) => {
+                    this.currentLanguage = newLanguage;
+                    this.updateLanguage();
+                }
+            };
+            window.languageManager.registerObserver('user-communication', this.languageObserver);
+        }
+    }
+    
+    /**
+     * Update language for existing UI elements
+     */
+    updateLanguage() {
+        const container = document.getElementById('user-communication-container');
+        if (container) {
+            container.setAttribute('aria-label', this.getLocalizedText('containerLabel'));
+        }
+        
+        // Update existing messages if any
+        const messages = container?.querySelectorAll('.communication-message');
+        messages?.forEach(messageEl => {
+            const closeBtn = messageEl.querySelector('.message-close');
+            if (closeBtn) {
+                closeBtn.setAttribute('aria-label', this.getLocalizedText('actions.close'));
+            }
+        });
+    }
+    
+    /**
+     * Get localized text using unified language manager
+     */
+    getLocalizedText(key) {
+        if (window.languageManager && window.languageManager.getUnifiedText) {
+            const fullKey = `security.userCommunication.${key}`;
+            const text = window.languageManager.getUnifiedText(fullKey, this.currentLanguage);
+            if (text !== fullKey) {
+                return text;
+            }
+        }
+        
+        // Fallback translations
+        const fallbacks = {
+            zh: {
+                containerLabel: '系統通知',
+                defaultTitle: '系統通知',
+                defaultFeatureName: '新的安全功能',
+                enhancementMessage: '已成功啟用，您的資料將獲得更好的保護。',
+                defaultSecurityIssueMessage: '檢測到潛在的安全問題，建議您檢查安全設定。',
+                featureDisabledMessage: '已暫時停用以確保系統穩定運行。',
+                'messageTypes.securityEnhancement': '安全功能已啟用',
+                'messageTypes.securityIssue': '安全提醒',
+                'messageTypes.featureDisabled': '功能已停用',
+                'actions.close': '關閉通知',
+                'actions.learnMore': '了解更多',
+                'actions.dismiss': '知道了',
+                'actions.checkSettings': '檢查設定',
+                'actions.retry': '重試',
+                'actions.settings': '設定'
+            },
+            en: {
+                containerLabel: 'System Notifications',
+                defaultTitle: 'System Notification',
+                defaultFeatureName: 'New security feature',
+                enhancementMessage: ' has been successfully enabled, your data will be better protected.',
+                defaultSecurityIssueMessage: 'Potential security issue detected, please check security settings.',
+                featureDisabledMessage: ' has been temporarily disabled to ensure system stability.',
+                'messageTypes.securityEnhancement': 'Security Feature Enabled',
+                'messageTypes.securityIssue': 'Security Alert',
+                'messageTypes.featureDisabled': 'Feature Disabled',
+                'actions.close': 'Close Notification',
+                'actions.learnMore': 'Learn More',
+                'actions.dismiss': 'Dismiss',
+                'actions.checkSettings': 'Check Settings',
+                'actions.retry': 'Retry',
+                'actions.settings': 'Settings'
+            }
+        };
+        
+        return fallbacks[this.currentLanguage]?.[key] || fallbacks.zh[key] || key;
+    }
+    
+    /**
+     * Cleanup resources
+     */
+    cleanup() {
+        if (this.languageObserver && window.languageManager) {
+            window.languageManager.unregisterObserver('user-communication');
+        }
     }
 }
 

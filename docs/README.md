@@ -1,7 +1,7 @@
 # NFC 數位名片專案文檔中心
 
 > **版本**: v3.0.4 (主程式) + v1.1.0 (PWA)  
-> **最後更新**: 2025-01-27  
+> **最後更新**: 2025-08-06  
 > **維護者**: documentation-maintainer
 
 ## 📚 文檔導覽
@@ -9,31 +9,31 @@
 ### 🎯 核心文檔
 | 文檔 | 描述 | 狀態 | 最後更新 |
 |------|------|------|----------|
-| [requirements.md](requirements.md) | 產品需求規格書 | ✅ 最新 | 2025-01-27 |
-| [design.md](design.md) | 技術設計文檔 | ✅ 最新 | 2025-01-27 |
-| [tasks.md](tasks.md) | 任務拆解與管理 | ✅ 最新 | 2025-01-27 |
-| [CHANGELOG.md](CHANGELOG.md) | 版本變更記錄 | ✅ 最新 | 2025-01-27 |
+| [requirements.md](requirements.md) | 產品需求規格書 | ✅ 最新 | 2025-08-06 |
+| [design.md](design.md) | 技術設計文檔 | ✅ 最新 | 2025-08-06 |
+| [tasks.md](tasks.md) | 任務拆解與管理 | ✅ 最新 | 2025-08-06 |
+| [CHANGELOG.md](CHANGELOG.md) | 版本變更記錄 | ✅ 最新 | 2025-08-06 |
 
 ### 🏗️ 架構文檔
 | 文檔 | 描述 | 狀態 | 最後更新 |
 |------|------|------|----------|
-| [PWA-ARCHITECTURE.md](PWA-ARCHITECTURE.md) | PWA 系統架構 | ✅ 最新 | 2025-01-27 |
-| [SECURITY.md](SECURITY.md) | 安全架構文檔 | ✅ 最新 | 2025-01-27 |
-| [diagrams/](diagrams/) | 架構圖表集合 | ✅ 最新 | 2025-01-27 |
+| [PWA-ARCHITECTURE.md](PWA-ARCHITECTURE.md) | PWA 系統架構 | ✅ 最新 | 2025-08-06 |
+| [SECURITY.md](SECURITY.md) | 安全架構文檔 | ✅ 最新 | 2025-08-06 |
+| [diagrams/](diagrams/) | 架構圖表集合 | ✅ 最新 | 2025-08-06 |
 
 ### 🔧 實作指南
 | 文檔 | 描述 | 狀態 | 最後更新 |
 |------|------|------|----------|
-| [IMPLEMENTATION-GUIDE.md](IMPLEMENTATION-GUIDE.md) | 實作指南 | ✅ 最新 | 2025-01-27 |
-| [TEST-EXECUTION-GUIDE.md](TEST-EXECUTION-GUIDE.md) | 測試執行指南 | ✅ 最新 | 2025-01-27 |
-| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | 故障排除指南 | ✅ 最新 | 2025-01-27 |
+| [IMPLEMENTATION-GUIDE.md](IMPLEMENTATION-GUIDE.md) | 實作指南 | ✅ 最新 | 2025-08-06 |
+| [TEST-EXECUTION-GUIDE.md](TEST-EXECUTION-GUIDE.md) | 測試執行指南 | ✅ 最新 | 2025-08-06 |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | 故障排除指南 | ✅ 最新 | 2025-08-06 |
 
 ### 📊 品質保證
 | 文檔 | 描述 | 狀態 | 最後更新 |
 |------|------|------|----------|
-| [TEST-REPORTS.md](TEST-REPORTS.md) | 測試報告 | ✅ 最新 | 2025-01-27 |
-| [CODE-REVIEWS.md](CODE-REVIEWS.md) | 程式碼審查記錄 | ✅ 最新 | 2025-01-27 |
-| [BUGFIXES.md](BUGFIXES.md) | 錯誤修復記錄 | ✅ 最新 | 2025-01-27 |
+| [TEST-REPORTS.md](TEST-REPORTS.md) | 測試報告 | ✅ 最新 | 2025-08-06 |
+| [CODE-REVIEWS.md](CODE-REVIEWS.md) | 程式碼審查記錄 | ✅ 最新 | 2025-08-06 |
+| [BUGFIXES.md](BUGFIXES.md) | 錯誤修復記錄 | ✅ 最新 | 2025-08-06 |
 
 ## 🎯 v3.0.4 統合版本重點
 

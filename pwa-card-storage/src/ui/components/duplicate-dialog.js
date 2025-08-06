@@ -53,40 +53,95 @@ class DuplicateDialog {
   }
 
   /**
+   * 獲取 UI 標籤文字
+   */
+  getUILabels() {
+    if (window.languageManager) {
+      return {
+        duplicateFound: window.languageManager.getText('duplicateFound'),
+        duplicateDetected: window.languageManager.getText('duplicateDetected'),
+        similarCards: window.languageManager.getText('similarCards'),
+        batchProcessing: window.languageManager.getText('batchProcessing'),
+        existingCard: window.languageManager.getText('existingCard'),
+        newCard: window.languageManager.getText('newCard'),
+        createdTime: window.languageManager.getText('createdTime'),
+        version: window.languageManager.getText('version'),
+        aboutToImport: window.languageManager.getText('aboutToImport'),
+        skip: window.languageManager.getText('skip'),
+        skipDesc: window.languageManager.getText('skipDesc'),
+        overwrite: window.languageManager.getText('overwrite'),
+        overwriteDesc: window.languageManager.getText('overwriteDesc'),
+        createVersion: window.languageManager.getText('createVersion'),
+        createVersionDesc: window.languageManager.getText('createVersionDesc'),
+        applyToAll: window.languageManager.getText('applyToAll'),
+        applyToAllBtn: window.languageManager.getText('applyToAllBtn'),
+        cancel: window.languageManager.getText('cancel'),
+        closeDialog: window.languageManager.getText('closeDialog'),
+        unknown: window.languageManager.getText('unknown')
+      };
+    }
+    
+    // 備用中文標籤
+    return {
+      duplicateFound: '發現重複名片',
+      duplicateDetected: '檢測到',
+      similarCards: '張相似名片',
+      batchProcessing: '批量處理模式',
+      existingCard: '現有名片',
+      newCard: '新名片',
+      createdTime: '建立時間',
+      version: '版本',
+      aboutToImport: '即將匯入',
+      skip: '跳過',
+      skipDesc: '保留現有名片，不匯入新名片',
+      overwrite: '覆蓋',
+      overwriteDesc: '用新名片資料覆蓋現有名片',
+      createVersion: '新版本',
+      createVersionDesc: '建立新版本，保留兩張名片',
+      applyToAll: '將此選擇套用到所有重複項目',
+      applyToAllBtn: '套用到全部',
+      cancel: '取消',
+      closeDialog: '關閉對話框',
+      unknown: '未知'
+    };
+  }
+
+  /**
    * 渲染對話框內容
    */
   renderContent() {
     const { duplicateInfo, cardData } = this.currentData;
     const existingCard = duplicateInfo.existingCards[0] || {};
+    const labels = this.getUILabels();
     
     this.dialog.innerHTML = `
       <div class="duplicate-dialog-container">
         <div class="duplicate-dialog-header">
-          <h2 id="duplicate-dialog-title">發現重複名片</h2>
-          <button class="duplicate-dialog-close" aria-label="關閉對話框" tabindex="0">×</button>
+          <h2 id="duplicate-dialog-title">${labels.duplicateFound}</h2>
+          <button class="duplicate-dialog-close" aria-label="${labels.closeDialog}" tabindex="0">×</button>
         </div>
         
         <div class="duplicate-dialog-content">
           <div class="duplicate-info">
-            <p>檢測到 <strong>${duplicateInfo.duplicateCount}</strong> 張相似名片</p>
-            ${this.batchMode ? '<p class="batch-indicator">批量處理模式</p>' : ''}
+            <p>${labels.duplicateDetected} <strong>${duplicateInfo.duplicateCount}</strong> ${labels.similarCards}</p>
+            ${this.batchMode ? `<p class="batch-indicator">${labels.batchProcessing}</p>` : ''}
           </div>
           
           <div class="card-comparison">
             <div class="card-preview existing">
-              <h3>現有名片</h3>
+              <h3>${labels.existingCard}</h3>
               <div class="card-details">
-                <div class="name">${this.escapeHtml(existingCard.name || '未知')}</div>
-                <div class="meta">建立時間: ${this.formatDate(existingCard.created)}</div>
-                <div class="meta">版本: ${existingCard.version || '1.0'}</div>
+                <div class="name">${this.escapeHtml(existingCard.name || labels.unknown)}</div>
+                <div class="meta">${labels.createdTime}: ${this.formatDate(existingCard.created)}</div>
+                <div class="meta">${labels.version}: ${existingCard.version || '1.0'}</div>
               </div>
             </div>
             
             <div class="card-preview new">
-              <h3>新名片</h3>
+              <h3>${labels.newCard}</h3>
               <div class="card-details">
                 <div class="name">${this.escapeHtml(this.extractDisplayName(cardData))}</div>
-                <div class="meta">即將匯入</div>
+                <div class="meta">${labels.aboutToImport}</div>
               </div>
             </div>
           </div>
@@ -95,20 +150,20 @@ class DuplicateDialog {
             <div class="option-group">
               <button class="action-btn skip" data-action="skip" tabindex="0">
                 <span class="icon">⏭️</span>
-                <span class="text">跳過</span>
-                <span class="desc">保留現有名片，不匯入新名片</span>
+                <span class="text">${labels.skip}</span>
+                <span class="desc">${labels.skipDesc}</span>
               </button>
               
               <button class="action-btn overwrite" data-action="overwrite" tabindex="0">
                 <span class="icon">🔄</span>
-                <span class="text">覆蓋</span>
-                <span class="desc">用新名片資料覆蓋現有名片</span>
+                <span class="text">${labels.overwrite}</span>
+                <span class="desc">${labels.overwriteDesc}</span>
               </button>
               
               <button class="action-btn version" data-action="version" tabindex="0">
                 <span class="icon">📋</span>
-                <span class="text">新版本</span>
-                <span class="desc">建立新版本，保留兩張名片</span>
+                <span class="text">${labels.createVersion}</span>
+                <span class="desc">${labels.createVersionDesc}</span>
               </button>
             </div>
             
@@ -117,8 +172,8 @@ class DuplicateDialog {
         </div>
         
         <div class="duplicate-dialog-footer">
-          <button class="btn-secondary cancel" tabindex="0">取消</button>
-          ${this.batchMode ? '<button class="btn-primary apply-all" tabindex="0">套用到全部</button>' : ''}
+          <button class="btn-secondary cancel" tabindex="0">${labels.cancel}</button>
+          ${this.batchMode ? `<button class="btn-primary apply-all" tabindex="0">${labels.applyToAllBtn}</button>` : ''}
         </div>
       </div>
     `;
@@ -128,11 +183,12 @@ class DuplicateDialog {
    * 渲染批量處理選項
    */
   renderBatchOptions() {
+    const labels = this.getUILabels();
     return `
       <div class="batch-options">
         <label class="checkbox-label">
           <input type="checkbox" id="apply-to-all" />
-          <span>將此選擇套用到所有重複項目</span>
+          <span>${labels.applyToAll}</span>
         </label>
       </div>
     `;
@@ -213,7 +269,8 @@ class DuplicateDialog {
   handleApplyAll() {
     const selectedAction = this.dialog.querySelector('.action-btn.selected');
     if (!selectedAction) {
-      this.showError('請先選擇一個處理方式');
+      const labels = this.getUILabels();
+      this.showError(window.languageManager ? window.languageManager.getText('selectAction') : '請先選擇一個處理方式');
       return;
     }
 
@@ -303,7 +360,8 @@ class DuplicateDialog {
    * 提取顯示名稱
    */
   extractDisplayName(cardData) {
-    if (!cardData.name) return '未知';
+    const labels = this.getUILabels();
+    if (!cardData.name) return labels.unknown;
     
     if (typeof cardData.name === 'string') {
       return cardData.name.includes('~') ? cardData.name.split('~')[0] : cardData.name;
@@ -320,11 +378,15 @@ class DuplicateDialog {
    * 格式化日期
    */
   formatDate(dateString) {
-    if (!dateString) return '未知';
+    const labels = this.getUILabels();
+    if (!dateString) return labels.unknown;
     
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('zh-TW', {
+      const currentLang = window.languageManager ? window.languageManager.getCurrentLanguage() : 'zh';
+      const locale = currentLang === 'en' ? 'en-US' : 'zh-TW';
+      
+      return date.toLocaleDateString(locale, {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
@@ -332,7 +394,7 @@ class DuplicateDialog {
         minute: '2-digit'
       });
     } catch (error) {
-      return '未知';
+      return labels.unknown;
     }
   }
 

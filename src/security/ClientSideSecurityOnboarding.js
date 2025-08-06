@@ -11,32 +11,104 @@ class ClientSideSecurityOnboarding {
         this.currentStep = 0;
         this.onboardingData = null;
         this.initialized = false;
+        this.isUpdating = false;
+        this.languageObserver = null;
+        this.focusedElement = null;
         
-        this.securityFeatures = {
-            webauthn: {
-                name: 'WebAuthn 生物識別',
-                description: '使用指紋或臉部識別來保護您的名片資料',
-                benefits: ['更安全的身份驗證', '無需記住密碼', '快速便捷的存取'],
-                risks: ['需要支援的裝置', '可能影響載入速度'],
-                defaultEnabled: false
-            },
-            encryption: {
-                name: '資料加密',
-                description: '自動加密儲存在瀏覽器中的名片資料',
-                benefits: ['保護敏感資訊', '防止未授權存取', '符合隱私標準'],
-                risks: ['可能影響效能', '需要額外的儲存空間'],
-                defaultEnabled: true
-            },
-            monitoring: {
-                name: '安全監控',
-                description: '監控系統安全狀態並提供即時警報',
-                benefits: ['即時威脅偵測', '系統健康監控', '自動安全回應'],
-                risks: ['收集使用統計', '可能產生通知'],
-                defaultEnabled: true
-            }
-        };
+        this.currentLanguage = this.detectLanguage();
+        this.securityFeatures = this.getLocalizedFeatures();
         
         this.init();
+    }
+    
+    detectLanguage() {
+        return window.languageManager ? window.languageManager.getCurrentLanguage() : 'zh';
+    }
+    
+    getLocalizedFeatures() {
+        const features = {
+            zh: {
+                webauthn: {
+                    name: 'WebAuthn 生物識別',
+                    description: '使用指紋或臉部識別來保護您的名片資料',
+                    benefits: ['更安全的身份驗證', '無需記住密碼', '快速便捷的存取'],
+                    risks: ['需要支援的裝置', '可能影響載入速度'],
+                    defaultEnabled: false
+                },
+                encryption: {
+                    name: '資料加密',
+                    description: '自動加密儲存在瀏覽器中的名片資料',
+                    benefits: ['保護敏感資訊', '防止未授權存取', '符合隱私標準'],
+                    risks: ['可能影響效能', '需要額外的儲存空間'],
+                    defaultEnabled: true
+                },
+                monitoring: {
+                    name: '安全監控',
+                    description: '監控系統安全狀態並提供即時警報',
+                    benefits: ['即時威脅偵測', '系統健康監控', '自動安全回應'],
+                    risks: ['收集使用統計', '可能產生通知'],
+                    defaultEnabled: true
+                }
+            },
+            en: {
+                webauthn: {
+                    name: 'WebAuthn Biometric',
+                    description: 'Use fingerprint or face recognition to protect your card data',
+                    benefits: ['More secure authentication', 'No passwords to remember', 'Fast and convenient access'],
+                    risks: ['Requires supported device', 'May affect loading speed'],
+                    defaultEnabled: false
+                },
+                encryption: {
+                    name: 'Data Encryption',
+                    description: 'Automatically encrypt card data stored in browser',
+                    benefits: ['Protect sensitive information', 'Prevent unauthorized access', 'Privacy compliant'],
+                    risks: ['May affect performance', 'Requires additional storage'],
+                    defaultEnabled: true
+                },
+                monitoring: {
+                    name: 'Security Monitoring',
+                    description: 'Monitor system security status and provide real-time alerts',
+                    benefits: ['Real-time threat detection', 'System health monitoring', 'Automatic security response'],
+                    risks: ['Collects usage statistics', 'May generate notifications'],
+                    defaultEnabled: true
+                }
+            }
+        };
+        return features[this.currentLanguage] || features.zh;
+    }
+    
+    getLocalizedText(key) {
+        // Use PWA language manager if available for consistency
+        if (window.languageManager && window.languageManager.getText) {
+            const pwaText = window.languageManager.getText(`security.${key}`);
+            if (pwaText !== `security.${key}`) {
+                return pwaText;
+            }
+        }
+        
+        const texts = {
+            zh: {
+                title: '安全功能設定',
+                subtitle: '選擇適合您的安全功能，隨時可以在設定中修改',
+                benefits: '優點：',
+                risks: '注意事項：',
+                privacyNotice: '所有安全功能都在您的裝置上運行，不會將資料傳送到外部伺服器。您可以隨時停用這些功能。',
+                privacyTitle: '隱私承諾：',
+                skipButton: '稍後設定',
+                confirmButton: '確認設定'
+            },
+            en: {
+                title: 'Security Features Setup',
+                subtitle: 'Choose security features that suit you, can be modified in settings anytime',
+                benefits: 'Benefits:',
+                risks: 'Considerations:',
+                privacyNotice: 'All security features run on your device and do not send data to external servers. You can disable these features at any time.',
+                privacyTitle: 'Privacy Promise:',
+                skipButton: 'Set up later',
+                confirmButton: 'Confirm Settings'
+            }
+        };
+        return texts[this.currentLanguage]?.[key] || texts.zh[key] || key;
     }
     
     async init() {
@@ -302,21 +374,21 @@ class ClientSideSecurityOnboarding {
         modal.innerHTML = `
             <div class="onboarding-content">
                 <div class="onboarding-header">
-                    <h2 id="onboarding-title" class="onboarding-title">安全功能設定</h2>
-                    <p class="onboarding-subtitle">選擇適合您的安全功能，隨時可以在設定中修改</p>
+                    <h2 id="onboarding-title" class="onboarding-title">${this.getLocalizedText('title')}</h2>
+                    <p class="onboarding-subtitle">${this.getLocalizedText('subtitle')}</p>
                 </div>
                 <div class="onboarding-body">
                     <div id="features-list"></div>
                     <div class="privacy-notice">
-                        <strong>隱私承諾：</strong>所有安全功能都在您的裝置上運行，不會將資料傳送到外部伺服器。您可以隨時停用這些功能。
+                        <strong>${this.getLocalizedText('privacyTitle')}</strong>${this.getLocalizedText('privacyNotice')}
                     </div>
                 </div>
                 <div class="onboarding-actions">
                     <button class="onboarding-btn secondary" onclick="window.securityOnboarding?.skipOnboarding()">
-                        稍後設定
+                        ${this.getLocalizedText('skipButton')}
                     </button>
                     <button class="onboarding-btn primary" onclick="window.securityOnboarding?.completeOnboarding()">
-                        確認設定
+                        ${this.getLocalizedText('confirmButton')}
                     </button>
                 </div>
             </div>
@@ -330,6 +402,16 @@ class ClientSideSecurityOnboarding {
         document.addEventListener('security-feature-available', (event) => {
             this.handleNewFeature(event.detail);
         });
+        
+        // Listen for language changes from PWA language manager
+        if (window.languageManager) {
+            this.languageObserver = (lang) => {
+                if (this.isUpdating) return;
+                this.currentLanguage = lang;
+                this.updateLanguage();
+            };
+            window.languageManager.addObserver(this.languageObserver);
+        }
         
         // Close modal on escape key
         document.addEventListener('keydown', (event) => {
@@ -351,6 +433,38 @@ class ClientSideSecurityOnboarding {
             if (daysSinceLastShown > 7) {
                 setTimeout(() => this.showOnboarding(), 5000);
             }
+        }
+    }
+    
+    updateLanguage() {
+        if (this.isUpdating) return;
+        this.isUpdating = true;
+        
+        try {
+            this.securityFeatures = this.getLocalizedFeatures();
+            
+            if (this.isOnboardingVisible()) {
+                // Store current focus
+                this.focusedElement = document.activeElement;
+                
+                // Update content without recreating modal
+                this.updateModalContent();
+                
+                // Restore focus
+                setTimeout(() => {
+                    if (this.focusedElement && this.focusedElement.isConnected) {
+                        this.focusedElement.focus();
+                    } else {
+                        // Focus first interactive element if original is gone
+                        const modal = document.getElementById('security-onboarding-modal');
+                        const firstInput = modal?.querySelector('input[type="checkbox"]');
+                        if (firstInput) firstInput.focus();
+                    }
+                    this.focusedElement = null;
+                }, 100);
+            }
+        } finally {
+            this.isUpdating = false;
         }
     }
     
@@ -394,13 +508,13 @@ class ClientSideSecurityOnboarding {
                     </div>
                     <p class="feature-description">${feature.description}</p>
                     <div class="feature-benefits">
-                        <h4>優點：</h4>
+                        <h4>${this.getLocalizedText('benefits')}</h4>
                         <ul>
                             ${feature.benefits.map(benefit => `<li>${benefit}</li>`).join('')}
                         </ul>
                     </div>
                     <div class="feature-risks">
-                        <h4>注意事項：</h4>
+                        <h4>${this.getLocalizedText('risks')}</h4>
                         <ul>
                             ${feature.risks.map(risk => `<li>${risk}</li>`).join('')}
                         </ul>
@@ -526,6 +640,49 @@ class ClientSideSecurityOnboarding {
                 });
             }
         }
+    }
+    
+    updateModalContent() {
+        const modal = document.getElementById('security-onboarding-modal');
+        if (!modal) return;
+        
+        // Update header text
+        const title = modal.querySelector('#onboarding-title');
+        const subtitle = modal.querySelector('.onboarding-subtitle');
+        if (title) title.textContent = this.getLocalizedText('title');
+        if (subtitle) subtitle.textContent = this.getLocalizedText('subtitle');
+        
+        // Update privacy notice
+        const privacyNotice = modal.querySelector('.privacy-notice');
+        if (privacyNotice) {
+            privacyNotice.innerHTML = `<strong>${this.getLocalizedText('privacyTitle')}</strong>${this.getLocalizedText('privacyNotice')}`;
+        }
+        
+        // Update buttons
+        const skipBtn = modal.querySelector('.onboarding-btn.secondary');
+        const confirmBtn = modal.querySelector('.onboarding-btn.primary');
+        if (skipBtn) skipBtn.textContent = this.getLocalizedText('skipButton');
+        if (confirmBtn) confirmBtn.textContent = this.getLocalizedText('confirmButton');
+        
+        // Re-render features with new language
+        this.renderFeatures();
+    }
+    
+    cleanup() {
+        // Remove language observer
+        if (this.languageObserver && window.languageManager) {
+            window.languageManager.removeObserver(this.languageObserver);
+            this.languageObserver = null;
+        }
+        
+        // Remove modal
+        const modal = document.getElementById('security-onboarding-modal');
+        if (modal) {
+            modal.remove();
+        }
+        
+        // Clear references
+        this.focusedElement = null;
     }
     
     resetOnboarding() {

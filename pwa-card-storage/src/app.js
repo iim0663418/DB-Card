@@ -740,6 +740,9 @@ class PWACardApp {
       case 'backup-all':
         await this.navigateTo('export');
         break;
+      case 'security-settings':
+        this.showSecuritySettings();
+        break;
     }
   }
 
@@ -1378,6 +1381,26 @@ class PWACardApp {
         icon.textContent = isDark ? '☀️' : '🌙';
         themeToggle.title = isDark ? '切換到淺色模式' : '切換到深色模式';
       }
+    }
+  }
+
+  showSecuritySettings() {
+    if (!window.securitySettings) {
+      this.showNotification(
+        this.currentLanguage === 'en' ? 'Security settings not available' : '安全設定功能未載入',
+        'error'
+      );
+      return;
+    }
+    
+    try {
+      window.securitySettings.showSettings();
+    } catch (error) {
+      console.error('[PWA] Security settings failed:', error);
+      this.showNotification(
+        this.currentLanguage === 'en' ? 'Failed to open security settings' : '開啟安全設定失敗',
+        'error'
+      );
     }
   }
 

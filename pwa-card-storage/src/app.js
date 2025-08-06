@@ -35,6 +35,9 @@ class PWACardApp {
 
   async initializeServices() {
     try {
+      // SEC-01: Load security components first
+      await this.loadSecurityComponents();
+      
       // 初始化核心儲存
       if (typeof PWACardStorage !== 'undefined') {
         this.storage = new PWACardStorage();
@@ -118,7 +121,85 @@ class PWACardApp {
       
     } catch (error) {
       console.error('[PWA] Service initialization failed:', error);
+      
+      // SEC-03: Record initialization failure
+      if (this.storage?.healthMonitor) {
+        await this.storage.healthMonitor.recordSecurityEvent('service_init_failed', {
+          error: error.message,
+          timestamp: Date.now()
+        });
+      }
+      
       throw error;
+    }
+  }
+
+  /**
+   * SEC-01: Load security components for static hosting
+   */
+  async loadSecurityComponents() {
+    try {
+      // These components are loaded via script tags in static hosting
+      // Just verify they're available
+      const components = [
+        'StaticHostingSecurityToggle',
+        'StaticHostingCompatibilityLayer', 
+        'ClientSideSecurityHealthMonitor'
+      ];
+      
+      const loadedComponents = components.filter(component => window[component]);
+      
+      console.log(`[PWA] Loaded security components: ${loadedComponents.join(', ')}`);
+      
+      // Initialize security toggle for UI
+      if (window.StaticHostingSecurityToggle) {
+        this.securityToggle = new window.StaticHostingSecurityToggle();
+        this.setupSecurityUI();
+      }
+      
+    } catch (error) {
+      console.warn('[PWA] Security components loading failed:', error);
+    }
+  }
+
+  /**
+   * SEC-01: Setup security feature UI controls
+   */
+  setupSecurityUI() {
+    if (!this.securityToggle) return;
+    
+    // Add security settings to the UI if needed
+    const settingsContainer = document.querySelector('.settings-container');
+    if (settingsContainer) {
+      const securitySection = document.createElement('div');
+      securitySection.className = 'security-settings';
+      securitySection.innerHTML = `
+        <h3>安全設定</h3>
+        <div class="security-toggle-group">
+          <label>
+            <input type="checkbox" id="encryption-toggle" ${this.securityToggle.isEnabled('encryption') ? 'checked' : ''}>
+            啟用加密儲存
+          </label>
+          <label>
+            <input type="checkbox" id="monitoring-toggle" ${this.securityToggle.isEnabled('monitoring') ? 'checked' : ''}>
+            啟用安全監控
+          </label>
+        </div>
+      `;
+      
+      // Add event listeners
+      const encryptionToggle = securitySection.querySelector('#encryption-toggle');
+      const monitoringToggle = securitySection.querySelector('#monitoring-toggle');
+      
+      encryptionToggle?.addEventListener('change', (e) => {
+        this.securityToggle.toggle('encryption', e.target.checked);
+      });
+      
+      monitoringToggle?.addEventListener('change', (e) => {
+        this.securityToggle.toggle('monitoring', e.target.checked);
+      });
+      
+      settingsContainer.appendChild(securitySection);
     }
   }
 
@@ -1650,6 +1731,18 @@ class PWACardApp {
       console.log('[PWA] App installed, reinitializing storage...');
       this.reinitializeStorage();
     });
+    
+    // SEC-03: Setup security event monitoring
+    if (this.storage?.healthMonitor) {
+      // Monitor for security-related browser events
+      window.addEventListener('securitypolicyviolation', (event) => {
+        this.storage.healthMonitor.recordSecurityEvent('csp_violation', {
+          violatedDirective: event.violatedDirective,
+          blockedURI: event.blockedURI,
+          documentURI: event.documentURI
+        });
+      });
+    }
   }
   
   /**

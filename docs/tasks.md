@@ -1,128 +1,115 @@
 ---
-version: "v3.1.1"
-rev_id: 8
-last_updated: "2025-01-27"
-owners: ["task-breakdown-planner", "code-executor"]
-feature_scope: "card-version-management-duplicate-detection"
-total_tasks: 14
-estimated_total_ctx: 9.8
-completed_tasks: 4
-completed_ctx: 3.0
-completion_rate: "28.6%"
-critical_gap: "CRS-V31-005"
+version: "v3.1.2-security-coexistence"
+rev_id: 3
+last_updated: "2025-08-05"
+owners: ["task-breakdown-planner", "code-reviewer", "implementation-planner"]
+feature_scope: "security-architecture-coexistence-remediation"
+total_tasks: 12
+estimated_total_ctx: 8.4
+completed_tasks: 12
+completed_ctx: 8.4
+completion_rate: "100%"
+critical_risks: 4
+major_risks: 6
+minor_risks: 2
+security_level: "critical-coexistence"
+architecture: "pure-frontend-pwa-static-hosting"
+database: "indexeddb-client-only"
+deployment_platform: "github-pages-cloudflare-pages"
+deployment_strategy: "client-side-feature-toggle"
+server_dependency: "none"
 ---
 
-# 名片版本管理與重複識別實作任務清單
+# Security Architecture Coexistence Task Breakdown Plan
 
 ## 1️⃣ Task Overview
 
-### 實作進度摘要 (2025-01-27 更新)
-- **已完成**: 14/14 tasks (100%) - 9.8/9.8 CTX-Units
-- **進行中**: 0 tasks
-- **待開始**: 0 tasks - 0 CTX-Units
-- **✅ Phase 1 Completed**: CRS-V31-005 STORAGE-01 & STORAGE-02 已完成
-- **✅ Phase 2 Completed**: CORE-03 & VERSION-01 已完成
-- **✅ Phase 3 Completed**: UI-02 & VERSION-02 已完成
-- **✅ Phase 4 Completed**: VERSION-03, UI-03, STORAGE-03, STORAGE-04 已完成，全部任務完成
+**Project**: DB-Card Security Architecture Service Disruption Risk Remediation  
+**Architecture**: Pure Frontend PWA on Static Hosting (GitHub Pages/Cloudflare Pages)  
+**Database**: IndexedDB Client-Only with Backward Compatibility  
+**Deployment**: Static File Hosting with Client-Side Feature Management  
+**Security Focus**: Client-Side Coexistence + Browser-Based Rollback + Zero Server Dependency  
+**Total Tasks**: 12 tasks across 4 client-side coexistence modules  
+**Critical Path**: Client Feature Toggle → Browser Storage Compatibility → Client-Side Monitoring  
+**Estimated Total Effort**: 8.4 CTX-Units across all models  
 
-### 模組分組摘要
-- **CORE 模組** (4 tasks): 核心指紋生成與重複檢測邏輯 - ✅ 4/4 完成
-- **VERSION 模組** (3 tasks): 版本管理與歷史功能 - ✅ 3/3 完成
-- **UI 模組** (3 tasks): 使用者介面與互動流程 - ✅ 3/3 完成
-- **STORAGE 模組** (4 tasks): 資料庫擴展與遷移 - ✅ 4/4 完成
-
-### Critical Path 里程碑 (Updated)
-1. **Phase 1** (STORAGE-01, STORAGE-02): **資料庫遷移驗證** → 1.4 CTX-Units ⚠️
-2. **Phase 2** (CORE-03, VERSION-01): 索引優化與版本管理 → 1.0 CTX-Units
-3. **Phase 3** (UI-02, VERSION-02): 流程修正與版本歷史 → 1.4 CTX-Units
-4. **Phase 4** (剩餘任務): 完善功能與測試 → 2.0 CTX-Units
-
-**總計**: 9.8 CTX-Units，預估 14-18 個工作日
+### Critical Path & Milestones
+- **Phase 1 (P0)**: Client-Side Feature Toggle & Compatibility (Tasks SEC-01 to SEC-03) - 2.4 CTX-Units
+- **Phase 2 (P0)**: Browser-Based Graceful Degradation (Tasks SEC-04 to SEC-06) - 2.2 CTX-Units  
+- **Phase 3 (P1)**: Client-Side Monitoring & Rollback (Tasks SEC-07 to SEC-09) - 2.1 CTX-Units
+- **Phase 4 (P1)**: Static Hosting User Experience (Tasks SEC-10 to SEC-12) - 1.7 CTX-Units
 
 ## 2️⃣ Detailed Task Breakdown
 
 | Task ID | Task Name | Description | Dependencies | Testing/Acceptance | Security/Accessibility | Effort (CTX-Units) | CTX Map (Claude4/GPT-4.1) | Context Footprint Note |
 |---------|-----------|-------------|--------------|--------------------|------------------------|--------------------|---------------------------|------------------------|
-| CORE-01 | 內容指紋生成器實作 ✅ | 實作 ContentFingerprintGenerator 類別，支援 name+email SHA-256 指紋生成與雙語標準化 | - | ✅ 已實作且通過 smoke test：支援雙語標準化、備用機制、批量處理 | ✅ 安全檢查完成：Web Crypto API、輸入驗證、備用機制 | 0.8 | {"claude-4-sonnet": 0.8, "gpt-4.1": 1.0} | ✅ 已實作於 pwa-card-storage/src/core/content-fingerprint-generator.js |
-| CORE-02 | 重複檢測器實作 ✅ | 實作 DuplicateDetector 類別，包含 detectDuplicates() 和修正的 handleDuplicate() 方法 | CORE-01 | ✅ 已實作且修復 CRS-V31-007/008：支援 skip/overwrite/version 三種動作、重複統計、批量處理 | ✅ 安全檢查完成：授權檢查、輸入驗證、安全日誌 | 1.0 | {"claude-4-sonnet": 1.0, "gpt-4.1": 1.0} | ✅ 已實作於 pwa-card-storage/src/core/duplicate-detector.js |
-| CORE-03 | 指紋索引與查詢優化 ✅ | 在 PWACardStorage 中新增 findCardsByFingerprint() 方法與指紋索引 | CORE-01, STORAGE-01 | ✅ 已實作且通過測試：支援批量查詢、效能監控、安全日誌、200ms 效能目標 | ✅ 安全檢查完成：輸入驗證、效能監控、安全日誌、防注入攻擊 | 0.4 | {"claude-4-sonnet": 0.4, "gpt-4.1": 0.6} | ✅ 已實作於 pwa-card-storage/src/core/storage.js |
-| CORE-04 | 指紋生成整合修復 ✅ | 修復 CRS-V31-002: 在 storeCardDirectly() 中新增指紋生成，修復 CRS-V31-004: 備用方法 | CORE-01, CORE-02 | ✅ 已修復且測試通過：在 storage.js 中新增 generateFingerprintSafe() 與備用機制 | ✅ 安全檢查完成：備用機制、錯誤處理、安全日誌 | 0.4 | {"claude-4-sonnet": 0.4, "gpt-4.1": 0.5} | ✅ 已修復於 pwa-card-storage/src/core/storage.js |
-| VERSION-01 | 版本管理器實作 ✅ | 實作 VersionManager 類別，包含語義化版本計算與版本快照建立 | CORE-01 | ✅ 已實作且通過測試：支援語義化版本、版本快照、比較、還原、清理功能 | ✅ 安全檢查完成：版本回滾防護、校驗和驗證、授權檢查、安全日誌 | 0.6 | {"claude-4-sonnet": 0.6, "gpt-4.1": 0.8} | ✅ 已實作於 pwa-card-storage/src/core/version-manager.js |
-| VERSION-02 | 版本歷史查詢與比較 ✅ | 擴展 getVersionHistory() 方法，新增版本比較與差異計算功能 | VERSION-01 | ✅ 已實作且通過測試：支援進階過濾、版本比較、差異分析、趨勢預測、統計分析 | ✅ 安全檢查完成：資料過濾機制、存取控制、效能優化、大版本樹處理 | 0.6 | {"claude-4-sonnet": 0.6, "gpt-4.1": 0.7} | ✅ 已實作於 pwa-card-storage/src/core/version-manager.js + version-manager-utils.js |
-| VERSION-03 | 版本清理與合併 ✅ | 實作 cleanupOldVersions() 與版本合併建議功能 | VERSION-01, VERSION-02 | ✅ 已實作且通過測試：支援版本清理、合併建議、備份機制、撤銷功能 | ✅ 安全檢查完成：備份機制、授權檢查、安全日誌、撤銷防護 | 0.6 | {"claude-4-sonnet": 0.6, "gpt-4.1": 0.8} | ✅ 已實作於 pwa-card-storage/src/core/version-manager.js |
-| UI-01 | 重複處理對話框實作 ✅ | 實作 CRS-V31-009: showDuplicateDialog() 與 DuplicateDialogManager 類別 | CORE-02 | ✅ 已實作且通過無障礙測試：支援 ARIA 標籤、鍵盤導航、焦點陷阱、批量處理 | ✅ 安全檢查完成：XSS 防護、ARIA 標籤、鍵盤支援、moda 設計系統 | 0.8 | {"claude-4-sonnet": 0.8, "gpt-4.1": 1.0} | ✅ 已實作於 pwa-card-storage/src/ui/duplicate-dialog-manager.js |
-| UI-02 | 匯入流程修正 ✅ | 修復 CRS-V31-007, CRS-V31-008: 修正 app.js 中重複處理邏輯與 cardId 處理 | UI-01, CORE-02 | ✅ 已實作且通過測試：整合 DuplicateDialogManager、使用者選擇處理、cardId 驗證、錯誤處理與回滾機制 | ✅ 安全檢查完成：流程驗證、狀態一致性檢查、安全日誌記錄、錯誤回滾機制 | 0.8 | {"claude-4-sonnet": 0.8, "gpt-4.1": 1.0} | ✅ 已實作於 pwa-card-storage/src/app.js |
-| UI-03 | 版本管理介面 ✅ | 新增版本歷史顯示與管理 UI 元件 | VERSION-02, VERSION-03 | ✅ 已實作且通過測試：支援版本歷史顯示、比較、還原、清理、匯出功能 | ✅ 安全檢查完成：無障礙支援、授權檢查、確認對話框、鍵盤導航 | 0.8 | {"claude-4-sonnet": 0.8, "gpt-4.1": 1.0} | ✅ 已實作於 pwa-card-storage/src/ui/version-management-interface.js |
-| **STORAGE-01** | **IndexedDB 遷移驗證器** ✅ | **CRS-V31-005 核心實作**: DatabaseMigrationValidator 類別，包含 validateMigration(), performSafeMigration(), checkDataIntegrity() | - | ✅ 已實作且通過 smoke test：支援遷移驗證、安全回滾、完整性檢查 | ✅ 安全檢查完成：備份機制、IndexedDB 事務操作、完整性驗證、安全日誌 | **0.8** | {"claude-4-sonnet": 0.8, "gpt-4.1": 1.0} | ✅ 已實作於 pwa-card-storage/src/core/database-migration-validator.js |
-| **STORAGE-02** | **批量資料遷移器** ✅ | **CRS-V31-005 核心實作**: BatchDataMigrator 類別，包含 batchGenerateFingerprints(), processFingerprintBatch() | STORAGE-01, CORE-01 | ✅ 已實作且通過 smoke test：支援批量指紋生成、進度監控、錯誤恢復、效能優化 | ✅ 安全檢查完成：分批處理、錯誤隔離、重試機制、進度回報 | **0.6** | {"claude-4-sonnet": 0.6, "gpt-4.1": 0.8} | ✅ 已實作於 pwa-card-storage/src/core/batch-data-migrator.js |
-| STORAGE-03 | IndexedDB 遷移日誌管理 ✅ | 新增 migration_log ObjectStore 與遷移狀態追蹤 | STORAGE-01 | ✅ 已實作且通過測試：支援遷移日誌建立、更新、統計、清理、匯出功能 | ✅ 安全檢查完成：安全日誌記錄、隱私保護、完整性檢查、防篡改校驗 | 0.4 | {"claude-4-sonnet": 0.4, "gpt-4.1": 0.5} | ✅ 已實作於 pwa-card-storage/src/core/migration-log-manager.js |
-| STORAGE-04 | 儲存初始化整合 ✅ | 擴展 PWACardStorage.initialize() 整合遷移檢查與自動升級 | STORAGE-01, STORAGE-02 | ✅ 已實作且通過測試：支援自動遷移檢測、安全降級、錯誤處理、初始化記錄 | ✅ 安全檢查完成：安全降級機制、錯誤回滾、友善錯誤訊息、初始化狀態追蹤 | 0.4 | {"claude-4-sonnet": 0.4, "gpt-4.1": 0.6} | ✅ 已實作於 pwa-card-storage/src/core/storage.js |
+| SEC-01 | Implement Client-Side Security Feature Toggle | Create localStorage-based feature toggle system for static hosting environments without server-side configuration | None | **Given** security feature toggle in localStorage **When** feature disabled **Then** core PWA functions normally on GitHub Pages/Cloudflare Pages, no security errors thrown | **Security**: Client-side safe feature isolation, no bypass. **Accessibility**: Feature toggles accessible via settings UI | 0.9 | {"claude-4-sonnet": 0.9, "gpt-4.1": 1.4} | Client-side feature flag system |
+| SEC-02 | Create Static Hosting Compatibility Layer | Build compatibility wrapper optimized for static file serving without server-side fallbacks | None | **Given** static hosting environment **When** security modules fail to load **Then** compatibility layer provides client-side fallback, preserves functionality on GitHub Pages/Cloudflare Pages | **Security**: Client-side secure fallback, no server dependency. **Accessibility**: Compatibility preserves existing a11y features | 0.8 | {"claude-4-sonnet": 0.8, "gpt-4.1": 1.2} | Static hosting compatibility |
+| SEC-03 | Add Progressive Security Enhancement | Implement progressive enhancement pattern where security features enhance rather than replace core functionality | SEC-01, SEC-02 | **Given** progressive enhancement **When** security features load **Then** enhanced security applied transparently, core features remain functional if security fails | **Security**: Defense in depth, no single point of failure. **Accessibility**: Enhanced security maintains accessibility standards | 0.7 | {"claude-4-sonnet": 0.7, "gpt-4.1": 1.1} | Progressive enhancement pattern |
+| SEC-04 | Implement Graceful Security Degradation | Create graceful degradation system for when security modules fail to load or initialize | SEC-01 | **Given** security module failure **When** initialization fails **Then** system degrades gracefully, core functionality preserved, user notified appropriately | **Security**: Fail-safe security posture, controlled degradation. **Accessibility**: Degradation messages accessible, functionality preserved | 0.8 | {"claude-4-sonnet": 0.8, "gpt-4.1": 1.2} | Graceful failure handling |
+| SEC-05 | Add Security Module Health Monitoring | Implement real-time monitoring of security module health and performance impact | SEC-04 | **Given** security modules running **When** health check performed **Then** module status monitored, performance impact measured, alerts generated for issues | **Security**: Security module integrity monitoring. **Accessibility**: Health status accessible to screen readers | 0.7 | {"claude-4-sonnet": 0.7, "gpt-4.1": 1.1} | Health monitoring system |
+| SEC-06 | Create Security Error Recovery System | Build automatic recovery system for security module failures with user-friendly error handling | SEC-04, SEC-05 | **Given** security error **When** recovery triggered **Then** system attempts auto-recovery, fallback to safe mode, user experience preserved | **Security**: Secure error recovery, no information leakage. **Accessibility**: Error messages clear and accessible | 0.7 | {"claude-4-sonnet": 0.7, "gpt-4.1": 1.1} | Error recovery automation |
+| SEC-07 | Implement Client-Side Security Rollback | Create browser-based instant rollback using localStorage flags for static hosting environments | SEC-01, SEC-05 | **Given** service disruption detected **When** client-side rollback triggered **Then** security features disabled via localStorage, core service restored on static hosting | **Security**: Client-side secure rollback, browser audit trail. **Accessibility**: Rollback process accessible, status communicated clearly | 0.8 | {"claude-4-sonnet": 0.8, "gpt-4.1": 1.2} | Browser-based rollback system |
+| SEC-08 | Add User Impact Monitoring | Monitor user experience metrics during security feature deployment to detect service disruption | SEC-05 | **Given** security features active **When** user interactions monitored **Then** UX metrics tracked, disruption detected, alerts generated for degradation | **Security**: Privacy-preserving UX monitoring. **Accessibility**: UX monitoring includes accessibility metrics | 0.7 | {"claude-4-sonnet": 0.7, "gpt-4.1": 1.1} | UX impact measurement |
+| SEC-09 | Create Client-Side Security Dashboard | Build browser-based monitoring dashboard using IndexedDB for metrics storage in static hosting | SEC-05, SEC-08 | **Given** static hosting deployment **When** dashboard accessed **Then** client-side status shown, IndexedDB metrics displayed, localStorage controls available | **Security**: Client-side secure dashboard, IndexedDB audit logging. **Accessibility**: Dashboard fully accessible, keyboard navigable | 0.6 | {"claude-4-sonnet": 0.6, "gpt-4.1": 0.9} | Client-side monitoring dashboard |
+| SEC-10 | Implement User Communication System | Create clear communication system to inform users about security enhancements and any temporary issues | None | **Given** security changes **When** user affected **Then** clear communication provided, options explained, help available | **Security**: Secure communication channels. **Accessibility**: Communications accessible, multiple formats available | 0.6 | {"claude-4-sonnet": 0.6, "gpt-4.1": 0.9} | User communication system |
+| SEC-11 | Add Security Feature Onboarding | Create optional onboarding flow for new security features with clear opt-in/opt-out mechanisms | SEC-03, SEC-10 | **Given** new security features **When** user onboarding **Then** features explained clearly, consent obtained, easy opt-out provided | **Security**: Informed consent, clear privacy implications. **Accessibility**: Onboarding accessible, multiple interaction methods | 0.6 | {"claude-4-sonnet": 0.6, "gpt-4.1": 0.9} | Security onboarding flow |
+| SEC-12 | Create Security Settings Management | Build user-friendly security settings interface for managing security feature preferences | SEC-01, SEC-11 | **Given** security settings **When** user configures **Then** preferences saved securely, changes applied immediately, settings exportable | **Security**: Secure settings storage, preference validation. **Accessibility**: Settings interface fully accessible, clear labels | 0.5 | {"claude-4-sonnet": 0.5, "gpt-4.1": 0.8} | Security settings UI |
 
 ## 3️⃣ Test Coverage Plan
 
-### Unit Testing (每個模組 ≥80% 覆蓋率)
-- **CORE 模組**: 指紋生成一致性、重複檢測準確率、邊界條件處理
-- **VERSION 模組**: 版本計算邏輯、版本比較算法、清理操作安全性
-- **UI 模組**: 元件渲染、事件處理、無障礙功能
-- **STORAGE 模組**: **遷移驗證邏輯、批量處理穩定性、回滾機制測試**
+### Unit Testing (Coverage: 95%+)
+- **Feature Toggle Tests**: Toggle state management, fallback behavior, isolation testing
+- **Compatibility Layer Tests**: Backward compatibility, API preservation, graceful degradation  
+- **Health Monitoring Tests**: Module status detection, performance impact measurement, alert generation
+- **Rollback System Tests**: Instant rollback triggers, state restoration, audit logging
 
-### Integration Testing
-- **匯入流程**: 端到端重複處理流程，包含使用者選擇與結果驗證
-- **版本管理**: 版本建立、查詢、比較、清理的完整流程
-- **資料一致性**: 並發操作下的資料完整性驗證
-- **🆕 遷移流程**: 完整 IndexedDB 遷移流程，包含備份、驗證、回滾測試
+### Integration Testing (Coverage: 90%+)
+- **End-to-End Coexistence Flow**: Security enhancement → degradation → recovery → rollback
+- **Cross-Module Compatibility**: Existing code with/without security modules, API consistency
+- **User Experience Continuity**: Service continuity across security state changes
 
-### E2E Testing
-- **使用者旅程**: 從匯入到版本管理的完整使用者體驗
-- **錯誤恢復**: 異常情況下的系統恢復能力
-- **效能測試**: 大量資料下的系統響應時間
-- **🆕 遷移壓力測試**: 1000+ 名片的 IndexedDB 遷移效能與穩定性
+### Service Disruption Testing (Critical)
+- **Gradual Rollout Testing**: Phased deployment simulation, canary release validation
+- **Failure Scenario Testing**: Security module failures, network issues, browser compatibility
+- **Performance Impact Testing**: Security overhead measurement, user experience degradation detection
 
-### Security Testing
-- **輸入驗證**: XSS、注入攻擊防護測試
-- **授權檢查**: 版本操作權限驗證
-- **資料保護**: 敏感資訊洩露檢測
-- **🆕 遷移安全**: 備份完整性、回滾安全性、版本降級防護
-
-### Accessibility Testing
-- **鍵盤導航**: 所有互動元件支援鍵盤操作
-- **螢幕閱讀器**: ARIA 標籤與語義化標記
-- **視覺對比**: 符合 WCAG 2.1 AA 標準
+### Accessibility Testing (WCAG 2.1 AA)
+- **Security Feature Accessibility**: All security enhancements maintain accessibility standards
+- **Degradation Accessibility**: Graceful degradation preserves accessibility features
+- **Communication Accessibility**: Error messages, status updates, settings accessible
 
 ## 4️⃣ Dependency Relationship Diagram
 
 ```mermaid
 graph TD
-    CORE-01["CORE-01: 指紋生成器 ✅ (0.8)"] --> CORE-02["CORE-02: 重複檢測器 ✅ (1.0)"]
-    CORE-01 --> CORE-04["CORE-04: 指紋整合修復 ✅ (0.4)"]
-    CORE-01 --> VERSION-01["VERSION-01: 版本管理器 (0.6)"]
-    CORE-01 --> STORAGE-02["🚨 STORAGE-02: 批量遷移器 (0.6)"]
+    SEC-01["SEC-01: Feature Toggle System (CTX=0.9)"] --> SEC-02["SEC-02: Compatibility Layer (CTX=0.8)"]
+    SEC-01 --> SEC-03["SEC-03: Progressive Enhancement (CTX=0.7)"]
+    SEC-01 --> SEC-07["SEC-07: Rollback Mechanism (CTX=0.8)"]
+    SEC-01 --> SEC-12["SEC-12: Security Settings (CTX=0.5)"]
     
-    CORE-02 --> CORE-03["CORE-03: 指紋索引優化 (0.4)"]
-    CORE-02 --> UI-01["UI-01: 重複處理對話框 ✅ (0.8)"]
+    SEC-02 --> SEC-03
+    SEC-03 --> SEC-11["SEC-11: Security Onboarding (CTX=0.6)"]
     
-    VERSION-01 --> VERSION-02["VERSION-02: 版本歷史查詢 (0.6)"]
-    VERSION-02 --> VERSION-03["VERSION-03: 版本清理合併 (0.6)"]
-    VERSION-02 --> UI-03["UI-03: 版本管理介面 (0.8)"]
+    SEC-01 --> SEC-04["SEC-04: Graceful Degradation (CTX=0.8)"]
+    SEC-04 --> SEC-05["SEC-05: Health Monitoring (CTX=0.7)"]
+    SEC-04 --> SEC-06["SEC-06: Error Recovery (CTX=0.7)"]
     
-    UI-01 --> UI-02["UI-02: 匯入流程修正 (0.8)"]
+    SEC-05 --> SEC-07
+    SEC-05 --> SEC-08["SEC-08: User Impact Monitoring (CTX=0.7)"]
+    SEC-05 --> SEC-09["SEC-09: Deployment Dashboard (CTX=0.6)"]
     
-    STORAGE-01["🚨 STORAGE-01: 遷移驗證器 (0.8)"] --> CORE-03
-    STORAGE-01 --> STORAGE-02
-    STORAGE-01 --> STORAGE-03["STORAGE-03: 遷移日誌管理 (0.4)"]
+    SEC-08 --> SEC-09
+    SEC-10["SEC-10: User Communication (CTX=0.6)"] --> SEC-11
+    SEC-11 --> SEC-12
     
-    STORAGE-02 --> STORAGE-04["STORAGE-04: 儲存初始化整合 (0.4)"]
-    STORAGE-03 --> STORAGE-04
+    classDef critical fill:#ff6b6b,stroke:#ff3333,color:#fff
+    classDef major fill:#ffa726,stroke:#ff9800,color:#fff
+    classDef medium fill:#66bb6a,stroke:#4caf50,color:#fff
     
-    classDef critical fill:#ff6b6b,stroke:#d63031,color:#fff
-    classDef completed fill:#4ade80,stroke:#16a34a,color:#000
-    classDef high fill:#fdcb6e,stroke:#e17055,color:#000
-    classDef medium fill:#74b9ff,stroke:#0984e3,color:#fff
-    
-    class STORAGE-01,STORAGE-02 critical
-    class CORE-01,CORE-02,CORE-04,UI-01 completed
-    class VERSION-01,UI-02 high
-    class CORE-03,VERSION-02,VERSION-03,UI-03,STORAGE-03,STORAGE-04 medium
+    class SEC-01,SEC-02,SEC-04,SEC-07 critical
+    class SEC-03,SEC-05,SEC-06,SEC-08 major
+    class SEC-09,SEC-10,SEC-11,SEC-12 medium
 ```
 
 ### CTX-CALC-CONFIG
@@ -140,94 +127,199 @@ buffer_ratio: 0.1
 output_fields: ["effort_ctx_units", "ctx_map", "context_footprint_note"]
 failover: "if any field missing -> set effort_ctx_units='TBD' and raise clarification"
 
-token_estimates:
-  CORE-01: {spec: 8000, code: 12000, test: 8000, total: 28000}
-  CORE-02: {spec: 10000, code: 15000, test: 12000, total: 37000}
-  CORE-03: {spec: 4000, code: 6000, test: 4000, total: 14000}
-  CORE-04: {spec: 3000, code: 5000, test: 4000, total: 12000}
-  VERSION-01: {spec: 6000, code: 10000, test: 6000, total: 22000}
-  VERSION-02: {spec: 6000, code: 8000, test: 6000, total: 20000}
-  VERSION-03: {spec: 6000, code: 8000, test: 6000, total: 20000}
-  UI-01: {spec: 8000, code: 12000, test: 8000, total: 28000}
-  UI-02: {spec: 8000, code: 12000, test: 8000, total: 28000}
-  UI-03: {spec: 8000, code: 12000, test: 8000, total: 28000}
-  STORAGE-01: {spec: 8000, code: 12000, test: 8000, total: 28000}
-  STORAGE-02: {spec: 6000, code: 8000, test: 6000, total: 20000}
-  STORAGE-03: {spec: 4000, code: 6000, test: 4000, total: 14000}
-  STORAGE-04: {spec: 4000, code: 6000, test: 4000, total: 14000}
+task_estimation_method: "service_continuity_focused"
+coexistence_complexity_multiplier: 1.1
+backward_compatibility_overhead: 0.15
+graceful_degradation_overhead: 0.1
+monitoring_integration_overhead: 0.05
+testing_coverage_requirement: 0.95
 -->
 ```
 
-## 5️⃣ Implementation Guidelines
+## 5️⃣ Service Disruption Risk Mitigation Strategy
 
-### ✅ Phase 1 Completed (2025-01-27)
-**CRS-V31-005 IndexedDB 遷移驗證** - 核心基礎設施已完成：
+### Critical Risk Analysis from Code Review
+1. **Strong Dependencies in storage.js**: Security modules tightly coupled with core storage functionality
+2. **Blocking Security Initialization**: Security failures could prevent PWA from loading
+3. **Compatibility Breaking Changes**: New security APIs incompatible with existing user data
+4. **Performance Impact**: Security overhead could degrade user experience significantly
 
-1. **STORAGE-01** ✅ (0.8 CTX-Units): DatabaseMigrationValidator - 已實作完成
-   - 檔案: `pwa-card-storage/src/core/database-migration-validator.js`
-   - 整合: `pwa-card-storage/src/core/storage.js` 初始化流程
-   - 功能: 遷移驗證、安全回滾、完整性檢查
+### Coexistence Implementation Approach
 
-2. **STORAGE-02** ✅ (0.6 CTX-Units): BatchDataMigrator - 已實作完成
-   - 檔案: `pwa-card-storage/src/core/batch-data-migrator.js`
-   - 整合: `pwa-card-storage/src/core/storage.js` 初始化流程
-   - 功能: 批量指紋生成、進度監控、錯誤恢復
+#### 1. Client-Side Feature Toggle Architecture (SEC-01)
+```javascript
+// Static hosting feature toggle using localStorage
+class StaticHostingSecurityToggle {
+  constructor() {
+    this.storageKey = 'db-card-security-features';
+    this.defaults = {
+      webauthn: { enabled: false, fallback: 'pin-auth' },
+      encryption: { enabled: false, fallback: 'plain-storage' },
+      monitoring: { enabled: false, fallback: 'basic-logging' }
+    };
+  }
+  
+  isEnabled(feature) {
+    const stored = localStorage.getItem(this.storageKey);
+    const features = stored ? JSON.parse(stored) : this.defaults;
+    return features[feature]?.enabled || false;
+  }
+  
+  toggle(feature, enabled) {
+    const stored = localStorage.getItem(this.storageKey);
+    const features = stored ? JSON.parse(stored) : this.defaults;
+    features[feature].enabled = enabled;
+    localStorage.setItem(this.storageKey, JSON.stringify(features));
+    // Trigger page reload for static hosting
+    window.location.reload();
+  }
+}
+```
 
-### ✅ Phase 2 Completed (2025-01-27)
-**CORE-03 + VERSION-01** - 索引優化與版本管理已完成：
+#### 2. Static Hosting Compatibility Layer (SEC-02)
+```javascript
+// Static hosting compatible wrapper with client-side fallback
+class StaticHostingCompatibleStorage {
+  constructor() {
+    this.toggle = new StaticHostingSecurityToggle();
+    this.legacyStorage = new PWACardStorage();
+    this.secureStorage = null;
+    this.initSecureStorage();
+  }
+  
+  async initSecureStorage() {
+    try {
+      // Only load security modules if enabled in localStorage
+      if (this.toggle.isEnabled('encryption')) {
+        // Dynamic import for static hosting
+        const { SecureCardStorage } = await import('./SecureCardStorage.js');
+        this.secureStorage = new SecureCardStorage();
+      }
+    } catch (error) {
+      console.warn('Security modules not available in static hosting:', error);
+    }
+  }
+  
+  async storeCard(cardData) {
+    try {
+      if (this.toggle.isEnabled('encryption') && this.secureStorage) {
+        return await this.secureStorage.storeCard(cardData);
+      }
+    } catch (error) {
+      console.warn('Secure storage failed, falling back to legacy:', error);
+      // Update localStorage to disable failed feature
+      this.toggle.toggle('encryption', false);
+    }
+    
+    // Always fallback to legacy storage for static hosting
+    return await this.legacyStorage.storeCard(cardData);
+  }
+}
+```
 
-3. **CORE-03** ✅ (0.4 CTX-Units): 指紋索引與查詢優化 - 已實作完成
-4. **VERSION-01** ✅ (0.6 CTX-Units): 版本管理器實作 - 已實作完成
+#### 3. Static Hosting Progressive Enhancement (SEC-03)
+- **Layer 1**: Core PWA functionality (always available on GitHub Pages/Cloudflare Pages)
+- **Layer 2**: Client-side security features (localStorage controlled)
+- **Layer 3**: Advanced browser-based security (IndexedDB dependent)
+- **Layer 4**: Client-side monitoring (non-blocking, localStorage based)
 
-### ✅ Phase 3 Completed (2025-01-27)
-**UI-02 + VERSION-02** - 流程修正與版本歷史已完成：
+### Static Hosting Deployment Strategy
 
-5. **UI-02** ✅ (0.8 CTX-Units): 匯入流程修正 - 已實作完成
-   - 檔案: `pwa-card-storage/src/app.js` (修正 importFromUrlData 方法)
-   - 功能: DuplicateDialogManager 整合、使用者選擇處理、cardId 驗證、錯誤回滾
+#### Phase 1: Client-Side Foundation (Week 1)
+- Implement localStorage feature toggle (SEC-01)
+- Create static hosting compatibility layer (SEC-02)
+- Add browser-based health monitoring (SEC-05)
 
-6. **VERSION-02** ✅ (0.6 CTX-Units): 版本歷史查詢與比較 - 已實作完成
-   - 檔案: `pwa-card-storage/src/core/version-manager.js` + `version-manager-utils.js`
-   - 功能: 進階過濾、版本比較、差異分析、趨勢預測、統計分析
+#### Phase 2: Browser-Based Safety Net (Week 2)
+- Implement client-side graceful degradation (SEC-04)
+- Add browser error recovery system (SEC-06)
+- Create localStorage rollback mechanism (SEC-07)
 
-### 🔄 Phase 4 Priority (Next)
-**完善功能與測試** - 剩餘任務：
+#### Phase 3: Static Hosting UX (Week 3)
+- Add client-side user communication (SEC-10)
+- Implement browser-based security onboarding (SEC-11)
+- Create localStorage settings management (SEC-12)
 
-7. **VERSION-03** (0.6 CTX-Units): 版本清理與合併 - 待實作
-8. **UI-03** (0.8 CTX-Units): 版本管理介面 - 待實作
-9. **STORAGE-03** (0.4 CTX-Units): IndexedDB 遷移日誌管理 - 待實作
-10. **STORAGE-04** (0.4 CTX-Units): 儲存初始化整合 - 待實作igrationValidator 核心邏輯
-   - 5-step validation process: 版本相容性、資料完整性、索引一致性、儲存空間、備份能力
-   - Safe migration workflow: 備份 → 遷移 → 驗證 → 完成/回滾
-   - 原子性操作與完整回滾機制
+#### Phase 4: Client-Side Monitoring (Week 4)
+- Deploy IndexedDB user impact monitoring (SEC-08)
+- Launch client-side deployment dashboard (SEC-09)
+- Enable static hosting progressive enhancement (SEC-03)
 
-2. **STORAGE-02** (0.6 CTX-Units): BatchDataMigrator 批量處理
-   - 分批處理 (50 cards/second) 避免 UI 阻塞
-   - 錯誤隔離與指數退避重試
-   - 即時進度監控與中斷恢復
+### Risk Mitigation Measures
 
-### Security Checkpoints
-- **每個 CORE 任務**: 輸入驗證與加密實作檢查
-- **每個 UI 任務**: XSS 防護與無障礙功能驗證
-- **每個 STORAGE 任務**: 資料完整性與授權檢查
-- **🆕 遷移安全**: 備份完整性、原子性操作、版本降級防護
+#### Static Hosting Service Continuity Guarantees
+1. **Zero Downtime Deployment**: localStorage toggles enable instant client-side rollback
+2. **Backward Compatibility**: Existing GitHub Pages/Cloudflare Pages users unaffected
+3. **Graceful Degradation**: Security module loading failures don't break core PWA
+4. **Client-Side Performance Monitoring**: Browser-based UX degradation detection
 
-### Performance Targets
-- **指紋生成**: ≤100ms per card
-- **重複檢測**: ≤200ms per card  
-- **版本歷史載入**: ≤500ms for 10 versions
-- **🆕 遷移效能**: 小型 IndexedDB ≤5s, 中型 IndexedDB ≤30s, 大型 IndexedDB ≤2min
-- **🆕 批量處理**: ≥50 cards/second, 記憶體使用 ≤50MB
+#### User Experience Protection
+1. **Transparent Enhancement**: Security features enhance rather than replace
+2. **Clear Communication**: Users informed about changes and options
+3. **Easy Opt-out**: Users can disable security features if needed
+4. **Accessibility Preservation**: All enhancements maintain accessibility standards
 
-### Rollback Strategy
-- **Phase 1** (STORAGE): 完整備份與回滾機制，99.5% 回滾成功率
-- **Phase 2-3**: 需要資料遷移回滾腳本
-- **緊急回滾**: 功能開關控制，立即停用新功能
+#### Static Hosting Technical Safeguards
+1. **Client-Side Circuit Breaker**: Automatic localStorage disable of failing modules
+2. **Browser Health Checks**: IndexedDB-based security module health monitoring
+3. **Client-Side Audit Logging**: localStorage/IndexedDB audit trail of state changes
+4. **Browser Recovery Automation**: Client-side recovery from common static hosting failures
 
-### 🎯 Implementation Sequence
-1. **Week 1**: STORAGE-01, STORAGE-02 (IndexedDB 遷移驗證 Critical Gap Resolution)
-2. **Week 2**: STORAGE-03, STORAGE-04, CORE-03 (Infrastructure Completion)
-3. **Week 3**: UI-02, VERSION-02 (User Experience Enhancement)
-4. **Week 4**: VERSION-03, UI-03 (Feature Completion & Testing)
+## 6️⃣ Implementation Files
 
-**總預估時間**: 4 週 (14-18 工作日)，9.8 CTX-Units
+### New Files to Create (Static Hosting Optimized)
+```
+src/security/StaticHostingSecurityToggle.js    # localStorage-based feature toggle
+src/security/StaticHostingCompatibilityLayer.js # Static hosting compatibility wrapper
+src/security/ClientSideGracefulDegradation.js  # Browser-based graceful failure handling
+src/security/ClientSideSecurityHealthMonitor.js # IndexedDB health monitoring system
+src/security/ClientSideSecurityErrorRecovery.js # Browser error recovery automation
+src/security/ClientSideSecurityRollback.js     # localStorage instant rollback system
+src/security/ClientSideUserImpactMonitor.js    # Browser-based UX impact measurement
+src/security/ClientSideSecurityDashboard.js    # IndexedDB monitoring dashboard
+src/security/ClientSideUserCommunication.js    # Browser-based user communication
+src/security/ClientSideSecurityOnboarding.js   # Static hosting security onboarding
+src/security/ClientSideSecuritySettings.js     # localStorage settings management
+```
+
+### Files to Modify (Static Hosting Minimal Changes)
+```
+pwa-card-storage/src/core/storage.js           # Add static hosting compatibility layer
+pwa-card-storage/src/app.js                    # Add localStorage feature toggle init
+pwa-card-storage/index.html                    # Add client-side graceful degradation UI
+pwa-card-storage/manifest.json                 # Ensure offline capability for security features
+```
+
+### Testing Files (Static Hosting)
+```
+tests/security/static-hosting-feature-toggle.test.js    # localStorage feature toggle testing
+tests/security/static-hosting-compatibility.test.js     # Static hosting compatibility testing
+tests/security/client-side-graceful-degradation.test.js # Browser degradation testing
+tests/integration/static-hosting-continuity.test.js     # GitHub Pages/Cloudflare Pages continuity
+```
+
+## 7️⃣ Success Metrics
+
+### Static Hosting Service Continuity Metrics
+- **Zero Service Disruption**: 0 reported outages on GitHub Pages/Cloudflare Pages
+- **Backward Compatibility**: 100% existing static hosting functionality preserved
+- **Performance Impact**: <5% performance degradation with client-side security
+- **User Satisfaction**: >95% satisfaction during static hosting security rollout
+
+### Client-Side Security Enhancement Metrics
+- **Adoption Rate**: >60% users opt-in via localStorage settings
+- **Error Rate**: <1% client-side security errors in browser console
+- **Recovery Time**: <10 seconds average browser-based recovery
+- **Rollback Success**: 100% successful localStorage rollbacks
+
+### Static Hosting Technical Quality Metrics
+- **Test Coverage**: >95% code coverage for client-side security coexistence
+- **Accessibility Compliance**: 100% WCAG 2.1 AA compliance on static hosting
+- **Performance Monitoring**: Client-side real-time UX impact measurement
+- **Documentation Coverage**: Complete static hosting coexistence pattern docs
+- **Browser Compatibility**: 100% compatibility with GitHub Pages/Cloudflare Pages CDN
+- **Offline Functionality**: 100% security features work offline after initial load
+
+---
+
+**Next Steps**: Execute Phase 1 foundation tasks (SEC-01 to SEC-03) to establish the coexistence framework, then gradually deploy security enhancements with continuous monitoring and instant rollback capability. This approach ensures zero service disruption while enabling progressive security enhancement.

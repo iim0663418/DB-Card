@@ -384,5 +384,5 @@ CREATE INDEX idx_versions_timestamp ON versions(timestamp);
 | REQ-001 | 內容指紋生成機制 | `calculateChecksum()` | 新增 `generateCardFingerprint()` 函數 | 指紋唯一性和一致性測試 |
 | REQ-002 | 智慧重複檢測與版本遞增 | `storeCard()` 方法 | 擴展匯入邏輯，新增重複檢測 | 重複檢測準確率測試 |
 | REQ-003 | 版本歷史管理介面 | `getVersionHistory()` | 新增版本管理 UI 元件 | 版本歷史顯示和操作測試 |
-| REQ-004 | 匯入時重複處理流程 | `importFromExportFormat()` | 新增重複處理對話框 | 匯入流程端到端測試 |
+| REQ-004 | 匯入時重複處理流程 | `importFromExportFormat()` | 新增重複處理對話框 | ✅ 匯入流程端到端測試 (完整測試套件) |
 | REQ-005 | 版本合併與清理功能 | 版本控制系統 | 新增批量清理和合併邏輯 | 清理操作安全性測試 |

@@ -11,107 +11,86 @@ class ClientSideSecuritySettings {
         this.settingsData = null;
         this.preferences = null;
         this.initialized = false;
+        this.currentLanguage = this.detectLanguage();
         
-        this.settingsCategories = {
-            authentication: {
-                name: '身份驗證',
-                icon: '🔐',
-                description: '管理登入和身份驗證設定'
-            },
-            encryption: {
-                name: '資料加密',
-                icon: '🛡️',
-                description: '控制資料加密和隱私保護'
-            },
-            monitoring: {
-                name: '安全監控',
-                icon: '👁️',
-                description: '設定安全監控和警報'
-            },
-            privacy: {
-                name: '隱私設定',
-                icon: '🔒',
-                description: '管理資料收集和隱私選項'
-            }
-        };
+        this.settingsCategories = this.getLocalizedCategories();
         
-        this.settingsSchema = {
-            'webauthn.enabled': {
-                category: 'authentication',
-                name: 'WebAuthn 生物識別',
-                description: '使用指紋或臉部識別進行身份驗證',
-                type: 'boolean',
-                default: false,
-                requiresRestart: false
-            },
-            'webauthn.fallback': {
-                category: 'authentication',
-                name: 'PIN 備用驗證',
-                description: '當生物識別不可用時使用 PIN 碼',
-                type: 'boolean',
-                default: true,
-                dependsOn: 'webauthn.enabled'
-            },
-            'encryption.enabled': {
-                category: 'encryption',
-                name: '自動加密',
-                description: '自動加密儲存的名片資料',
-                type: 'boolean',
-                default: true,
-                requiresRestart: true
-            },
-            'encryption.algorithm': {
-                category: 'encryption',
-                name: '加密演算法',
-                description: '選擇加密演算法',
-                type: 'select',
-                options: [
-                    { value: 'AES-GCM', label: 'AES-GCM (推薦)' },
-                    { value: 'AES-CBC', label: 'AES-CBC' }
-                ],
-                default: 'AES-GCM',
-                dependsOn: 'encryption.enabled'
-            },
-            'monitoring.enabled': {
-                category: 'monitoring',
-                name: '安全監控',
-                description: '監控系統安全狀態',
-                type: 'boolean',
-                default: true,
-                requiresRestart: false
-            },
-            'monitoring.alertLevel': {
-                category: 'monitoring',
-                name: '警報等級',
-                description: '設定安全警報的敏感度',
-                type: 'select',
-                options: [
-                    { value: 'low', label: '低 (僅嚴重問題)' },
-                    { value: 'medium', label: '中 (推薦)' },
-                    { value: 'high', label: '高 (所有問題)' }
-                ],
-                default: 'medium',
-                dependsOn: 'monitoring.enabled'
-            },
-            'privacy.analytics': {
-                category: 'privacy',
-                name: '使用統計',
-                description: '收集匿名使用統計以改善服務',
-                type: 'boolean',
-                default: false,
-                requiresRestart: false
-            },
-            'privacy.errorReporting': {
-                category: 'privacy',
-                name: '錯誤回報',
-                description: '自動回報錯誤以協助修復問題',
-                type: 'boolean',
-                default: true,
-                requiresRestart: false
-            }
-        };
+        this.settingsSchema = this.getLocalizedSchema();
         
         this.init();
+    }
+    
+    detectLanguage() {
+        if (window.languageManager) {
+            return window.languageManager.getCurrentLanguage();
+        }
+        return localStorage.getItem('pwa-language') || 'zh';
+    }
+    
+    getLocalizedCategories() {
+        const categories = {
+            zh: {
+                authentication: { name: '身份驗證', icon: '🔐', description: '管理登入和身份驗證設定' },
+                encryption: { name: '資料加密', icon: '🛡️', description: '控制資料加密和隱私保護' },
+                monitoring: { name: '安全監控', icon: '👁️', description: '設定安全監控和警報' },
+                privacy: { name: '隱私設定', icon: '🔒', description: '管理資料收集和隱私選項' }
+            },
+            en: {
+                authentication: { name: 'Authentication', icon: '🔐', description: 'Manage login and authentication settings' },
+                encryption: { name: 'Data Encryption', icon: '🛡️', description: 'Control data encryption and privacy protection' },
+                monitoring: { name: 'Security Monitoring', icon: '👁️', description: 'Configure security monitoring and alerts' },
+                privacy: { name: 'Privacy Settings', icon: '🔒', description: 'Manage data collection and privacy options' }
+            }
+        };
+        return categories[this.currentLanguage] || categories.zh;
+    }
+    
+    getLocalizedSchema() {
+        const schemas = {
+            zh: {
+                'webauthn.enabled': { category: 'authentication', name: 'WebAuthn 生物識別', description: '使用指紋或臉部識別進行身份驗證', type: 'boolean', default: false, requiresRestart: false },
+                'webauthn.fallback': { category: 'authentication', name: 'PIN 備用驗證', description: '當生物識別不可用時使用 PIN 碼', type: 'boolean', default: true, dependsOn: 'webauthn.enabled' },
+                'encryption.enabled': { category: 'encryption', name: '自動加密', description: '自動加密儲存的名片資料', type: 'boolean', default: true, requiresRestart: true },
+                'encryption.algorithm': { category: 'encryption', name: '加密演算法', description: '選擇加密演算法', type: 'select', options: [{ value: 'AES-GCM', label: 'AES-GCM (推薦)' }, { value: 'AES-CBC', label: 'AES-CBC' }], default: 'AES-GCM', dependsOn: 'encryption.enabled' },
+                'monitoring.enabled': { category: 'monitoring', name: '安全監控', description: '監控系統安全狀態', type: 'boolean', default: true, requiresRestart: false },
+                'monitoring.alertLevel': { category: 'monitoring', name: '警報等級', description: '設定安全警報的敏感度', type: 'select', options: [{ value: 'low', label: '低 (僅嚴重問題)' }, { value: 'medium', label: '中 (推薦)' }, { value: 'high', label: '高 (所有問題)' }], default: 'medium', dependsOn: 'monitoring.enabled' },
+                'privacy.analytics': { category: 'privacy', name: '使用統計', description: '收集匿名使用統計以改善服務', type: 'boolean', default: false, requiresRestart: false },
+                'privacy.errorReporting': { category: 'privacy', name: '錯誤回報', description: '自動回報錯誤以協助修復問題', type: 'boolean', default: true, requiresRestart: false }
+            },
+            en: {
+                'webauthn.enabled': { category: 'authentication', name: 'WebAuthn Biometric', description: 'Use fingerprint or face recognition for authentication', type: 'boolean', default: false, requiresRestart: false },
+                'webauthn.fallback': { category: 'authentication', name: 'PIN Fallback', description: 'Use PIN code when biometric is unavailable', type: 'boolean', default: true, dependsOn: 'webauthn.enabled' },
+                'encryption.enabled': { category: 'encryption', name: 'Auto Encryption', description: 'Automatically encrypt stored card data', type: 'boolean', default: true, requiresRestart: true },
+                'encryption.algorithm': { category: 'encryption', name: 'Encryption Algorithm', description: 'Choose encryption algorithm', type: 'select', options: [{ value: 'AES-GCM', label: 'AES-GCM (Recommended)' }, { value: 'AES-CBC', label: 'AES-CBC' }], default: 'AES-GCM', dependsOn: 'encryption.enabled' },
+                'monitoring.enabled': { category: 'monitoring', name: 'Security Monitoring', description: 'Monitor system security status', type: 'boolean', default: true, requiresRestart: false },
+                'monitoring.alertLevel': { category: 'monitoring', name: 'Alert Level', description: 'Set security alert sensitivity', type: 'select', options: [{ value: 'low', label: 'Low (Critical only)' }, { value: 'medium', label: 'Medium (Recommended)' }, { value: 'high', label: 'High (All issues)' }], default: 'medium', dependsOn: 'monitoring.enabled' },
+                'privacy.analytics': { category: 'privacy', name: 'Usage Analytics', description: 'Collect anonymous usage statistics to improve service', type: 'boolean', default: false, requiresRestart: false },
+                'privacy.errorReporting': { category: 'privacy', name: 'Error Reporting', description: 'Automatically report errors to help fix issues', type: 'boolean', default: true, requiresRestart: false }
+            }
+        };
+        return schemas[this.currentLanguage] || schemas.zh;
+    }
+    
+    getLocalizedText(key) {
+        const texts = {
+            zh: {
+                title: '安全設定',
+                closeLabel: '關閉設定',
+                restartNotice: '⚠️ 某些設定需要重新載入頁面才能生效',
+                exportButton: '匯出設定',
+                resetButton: '重設為預設值',
+                saveButton: '儲存並關閉'
+            },
+            en: {
+                title: 'Security Settings',
+                closeLabel: 'Close Settings',
+                restartNotice: '⚠️ Some settings require page reload to take effect',
+                exportButton: 'Export Settings',
+                resetButton: 'Reset to Defaults',
+                saveButton: 'Save and Close'
+            }
+        };
+        return texts[this.currentLanguage]?.[key] || texts.zh[key] || key;
     }
     
     async init() {
@@ -482,8 +461,8 @@ class ClientSideSecuritySettings {
         modal.innerHTML = `
             <div class="settings-content">
                 <div class="settings-header">
-                    <h2 id="settings-title" class="settings-title">安全設定</h2>
-                    <button class="settings-close" onclick="window.securitySettings?.hideSettings()" aria-label="關閉設定">×</button>
+                    <h2 id="settings-title" class="settings-title">${this.getLocalizedText('title')}</h2>
+                    <button class="settings-close" onclick="window.securitySettings?.hideSettings()" aria-label="${this.getLocalizedText('closeLabel')}">×</button>
                 </div>
                 <div class="settings-body">
                     <div class="settings-sidebar">
@@ -499,19 +478,19 @@ class ClientSideSecuritySettings {
                     <div class="settings-main">
                         <div id="settings-categories"></div>
                         <div id="restart-notice" class="restart-notice hidden">
-                            ⚠️ 某些設定需要重新載入頁面才能生效
+                            ${this.getLocalizedText('restartNotice')}
                         </div>
                     </div>
                 </div>
                 <div class="settings-actions">
                     <button class="settings-btn secondary" onclick="window.securitySettings?.exportSettings()">
-                        匯出設定
+                        ${this.getLocalizedText('exportButton')}
                     </button>
                     <button class="settings-btn secondary" onclick="window.securitySettings?.resetSettings()">
-                        重設為預設值
+                        ${this.getLocalizedText('resetButton')}
                     </button>
                     <button class="settings-btn primary" onclick="window.securitySettings?.saveAndClose()">
-                        儲存並關閉
+                        ${this.getLocalizedText('saveButton')}
                     </button>
                 </div>
             </div>
@@ -532,12 +511,35 @@ class ClientSideSecuritySettings {
             this.updatePreference(feature, enabled);
         });
         
+        // Listen for language changes
+        if (window.languageManager) {
+            window.languageManager.addObserver((lang) => {
+                this.currentLanguage = lang;
+                this.updateLanguage();
+            });
+        }
+        
         // Close modal on escape key
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape' && this.isSettingsVisible()) {
                 this.hideSettings();
             }
         });
+    }
+    
+    updateLanguage() {
+        this.settingsCategories = this.getLocalizedCategories();
+        this.settingsSchema = this.getLocalizedSchema();
+        
+        if (this.isSettingsVisible()) {
+            // Update modal content
+            const modal = document.getElementById('security-settings-modal');
+            if (modal) {
+                modal.remove();
+                this.createSettingsModal();
+                this.showSettings();
+            }
+        }
     }
     
     showSettings(category = 'authentication') {

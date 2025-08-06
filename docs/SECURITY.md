@@ -260,6 +260,13 @@ describe('Security Initialization Flow', () => {
 - [x] **SEC-TEST-009**: 建立需求與測試案例對應機制
 - [x] **SEC-TEST-010**: 實作測試覆蓋率報告與分析
 
+### 安全引導模組語言切換修復 (v3.0.5 新增)
+- [x] **SEC-ONBOARD-001**: 修復模態框重建導致焦點丟失和記憶體洩漏
+- [x] **SEC-ONBOARD-002**: 解決 updateLanguage() 方法中的競爭條件
+- [x] **SEC-ONBOARD-003**: 新增觀察者清理機制防止記憶體洩漏
+- [x] **SEC-ONBOARD-004**: 統一翻譯鍵值與 PWA 語言管理器對齊
+- [x] **SEC-ONBOARD-005**: 實作依賴注入模式避免循環依賴
+
 ### PWA 匯入功能緊急修復 (Critical)
 - [ ] **SEC-PWA-001**: 實作檔案類型白名單驗證
 - [ ] **SEC-PWA-002**: 修復 JSON.parse Prototype Pollution
@@ -288,6 +295,9 @@ describe('Security Initialization Flow', () => {
 - [x] **確認循環依賴修復有效性** (v3.1.3 完成)
 - [x] **驗證健康監控錯誤處理** (v3.1.3 完成)
 - [x] **確認安全繞過防護機制** (v3.1.3 完成)
+- [x] **修復安全引導模組語言切換問題** (v3.0.5 完成)
+- [x] **實作記憶體管理與焦點恢復機制** (v3.0.5 完成)
+- [x] **統一翻譯系統與 PWA 語言管理器** (v3.0.5 完成)
 
 ## 📞 安全回報
 

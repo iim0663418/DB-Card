@@ -1122,12 +1122,18 @@ class PWACardManager {
         duplicateCount: duplicates.length
       });
       
+      // 修正成功判斷邏輯：如果有重複名片但沒有錯誤，也算成功
+      const hasValidCards = importedCount > 0 || (duplicates.length > 0 && errors.length === 0);
+      
       return {
-        success: importedCount > 0,
+        success: hasValidCards,
         count: importedCount,
         total: exportData.cards.length,
         errors: errors.length > 0 ? errors : undefined,
-        duplicates: duplicates.length > 0 ? duplicates : undefined
+        duplicates: duplicates.length > 0 ? duplicates : undefined,
+        message: duplicates.length > 0 && importedCount === 0 ? 
+          `檢測到 ${duplicates.length} 張重複名片，已跳過匯入` : 
+          undefined
       };
     } catch (error) {
       console.error('[CardManager] 匯入匯出格式失敗:', error);

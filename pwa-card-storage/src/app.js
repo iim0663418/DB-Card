@@ -862,7 +862,14 @@ class PWACardApp {
         // 一般檔案匯入
         const result = await this.cardManager.importFromFile(file);
         if (result.success) {
-          this.showNotification(`成功匯入 ${result.count} 張名片`, 'success');
+          // 根據結果顯示適當的訊息
+          if (result.count > 0) {
+            this.showNotification(`成功匯入 ${result.count} 張名片`, 'success');
+          } else if (result.duplicates && result.duplicates.length > 0) {
+            this.showNotification(result.message || `檢測到 ${result.duplicates.length} 張重複名片，已跳過匯入`, 'info');
+          } else {
+            this.showNotification('匯入完成，但沒有新增名片', 'info');
+          }
           await this.updateStats();
         } else {
           this.showNotification(result.error || '匯入失敗', 'error');

@@ -128,7 +128,42 @@ console.log('[App] User data:', userData);
 console.log('[App] User data:', encodeURIComponent(JSON.stringify(userData)));
 ```
 
+### 4. 安全監控系統錯誤處理 (v3.1.2 新增)
+
+**問題**: ClientSideSecurityHealthMonitor 在資料庫未初始化時出現 "Cannot read properties of null" 錯誤
+
+**修復方案**:
+```javascript
+// ❌ 不安全的做法
+async _storePerformanceRecord(record) {
+  const transaction = this.db.transaction(['performanceMetrics'], 'readwrite');
+  // this.db 可能為 null
+}
+
+// ✅ 安全的做法
+async _storePerformanceRecord(record) {
+  if (!this.db) {
+    console.warn('[HealthMonitor] Database not initialized, skipping performance record');
+    return Promise.resolve(null);
+  }
+  const transaction = this.db.transaction(['performanceMetrics'], 'readwrite');
+}
+```
+
+**關鍵修復措施**:
+- ✅ 所有資料庫操作前加入 `this.db` null 檢查
+- ✅ 初始化順序控制，確保資料庫完全初始化後才啟動監控
+- ✅ 監控狀態驗證，在記錄方法中檢查 `this.monitoring` 和 `this.db` 狀態
+- ✅ 優雅降級，資料庫不可用時跳過記錄但不中斷程式執行
+
 ## 🔍 安全檢查清單
+
+### 安全監控系統穩定性 (v3.1.2 新增)
+- [x] **SEC-MONITOR-001**: 修復 ClientSideSecurityHealthMonitor 資料庫初始化錯誤
+- [x] **SEC-MONITOR-002**: 實作資料庫可用性檢查機制
+- [x] **SEC-MONITOR-003**: 添加優雅降級處理邏輯
+- [x] **SEC-MONITOR-004**: 確保監控失敗不影響核心功能
+- [x] **SEC-MONITOR-005**: 實作非阻塞監控操作
 
 ### PWA 匯入功能緊急修復 (Critical)
 - [ ] **SEC-PWA-001**: 實作檔案類型白名單驗證

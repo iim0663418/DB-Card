@@ -794,7 +794,8 @@ async function forceUpdateCaches() {
 }
 
 /**
- * 添加安全標頭
+ * PWA-14: Secure Service Worker Implementation
+ * 添加增強的安全標頭與快取完整性驗證
  */
 function addSecurityHeaders(response, request) {
   if (!response) {
@@ -807,31 +808,139 @@ function addSecurityHeaders(response, request) {
   const url = new URL(request.url);
   const headers = new Headers(response.headers);
   
-  // HTML 文件添加 CSP 標頭
+  // 驗證快取完整性
+  if (!validateCacheIntegrity(response, request)) {
+    return createSecurityErrorResponse('Cache integrity validation failed');
+  }
+  
+  // 嚴格的 CSP 標頭（PWA 優化）
   if (url.pathname.endsWith('.html') || request.mode === 'navigate') {
     headers.set('Content-Security-Policy', 
       "default-src 'self'; " +
-      "script-src 'self' https://unpkg.com 'unsafe-inline'; " +
-      "style-src 'self' https://fonts.googleapis.com; " +
+      "script-src 'self' 'unsafe-inline' https://unpkg.com; " +
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
       "font-src 'self' https://fonts.gstatic.com; " +
       "img-src 'self' data: https:; " +
-      "connect-src 'self'; " +
+      "connect-src 'self' https:; " +
+      "worker-src 'self'; " +
+      "manifest-src 'self'; " +
       "object-src 'none'; " +
       "base-uri 'self'; " +
-      "form-action 'self'"
+      "form-action 'self'; " +
+      "frame-ancestors 'none'; " +
+      "upgrade-insecure-requests"
     );
   }
   
-  // 其他安全標頭
+  // PWA 安全標頭
   headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('X-Frame-Options', 'DENY');
   headers.set('X-XSS-Protection', '1; mode=block');
   headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  headers.set('Permissions-Policy', buildPermissionsPolicy());
+  headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
+  headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+  headers.set('Cross-Origin-Resource-Policy', 'same-origin');
+  
+  // HTTPS 強制（生產環境）
+  if (url.protocol === 'https:') {
+    headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  }
+  
+  // 快取控制
+  if (isStaticResource(request)) {
+    headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+  } else {
+    headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  }
   
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
     headers
+  });
+}
+
+/**
+ * 建構權限政策
+ */
+function buildPermissionsPolicy() {
+  const policies = [
+    'camera=()',
+    'microphone=()',
+    'geolocation=()',
+    'payment=()',
+    'usb=()',
+    'bluetooth=()',
+    'accelerometer=()',
+    'gyroscope=()',
+    'autoplay=(self)',
+    'encrypted-media=(self)',
+    'fullscreen=(self)'
+  ];
+  return policies.join(', ');
+}
+
+/**
+ * 驗證快取完整性
+ */
+function validateCacheIntegrity(response, request) {
+  try {
+    // 檢查回應狀態
+    if (!response.ok && response.status !== 304) {
+      return false;
+    }
+    
+    // 檢查內容類型
+    const contentType = response.headers.get('content-type');
+    if (contentType && !isAllowedContentType(contentType)) {
+      return false;
+    }
+    
+    // 檢查回應大小（防止過大的回應）
+    const contentLength = response.headers.get('content-length');
+    if (contentLength && parseInt(contentLength) > 50 * 1024 * 1024) { // 50MB 限制
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * 檢查允許的內容類型
+ */
+function isAllowedContentType(contentType) {
+  const allowedTypes = [
+    'text/html',
+    'text/css',
+    'application/javascript',
+    'text/javascript',
+    'application/json',
+    'image/',
+    'font/',
+    'application/manifest+json'
+  ];
+  
+  return allowedTypes.some(type => contentType.startsWith(type));
+}
+
+/**
+ * 創建安全錯誤回應
+ */
+function createSecurityErrorResponse(message) {
+  return new Response(JSON.stringify({
+    error: 'Security Error',
+    message: message,
+    timestamp: new Date().toISOString()
+  }), {
+    status: 403,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Content-Type-Options': 'nosniff'
+    }
   });
 }
 

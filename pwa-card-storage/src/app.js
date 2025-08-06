@@ -35,6 +35,9 @@ class PWACardApp {
 
   async initializeServices() {
     try {
+      // SEC-01: Load security components first
+      await this.loadSecurityComponents();
+      
       // 初始化核心儲存
       if (typeof PWACardStorage !== 'undefined') {
         this.storage = new PWACardStorage();
@@ -118,7 +121,85 @@ class PWACardApp {
       
     } catch (error) {
       console.error('[PWA] Service initialization failed:', error);
+      
+      // SEC-03: Record initialization failure
+      if (this.storage?.healthMonitor) {
+        await this.storage.healthMonitor.recordSecurityEvent('service_init_failed', {
+          error: error.message,
+          timestamp: Date.now()
+        });
+      }
+      
       throw error;
+    }
+  }
+
+  /**
+   * SEC-01: Load security components for static hosting
+   */
+  async loadSecurityComponents() {
+    try {
+      // These components are loaded via script tags in static hosting
+      // Just verify they're available
+      const components = [
+        'StaticHostingSecurityToggle',
+        'StaticHostingCompatibilityLayer', 
+        'ClientSideSecurityHealthMonitor'
+      ];
+      
+      const loadedComponents = components.filter(component => window[component]);
+      
+      console.log(`[PWA] Loaded security components: ${loadedComponents.join(', ')}`);
+      
+      // Initialize security toggle for UI
+      if (window.StaticHostingSecurityToggle) {
+        this.securityToggle = new window.StaticHostingSecurityToggle();
+        this.setupSecurityUI();
+      }
+      
+    } catch (error) {
+      console.warn('[PWA] Security components loading failed:', error);
+    }
+  }
+
+  /**
+   * SEC-01: Setup security feature UI controls
+   */
+  setupSecurityUI() {
+    if (!this.securityToggle) return;
+    
+    // Add security settings to the UI if needed
+    const settingsContainer = document.querySelector('.settings-container');
+    if (settingsContainer) {
+      const securitySection = document.createElement('div');
+      securitySection.className = 'security-settings';
+      securitySection.innerHTML = `
+        <h3>安全設定</h3>
+        <div class="security-toggle-group">
+          <label>
+            <input type="checkbox" id="encryption-toggle" ${this.securityToggle.isEnabled('encryption') ? 'checked' : ''}>
+            啟用加密儲存
+          </label>
+          <label>
+            <input type="checkbox" id="monitoring-toggle" ${this.securityToggle.isEnabled('monitoring') ? 'checked' : ''}>
+            啟用安全監控
+          </label>
+        </div>
+      `;
+      
+      // Add event listeners
+      const encryptionToggle = securitySection.querySelector('#encryption-toggle');
+      const monitoringToggle = securitySection.querySelector('#monitoring-toggle');
+      
+      encryptionToggle?.addEventListener('change', (e) => {
+        this.securityToggle.toggle('encryption', e.target.checked);
+      });
+      
+      monitoringToggle?.addEventListener('change', (e) => {
+        this.securityToggle.toggle('monitoring', e.target.checked);
+      });
+      
+      settingsContainer.appendChild(securitySection);
     }
   }
 
@@ -659,6 +740,9 @@ class PWACardApp {
       case 'backup-all':
         await this.navigateTo('export');
         break;
+      case 'security-settings':
+        this.showSecuritySettings();
+        break;
     }
   }
 
@@ -781,7 +865,14 @@ class PWACardApp {
         // 一般檔案匯入
         const result = await this.cardManager.importFromFile(file);
         if (result.success) {
-          this.showNotification(`成功匯入 ${result.count} 張名片`, 'success');
+          // 根據結果顯示適當的訊息
+          if (result.count > 0) {
+            this.showNotification(`成功匯入 ${result.count} 張名片`, 'success');
+          } else if (result.duplicates && result.duplicates.length > 0) {
+            this.showNotification(result.message || `檢測到 ${result.duplicates.length} 張重複名片，已跳過匯入`, 'info');
+          } else {
+            this.showNotification('匯入完成，但沒有新增名片', 'info');
+          }
           await this.updateStats();
         } else {
           this.showNotification(result.error || '匯入失敗', 'error');
@@ -1293,6 +1384,26 @@ class PWACardApp {
     }
   }
 
+  showSecuritySettings() {
+    if (!window.securitySettings) {
+      this.showNotification(
+        this.currentLanguage === 'en' ? 'Security settings not available' : '安全設定功能未載入',
+        'error'
+      );
+      return;
+    }
+    
+    try {
+      window.securitySettings.showSettings();
+    } catch (error) {
+      console.error('[PWA] Security settings failed:', error);
+      this.showNotification(
+        this.currentLanguage === 'en' ? 'Failed to open security settings' : '開啟安全設定失敗',
+        'error'
+      );
+    }
+  }
+
   getUILabels() {
     // 使用語言管理器獲取翻譯
     if (window.languageManager) {
@@ -1650,6 +1761,18 @@ class PWACardApp {
       console.log('[PWA] App installed, reinitializing storage...');
       this.reinitializeStorage();
     });
+    
+    // SEC-03: Setup security event monitoring
+    if (this.storage?.healthMonitor) {
+      // Monitor for security-related browser events
+      window.addEventListener('securitypolicyviolation', (event) => {
+        this.storage.healthMonitor.recordSecurityEvent('csp_violation', {
+          violatedDirective: event.violatedDirective,
+          blockedURI: event.blockedURI,
+          documentURI: event.documentURI
+        });
+      });
+    }
   }
   
   /**

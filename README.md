@@ -50,7 +50,17 @@
 │   │   ├── core/                   # 核心功能模組
 │   │   │   ├── storage.js          # IndexedDB 儲存管理
 │   │   │   ├── language-manager.js # 🆕 雙語系統管理
-│   │   │   ├── moda-integration.js # 🆕 moda 設計系統整合
+│   │   │   ├── unified-manifest-manager.js # 🆕 統一資源管理器
+│   │   │   ├── unified-mobile-manager.js # 🆕 統一行動裝置管理
+│   │   │   ├── pwa-integration.js  # 🆕 PWA 整合模組
+│   │   │   ├── version-manager.js  # 🆕 版本管理系統
+│   │   │   ├── health-manager.js   # 🆕 系統健康監控
+│   │   │   ├── batch-data-migrator.js # 🆕 批次資料遷移
+│   │   │   ├── content-fingerprint-generator.js # 🆕 內容指紋生成
+│   │   │   ├── duplicate-detector.js # 🆕 重複檢測器
+│   │   │   ├── database-migration-validator.js # 🆕 資料庫遷移驗證
+│   │   │   ├── migration-log-manager.js # 🆕 遷移日誌管理
+│   │   │   ├── version-manager-utils.js # 🆕 版本管理工具
 │   │   │   └── error-handler.js    # 🆕 錯誤處理系統
 │   │   ├── features/               # 功能模組
 │   │   │   ├── card-manager.js     # 名片管理

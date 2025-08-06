@@ -317,14 +317,96 @@ class SecurityInputHandler {
     }
 
     /**
-     * 清理輸入內容
+     * 清理輸入內容 - 增強原型污染防護
      */
     static #sanitizeInput(input) {
+        if (typeof input !== 'string') {
+            input = String(input);
+        }
+        
+        // 防護原型污染攻擊
+        if (this.#isPrototypePollutionAttempt(input)) {
+            throw new Error('檢測到潛在的原型污染攻擊');
+        }
+        
         return input
             .replace(/[<>]/g, '') // 移除潛在的 HTML 標籤
             .replace(/javascript:/gi, '') // 移除 JavaScript 協議
             .replace(/on\w+=/gi, '') // 移除事件處理器
+            .replace(/__proto__|constructor|prototype/gi, '') // 移除原型相關關鍵字
             .trim();
+    }
+
+    /**
+     * 檢測原型污染攻擊
+     */
+    static #isPrototypePollutionAttempt(input) {
+        const dangerousPatterns = [
+            /__proto__/i,
+            /constructor/i,
+            /prototype/i,
+            /\[\s*["']?__proto__["']?\s*\]/i,
+            /\[\s*["']?constructor["']?\s*\]/i,
+            /\[\s*["']?prototype["']?\s*\]/i
+        ];
+        
+        return dangerousPatterns.some(pattern => pattern.test(input));
+    }
+
+    /**
+     * 深度對象清理 - 防護原型污染
+     */
+    static sanitizeObject(obj, maxDepth = 10) {
+        if (maxDepth <= 0) {
+            throw new Error('對象嵌套層級過深');
+        }
+        
+        if (obj === null || typeof obj !== 'object') {
+            return obj;
+        }
+        
+        if (Array.isArray(obj)) {
+            return obj.map(item => this.sanitizeObject(item, maxDepth - 1));
+        }
+        
+        const sanitized = Object.create(null); // 創建無原型對象
+        
+        for (const [key, value] of Object.entries(obj)) {
+            // 阻止危險的鍵名
+            if (this.#isDangerousKey(key)) {
+                continue;
+            }
+            
+            const sanitizedKey = this.#sanitizeKey(key);
+            sanitized[sanitizedKey] = this.sanitizeObject(value, maxDepth - 1);
+        }
+        
+        return Object.freeze(sanitized); // 凍結對象防止修改
+    }
+
+    /**
+     * 檢查危險的鍵名
+     */
+    static #isDangerousKey(key) {
+        const dangerousKeys = [
+            '__proto__',
+            'constructor',
+            'prototype',
+            'valueOf',
+            'toString',
+            'hasOwnProperty'
+        ];
+        
+        return dangerousKeys.includes(key.toLowerCase());
+    }
+
+    /**
+     * 清理鍵名
+     */
+    static #sanitizeKey(key) {
+        return String(key)
+            .replace(/[^a-zA-Z0-9_\u4e00-\u9fff]/g, '_')
+            .substring(0, 100); // 限制鍵名長度
     }
 
     /**

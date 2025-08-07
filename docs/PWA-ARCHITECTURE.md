@@ -258,6 +258,7 @@ name|title|department|email|phone|mobile|avatar|greetings|socialNote
 
 ## 版本歷史
 
+- **v3.1.3 (2025-01)**: PWA Manifest 版本同步，文檔統一化
 - **v4.0 (2025-08)**: PWA 按鈕樣式統一，與聯絡人按鈕一致
 - **v3.0 (2024-12)**: moda 設計系統對齊，響應式修復
 - **v2.0 (2024-12)**: 漸層設計優化，互動效果提升

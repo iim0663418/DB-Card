@@ -4,10 +4,167 @@
  */
 
 class LanguageManager {
-  constructor() {
+  constructor(config = {}) {
     this.currentLanguage = this.detectBrowserLanguage();
     this.translations = this.initializeTranslations();
     this.observers = [];
+    
+    // Performance optimization components
+    this.performanceCollector = null;
+    this.smartCache = null;
+    this.domUpdater = null;
+    this.performanceConfig = {
+      enablePerformanceMetrics: config.enablePerformanceMetrics !== false,
+      enableSmartCache: config.enableSmartCache !== false,
+      enableIncrementalUpdates: config.enableIncrementalUpdates !== false,
+      ...config.performance
+    };
+    
+    // Initialize translation validator if available
+    this.translationValidator = null;
+    this.securityConfig = {
+      enableXssProtection: config.enableXssProtection !== false,
+      enableInputValidation: config.enableInputValidation !== false,
+      logSecurityEvents: config.logSecurityEvents !== false,
+      ...config.security
+    };
+
+    // Initialize performance components
+    this.initializePerformanceComponents();
+
+    // Initialize validator if TranslationValidator is available
+    if (typeof TranslationValidator !== 'undefined') {
+      this.translationValidator = new TranslationValidator({
+        enableXssProtection: this.securityConfig.enableXssProtection,
+        logLevel: config.logLevel || 'warn'
+      });
+      
+      // Run initial validation if configured
+      if (config.validateOnInit !== false) {
+        this._runInitialValidation();
+      }
+    }
+
+    // Initialize debug reporter if available
+    this.debugReporter = null;
+    if (typeof TranslationDebugReporter !== 'undefined' && config.enableDebugReporting !== false) {
+      this.debugReporter = new TranslationDebugReporter({
+        enableDebugMode: config.enableDebugMode,
+        logLevel: config.logLevel || 'debug',
+        enablePerformanceTracking: this.performanceConfig.enablePerformanceMetrics
+      });
+    }
+
+    // Security audit logging
+    if (this.securityConfig.logSecurityEvents) {
+      console.info('[LanguageManager] Initialized with security config:', {
+        xssProtection: this.securityConfig.enableXssProtection,
+        inputValidation: this.securityConfig.enableInputValidation,
+        validatorAvailable: !!this.translationValidator,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  /**
+   * Initialize performance optimization components
+   * @private
+   */
+  initializePerformanceComponents() {
+    try {
+      // Initialize Performance Metrics Collector
+      if (this.performanceConfig.enablePerformanceMetrics && window.PerformanceMetricsCollector) {
+        this.performanceCollector = new window.PerformanceMetricsCollector({
+          slaTarget: 150, // 150ms language switching target
+          enableDashboard: true
+        });
+      }
+
+      // Initialize Smart Cache Manager
+      if (this.performanceConfig.enableSmartCache && window.SmartCacheManager) {
+        this.smartCache = new window.SmartCacheManager({
+          maxSize: 50, // Max 50 translation sets
+          maxMemoryMB: 5, // Max 5MB for translations
+          defaultTTL: 10 * 60 * 1000, // 10 minutes TTL for translations
+          targetHitRate: 0.9 // 90% target hit rate
+        });
+
+        // Connect performance collector to cache
+        if (this.performanceCollector) {
+          this.smartCache.setPerformanceCollector(this.performanceCollector);
+        }
+      }
+
+      // Initialize Incremental DOM Updater
+      if (this.performanceConfig.enableIncrementalUpdates && window.IncrementalDOMUpdater) {
+        this.domUpdater = new window.IncrementalDOMUpdater({
+          updateTimeout: 100, // 100ms SLA for DOM updates
+          enableAccessibility: true,
+          enableAnimations: true
+        });
+
+        // Connect performance collector to DOM updater
+        if (this.performanceCollector) {
+          this.domUpdater.setPerformanceCollector(this.performanceCollector);
+        }
+
+        // Scan and register existing translation elements
+        setTimeout(() => {
+          if (this.domUpdater) {
+            const elementCount = this.domUpdater.scanAndRegisterAll();
+            console.info(`[LanguageManager] Registered ${elementCount} translation elements for incremental updates`);
+          }
+        }, 100);
+      }
+
+    } catch (error) {
+      console.warn('[LanguageManager] Failed to initialize performance components:', error);
+    }
+  }
+
+  /**
+   * Run initial translation validation
+   * @private
+   */
+  _runInitialValidation() {
+    if (!this.translationValidator) return;
+
+    try {
+      const validationResult = this.translationValidator.validateTranslationCompleteness(
+        this.translations,
+        this._getRequiredTranslationKeys()
+      );
+
+      if (!validationResult.isValid && this.securityConfig.logSecurityEvents) {
+        console.warn('[LanguageManager] Translation validation failed:', {
+          missingKeys: validationResult.missingKeys,
+          warnings: validationResult.warnings,
+          errors: validationResult.errors
+        });
+      }
+
+      return validationResult;
+    } catch (error) {
+      console.error('[LanguageManager] Validation error:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get required translation keys for validation
+   * @private
+   * @returns {Array<string>} Required keys
+   */
+  _getRequiredTranslationKeys() {
+    return [
+      'appTitle', 'appSubtitle', 'themeToggle', 'languageToggle',
+      'cardSaved', 'cardImported', 'cardExported', 'qrGenerated',
+      'home', 'cards', 'import', 'export', 'searchCards',
+      'onlineMode', 'offlineMode', 'storageOk', 'storageLow',
+      'loadingCards', 'emptyTitle', 'emptyDescription', 'emptyAction',
+      'view', 'share', 'download', 'languageChanged', 'operationFailed', 'themeFailed',
+      'switchedToChinese', 'switchedToEnglish', 'backToHomeSuccess'
+    ];
   }
 
   /**
@@ -126,8 +283,10 @@ class LanguageManager {
         linkCopied: '連結已複製到剪貼簿',
         vcardDownloaded: 'vCard 已下載',
         switchedToChinese: '已切換至中文',
+        switchedToEnglish: '已切換至英文',
         switchedToLight: '已切換至淺色模式',
         switchedToDark: '已切換至深色模式',
+        backToHomeSuccess: '已返回首頁',
 
         // 錯誤訊息
         importFailed: '匯入失敗',
@@ -137,6 +296,36 @@ class LanguageManager {
         initFailed: '應用程式初始化失敗',
         cardNotFound: '名片不存在',
         invalidUrl: '請輸入名片連結',
+
+        // 名片列表相關
+        loadingCards: '載入名片中...',
+        emptyTitle: '還沒有儲存任何名片',
+        emptyDescription: '匯入您的第一張數位名片，開始建立您的名片收藏',
+        emptyAction: '開始匯入名片',
+
+        // 通用操作
+        view: '檢視',
+        share: '分享',
+        download: '下載',
+        languageChanged: '語言已切換',
+        operationFailed: '操作失敗',
+        themeFailed: '主題切換失敗',
+
+        // 通知相關
+        'notifications.languageChanged': '語言已切換',
+        'notifications.operationFailed': '操作失敗',
+        'notifications.themeFailed': '主題切換失敗',
+
+        // 名片類型
+        'cardTypes.index': '機關版-延平',
+        'cardTypes.index1': '機關版-新光',
+        'cardTypes.personal': '個人版',
+        'cardTypes.bilingual': '雙語版',
+        'cardTypes.bilingual1': '雙語版-新光',
+        'cardTypes.personal-bilingual': '個人雙語版',
+        'cardTypes.en': '英文版-延平',
+        'cardTypes.en1': '英文版-新光',
+        'cardTypes.personal-en': '個人英文版',
 
         // 重複處理對話框
         duplicateFound: '發現重複名片',
@@ -159,6 +348,16 @@ class LanguageManager {
         selectAction: '請先選擇一個處理方式',
         closeDialog: '關閉對話框',
         unknown: '未知',
+
+        // 安全組件翻譯
+        'security.benefits': '優點：',
+        'security.risks': '注意事項：',
+        'security.title': '安全設定',
+        'security.closeLabel': '關閉設定',
+        'security.restartNotice': '⚠️ 某些設定需要重新載入頁面才能生效',
+        'security.exportButton': '匯出設定',
+        'security.resetButton': '重設為預設值',
+        'security.saveButton': '儲存並關閉',
 
         // 其他
         processing: '處理中...',
@@ -265,8 +464,10 @@ class LanguageManager {
         linkCopied: 'Link copied to clipboard',
         vcardDownloaded: 'vCard downloaded',
         switchedToEnglish: 'Switched to English',
+        switchedToChinese: 'Switched to Chinese',
         switchedToLight: 'Switched to light mode',
         switchedToDark: 'Switched to dark mode',
+        backToHomeSuccess: 'Returned to Home',
 
         // Error Messages
         importFailed: 'Import failed',
@@ -276,6 +477,36 @@ class LanguageManager {
         initFailed: 'Application initialization failed',
         cardNotFound: 'Card not found',
         invalidUrl: 'Please enter card link',
+
+        // Card List Related
+        loadingCards: 'Loading cards...',
+        emptyTitle: 'No Cards Saved Yet',
+        emptyDescription: 'Import your first digital business card to start building your collection',
+        emptyAction: 'Start Importing Cards',
+
+        // Common Actions
+        view: 'View',
+        share: 'Share',
+        download: 'Download',
+        languageChanged: 'Language changed',
+        operationFailed: 'Operation failed',
+        themeFailed: 'Theme switch failed',
+
+        // Notification Related
+        'notifications.languageChanged': 'Language changed',
+        'notifications.operationFailed': 'Operation failed',
+        'notifications.themeFailed': 'Theme switch failed',
+
+        // Card Types
+        'cardTypes.index': 'Gov-Yanping',
+        'cardTypes.index1': 'Gov-ShinGuang',
+        'cardTypes.personal': 'Personal',
+        'cardTypes.bilingual': 'Bilingual',
+        'cardTypes.bilingual1': 'Bilingual-ShinGuang',
+        'cardTypes.personal-bilingual': 'Personal Bilingual',
+        'cardTypes.en': 'English-Yanping',
+        'cardTypes.en1': 'English-ShinGuang',
+        'cardTypes.personal-en': 'Personal English',
 
         // Duplicate Dialog
         duplicateFound: 'Duplicate Card Found',
@@ -298,6 +529,16 @@ class LanguageManager {
         selectAction: 'Please select an action first',
         closeDialog: 'Close Dialog',
         unknown: 'Unknown',
+
+        // Security components translations
+        'security.benefits': 'Benefits:',
+        'security.risks': 'Considerations:',
+        'security.title': 'Security Settings',
+        'security.closeLabel': 'Close Settings',
+        'security.restartNotice': '⚠️ Some settings require page reload to take effect',
+        'security.exportButton': 'Export Settings',
+        'security.resetButton': 'Reset to Defaults',
+        'security.saveButton': 'Save and Close',
 
         // Others
         processing: 'Processing...',
@@ -323,27 +564,94 @@ class LanguageManager {
   /**
    * 切換語言
    */
-  switchLanguage(lang) {
+  async switchLanguage(lang) {
     if (!['zh', 'en'].includes(lang)) {
       console.warn('[LanguageManager] Invalid language:', lang);
       return;
     }
 
-    this.currentLanguage = lang;
-    
-    // 更新 HTML 語言屬性
-    document.documentElement.lang = lang === 'zh' ? 'zh-TW' : 'en';
-    
-    // 儲存使用者語言偏好
-    localStorage.setItem('pwa-language', lang);
-    
-    // 更新所有 UI 元素
-    this.updateAllUIElements();
-    
-    // 通知觀察者
-    this.notifyObservers(lang);
-    
-    return lang;
+    const fromLanguage = this.currentLanguage;
+    let performanceMarker = null;
+
+    // Start performance measurement
+    if (this.performanceCollector) {
+      performanceMarker = this.performanceCollector.startLanguageSwitching(fromLanguage, lang);
+    }
+
+    try {
+      this.currentLanguage = lang;
+      
+      // Record memory usage before switch
+      if (this.performanceCollector) {
+        this.performanceCollector.recordMemoryMetric('before-language-switch');
+      }
+      
+      // Check cache for translations first
+      let translations = null;
+      if (this.smartCache) {
+        translations = this.smartCache.get(`translations-${lang}`);
+      }
+      
+      // If not in cache, get from memory/storage
+      if (!translations) {
+        translations = this.translations[lang] || {};
+        
+        // Cache the translations
+        if (this.smartCache) {
+          this.smartCache.set(`translations-${lang}`, translations, 10 * 60 * 1000); // 10 min TTL
+        }
+      }
+      
+      // 更新 HTML 語言屬性
+      document.documentElement.lang = lang === 'zh' ? 'zh-TW' : 'en';
+      
+      // 儲存使用者語言偏好
+      localStorage.setItem('pwa-language', lang);
+      
+      // Use incremental DOM updates if available, otherwise fallback to full update
+      if (this.domUpdater) {
+        const updateResult = await this.domUpdater.updateTranslations(translations, fromLanguage, lang);
+        
+        if (!updateResult.success) {
+          console.warn('[LanguageManager] Incremental update failed, falling back to full update:', updateResult.error);
+          this.updateAllUIElements();
+        }
+      } else {
+        // 更新所有 UI 元素 (fallback)
+        this.updateAllUIElements();
+      }
+      
+      // Record memory usage after switch
+      if (this.performanceCollector) {
+        this.performanceCollector.recordMemoryMetric('after-language-switch');
+      }
+      
+      // 通知觀察者
+      this.notifyObservers(lang);
+      
+      // Complete performance measurement
+      if (performanceMarker) {
+        performanceMarker.complete({
+          cacheHit: translations ? true : false,
+          updateMethod: this.domUpdater ? 'incremental' : 'full'
+        });
+      }
+      
+      return lang;
+      
+    } catch (error) {
+      console.error('[LanguageManager] Language switch failed:', error);
+      
+      // Complete performance measurement with error
+      if (performanceMarker) {
+        performanceMarker.complete({
+          error: error.message,
+          success: false
+        });
+      }
+      
+      throw error;
+    }
   }
 
   /**
@@ -357,21 +665,229 @@ class LanguageManager {
   /**
    * 獲取翻譯文字
    */
-  getText(key, lang = null) {
+  getText(key, lang = null, options = {}) {
+    // Input validation and sanitization for security
+    if (typeof key !== 'string' || key.trim() === '') {
+      console.warn('[LanguageManager] Invalid translation key:', key);
+      return options.fallback || key || '';
+    }
+
+    // Sanitize key to prevent injection attacks
+    const sanitizedKey = key.replace(/[<>\"'&]/g, '').trim();
+    if (sanitizedKey !== key) {
+      console.warn('[LanguageManager] Key sanitized from:', key, 'to:', sanitizedKey);
+    }
+
     const targetLang = lang || this.currentLanguage;
+    
+    // Validate language code
+    if (!['zh', 'en'].includes(targetLang)) {
+      console.warn('[LanguageManager] Invalid language code:', targetLang);
+      return options.fallback || sanitizedKey;
+    }
+
     const translation = this.translations[targetLang];
     
     if (!translation) {
       console.warn('[LanguageManager] Language not found:', targetLang);
-      return key;
+      return options.fallback || sanitizedKey;
     }
     
-    if (!translation[key]) {
-      console.warn('[LanguageManager] Translation key not found:', key);
-      return key;
+    if (!translation[sanitizedKey]) {
+      // Enhanced error handling for missing keys
+      const fallbackText = this._handleMissingKey(sanitizedKey, targetLang, options);
+      return fallbackText;
     }
     
-    return translation[key];
+    let translatedText = translation[sanitizedKey];
+    
+    // XSS prevention - sanitize output if enabled
+    if (options.escapeHtml !== false) {
+      translatedText = this._sanitizeTranslationOutput(translatedText);
+    }
+
+    // String interpolation if provided
+    if (options.interpolation && typeof options.interpolation === 'object') {
+      Object.keys(options.interpolation).forEach(placeholder => {
+        const value = this._sanitizeTranslationOutput(options.interpolation[placeholder]);
+        translatedText = translatedText.replace(new RegExp(`\\{\\{${placeholder}\\}\\}`, 'g'), value);
+      });
+    }
+    
+    return translatedText;
+  }
+
+  /**
+   * Sanitize translation output to prevent XSS attacks
+   * @param {string} text - Raw translation text
+   * @returns {string} Sanitized text
+   */
+  _sanitizeTranslationOutput(text) {
+    if (typeof text !== 'string') {
+      return text;
+    }
+
+    // Basic HTML encoding for XSS prevention
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;');
+  }
+
+  /**
+   * Enhanced missing key handler with fallback mechanisms
+   * @param {string} key - The missing translation key
+   * @param {string} targetLang - Target language that's missing the key
+   * @param {Object} options - Translation options
+   * @returns {string} Fallback text
+   */
+  _handleMissingKey(key, targetLang, options = {}) {
+    // Initialize missing key tracking if not exists
+    if (!this.missingKeys) {
+      this.missingKeys = new Map();
+    }
+
+    // Track missing key for reporting
+    if (!this.missingKeys.has(targetLang)) {
+      this.missingKeys.set(targetLang, new Set());
+    }
+    this.missingKeys.get(targetLang).add(key);
+
+    // Enhanced logging with context
+    const logContext = {
+      key: key,
+      language: targetLang,
+      timestamp: new Date().toISOString(),
+      fallbackUsed: null
+    };
+
+    let fallbackText = null;
+
+    // Fallback Strategy 1: Try default language (zh)
+    if (targetLang !== 'zh' && this.translations.zh && this.translations.zh[key]) {
+      fallbackText = this.translations.zh[key];
+      logContext.fallbackUsed = 'default_language_zh';
+    }
+
+    // Fallback Strategy 2: Try English if not already tried
+    if (!fallbackText && targetLang !== 'en' && this.translations.en && this.translations.en[key]) {
+      fallbackText = this.translations.en[key];
+      logContext.fallbackUsed = 'english_fallback';
+    }
+
+    // Fallback Strategy 3: Try any available language
+    if (!fallbackText) {
+      for (const [lang, translations] of Object.entries(this.translations)) {
+        if (lang !== targetLang && translations[key]) {
+          fallbackText = translations[key];
+          logContext.fallbackUsed = `available_language_${lang}`;
+          break;
+        }
+      }
+    }
+
+    // Fallback Strategy 4: Use provided fallback
+    if (!fallbackText && options.fallback) {
+      fallbackText = options.fallback;
+      logContext.fallbackUsed = 'provided_fallback';
+    }
+
+    // Fallback Strategy 5: Generate human-readable key
+    if (!fallbackText) {
+      fallbackText = this._generateHumanReadableKey(key);
+      logContext.fallbackUsed = 'generated_human_readable';
+    }
+
+    // Log the missing key event with context
+    this._logMissingKey(logContext);
+
+    // Return sanitized fallback text
+    return this._sanitizeTranslationOutput(fallbackText);
+  }
+
+  /**
+   * Generate human-readable text from translation key
+   * @param {string} key - Translation key
+   * @returns {string} Human-readable text
+   */
+  _generateHumanReadableKey(key) {
+    // Convert camelCase/kebab-case to readable text
+    return key
+      .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+      .replace(/[-_]/g, ' ') // Replace dashes and underscores with spaces
+      .toLowerCase() // Convert to lowercase
+      .replace(/\b\w/g, l => l.toUpperCase()) // Capitalize first letter of each word
+      .trim(); // Remove extra whitespace
+  }
+
+  /**
+   * Log missing key with appropriate level and context
+   * @param {Object} logContext - Context information for the missing key
+   */
+  _logMissingKey(logContext) {
+    const { key, language, fallbackUsed } = logContext;
+    
+    // Different log levels based on configuration
+    const logLevel = this.config?.logLevel || 'warn';
+    
+    if (logLevel === 'none') return;
+
+    const message = `[LanguageManager] Translation key not found: "${key}" for language: "${language}"`;
+    const details = {
+      key: key,
+      language: language,
+      fallbackStrategy: fallbackUsed,
+      timestamp: logContext.timestamp
+    };
+
+    switch (logLevel) {
+      case 'debug':
+        console.debug(message, details);
+        break;
+      case 'info':
+        console.info(message, details);
+        break;
+      case 'warn':
+      default:
+        console.warn(message, details);
+        break;
+      case 'error':
+        console.error(message, details);
+        break;
+    }
+
+    // Trigger debug reporting if enabled
+    if (this.config?.enableDebugReporting && this.debugReporter) {
+      this.debugReporter.reportMissingKey(logContext);
+    }
+  }
+
+  /**
+   * Get summary of missing keys for debugging
+   * @returns {Object} Missing keys summary
+   */
+  getMissingKeysSummary() {
+    if (!this.missingKeys) return {};
+
+    const summary = {};
+    for (const [language, keys] of this.missingKeys.entries()) {
+      summary[language] = {
+        count: keys.size,
+        keys: Array.from(keys).sort()
+      };
+    }
+    return summary;
+  }
+
+  /**
+   * Clear missing keys tracking
+   */
+  clearMissingKeysTracking() {
+    if (this.missingKeys) {
+      this.missingKeys.clear();
+    }
   }
 
   /**
@@ -747,6 +1263,89 @@ class LanguageManager {
   initialize() {
     document.documentElement.lang = this.currentLanguage === 'zh' ? 'zh-TW' : 'en';
     setTimeout(() => this.updateAllUIElements(), 50);
+  }
+
+  /**
+   * Get performance metrics summary
+   */
+  getPerformanceMetrics() {
+    const metrics = {
+      performanceCollector: null,
+      smartCache: null,
+      domUpdater: null
+    };
+
+    if (this.performanceCollector) {
+      metrics.performanceCollector = this.performanceCollector.getPerformanceSummary();
+    }
+
+    if (this.smartCache) {
+      metrics.smartCache = this.smartCache.getStatistics();
+    }
+
+    if (this.domUpdater) {
+      metrics.domUpdater = this.domUpdater.getStatistics();
+    }
+
+    return metrics;
+  }
+
+  /**
+   * Optimize performance components
+   */
+  optimizePerformance() {
+    const results = {};
+
+    if (this.smartCache) {
+      results.cache = this.smartCache.optimize();
+    }
+
+    if (this.performanceCollector) {
+      results.metrics = this.performanceCollector.getPerformanceSummary();
+    }
+
+    return results;
+  }
+
+  /**
+   * Cleanup resources and observers for proper memory management
+   */
+  cleanup() {
+    try {
+      // Clean up observers
+      this.observers.forEach(observer => {
+        if (typeof observer.disconnect === 'function') {
+          observer.disconnect();
+        } else if (typeof observer.cleanup === 'function') {
+          observer.cleanup();
+        }
+      });
+      this.observers = [];
+
+      // Clean up performance components
+      if (this.performanceCollector) {
+        this.performanceCollector.cleanup();
+        this.performanceCollector = null;
+      }
+
+      if (this.smartCache) {
+        this.smartCache.cleanup();
+        this.smartCache = null;
+      }
+
+      if (this.domUpdater) {
+        this.domUpdater.cleanup();
+        this.domUpdater = null;
+      }
+
+      // Clear references for garbage collection
+      this.translations = null;
+      this.translationValidator = null;
+
+      console.info('[LanguageManager] Cleanup completed');
+    } catch (error) {
+      console.error('[LanguageManager] Cleanup failed:', error);
+    }
   }
 }
 

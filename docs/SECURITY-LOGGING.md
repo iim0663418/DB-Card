@@ -165,7 +165,7 @@ sanitizeLogData(data, sensitiveFields) {
 
 | 版本 | 日期 | 變更內容 | 負責人 |
 |------|------|----------|--------|
-| 1.0 | 2025-01-XX | 初版建立，定義基本安全日誌規範 | Security Team |
+| 1.0 | 2025-08-XX | 初版建立，定義基本安全日誌規範 | Security Team |
 
 ---
 

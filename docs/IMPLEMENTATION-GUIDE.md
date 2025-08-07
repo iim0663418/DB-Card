@@ -1,6 +1,6 @@
 ---
 version: "v3.1.1"
-last_updated: "2025-01-27"
+last_updated: "2025-08-06"
 feature_scope: "offline-vcard-qr-generation-implementation"
 status: "completed"
 ---

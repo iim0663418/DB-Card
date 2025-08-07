@@ -57,7 +57,7 @@ describe('DuplicateDialog E2E Tests', () => {
       getCard: jest.fn().mockResolvedValue({
         id: 'card_existing_123',
         data: { name: '現有使用者', email: 'existing@test.com' },
-        created: new Date('2025-01-01'),
+        created: new Date('2025-08-01'),
         version: '1.0'
       }),
       duplicateDetector: {
@@ -66,7 +66,7 @@ describe('DuplicateDialog E2E Tests', () => {
           existingCards: [{
             id: 'card_existing_123',
             name: '現有使用者',
-            created: '2025-01-01T00:00:00.000Z',
+            created: '2025-08-01T00:00:00.000Z',
             version: '1.0'
           }]
         }),
@@ -111,7 +111,7 @@ describe('DuplicateDialog E2E Tests', () => {
       const existingCards = [{
         id: 'card_existing_123',
         name: '測試使用者',
-        created: '2025-01-01T00:00:00.000Z',
+        created: '2025-08-01T00:00:00.000Z',
         version: '1.0'
       }];
       const newCardData = {
@@ -221,7 +221,7 @@ describe('DuplicateDialog E2E Tests', () => {
       const existingCards = [{
         id: 'card_123',
         name: '測試使用者',
-        created: '2025-01-15T10:30:00.000Z'
+        created: '2025-08-15T10:30:00.000Z'
       }];
       const newCardData = { name: '測試使用者' };
 

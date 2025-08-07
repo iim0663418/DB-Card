@@ -403,8 +403,20 @@ class ClientSideSecurityOnboarding {
             this.handleNewFeature(event.detail);
         });
         
-        // Listen for language changes from PWA language manager
-        if (window.languageManager) {
+        // Listen for language changes from unified language manager
+        if (window.languageManager && window.languageManager.registerObserver) {
+            this.languageObserver = {
+                id: 'security-onboarding',
+                priority: 6,
+                updateCallback: (newLanguage) => {
+                    if (this.isUpdating) return;
+                    this.currentLanguage = newLanguage;
+                    this.updateLanguage();
+                }
+            };
+            window.languageManager.registerObserver('security-onboarding', this.languageObserver);
+        } else if (window.languageManager && window.languageManager.addObserver) {
+            // Fallback to old observer pattern
             this.languageObserver = (lang) => {
                 if (this.isUpdating) return;
                 this.currentLanguage = lang;
@@ -441,27 +453,33 @@ class ClientSideSecurityOnboarding {
         this.isUpdating = true;
         
         try {
+            this.currentLanguage = window.languageManager ? window.languageManager.getCurrentLanguage() : 'zh';
             this.securityFeatures = this.getLocalizedFeatures();
             
             if (this.isOnboardingVisible()) {
-                // Store current focus
-                this.focusedElement = document.activeElement;
+                // Store current focus element ID for restoration
+                const focusedElement = document.activeElement;
+                const focusedElementId = focusedElement?.id || focusedElement?.getAttribute('data-focus-id');
                 
                 // Update content without recreating modal
                 this.updateModalContent();
                 
-                // Restore focus
+                // Restore focus after DOM update
                 setTimeout(() => {
-                    if (this.focusedElement && this.focusedElement.isConnected) {
-                        this.focusedElement.focus();
-                    } else {
-                        // Focus first interactive element if original is gone
-                        const modal = document.getElementById('security-onboarding-modal');
-                        const firstInput = modal?.querySelector('input[type="checkbox"]');
-                        if (firstInput) firstInput.focus();
+                    if (focusedElementId) {
+                        const elementToFocus = document.getElementById(focusedElementId) || 
+                                             document.querySelector(`[data-focus-id="${focusedElementId}"]`);
+                        if (elementToFocus && elementToFocus.isConnected) {
+                            elementToFocus.focus();
+                            return;
+                        }
                     }
-                    this.focusedElement = null;
-                }, 100);
+                    
+                    // Fallback: focus first interactive element
+                    const modal = document.getElementById('security-onboarding-modal');
+                    const firstInput = modal?.querySelector('input[type="checkbox"]');
+                    if (firstInput) firstInput.focus();
+                }, 50);
             }
         } finally {
             this.isUpdating = false;
@@ -671,7 +689,11 @@ class ClientSideSecurityOnboarding {
     cleanup() {
         // Remove language observer
         if (this.languageObserver && window.languageManager) {
-            window.languageManager.removeObserver(this.languageObserver);
+            if (window.languageManager.unregisterObserver) {
+                window.languageManager.unregisterObserver('security-onboarding');
+            } else if (window.languageManager.removeObserver) {
+                window.languageManager.removeObserver(this.languageObserver);
+            }
             this.languageObserver = null;
         }
         

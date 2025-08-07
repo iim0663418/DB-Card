@@ -72,6 +72,14 @@ class ClientSideSecuritySettings {
     }
     
     getLocalizedText(key) {
+        // Use PWA language manager if available for consistency
+        if (window.languageManager && window.languageManager.getText) {
+            const pwaText = window.languageManager.getText(`security.${key}`);
+            if (pwaText !== `security.${key}`) {
+                return pwaText;
+            }
+        }
+        
         const texts = {
             zh: {
                 title: '安全設定',
@@ -511,12 +519,26 @@ class ClientSideSecuritySettings {
             this.updatePreference(feature, enabled);
         });
         
-        // Listen for language changes
-        if (window.languageManager) {
-            window.languageManager.addObserver((lang) => {
+        // Listen for language changes from unified language manager
+        if (window.languageManager && window.languageManager.registerObserver) {
+            this.languageObserver = {
+                id: 'security-settings',
+                priority: 7,
+                updateCallback: (newLanguage) => {
+                    if (this.isUpdating) return;
+                    this.currentLanguage = newLanguage;
+                    this.updateLanguage();
+                }
+            };
+            window.languageManager.registerObserver('security-settings', this.languageObserver);
+        } else if (window.languageManager && window.languageManager.addObserver) {
+            // Fallback to old observer pattern
+            this.languageObserver = (lang) => {
+                if (this.isUpdating) return;
                 this.currentLanguage = lang;
                 this.updateLanguage();
-            });
+            };
+            window.languageManager.addObserver(this.languageObserver);
         }
         
         // Close modal on escape key
@@ -528,17 +550,41 @@ class ClientSideSecuritySettings {
     }
     
     updateLanguage() {
-        this.settingsCategories = this.getLocalizedCategories();
-        this.settingsSchema = this.getLocalizedSchema();
+        if (this.isUpdating) return;
+        this.isUpdating = true;
         
-        if (this.isSettingsVisible()) {
-            // Update modal content
-            const modal = document.getElementById('security-settings-modal');
-            if (modal) {
-                modal.remove();
-                this.createSettingsModal();
-                this.showSettings();
+        try {
+            this.currentLanguage = window.languageManager ? window.languageManager.getCurrentLanguage() : 'zh';
+            this.settingsCategories = this.getLocalizedCategories();
+            this.settingsSchema = this.getLocalizedSchema();
+            
+            if (this.isSettingsVisible()) {
+                // Store current focus element ID for restoration
+                const focusedElement = document.activeElement;
+                const focusedElementId = focusedElement?.id || focusedElement?.getAttribute('data-focus-id');
+                
+                // Update content without recreating modal
+                this.updateModalContent();
+                
+                // Restore focus after DOM update
+                setTimeout(() => {
+                    if (focusedElementId) {
+                        const elementToFocus = document.getElementById(focusedElementId) || 
+                                             document.querySelector(`[data-focus-id="${focusedElementId}"]`);
+                        if (elementToFocus && elementToFocus.isConnected) {
+                            elementToFocus.focus();
+                            return;
+                        }
+                    }
+                    
+                    // Fallback: focus first interactive element
+                    const modal = document.getElementById('security-settings-modal');
+                    const firstInput = modal?.querySelector('.setting-toggle, .setting-select');
+                    if (firstInput) firstInput.focus();
+                }, 50);
             }
+        } finally {
+            this.isUpdating = false;
         }
     }
     
@@ -607,12 +653,23 @@ class ClientSideSecuritySettings {
         if (schema.type === 'boolean') {
             controlHtml = `
                 <div class="setting-toggle ${value ? 'enabled' : ''} ${isDisabled ? 'setting-disabled' : ''}"
-                     onclick="window.securitySettings?.toggleSetting('${key}')">
+                     id="toggle-${key}"
+                     role="switch"
+                     aria-checked="${value}"
+                     aria-labelledby="label-${key}"
+                     tabindex="0"
+                     data-setting-key="${key}"
+                     onclick="window.securitySettings?.toggleSetting('${key}')"
+                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.securitySettings?.toggleSetting('${key}');}">
                 </div>
             `;
         } else if (schema.type === 'select') {
             controlHtml = `
                 <select class="setting-select ${isDisabled ? 'setting-disabled' : ''}"
+                        id="select-${key}"
+                        name="setting-${key}"
+                        aria-labelledby="label-${key}"
+                        data-setting-key="${key}"
                         onchange="window.securitySettings?.updateSetting('${key}', this.value)"
                         ${isDisabled ? 'disabled' : ''}>
                     ${schema.options.map(option => `
@@ -628,7 +685,7 @@ class ClientSideSecuritySettings {
             <div class="setting-item ${requiresRestart ? 'setting-restart-required' : ''} ${isDisabled ? 'setting-disabled' : ''}">
                 <div class="setting-header">
                     <div class="setting-info">
-                        <h4 class="setting-name">${schema.name}</h4>
+                        <h4 class="setting-name" id="label-${key}">${schema.name}</h4>
                         <p class="setting-description">${schema.description}</p>
                     </div>
                     <div class="setting-control">
@@ -798,6 +855,67 @@ class ClientSideSecuritySettings {
     setPreference(key, value) {
         this.updateSetting(key, value);
         this.savePreferences();
+    }
+    
+    updateModalContent() {
+        const modal = document.getElementById('security-settings-modal');
+        if (!modal) return;
+        
+        // Update header text
+        const title = modal.querySelector('#settings-title');
+        const closeBtn = modal.querySelector('.settings-close');
+        if (title) title.textContent = this.getLocalizedText('title');
+        if (closeBtn) closeBtn.setAttribute('aria-label', this.getLocalizedText('closeLabel'));
+        
+        // Update restart notice
+        const restartNotice = modal.querySelector('.restart-notice');
+        if (restartNotice) {
+            restartNotice.textContent = this.getLocalizedText('restartNotice');
+        }
+        
+        // Update action buttons
+        const exportBtn = modal.querySelector('.settings-btn.secondary:nth-child(1)');
+        const resetBtn = modal.querySelector('.settings-btn.secondary:nth-child(2)');
+        const saveBtn = modal.querySelector('.settings-btn.primary');
+        
+        if (exportBtn) exportBtn.textContent = this.getLocalizedText('exportButton');
+        if (resetBtn) resetBtn.textContent = this.getLocalizedText('resetButton');
+        if (saveBtn) saveBtn.textContent = this.getLocalizedText('saveButton');
+        
+        // Update sidebar navigation
+        Object.entries(this.settingsCategories).forEach(([key, category]) => {
+            const navItem = modal.querySelector(`[data-category="${key}"] .settings-nav-label`);
+            if (navItem) {
+                navItem.textContent = category.name;
+            }
+        });
+        
+        // Re-render current category with new language
+        const activeNavItem = modal.querySelector('.settings-nav-item.active');
+        if (activeNavItem) {
+            const categoryKey = activeNavItem.dataset.category;
+            if (categoryKey) {
+                this.showCategory(categoryKey);
+            }
+        }
+    }
+    
+    cleanup() {
+        // Remove language observer
+        if (this.languageObserver && window.languageManager) {
+            if (window.languageManager.unregisterObserver) {
+                window.languageManager.unregisterObserver('security-settings');
+            } else if (window.languageManager.removeObserver) {
+                window.languageManager.removeObserver(this.languageObserver);
+            }
+            this.languageObserver = null;
+        }
+        
+        // Remove modal
+        const modal = document.getElementById('security-settings-modal');
+        if (modal) {
+            modal.remove();
+        }
     }
 }
 

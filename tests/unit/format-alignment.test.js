@@ -10,7 +10,7 @@ describe('格式對齊驗證', () => {
             // 模擬匯出格式
             const exportFormat = {
                 version: '3.0.2',
-                timestamp: '2025-01-04T10:00:00.000Z',
+                timestamp: '2025-08-04T10:00:00.000Z',
                 exportedBy: 'PWA Card Storage v3.0.2',
                 totalCards: 1,
                 format: 'json',

@@ -1,165 +1,222 @@
 /**
- * Jest 測試環境設置
- * 為重複處理對話框雙語支援測試提供必要的全域設定
+ * Mocha 測試環境設置
+ * 為統一語言切換架構測試提供必要的全域設定
  */
 
-// 模擬 DOM 環境
-import 'jest-dom/extend-expect';
+// 引入測試框架
+const { expect } = require('chai');
+const sinon = require('sinon');
+const sinonChai = require('sinon-chai');
+const { JSDOM } = require('jsdom');
+
+// 設置 chai 插件
+require('chai').use(sinonChai);
+
+// 設置 JSDOM 環境
+const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
+  url: 'http://localhost',
+  pretendToBeVisual: true,
+  resources: 'usable'
+});
+
+global.window = dom.window;
+global.document = dom.window.document;
+global.navigator = dom.window.navigator;
+global.HTMLElement = dom.window.HTMLElement;
+global.Element = dom.window.Element;
+global.Node = dom.window.Node;
+global.MouseEvent = dom.window.MouseEvent;
+global.KeyboardEvent = dom.window.KeyboardEvent;
+global.Event = dom.window.Event;
 
 // 模擬 Web APIs
-global.ResizeObserver = jest.fn().mockImplementation(() => ({
-  observe: jest.fn(),
-  unobserve: jest.fn(),
-  disconnect: jest.fn(),
-}));
+global.ResizeObserver = function() {
+  return {
+    observe: sinon.stub(),
+    unobserve: sinon.stub(),
+    disconnect: sinon.stub()
+  };
+};
 
-global.IntersectionObserver = jest.fn().mockImplementation(() => ({
-  observe: jest.fn(),
-  unobserve: jest.fn(),
-  disconnect: jest.fn(),
-}));
+global.IntersectionObserver = function() {
+  return {
+    observe: sinon.stub(),
+    unobserve: sinon.stub(),
+    disconnect: sinon.stub()
+  };
+};
+
+global.MutationObserver = function() {
+  return {
+    observe: sinon.stub(),
+    disconnect: sinon.stub()
+  };
+};
 
 // 模擬 IndexedDB
 global.indexedDB = {
-  open: jest.fn(),
-  deleteDatabase: jest.fn(),
-  cmp: jest.fn()
+  open: sinon.stub(),
+  deleteDatabase: sinon.stub(),
+  cmp: sinon.stub()
 };
 
 // 模擬 localStorage
 const localStorageMock = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
+  getItem: sinon.stub(),
+  setItem: sinon.stub(),
+  removeItem: sinon.stub(),
+  clear: sinon.stub(),
   length: 0,
-  key: jest.fn()
+  key: sinon.stub()
 };
 global.localStorage = localStorageMock;
+global.window.localStorage = localStorageMock;
 
 // 模擬 sessionStorage
 global.sessionStorage = localStorageMock;
+global.window.sessionStorage = localStorageMock;
 
 // 模擬 fetch API
-global.fetch = jest.fn(() =>
-  Promise.resolve({
-    ok: true,
-    status: 200,
-    json: () => Promise.resolve({}),
-    text: () => Promise.resolve(''),
-    blob: () => Promise.resolve(new Blob())
-  })
-);
+global.fetch = sinon.stub().resolves({
+  ok: true,
+  status: 200,
+  json: () => Promise.resolve({}),
+  text: () => Promise.resolve(''),
+  blob: () => Promise.resolve(new Blob())
+});
 
 // 模擬 URL API
 global.URL = {
-  createObjectURL: jest.fn(() => 'mock-url'),
-  revokeObjectURL: jest.fn()
+  createObjectURL: sinon.stub().returns('mock-url'),
+  revokeObjectURL: sinon.stub()
 };
+global.window.URL = global.URL;
 
 // 模擬 FileReader
-global.FileReader = jest.fn().mockImplementation(() => ({
-  readAsText: jest.fn(),
-  readAsDataURL: jest.fn(),
-  readAsArrayBuffer: jest.fn(),
-  addEventListener: jest.fn(),
-  removeEventListener: jest.fn(),
-  result: null,
-  error: null,
-  readyState: 0
-}));
+global.FileReader = function() {
+  return {
+    readAsText: sinon.stub(),
+    readAsDataURL: sinon.stub(),
+    readAsArrayBuffer: sinon.stub(),
+    addEventListener: sinon.stub(),
+    removeEventListener: sinon.stub(),
+    result: null,
+    error: null,
+    readyState: 0
+  };
+};
 
 // 模擬 performance API
 global.performance = {
-  now: jest.fn(() => Date.now()),
-  mark: jest.fn(),
-  measure: jest.fn(),
-  getEntriesByName: jest.fn(() => []),
-  getEntriesByType: jest.fn(() => [])
+  now: sinon.stub().returns(Date.now()),
+  mark: sinon.stub(),
+  measure: sinon.stub(),
+  getEntriesByName: sinon.stub().returns([]),
+  getEntriesByType: sinon.stub().returns([])
 };
+global.window.performance = global.performance;
 
 // 模擬 console 方法（避免測試輸出污染）
 const originalConsole = global.console;
 global.console = {
   ...originalConsole,
-  log: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-  info: jest.fn(),
-  debug: jest.fn()
+  log: sinon.stub(),
+  warn: sinon.stub(),
+  error: sinon.stub(),
+  info: sinon.stub(),
+  debug: sinon.stub()
 };
 
 // 模擬 CSS 支援檢查
 global.CSS = {
-  supports: jest.fn(() => true)
+  supports: sinon.stub().returns(true)
 };
+global.window.CSS = global.CSS;
 
 // 模擬 matchMedia
-global.matchMedia = jest.fn((query) => ({
+global.matchMedia = sinon.stub().returns({
   matches: false,
-  media: query,
+  media: '',
   onchange: null,
-  addListener: jest.fn(),
-  removeListener: jest.fn(),
-  addEventListener: jest.fn(),
-  removeEventListener: jest.fn(),
-  dispatchEvent: jest.fn(),
-}));
+  addListener: sinon.stub(),
+  removeListener: sinon.stub(),
+  addEventListener: sinon.stub(),
+  removeEventListener: sinon.stub(),
+  dispatchEvent: sinon.stub()
+});
+global.window.matchMedia = global.matchMedia;
 
 // 設置預設的視窗尺寸
-Object.defineProperty(window, 'innerWidth', {
+Object.defineProperty(global.window, 'innerWidth', {
   writable: true,
   configurable: true,
   value: 1024,
 });
 
-Object.defineProperty(window, 'innerHeight', {
+Object.defineProperty(global.window, 'innerHeight', {
   writable: true,
   configurable: true,
   value: 768,
 });
 
 // 模擬 getComputedStyle
-global.getComputedStyle = jest.fn(() => ({
+global.getComputedStyle = sinon.stub().returns({
   display: 'block',
   width: '100px',
   height: '100px',
-  getPropertyValue: jest.fn()
-}));
+  getPropertyValue: sinon.stub()
+});
+global.window.getComputedStyle = global.getComputedStyle;
 
 // 設置測試用的語言環境
-Object.defineProperty(navigator, 'language', {
+Object.defineProperty(global.navigator, 'language', {
   writable: true,
   value: 'zh-TW'
 });
 
-Object.defineProperty(navigator, 'languages', {
+Object.defineProperty(global.navigator, 'languages', {
   writable: true,
   value: ['zh-TW', 'en-US']
 });
 
-// 清理函數
-afterEach(() => {
-  // 清理 DOM
-  document.body.innerHTML = '';
-  document.head.innerHTML = '';
-  
-  // 重置所有模擬
-  jest.clearAllMocks();
-  
-  // 重置全域變數
-  delete window.languageManager;
-  delete window.storage;
-  delete window.DuplicateDialog;
-});
+// 清理函數 - 只在 Mocha 環境中定義
+if (typeof afterEach === 'function') {
+  afterEach(() => {
+    // 清理 DOM
+    global.document.body.innerHTML = '';
+    global.document.head.innerHTML = '';
+    
+    // 重置所有模擬
+    sinon.restore();
+    
+    // 重置全域變數
+    delete global.window.languageManager;
+    delete global.window.storage;
+    delete global.window.DuplicateDialog;
+    delete global.window.PWAUILanguageAdapter;
+    delete global.window.EnhancedLanguageManager;
+  });
+} else {
+  // 提供手動清理函數
+  global.testCleanup = () => {
+    global.document.body.innerHTML = '';
+    global.document.head.innerHTML = '';
+    sinon.restore();
+    delete global.window.languageManager;
+    delete global.window.storage;
+    delete global.window.DuplicateDialog;
+    delete global.window.PWAUILanguageAdapter;
+    delete global.window.EnhancedLanguageManager;
+  };
+}
 
 // 全域錯誤處理
-global.addEventListener('error', (event) => {
-  console.error('Uncaught error in test:', event.error);
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught error in test:', error);
 });
 
-global.addEventListener('unhandledrejection', (event) => {
-  console.error('Unhandled promise rejection in test:', event.reason);
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection in test:', reason);
 });
 
 // 測試工具函數
@@ -172,17 +229,17 @@ global.testUtils = {
   
   // 模擬用戶點擊
   click: (element) => {
-    const event = new MouseEvent('click', {
+    const event = new global.MouseEvent('click', {
       bubbles: true,
       cancelable: true,
-      view: window
+      view: global.window
     });
     element.dispatchEvent(event);
   },
   
   // 模擬鍵盤事件
   keydown: (element, key, options = {}) => {
-    const event = new KeyboardEvent('keydown', {
+    const event = new global.KeyboardEvent('keydown', {
       key,
       bubbles: true,
       cancelable: true,
@@ -194,7 +251,7 @@ global.testUtils = {
   // 模擬表單輸入
   type: (element, text) => {
     element.value = text;
-    const event = new Event('input', {
+    const event = new global.Event('input', {
       bubbles: true,
       cancelable: true
     });
@@ -206,7 +263,7 @@ global.testUtils = {
     currentLanguage: initialLang,
     getCurrentLanguage() { return this.currentLanguage; },
     setLanguage(lang) { this.currentLanguage = lang; },
-    getText: jest.fn((key) => key)
+    getText: sinon.stub().returns('mock-text')
   }),
   
   // 創建模擬的儲存系統
@@ -238,4 +295,11 @@ global.setTimeout = (fn, delay) => {
     console.warn(`Long timeout detected: ${delay}ms`);
   }
   return originalSetTimeout(fn, delay);
+};
+
+// 導出測試工具
+module.exports = {
+  expect,
+  sinon,
+  testUtils: global.testUtils
 };

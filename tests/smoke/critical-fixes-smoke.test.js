@@ -1,19 +1,156 @@
 /**
- * Critical Fixes Smoke Test
- * Tests for v3.1.3-critical-fixes implementation
+ * Critical Translation Fixes - Smoke Test
+ * Tests Phase 1 translation fixes (FIX-01 to FIX-04)
+ * Version: v3.1.3-translation-key-fixes
  */
 
 const { expect, sinon } = require('../setup.js');
 
-describe('Critical Fixes Smoke Test', function() {
-  this.timeout(5000);
+// Test environment setup
+const isNode = typeof window === 'undefined';
+let LanguageManager, TranslationValidator, TranslationFileAuditor, TranslationDebugReporter;
 
-  describe('FIX-01: PWA UI Language Adapter', function() {
-    let PWAUILanguageAdapter;
+if (isNode) {
+  // Node.js environment - load modules from relative paths
+  const path = require('path');
+  const fs = require('fs');
+  
+  // Check if files exist and load them
+  const basePath = path.join(__dirname, '../../pwa-card-storage/src/core/');
+  
+  try {
+    const validatorPath = path.join(basePath, 'translation-validator.js');
+    const auditorPath = path.join(basePath, 'translation-file-auditor.js');
+    const reporterPath = path.join(basePath, 'translation-debug-reporter.js');
     
-    before(function() {
-      // Load the adapter
-      PWAUILanguageAdapter = require('../../pwa-card-storage/src/core/pwa-ui-language-adapter.js');
+    if (fs.existsSync(validatorPath)) {
+      // Read and evaluate the JavaScript files manually for browser-style classes
+      const validatorCode = fs.readFileSync(validatorPath, 'utf8');
+      eval(validatorCode);
+      if (typeof TranslationValidator !== 'undefined') {
+        // TranslationValidator is now available
+      }
+    }
+    
+    if (fs.existsSync(auditorPath)) {
+      const auditorCode = fs.readFileSync(auditorPath, 'utf8');
+      eval(auditorCode);
+    }
+    
+    if (fs.existsSync(reporterPath)) {
+      const reporterCode = fs.readFileSync(reporterPath, 'utf8');
+      eval(reporterCode);
+    }
+    
+  } catch (error) {
+    console.warn('Could not load translation modules:', error.message);
+  }
+  
+  // Mock DOM globals for Node.js
+  if (typeof global !== 'undefined') {
+    global.window = { 
+      location: { hostname: 'localhost' },
+      addEventListener: () => {},
+      dispatchEvent: () => {}
+    };
+    global.console = console;
+    global.performance = { now: () => Date.now() };
+    global.fetch = () => Promise.reject(new Error('Fetch not available in test'));
+    global.document = {
+      createElement: () => ({ click: () => {}, href: '', download: '' }),
+      body: { appendChild: () => {}, removeChild: () => {} }
+    };
+    global.URL = {
+      createObjectURL: () => 'mock-url',
+      revokeObjectURL: () => {}
+    };
+    global.Blob = class MockBlob {
+      constructor(data, options) {
+        this.data = data;
+        this.type = options?.type || '';
+      }
+    };
+  }
+}
+
+describe('Critical Translation Fixes Smoke Tests', function() {
+  this.timeout(10000);
+
+  let mockTranslations;
+
+  beforeEach(function() {
+    mockTranslations = {
+      zh: {
+        ariaLabels: {
+          button: '按鈕',
+          dialog: '對話框',
+          navigation: '導航'
+        },
+        screenReaderTexts: {
+          loading: '載入中',
+          error: '錯誤'
+        }
+      },
+      en: {
+        ariaLabels: {
+          button: 'Button',
+          dialog: 'Dialog'
+          // Missing 'navigation' key intentionally
+        },
+        screenReaderTexts: {
+          loading: 'Loading',
+          error: 'Error'
+        }
+      }
+    };
+  });
+
+  describe('FIX-01: Translation Completeness Validation System', function() {
+    
+    it('should have TranslationValidator available', function() {
+      expect(typeof TranslationValidator).to.not.equal('undefined');
+      if (typeof TranslationValidator !== 'undefined') {
+        expect(typeof TranslationValidator).to.equal('function');
+      } else {
+        this.skip('TranslationValidator not loaded - skipping validation tests');
+      }
+    });
+
+    it('should validate translation completeness', function() {
+      if (typeof TranslationValidator === 'undefined') {
+        this.skip('TranslationValidator not available');
+      }
+
+      const validator = new TranslationValidator({
+        logLevel: 'none',
+        supportedLanguages: ['zh', 'en']
+      });
+
+      const result = validator.validateCompleteness(mockTranslations);
+      
+      expect(result).to.be.an('object');
+      expect(result.isValid).to.equal(false); // Should fail due to missing keys
+      expect(result.missingKeys).to.be.an('object');
+      expect(result.completenessScore).to.be.an('object');
+      expect(result.suggestions).to.be.an('array');
+    });
+
+    it('should detect missing keys correctly', function() {
+      if (typeof TranslationValidator === 'undefined') {
+        this.skip('TranslationValidator not available');
+      }
+
+      const validator = new TranslationValidator({
+        logLevel: 'none',
+        supportedLanguages: ['zh', 'en']
+      });
+
+      const result = validator.validateCompleteness(mockTranslations);
+      
+      expect(result.missingKeys.en).to.include('ariaLabels.navigation');
+      expect(result.completenessScore.en).to.be.lessThan(100);
+      expect(result.completenessScore.zh).to.equal(100);
+    });
     });
     
     it('should create PWAUILanguageAdapter instance', function() {

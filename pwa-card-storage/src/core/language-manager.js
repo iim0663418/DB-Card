@@ -45,6 +45,16 @@ class LanguageManager {
       }
     }
 
+    // Initialize debug reporter if available
+    this.debugReporter = null;
+    if (typeof TranslationDebugReporter !== 'undefined' && config.enableDebugReporting !== false) {
+      this.debugReporter = new TranslationDebugReporter({
+        enableDebugMode: config.enableDebugMode,
+        logLevel: config.logLevel || 'debug',
+        enablePerformanceTracking: this.performanceConfig.enablePerformanceMetrics
+      });
+    }
+
     // Security audit logging
     if (this.securityConfig.logSecurityEvents) {
       console.info('[LanguageManager] Initialized with security config:', {
@@ -150,7 +160,10 @@ class LanguageManager {
       'appTitle', 'appSubtitle', 'themeToggle', 'languageToggle',
       'cardSaved', 'cardImported', 'cardExported', 'qrGenerated',
       'home', 'cards', 'import', 'export', 'searchCards',
-      'onlineMode', 'offlineMode', 'storageOk', 'storageLow'
+      'onlineMode', 'offlineMode', 'storageOk', 'storageLow',
+      'loadingCards', 'emptyTitle', 'emptyDescription', 'emptyAction',
+      'view', 'share', 'download', 'languageChanged', 'operationFailed', 'themeFailed',
+      'switchedToChinese', 'switchedToEnglish', 'backToHomeSuccess'
     ];
   }
 
@@ -270,8 +283,10 @@ class LanguageManager {
         linkCopied: '連結已複製到剪貼簿',
         vcardDownloaded: 'vCard 已下載',
         switchedToChinese: '已切換至中文',
+        switchedToEnglish: '已切換至英文',
         switchedToLight: '已切換至淺色模式',
         switchedToDark: '已切換至深色模式',
+        backToHomeSuccess: '已返回首頁',
 
         // 錯誤訊息
         importFailed: '匯入失敗',
@@ -281,6 +296,36 @@ class LanguageManager {
         initFailed: '應用程式初始化失敗',
         cardNotFound: '名片不存在',
         invalidUrl: '請輸入名片連結',
+
+        // 名片列表相關
+        loadingCards: '載入名片中...',
+        emptyTitle: '還沒有儲存任何名片',
+        emptyDescription: '匯入您的第一張數位名片，開始建立您的名片收藏',
+        emptyAction: '開始匯入名片',
+
+        // 通用操作
+        view: '檢視',
+        share: '分享',
+        download: '下載',
+        languageChanged: '語言已切換',
+        operationFailed: '操作失敗',
+        themeFailed: '主題切換失敗',
+
+        // 通知相關
+        'notifications.languageChanged': '語言已切換',
+        'notifications.operationFailed': '操作失敗',
+        'notifications.themeFailed': '主題切換失敗',
+
+        // 名片類型
+        'cardTypes.index': '機關版-延平',
+        'cardTypes.index1': '機關版-新光',
+        'cardTypes.personal': '個人版',
+        'cardTypes.bilingual': '雙語版',
+        'cardTypes.bilingual1': '雙語版-新光',
+        'cardTypes.personal-bilingual': '個人雙語版',
+        'cardTypes.en': '英文版-延平',
+        'cardTypes.en1': '英文版-新光',
+        'cardTypes.personal-en': '個人英文版',
 
         // 重複處理對話框
         duplicateFound: '發現重複名片',
@@ -419,8 +464,10 @@ class LanguageManager {
         linkCopied: 'Link copied to clipboard',
         vcardDownloaded: 'vCard downloaded',
         switchedToEnglish: 'Switched to English',
+        switchedToChinese: 'Switched to Chinese',
         switchedToLight: 'Switched to light mode',
         switchedToDark: 'Switched to dark mode',
+        backToHomeSuccess: 'Returned to Home',
 
         // Error Messages
         importFailed: 'Import failed',
@@ -430,6 +477,36 @@ class LanguageManager {
         initFailed: 'Application initialization failed',
         cardNotFound: 'Card not found',
         invalidUrl: 'Please enter card link',
+
+        // Card List Related
+        loadingCards: 'Loading cards...',
+        emptyTitle: 'No Cards Saved Yet',
+        emptyDescription: 'Import your first digital business card to start building your collection',
+        emptyAction: 'Start Importing Cards',
+
+        // Common Actions
+        view: 'View',
+        share: 'Share',
+        download: 'Download',
+        languageChanged: 'Language changed',
+        operationFailed: 'Operation failed',
+        themeFailed: 'Theme switch failed',
+
+        // Notification Related
+        'notifications.languageChanged': 'Language changed',
+        'notifications.operationFailed': 'Operation failed',
+        'notifications.themeFailed': 'Theme switch failed',
+
+        // Card Types
+        'cardTypes.index': 'Gov-Yanping',
+        'cardTypes.index1': 'Gov-ShinGuang',
+        'cardTypes.personal': 'Personal',
+        'cardTypes.bilingual': 'Bilingual',
+        'cardTypes.bilingual1': 'Bilingual-ShinGuang',
+        'cardTypes.personal-bilingual': 'Personal Bilingual',
+        'cardTypes.en': 'English-Yanping',
+        'cardTypes.en1': 'English-ShinGuang',
+        'cardTypes.personal-en': 'Personal English',
 
         // Duplicate Dialog
         duplicateFound: 'Duplicate Card Found',
@@ -617,8 +694,9 @@ class LanguageManager {
     }
     
     if (!translation[sanitizedKey]) {
-      console.warn('[LanguageManager] Translation key not found:', sanitizedKey);
-      return options.fallback || sanitizedKey;
+      // Enhanced error handling for missing keys
+      const fallbackText = this._handleMissingKey(sanitizedKey, targetLang, options);
+      return fallbackText;
     }
     
     let translatedText = translation[sanitizedKey];
@@ -656,6 +734,160 @@ class LanguageManager {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#x27;');
+  }
+
+  /**
+   * Enhanced missing key handler with fallback mechanisms
+   * @param {string} key - The missing translation key
+   * @param {string} targetLang - Target language that's missing the key
+   * @param {Object} options - Translation options
+   * @returns {string} Fallback text
+   */
+  _handleMissingKey(key, targetLang, options = {}) {
+    // Initialize missing key tracking if not exists
+    if (!this.missingKeys) {
+      this.missingKeys = new Map();
+    }
+
+    // Track missing key for reporting
+    if (!this.missingKeys.has(targetLang)) {
+      this.missingKeys.set(targetLang, new Set());
+    }
+    this.missingKeys.get(targetLang).add(key);
+
+    // Enhanced logging with context
+    const logContext = {
+      key: key,
+      language: targetLang,
+      timestamp: new Date().toISOString(),
+      fallbackUsed: null
+    };
+
+    let fallbackText = null;
+
+    // Fallback Strategy 1: Try default language (zh)
+    if (targetLang !== 'zh' && this.translations.zh && this.translations.zh[key]) {
+      fallbackText = this.translations.zh[key];
+      logContext.fallbackUsed = 'default_language_zh';
+    }
+
+    // Fallback Strategy 2: Try English if not already tried
+    if (!fallbackText && targetLang !== 'en' && this.translations.en && this.translations.en[key]) {
+      fallbackText = this.translations.en[key];
+      logContext.fallbackUsed = 'english_fallback';
+    }
+
+    // Fallback Strategy 3: Try any available language
+    if (!fallbackText) {
+      for (const [lang, translations] of Object.entries(this.translations)) {
+        if (lang !== targetLang && translations[key]) {
+          fallbackText = translations[key];
+          logContext.fallbackUsed = `available_language_${lang}`;
+          break;
+        }
+      }
+    }
+
+    // Fallback Strategy 4: Use provided fallback
+    if (!fallbackText && options.fallback) {
+      fallbackText = options.fallback;
+      logContext.fallbackUsed = 'provided_fallback';
+    }
+
+    // Fallback Strategy 5: Generate human-readable key
+    if (!fallbackText) {
+      fallbackText = this._generateHumanReadableKey(key);
+      logContext.fallbackUsed = 'generated_human_readable';
+    }
+
+    // Log the missing key event with context
+    this._logMissingKey(logContext);
+
+    // Return sanitized fallback text
+    return this._sanitizeTranslationOutput(fallbackText);
+  }
+
+  /**
+   * Generate human-readable text from translation key
+   * @param {string} key - Translation key
+   * @returns {string} Human-readable text
+   */
+  _generateHumanReadableKey(key) {
+    // Convert camelCase/kebab-case to readable text
+    return key
+      .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+      .replace(/[-_]/g, ' ') // Replace dashes and underscores with spaces
+      .toLowerCase() // Convert to lowercase
+      .replace(/\b\w/g, l => l.toUpperCase()) // Capitalize first letter of each word
+      .trim(); // Remove extra whitespace
+  }
+
+  /**
+   * Log missing key with appropriate level and context
+   * @param {Object} logContext - Context information for the missing key
+   */
+  _logMissingKey(logContext) {
+    const { key, language, fallbackUsed } = logContext;
+    
+    // Different log levels based on configuration
+    const logLevel = this.config?.logLevel || 'warn';
+    
+    if (logLevel === 'none') return;
+
+    const message = `[LanguageManager] Translation key not found: "${key}" for language: "${language}"`;
+    const details = {
+      key: key,
+      language: language,
+      fallbackStrategy: fallbackUsed,
+      timestamp: logContext.timestamp
+    };
+
+    switch (logLevel) {
+      case 'debug':
+        console.debug(message, details);
+        break;
+      case 'info':
+        console.info(message, details);
+        break;
+      case 'warn':
+      default:
+        console.warn(message, details);
+        break;
+      case 'error':
+        console.error(message, details);
+        break;
+    }
+
+    // Trigger debug reporting if enabled
+    if (this.config?.enableDebugReporting && this.debugReporter) {
+      this.debugReporter.reportMissingKey(logContext);
+    }
+  }
+
+  /**
+   * Get summary of missing keys for debugging
+   * @returns {Object} Missing keys summary
+   */
+  getMissingKeysSummary() {
+    if (!this.missingKeys) return {};
+
+    const summary = {};
+    for (const [language, keys] of this.missingKeys.entries()) {
+      summary[language] = {
+        count: keys.size,
+        keys: Array.from(keys).sort()
+      };
+    }
+    return summary;
+  }
+
+  /**
+   * Clear missing keys tracking
+   */
+  clearMissingKeysTracking() {
+    if (this.missingKeys) {
+      this.missingKeys.clear();
+    }
   }
 
   /**

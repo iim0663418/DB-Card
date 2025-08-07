@@ -1,0 +1,82 @@
+{
+  "name": "@db-card-storage/unified-language-manager",
+  "version": "3.1.4",
+  "description": "一個功能完整、安全優先的多語言管理解決方案",
+  "main": "index.js",
+  "module": "index.esm.js",
+  "types": "types.d.ts",
+  "files": [
+    "index.js",
+    "index.esm.js",
+    "types.d.ts",
+    "lib/",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "i18n",
+    "internationalization",
+    "language-management",
+    "translation",
+    "typescript",
+    "performance",
+    "security",
+    "accessibility",
+    "pwa",
+    "frontend"
+  ],
+  "author": "DB Card Storage Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/db-card-storage.git",
+    "directory": "lib/unified-language-manager"
+  },
+  "homepage": "https://github.com/your-org/db-card-storage/tree/main/lib/unified-language-manager#readme",
+  "bugs": {
+    "url": "https://github.com/your-org/db-card-storage/issues"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not ie 11"
+  ],
+  "peerDependencies": {
+    "typescript": ">=4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "scripts": {
+    "build": "npm run build:cjs && npm run build:esm && npm run build:types",
+    "build:cjs": "node build/build-cjs.js",
+    "build:esm": "node build/build-esm.js", 
+    "build:types": "tsc --declaration --emitDeclarationOnly --outDir . --declarationMap",
+    "test": "node test/run-tests.js",
+    "lint": "eslint lib/ --ext .js,.ts",
+    "validate": "node scripts/validate-package.js"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/your-org"
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": "./index.esm.js",
+      "require": "./index.js",
+      "types": "./types.d.ts"
+    },
+    "./package.json": "./package.json"
+  }
+}

@@ -162,11 +162,11 @@ export class ResourceCopier {
         // 在實際環境中，這裡會使用 fs.access() 或類似 API
         // 目前模擬檔案存在性檢查
         const knownFiles = [
-            '../../assets/moda-logo.svg',
-            '../../assets/bilingual-common.js',
-            '../../assets/offline-qr-enhancement.js',
-            '../../assets/high-accessibility.css',
-            '../../assets/wu_sheng_fan/photo.jpg'
+            '.././assets/moda-logo.svg',
+            '.././assets/bilingual-common.js',
+            '.././assets/offline-qr-enhancement.js',
+            '.././assets/high-accessibility.css',
+            '.././assets/wu_sheng_fan/photo.jpg'
         ];
         
         return knownFiles.includes(filePath);

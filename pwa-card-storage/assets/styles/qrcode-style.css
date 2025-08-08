@@ -1,0 +1,46 @@
+/* QR Code Styling for DB-Card Project */
+
+/* QR Code Container */
+.qr-container {
+    text-align: center;
+    margin: 20px auto;
+    max-width: 280px;
+}
+
+/* Outer Container */
+.qr-code-wrapper {
+    padding: 0;
+    display: inline-block;
+    margin: 0 auto;
+}
+
+/* Inner Container */
+.qr-code-inner {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+
+/* QR Code Image */
+.qr-code-inner img {
+    border-radius: 4px;
+    display: block;
+    margin: 0 auto;
+}
+
+/* QR Code Canvas */
+.qr-code-inner canvas {
+    border-radius: 4px;
+    display: block;
+    margin: 0 auto;
+}
+
+/* Success Message */
+.qr-success-message {
+    color: #059669;
+    margin-top: 10px;
+    text-align: center;
+    font-weight: 500;
+    font-size: 0.9em;
+}

@@ -76,25 +76,25 @@ export class ResourceManager {
         // 基於 PATH-001 的路徑審計結果，識別必要資源
         const coreResources = [
             {
-                source: '../../assets/moda-logo.svg',
+                source: '.././assets/moda-logo.svg',
                 destination: 'assets/moda-logo.svg',
                 type: 'image',
                 critical: true
             },
             {
-                source: '../../assets/bilingual-common.js',
+                source: '.././assets/bilingual-common.js',
                 destination: 'assets/bilingual-common.js',
                 type: 'script',
                 critical: true
             },
             {
-                source: '../../assets/offline-qr-enhancement.js',
+                source: '.././assets/offline-qr-enhancement.js',
                 destination: 'assets/offline-qr-enhancement.js',
                 type: 'script',
                 critical: false
             },
             {
-                source: '../../assets/high-accessibility.css',
+                source: '.././assets/high-accessibility.css',
                 destination: 'assets/high-accessibility.css',
                 type: 'style',
                 critical: true
@@ -116,7 +116,7 @@ export class ResourceManager {
         
         try {
             // 檢查範例使用者資源
-            const examplePhotoPath = '../../assets/wu_sheng_fan/photo.jpg';
+            const examplePhotoPath = '.././assets/wu_sheng_fan/photo.jpg';
             optional.push({
                 source: examplePhotoPath,
                 destination: 'assets/wu_sheng_fan/photo.jpg',

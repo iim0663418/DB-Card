@@ -1,0 +1,77 @@
+{
+  "generated": "2025-08-08T06:57:25.841Z",
+  "resources": [
+    {
+      "source": "assets/bilingual-common.js",
+      "destination": "assets/scripts/bilingual-common.js",
+      "type": "script",
+      "critical": true
+    },
+    {
+      "source": "assets/qrcode.min.js",
+      "destination": "assets/scripts/qrcode.min.js",
+      "type": "script",
+      "critical": true
+    },
+    {
+      "source": "assets/qr-utils.js",
+      "destination": "assets/scripts/qr-utils.js",
+      "type": "script",
+      "critical": false
+    },
+    {
+      "source": "assets/offline-qr-enhancement.js",
+      "destination": "assets/scripts/offline-qr-enhancement.js",
+      "type": "script",
+      "critical": false
+    },
+    {
+      "source": "assets/pwa-integration.js",
+      "destination": "assets/scripts/pwa-integration.js",
+      "type": "script",
+      "critical": false
+    },
+    {
+      "source": "assets/card-type-utils.js",
+      "destination": "assets/scripts/card-type-utils.js",
+      "type": "script",
+      "critical": false
+    },
+    {
+      "source": "assets/high-accessibility.css",
+      "destination": "assets/styles/high-accessibility.css",
+      "type": "style",
+      "critical": true
+    },
+    {
+      "source": "assets/qrcode-style.css",
+      "destination": "assets/styles/qrcode-style.css",
+      "type": "style",
+      "critical": false
+    },
+    {
+      "source": "assets/moda-logo.svg",
+      "destination": "assets/images/moda-logo.svg",
+      "type": "image",
+      "critical": true
+    },
+    {
+      "source": "src/security/SecurityInputHandler.js",
+      "destination": "src/security/SecurityInputHandler.js",
+      "type": "script",
+      "critical": false
+    },
+    {
+      "source": "src/security/SecurityDataHandler.js",
+      "destination": "src/security/SecurityDataHandler.js",
+      "type": "script",
+      "critical": false
+    },
+    {
+      "source": "src/security/SecurityAuthHandler.js",
+      "destination": "src/security/SecurityAuthHandler.js",
+      "type": "script",
+      "critical": false
+    }
+  ]
+}

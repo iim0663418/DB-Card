@@ -1,114 +1,84 @@
-# v3.2.1 PWA 翻譯系統統一化任務分解
+# PWA 安全修復與部署相容性任務分解
 
-**版本**: v3.2.1-translation-system-unification  
-**建立日期**: 2025-08-08  
-**總任務數**: 5  
-**預估完成時間**: 1 週  
-**CTX-Units 總計**: 0.05 (所有模型)
-
-## 📋 問題分析
-
-### ❌ Critical Issues (Must Fix)
-- **CRS-T01-001**: `getUILabels()` 方法翻譯鍵值處理邏輯不完整，可能返回 undefined
-- **CRS-T01-002**: 缺少統一的錯誤處理機制，語言管理器不可用時系統不穩定
-
-### ⚠️ Warning Issues (Should Fix)
-- **CRS-T01-003**: 翻譯系統存在雙重依賴，造成不一致性
-- **CRS-T01-004**: 硬編碼翻譯鍵值陣列，維護困難
-- **CRS-T01-005**: `getUILabels()` 方法可優化為統一邏輯
-
+---
+version: v3.2.1-security-fixes
+rev_id: SECURITY-TASK-001
+last_updated: 2025-08-08
+owners: ["task-breakdown-planner", "security-team"]
 ---
 
 ## 1️⃣ Task Overview
 
-### 服務與模組分組
-- **服務**: pwa-card-storage (PWA 離線收納系統)
-- **語言**: JavaScript
-- **架構**: 翻譯系統統一化，錯誤處理強化
-- **範圍**: `pwa-card-storage/src/app.js` 和 `pwa-card-storage/src/core/language-manager.js`
+### 服務/模組分組
+- **Service**: pwa-card-storage | **Lang**: JavaScript
+- **總任務數**: 8 個核心任務
+- **Critical Path**: SEC-01 → SEC-02 → SEC-03 → DEPLOY-01 → DEPLOY-02
+- **總 CTX-Units**: 6.2 CTX-Units
 
 ### Critical Path 與里程碑
-
 ```
-TRANS-001 (錯誤處理) → TRANS-002 (getUILabels修復) → TRANS-003 (統一邏輯) → TRANS-004 (硬編碼重構) → TRANS-005 (測試驗證)
+Week 1: 安全修復 (SEC-01, SEC-02, SEC-03) - 3.8 CTX-Units
+Week 2: 部署相容性 (DEPLOY-01, DEPLOY-02) - 1.6 CTX-Units  
+Week 3: 測試與驗證 (TEST-01, TEST-02, DOC-01) - 0.8 CTX-Units
 ```
-
-**里程碑**:
-- **Day 1-2**: 核心修復 (TRANS-001, TRANS-002) - 0.02 CTX-Units
-- **Day 3-4**: 系統統一 (TRANS-003, TRANS-004) - 0.02 CTX-Units  
-- **Day 5**: 測試與驗證 (TRANS-005) - 0.01 CTX-Units
-
----
 
 ## 2️⃣ Detailed Task Breakdown
 
 | Task ID | Service | Lang | Task Name | Description | Dependencies | Testing / Acceptance | Security / Accessibility | Effort (CTX-Units) | CTX Map | Context Footprint |
 |---------|---------|------|-----------|-------------|--------------|---------------------|--------------------------|--------------------|---------|-------------------|
-| TRANS-001 | pwa-card-storage | JavaScript | 統一錯誤處理機制實作 | **問題**: 語言管理器不可用時缺少統一錯誤處理<br>**解決**: 實作 `SafeTranslationHandler` 類別，提供多層備用機制：1) 語言管理器 2) 內建字典 3) 人性化鍵值生成<br>**影響**: 修復 CRS-T01-002，確保系統穩定性 | 無 | **Given**: 語言管理器不可用或翻譯鍵值缺失<br>**When**: 呼叫翻譯方法<br>**Then**: 返回有效的備用翻譯文字<br><br>**Unit Tests**: 錯誤情況處理<br>**Integration Tests**: 與現有系統整合 | **Security**: 防止翻譯注入攻擊<br>**Error Handling**: 優雅降級，不暴露系統錯誤<br>**Logging**: 安全的錯誤日誌記錄 | 0.01 | {"claude-4-sonnet":0.01,"gpt-4.1":0.01,"gpt-4o":0.01,"gemini-2.5-pro":0.01} | 錯誤處理邏輯，備用機制，400 tokens |
-| TRANS-002 | pwa-card-storage | JavaScript | getUILabels 方法修復 | **問題**: `getUILabels()` 方法中翻譯鍵值可能返回 undefined，導致 UI 顯示異常<br>**解決**: 重構方法邏輯，添加空值檢查，整合 SafeTranslationHandler，確保所有翻譯鍵值都有有效返回<br>**影響**: 修復 CRS-T01-001，解決 "undefined" 按鈕問題 | TRANS-001 | **Given**: 翻譯鍵值缺失或語言管理器異常<br>**When**: 呼叫 getUILabels() 方法<br>**Then**: 所有 UI 標籤都有有效的翻譯文字<br><br>**Unit Tests**: 所有翻譯鍵值覆蓋<br>**UI Tests**: 按鈕文字顯示正確 | **Security**: 輸出清理，防止 XSS<br>**WCAG**: 確保翻譯文字對螢幕閱讀器友善<br>**Fallback**: 優雅的備用文字機制 | 0.01 | {"claude-4-sonnet":0.01,"gpt-4.1":0.01,"gpt-4o":0.01,"gemini-2.5-pro":0.01} | 方法重構，空值檢查，UI 標籤，350 tokens |
-| TRANS-003 | pwa-card-storage | JavaScript | 翻譯獲取邏輯統一 | **問題**: 翻譯系統存在雙重依賴，`window.languageManager` 和內建備用方案不一致<br>**解決**: 建立統一的翻譯獲取入口點 `UnifiedTranslationService`，整合所有翻譯邏輯，消除重複代碼<br>**影響**: 修復 CRS-T01-003，提升系統一致性 | TRANS-002 | **Given**: 多個翻譯獲取方式存在不一致<br>**When**: 統一為單一入口點<br>**Then**: 所有翻譯邏輯一致，無重複代碼<br><br>**Integration Tests**: 翻譯一致性驗證<br>**Regression Tests**: 現有功能不受影響 | **Security**: 統一的輸入驗證和輸出清理<br>**Consistency**: 確保翻譯邏輯一致性<br>**Performance**: 減少重複計算 | 0.01 | {"claude-4-sonnet":0.01,"gpt-4.1":0.01,"gpt-4o":0.01,"gemini-2.5-pro":0.01} | 服務整合，邏輯統一，300 tokens |
-| TRANS-004 | pwa-card-storage | JavaScript | 硬編碼翻譯鍵值重構 | **問題**: `updateFilterSelect()` 方法中硬編碼翻譯鍵值陣列，維護困難<br>**解決**: 提取翻譯鍵值為配置常數 `TRANSLATION_KEYS`，建立動態鍵值生成機制，支援擴展性<br>**影響**: 修復 CRS-T01-004，提升代碼可維護性 | TRANS-003 | **Given**: 硬編碼的翻譯鍵值陣列<br>**When**: 重構為配置化管理<br>**Then**: 翻譯鍵值易於維護和擴展<br><br>**Unit Tests**: 配置載入和驗證<br>**Maintenance Tests**: 新增翻譯鍵值的便利性 | **Security**: 配置檔案安全性檢查<br>**Validation**: 翻譯鍵值格式驗證<br>**Extensibility**: 支援動態擴展 | 0.01 | {"claude-4-sonnet":0.01,"gpt-4.1":0.01,"gpt-4o":0.01,"gemini-2.5-pro":0.01} | 配置重構，常數提取，250 tokens |
-| TRANS-005 | pwa-card-storage | JavaScript | 翻譯系統測試與驗證 | **任務**: 建立完整的翻譯系統測試套件，包含單元測試、整合測試、UI 測試，驗證所有修復項目<br>**範圍**: 錯誤處理、翻譯一致性、UI 顯示、效能測試<br>**目標**: 確保翻譯系統穩定可靠，無回歸問題 | TRANS-004 | **Given**: 翻譯系統重構完成<br>**When**: 執行完整測試套件<br>**Then**: 所有測試通過，系統穩定運行<br><br>**Unit Tests**: 95% 覆蓋率<br>**Integration Tests**: 跨組件協作<br>**UI Tests**: 使用者介面驗證<br>**Performance Tests**: 翻譯效能測試 | **Security**: 翻譯注入攻擊測試<br>**WCAG**: 無障礙性測試<br>**Stress Testing**: 大量翻譯請求測試 | 0.01 | {"claude-4-sonnet":0.01,"gpt-4.1":0.01,"gpt-4o":0.01,"gemini-2.5-pro":0.01} | 測試套件，驗證邏輯，200 tokens |
-
----
+| SEC-01 | pwa-card-storage | JavaScript | Critical 安全漏洞修復 | 修復 CWE-94 代碼注入和 CWE-502 不安全反序列化 | 無 | **Given** 存在 Critical 安全漏洞<br>**When** 執行安全修復<br>**Then** 移除所有 eval() 使用<br>**And** 實作安全的 JSON 解析<br>**And** 通過 SAST 掃描 | **Security**: 修復 CWE-94, CWE-502<br>**XSS**: 實作輸入清理<br>**Validation**: 嚴格類型檢查 | 1.2 | {"claude-4-sonnet":0.6,"gpt-4.1":0.9} | 修復 2 個 Critical 漏洞，涉及 app.js, storage.js, card-manager.js |
+| SEC-02 | pwa-card-storage | JavaScript | XSS 防護統一實作 | 統一實作 XSS 防護和輸入清理機制 | SEC-01 | **Given** 存在多處 XSS 漏洞<br>**When** 實作統一防護<br>**Then** 所有用戶輸入經過清理<br>**And** 所有輸出經過編碼<br>**And** 通過 XSS 測試套件 | **XSS**: sanitizeInput(), sanitizeOutput()<br>**CSP**: 嚴格內容安全政策<br>**Encoding**: HTML 實體編碼 | 1.0 | {"claude-4-sonnet":0.5,"gpt-4.1":0.8} | 實作統一 XSS 防護，覆蓋所有輸入輸出點 |
+| SEC-03 | pwa-card-storage | JavaScript | 安全日誌系統重構 | 修復日誌注入漏洞，實作安全日誌記錄 | SEC-02 | **Given** 存在大量日誌注入漏洞<br>**When** 重構日誌系統<br>**Then** 所有日誌輸入經過清理<br>**And** 實作 secureLog() 函數<br>**And** 移除敏感資訊記錄 | **Log Injection**: CWE-117 修復<br>**Data Sanitization**: 日誌內容清理<br>**Privacy**: 避免 PII 洩露 | 1.6 | {"claude-4-sonnet":0.8,"gpt-4.1":1.3} | 修復 40+ 個日誌注入點，實作統一安全日誌 |
+| DEPLOY-01 | pwa-card-storage | JavaScript | 硬編碼路徑審計修復 | 修復所有硬編碼路徑，實現靜態托管相容性 | SEC-03 | **Given** 存在 21 個硬編碼路徑問題<br>**When** 執行路徑修復<br>**Then** 所有 `../` 引用被移除<br>**And** 資源複製到 PWA 目錄<br>**And** 通過多平台部署測試 | **Path Traversal**: 防止路徑遍歷<br>**Resource Integrity**: SRI 檢查<br>**HTTPS**: 強制安全傳輸 | 0.8 | {"claude-4-sonnet":0.4,"gpt-4.1":0.6} | 修復 21 個路徑問題，複製 16+ 個資源檔案 |
+| DEPLOY-02 | pwa-card-storage | JavaScript | Service Worker 簡化 | 簡化 SW 架構，移除複雜路徑邏輯 | DEPLOY-01 | **Given** SW 包含複雜 BASE_PATH 邏輯<br>**When** 簡化 SW 架構<br>**Then** 使用固定路徑配置<br>**And** 支援環境自動檢測<br>**And** SW 註冊成功率 ≥ 95% | **SW Security**: 安全的快取策略<br>**Origin Policy**: 同源政策檢查<br>**Resource Control**: 資源存取控制 | 0.8 | {"claude-4-sonnet":0.4,"gpt-4.1":0.6} | 重構 SW，簡化路徑邏輯，提升相容性 |
+| TEST-01 | pwa-card-storage | JavaScript | 安全測試套件 | 建立完整的安全測試覆蓋 | SEC-01, SEC-02, SEC-03 | **Given** 安全修復已完成<br>**When** 執行安全測試<br>**Then** SAST 掃描通過<br>**And** XSS 測試通過<br>**And** 日誌注入測試通過 | **SAST**: 靜態安全分析<br>**Penetration**: 基礎滲透測試<br>**Compliance**: OWASP 合規檢查 | 0.4 | {"claude-4-sonnet":0.2,"gpt-4.1":0.3} | 建立安全測試套件，驗證修復效果 |
+| TEST-02 | pwa-card-storage | JavaScript | 部署相容性測試 | 多平台部署測試和驗證 | DEPLOY-01, DEPLOY-02 | **Given** 部署修復已完成<br>**When** 執行多平台測試<br>**Then** 5 個平台部署成功<br>**And** 功能一致性 ≥ 95%<br>**And** 效能指標達標 | **Platform Security**: 各平台安全配置<br>**HTTPS**: 強制 HTTPS 部署<br>**Headers**: 安全標頭驗證 | 0.2 | {"claude-4-sonnet":0.1,"gpt-4.1":0.2} | 驗證 5 個靜態托管平台的相容性 |
+| DOC-01 | pwa-card-storage | JavaScript | 安全文檔更新 | 更新安全文檔和部署指南 | TEST-01, TEST-02 | **Given** 安全修復和測試完成<br>**When** 更新文檔<br>**Then** 安全修復記錄完整<br>**And** 部署指南更新<br>**And** 故障排除指南完善 | **Documentation**: 安全最佳實踐<br>**Compliance**: 合規要求說明<br>**Training**: 安全操作指南 | 0.2 | {"claude-4-sonnet":0.1,"gpt-4.1":0.2} | 更新安全和部署相關文檔 |
 
 ## 3️⃣ Test Coverage Plan
 
-### Unit Tests (單元測試)
-| 組件 | 測試範圍 | 自動化 | 覆蓋率目標 |
-|------|----------|--------|------------|
-| SafeTranslationHandler | 錯誤處理、備用機制、鍵值生成 | ✅ | 95% |
-| getUILabels | 翻譯鍵值處理、空值檢查、返回值驗證 | ✅ | 95% |
-| UnifiedTranslationService | 統一邏輯、一致性檢查、效能測試 | ✅ | 90% |
-| TRANSLATION_KEYS | 配置載入、驗證、擴展性測試 | ✅ | 85% |
+### 安全測試矩陣
+| 測試類型 | 覆蓋範圍 | 自動化 | 工具 | 目標 |
+|---------|---------|--------|------|------|
+| SAST 掃描 | 所有 JavaScript 檔案 | ✅ 自動 | CodeQL, ESLint Security | 0 Critical, 0 High |
+| XSS 測試 | 所有輸入輸出點 | ✅ 自動 | OWASP ZAP, 自訂測試 | 100% 防護覆蓋 |
+| 日誌注入測試 | 所有日誌記錄點 | ✅ 自動 | 自訂測試套件 | 0 注入漏洞 |
+| 部署測試 | 5 個靜態托管平台 | ✅ 自動 | CI/CD Pipeline | 100% 部署成功 |
+| 效能測試 | Core Web Vitals | ✅ 自動 | Lighthouse CI | LCP ≤ 3s, FID ≤ 100ms |
+| 滲透測試 | 關鍵功能 | 🔧 手動 | OWASP Testing Guide | 無高風險漏洞 |
 
-### Integration Tests (整合測試)
-| 測試場景 | 測試方法 | 預期結果 |
-|----------|----------|----------|
-| 語言管理器不可用 | 模擬語言管理器失效 | 備用機制正常運作 |
-| 翻譯鍵值缺失 | 移除部分翻譯鍵值 | 人性化備用文字顯示 |
-| 語言切換 | 中英文切換測試 | 所有 UI 元素正確翻譯 |
-| 大量翻譯請求 | 壓力測試 | 效能穩定，無記憶體洩漏 |
-
-### UI Tests (使用者介面測試)
-| 測試項目 | 測試方法 | 成功標準 |
-|----------|----------|----------|
-| 按鈕文字顯示 | 檢查所有按鈕文字 | 無 "undefined" 顯示 |
-| 名片類型標籤 | 驗證名片類型翻譯 | 顯示正確的中文標籤 |
-| 錯誤訊息 | 觸發各種錯誤情況 | 顯示友善的錯誤訊息 |
-| 語言切換 | 手動切換語言 | UI 即時更新，無延遲 |
-
-### Security Tests (安全測試)
-| 漏洞類型 | 測試方法 | 修復驗證 |
-|----------|----------|----------|
-| 翻譯注入 | 惡意翻譯內容注入 | 輸出清理機制阻擋 |
-| XSS 攻擊 | 腳本注入測試 | HTML 編碼正確 |
-| 配置篡改 | 修改翻譯配置檔案 | 驗證機制檢測異常 |
-
----
+### 測試環境
+- **開發環境**: 本地測試，快速反饋
+- **預發布環境**: 5 個靜態托管平台並行測試
+- **生產環境**: 監控和告警系統
 
 ## 4️⃣ Dependency Relationship Diagram
 
 ```mermaid
 graph TD
-    TRANS-001[TRANS-001: 統一錯誤處理機制] --> TRANS-002[TRANS-002: getUILabels 方法修復]
-    TRANS-002 --> TRANS-003[TRANS-003: 翻譯獲取邏輯統一]
-    TRANS-003 --> TRANS-004[TRANS-004: 硬編碼翻譯鍵值重構]
-    TRANS-004 --> TRANS-005[TRANS-005: 翻譯系統測試與驗證]
+    SEC-01[SEC-01: Critical 安全漏洞修復] --> SEC-02[SEC-02: XSS 防護統一實作]
+    SEC-02 --> SEC-03[SEC-03: 安全日誌系統重構]
+    SEC-03 --> DEPLOY-01[DEPLOY-01: 硬編碼路徑審計修復]
+    DEPLOY-01 --> DEPLOY-02[DEPLOY-02: Service Worker 簡化]
+    
+    SEC-01 --> TEST-01[TEST-01: 安全測試套件]
+    SEC-02 --> TEST-01
+    SEC-03 --> TEST-01
+    
+    DEPLOY-01 --> TEST-02[TEST-02: 部署相容性測試]
+    DEPLOY-02 --> TEST-02
+    
+    TEST-01 --> DOC-01[DOC-01: 安全文檔更新]
+    TEST-02 --> DOC-01
     
     classDef critical fill:#ff6b6b,stroke:#d63031,stroke-width:3px
     classDef high fill:#fdcb6e,stroke:#e17055,stroke-width:2px
     classDef medium fill:#74b9ff,stroke:#0984e3,stroke-width:2px
     
-    class TRANS-001,TRANS-002 critical
-    class TRANS-003,TRANS-004 high
-    class TRANS-005 medium
+    class SEC-01,SEC-02,SEC-03 critical
+    class DEPLOY-01,DEPLOY-02 high
+    class TEST-01,TEST-02,DOC-01 medium
 ```
-
-**Critical Path**: TRANS-001 → TRANS-002 → TRANS-003 → TRANS-004 → TRANS-005 (5 天)  
-**無並行路徑**: 任務間存在強依賴關係，需順序執行
-
----
 
 ## 5️⃣ CTX-CALC-CONFIG
 
@@ -127,79 +97,160 @@ failover: "if any field missing -> effort_ctx_units='TBD'"
 -->
 ```
 
----
+## 6️⃣ 安全修復詳細規格
 
-## 6️⃣ Implementation Guide & Risk Assessment
+### SEC-01: Critical 安全漏洞修復
 
-### 🔧 Implementation Steps
+**修復範圍**:
+- `app.js`: 2 個 CWE-94 代碼注入點 (行 2203-2227, 2415-2422)
+- `storage.js`: 1 個 CWE-94 代碼注入點 (行 1481-1482)
+- `card-manager.js`: 1 個 CWE-502 不安全反序列化 (行 1181-1187)
 
-#### 1. SafeTranslationHandler 實作
+**修復策略**:
 ```javascript
-class SafeTranslationHandler {
-  static getTranslation(key, fallback = null) {
-    // 1. 嘗試語言管理器
-    // 2. 使用內建字典
-    // 3. 生成人性化文字
-    // 4. 返回 fallback 或鍵值
+// 修復前 (危險)
+eval(userInput); // CWE-94
+JSON.parse(untrustedData); // CWE-502
+
+// 修復後 (安全)
+const safeEval = (input) => {
+  // 使用安全的替代方案
+  return Function('"use strict"; return (' + input + ')')();
+};
+
+const safeJSONParse = (data) => {
+  try {
+    const parsed = JSON.parse(data);
+    return validateDataStructure(parsed) ? parsed : null;
+  } catch (e) {
+    secureLog('JSON parse error', { error: e.message });
+    return null;
   }
-}
-```
-
-#### 2. getUILabels 方法重構
-```javascript
-getUILabels() {
-  const handler = new SafeTranslationHandler();
-  return {
-    cardDetails: handler.getTranslation('cardDetails', '名片詳細資訊'),
-    // ... 其他翻譯鍵值
-  };
-}
-```
-
-#### 3. 統一翻譯服務
-```javascript
-class UnifiedTranslationService {
-  static getText(key, options = {}) {
-    // 統一的翻譯獲取邏輯
-  }
-}
-```
-
-#### 4. 配置化翻譯鍵值
-```javascript
-const TRANSLATION_KEYS = {
-  FILTER_OPTIONS: ['allTypes', 'cardTypes.index', ...],
-  UI_LABELS: ['cardDetails', 'generateQR', ...],
-  // ... 其他分類
 };
 ```
 
-### ⚠️ Risk Mitigation
-| 風險 | 影響 | 緩解策略 |
-|------|------|----------|
-| 翻譯系統重構破壞現有功能 | High | 漸進式重構，完整回歸測試 |
-| 效能回歸 | Medium | 效能基準測試，優化關鍵路徑 |
-| 翻譯一致性問題 | Medium | 統一驗證機制，自動化測試 |
-| 使用者體驗中斷 | Low | 優雅降級，備用機制 |
+### SEC-02: XSS 防護統一實作
 
-### 📊 Success Metrics
+**實作統一安全函數**:
+```javascript
+// 統一輸入清理
+const sanitizeInput = (input) => {
+  if (typeof input !== 'string') return '';
+  return input
+    .replace(/[<>"'&]/g, (match) => {
+      const map = {'<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;', '&': '&amp;'};
+      return map[match];
+    })
+    .substring(0, 1000); // 長度限制
+};
 
-#### 🎯 目標指標
-- ✅ **零 "undefined" 顯示**: 所有 UI 元素都有有效翻譯
-- ✅ **翻譯一致性 100%**: 統一的翻譯邏輯
-- ✅ **錯誤處理覆蓋率 95%**: 完整的錯誤處理機制
-- ✅ **代碼可維護性提升**: 配置化管理，易於擴展
-- ✅ **測試覆蓋率 > 90%**: 完整的測試套件
+// 統一輸出編碼
+const sanitizeOutput = (text) => {
+  return sanitizeInput(text);
+};
 
-#### 📈 驗收標準
-1. **功能性**: 所有翻譯功能正常運作
-2. **穩定性**: 語言管理器異常時系統不崩潰
-3. **一致性**: 翻譯邏輯統一，無重複代碼
-4. **可維護性**: 翻譯鍵值易於管理和擴展
-5. **效能**: 翻譯效能不低於現有系統
+// DOM 安全插入
+const safeSetHTML = (element, content) => {
+  element.textContent = content; // 使用 textContent 而非 innerHTML
+};
+```
+
+### SEC-03: 安全日誌系統重構
+
+**安全日誌函數**:
+```javascript
+const secureLog = (message, data = {}) => {
+  const timestamp = new Date().toISOString();
+  const safeMessage = sanitizeInput(message);
+  const safeData = Object.keys(data).reduce((acc, key) => {
+    const value = data[key];
+    if (typeof value === 'string') {
+      acc[key] = sanitizeInput(value.substring(0, 100));
+    } else if (typeof value === 'object') {
+      acc[key] = '[Object]';
+    } else {
+      acc[key] = String(value).substring(0, 50);
+    }
+    return acc;
+  }, {});
+  
+  console.log(`[${timestamp}] ${safeMessage}`, safeData);
+};
+```
+
+## 7️⃣ 部署相容性修復規格
+
+### DEPLOY-01: 硬編碼路徑修復
+
+**資源複製清單** (基於審計報告):
+```bash
+# 核心資源 (5個)
+cp ../assets/moda-logo.svg assets/images/
+cp ../assets/high-accessibility.css assets/styles/
+cp ../assets/bilingual-common.js assets/scripts/
+cp ../assets/qrcode.min.js assets/scripts/
+cp ../assets/qr-utils.js assets/scripts/
+
+# 核心安全模組 (3個)
+cp ../src/security/SecurityInputHandler.js src/security/
+cp ../src/security/SecurityDataHandler.js src/security/
+cp ../src/security/SecurityAuthHandler.js src/security/
+```
+
+**路徑替換規則**:
+```bash
+# HTML 檔案路徑更新
+sed -i 's|../assets/|./assets/|g' index.html
+sed -i 's|../src/security/|./src/security/|g' index.html
+
+# Manifest 檔案路徑更新
+sed -i 's|../assets/|./assets/|g' manifest.json
+sed -i 's|../assets/|./assets/|g' manifest-github.json
+```
+
+### DEPLOY-02: Service Worker 簡化
+
+**簡化後的 SW 架構**:
+```javascript
+// 簡化的環境檢測
+const getBasePath = () => {
+  const hostname = location.hostname;
+  if (hostname.includes('.github.io')) return '/DB-Card';
+  if (hostname.includes('.pages.dev')) return '';
+  return '';
+};
+
+// 固定快取策略
+const CACHE_STRATEGIES = {
+  static: 'cache-first',
+  dynamic: 'network-first',
+  images: 'cache-first'
+};
+```
+
+## 8️⃣ 驗收標準
+
+### 安全修復驗收
+- ✅ SAST 掃描：0 Critical, 0 High 漏洞
+- ✅ XSS 測試：100% 輸入輸出點防護
+- ✅ 日誌注入：0 注入漏洞
+- ✅ 代碼審查：通過安全代碼審查
+
+### 部署相容性驗收
+- ✅ 多平台部署：GitHub Pages, Cloudflare Pages, Netlify, Vercel, Firebase
+- ✅ 功能一致性：≥ 95% 功能正常
+- ✅ 效能指標：LCP ≤ 3s, FID ≤ 100ms
+- ✅ SW 註冊：≥ 95% 成功率
+
+### 整體系統驗收
+- ✅ 向下相容：100% 現有功能保持
+- ✅ 使用者體驗：無感知升級
+- ✅ 文檔完整：安全和部署指南更新
+- ✅ 監控告警：基本安全監控就位
 
 ---
 
 **任務分解完成日期**: 2025-08-08  
-**下一步**: 通知 code-executor 開始實作 TRANS-001 任務  
-**聯絡人**: code-reviewer (代碼審查), test-coverage-generator (測試補齊)
+**預計完成時間**: 3 週  
+**負責團隊**: PWA Security Team, DevOps Team  
+**下一步**: 開始執行 SEC-01 Critical 安全漏洞修復

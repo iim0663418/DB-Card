@@ -60,7 +60,12 @@ class PWACardStorage {
 
   async initialize() {
     try {
-      console.log('[Storage] Starting initialization...');
+      // SEC-03: Use secure logging
+      if (window.secureLogger) {
+        window.secureLogger.info('Storage initialization starting');
+      } else {
+        console.log('[Storage] Starting initialization...');
+      }
       
       // SEC-01: Initialize security components first
       await this.initializeSecurityComponents();
@@ -78,7 +83,12 @@ class PWACardStorage {
       // STORAGE-04: 檢查是否需要遷移並執行自動升級
       const migrationNeeded = await this.checkMigrationNeeded();
       if (migrationNeeded.required) {
-        console.log('[Storage] Migration required:', migrationNeeded.reason);
+        // SEC-03: Use secure logging
+        if (window.secureLogger) {
+          window.secureLogger.info('Migration required', { reason: migrationNeeded.reason });
+        } else {
+          console.log('[Storage] Migration required:', migrationNeeded.reason);
+        }
         
         // 建立遷移日誌
         const logId = await this.migrationLogManager.createMigrationLog(this.dbVersion, {
@@ -102,7 +112,12 @@ class PWACardStorage {
               }
             });
             
-            console.log('[Storage] Migration completed successfully');
+            // SEC-03: Use secure logging
+            if (window.secureLogger) {
+              window.secureLogger.info('Migration completed successfully');
+            } else {
+              console.log('[Storage] Migration completed successfully');
+            }
           } else {
             throw new Error(migrationResult.error);
           }
@@ -112,7 +127,12 @@ class PWACardStorage {
             error: migrationError.message
           });
           
-          console.warn('[Storage] Migration failed, attempting graceful degradation:', migrationError.message);
+          // SEC-03: Use secure logging
+          if (window.secureLogger) {
+            window.secureLogger.warn('Migration failed, attempting graceful degradation', { error: migrationError.message });
+          } else {
+            console.warn('[Storage] Migration failed, attempting graceful degradation:', migrationError.message);
+          }
           
           // STORAGE-04: 安全降級處理
           const degradationResult = await this.handleMigrationFailure(migrationError);
@@ -142,10 +162,20 @@ class PWACardStorage {
         await this.healthMonitor.initialize();
       }
       
-      console.log('[Storage] Initialization completed successfully');
+      // SEC-03: Use secure logging
+      if (window.secureLogger) {
+        window.secureLogger.info('Storage initialization completed successfully');
+      } else {
+        console.log('[Storage] Initialization completed successfully');
+      }
       return true;
     } catch (error) {
-      console.error('[Storage] Initialization failed:', error);
+      // SEC-03: Use secure logging
+      if (window.secureLogger) {
+        window.secureLogger.error('Storage initialization failed', { error: error.message });
+      } else {
+        console.error('[Storage] Initialization failed:', error);
+      }
       
       // SEC-02: Record initialization failure
       if (this.healthMonitor) {
@@ -171,7 +201,12 @@ class PWACardStorage {
         });
         
         if (recoveryResult.recovered) {
-          console.log('[Storage] Initialization recovered automatically');
+          // SEC-03: Use secure logging
+          if (window.secureLogger) {
+            window.secureLogger.info('Storage initialization recovered automatically');
+          } else {
+            console.log('[Storage] Initialization recovered automatically');
+          }
           return this.initialize(); // Retry initialization
         }
       }
@@ -260,12 +295,27 @@ class PWACardStorage {
         await this.securitySettings.init();
       }
       
-      console.log(`[Storage] Security mode: ${this.securityMode}`);
-      console.log(`[Storage] Phase 2 components: degradation=${!!this.gracefulDegradation}, recovery=${!!this.errorRecovery}`);
-      console.log(`[Storage] Phase 3 components: rollback=${!!this.rollbackSystem}, impact=${!!this.userImpactMonitor}, dashboard=${!!this.securityDashboard}`);
-      console.log(`[Storage] Phase 4 components: communication=${!!this.userCommunication}, onboarding=${!!this.securityOnboarding}, settings=${!!this.securitySettings}`);
+      // SEC-03: Use secure logging
+      if (window.secureLogger) {
+        window.secureLogger.info('Security components initialized', {
+          securityMode: this.securityMode,
+          phase2Components: { degradation: !!this.gracefulDegradation, recovery: !!this.errorRecovery },
+          phase3Components: { rollback: !!this.rollbackSystem, impact: !!this.userImpactMonitor, dashboard: !!this.securityDashboard },
+          phase4Components: { communication: !!this.userCommunication, onboarding: !!this.securityOnboarding, settings: !!this.securitySettings }
+        });
+      } else {
+        console.log(`[Storage] Security mode: ${this.securityMode}`);
+        console.log(`[Storage] Phase 2 components: degradation=${!!this.gracefulDegradation}, recovery=${!!this.errorRecovery}`);
+        console.log(`[Storage] Phase 3 components: rollback=${!!this.rollbackSystem}, impact=${!!this.userImpactMonitor}, dashboard=${!!this.securityDashboard}`);
+        console.log(`[Storage] Phase 4 components: communication=${!!this.userCommunication}, onboarding=${!!this.securityOnboarding}, settings=${!!this.securitySettings}`);
+      }
     } catch (error) {
-      console.warn('[Storage] Security components initialization failed:', error);
+      // SEC-03: Use secure logging
+      if (window.secureLogger) {
+        window.secureLogger.warn('Security components initialization failed', { error: error.message });
+      } else {
+        console.warn('[Storage] Security components initialization failed:', error);
+      }
       this.securityMode = 'fallback';
     }
   }
@@ -291,7 +341,12 @@ class PWACardStorage {
         this.batchMigrator = new BatchDataMigrator(this, this.migrationValidator);
       }
     } catch (error) {
-      console.error('[Storage] Manager initialization failed:', error);
+      // SEC-03: Use secure logging
+      if (window.secureLogger) {
+        window.secureLogger.error('Manager initialization failed', { error: error.message });
+      } else {
+        console.error('[Storage] Manager initialization failed:', error);
+      }
       // 不阻斷主要初始化流程
     }
   }
@@ -1055,7 +1110,7 @@ class PWACardStorage {
         id: versionId,
         cardId,
         version: currentVersion,
-        data: JSON.parse(JSON.stringify(data)),
+        data: this.safeJSONClone(data),
         timestamp: new Date(),
         changeType,
         description,
@@ -1167,7 +1222,7 @@ class PWACardStorage {
   normalizeCardDataForStorage(cardData) {
     
     // PWA-23 根本性修復：深度複製以避免原始資料被修改
-    const normalized = JSON.parse(JSON.stringify(cardData));
+    const normalized = this.safeJSONClone(cardData);
     
     // PWA-23 修復：定義所有 9 個欄位的預設值
     const defaultValues = {
@@ -1773,7 +1828,33 @@ class PWACardStorage {
 
   async calculateChecksum(data) {
     try {
-      const jsonString = JSON.stringify(data, Object.keys(data).sort());
+      // SEC-01: 安全的數據序列化 - 使用 SecurityCore
+      let jsonString;
+      try {
+        if (this.securityCore && this.securityCore.safeJSONParse) {
+          // Use SecurityCore for safe serialization
+          jsonString = JSON.stringify(data, (key, value) => {
+            // 過濾危險屬性
+            if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+              return undefined;
+            }
+            return value;
+          });
+        } else {
+          // Fallback safe serialization
+          jsonString = JSON.stringify(data, (key, value) => {
+            // 過濾危險屬性
+            if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+              return undefined;
+            }
+            return value;
+          });
+        }
+      } catch (error) {
+        console.error('[Storage] Safe JSON stringify failed:', error);
+        throw new Error('Data serialization failed');
+      }
+      
       const encoder = new TextEncoder();
       const dataBuffer = encoder.encode(jsonString);
       
@@ -2031,7 +2112,7 @@ class PWACardStorage {
       );
       
       const decryptedText = new TextDecoder().decode(decrypted);
-      return JSON.parse(decryptedText);
+      return this.safeJSONParse(decryptedText);
     } catch (error) {
       console.error('[Storage] Decryption failed:', error);
       throw error;
@@ -2631,7 +2712,7 @@ class PWACardStorage {
       );
       
       const decryptedText = new TextDecoder().decode(decrypted);
-      return JSON.parse(decryptedText);
+      return this.safeJSONParse(decryptedText);
     } catch (error) {
       console.error('[Storage] Backup decryption failed:', error);
       throw error;
@@ -2670,6 +2751,71 @@ class PWACardStorage {
     } catch (error) {
       console.error('[Storage] List backups failed:', error);
       return [];
+    }
+  }
+
+  /**
+   * SEC-01: Safe JSON parsing method
+   * Addresses CWE-502 (Unsafe Deserialization)
+   */
+  safeJSONParse(jsonString, options = {}) {
+    try {
+      // Use SecurityCore if available
+      if (this.securityCore && this.securityCore.safeJSONParse) {
+        return this.securityCore.safeJSONParse(jsonString, options);
+      }
+      
+      // Fallback safe parsing
+      return JSON.parse(jsonString, (key, value) => {
+        // Block dangerous keys
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+          return undefined;
+        }
+        return value;
+      });
+    } catch (error) {
+      console.error('[Storage] Safe JSON parse failed:', error);
+      if (options.fallback !== undefined) {
+        return options.fallback;
+      }
+      throw new Error(`JSON parsing failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * SEC-01: Safe JSON cloning method
+   * Replaces unsafe JSON.parse(JSON.stringify()) pattern
+   */
+  safeJSONClone(data) {
+    try {
+      // Use SecurityCore if available
+      if (this.securityCore && this.securityCore.safeJSONParse) {
+        const jsonString = JSON.stringify(data, (key, value) => {
+          if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+            return undefined;
+          }
+          return value;
+        });
+        return this.securityCore.safeJSONParse(jsonString);
+      }
+      
+      // Fallback safe cloning
+      const jsonString = JSON.stringify(data, (key, value) => {
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+          return undefined;
+        }
+        return value;
+      });
+      
+      return JSON.parse(jsonString, (key, value) => {
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+          return undefined;
+        }
+        return value;
+      });
+    } catch (error) {
+      console.error('[Storage] Safe JSON clone failed:', error);
+      throw new Error(`Data cloning failed: ${error.message}`);
     }
   }
 

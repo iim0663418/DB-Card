@@ -1,0 +1,111 @@
+{
+  "timestamp": "2025-08-07T03:37:09.910Z",
+  "configurations": [
+    {
+      "type": "Security Config Manager",
+      "file": "SecurityConfigManager.js",
+      "features": [
+        "CSP Management",
+        "XSS Protection",
+        "Input Validation",
+        "Output Encoding"
+      ],
+      "status": "created"
+    }
+  ],
+  "cspPolicies": [
+    {
+      "type": "Content Security Policy",
+      "policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https:; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "directives": 12,
+      "status": "configured"
+    }
+  ],
+  "xssProtections": [
+    {
+      "type": "XSS Protection",
+      "enabled": true,
+      "mode": "block",
+      "features": 5,
+      "status": "configured"
+    }
+  ],
+  "securityHeaders": [
+    {
+      "type": "Security Headers",
+      "headers": [
+        "X-Content-Type-Options",
+        "X-Frame-Options",
+        "X-XSS-Protection",
+        "Referrer-Policy",
+        "Permissions-Policy",
+        "Strict-Transport-Security",
+        "Cross-Origin-Embedder-Policy",
+        "Cross-Origin-Opener-Policy",
+        "Cross-Origin-Resource-Policy"
+      ],
+      "count": 9,
+      "platforms": 3,
+      "status": "configured"
+    }
+  ],
+  "validationResults": [
+    {
+      "file": "csp-config.json",
+      "check": "file_exists",
+      "passed": true,
+      "message": "配置檔案存在"
+    },
+    {
+      "file": "csp-config.json",
+      "check": "json_valid",
+      "passed": true,
+      "message": "JSON 格式正確"
+    },
+    {
+      "file": "xss-protection.json",
+      "check": "file_exists",
+      "passed": true,
+      "message": "配置檔案存在"
+    },
+    {
+      "file": "xss-protection.json",
+      "check": "json_valid",
+      "passed": true,
+      "message": "JSON 格式正確"
+    },
+    {
+      "file": "security-headers.json",
+      "check": "file_exists",
+      "passed": true,
+      "message": "配置檔案存在"
+    },
+    {
+      "file": "security-headers.json",
+      "check": "json_valid",
+      "passed": true,
+      "message": "JSON 格式正確"
+    },
+    {
+      "file": "SecurityConfigManager.js",
+      "check": "manager_exists",
+      "passed": true,
+      "message": "安全配置管理器存在"
+    },
+    {
+      "file": "SecurityConfigManager.js",
+      "check": "required_methods",
+      "passed": true,
+      "message": "必要方法完整"
+    }
+  ],
+  "summary": {
+    "totalConfigurations": 1,
+    "cspPoliciesCount": 1,
+    "xssProtectionsCount": 1,
+    "securityHeadersCount": 1,
+    "validationsPassed": 8,
+    "validationsTotal": 8,
+    "allValidationsPassed": true
+  }
+}

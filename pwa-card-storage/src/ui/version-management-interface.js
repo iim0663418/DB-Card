@@ -46,12 +46,21 @@ class VersionManagementInterface {
   createVersionModal(card) {
     const modal = document.createElement('div');
     modal.className = 'modal version-modal';
+    
+    // Get localized text
+    const getText = (key, fallback) => {
+      if (window.languageManager && window.languageManager.getText) {
+        return window.languageManager.getText(key, null, { fallback });
+      }
+      return fallback;
+    };
+    
     modal.innerHTML = `
       <div class="modal-overlay"></div>
       <div class="modal-content version-modal-content">
         <div class="modal-header">
-          <h2>📋 版本管理 - ${card.data.name || '未知名片'}</h2>
-          <button class="modal-close" aria-label="關閉">&times;</button>
+          <h2>📋 ${getText('versionManagement', '版本管理')} - ${card.data.name || '未知名片'}</h2>
+          <button class="modal-close" aria-label="${getText('modalClose', '關閉')}">&times;</button>
         </div>
         <div class="modal-body">
           <div class="version-stats">
@@ -71,19 +80,19 @@ class VersionManagementInterface {
           
           <div class="version-actions">
             <button class="btn btn-secondary" id="cleanup-versions-btn">
-              🧹 清理舊版本
+              🧹 ${getText('cleanupVersions', '清理舊版本')}
             </button>
             <button class="btn btn-secondary" id="export-versions-btn">
-              📤 匯出版本歷史
+              📤 ${getText('exportVersions', '匯出版本歷史')}
             </button>
             <button class="btn btn-secondary" id="merge-suggestions-btn">
-              🔄 合併建議
+              🔄 ${getText('mergeSuggestions', '合併建議')}
             </button>
           </div>
           
           <div class="version-list-container">
             <div class="version-list-header">
-              <h3>版本歷史</h3>
+              <h3>${getText('versionHistory', '版本歷史')}</h3>
               <div class="version-filters">
                 <select id="version-filter" class="form-select">
                   <option value="all">所有版本</option>
@@ -223,14 +232,14 @@ class VersionManagementInterface {
         </div>
         <div class="version-actions">
           <button class="btn btn-sm btn-secondary view-version-btn" data-version="${version.version}">
-            👁️ 檢視
+            👁️ ${this.getText('viewVersion', '檢視')}
           </button>
           <button class="btn btn-sm btn-secondary compare-version-btn" data-version="${version.version}">
-            🔍 比較
+            🔍 ${this.getText('compareVersion', '比較')}
           </button>
           ${!isCurrentVersion ? `
             <button class="btn btn-sm btn-primary restore-version-btn" data-version="${version.version}">
-              🔄 還原
+              🔄 ${this.getText('restoreVersion', '還原')}
             </button>
           ` : ''}
         </div>
@@ -616,7 +625,7 @@ class VersionManagementInterface {
             </div>
           </div>
           <div class="modal-footer">
-            <button class="btn btn-secondary cancel-btn">取消</button>
+            <button class="btn btn-secondary cancel-btn">${this.getText('modalCancel', '取消')}</button>
             <button class="btn btn-primary confirm-btn">開始清理</button>
           </div>
         </div>
@@ -768,8 +777,8 @@ class VersionManagementInterface {
             <p>${message}</p>
           </div>
           <div class="modal-footer">
-            <button class="btn btn-secondary cancel-btn">取消</button>
-            <button class="btn btn-primary confirm-btn">確定</button>
+            <button class="btn btn-secondary cancel-btn">${this.getText('modalCancel', '取消')}</button>
+            <button class="btn btn-primary confirm-btn">${this.getText('modalConfirm', '確定')}</button>
           </div>
         </div>
       `;
@@ -866,6 +875,16 @@ class VersionManagementInterface {
     if (window.app && window.app.showNotification) {
       window.app.showNotification(message, type);
     }
+  }
+  
+  /**
+   * Get localized text helper
+   */
+  getText(key, fallback) {
+    if (window.languageManager && window.languageManager.getText) {
+      return window.languageManager.getText(key, null, { fallback });
+    }
+    return fallback;
   }
 }
 

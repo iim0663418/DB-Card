@@ -1,117 +1,116 @@
----
-version: "v3.1.4-translation-key-fixes-completed"
-rev_id: 13
-last_updated: "2025-08-06"
-owners: ["implementation-planner", "technical-architect", "code-reviewer", "bug-debugger"]
-feature_scope: "translation-key-bug-fixes-completed-with-audit-tools"
-security_level: "standard"
-cognitive_complexity: "low"
-total_tasks: 8
-completed_tasks: 4
-critical_path_duration: "2 days (completed ahead of schedule)"
-implementation_phases: 2
-architecture_score: "9.0/10"
-critical_focus: ["translation-validation", "error-handling", "system-reliability", "developer-tools"]
-completion_status: "phase-1-completed"
----
+# v3.2.1 PWA 翻譯系統統一化任務分解
 
-# Translation Key Bug Fix and System Hardening Task Plan
+**版本**: v3.2.1-translation-system-unification  
+**建立日期**: 2025-08-08  
+**總任務數**: 5  
+**預估完成時間**: 1 週  
+**CTX-Units 總計**: 0.05 (所有模型)
+
+## 📋 問題分析
+
+### ❌ Critical Issues (Must Fix)
+- **CRS-T01-001**: `getUILabels()` 方法翻譯鍵值處理邏輯不完整，可能返回 undefined
+- **CRS-T01-002**: 缺少統一的錯誤處理機制，語言管理器不可用時系統不穩定
+
+### ⚠️ Warning Issues (Should Fix)
+- **CRS-T01-003**: 翻譯系統存在雙重依賴，造成不一致性
+- **CRS-T01-004**: 硬編碼翻譯鍵值陣列，維護困難
+- **CRS-T01-005**: `getUILabels()` 方法可優化為統一邏輯
+
+---
 
 ## 1️⃣ Task Overview
 
-### Issue Analysis Summary - RESOLVED ✅
-Translation key not found errors have been systematically resolved:
-- ✅ **Root cause identified**: Missing keys in main LanguageManager dictionary
-- ✅ **Comprehensive fix applied**: Added 25+ missing translation keys for all languages
-- ✅ **High-frequency errors eliminated**: "languageChanged", "loadingCards", "emptyTitle", etc.
-- ✅ **Audit tool created**: Proactive monitoring system for future missing keys
-- ✅ **System hardening completed**: Enhanced error handling and fallback mechanisms
+### 服務與模組分組
+- **服務**: pwa-card-storage (PWA 離線收納系統)
+- **語言**: JavaScript
+- **架構**: 翻譯系統統一化，錯誤處理強化
+- **範圍**: `pwa-card-storage/src/app.js` 和 `pwa-card-storage/src/core/language-manager.js`
 
-### Module Groupings
-- **Phase 1 - Immediate Fixes** (4 tasks): Translation validation, missing key handling, file accessibility, error reporting
-- **Phase 2 - System Hardening** (4 tasks): Automated validation, testing improvements, developer tools, documentation
+### Critical Path 與里程碑
 
-### Critical Path & Milestones
-- **Milestone 1** (Day 2): Translation validation system deployed
-- **Milestone 2** (Day 4): Complete system validation and automated testing
+```
+TRANS-001 (錯誤處理) → TRANS-002 (getUILabels修復) → TRANS-003 (統一邏輯) → TRANS-004 (硬編碼重構) → TRANS-005 (測試驗證)
+```
 
-**Total CTX-Units**: 5.8 (Claude-4-Sonnet), 9.1 (GPT-4.1)
+**里程碑**:
+- **Day 1-2**: 核心修復 (TRANS-001, TRANS-002) - 0.02 CTX-Units
+- **Day 3-4**: 系統統一 (TRANS-003, TRANS-004) - 0.02 CTX-Units  
+- **Day 5**: 測試與驗證 (TRANS-005) - 0.01 CTX-Units
+
+---
 
 ## 2️⃣ Detailed Task Breakdown
 
-| Task ID | Task Name | Description | Dependencies | Testing/Acceptance | Security/Accessibility | Effort (CTX-Units) | CTX Map (Claude4/GPT-4.1) | Status |
-|---------|-----------|-------------|--------------|--------------------|------------------------|--------------------|---------------------------|--------|
-| **FIX-01** | Translation Completeness Validation | ✅ **COMPLETED**: Added 25+ missing translation keys to main LanguageManager, including common actions, notifications, and card types | None | **Given** all translation files and components<br>**When** validation system runs<br>**Then** identifies all missing keys<br>**And** reports language inconsistencies<br>**And** provides automated fix suggestions | **Security**: Input validation prevents XSS in translations<br>**Accessibility**: Ensures all UI text has translations | 0.8 | {"claude-4-sonnet": 0.8, "gpt-4.1": 1.3} | ✅ **COMPLETED** |
-| **FIX-02** | Missing Key Error Handling | ✅ **COMPLETED**: Enhanced LanguageManager with comprehensive fallback mechanisms, improved error logging, and human-readable key generation | None | **Given** missing translation key requested<br>**When** translation system attempts lookup<br>**Then** provides fallback text (key or default language)<br>**And** logs missing key for developer awareness<br>**And** system continues to function normally | **Security**: Error messages don't expose sensitive data<br>**Accessibility**: Fallback text maintains usability | 0.6 | {"claude-4-sonnet": 0.6, "gpt-4.1": 0.9} | ✅ **COMPLETED** |
-| **FIX-03** | Translation File Accessibility Audit | Verify all translation files are properly accessible and loaded in static hosting environments | None | **Given** static hosting deployment<br>**When** application loads translation resources<br>**Then** all JSON files are accessible via correct paths<br>**And** CORS headers allow file access<br>**And** file loading errors are properly handled | **Security**: File access validation prevents directory traversal<br>**Accessibility**: Ensures translations available in all environments | 0.5 | {"claude-4-sonnet": 0.5, "gpt-4.1": 0.8} | File accessibility verification |
-| **FIX-04** | Translation Key Debug Reporting | ✅ **COMPLETED**: Created comprehensive TranslationKeyAuditor with real-time monitoring, missing key detection, and automated fix code generation | FIX-01, FIX-02 | **Given** translation key lookup operations<br>**When** developer mode is enabled<br>**Then** detailed logs show key resolution path<br>**And** missing keys are highlighted in console<br>**And** performance metrics for translation lookups | **Security**: Debug logs don't include sensitive user data<br>**Accessibility**: Debug tools help identify a11y translation gaps | 0.7 | {"claude-4-sonnet": 0.7, "gpt-4.1": 1.1} | ✅ **COMPLETED** |
-| **TEST-01** | Automated Translation Testing | Create comprehensive test suite to validate translation system functionality and catch regressions | FIX-01, FIX-02 | **Given** complete translation system<br>**When** automated tests run<br>**Then** all key lookups resolve correctly<br>**And** fallback mechanisms work as expected<br>**And** language switching functions properly | **Security**: Tests verify XSS protection in translations<br>**Accessibility**: Tests validate screen reader compatibility | 0.6 | {"claude-4-sonnet": 0.6, "gpt-4.1": 1.0} | Test suite development |
-| **TEST-02** | Integration Test Coverage | Expand existing integration tests to cover translation key edge cases and error scenarios | TEST-01 | **Given** real-world usage scenarios<br>**When** integration tests execute<br>**Then** cover missing key scenarios<br>**And** test file loading failures<br>**And** validate cross-component translation consistency | **Security**: Integration tests include security scenarios<br>**Accessibility**: Tests validate a11y compliance | 0.5 | {"claude-4-sonnet": 0.5, "gpt-4.1": 0.8} | Integration testing expansion |
-| **DOC-01** | Translation System Documentation | Create comprehensive documentation for translation system usage, troubleshooting, and best practices | FIX-01, FIX-04 | **Given** fully functional translation system<br>**When** developers consult documentation<br>**Then** understand how to add new translations<br>**And** can troubleshoot common issues<br>**And** follow established naming conventions | **Security**: Documentation includes security guidelines<br>**Accessibility**: Documents a11y translation requirements | 0.4 | {"claude-4-sonnet": 0.4, "gpt-4.1": 0.6} | Documentation writing |
-| **TOOL-01** | Developer Translation Tools | ✅ **COMPLETED**: Implemented TranslationKeyAuditor with browser console integration, automatic audit startup, and comprehensive reporting tools | FIX-04, DOC-01 | **Given** browser development environment<br>**When** developer opens console tools<br>**Then** can validate translation completeness<br>**And** preview translations in different languages<br>**And** identify missing or problematic keys | **Security**: Tools only available in development mode<br>**Accessibility**: Tools help validate a11y translations | 0.7 | {"claude-4-sonnet": 0.7, "gpt-4.1": 1.1} | ✅ **COMPLETED** |
+| Task ID | Service | Lang | Task Name | Description | Dependencies | Testing / Acceptance | Security / Accessibility | Effort (CTX-Units) | CTX Map | Context Footprint |
+|---------|---------|------|-----------|-------------|--------------|---------------------|--------------------------|--------------------|---------|-------------------|
+| TRANS-001 | pwa-card-storage | JavaScript | 統一錯誤處理機制實作 | **問題**: 語言管理器不可用時缺少統一錯誤處理<br>**解決**: 實作 `SafeTranslationHandler` 類別，提供多層備用機制：1) 語言管理器 2) 內建字典 3) 人性化鍵值生成<br>**影響**: 修復 CRS-T01-002，確保系統穩定性 | 無 | **Given**: 語言管理器不可用或翻譯鍵值缺失<br>**When**: 呼叫翻譯方法<br>**Then**: 返回有效的備用翻譯文字<br><br>**Unit Tests**: 錯誤情況處理<br>**Integration Tests**: 與現有系統整合 | **Security**: 防止翻譯注入攻擊<br>**Error Handling**: 優雅降級，不暴露系統錯誤<br>**Logging**: 安全的錯誤日誌記錄 | 0.01 | {"claude-4-sonnet":0.01,"gpt-4.1":0.01,"gpt-4o":0.01,"gemini-2.5-pro":0.01} | 錯誤處理邏輯，備用機制，400 tokens |
+| TRANS-002 | pwa-card-storage | JavaScript | getUILabels 方法修復 | **問題**: `getUILabels()` 方法中翻譯鍵值可能返回 undefined，導致 UI 顯示異常<br>**解決**: 重構方法邏輯，添加空值檢查，整合 SafeTranslationHandler，確保所有翻譯鍵值都有有效返回<br>**影響**: 修復 CRS-T01-001，解決 "undefined" 按鈕問題 | TRANS-001 | **Given**: 翻譯鍵值缺失或語言管理器異常<br>**When**: 呼叫 getUILabels() 方法<br>**Then**: 所有 UI 標籤都有有效的翻譯文字<br><br>**Unit Tests**: 所有翻譯鍵值覆蓋<br>**UI Tests**: 按鈕文字顯示正確 | **Security**: 輸出清理，防止 XSS<br>**WCAG**: 確保翻譯文字對螢幕閱讀器友善<br>**Fallback**: 優雅的備用文字機制 | 0.01 | {"claude-4-sonnet":0.01,"gpt-4.1":0.01,"gpt-4o":0.01,"gemini-2.5-pro":0.01} | 方法重構，空值檢查，UI 標籤，350 tokens |
+| TRANS-003 | pwa-card-storage | JavaScript | 翻譯獲取邏輯統一 | **問題**: 翻譯系統存在雙重依賴，`window.languageManager` 和內建備用方案不一致<br>**解決**: 建立統一的翻譯獲取入口點 `UnifiedTranslationService`，整合所有翻譯邏輯，消除重複代碼<br>**影響**: 修復 CRS-T01-003，提升系統一致性 | TRANS-002 | **Given**: 多個翻譯獲取方式存在不一致<br>**When**: 統一為單一入口點<br>**Then**: 所有翻譯邏輯一致，無重複代碼<br><br>**Integration Tests**: 翻譯一致性驗證<br>**Regression Tests**: 現有功能不受影響 | **Security**: 統一的輸入驗證和輸出清理<br>**Consistency**: 確保翻譯邏輯一致性<br>**Performance**: 減少重複計算 | 0.01 | {"claude-4-sonnet":0.01,"gpt-4.1":0.01,"gpt-4o":0.01,"gemini-2.5-pro":0.01} | 服務整合，邏輯統一，300 tokens |
+| TRANS-004 | pwa-card-storage | JavaScript | 硬編碼翻譯鍵值重構 | **問題**: `updateFilterSelect()` 方法中硬編碼翻譯鍵值陣列，維護困難<br>**解決**: 提取翻譯鍵值為配置常數 `TRANSLATION_KEYS`，建立動態鍵值生成機制，支援擴展性<br>**影響**: 修復 CRS-T01-004，提升代碼可維護性 | TRANS-003 | **Given**: 硬編碼的翻譯鍵值陣列<br>**When**: 重構為配置化管理<br>**Then**: 翻譯鍵值易於維護和擴展<br><br>**Unit Tests**: 配置載入和驗證<br>**Maintenance Tests**: 新增翻譯鍵值的便利性 | **Security**: 配置檔案安全性檢查<br>**Validation**: 翻譯鍵值格式驗證<br>**Extensibility**: 支援動態擴展 | 0.01 | {"claude-4-sonnet":0.01,"gpt-4.1":0.01,"gpt-4o":0.01,"gemini-2.5-pro":0.01} | 配置重構，常數提取，250 tokens |
+| TRANS-005 | pwa-card-storage | JavaScript | 翻譯系統測試與驗證 | **任務**: 建立完整的翻譯系統測試套件，包含單元測試、整合測試、UI 測試，驗證所有修復項目<br>**範圍**: 錯誤處理、翻譯一致性、UI 顯示、效能測試<br>**目標**: 確保翻譯系統穩定可靠，無回歸問題 | TRANS-004 | **Given**: 翻譯系統重構完成<br>**When**: 執行完整測試套件<br>**Then**: 所有測試通過，系統穩定運行<br><br>**Unit Tests**: 95% 覆蓋率<br>**Integration Tests**: 跨組件協作<br>**UI Tests**: 使用者介面驗證<br>**Performance Tests**: 翻譯效能測試 | **Security**: 翻譯注入攻擊測試<br>**WCAG**: 無障礙性測試<br>**Stress Testing**: 大量翻譯請求測試 | 0.01 | {"claude-4-sonnet":0.01,"gpt-4.1":0.01,"gpt-4o":0.01,"gemini-2.5-pro":0.01} | 測試套件，驗證邏輯，200 tokens |
+
+---
 
 ## 3️⃣ Test Coverage Plan
 
-### Translation System Testing Matrix
-| Test Level | Coverage Target | Focus Areas | Automation Level |
-|------------|----------------|-------------|------------------|
-| **Unit Tests** | 95% | Key lookup logic, fallback mechanisms, validation | 100% automated |
-| **Integration Tests** | 90% | Component translation integration, file loading | 95% automated |
-| **End-to-End Tests** | 85% | Full language switching scenarios, error handling | 80% automated |
-| **Security Tests** | 100% | Translation XSS prevention, input validation | 90% automated |
-| **Accessibility Tests** | 95% | Screen reader translation support, ARIA labels | 70% automated |
-| **Performance Tests** | 100% | Translation lookup speed, memory usage | 100% automated |
+### Unit Tests (單元測試)
+| 組件 | 測試範圍 | 自動化 | 覆蓋率目標 |
+|------|----------|--------|------------|
+| SafeTranslationHandler | 錯誤處理、備用機制、鍵值生成 | ✅ | 95% |
+| getUILabels | 翻譯鍵值處理、空值檢查、返回值驗證 | ✅ | 95% |
+| UnifiedTranslationService | 統一邏輯、一致性檢查、效能測試 | ✅ | 90% |
+| TRANSLATION_KEYS | 配置載入、驗證、擴展性測試 | ✅ | 85% |
 
-### Critical Translation Test Scenarios
-- **Missing Key Handling**: Test behavior when translation keys don't exist
-- **File Loading Failures**: Test resilience when translation files are inaccessible
-- **Language Switching**: Test complete language switching with all components
-- **Static Hosting**: Test translation loading in static hosting environments
-- **Fallback Mechanisms**: Test graceful degradation when primary translations fail
+### Integration Tests (整合測試)
+| 測試場景 | 測試方法 | 預期結果 |
+|----------|----------|----------|
+| 語言管理器不可用 | 模擬語言管理器失效 | 備用機制正常運作 |
+| 翻譯鍵值缺失 | 移除部分翻譯鍵值 | 人性化備用文字顯示 |
+| 語言切換 | 中英文切換測試 | 所有 UI 元素正確翻譯 |
+| 大量翻譯請求 | 壓力測試 | 效能穩定，無記憶體洩漏 |
 
-### Automated Testing Tools
-- **Unit Testing**: Jest + Testing utilities for translation lookups
-- **Integration Testing**: Component testing with translation mocks
-- **E2E Testing**: Playwright with language switching scenarios
-- **Security Testing**: XSS detection in translation content
-- **Accessibility Testing**: axe-core for translation accessibility validation
+### UI Tests (使用者介面測試)
+| 測試項目 | 測試方法 | 成功標準 |
+|----------|----------|----------|
+| 按鈕文字顯示 | 檢查所有按鈕文字 | 無 "undefined" 顯示 |
+| 名片類型標籤 | 驗證名片類型翻譯 | 顯示正確的中文標籤 |
+| 錯誤訊息 | 觸發各種錯誤情況 | 顯示友善的錯誤訊息 |
+| 語言切換 | 手動切換語言 | UI 即時更新，無延遲 |
+
+### Security Tests (安全測試)
+| 漏洞類型 | 測試方法 | 修復驗證 |
+|----------|----------|----------|
+| 翻譯注入 | 惡意翻譯內容注入 | 輸出清理機制阻擋 |
+| XSS 攻擊 | 腳本注入測試 | HTML 編碼正確 |
+| 配置篡改 | 修改翻譯配置檔案 | 驗證機制檢測異常 |
+
+---
 
 ## 4️⃣ Dependency Relationship Diagram
 
 ```mermaid
 graph TD
-    FIX01[FIX-01: Translation Validation<br/>CTX=0.8] 
-    FIX02[FIX-02: Missing Key Handling<br/>CTX=0.6]
-    FIX03[FIX-03: File Accessibility<br/>CTX=0.5]
-    FIX04[FIX-04: Debug Reporting<br/>CTX=0.7]
+    TRANS-001[TRANS-001: 統一錯誤處理機制] --> TRANS-002[TRANS-002: getUILabels 方法修復]
+    TRANS-002 --> TRANS-003[TRANS-003: 翻譯獲取邏輯統一]
+    TRANS-003 --> TRANS-004[TRANS-004: 硬編碼翻譯鍵值重構]
+    TRANS-004 --> TRANS-005[TRANS-005: 翻譯系統測試與驗證]
     
-    TEST01[TEST-01: Automated Testing<br/>CTX=0.6]
-    TEST02[TEST-02: Integration Coverage<br/>CTX=0.5]
+    classDef critical fill:#ff6b6b,stroke:#d63031,stroke-width:3px
+    classDef high fill:#fdcb6e,stroke:#e17055,stroke-width:2px
+    classDef medium fill:#74b9ff,stroke:#0984e3,stroke-width:2px
     
-    DOC01[DOC-01: Documentation<br/>CTX=0.4]
-    TOOL01[TOOL-01: Developer Tools<br/>CTX=0.7]
-    
-    FIX01 --> FIX04
-    FIX02 --> FIX04
-    FIX01 --> TEST01
-    FIX02 --> TEST01
-    TEST01 --> TEST02
-    
-    FIX01 --> DOC01
-    FIX04 --> DOC01
-    FIX04 --> TOOL01
-    DOC01 --> TOOL01
-    
-    classDef fix fill:#dc2626,stroke:#b91c1c,color:#fff
-    classDef test fill:#059669,stroke:#047857,color:#fff  
-    classDef doc fill:#8b5cf6,stroke:#7c3aed,color:#fff
-    
-    class FIX01,FIX02,FIX03,FIX04 fix
-    class TEST01,TEST02 test
-    class DOC01,TOOL01 doc
+    class TRANS-001,TRANS-002 critical
+    class TRANS-003,TRANS-004 high
+    class TRANS-005 medium
 ```
 
-### CTX-CALC-CONFIG
+**Critical Path**: TRANS-001 → TRANS-002 → TRANS-003 → TRANS-004 → TRANS-005 (5 天)  
+**無並行路徑**: 任務間存在強依賴關係，需順序執行
+
+---
+
+## 5️⃣ CTX-CALC-CONFIG
 
 ```html
 <!-- CTX-CALC-CONFIG
@@ -120,108 +119,87 @@ ctx_baseline_tokens:
   gpt-4.1: 128000
   gpt-4o: 128000
   gemini-2.5-pro: 1000000
-formula: "CTX_units[model] = ceil(total_tokens * (1 + buffer_ratio) / ctx_baseline_tokens[model])"
-total_tokens_fields: ["spec_tokens", "code_tokens", "test_tokens"]
+formula: "CTX_units[model] = ceil(total_tokens * 1.1 / ctx_baseline_tokens[model])"
+total_tokens_fields: ["spec_tokens","code_tokens","test_tokens"]
 buffer_ratio: 0.1
-output_fields: ["effort_ctx_units", "ctx_map", "context_footprint_note"]
-failover: "if any field missing -> set effort_ctx_units='TBD' and raise clarification"
+output_fields: ["effort_ctx_units","ctx_map","context_footprint_note"]
+failover: "if any field missing -> effort_ctx_units='TBD'"
 -->
 ```
 
-## 5️⃣ Implementation Roadmap
+---
 
-### Phase 1: Critical Translation Fixes (Days 1-2)
-**Objective**: Address immediate translation key issues and establish robust error handling
+## 6️⃣ Implementation Guide & Risk Assessment
 
-**Parallel Execution Groups**:
-- **Group A**: FIX-01 + FIX-02 (Day 1)
-- **Group B**: FIX-03 + FIX-04 (Day 2)
+### 🔧 Implementation Steps
 
-**Milestone Checkpoints**:
-- Translation validation system identifies all missing keys
-- Error handling gracefully manages missing translations
-- File accessibility confirmed in static hosting environments
-- Debug reporting provides clear visibility into translation issues
+#### 1. SafeTranslationHandler 實作
+```javascript
+class SafeTranslationHandler {
+  static getTranslation(key, fallback = null) {
+    // 1. 嘗試語言管理器
+    // 2. 使用內建字典
+    // 3. 生成人性化文字
+    // 4. 返回 fallback 或鍵值
+  }
+}
+```
 
-### Phase 2: System Hardening & Testing (Days 3-4)
-**Objective**: Build comprehensive testing and developer tools for long-term reliability
+#### 2. getUILabels 方法重構
+```javascript
+getUILabels() {
+  const handler = new SafeTranslationHandler();
+  return {
+    cardDetails: handler.getTranslation('cardDetails', '名片詳細資訊'),
+    // ... 其他翻譯鍵值
+  };
+}
+```
 
-**Sequential Execution**:
-- **Day 3**: TEST-01 → TEST-02
-- **Day 4**: DOC-01 → TOOL-01
+#### 3. 統一翻譯服務
+```javascript
+class UnifiedTranslationService {
+  static getText(key, options = {}) {
+    // 統一的翻譯獲取邏輯
+  }
+}
+```
 
-**Delivery Standards**:
-- Complete test coverage for translation scenarios
-- Integration tests cover all edge cases
-- Comprehensive documentation for developers
-- Functional developer tools for translation management
+#### 4. 配置化翻譯鍵值
+```javascript
+const TRANSLATION_KEYS = {
+  FILTER_OPTIONS: ['allTypes', 'cardTypes.index', ...],
+  UI_LABELS: ['cardDetails', 'generateQR', ...],
+  // ... 其他分類
+};
+```
 
-### Quality Gates and Risk Management
+### ⚠️ Risk Mitigation
+| 風險 | 影響 | 緩解策略 |
+|------|------|----------|
+| 翻譯系統重構破壞現有功能 | High | 漸進式重構，完整回歸測試 |
+| 效能回歸 | Medium | 效能基準測試，優化關鍵路徑 |
+| 翻譯一致性問題 | Medium | 統一驗證機制，自動化測試 |
+| 使用者體驗中斷 | Low | 優雅降級，備用機制 |
 
-**Phase Quality Gates**:
-1. **Translation Coverage**: 100% key availability across all languages
-2. **Error Handling**: All missing key scenarios handled gracefully
-3. **Test Coverage**: ≥ 95% automated test coverage for translation system
-4. **Documentation**: Complete developer guides and troubleshooting resources
+### 📊 Success Metrics
 
-**Risk Mitigation**:
-- **Technical Risk**: Each task includes rollback procedures
-- **Schedule Risk**: Critical path tasks have 25% time buffer
-- **Quality Risk**: Daily automated testing and validation
+#### 🎯 目標指標
+- ✅ **零 "undefined" 顯示**: 所有 UI 元素都有有效翻譯
+- ✅ **翻譯一致性 100%**: 統一的翻譯邏輯
+- ✅ **錯誤處理覆蓋率 95%**: 完整的錯誤處理機制
+- ✅ **代碼可維護性提升**: 配置化管理，易於擴展
+- ✅ **測試覆蓋率 > 90%**: 完整的測試套件
 
-## 6️⃣ Translation System Quality Metrics
-
-### Current System Assessment
-Based on code analysis, translation system scoring across key dimensions:
-
-| Quality Dimension | Current Score | Target Score | Improvement Strategy | Related Tasks |
-|-------------------|--------------|--------------|---------------------|---------------|
-| **Reliability** | 7.0/10 | 9.5/10 | Comprehensive validation, error handling | FIX-01, FIX-02 |
-| **Accessibility** | 8.0/10 | 9.5/10 | File access validation, static hosting support | FIX-03 |
-| **Developer Experience** | 6.5/10 | 9.0/10 | Debug tools, documentation, automated testing | FIX-04, DOC-01, TOOL-01 |
-| **Test Coverage** | 7.5/10 | 9.5/10 | Automated testing, edge case coverage | TEST-01, TEST-02 |
-| **Maintainability** | 8.0/10 | 9.0/10 | Clear documentation, developer tools | DOC-01, TOOL-01 |
-
-### Target System Quality: 9.2/10
-**Focus Area**: From "functional but fragile" to "production-hardened and developer-friendly"
-
-## 7️⃣ Security & Accessibility Compliance Matrix
-
-### Security Compliance Checklist
-| Security Area | Current Status | Improvement Task | Acceptance Criteria |
-|---------------|---------------|------------------|-------------------|
-| **Input Validation** | ✅ Basic validation | FIX-01 | Translation content XSS prevention |
-| **File Access Control** | ⚠️ Needs review | FIX-03 | Directory traversal prevention |
-| **Error Information** | ⚠️ May leak data | FIX-02, FIX-04 | Secure error messages, no data exposure |
-| **Debug Security** | ❌ Not implemented | TOOL-01 | Development-only debug tools |
-| **Content Integrity** | ✅ Basic checks | TEST-01 | Automated security testing |
-
-### Accessibility Compliance Checklist (WCAG 2.1 AA)
-| Accessibility Area | Current Status | Improvement Task | Acceptance Criteria |
-|-------------------|---------------|------------------|-------------------|
-| **Translation Availability** | ⚠️ May have gaps | FIX-01 | All UI text has translations |
-| **Screen Reader Support** | ✅ ARIA labels exist | TEST-02 | Screen reader compatibility testing |
-| **Fallback Text** | ⚠️ Inconsistent | FIX-02 | Graceful fallback for missing translations |
-| **Language Declaration** | ✅ HTML lang set | TEST-02 | Proper language attributes |
-| **Debug Accessibility** | ❌ Not considered | TOOL-01 | Accessible debug tools |
-
-## 8️⃣ Translation System Performance SLA
-
-### Translation Performance Service Level Agreement
-| Performance Metric | Current Baseline | Target | Monitoring Task |
-|--------------------|-----------------|---------|-----------------|
-| **Translation Lookup Time** | <5ms | <3ms | TEST-01 |
-| **Missing Key Fallback** | Undefined | <10ms | FIX-02 |
-| **File Loading Time** | Variable | <100ms | FIX-03 |
-| **Validation Time** | Not measured | <50ms | FIX-01 |
-| **Debug Tool Response** | N/A | <200ms | TOOL-01 |
-
-### Translation System Reliability Targets
-- **Translation Coverage**: 100% key availability across all supported languages
-- **Error Recovery**: <10ms graceful fallback for missing keys  
-- **File Accessibility**: 99.9% availability in static hosting environments
-- **Development Support**: Real-time validation and debugging capabilities
+#### 📈 驗收標準
+1. **功能性**: 所有翻譯功能正常運作
+2. **穩定性**: 語言管理器異常時系統不崩潰
+3. **一致性**: 翻譯邏輯統一，無重複代碼
+4. **可維護性**: 翻譯鍵值易於管理和擴展
+5. **效能**: 翻譯效能不低於現有系統
 
 ---
 
-**Implementation Focus**: Address critical translation key issues immediately while building robust, long-term infrastructure for translation management, validation, and developer productivity. Target system transforms from "functional with gaps" to "production-hardened and developer-friendly" (9.2/10 quality score).
+**任務分解完成日期**: 2025-08-08  
+**下一步**: 通知 code-executor 開始實作 TRANS-001 任務  
+**聯絡人**: code-reviewer (代碼審查), test-coverage-generator (測試補齊)

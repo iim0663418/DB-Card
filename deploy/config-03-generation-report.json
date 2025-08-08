@@ -1,0 +1,77 @@
+{
+  "timestamp": "2025-08-07T04:42:08.245Z",
+  "tool": "config-manager-generator",
+  "version": "1.0.0",
+  "generatedFiles": [
+    {
+      "name": "configuration-manager.js",
+      "path": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/configuration-manager.js",
+      "size": 10098,
+      "type": "main_manager"
+    },
+    {
+      "name": "config-validator.js",
+      "path": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/config-validator.js",
+      "size": 8842,
+      "type": "validator"
+    },
+    {
+      "name": "config-cache-manager.js",
+      "path": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/config-cache-manager.js",
+      "size": 8920,
+      "type": "cache_manager"
+    }
+  ],
+  "validationResults": [
+    {
+      "file": "configuration-manager.js",
+      "valid": false,
+      "errors": [
+        "Size mismatch: expected 10098, got 10106"
+      ],
+      "warnings": []
+    },
+    {
+      "file": "config-validator.js",
+      "valid": true,
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "file": "config-cache-manager.js",
+      "valid": true,
+      "errors": [],
+      "warnings": []
+    }
+  ],
+  "securityFeatures": [
+    "Configuration validation and sanitization",
+    "Path traversal protection",
+    "Input validation for all configuration fields",
+    "Cache size limits and TTL enforcement",
+    "Secure error handling with no sensitive data exposure",
+    "Platform consistency validation",
+    "CSP and security headers validation"
+  ],
+  "errors": [],
+  "summary": {
+    "totalFiles": 3,
+    "validFiles": 2,
+    "totalErrors": 1,
+    "totalSize": 27860,
+    "successRate": "67%",
+    "platformsSupported": 5,
+    "cacheFeatures": [
+      "TTL management",
+      "LRU eviction",
+      "Persistent storage",
+      "Size limits"
+    ],
+    "validationFeatures": [
+      "Schema validation",
+      "Security checks",
+      "Path sanitization",
+      "Type checking"
+    ]
+  }
+}

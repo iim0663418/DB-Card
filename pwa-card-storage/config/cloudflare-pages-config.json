@@ -1,0 +1,74 @@
+{
+  "platform": "cloudflare-pages",
+  "version": "v3.2.0-pwa-deployment-compatibility",
+  "generated": "2025-08-07T04:37:08.115Z",
+  "environment": "production",
+  "basePath": "/",
+  "publicPath": "/",
+  "assetPath": "./assets/",
+  "features": {
+    "serviceWorker": true,
+    "offlineSupport": true,
+    "pushNotifications": true,
+    "backgroundSync": true,
+    "periodicSync": false,
+    "edgeFunctions": true
+  },
+  "security": {
+    "level": "enhanced",
+    "csp": {
+      "enabled": true,
+      "reportOnly": false,
+      "directives": {
+        "default-src": [
+          "'self'"
+        ],
+        "script-src": [
+          "'self'"
+        ],
+        "style-src": [
+          "'self'",
+          "fonts.googleapis.com"
+        ],
+        "font-src": [
+          "'self'",
+          "fonts.gstatic.com"
+        ],
+        "img-src": [
+          "'self'",
+          "data:",
+          "https:"
+        ],
+        "connect-src": [
+          "'self'"
+        ],
+        "worker-src": [
+          "'self'"
+        ]
+      }
+    },
+    "headers": {
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "X-XSS-Protection": "1; mode=block",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains"
+    }
+  },
+  "cache": {
+    "strategy": "stale-while-revalidate",
+    "maxAge": 3600,
+    "resources": [
+      "assets/",
+      "src/",
+      "config/"
+    ],
+    "edgeCache": true
+  },
+  "deployment": {
+    "buildCommand": "npm run build",
+    "outputDir": "dist",
+    "customDomain": true,
+    "httpsOnly": true,
+    "edgeLocations": true
+  }
+}

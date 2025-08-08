@@ -63,13 +63,25 @@ class CardListComponent {
    * Get current language
    */
   getCurrentLanguage() {
-    if (window.enhancedLanguageManager) {
-      return window.enhancedLanguageManager.getCurrentLanguage();
+    try {
+      // 優先使用主應用程式的語言管理器
+      if (window.app && window.app.getCurrentLanguage) {
+        return window.app.getCurrentLanguage();
+      }
+      
+      if (window.languageManager && window.languageManager.getCurrentLanguage) {
+        const lang = window.languageManager.getCurrentLanguage();
+        // 標準化語言代碼
+        return lang === 'zh-TW' || lang === 'zh' ? 'zh' : 'en';
+      }
+      
+      // 備用方案：從 localStorage 獲取
+      const savedLang = localStorage.getItem('pwa-language');
+      return savedLang === 'en' ? 'en' : 'zh';
+    } catch (error) {
+      console.error('[CardList] Failed to get current language:', error);
+      return 'zh';
     }
-    if (window.languageManager) {
-      return window.languageManager.getCurrentLanguage();
-    }
-    return localStorage.getItem('pwa-language') || 'zh';
   }
 
   /**
@@ -77,20 +89,26 @@ class CardListComponent {
    */
   getLocalizedText(key, fallback = null) {
     try {
-      if (window.enhancedLanguageManager) {
-        const text = window.enhancedLanguageManager.getUnifiedText(`pwa.${key}`);
-        if (text !== `pwa.${key}`) return text;
-      }
-      
+      // 首先嘗試使用語言管理器獲取翻譯
       if (window.languageManager && window.languageManager.getText) {
-        const text = window.languageManager.getText(key.split('.').pop());
-        if (text !== key.split('.').pop()) return text;
+        const simpleKey = key.split('.').pop();
+        const text = window.languageManager.getText(simpleKey);
+        if (text && text !== simpleKey && text !== key) {
+          return text;
+        }
       }
       
-      return fallback || this.getDefaultText(key);
+      // 備用方案：使用內建翻譯
+      const defaultText = this.getDefaultText(key);
+      if (defaultText && defaultText !== key) {
+        return defaultText;
+      }
+      
+      // 最後備用：返回 fallback 或鍵值
+      return fallback || key;
     } catch (error) {
       console.error('[CardList] Failed to get localized text:', error);
-      return fallback || key;
+      return fallback || this.getDefaultText(key) || key;
     }
   }
 
@@ -98,6 +116,8 @@ class CardListComponent {
    * Get default text for fallback
    */
   getDefaultText(key) {
+    const currentLang = this.getCurrentLanguage();
+    
     const texts = {
       zh: {
         'cardList.view': '檢視',
@@ -127,7 +147,7 @@ class CardListComponent {
       }
     };
     
-    return texts[this.currentLanguage]?.[key] || key;
+    return texts[currentLang]?.[key] || texts.zh?.[key] || key;
   }
 
   /**
@@ -748,8 +768,47 @@ class CardListComponent {
   }
 
   getTypeLabel(type) {
-    const key = `cardTypes.${type}`;
-    return this.getLocalizedText(key, type);
+    // 直接使用語言管理器獲取翻譯
+    if (window.languageManager && window.languageManager.getText) {
+      const key = `cardTypes.${type}`;
+      const translation = window.languageManager.getText(key);
+      
+      // 如果翻譯成功且不是原始鍵值，則使用翻譯
+      if (translation && translation !== key && translation !== type) {
+        return translation;
+      }
+    }
+    
+    // 備用方案：提供直觀的中文顯示
+    const typeLabels = {
+      'index': '機關版-延平',
+      'index1': '機關版-新光', 
+      'personal': '個人版',
+      'bilingual': '雙語版-延平',
+      'bilingual1': '雙語版-新光',
+      'personal-bilingual': '個人雙語版',
+      'en': '英文版-延平',
+      'en1': '英文版-新光',
+      'personal-en': '個人英文版'
+    };
+    
+    // 根據當前語言返回適當的標籤
+    if (this.currentLanguage === 'en') {
+      const englishLabels = {
+        'index': 'Gov-Yanping',
+        'index1': 'Gov-ShinGuang',
+        'personal': 'Personal',
+        'bilingual': 'Bilingual-Yanping',
+        'bilingual1': 'Bilingual-ShinGuang',
+        'personal-bilingual': 'Personal Bilingual',
+        'en': 'English-Yanping',
+        'en1': 'English-ShinGuang',
+        'personal-en': 'Personal English'
+      };
+      return englishLabels[type] || type;
+    }
+    
+    return typeLabels[type] || type;
   }
 
   formatDate(date) {

@@ -1,971 +1,735 @@
 /**
- * PWA-15: 部署與效能優化 - Service Worker
- * 實作離線優先快取策略與效能優化
+ * SW-02: Standardized Service Worker with Enhanced Cache Strategies
+ * 
+ * Implements standard PWA caching patterns:
+ * - Cache First: Static resources (HTML, CSS, JS, images)
+ * - Network First: Dynamic content with cache fallback
+ * - Stale While Revalidate: Frequently updated resources
+ * 
+ * @version 3.2.0-standardized
+ * @security Resource validation, storage quota management
  */
 
-const CACHE_NAME = 'pwa-card-storage-v1.1.0';
-const STATIC_CACHE_NAME = 'pwa-static-v1.1.0';
-const DYNAMIC_CACHE_NAME = 'pwa-dynamic-v1.1.0';
-const IMAGE_CACHE_NAME = 'pwa-images-v1.1.0';
+const CACHE_VERSION = 'pwa-card-storage-v3.2.0';
+const STATIC_CACHE = `${CACHE_VERSION}-static`;
+const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
+const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
-// 動態獲取基礎路徑 - 支援 GitHub Pages 和 Cloudflare Pages
-const getBasePath = () => {
-  const location = self.location || { pathname: '/pwa-card-storage/', hostname: 'localhost' };
-  const pathParts = location.pathname.split('/').filter(part => part);
-  const pwaIndex = pathParts.findIndex(part => part === 'pwa-card-storage');
-  
-  // GitHub Pages 檢測
-  if (location.hostname && location.hostname.includes('.github.io')) {
-    if (pwaIndex > 0) {
-      // GitHub Pages: /DB-Card/pwa-card-storage/
-      return '/' + pathParts.slice(0, pwaIndex).join('/');
-    } else {
-      // 備用方案
-      return '/DB-Card';
-    }
-  } else if (location.hostname && location.hostname.includes('.pages.dev')) {
-    // Cloudflare Pages: 根域名部署
-    return '';
-  } else {
-    // 本地開發或其他環境
-    return '';
-  }
+// Storage quota limits (in bytes)
+const STORAGE_QUOTA = {
+    STATIC: 50 * 1024 * 1024,    // 50MB for static resources
+    DYNAMIC: 25 * 1024 * 1024,   // 25MB for dynamic content
+    RUNTIME: 10 * 1024 * 1024    // 10MB for runtime cache
 };
+
+/**
+ * Simplified BASE_PATH detection for 5 platforms
+ */
+function getBasePath() {
+    const { hostname, pathname } = self.location;
+    
+    // GitHub Pages: username.github.io/repo-name
+    if (hostname.includes('.github.io')) {
+        const pathParts = pathname.split('/').filter(Boolean);
+        return pathParts.length > 1 ? `/${pathParts[0]}` : '';
+    }
+    
+    // Cloudflare Pages: project.pages.dev
+    if (hostname.includes('.pages.dev')) {
+        return '';
+    }
+    
+    // Netlify: project.netlify.app
+    if (hostname.includes('.netlify.app')) {
+        return '';
+    }
+    
+    // Vercel: project.vercel.app
+    if (hostname.includes('.vercel.app')) {
+        return '';
+    }
+    
+    // Local development: localhost
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return '';
+    }
+    
+    // Default fallback
+    return '';
+}
 
 const BASE_PATH = getBasePath();
 
-// 核心靜態資源（必須快取）
+/**
+ * Enhanced core resources with validation
+ */
 const CORE_RESOURCES = [
-  `${BASE_PATH}/pwa-card-storage/`,
-  `${BASE_PATH}/pwa-card-storage/index.html`,
-  `${BASE_PATH}/pwa-card-storage/manifest.json`,
-  
-  // 核心 JavaScript 檔案
-  `${BASE_PATH}/pwa-card-storage/src/app.js`,
-  `${BASE_PATH}/pwa-card-storage/src/pwa-init.js`,
-  `${BASE_PATH}/pwa-card-storage/src/core/storage.js`,
-  `${BASE_PATH}/pwa-card-storage/src/core/health-manager.js`,
-  `${BASE_PATH}/pwa-card-storage/src/core/language-manager.js`,
-  `${BASE_PATH}/pwa-card-storage/src/core/unified-manifest-manager.js`,
-  `${BASE_PATH}/pwa-card-storage/src/core/unified-mobile-manager.js`,
-  `${BASE_PATH}/pwa-card-storage/src/features/card-manager.js`,
-  `${BASE_PATH}/pwa-card-storage/src/features/offline-tools.js`,
-  `${BASE_PATH}/pwa-card-storage/src/features/transfer-manager.js`,
-  `${BASE_PATH}/pwa-card-storage/src/ui/components/card-list.js`,
-  `${BASE_PATH}/pwa-card-storage/src/utils/simple-card-parser.js`,
-  `${BASE_PATH}/pwa-card-storage/src/utils/pwa-performance.js`
-];
-
-// 樣式資源
-const STYLE_RESOURCES = [
-  `${BASE_PATH}/pwa-card-storage/assets/styles/main.css`,
-  `${BASE_PATH}/pwa-card-storage/assets/styles/components.css`,
-  `${BASE_PATH}/pwa-card-storage/assets/styles/modal-styles.css`,
-  `${BASE_PATH}/pwa-card-storage/assets/styles/visual-enhancements.css`,
-  `${BASE_PATH}/pwa-card-storage/assets/styles/language-toggle.css`,
-  `${BASE_PATH}/pwa-card-storage/assets/styles/moda-design-system.css`,
-  `${BASE_PATH}/assets/high-accessibility.css`
-];
-
-// 外部依賴資源
-const EXTERNAL_RESOURCES = [
-  `${BASE_PATH}/assets/bilingual-common.js`,
-  `${BASE_PATH}/assets/qrcode.min.js`,
-  `${BASE_PATH}/assets/qr-utils.js`,
-  `${BASE_PATH}/assets/moda-logo.svg`,
-  `${BASE_PATH}/src/security/SecurityInputHandler.js`,
-  `${BASE_PATH}/src/security/SecurityDataHandler.js`,
-  `${BASE_PATH}/src/security/SecurityAuthHandler.js`,
-  `${BASE_PATH}/pwa-card-storage/src/core/error-handler.js`,
-  `${BASE_PATH}/pwa-card-storage/src/core/pwa-integration.js`
-];
-
-// 字體資源
-const FONT_RESOURCES = [
-  'https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Sans:wght@300;400;500;700&display=swap'
-];
-
-// 所有靜態資源
-const STATIC_RESOURCES = [
-  ...CORE_RESOURCES,
-  ...STYLE_RESOURCES,
-  ...EXTERNAL_RESOURCES,
-  ...FONT_RESOURCES
-];
-
-// 動態快取的資源模式
-const DYNAMIC_CACHE_PATTERNS = [
-  /^https:\/\/fonts\.googleapis\.com\//,
-  /^https:\/\/fonts\.gstatic\.com\//,
-  /\.(?:png|jpg|jpeg|svg|gif|webp)$/i
+    `${BASE_PATH}/pwa-card-storage/`,
+    `${BASE_PATH}/pwa-card-storage/index.html`,
+    `${BASE_PATH}/pwa-card-storage/manifest.json`,
+    `${BASE_PATH}/pwa-card-storage/src/app.js`,
+    `${BASE_PATH}/pwa-card-storage/assets/styles/main.css`,
+    `${BASE_PATH}/pwa-card-storage/assets/styles/components.css`,
+    `${BASE_PATH}/pwa-card-storage/assets/scripts/bilingual-common.js`,
+    `${BASE_PATH}/pwa-card-storage/assets/scripts/qrcode.min.js`,
+    `${BASE_PATH}/pwa-card-storage/assets/images/moda-logo.svg`
 ];
 
 /**
- * Service Worker 安裝事件 - 優化版本
+ * Resource classification for cache strategies
+ */
+const RESOURCE_PATTERNS = {
+    STATIC: [
+        /\.(html|css|js|json|svg|png|jpg|jpeg|gif|ico|woff|woff2|ttf)$/i,
+        /\/pwa-card-storage\//,
+        /\/assets\//
+    ],
+    DYNAMIC: [
+        /\/api\//,
+        /\/data\//,
+        /\?/  // URLs with query parameters
+    ],
+    RUNTIME: [
+        /\/cdn\./,
+        /\/fonts\./,
+        /\/images\./
+    ]
+};
+
+/**
+ * Install event - Enhanced caching with validation
  */
 self.addEventListener('install', (event) => {
-  
-  event.waitUntil(
-    Promise.all([
-      // 分批快取核心資源
-      cacheResourcesBatch(CORE_RESOURCES, STATIC_CACHE_NAME, '核心資源'),
-      cacheResourcesBatch(STYLE_RESOURCES, STATIC_CACHE_NAME, '樣式資源'),
-      cacheResourcesBatch(EXTERNAL_RESOURCES, STATIC_CACHE_NAME, '外部資源'),
-      
-      // 字體資源允許失敗
-      cacheResourcesBatch(FONT_RESOURCES, STATIC_CACHE_NAME, '字體資源', true),
-      
-      // 初始化其他快取
-      caches.open(DYNAMIC_CACHE_NAME),
-      caches.open(IMAGE_CACHE_NAME)
-    ]).then(() => {
-      return self.skipWaiting();
-    }).catch((error) => {
-      console.error('[SW] Service worker installation failed:', error);
-      throw error;
-    })
-  );
+    console.log('[SW] Installing standardized service worker');
+    
+    event.waitUntil(
+        Promise.all([
+            // Initialize static cache
+            caches.open(STATIC_CACHE).then(async (cache) => {
+                console.log('[SW] Caching core resources with validation');
+                
+                const cachePromises = CORE_RESOURCES.map(async (resource) => {
+                    try {
+                        const response = await fetch(resource);
+                        if (response.ok) {
+                            await validateResource(response.clone());
+                            return cache.put(resource, response);
+                        } else {
+                            console.warn(`[SW] Failed to cache resource: ${resource}`);
+                        }
+                    } catch (error) {
+                        console.warn(`[SW] Resource validation failed: ${resource}`, error);
+                    }
+                });
+                
+                return Promise.allSettled(cachePromises);
+            }),
+            
+            // Initialize other caches
+            caches.open(DYNAMIC_CACHE),
+            caches.open(RUNTIME_CACHE),
+            
+            // Check storage quota
+            checkStorageQuota()
+            
+        ]).then(() => {
+            console.log('[SW] Installation completed with enhanced caching');
+            return self.skipWaiting();
+        }).catch(error => {
+            console.error('[SW] Installation failed:', error);
+            throw error;
+        })
+    );
 });
 
 /**
- * 分批快取資源
- */
-async function cacheResourcesBatch(resources, cacheName, description, allowFailure = false) {
-  try {
-    const cache = await caches.open(cacheName);
-    
-    if (allowFailure) {
-      // 允許部分失敗的資源
-      const results = await Promise.allSettled(
-        resources.map(url => cache.add(new Request(url, { cache: 'reload' })))
-      );
-      
-      const failed = results.filter(r => r.status === 'rejected').length;
-      if (failed > 0) {
-      }
-    } else {
-      // 必須全部成功的資源
-      await cache.addAll(resources.map(url => new Request(url, { cache: 'reload' })));
-    }
-    
-  } catch (error) {
-    console.error(`[SW] Failed to cache ${description}:`, error);
-    if (!allowFailure) throw error;
-  }
-}
-
-/**
- * Service Worker 啟用事件 - 優化版本
+ * Activate event - Enhanced cache cleanup
  */
 self.addEventListener('activate', (event) => {
-  
-  event.waitUntil(
-    Promise.all([
-      // 清理舊的快取
-      cleanupOldCaches(),
-      
-      // 立即控制所有頁面
-      self.clients.claim(),
-      
-      // 初始化效能監控
-      initializePerformanceMonitoring()
-    ]).then(() => {
-      
-      // 通知所有客戶端更新完成
-      return notifyClientsOfUpdate();
-    })
-  );
+    console.log('[SW] Activating standardized service worker');
+    
+    event.waitUntil(
+        Promise.all([
+            // Clean old caches with quota management
+            cleanupOldCaches(),
+            
+            // Optimize cache storage
+            optimizeCacheStorage(),
+            
+            // Take control of all pages
+            self.clients.claim()
+            
+        ]).then(() => {
+            console.log('[SW] Service worker activated with enhanced features');
+            
+            // Notify clients of successful activation
+            return self.clients.matchAll().then(clients => {
+                clients.forEach(client => {
+                    client.postMessage({
+                        type: 'SW_ACTIVATED',
+                        version: CACHE_VERSION,
+                        basePath: BASE_PATH,
+                        features: ['enhanced-caching', 'quota-management', 'resource-validation']
+                    });
+                });
+            });
+        })
+    );
 });
 
 /**
- * 初始化效能監控
- */
-async function initializePerformanceMonitoring() {
-  try {
-    // 檢查儲存空間
-    if ('storage' in navigator && 'estimate' in navigator.storage) {
-      const estimate = await navigator.storage.estimate();
-      const usagePercent = Math.round((estimate.usage / estimate.quota) * 100);
-      
-      
-      // 如果使用量超過 80%，清理動態快取
-      if (usagePercent > 80) {
-        await cleanupDynamicCache();
-      }
-    }
-  } catch (error) {
-  }
-}
-
-/**
- * 通知客戶端更新完成
- */
-async function notifyClientsOfUpdate() {
-  const clients = await self.clients.matchAll();
-  clients.forEach(client => {
-    client.postMessage({
-      type: 'SW_UPDATED',
-      version: CACHE_NAME,
-      timestamp: Date.now()
-    });
-  });
-}
-
-/**
- * 網路請求攔截
+ * Fetch event - Standardized caching strategies
  */
 self.addEventListener('fetch', (event) => {
-  const request = event.request;
-  const url = new URL(request.url);
-  
-  // 只處理 GET 請求
-  if (request.method !== 'GET') {
-    return;
-  }
-  
-  // 跳過 Chrome 擴展請求
-  if (url.protocol === 'chrome-extension:') {
-    return;
-  }
-  
-  event.respondWith(
-    handleFetchRequest(request)
-  );
+    // Only handle GET requests
+    if (event.request.method !== 'GET') {
+        return;
+    }
+    
+    // Skip chrome-extension and non-http requests
+    if (!event.request.url.startsWith('http')) {
+        return;
+    }
+    
+    event.respondWith(handleRequestWithStrategy(event.request));
 });
 
 /**
- * 處理網路請求的核心邏輯
+ * Enhanced request handling with standardized strategies
  */
-async function handleFetchRequest(request) {
-  const url = new URL(request.url);
-  
-  try {
-    let response;
+async function handleRequestWithStrategy(request) {
+    const url = new URL(request.url);
     
-    // 1. 靜態資源：快取優先策略
-    if (isStaticResource(request)) {
-      response = await cacheFirstStrategy(request, STATIC_CACHE_NAME);
+    try {
+        // Determine cache strategy based on resource type
+        const strategy = getCacheStrategy(url);
+        
+        switch (strategy) {
+            case 'cache-first':
+                return await cacheFirstStrategy(request);
+            case 'network-first':
+                return await networkFirstStrategy(request);
+            case 'stale-while-revalidate':
+                return await staleWhileRevalidateStrategy(request);
+            default:
+                return await networkOnlyStrategy(request);
+        }
+        
+    } catch (error) {
+        console.error('[SW] Request handling failed:', error);
+        return getEnhancedOfflineFallback(request);
     }
-    // 2. 動態資源：網路優先策略
-    else if (isDynamicResource(request)) {
-      response = await networkFirstStrategy(request, DYNAMIC_CACHE_NAME);
-    }
-    // 3. API 請求：網路優先，快取備用
-    else if (isApiRequest(request)) {
-      response = await networkFirstStrategy(request, DYNAMIC_CACHE_NAME);
-    }
-    // 4. 其他請求：網路優先
-    else {
-      response = await networkFirstStrategy(request, DYNAMIC_CACHE_NAME);
-    }
-    
-    // 添加安全標頭
-    return addSecurityHeaders(response, request);
-    
-  } catch (error) {
-    console.error('[SW] Fetch request failed:', error);
-    
-    // 如果是導航請求且失敗，返回離線頁面
-    if (request.mode === 'navigate') {
-      const cache = await caches.open(STATIC_CACHE_NAME);
-      const response = await cache.match(`${BASE_PATH}/pwa-card-storage/index.html`);
-      return response ? addSecurityHeaders(response, request) : new Response('Offline', {
-        status: 503,
-        headers: { 'Content-Type': 'text/html; charset=utf-8' }
-      });
-    }
-    
-    // 其他請求返回網路錯誤
-    return new Response('Network error', {
-      status: 503,
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-    });
-  }
 }
 
 /**
- * 快取優先策略 - 增強版本
+ * Determine cache strategy based on resource patterns
  */
-async function cacheFirstStrategy(request, cacheName) {
-  const cache = await caches.open(cacheName);
-  const cachedResponse = await cache.match(request);
-  
-  if (cachedResponse) {
-    // 檢查快取時效性
-    const cacheAge = getCacheAge(cachedResponse);
-    const maxAge = getMaxAge(request);
+function getCacheStrategy(url) {
+    const pathname = url.pathname.toLowerCase();
     
-    if (cacheAge < maxAge) {
-      // 快取仍然新鮮
-      recordCacheHit(request.url);
-      return addCacheHeaders(cachedResponse, 'HIT');
+    // Static resources: Cache first
+    if (RESOURCE_PATTERNS.STATIC.some(pattern => pattern.test(pathname))) {
+        return 'cache-first';
     }
     
-    // 快取過期，背景更新
-    updateCacheInBackground(request, cache);
-    recordCacheHit(request.url, true); // 標記為過期命中
-    return addCacheHeaders(cachedResponse, 'STALE');
-  }
-  
-  // 快取未命中，從網路獲取
-  try {
-    const networkResponse = await fetchWithTimeout(request, 5000);
-    
-    if (networkResponse.ok) {
-      // 異步更新快取
-      queueCacheUpdate(cache, request, networkResponse.clone());
+    // Dynamic content: Network first
+    if (RESOURCE_PATTERNS.DYNAMIC.some(pattern => pattern.test(pathname))) {
+        return 'network-first';
     }
     
-    recordCacheMiss(request.url);
-    return addCacheHeaders(networkResponse, 'MISS');
-  } catch (error) {
-    // 網路失敗，返回過期快取或離線頁面
-    if (cachedResponse) {
-      return addCacheHeaders(cachedResponse, 'OFFLINE');
+    // Runtime resources: Stale while revalidate
+    if (RESOURCE_PATTERNS.RUNTIME.some(pattern => pattern.test(pathname))) {
+        return 'stale-while-revalidate';
     }
     
-    return getOfflineFallback(request);
-  }
+    // Default: Network first
+    return 'network-first';
 }
 
 /**
- * 獲取快取年齡（毫秒）
+ * Cache First Strategy - For static resources
  */
-function getCacheAge(response) {
-  const dateHeader = response.headers.get('date');
-  if (!dateHeader) return Infinity;
-  
-  const cacheDate = new Date(dateHeader);
-  return Date.now() - cacheDate.getTime();
-}
-
-/**
- * 獲取最大快取時間
- */
-function getMaxAge(request) {
-  const url = new URL(request.url);
-  
-  // 不同資源類型的快取時間
-  if (url.pathname.endsWith('.html')) return 1 * 60 * 60 * 1000; // 1小時
-  if (url.pathname.endsWith('.js') || url.pathname.endsWith('.css')) return 24 * 60 * 60 * 1000; // 24小時
-  if (url.hostname === 'fonts.googleapis.com') return 7 * 24 * 60 * 60 * 1000; // 7天
-  
-  return 24 * 60 * 60 * 1000; // 預設24小時
-}
-
-/**
- * 帶超時的 fetch
- */
-function fetchWithTimeout(request, timeout) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
-  
-  return fetch(request, {
-    signal: controller.signal,
-    cache: 'no-cache'
-  }).finally(() => {
-    clearTimeout(timeoutId);
-  });
-}
-
-/**
- * 添加快取狀態標頭
- */
-function addCacheHeaders(response, status) {
-  const headers = new Headers(response.headers);
-  headers.set('X-Cache-Status', status);
-  headers.set('X-Cache-Date', new Date().toISOString());
-  
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers
-  });
-}
-
-/**
- * 獲取離線備用回應
- */
-function getOfflineFallback(request) {
-  if (request.mode === 'navigate') {
-    return caches.open(STATIC_CACHE_NAME)
-      .then(cache => cache.match(`${BASE_PATH}/pwa-card-storage/index.html`))
-      .then(response => response || new Response('離線模式', {
-        status: 503,
-        headers: { 'Content-Type': 'text/html; charset=utf-8' }
-      }));
-  }
-  
-  if (request.destination === 'image') {
-    return new Response(
-      '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="#f0f0f0"/><text x="100" y="100" text-anchor="middle" dy=".3em" fill="#999">離線</text></svg>',
-      { headers: { 'Content-Type': 'image/svg+xml' } }
-    );
-  }
-  
-  return new Response('網路錯誤', {
-    status: 503,
-    headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-  });
-}
-
-/**
- * 網路優先策略（優化版）
- */
-async function networkFirstStrategy(request, cacheName) {
-  const cache = await caches.open(cacheName);
-  
-  try {
-    // 網路請求優化
-    const networkResponse = await fetch(request, {
-      cache: 'no-cache',
-      signal: AbortSignal.timeout(3000) // 3秒超時
-    });
-    
-    if (networkResponse.ok) {
-      // 批次快取更新
-      queueCacheUpdate(cache, request, networkResponse.clone());
-    }
-    
-    return networkResponse;
-  } catch (error) {
-    // 網路失敗，嘗試從快取獲取
+async function cacheFirstStrategy(request) {
+    const cache = await caches.open(STATIC_CACHE);
     const cachedResponse = await cache.match(request);
     
     if (cachedResponse) {
-      return cachedResponse;
+        // Validate cached resource integrity
+        if (await validateCachedResource(cachedResponse.clone())) {
+            return cachedResponse;
+        } else {
+            // Remove invalid cached resource
+            await cache.delete(request);
+        }
     }
     
-    throw error;
-  }
-}
-
-// 效能監控
-let performanceMetrics = {
-  cacheHits: 0,
-  cacheMisses: 0,
-  staleHits: 0,
-  networkErrors: 0,
-  avgResponseTime: 0,
-  requestCount: 0
-};
-
-function recordCacheHit(url, isStale = false) {
-  if (isStale) {
-    performanceMetrics.staleHits++;
-  } else {
-    performanceMetrics.cacheHits++;
-  }
-}
-
-function recordCacheMiss(url) {
-  performanceMetrics.cacheMisses++;
-}
-
-function recordNetworkError(url) {
-  performanceMetrics.networkErrors++;
-}
-
-function recordResponseTime(duration) {
-  performanceMetrics.requestCount++;
-  performanceMetrics.avgResponseTime = 
-    (performanceMetrics.avgResponseTime * (performanceMetrics.requestCount - 1) + duration) / 
-    performanceMetrics.requestCount;
-}
-
-// 批次快取更新佇列 - 優化版本
-let cacheUpdateQueue = [];
-let cacheUpdateTimer = null;
-const MAX_QUEUE_SIZE = 20;
-const BATCH_DELAY = 150;
-
-function queueCacheUpdate(cache, request, response) {
-  // 防止佇列過大
-  if (cacheUpdateQueue.length >= MAX_QUEUE_SIZE) {
-    cacheUpdateQueue.shift(); // 移除最舊的項目
-  }
-  
-  cacheUpdateQueue.push({ cache, request, response, timestamp: Date.now() });
-  
-  if (!cacheUpdateTimer) {
-    cacheUpdateTimer = setTimeout(processCacheUpdates, BATCH_DELAY);
-  }
-}
-
-async function processCacheUpdates() {
-  const updates = cacheUpdateQueue.splice(0, 15); // 批次處理15個
-  
-  if (updates.length === 0) {
-    cacheUpdateTimer = null;
-    return;
-  }
-  
-  const results = await Promise.allSettled(
-    updates.map(async ({ cache, request, response }) => {
-      try {
-        await cache.put(request, response);
-        return { success: true, url: request.url };
-      } catch (error) {
-        return { success: false, url: request.url, error };
-      }
-    })
-  );
-  
-  const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
-  
-  cacheUpdateTimer = null;
-  
-  // 如果還有待處理的項目，繼續處理
-  if (cacheUpdateQueue.length > 0) {
-    cacheUpdateTimer = setTimeout(processCacheUpdates, BATCH_DELAY);
-  }
-}
-
-/**
- * 背景更新快取
- */
-async function updateCacheInBackground(request, cache) {
-  try {
+    // Fetch from network
     const networkResponse = await fetch(request);
+    
     if (networkResponse.ok) {
-      await cache.put(request, networkResponse.clone());
+        // Validate and cache successful responses
+        await validateResource(networkResponse.clone());
+        await cacheWithQuotaCheck(cache, request, networkResponse.clone(), 'STATIC');
     }
-  } catch (error) {
-    // 背景更新失敗不影響主要流程
-  }
+    
+    return networkResponse;
 }
 
 /**
- * 清理舊的快取 - 優化版本
+ * Network First Strategy - For dynamic content
+ */
+async function networkFirstStrategy(request) {
+    const cache = await caches.open(DYNAMIC_CACHE);
+    
+    try {
+        const networkResponse = await fetch(request);
+        
+        if (networkResponse.ok) {
+            // Cache successful responses with quota check
+            await cacheWithQuotaCheck(cache, request, networkResponse.clone(), 'DYNAMIC');
+        }
+        
+        return networkResponse;
+        
+    } catch (error) {
+        // Network failed, try cache
+        const cachedResponse = await cache.match(request);
+        
+        if (cachedResponse && await validateCachedResource(cachedResponse.clone())) {
+            return cachedResponse;
+        }
+        
+        throw error;
+    }
+}
+
+/**
+ * Stale While Revalidate Strategy - For runtime resources
+ */
+async function staleWhileRevalidateStrategy(request) {
+    const cache = await caches.open(RUNTIME_CACHE);
+    const cachedResponse = await cache.match(request);
+    
+    // Background fetch to update cache
+    const fetchPromise = fetch(request).then(async (response) => {
+        if (response.ok) {
+            await cacheWithQuotaCheck(cache, request, response.clone(), 'RUNTIME');
+        }
+        return response;
+    }).catch(error => {
+        console.warn('[SW] Background fetch failed:', error);
+    });
+    
+    // Return cached version immediately if available
+    if (cachedResponse && await validateCachedResource(cachedResponse.clone())) {
+        // Don't await the fetch promise - let it run in background
+        fetchPromise;
+        return cachedResponse;
+    }
+    
+    // No cached version, wait for network
+    return await fetchPromise;
+}
+
+/**
+ * Network Only Strategy - For uncacheable resources
+ */
+async function networkOnlyStrategy(request) {
+    return await fetch(request);
+}
+
+/**
+ * Enhanced cache storage with quota management
+ */
+async function cacheWithQuotaCheck(cache, request, response, quotaType) {
+    try {
+        // Check current cache size
+        const cacheSize = await getCacheSize(cache);
+        const responseSize = await getResponseSize(response.clone());
+        
+        if (cacheSize + responseSize > STORAGE_QUOTA[quotaType]) {
+            // Cleanup old entries to make space
+            await cleanupCacheByLRU(cache, responseSize);
+        }
+        
+        await cache.put(request, response);
+        
+    } catch (error) {
+        console.warn('[SW] Cache storage failed:', error);
+    }
+}
+
+/**
+ * Resource validation for security
+ */
+async function validateResource(response) {
+    // Check content type
+    const contentType = response.headers.get('content-type') || '';
+    
+    // Validate common resource types
+    if (contentType.includes('text/html') || 
+        contentType.includes('application/javascript') ||
+        contentType.includes('text/css')) {
+        
+        const content = await response.text();
+        
+        // Basic security checks
+        if (content.includes('<script>') && content.includes('eval(')) {
+            throw new Error('Potentially unsafe script content detected');
+        }
+    }
+    
+    return true;
+}
+
+/**
+ * Validate cached resource integrity
+ */
+async function validateCachedResource(response) {
+    try {
+        // Check if response is still valid
+        const cacheControl = response.headers.get('cache-control');
+        const expires = response.headers.get('expires');
+        
+        if (cacheControl && cacheControl.includes('no-cache')) {
+            return false;
+        }
+        
+        if (expires) {
+            const expiryDate = new Date(expires);
+            if (expiryDate < new Date()) {
+                return false;
+            }
+        }
+        
+        return true;
+        
+    } catch (error) {
+        console.warn('[SW] Cache validation failed:', error);
+        return false;
+    }
+}
+
+/**
+ * Enhanced offline fallback
+ */
+function getEnhancedOfflineFallback(request) {
+    // For navigation requests, return cached index.html
+    if (request.mode === 'navigate') {
+        return caches.open(STATIC_CACHE)
+            .then(cache => cache.match(`${BASE_PATH}/pwa-card-storage/index.html`))
+            .then(response => response || createOfflineResponse('text/html'));
+    }
+    
+    // For API requests, return structured error
+    if (request.url.includes('/api/')) {
+        return createOfflineResponse('application/json', {
+            error: 'Network unavailable',
+            offline: true,
+            timestamp: new Date().toISOString()
+        });
+    }
+    
+    // For other requests, return generic offline response
+    return createOfflineResponse('text/plain', 'Network unavailable');
+}
+
+/**
+ * Create offline response
+ */
+function createOfflineResponse(contentType, content = 'Offline') {
+    const body = typeof content === 'object' ? JSON.stringify(content) : content;
+    
+    return new Response(body, {
+        status: 503,
+        statusText: 'Service Unavailable',
+        headers: {
+            'Content-Type': `${contentType}; charset=utf-8`,
+            'Cache-Control': 'no-cache'
+        }
+    });
+}
+
+/**
+ * Storage quota management
+ */
+async function checkStorageQuota() {
+    if ('storage' in navigator && 'estimate' in navigator.storage) {
+        try {
+            const estimate = await navigator.storage.estimate();
+            const usedMB = Math.round(estimate.usage / 1024 / 1024);
+            const quotaMB = Math.round(estimate.quota / 1024 / 1024);
+            
+            console.log(`[SW] Storage: ${usedMB}MB used of ${quotaMB}MB quota`);
+            
+            // Warn if storage is getting full
+            if (estimate.usage / estimate.quota > 0.8) {
+                console.warn('[SW] Storage quota is 80% full, consider cleanup');
+                await optimizeCacheStorage();
+            }
+            
+        } catch (error) {
+            console.warn('[SW] Storage quota check failed:', error);
+        }
+    }
+}
+
+/**
+ * Clean up old caches
  */
 async function cleanupOldCaches() {
-  const cacheNames = await caches.keys();
-  const currentCaches = [STATIC_CACHE_NAME, DYNAMIC_CACHE_NAME, IMAGE_CACHE_NAME];
-  
-  const deletePromises = cacheNames
-    .filter(cacheName => !currentCaches.includes(cacheName))
-    .map(cacheName => {
-      return caches.delete(cacheName);
-    });
-  
-  const results = await Promise.allSettled(deletePromises);
-  const deletedCount = results.filter(r => r.status === 'fulfilled').length;
-  
-  return results;
+    const cacheNames = await caches.keys();
+    const deletePromises = cacheNames
+        .filter(cacheName => 
+            cacheName.startsWith('pwa-card-storage-') && 
+            !cacheName.includes(CACHE_VERSION)
+        )
+        .map(cacheName => {
+            console.log(`[SW] Deleting old cache: ${cacheName}`);
+            return caches.delete(cacheName);
+        });
+    
+    return Promise.all(deletePromises);
 }
 
 /**
- * 清理動態快取
+ * Optimize cache storage by removing old entries
  */
-async function cleanupDynamicCache() {
-  try {
-    const cache = await caches.open(DYNAMIC_CACHE_NAME);
+async function optimizeCacheStorage() {
+    const cacheNames = [STATIC_CACHE, DYNAMIC_CACHE, RUNTIME_CACHE];
+    
+    for (const cacheName of cacheNames) {
+        try {
+            const cache = await caches.open(cacheName);
+            await cleanupCacheByLRU(cache, 0, true);
+        } catch (error) {
+            console.warn(`[SW] Cache optimization failed for ${cacheName}:`, error);
+        }
+    }
+}
+
+/**
+ * Cleanup cache using LRU (Least Recently Used) strategy
+ */
+async function cleanupCacheByLRU(cache, requiredSpace = 0, forceCleanup = false) {
     const requests = await cache.keys();
     
-    // 保留最近 50 個請求
-    if (requests.length > 50) {
-      const toDelete = requests.slice(0, requests.length - 50);
-      await Promise.all(toDelete.map(request => cache.delete(request)));
-    }
-  } catch (error) {
-  }
-}
-
-/**
- * 判斷是否為靜態資源
- */
-function isStaticResource(request) {
-  const url = new URL(request.url);
-  
-  // PWA 核心檔案
-  if (url.pathname.includes('/pwa-card-storage/')) {
-    return url.pathname.endsWith('.html') ||
-           url.pathname.endsWith('.js') ||
-           url.pathname.endsWith('.css') ||
-           url.pathname.endsWith('.json');
-  }
-  
-  // 共用資源
-  if (url.pathname.includes('/assets/')) {
-    return true;
-  }
-  
-  // Google Fonts
-  if (url.hostname === 'fonts.googleapis.com') {
-    return true;
-  }
-  
-  return false;
-}
-
-/**
- * 判斷是否為動態資源
- */
-function isDynamicResource(request) {
-  const url = new URL(request.url);
-  
-  return DYNAMIC_CACHE_PATTERNS.some(pattern => 
-    pattern.test(request.url)
-  );
-}
-
-/**
- * 判斷是否為 API 請求
- */
-function isApiRequest(request) {
-  const url = new URL(request.url);
-  return url.pathname.startsWith('/api/') || 
-         url.pathname.includes('/api/');
-}
-
-/**
- * 背景同步事件
- */
-self.addEventListener('sync', (event) => {
-  
-  if (event.tag === 'card-sync') {
-    event.waitUntil(syncCards());
-  } else if (event.tag === 'health-check') {
-    event.waitUntil(performHealthCheck());
-  }
-});
-
-/**
- * 推送通知事件
- */
-self.addEventListener('push', (event) => {
-  
-  const options = {
-    body: event.data ? event.data.text() : '您有新的名片更新',
-    icon: `${BASE_PATH}/assets/moda-logo.svg`,
-    badge: `${BASE_PATH}/assets/moda-logo.svg`,
-    vibrate: [100, 50, 100],
-    data: {
-      dateOfArrival: Date.now(),
-      primaryKey: 1
-    },
-    actions: [
-      {
-        action: 'explore',
-        title: '查看',
-        icon: '/assets/icons/checkmark.png'
-      },
-      {
-        action: 'close',
-        title: '關閉',
-        icon: '/assets/icons/xmark.png'
-      }
-    ]
-  };
-  
-  event.waitUntil(
-    self.registration.showNotification('PWA 名片儲存', options)
-  );
-});
-
-/**
- * 通知點擊事件
- */
-self.addEventListener('notificationclick', (event) => {
-  
-  event.notification.close();
-  
-  if (event.action === 'explore') {
-    event.waitUntil(
-      clients.openWindow(`${BASE_PATH}/pwa-card-storage/`)
-    );
-  }
-});
-
-/**
- * 同步名片資料（背景同步）
- */
-async function syncCards() {
-  try {
+    if (requests.length === 0) return;
     
-    // 這裡可以實作與伺服器同步的邏輯
-    // 由於是純前端應用，這個功能暫時保留
+    // Sort by last access time (if available) or use FIFO
+    const sortedRequests = requests.sort((a, b) => {
+        // Simple FIFO cleanup - remove oldest entries first
+        return a.url.localeCompare(b.url);
+    });
     
-  } catch (error) {
-    console.error('[SW] Card sync failed:', error);
-  }
-}
-
-/**
- * 執行健康檢查（背景同步）
- */
-async function performHealthCheck() {
-  try {
+    let freedSpace = 0;
+    let deletedCount = 0;
+    const maxDeletions = forceCleanup ? Math.floor(requests.length * 0.3) : Math.floor(requests.length * 0.1);
     
-    // 檢查快取狀態
-    const cacheNames = await caches.keys();
-    const cacheStatus = {
-      totalCaches: cacheNames.length,
-      staticCacheExists: cacheNames.includes(STATIC_CACHE_NAME),
-      dynamicCacheExists: cacheNames.includes(DYNAMIC_CACHE_NAME)
-    };
-    
-    
-    // 檢查儲存空間
-    if ('storage' in navigator && 'estimate' in navigator.storage) {
-      const estimate = await navigator.storage.estimate();
+    for (const request of sortedRequests) {
+        if (deletedCount >= maxDeletions && freedSpace >= requiredSpace) {
+            break;
+        }
+        
+        try {
+            const response = await cache.match(request);
+            if (response) {
+                const size = await getResponseSize(response);
+                await cache.delete(request);
+                freedSpace += size;
+                deletedCount++;
+            }
+        } catch (error) {
+            console.warn('[SW] Failed to delete cache entry:', error);
+        }
     }
     
-  } catch (error) {
-    console.error('[SW] Health check failed:', error);
-  }
+    if (deletedCount > 0) {
+        console.log(`[SW] Cleaned up ${deletedCount} cache entries, freed ${Math.round(freedSpace / 1024)}KB`);
+    }
 }
 
 /**
- * 訊息處理 - 增強版本
+ * Get cache size estimation
+ */
+async function getCacheSize(cache) {
+    const requests = await cache.keys();
+    let totalSize = 0;
+    
+    for (const request of requests.slice(0, 10)) { // Sample first 10 for estimation
+        try {
+            const response = await cache.match(request);
+            if (response) {
+                totalSize += await getResponseSize(response);
+            }
+        } catch (error) {
+            // Ignore errors in size calculation
+        }
+    }
+    
+    // Estimate total size based on sample
+    return Math.round(totalSize * requests.length / Math.min(10, requests.length));
+}
+
+/**
+ * Get response size estimation
+ */
+async function getResponseSize(response) {
+    try {
+        const blob = await response.blob();
+        return blob.size;
+    } catch (error) {
+        // Fallback estimation based on content length header
+        const contentLength = response.headers.get('content-length');
+        return contentLength ? parseInt(contentLength, 10) : 1024; // Default 1KB
+    }
+}
+
+/**
+ * Message handling with enhanced features
  */
 self.addEventListener('message', (event) => {
-  
-  if (event.data && event.data.type) {
-    switch (event.data.type) {
-      case 'SKIP_WAITING':
-        self.skipWaiting();
-        break;
-        
-      case 'GET_VERSION':
-        event.ports[0].postMessage({ 
-          version: CACHE_NAME,
-          timestamp: Date.now(),
-          metrics: performanceMetrics
-        });
-        break;
-        
-      case 'GET_METRICS':
-        event.ports[0].postMessage({
-          metrics: performanceMetrics,
-          cacheNames: [STATIC_CACHE_NAME, DYNAMIC_CACHE_NAME, IMAGE_CACHE_NAME]
-        });
-        break;
-        
-      case 'CLEAR_CACHE':
-        clearAllCaches().then(() => {
-          // 重設效能指標
-          performanceMetrics = {
-            cacheHits: 0,
-            cacheMisses: 0,
-            staleHits: 0,
-            networkErrors: 0,
-            avgResponseTime: 0,
-            requestCount: 0
-          };
-          event.ports[0].postMessage({ success: true });
-        }).catch(error => {
-          event.ports[0].postMessage({ success: false, error: error.message });
-        });
-        break;
-        
-      case 'FORCE_UPDATE':
-        // 強制更新所有快取
-        forceUpdateCaches().then(() => {
-          event.ports[0].postMessage({ success: true });
-        }).catch(error => {
-          event.ports[0].postMessage({ success: false, error: error.message });
-        });
-        break;
-        
-      default:
+    if (event.data && event.data.type) {
+        switch (event.data.type) {
+            case 'SKIP_WAITING':
+                self.skipWaiting();
+                break;
+                
+            case 'GET_VERSION':
+                event.ports[0].postMessage({
+                    version: CACHE_VERSION,
+                    basePath: BASE_PATH,
+                    platform: getPlatformInfo(),
+                    features: ['enhanced-caching', 'quota-management', 'resource-validation'],
+                    cacheStrategies: ['cache-first', 'network-first', 'stale-while-revalidate']
+                });
+                break;
+                
+            case 'CLEAR_CACHE':
+                clearAllCaches().then(() => {
+                    event.ports[0].postMessage({ success: true });
+                }).catch(error => {
+                    event.ports[0].postMessage({ success: false, error: error.message });
+                });
+                break;
+                
+            case 'GET_CACHE_STATUS':
+                getCacheStatus().then(status => {
+                    event.ports[0].postMessage({ success: true, status });
+                }).catch(error => {
+                    event.ports[0].postMessage({ success: false, error: error.message });
+                });
+                break;
+                
+            case 'OPTIMIZE_STORAGE':
+                optimizeCacheStorage().then(() => {
+                    event.ports[0].postMessage({ success: true, message: 'Storage optimized' });
+                }).catch(error => {
+                    event.ports[0].postMessage({ success: false, error: error.message });
+                });
+                break;
+        }
     }
-  }
 });
 
 /**
- * 強制更新所有快取
+ * Get comprehensive cache status
  */
-async function forceUpdateCaches() {
-  
-  // 清除現有快取
-  await Promise.all([
-    caches.delete(STATIC_CACHE_NAME),
-    caches.delete(DYNAMIC_CACHE_NAME),
-    caches.delete(IMAGE_CACHE_NAME)
-  ]);
-  
-  // 重新快取靜態資源
-  await cacheResourcesBatch(CORE_RESOURCES, STATIC_CACHE_NAME, '核心資源');
-  await cacheResourcesBatch(STYLE_RESOURCES, STATIC_CACHE_NAME, '樣式資源');
-  await cacheResourcesBatch(EXTERNAL_RESOURCES, STATIC_CACHE_NAME, '外部資源');
-  await cacheResourcesBatch(FONT_RESOURCES, STATIC_CACHE_NAME, '字體資源', true);
-  
-}
-
-/**
- * PWA-14: Secure Service Worker Implementation
- * 添加增強的安全標頭與快取完整性驗證
- */
-function addSecurityHeaders(response, request) {
-  if (!response) {
-    return new Response('Resource not found', {
-      status: 404,
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-    });
-  }
-  
-  const url = new URL(request.url);
-  const headers = new Headers(response.headers);
-  
-  // 驗證快取完整性
-  if (!validateCacheIntegrity(response, request)) {
-    return createSecurityErrorResponse('Cache integrity validation failed');
-  }
-  
-  // 嚴格的 CSP 標頭（PWA 優化）
-  if (url.pathname.endsWith('.html') || request.mode === 'navigate') {
-    headers.set('Content-Security-Policy', 
-      "default-src 'self'; " +
-      "script-src 'self' 'unsafe-inline' https://unpkg.com; " +
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-      "font-src 'self' https://fonts.gstatic.com; " +
-      "img-src 'self' data: https:; " +
-      "connect-src 'self' https:; " +
-      "worker-src 'self'; " +
-      "manifest-src 'self'; " +
-      "object-src 'none'; " +
-      "base-uri 'self'; " +
-      "form-action 'self'; " +
-      "frame-ancestors 'none'; " +
-      "upgrade-insecure-requests"
-    );
-  }
-  
-  // PWA 安全標頭
-  headers.set('X-Content-Type-Options', 'nosniff');
-  headers.set('X-Frame-Options', 'DENY');
-  headers.set('X-XSS-Protection', '1; mode=block');
-  headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  headers.set('Permissions-Policy', buildPermissionsPolicy());
-  headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
-  headers.set('Cross-Origin-Opener-Policy', 'same-origin');
-  headers.set('Cross-Origin-Resource-Policy', 'same-origin');
-  
-  // HTTPS 強制（生產環境）
-  if (url.protocol === 'https:') {
-    headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
-  }
-  
-  // 快取控制
-  if (isStaticResource(request)) {
-    headers.set('Cache-Control', 'public, max-age=31536000, immutable');
-  } else {
-    headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-  }
-  
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers
-  });
-}
-
-/**
- * 建構權限政策
- */
-function buildPermissionsPolicy() {
-  const policies = [
-    'camera=()',
-    'microphone=()',
-    'geolocation=()',
-    'payment=()',
-    'usb=()',
-    'bluetooth=()',
-    'accelerometer=()',
-    'gyroscope=()',
-    'autoplay=(self)',
-    'encrypted-media=(self)',
-    'fullscreen=(self)'
-  ];
-  return policies.join(', ');
-}
-
-/**
- * 驗證快取完整性
- */
-function validateCacheIntegrity(response, request) {
-  try {
-    // 檢查回應狀態
-    if (!response.ok && response.status !== 304) {
-      return false;
+async function getCacheStatus() {
+    const cacheNames = await caches.keys();
+    const status = {
+        caches: {},
+        totalSize: 0,
+        quota: null
+    };
+    
+    for (const cacheName of cacheNames) {
+        if (cacheName.includes('pwa-card-storage')) {
+            const cache = await caches.open(cacheName);
+            const requests = await cache.keys();
+            const size = await getCacheSize(cache);
+            
+            status.caches[cacheName] = {
+                entries: requests.length,
+                estimatedSize: size
+            };
+            status.totalSize += size;
+        }
     }
     
-    // 檢查內容類型
-    const contentType = response.headers.get('content-type');
-    if (contentType && !isAllowedContentType(contentType)) {
-      return false;
+    // Get storage quota if available
+    if ('storage' in navigator && 'estimate' in navigator.storage) {
+        try {
+            status.quota = await navigator.storage.estimate();
+        } catch (error) {
+            // Quota information not available
+        }
     }
     
-    // 檢查回應大小（防止過大的回應）
-    const contentLength = response.headers.get('content-length');
-    if (contentLength && parseInt(contentLength) > 50 * 1024 * 1024) { // 50MB 限制
-      return false;
-    }
+    return status;
+}
+
+/**
+ * Get platform information
+ */
+function getPlatformInfo() {
+    const { hostname } = self.location;
     
-    return true;
-  } catch (error) {
-    return false;
-  }
+    if (hostname.includes('.github.io')) return 'GitHub Pages';
+    if (hostname.includes('.pages.dev')) return 'Cloudflare Pages';
+    if (hostname.includes('.netlify.app')) return 'Netlify';
+    if (hostname.includes('.vercel.app')) return 'Vercel';
+    if (hostname === 'localhost' || hostname === '127.0.0.1') return 'Local Development';
+    
+    return 'Unknown Platform';
 }
 
 /**
- * 檢查允許的內容類型
- */
-function isAllowedContentType(contentType) {
-  const allowedTypes = [
-    'text/html',
-    'text/css',
-    'application/javascript',
-    'text/javascript',
-    'application/json',
-    'image/',
-    'font/',
-    'application/manifest+json'
-  ];
-  
-  return allowedTypes.some(type => contentType.startsWith(type));
-}
-
-/**
- * 創建安全錯誤回應
- */
-function createSecurityErrorResponse(message) {
-  return new Response(JSON.stringify({
-    error: 'Security Error',
-    message: message,
-    timestamp: new Date().toISOString()
-  }), {
-    status: 403,
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Content-Type-Options': 'nosniff'
-    }
-  });
-}
-
-/**
- * 清除所有快取
+ * Clear all caches
  */
 async function clearAllCaches() {
-  const cacheNames = await caches.keys();
-  const deletePromises = cacheNames.map(cacheName => caches.delete(cacheName));
-  return Promise.all(deletePromises);
+    const cacheNames = await caches.keys();
+    const deletePromises = cacheNames
+        .filter(cacheName => cacheName.includes('pwa-card-storage'))
+        .map(cacheName => caches.delete(cacheName));
+    return Promise.all(deletePromises);
 }
 
 /**
- * 錯誤處理
+ * Enhanced error handling
  */
 self.addEventListener('error', (event) => {
-  console.error('[SW] Service worker error:', event.error);
+    console.error('[SW] Service worker error:', event.error);
+    
+    // Report critical errors to clients
+    self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+            client.postMessage({
+                type: 'SW_ERROR',
+                error: event.error.message,
+                timestamp: new Date().toISOString()
+            });
+        });
+    });
 });
 
 self.addEventListener('unhandledrejection', (event) => {
-  console.error('[SW] Unhandled promise rejection:', event.reason);
+    console.error('[SW] Unhandled promise rejection:', event.reason);
+    
+    // Report unhandled rejections
+    self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+            client.postMessage({
+                type: 'SW_UNHANDLED_REJECTION',
+                reason: event.reason.toString(),
+                timestamp: new Date().toISOString()
+            });
+        });
+    });
 });
 
-// 定期報告效能指標
-setInterval(() => {
-  // Performance metrics collection removed for security
-}, 5 * 60 * 1000); // 每5分鐘報告一次
-
+console.log('[SW] Standardized Service Worker loaded successfully');
+console.log('[SW] Platform:', getPlatformInfo());
+console.log('[SW] Base Path:', BASE_PATH);
+console.log('[SW] Cache Strategies: Cache-First, Network-First, Stale-While-Revalidate');
+console.log('[SW] Features: Enhanced caching, quota management, resource validation');

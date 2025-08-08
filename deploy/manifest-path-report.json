@@ -1,0 +1,77 @@
+{
+  "timestamp": "2025-08-07T02:51:10.418Z",
+  "task": "RESOURCE-03: Manifest檔案路徑修復",
+  "summary": {
+    "processed": 2,
+    "errors": 0,
+    "warnings": 0
+  },
+  "details": {
+    "processed": [
+      {
+        "file": "manifest.json",
+        "pathsUpdated": 1,
+        "resourceChecks": [
+          {
+            "exists": true,
+            "size": 271,
+            "hash": "sha384-IlyvlOw1liZygO4MgrqmJa5eTXsvovsAlkTr3hfwsTYlEt8cMiKc73DcekN9MeQB",
+            "path": "./assets/icons/icon-32x32.png"
+          },
+          {
+            "exists": true,
+            "size": 1248,
+            "hash": "sha384-LyRPqzy5e+yvNB4BZc3+kvc+8ArSAjR3u+K1Nm41iZu0bprR4N3/oXrDgI9BD5Sc",
+            "path": "./assets/icons/icon-192x192.png"
+          },
+          {
+            "exists": true,
+            "size": 2712,
+            "hash": "sha384-mf/HUs/CH7LPb6/VuIjKpHbOAVLe9bpQgpJcKJ7cezfL0hHhoEydgCIa/wMx/0Lz",
+            "path": "./assets/icons/icon-512x512.png"
+          },
+          {
+            "exists": true,
+            "size": 11104,
+            "hash": "sha384-i+WizDwMfwBnStKW3VQ2Wl8rwVE6lCTA7+Vc4PP4c+Ab6sMPy/vUhJVcJwHICnR8",
+            "path": "./assets/images/moda-logo.svg"
+          }
+        ],
+        "backupPath": "/Users/shengfanwu/GitHub/DB-Card/deploy/backups/manifest.json.2025-08-07T02-51-10-414Z.backup"
+      },
+      {
+        "file": "manifest-github.json",
+        "pathsUpdated": 1,
+        "resourceChecks": [
+          {
+            "exists": true,
+            "size": 271,
+            "hash": "sha384-IlyvlOw1liZygO4MgrqmJa5eTXsvovsAlkTr3hfwsTYlEt8cMiKc73DcekN9MeQB",
+            "path": "./assets/icons/icon-32x32.png"
+          },
+          {
+            "exists": true,
+            "size": 1248,
+            "hash": "sha384-LyRPqzy5e+yvNB4BZc3+kvc+8ArSAjR3u+K1Nm41iZu0bprR4N3/oXrDgI9BD5Sc",
+            "path": "./assets/icons/icon-192x192.png"
+          },
+          {
+            "exists": true,
+            "size": 2712,
+            "hash": "sha384-mf/HUs/CH7LPb6/VuIjKpHbOAVLe9bpQgpJcKJ7cezfL0hHhoEydgCIa/wMx/0Lz",
+            "path": "./assets/icons/icon-512x512.png"
+          },
+          {
+            "exists": true,
+            "size": 11104,
+            "hash": "sha384-i+WizDwMfwBnStKW3VQ2Wl8rwVE6lCTA7+Vc4PP4c+Ab6sMPy/vUhJVcJwHICnR8",
+            "path": "./assets/images/moda-logo.svg"
+          }
+        ],
+        "backupPath": "/Users/shengfanwu/GitHub/DB-Card/deploy/backups/manifest-github.json.2025-08-07T02-51-10-417Z.backup"
+      }
+    ],
+    "errors": [],
+    "warnings": []
+  }
+}

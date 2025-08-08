@@ -1,0 +1,69 @@
+{
+  "platform": "github-pages",
+  "version": "v3.2.0-pwa-deployment-compatibility",
+  "generated": "2025-08-07T04:37:08.115Z",
+  "environment": "production",
+  "basePath": "/DB-Card/pwa-card-storage",
+  "publicPath": "/DB-Card/pwa-card-storage/",
+  "assetPath": "./assets/",
+  "features": {
+    "serviceWorker": true,
+    "offlineSupport": true,
+    "pushNotifications": false,
+    "backgroundSync": false,
+    "periodicSync": false
+  },
+  "security": {
+    "level": "standard",
+    "csp": {
+      "enabled": true,
+      "reportOnly": false,
+      "directives": {
+        "default-src": [
+          "'self'"
+        ],
+        "script-src": [
+          "'self'",
+          "'unsafe-inline'"
+        ],
+        "style-src": [
+          "'self'",
+          "'unsafe-inline'",
+          "fonts.googleapis.com"
+        ],
+        "font-src": [
+          "'self'",
+          "fonts.gstatic.com"
+        ],
+        "img-src": [
+          "'self'",
+          "data:",
+          "https:"
+        ],
+        "connect-src": [
+          "'self'"
+        ]
+      }
+    },
+    "headers": {
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "X-XSS-Protection": "1; mode=block"
+    }
+  },
+  "cache": {
+    "strategy": "cache-first",
+    "maxAge": 86400,
+    "resources": [
+      "assets/",
+      "src/",
+      "config/"
+    ]
+  },
+  "deployment": {
+    "buildCommand": "npm run build",
+    "outputDir": "dist",
+    "customDomain": false,
+    "httpsOnly": true
+  }
+}

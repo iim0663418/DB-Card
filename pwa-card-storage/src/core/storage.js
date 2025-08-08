@@ -210,8 +210,8 @@ class PWACardStorage {
       }
       
       // Initialize health monitor
-      if (window.ClientSideSecurityHealthMonitor) {
-        this.healthMonitor = new window.ClientSideSecurityHealthMonitor();
+      if (window.HealthManager) {
+        this.healthMonitor = new window.HealthManager(this);
       }
       
       // SEC-04: Initialize graceful degradation

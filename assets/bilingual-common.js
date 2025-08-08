@@ -676,7 +676,7 @@ function initializePage() {
             
             // 設定 PWA 按鈕功能
             if (typeof setupPWASaveButton === 'function') {
-                setupPWASaveButton();
+                setupPWASaveButton(currentData);
             }
             
         } catch (error) {

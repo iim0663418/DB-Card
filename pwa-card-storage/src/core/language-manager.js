@@ -765,9 +765,24 @@ class LanguageManager {
   }
 
   /**
-   * 獲取翻譯文字
+   * 獲取翻譯文字 - 整合 SafeTranslationHandler with recursion guard
    */
   getText(key, lang = null, options = {}) {
+    // Recursion guard to prevent infinite loop
+    if (options._fromSafeHandler) {
+      // Skip SafeTranslationHandler to prevent circular dependency
+    } else if (window.SafeTranslationHandler) {
+      try {
+        const result = window.SafeTranslationHandler.getTranslation(key, lang || this.currentLanguage, { ...options, _fromSafeHandler: true });
+        if (result && result !== key) {
+          return result;
+        }
+      } catch (error) {
+        console.warn('[LanguageManager] SafeTranslationHandler failed, using fallback:', error);
+      }
+    }
+
+    // 原有邏輯作為備用
     // Input validation and sanitization for security
     if (typeof key !== 'string' || key.trim() === '') {
       console.warn('[LanguageManager] Invalid translation key:', key);
@@ -1142,20 +1157,75 @@ class LanguageManager {
   }
 
   /**
-   * 更新篩選選擇器
+   * TRANS-004: 更新篩選選擇器 - 使用配置化翻譯鍵值
+   * 重構硬編碼陣列為動態配置管理
    */
   updateFilterSelect() {
     const filterSelect = document.getElementById('card-filter');
-    if (filterSelect) {
+    if (!filterSelect) {
+      return;
+    }
+
+    try {
       const options = filterSelect.querySelectorAll('option');
-      const keys = ['allTypes', 'cardTypes.index', 'cardTypes.index1', 'cardTypes.personal', 'cardTypes.bilingual', 'cardTypes.bilingual1', 'cardTypes.personal-bilingual', 'cardTypes.en', 'cardTypes.en1', 'cardTypes.personal-en'];
       
+      // TRANS-004: 使用 TRANSLATION_KEYS 配置替代硬編碼陣列
+      let keys;
+      if (window.TRANSLATION_KEYS && window.TRANSLATION_KEYS.FILTER_OPTIONS) {
+        keys = window.TRANSLATION_KEYS.FILTER_OPTIONS;
+      } else {
+        // 備用方案：使用內建配置
+        keys = this._getFilterOptionsKeys();
+      }
+      
+      // 驗證鍵值格式（安全檢查）
+      if (window.TranslationKeysValidator) {
+        const validation = window.TranslationKeysValidator.validateKeysArray(keys);
+        if (!validation.isValid) {
+          console.warn('[LanguageManager] Invalid filter keys detected:', validation.error);
+          // 使用備用鍵值
+          keys = this._getFilterOptionsKeys();
+        }
+      }
+      
+      // 更新選項文字
       options.forEach((option, index) => {
-        if (keys[index]) {
-          option.textContent = this.getText(keys[index]);
+        if (index < keys.length && keys[index]) {
+          try {
+            const translatedText = this.getText(keys[index]);
+            option.textContent = translatedText;
+          } catch (error) {
+            console.warn(`[LanguageManager] Failed to translate key "${keys[index]}":`, error);
+            // 使用鍵值作為備用顯示
+            option.textContent = keys[index];
+          }
         }
       });
+      
+    } catch (error) {
+      console.error('[LanguageManager] updateFilterSelect failed:', error);
+      // 靜默失敗，不影響其他功能
     }
+  }
+
+  /**
+   * TRANS-004: 獲取篩選選項鍵值的備用方法
+   * @private
+   * @returns {Array<string>} 篩選選項翻譯鍵值陣列
+   */
+  _getFilterOptionsKeys() {
+    return [
+      'allTypes',
+      'cardTypes.index',
+      'cardTypes.index1',
+      'cardTypes.personal',
+      'cardTypes.bilingual',
+      'cardTypes.bilingual1',
+      'cardTypes.personal-bilingual',
+      'cardTypes.en',
+      'cardTypes.en1',
+      'cardTypes.personal-en'
+    ];
   }
 
   /**

@@ -1,0 +1,639 @@
+{
+  "timestamp": "2025-08-08T06:57:32.042Z",
+  "summary": {
+    "totalIssues": 60,
+    "totalFixes": 8,
+    "severityBreakdown": {
+      "Critical": 59,
+      "High": 1,
+      "Medium": 0,
+      "Low": 0
+    },
+    "fileBreakdown": {
+      "config/deployment-validator.js": 1,
+      "deploy/path-audit.js": 3,
+      "deploy/path-auditor.js": 3,
+      "deploy/resource-copier.js": 4,
+      "src/core/deployment-validator.js": 4,
+      "src/core/path-auditor.js": 2,
+      "src/core/pwa-integrator.js": 3,
+      "src/core/resource-manager.js": 18,
+      "src/ui/components/version-management-interface.js": 6,
+      "src/utils/fix-generator.js": 1,
+      "src/utils/resource-copier.js": 15
+    }
+  },
+  "issues": [
+    {
+      "file": "config/deployment-validator.js",
+      "line": 63,
+      "column": 38,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "success: !resource.includes('../') // 通過如果沒有向上引用",
+      "severity": "Critical"
+    },
+    {
+      "file": "deploy/path-audit.js",
+      "line": 74,
+      "column": 53,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "columnNumber: line.indexOf('../'),",
+      "severity": "Critical"
+    },
+    {
+      "file": "deploy/path-audit.js",
+      "line": 144,
+      "column": 26,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "source: './assets/',",
+      "severity": "Critical"
+    },
+    {
+      "file": "deploy/path-audit.js",
+      "line": 146,
+      "column": 33,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "command: 'cp -r ./assets/* ./assets/',",
+      "severity": "Critical"
+    },
+    {
+      "file": "deploy/path-auditor.js",
+      "line": 11,
+      "column": 45,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "this.rootDir = path.resolve(__dirname, '../');",
+      "severity": "Critical"
+    },
+    {
+      "file": "deploy/path-auditor.js",
+      "line": 294,
+      "column": 48,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "description: 'Use ./assets/ instead of ./assets/ for static hosting compatibility'",
+      "severity": "Critical"
+    },
+    {
+      "file": "deploy/path-auditor.js",
+      "line": 324,
+      "column": 30,
+      "pattern": "file:\\/\\/",
+      "matchedText": "file://",
+      "fullLine": "if (filePath.startsWith('file://') || filePath.startsWith('ftp://')) {",
+      "severity": "High"
+    },
+    {
+      "file": "deploy/resource-copier.js",
+      "line": 11,
+      "column": 48,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "this.sourceRoot = path.resolve(__dirname, '../../');",
+      "severity": "Critical"
+    },
+    {
+      "file": "deploy/resource-copier.js",
+      "line": 11,
+      "column": 51,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "this.sourceRoot = path.resolve(__dirname, '../../');",
+      "severity": "Critical"
+    },
+    {
+      "file": "deploy/resource-copier.js",
+      "line": 11,
+      "column": 50,
+      "pattern": "\\/\\.\\.\\/",
+      "matchedText": "/../",
+      "fullLine": "this.sourceRoot = path.resolve(__dirname, '../../');",
+      "severity": "Critical"
+    },
+    {
+      "file": "deploy/resource-copier.js",
+      "line": 12,
+      "column": 48,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "this.targetRoot = path.resolve(__dirname, '../');",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/deployment-validator.js",
+      "line": 13,
+      "column": 36,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "import { PlatformValidator } from '../utils/platform-validator.js';",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/deployment-validator.js",
+      "line": 14,
+      "column": 36,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "import { SecurityValidator } from '../utils/security-validator.js';",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/deployment-validator.js",
+      "line": 15,
+      "column": 39,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "import { PerformanceValidator } from '../utils/performance-validator.js';",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/deployment-validator.js",
+      "line": 16,
+      "column": 34,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "import { ReportGenerator } from '../utils/report-generator.js';",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/path-auditor.js",
+      "line": 9,
+      "column": 47,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "import { scanFiles, getScanStatistics } from '../utils/path-scanner.js';",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/path-auditor.js",
+      "line": 10,
+      "column": 70,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "import { generateFixes, generateFixScript, generateFixReport } from '../utils/fix-generator.js';",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/pwa-integrator.js",
+      "line": 10,
+      "column": 51,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "import { securityCore, initializeSecurity } from '../security/security-core.js';",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/pwa-integrator.js",
+      "line": 12,
+      "column": 39,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "import { ServiceWorkerManager } from '../utils/service-worker-manager.js';",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/pwa-integrator.js",
+      "line": 13,
+      "column": 34,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "import { ManifestManager } from '../utils/manifest-manager.js';",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/resource-manager.js",
+      "line": 10,
+      "column": 33,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "import { ResourceCopier } from '../utils/resource-copier.js';",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/resource-manager.js",
+      "line": 11,
+      "column": 31,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "import { SRIGenerator } from '../utils/sri-generator.js';",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/resource-manager.js",
+      "line": 12,
+      "column": 35,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "import { ResourceManifest } from '../utils/resource-manifest.js';",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/resource-manager.js",
+      "line": 79,
+      "column": 26,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "source: '.././assets/moda-logo.svg',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/resource-manager.js",
+      "line": 79,
+      "column": 29,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "source: '.././assets/moda-logo.svg',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/resource-manager.js",
+      "line": 79,
+      "column": 28,
+      "pattern": "\\/\\.\\.\\/",
+      "matchedText": "/../",
+      "fullLine": "source: '.././assets/moda-logo.svg',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/resource-manager.js",
+      "line": 85,
+      "column": 26,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "source: '.././assets/bilingual-common.js',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/resource-manager.js",
+      "line": 85,
+      "column": 29,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "source: '.././assets/bilingual-common.js',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/resource-manager.js",
+      "line": 85,
+      "column": 28,
+      "pattern": "\\/\\.\\.\\/",
+      "matchedText": "/../",
+      "fullLine": "source: '.././assets/bilingual-common.js',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/resource-manager.js",
+      "line": 91,
+      "column": 26,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "source: '.././assets/offline-qr-enhancement.js',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/resource-manager.js",
+      "line": 91,
+      "column": 29,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "source: '.././assets/offline-qr-enhancement.js',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/resource-manager.js",
+      "line": 91,
+      "column": 28,
+      "pattern": "\\/\\.\\.\\/",
+      "matchedText": "/../",
+      "fullLine": "source: '.././assets/offline-qr-enhancement.js',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/resource-manager.js",
+      "line": 97,
+      "column": 26,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "source: '.././assets/high-accessibility.css',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/resource-manager.js",
+      "line": 97,
+      "column": 29,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "source: '.././assets/high-accessibility.css',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/resource-manager.js",
+      "line": 97,
+      "column": 28,
+      "pattern": "\\/\\.\\.\\/",
+      "matchedText": "/../",
+      "fullLine": "source: '.././assets/high-accessibility.css',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/resource-manager.js",
+      "line": 119,
+      "column": 39,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "const examplePhotoPath = '.././assets/wu_sheng_fan/photo.jpg';",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/resource-manager.js",
+      "line": 119,
+      "column": 42,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "const examplePhotoPath = '.././assets/wu_sheng_fan/photo.jpg';",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/core/resource-manager.js",
+      "line": 119,
+      "column": 41,
+      "pattern": "\\/\\.\\.\\/",
+      "matchedText": "/../",
+      "fullLine": "const examplePhotoPath = '.././assets/wu_sheng_fan/photo.jpg';",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/ui/components/version-management-interface.js",
+      "line": 6,
+      "column": 29,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "import { modaDesign } from '../../core/moda-design-integration.js';",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/ui/components/version-management-interface.js",
+      "line": 6,
+      "column": 32,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "import { modaDesign } from '../../core/moda-design-integration.js';",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/ui/components/version-management-interface.js",
+      "line": 6,
+      "column": 31,
+      "pattern": "\\/\\.\\.\\/",
+      "matchedText": "/../",
+      "fullLine": "import { modaDesign } from '../../core/moda-design-integration.js';",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/ui/components/version-management-interface.js",
+      "line": 7,
+      "column": 36,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "import { languageOptimizer } from '../../core/language-performance-optimizer.js';",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/ui/components/version-management-interface.js",
+      "line": 7,
+      "column": 39,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "import { languageOptimizer } from '../../core/language-performance-optimizer.js';",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/ui/components/version-management-interface.js",
+      "line": 7,
+      "column": 38,
+      "pattern": "\\/\\.\\.\\/",
+      "matchedText": "/../",
+      "fullLine": "import { languageOptimizer } from '../../core/language-performance-optimizer.js';",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/utils/fix-generator.js",
+      "line": 9,
+      "column": 29,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "import { loadConfig } from '../core/config-manager.js';",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/utils/resource-copier.js",
+      "line": 165,
+      "column": 14,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "'.././assets/moda-logo.svg',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/utils/resource-copier.js",
+      "line": 165,
+      "column": 17,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "'.././assets/moda-logo.svg',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/utils/resource-copier.js",
+      "line": 165,
+      "column": 16,
+      "pattern": "\\/\\.\\.\\/",
+      "matchedText": "/../",
+      "fullLine": "'.././assets/moda-logo.svg',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/utils/resource-copier.js",
+      "line": 166,
+      "column": 14,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "'.././assets/bilingual-common.js',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/utils/resource-copier.js",
+      "line": 166,
+      "column": 17,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "'.././assets/bilingual-common.js',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/utils/resource-copier.js",
+      "line": 166,
+      "column": 16,
+      "pattern": "\\/\\.\\.\\/",
+      "matchedText": "/../",
+      "fullLine": "'.././assets/bilingual-common.js',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/utils/resource-copier.js",
+      "line": 167,
+      "column": 14,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "'.././assets/offline-qr-enhancement.js',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/utils/resource-copier.js",
+      "line": 167,
+      "column": 17,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "'.././assets/offline-qr-enhancement.js',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/utils/resource-copier.js",
+      "line": 167,
+      "column": 16,
+      "pattern": "\\/\\.\\.\\/",
+      "matchedText": "/../",
+      "fullLine": "'.././assets/offline-qr-enhancement.js',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/utils/resource-copier.js",
+      "line": 168,
+      "column": 14,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "'.././assets/high-accessibility.css',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/utils/resource-copier.js",
+      "line": 168,
+      "column": 17,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "'.././assets/high-accessibility.css',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/utils/resource-copier.js",
+      "line": 168,
+      "column": 16,
+      "pattern": "\\/\\.\\.\\/",
+      "matchedText": "/../",
+      "fullLine": "'.././assets/high-accessibility.css',",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/utils/resource-copier.js",
+      "line": 169,
+      "column": 14,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "'.././assets/wu_sheng_fan/photo.jpg'",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/utils/resource-copier.js",
+      "line": 169,
+      "column": 17,
+      "pattern": "\\.\\.\\/",
+      "matchedText": "../",
+      "fullLine": "'.././assets/wu_sheng_fan/photo.jpg'",
+      "severity": "Critical"
+    },
+    {
+      "file": "src/utils/resource-copier.js",
+      "line": 169,
+      "column": 16,
+      "pattern": "\\/\\.\\.\\/",
+      "matchedText": "/../",
+      "fullLine": "'.././assets/wu_sheng_fan/photo.jpg'",
+      "severity": "Critical"
+    }
+  ],
+  "fixes": [
+    {
+      "file": "deploy/path-audit.js",
+      "type": "path_replacement",
+      "pattern": "\\.\\.\\/assets\\/",
+      "replacement": "./assets/",
+      "description": "Replace \\.\\.\\/assets\\/ with ./assets/"
+    },
+    {
+      "file": "deploy/path-audit.js",
+      "type": "file_update",
+      "action": "write_fixed_content",
+      "content": "/**\n * Path Audit Tool - v3.2.0-pwa-deployment-compatibility\n * 掃描並修復硬編碼路徑問題\n */\n\nclass PathAuditor {\n    constructor() {\n        this.patterns = {\n            upwardReference: /\\.\\.\\//g,\n            assetPath: /\\/assets\\/[^\\s\"']+/g,\n            srcPath: /\\/src\\/[^\\s\"']+/g,\n            manifestIcon: /\"src\":\\s*\"[^\"]*\\.\\.\\//g,\n            relativeAsset: /href=\"\\.\\/assets\\//g,\n            relativeSrc: /src=\"\\.\\/assets\\//g\n        };\n        \n        this.results = {\n            totalFiles: 0,\n            affectedFiles: [],\n            pathIssues: [],\n            fixSuggestions: [],\n            summary: {\n                upwardReferences: 0,\n                hardcodedPaths: 0,\n                manifestIssues: 0,\n                relativeIssues: 0\n            }\n        };\n    }\n\n    /**\n     * 執行路徑審計\n     */\n    async auditProject() {\n        console.log('[Path Audit] Starting project audit...');\n        \n        // 掃描 HTML 檔案\n        await this.scanFile('index.html', 'html');\n        \n        // 掃描 Manifest 檔案\n        await this.scanFile('manifest.json', 'json');\n        await this.scanFile('manifest-github.json', 'json');\n        \n        // 掃描 Service Worker\n        await this.scanFile('sw.js', 'js');\n        \n        // 生成修復建議\n        this.generateFixSuggestions();\n        \n        return this.results;\n    }\n\n    /**\n     * 掃描單一檔案\n     */\n    async scanFile(filePath, fileType) {\n        try {\n            const response = await fetch(filePath);\n            if (!response.ok) {\n                console.warn(`[Path Audit] Cannot read ${filePath}: ${response.status}`);\n                return;\n            }\n            \n            const content = await response.text();\n            const lines = content.split('\\n');\n            const issues = [];\n            \n            lines.forEach((line, index) => {\n                // 檢查向上引用\n                const upwardMatches = line.match(this.patterns.upwardReference);\n                if (upwardMatches) {\n                    issues.push({\n                        lineNumber: index + 1,\n                        columnNumber: line.indexOf('../'),\n                        issueType: 'upward-reference',\n                        originalPath: upwardMatches[0],\n                        suggestedPath: this.fixUpwardReference(upwardMatches[0]),\n                        severity: 'critical'\n                    });\n                    this.results.summary.upwardReferences++;\n                }\n                \n                // 檢查相對路徑問題\n                const relativeAssetMatches = line.match(this.patterns.relativeAsset);\n                if (relativeAssetMatches) {\n                    issues.push({\n                        lineNumber: index + 1,\n                        columnNumber: line.indexOf('./assets/'),\n                        issueType: 'relative-asset-path',\n                        originalPath: relativeAssetMatches[0],\n                        suggestedPath: relativeAssetMatches[0].replace('./assets/', 'assets/'),\n                        severity: 'medium'\n                    });\n                    this.results.summary.relativeIssues++;\n                }\n                \n                const relativeSrcMatches = line.match(this.patterns.relativeSrc);\n                if (relativeSrcMatches) {\n                    issues.push({\n                        lineNumber: index + 1,\n                        columnNumber: line.indexOf('./assets/'),\n                        issueType: 'relative-src-path',\n                        originalPath: relativeSrcMatches[0],\n                        suggestedPath: relativeSrcMatches[0].replace('./assets/', 'assets/'),\n                        severity: 'medium'\n                    });\n                    this.results.summary.relativeIssues++;\n                }\n            });\n            \n            if (issues.length > 0) {\n                this.results.affectedFiles.push({\n                    filePath,\n                    fileType,\n                    issues\n                });\n                this.results.pathIssues.push(...issues);\n            }\n            \n            this.results.totalFiles++;\n            \n        } catch (error) {\n            console.error(`[Path Audit] Error scanning ${filePath}:`, error);\n        }\n    }\n\n    /**\n     * 修復向上引用\n     */\n    fixUpwardReference(path) {\n        return path.replace(/\\.\\.\\//g, '');\n    }\n\n    /**\n     * 生成修復建議\n     */\n    generateFixSuggestions() {\n        const suggestions = [];\n        \n        // 資源複製建議\n        if (this.results.summary.upwardReferences > 0) {\n            suggestions.push({\n                action: 'copy-resource',\n                source: './assets/',\n                target: './assets/',\n                command: 'cp -r ./assets/* ./assets/',\n                description: '複製根目錄資源到 PWA 目錄'\n            });\n        }\n        \n        // 路徑更新建議\n        this.results.pathIssues.forEach(issue => {\n            if (issue.issueType === 'upward-reference') {\n                suggestions.push({\n                    action: 'update-path',\n                    source: issue.originalPath,\n                    target: issue.suggestedPath,\n                    command: `sed -i 's|${issue.originalPath}|${issue.suggestedPath}|g' ${this.results.affectedFiles.find(f => f.issues.includes(issue))?.filePath}`,\n                    description: `更新 ${issue.originalPath} 為 ${issue.suggestedPath}`\n                });\n            }\n        });\n        \n        this.results.fixSuggestions = suggestions;\n    }\n\n    /**\n     * 生成修復腳本\n     */\n    generateFixScript() {\n        const commands = [\n            '#!/bin/bash',\n            '# PWA 路徑修復腳本 - v3.2.0-pwa-deployment-compatibility',\n            '# 自動生成於 ' + new Date().toISOString(),\n            '',\n            'echo \"開始修復 PWA 路徑問題...\"',\n            ''\n        ];\n        \n        // 資源複製命令\n        const copyCommands = this.results.fixSuggestions\n            .filter(fix => fix.action === 'copy-resource')\n            .map(fix => fix.command);\n        \n        if (copyCommands.length > 0) {\n            commands.push('# 複製資源檔案');\n            commands.push(...copyCommands);\n            commands.push('');\n        }\n        \n        // 路徑更新命令\n        const updateCommands = this.results.fixSuggestions\n            .filter(fix => fix.action === 'update-path')\n            .map(fix => fix.command);\n        \n        if (updateCommands.length > 0) {\n            commands.push('# 更新路徑引用');\n            commands.push(...updateCommands);\n            commands.push('');\n        }\n        \n        commands.push('echo \"路徑修復完成！\"');\n        \n        return commands.join('\\n');\n    }\n\n    /**\n     * 輸出審計報告\n     */\n    printReport() {\n        console.log('\\n=== PWA 路徑審計報告 ===');\n        console.log(`掃描檔案數: ${this.results.totalFiles}`);\n        console.log(`受影響檔案: ${this.results.affectedFiles.length}`);\n        console.log(`向上引用問題: ${this.results.summary.upwardReferences}`);\n        console.log(`相對路徑問題: ${this.results.summary.relativeIssues}`);\n        console.log(`修復建議數: ${this.results.fixSuggestions.length}`);\n        \n        if (this.results.affectedFiles.length > 0) {\n            console.log('\\n受影響的檔案:');\n            this.results.affectedFiles.forEach(file => {\n                console.log(`  ${file.filePath} (${file.issues.length} 個問題)`);\n                file.issues.forEach(issue => {\n                    console.log(`    Line ${issue.lineNumber}: ${issue.originalPath} → ${issue.suggestedPath}`);\n                });\n            });\n        }\n        \n        return this.results;\n    }\n}\n\n// 如果在瀏覽器環境中運行\nif (typeof window !== 'undefined') {\n    window.PathAuditor = PathAuditor;\n    \n    // 提供全域函數供控制台使用\n    window.runPathAudit = async function() {\n        const auditor = new PathAuditor();\n        const results = await auditor.auditProject();\n        auditor.printReport();\n        \n        // 生成修復腳本\n        const fixScript = auditor.generateFixScript();\n        console.log('\\n=== 修復腳本 ===');\n        console.log(fixScript);\n        \n        // 提供下載修復腳本的功能\n        const blob = new Blob([fixScript], { type: 'text/plain' });\n        const url = URL.createObjectURL(blob);\n        const a = document.createElement('a');\n        a.href = url;\n        a.download = 'pwa-path-fix.sh';\n        a.textContent = '下載修復腳本';\n        a.style.cssText = 'display: block; margin: 10px 0; padding: 8px 16px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; width: fit-content;';\n        document.body.appendChild(a);\n        \n        return results;\n    };\n}\n\n// Node.js 環境支援\nif (typeof module !== 'undefined' && module.exports) {\n    module.exports = PathAuditor;\n}"
+    },
+    {
+      "file": "deploy/path-auditor.js",
+      "type": "path_replacement",
+      "pattern": "\\.\\.\\/assets\\/",
+      "replacement": "./assets/",
+      "description": "Replace \\.\\.\\/assets\\/ with ./assets/"
+    },
+    {
+      "file": "deploy/path-auditor.js",
+      "type": "file_update",
+      "action": "write_fixed_content",
+      "content": "/**\n * DEPLOY-01: Path Auditor for Static Hosting Compatibility\n * Identifies and fixes hardcoded paths that break static hosting\n */\n\nconst fs = require('fs');\nconst path = require('path');\n\nclass PathAuditor {\n  constructor() {\n    this.rootDir = path.resolve(__dirname, '../');\n    this.issues = [];\n    this.fixes = [];\n    \n    // Dangerous path patterns\n    this.dangerousPatterns = [\n      /\\.\\.\\//g,                    // Parent directory references\n      /\\/\\.\\.\\//g,                  // Absolute parent references\n      /file:\\/\\//g,                 // File protocol\n      /\\.\\.\\\\\\\\?/g,                 // Windows parent references\n    ];\n    \n    // Safe path replacements\n    this.pathReplacements = [\n      { pattern: /\\.\\.\\/assets\\//g, replacement: './assets/' },\n      { pattern: /\\.\\.\\/src\\//g, replacement: './src/' },\n      { pattern: /\\.\\.\\/pwa-card-storage\\//g, replacement: './' },\n    ];\n  }\n\n  /**\n   * Audit all files for path issues\n   */\n  async auditPaths() {\n    console.log('[PathAuditor] Starting path audit...');\n    \n    this.issues = [];\n    this.fixes = [];\n    \n    const filesToAudit = await this.getFilesToAudit();\n    \n    for (const filePath of filesToAudit) {\n      await this.auditFile(filePath);\n    }\n    \n    console.log(`[PathAuditor] Audit complete: ${this.issues.length} issues found`);\n    \n    return {\n      success: this.issues.length === 0,\n      issues: this.issues,\n      fixes: this.fixes\n    };\n  }\n\n  /**\n   * Get list of files to audit\n   */\n  async getFilesToAudit() {\n    const extensions = ['.html', '.js', '.json', '.css'];\n    const excludeDirs = ['node_modules', '.git', 'tests'];\n    \n    const files = [];\n    \n    const scanDir = (dir) => {\n      const entries = fs.readdirSync(dir, { withFileTypes: true });\n      \n      for (const entry of entries) {\n        const fullPath = path.join(dir, entry.name);\n        const relativePath = path.relative(this.rootDir, fullPath);\n        \n        if (entry.isDirectory()) {\n          if (!excludeDirs.some(exclude => relativePath.includes(exclude))) {\n            scanDir(fullPath);\n          }\n        } else if (entry.isFile()) {\n          const ext = path.extname(entry.name);\n          if (extensions.includes(ext)) {\n            files.push(fullPath);\n          }\n        }\n      }\n    };\n    \n    scanDir(this.rootDir);\n    return files;\n  }\n\n  /**\n   * Audit individual file\n   */\n  async auditFile(filePath) {\n    try {\n      const content = fs.readFileSync(filePath, 'utf8');\n      const relativePath = path.relative(this.rootDir, filePath);\n      \n      const lines = content.split('\\n');\n      \n      lines.forEach((line, index) => {\n        this.dangerousPatterns.forEach(pattern => {\n          const matches = [...line.matchAll(pattern)];\n          \n          matches.forEach(match => {\n            this.issues.push({\n              file: relativePath,\n              line: index + 1,\n              column: match.index + 1,\n              pattern: pattern.source,\n              matchedText: match[0],\n              fullLine: line.trim(),\n              severity: this.getSeverity(pattern, match[0])\n            });\n          });\n        });\n      });\n      \n      // Generate fixes for this file\n      this.generateFixesForFile(filePath, content);\n      \n    } catch (error) {\n      console.error(`[PathAuditor] Error auditing ${filePath}:`, error.message);\n    }\n  }\n\n  /**\n   * Generate fixes for a file\n   */\n  generateFixesForFile(filePath, content) {\n    const relativePath = path.relative(this.rootDir, filePath);\n    let hasChanges = false;\n    let fixedContent = content;\n    \n    this.pathReplacements.forEach(({ pattern, replacement }) => {\n      if (pattern.test(content)) {\n        fixedContent = fixedContent.replace(pattern, replacement);\n        hasChanges = true;\n        \n        this.fixes.push({\n          file: relativePath,\n          type: 'path_replacement',\n          pattern: pattern.source,\n          replacement,\n          description: `Replace ${pattern.source} with ${replacement}`\n        });\n      }\n    });\n    \n    if (hasChanges) {\n      this.fixes.push({\n        file: relativePath,\n        type: 'file_update',\n        action: 'write_fixed_content',\n        content: fixedContent\n      });\n    }\n  }\n\n  /**\n   * Get severity level for pattern match\n   */\n  getSeverity(pattern, match) {\n    // Path traversal attempts are critical\n    if (pattern.source.includes('\\\\.\\\\.')) {\n      return 'Critical';\n    }\n    \n    // File protocol is high risk\n    if (pattern.source.includes('file:')) {\n      return 'High';\n    }\n    \n    // Parent directory references are medium risk\n    if (pattern.source.includes('\\\\.\\\\.')) {\n      return 'Medium';\n    }\n    \n    return 'Low';\n  }\n\n  /**\n   * Apply fixes automatically\n   */\n  async applyFixes() {\n    console.log('[PathAuditor] Applying fixes...');\n    \n    let appliedCount = 0;\n    let errorCount = 0;\n    \n    // Group fixes by file\n    const fixesByFile = {};\n    this.fixes.forEach(fix => {\n      if (!fixesByFile[fix.file]) {\n        fixesByFile[fix.file] = [];\n      }\n      fixesByFile[fix.file].push(fix);\n    });\n    \n    for (const [file, fileFixes] of Object.entries(fixesByFile)) {\n      try {\n        const filePath = path.join(this.rootDir, file);\n        \n        // Find the content fix\n        const contentFix = fileFixes.find(f => f.type === 'file_update');\n        if (contentFix) {\n          // Create backup\n          const backupPath = filePath + '.backup';\n          if (!fs.existsSync(backupPath)) {\n            fs.copyFileSync(filePath, backupPath);\n          }\n          \n          // Apply fix\n          fs.writeFileSync(filePath, contentFix.content, 'utf8');\n          console.log(`[PathAuditor] Fixed: ${file}`);\n          appliedCount++;\n        }\n      } catch (error) {\n        console.error(`[PathAuditor] Error applying fix to ${file}:`, error.message);\n        errorCount++;\n      }\n    }\n    \n    console.log(`[PathAuditor] Fixes applied: ${appliedCount} success, ${errorCount} errors`);\n    \n    return {\n      success: errorCount === 0,\n      applied: appliedCount,\n      errors: errorCount\n    };\n  }\n\n  /**\n   * Generate audit report\n   */\n  generateReport() {\n    const report = {\n      timestamp: new Date().toISOString(),\n      summary: {\n        totalIssues: this.issues.length,\n        totalFixes: this.fixes.length,\n        severityBreakdown: this.getSeverityBreakdown(),\n        fileBreakdown: this.getFileBreakdown()\n      },\n      issues: this.issues,\n      fixes: this.fixes,\n      recommendations: this.getRecommendations()\n    };\n    \n    const reportPath = path.join(this.rootDir, 'deploy/path-audit-report.json');\n    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));\n    \n    console.log('[PathAuditor] Audit report generated');\n    return report;\n  }\n\n  /**\n   * Get severity breakdown\n   */\n  getSeverityBreakdown() {\n    const breakdown = { Critical: 0, High: 0, Medium: 0, Low: 0 };\n    this.issues.forEach(issue => {\n      breakdown[issue.severity] = (breakdown[issue.severity] || 0) + 1;\n    });\n    return breakdown;\n  }\n\n  /**\n   * Get file breakdown\n   */\n  getFileBreakdown() {\n    const breakdown = {};\n    this.issues.forEach(issue => {\n      breakdown[issue.file] = (breakdown[issue.file] || 0) + 1;\n    });\n    return breakdown;\n  }\n\n  /**\n   * Get recommendations\n   */\n  getRecommendations() {\n    const recommendations = [];\n    \n    if (this.issues.some(i => i.severity === 'Critical')) {\n      recommendations.push({\n        priority: 'High',\n        action: 'Fix critical path traversal vulnerabilities immediately',\n        description: 'Critical security issues found that could allow unauthorized file access'\n      });\n    }\n    \n    if (this.issues.some(i => i.pattern.includes('\\\\.\\\\.'))) {\n      recommendations.push({\n        priority: 'Medium',\n        action: 'Replace all parent directory references with relative paths',\n        description: 'Use ./assets/ instead of ./assets/ for static hosting compatibility'\n      });\n    }\n    \n    if (this.fixes.length > 0) {\n      recommendations.push({\n        priority: 'Low',\n        action: 'Apply automated fixes',\n        description: `${this.fixes.length} automated fixes available`\n      });\n    }\n    \n    return recommendations;\n  }\n\n  /**\n   * Validate paths are secure\n   */\n  validatePathSecurity(filePath) {\n    // Check for path traversal attempts\n    if (filePath.includes('..')) {\n      return false;\n    }\n    \n    // Check for absolute paths outside project\n    if (path.isAbsolute(filePath) && !filePath.startsWith(this.rootDir)) {\n      return false;\n    }\n    \n    // Check for dangerous protocols\n    if (filePath.startsWith('file://') || filePath.startsWith('ftp://')) {\n      return false;\n    }\n    \n    return true;\n  }\n}\n\n// CLI usage\nif (require.main === module) {\n  const auditor = new PathAuditor();\n  \n  (async () => {\n    try {\n      const auditResult = await auditor.auditPaths();\n      const report = auditor.generateReport();\n      \n      console.log('\\n=== DEPLOY-01 Path Audit Summary ===');\n      console.log(`Total issues: ${auditResult.issues.length}`);\n      console.log(`Critical: ${report.summary.severityBreakdown.Critical || 0}`);\n      console.log(`High: ${report.summary.severityBreakdown.High || 0}`);\n      console.log(`Medium: ${report.summary.severityBreakdown.Medium || 0}`);\n      console.log(`Low: ${report.summary.severityBreakdown.Low || 0}`);\n      console.log(`Fixes available: ${auditResult.fixes.length}`);\n      \n      if (process.argv.includes('--fix')) {\n        const fixResult = await auditor.applyFixes();\n        console.log(`Fixes applied: ${fixResult.applied}`);\n        console.log(`Fix errors: ${fixResult.errors}`);\n      }\n      \n      process.exit(auditResult.success ? 0 : 1);\n    } catch (error) {\n      console.error('[PathAuditor] Fatal error:', error);\n      process.exit(1);\n    }\n  })();\n}\n\nmodule.exports = PathAuditor;"
+    },
+    {
+      "file": "src/core/resource-manager.js",
+      "type": "path_replacement",
+      "pattern": "\\.\\.\\/assets\\/",
+      "replacement": "./assets/",
+      "description": "Replace \\.\\.\\/assets\\/ with ./assets/"
+    },
+    {
+      "file": "src/core/resource-manager.js",
+      "type": "file_update",
+      "action": "write_fixed_content",
+      "content": "/**\n * ResourceManager - 資源整合管理系統\n * \n * 從根目錄複製必要資源到 PWA 目錄，生成 SRI hash，建立資源清單\n * \n * @version 1.0.0\n * @author DB-Card PWA Team\n */\n\nimport { ResourceCopier } from '../utils/resource-copier.js';\nimport { SRIGenerator } from '../utils/sri-generator.js';\nimport { ResourceManifest } from '../utils/resource-manifest.js';\n\n/**\n * 資源管理器 - 統籌資源整合流程\n */\nexport class ResourceManager {\n    constructor() {\n        this.copier = new ResourceCopier();\n        this.sriGenerator = new SRIGenerator();\n        this.manifest = new ResourceManifest();\n        this.processedResources = new Map();\n    }\n\n    /**\n     * 執行完整的資源整合流程\n     * @returns {Promise<Object>} 整合結果報告\n     */\n    async integrateResources() {\n        try {\n            console.log('[ResourceManager] 開始資源整合流程...');\n            \n            // 1. 發現需要的資源\n            const requiredResources = await this.discoverRequiredResources();\n            console.log(`[ResourceManager] 發現 ${requiredResources.length} 個必要資源`);\n\n            // 2. 複製資源檔案\n            const copyResults = await this.copier.copyResources(requiredResources);\n            console.log(`[ResourceManager] 成功複製 ${copyResults.success.length} 個資源`);\n\n            // 3. 生成 SRI hashes\n            const sriResults = await this.sriGenerator.generateHashes(copyResults.success);\n            console.log(`[ResourceManager] 生成 ${sriResults.length} 個 SRI hash`);\n\n            // 4. 建立資源清單\n            const manifestResult = await this.manifest.createManifest(sriResults);\n            console.log('[ResourceManager] 資源清單建立完成');\n\n            // 5. 驗證完整性\n            const validationResult = await this.validateIntegrity();\n            console.log(`[ResourceManager] 完整性驗證: ${validationResult.valid ? '通過' : '失敗'}`);\n\n            return {\n                success: true,\n                resourcesProcessed: sriResults.length,\n                manifestPath: manifestResult.path,\n                integrity: validationResult,\n                timestamp: new Date().toISOString()\n            };\n\n        } catch (error) {\n            console.error('[ResourceManager] 資源整合失敗:', error);\n            return {\n                success: false,\n                error: error.message,\n                timestamp: new Date().toISOString()\n            };\n        }\n    }\n\n    /**\n     * 發現專案中需要的資源\n     * @returns {Promise<Array>} 資源清單\n     */\n    async discoverRequiredResources() {\n        // 基於 PATH-001 的路徑審計結果，識別必要資源\n        const coreResources = [\n            {\n                source: '.././assets/moda-logo.svg',\n                destination: 'assets/moda-logo.svg',\n                type: 'image',\n                critical: true\n            },\n            {\n                source: '.././assets/bilingual-common.js',\n                destination: 'assets/bilingual-common.js',\n                type: 'script',\n                critical: true\n            },\n            {\n                source: '.././assets/offline-qr-enhancement.js',\n                destination: 'assets/offline-qr-enhancement.js',\n                type: 'script',\n                critical: false\n            },\n            {\n                source: '.././assets/high-accessibility.css',\n                destination: 'assets/high-accessibility.css',\n                type: 'style',\n                critical: true\n            }\n        ];\n\n        // 檢查可選資源\n        const optionalResources = await this.discoverOptionalResources();\n        \n        return [...coreResources, ...optionalResources];\n    }\n\n    /**\n     * 發現可選資源（如範例圖片）\n     * @returns {Promise<Array>} 可選資源清單\n     */\n    async discoverOptionalResources() {\n        const optional = [];\n        \n        try {\n            // 檢查範例使用者資源\n            const examplePhotoPath = '.././assets/wu_sheng_fan/photo.jpg';\n            optional.push({\n                source: examplePhotoPath,\n                destination: 'assets/wu_sheng_fan/photo.jpg',\n                type: 'image',\n                critical: false\n            });\n        } catch (error) {\n            console.warn('[ResourceManager] 可選資源檢查失敗:', error.message);\n        }\n\n        return optional;\n    }\n\n    /**\n     * 驗證資源完整性\n     * @returns {Promise<Object>} 驗證結果\n     */\n    async validateIntegrity() {\n        try {\n            const manifest = await this.manifest.loadManifest();\n            const validationResults = [];\n\n            for (const resource of manifest.resources) {\n                const isValid = await this.sriGenerator.verifyHash(\n                    resource.path,\n                    resource.integrity\n                );\n                \n                validationResults.push({\n                    path: resource.path,\n                    valid: isValid,\n                    integrity: resource.integrity\n                });\n            }\n\n            const allValid = validationResults.every(result => result.valid);\n            \n            return {\n                valid: allValid,\n                results: validationResults,\n                totalResources: validationResults.length,\n                validResources: validationResults.filter(r => r.valid).length\n            };\n\n        } catch (error) {\n            console.error('[ResourceManager] 完整性驗證失敗:', error);\n            return {\n                valid: false,\n                error: error.message\n            };\n        }\n    }\n\n    /**\n     * 取得資源整合狀態\n     * @returns {Promise<Object>} 狀態資訊\n     */\n    async getStatus() {\n        try {\n            const manifest = await this.manifest.loadManifest();\n            return {\n                hasManifest: true,\n                resourceCount: manifest.resources.length,\n                lastUpdated: manifest.metadata.created,\n                version: manifest.metadata.version\n            };\n        } catch (error) {\n            return {\n                hasManifest: false,\n                error: error.message\n            };\n        }\n    }\n\n    /**\n     * 清理資源（開發用）\n     * @returns {Promise<boolean>} 清理結果\n     */\n    async cleanup() {\n        try {\n            await this.copier.cleanup();\n            await this.manifest.cleanup();\n            console.log('[ResourceManager] 資源清理完成');\n            return true;\n        } catch (error) {\n            console.error('[ResourceManager] 清理失敗:', error);\n            return false;\n        }\n    }\n}\n\n// 提供簡化的 API\nexport const resourceManager = new ResourceManager();\n\n/**\n * 快速整合資源的便利函數\n * @returns {Promise<Object>} 整合結果\n */\nexport async function integrateResources() {\n    return await resourceManager.integrateResources();\n}\n\n/**\n * 驗證資源完整性的便利函數\n * @returns {Promise<Object>} 驗證結果\n */\nexport async function validateResourceIntegrity() {\n    return await resourceManager.validateIntegrity();\n}"
+    },
+    {
+      "file": "src/utils/resource-copier.js",
+      "type": "path_replacement",
+      "pattern": "\\.\\.\\/assets\\/",
+      "replacement": "./assets/",
+      "description": "Replace \\.\\.\\/assets\\/ with ./assets/"
+    },
+    {
+      "file": "src/utils/resource-copier.js",
+      "type": "file_update",
+      "action": "write_fixed_content",
+      "content": "/**\n * ResourceCopier - 安全的資源檔案複製工具\n * \n * 提供安全的檔案複製功能，包含路徑驗證、檔案類型檢查、惡意檔案防護\n * \n * @version 1.0.0\n * @author DB-Card PWA Team\n */\n\n/**\n * 資源複製器 - 安全的檔案操作\n */\nexport class ResourceCopier {\n    constructor() {\n        this.allowedExtensions = new Set([\n            '.svg', '.js', '.css', '.jpg', '.jpeg', '.png', '.json', '.md'\n        ]);\n        this.blockedPatterns = [\n            /\\.exe$/i, /\\.bat$/i, /\\.sh$/i, /\\.php$/i, /\\.asp$/i\n        ];\n        this.maxFileSize = 5 * 1024 * 1024; // 5MB\n    }\n\n    /**\n     * 複製資源檔案清單\n     * @param {Array} resources 資源清單\n     * @returns {Promise<Object>} 複製結果\n     */\n    async copyResources(resources) {\n        const results = {\n            success: [],\n            failed: [],\n            skipped: []\n        };\n\n        console.log(`[ResourceCopier] 開始複製 ${resources.length} 個資源...`);\n\n        for (const resource of resources) {\n            try {\n                const copyResult = await this.copyResource(resource);\n                if (copyResult.success) {\n                    results.success.push({\n                        ...resource,\n                        copiedPath: copyResult.path,\n                        size: copyResult.size\n                    });\n                } else {\n                    results.failed.push({\n                        ...resource,\n                        error: copyResult.error\n                    });\n                }\n            } catch (error) {\n                console.error(`[ResourceCopier] 複製失敗 ${resource.source}:`, error);\n                results.failed.push({\n                    ...resource,\n                    error: error.message\n                });\n            }\n        }\n\n        console.log(`[ResourceCopier] 複製完成: ${results.success.length} 成功, ${results.failed.length} 失敗`);\n        return results;\n    }\n\n    /**\n     * 複製單一資源檔案\n     * @param {Object} resource 資源資訊\n     * @returns {Promise<Object>} 複製結果\n     */\n    async copyResource(resource) {\n        try {\n            // 1. 安全性檢查\n            const securityCheck = this.validateResourceSecurity(resource);\n            if (!securityCheck.valid) {\n                return {\n                    success: false,\n                    error: `安全檢查失敗: ${securityCheck.reason}`\n                };\n            }\n\n            // 2. 檢查來源檔案是否存在\n            const sourceExists = await this.checkFileExists(resource.source);\n            if (!sourceExists) {\n                return {\n                    success: false,\n                    error: '來源檔案不存在'\n                };\n            }\n\n            // 3. 建立目標目錄\n            await this.ensureDirectoryExists(resource.destination);\n\n            // 4. 執行檔案複製（模擬）\n            const copyResult = await this.performFileCopy(resource);\n            \n            return {\n                success: true,\n                path: resource.destination,\n                size: copyResult.size,\n                timestamp: new Date().toISOString()\n            };\n\n        } catch (error) {\n            return {\n                success: false,\n                error: error.message\n            };\n        }\n    }\n\n    /**\n     * 驗證資源安全性\n     * @param {Object} resource 資源資訊\n     * @returns {Object} 驗證結果\n     */\n    validateResourceSecurity(resource) {\n        // 1. 檢查檔案副檔名\n        const extension = this.getFileExtension(resource.source);\n        if (!this.allowedExtensions.has(extension)) {\n            return {\n                valid: false,\n                reason: `不允許的檔案類型: ${extension}`\n            };\n        }\n\n        // 2. 檢查惡意檔案模式\n        for (const pattern of this.blockedPatterns) {\n            if (pattern.test(resource.source)) {\n                return {\n                    valid: false,\n                    reason: '檔案類型被封鎖'\n                };\n            }\n        }\n\n        // 3. 檢查路徑遍歷攻擊\n        if (resource.source.includes('..') || resource.destination.includes('..')) {\n            return {\n                valid: false,\n                reason: '偵測到路徑遍歷攻擊'\n            };\n        }\n\n        // 4. 檢查目標路徑限制\n        if (!resource.destination.startsWith('assets/')) {\n            return {\n                valid: false,\n                reason: '目標路徑必須在 assets/ 目錄內'\n            };\n        }\n\n        return { valid: true };\n    }\n\n    /**\n     * 檢查檔案是否存在（模擬）\n     * @param {string} filePath 檔案路徑\n     * @returns {Promise<boolean>} 檔案是否存在\n     */\n    async checkFileExists(filePath) {\n        // 在實際環境中，這裡會使用 fs.access() 或類似 API\n        // 目前模擬檔案存在性檢查\n        const knownFiles = [\n            '.././assets/moda-logo.svg',\n            '.././assets/bilingual-common.js',\n            '.././assets/offline-qr-enhancement.js',\n            '.././assets/high-accessibility.css',\n            '.././assets/wu_sheng_fan/photo.jpg'\n        ];\n        \n        return knownFiles.includes(filePath);\n    }\n\n    /**\n     * 確保目標目錄存在\n     * @param {string} filePath 檔案路徑\n     * @returns {Promise<void>}\n     */\n    async ensureDirectoryExists(filePath) {\n        const directory = filePath.substring(0, filePath.lastIndexOf('/'));\n        console.log(`[ResourceCopier] 確保目錄存在: ${directory}`);\n        \n        // 在實際環境中，這裡會使用 fs.mkdir() 建立目錄\n        // 目前模擬目錄建立\n        return Promise.resolve();\n    }\n\n    /**\n     * 執行檔案複製\n     * @param {Object} resource 資源資訊\n     * @returns {Promise<Object>} 複製結果\n     */\n    async performFileCopy(resource) {\n        // 模擬檔案複製過程\n        console.log(`[ResourceCopier] 複製檔案: ${resource.source} -> ${resource.destination}`);\n        \n        // 模擬檔案大小檢查\n        const simulatedSize = Math.floor(Math.random() * 100000) + 1000; // 1KB-100KB\n        \n        if (simulatedSize > this.maxFileSize) {\n            throw new Error(`檔案過大: ${simulatedSize} bytes`);\n        }\n\n        // 在實際環境中，這裡會使用 fs.copyFile() 或類似 API\n        // 目前模擬成功複製\n        return {\n            size: simulatedSize,\n            checksum: this.generateMockChecksum(resource.source)\n        };\n    }\n\n    /**\n     * 取得檔案副檔名\n     * @param {string} filePath 檔案路徑\n     * @returns {string} 副檔名\n     */\n    getFileExtension(filePath) {\n        const lastDot = filePath.lastIndexOf('.');\n        return lastDot === -1 ? '' : filePath.substring(lastDot).toLowerCase();\n    }\n\n    /**\n     * 生成模擬檢查碼\n     * @param {string} filePath 檔案路徑\n     * @returns {string} 檢查碼\n     */\n    generateMockChecksum(filePath) {\n        // 簡單的模擬檢查碼生成\n        let hash = 0;\n        for (let i = 0; i < filePath.length; i++) {\n            const char = filePath.charCodeAt(i);\n            hash = ((hash << 5) - hash) + char;\n            hash = hash & hash; // 轉換為 32-bit 整數\n        }\n        return Math.abs(hash).toString(16);\n    }\n\n    /**\n     * 清理複製的資源（開發用）\n     * @returns {Promise<boolean>} 清理結果\n     */\n    async cleanup() {\n        try {\n            console.log('[ResourceCopier] 執行資源清理...');\n            // 在實際環境中，這裡會刪除複製的檔案\n            // 目前模擬清理過程\n            return true;\n        } catch (error) {\n            console.error('[ResourceCopier] 清理失敗:', error);\n            return false;\n        }\n    }\n\n    /**\n     * 取得複製統計資訊\n     * @returns {Object} 統計資訊\n     */\n    getStats() {\n        return {\n            allowedExtensions: Array.from(this.allowedExtensions),\n            maxFileSize: this.maxFileSize,\n            blockedPatterns: this.blockedPatterns.length\n        };\n    }\n}\n\n// 提供便利的匯出\nexport const resourceCopier = new ResourceCopier();"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "High",
+      "action": "Fix critical path traversal vulnerabilities immediately",
+      "description": "Critical security issues found that could allow unauthorized file access"
+    },
+    {
+      "priority": "Medium",
+      "action": "Replace all parent directory references with relative paths",
+      "description": "Use ./assets/ instead of ./assets/ for static hosting compatibility"
+    },
+    {
+      "priority": "Low",
+      "action": "Apply automated fixes",
+      "description": "8 automated fixes available"
+    }
+  ]
+}

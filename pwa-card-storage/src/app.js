@@ -3,6 +3,18 @@
  * 負責應用程式初始化、路由管理和全域狀態管理
  */
 
+// SEC-03: Import secure logging system
+if (typeof window !== 'undefined' && !window.secureLogger) {
+  // Load secure logger if not already available
+  try {
+    const script = document.createElement('script');
+    script.src = './src/core/secure-logger.js';
+    document.head.appendChild(script);
+  } catch (error) {
+    console.warn('[PWA] Failed to load secure logger:', error);
+  }
+}
+
 class PWACardApp {
   constructor() {
     this.currentPage = 'home';
@@ -29,7 +41,12 @@ class PWACardApp {
       this.hideLoading();
       
     } catch (error) {
-      console.error('[PWA] Initialization failed:', error);
+      // SEC-03: Use secure logging
+      if (window.secureLogger) {
+        window.secureLogger.error('PWA initialization failed', { error: error.message });
+      } else {
+        console.error('[PWA] Initialization failed:', error);
+      }
       this.hideLoading();
       const errorMessage = this.getLocalizedText('app.init.failed');
       this.showNotification(errorMessage, 'error');
@@ -112,18 +129,33 @@ class PWACardApp {
       if (this.storage) {
         if (this.versionManager) {
           this.storage.versionManager = this.versionManager;
-          console.log('[PWA] VersionManager integrated to storage');
+          // SEC-03: Use secure logging
+          if (window.secureLogger) {
+            window.secureLogger.info('VersionManager integrated to storage');
+          } else {
+            console.log('[PWA] VersionManager integrated to storage');
+          }
         }
         if (this.duplicateDetector) {
           this.storage.duplicateDetector = this.duplicateDetector;
-          console.log('[PWA] DuplicateDetector integrated to storage');
+          // SEC-03: Use secure logging
+          if (window.secureLogger) {
+            window.secureLogger.info('DuplicateDetector integrated to storage');
+          } else {
+            console.log('[PWA] DuplicateDetector integrated to storage');
+          }
         }
       }
       
       // COMP-02: Initialize all registered components
       if (this.componentRegistry) {
         const report = await this.componentRegistry.initializeAll();
-        console.log('[PWA] Component Registry initialization report:', report);
+        // SEC-03: Use secure logging
+        if (window.secureLogger) {
+          window.secureLogger.info('Component Registry initialization report', { report });
+        } else {
+          console.log('[PWA] Component Registry initialization report:', report);
+        }
       }
       
       // 初始化依賴服務
@@ -138,7 +170,12 @@ class PWACardApp {
       // CLEAN-01: QR 掃描器已移除
       
     } catch (error) {
-      console.error('[PWA] Service initialization failed:', error);
+      // SEC-03: Use secure logging
+      if (window.secureLogger) {
+        window.secureLogger.error('Service initialization failed', { error: error.message });
+      } else {
+        console.error('[PWA] Service initialization failed:', error);
+      }
       
       // SEC-03: Record initialization failure (safe)
       try {
@@ -149,7 +186,12 @@ class PWACardApp {
           });
         }
       } catch (recordError) {
-        console.warn('[PWA] Failed to record security event:', recordError);
+        // SEC-03: Use secure logging for record errors
+        if (window.secureLogger) {
+          window.secureLogger.warn('Failed to record security event', { error: recordError.message });
+        } else {
+          console.warn('[PWA] Failed to record security event:', recordError);
+        }
       }
       
       throw error;
@@ -168,19 +210,39 @@ class PWACardApp {
         // Replace global language manager
         window.languageManager = this.languageManager;
         
-        console.log('[PWA] Simplified Language Manager initialized successfully');
+        // SEC-03: Use secure logging
+        if (window.secureLogger) {
+          window.secureLogger.info('Simplified Language Manager initialized successfully');
+        } else {
+          console.log('[PWA] Simplified Language Manager initialized successfully');
+        }
         
         // Verify the language manager has required methods
         if (!this.languageManager.toggleLanguage) {
-          console.warn('[PWA] SimplifiedLanguageManager missing toggleLanguage method');
+          // SEC-03: Use secure logging
+          if (window.secureLogger) {
+            window.secureLogger.warn('SimplifiedLanguageManager missing toggleLanguage method');
+          } else {
+            console.warn('[PWA] SimplifiedLanguageManager missing toggleLanguage method');
+          }
           this.addToggleLanguageMethod();
         }
       } else {
-        console.warn('[PWA] SimplifiedLanguageManager not available, using fallback');
+        // SEC-03: Use secure logging
+        if (window.secureLogger) {
+          window.secureLogger.warn('SimplifiedLanguageManager not available, using fallback');
+        } else {
+          console.warn('[PWA] SimplifiedLanguageManager not available, using fallback');
+        }
         this.languageManager = window.languageManager || this.createFallbackLanguageManager();
       }
     } catch (error) {
-      console.error('[PWA] Simplified Language Manager initialization failed:', error);
+      // SEC-03: Use secure logging
+      if (window.secureLogger) {
+        window.secureLogger.error('Simplified Language Manager initialization failed', { error: error.message });
+      } else {
+        console.error('[PWA] Simplified Language Manager initialization failed:', error);
+      }
       this.languageManager = window.languageManager || this.createFallbackLanguageManager();
     }
   }
@@ -294,25 +356,52 @@ class PWACardApp {
   }
 
   /**
-   * Get localized text using Simplified Language Manager
+   * TRANS-003: Get localized text using UnifiedTranslationService
+   * 統一翻譯獲取邏輯，消除雙重依賴
    */
   getLocalizedText(key, fallback = null) {
     try {
-      // 優先使用內部語言管理器
+      // TRANS-003: 優先使用 UnifiedTranslationService 統一入口點
+      if (window.UnifiedTranslationService) {
+        const result = window.UnifiedTranslationService.getText(key, null, {
+          fallback: fallback || key
+        });
+        if (result && result !== key) {
+          return result;
+        }
+      }
+
+      // 備用方案：直接使用 SafeTranslationHandler（向下相容）
+      if (window.SafeTranslationHandler) {
+        const result = window.SafeTranslationHandler.getTranslation(key, null, { 
+          fallback: fallback || key 
+        });
+        if (result && result !== key) {
+          return result;
+        }
+      }
+
+      // 最終備用：使用內建語言管理器
       if (this.languageManager && this.languageManager.getText) {
-        const text = this.languageManager.getText(key, null, { fallback: fallback || key });
-        if (text !== key) return text;
+        const text = this.languageManager.getText(key, null, { fallback: null });
+        if (text && text !== key) return text;
       }
       
-      // 備用方案：使用全域語言管理器
-      if (window.languageManager && window.languageManager.getText) {
-        const text = window.languageManager.getText(key, null, { fallback: fallback || key });
-        if (text !== key) return text;
-      }
-      
+      // 緊急備用
       return fallback || key;
     } catch (error) {
       console.error('[PWA] Failed to get localized text:', error);
+      // TRANS-003: 統一錯誤處理
+      try {
+        if (window.UnifiedTranslationService) {
+          const instance = window.UnifiedTranslationService.getInstance();
+          return instance.getEmergencyFallback ? 
+            instance.getEmergencyFallback(key, { fallback }) : 
+            (fallback || key);
+        }
+      } catch (emergencyError) {
+        console.error('[PWA] Emergency fallback failed:', emergencyError);
+      }
       return fallback || key;
     }
   }
@@ -335,7 +424,7 @@ class PWACardApp {
     try {
       // Try to use modern security core from ES6 modules
       try {
-        const securityModule = await import('./security/security-core.js');
+        const securityModule = await import('./core/security-core.js');
         this.securityCore = securityModule.securityCore;
         await securityModule.initializeSecurity();
         console.log('[PWA] Modern security core initialized');
@@ -350,7 +439,22 @@ class PWACardApp {
           // Basic security fallback
           this.securityCore = {
             initialize: () => Promise.resolve({ initialized: true }),
-            isInitialized: () => true
+            isInitialized: () => true,
+            safeJSONParse: (jsonString, options = {}) => {
+              try {
+                return JSON.parse(jsonString, (key, value) => {
+                  if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+                    return undefined;
+                  }
+                  return value;
+                });
+              } catch (error) {
+                if (options.fallback !== undefined) {
+                  return options.fallback;
+                }
+                throw error;
+              }
+            }
           };
           console.log('[PWA] Using basic security fallback');
         }
@@ -374,7 +478,22 @@ class PWACardApp {
       // Fallback to basic security
       this.securityCore = {
         initialize: () => Promise.resolve({ initialized: true }),
-        isInitialized: () => true
+        isInitialized: () => true,
+        safeJSONParse: (jsonString, options = {}) => {
+          try {
+            return JSON.parse(jsonString, (key, value) => {
+              if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+                return undefined;
+              }
+              return value;
+            });
+          } catch (error) {
+            if (options.fallback !== undefined) {
+              return options.fallback;
+            }
+            throw error;
+          }
+        }
       };
     }
   }
@@ -1523,6 +1642,10 @@ class PWACardApp {
       };
     }
     
+    // SEC-02: Sanitize display data
+    if (window.xssProtection) {
+      displayData = window.xssProtection.sanitizeObject(displayData);
+    }
     
     const labels = this.getUILabels();
     
@@ -1536,7 +1659,12 @@ class PWACardApp {
         greetingText = currentLang === 'en' ? 'Nice to meet you!' : this.getLocalizedText('defaultGreeting', '歡迎認識我');
       }
       
-      greetingsHtml = `<div class="detail-item"><strong>${labels.greetings}:</strong><br><div class="greetings-container"><span class="greeting-item">${greetingText}</span></div></div>`;
+      // SEC-02: Sanitize greeting text
+      const safeGreetingText = window.xssProtection ? 
+        window.xssProtection.sanitizeOutput(greetingText) : 
+        String(greetingText || '').replace(/[<>"'&]/g, '');
+      
+      greetingsHtml = `<div class="detail-item"><strong>${labels.greetings}:</strong><br><div class="greetings-container"><span class="greeting-item">${safeGreetingText}</span></div></div>`;
     }
     
     // 處理社群資訊顯示 - 增強互動性（安全處理）
@@ -1555,7 +1683,12 @@ class PWACardApp {
       }
       
       if (socialText) {
-        const socialContent = this.formatSocialContent(socialText);
+        // SEC-02: Sanitize social text before formatting
+        const safeSocialText = window.xssProtection ? 
+          window.xssProtection.sanitizeOutput(socialText) : 
+          String(socialText).replace(/[<>"'&]/g, '');
+        
+        const socialContent = this.formatSocialContent(safeSocialText);
         socialHtml = `<div class="detail-item"><strong>${labels.social}:</strong><br><div class="social-content">${socialContent}</div></div>`;
       }
     }
@@ -1725,6 +1858,7 @@ class PWACardApp {
 
   /**
    * 新增：設置社群按鈕事件
+   * SEC-02: Enhanced with XSS protection
    */
   setupSocialButtonEvents(modal) {
     const socialButtons = modal.querySelectorAll('.social-btn[data-action="copy"]');
@@ -1732,9 +1866,15 @@ class PWACardApp {
       button.addEventListener('click', async (e) => {
         const value = e.target.dataset.value;
         if (value) {
+          // SEC-02: Sanitize value before using
+          const safeValue = window.xssProtection ? 
+            window.xssProtection.sanitizeOutput(value) : 
+            String(value).replace(/[<>"'&]/g, '');
+          
           try {
-            await navigator.clipboard.writeText(value);
-            this.showNotification(`${this.getLocalizedText('linkCopied')}: ${value}`, 'success');
+            await navigator.clipboard.writeText(safeValue);
+            const safeMessage = `${this.getLocalizedText('linkCopied')}: ${safeValue}`;
+            this.showNotification(safeMessage, 'success');
           } catch (error) {
             this.showNotification(this.getLocalizedText('copyFailed'), 'error');
           }
@@ -2107,70 +2247,66 @@ class PWACardApp {
   }
 
   getUILabels() {
-    // 使用語言管理器獲取翻譯
-    if (window.languageManager) {
-      return {
-        cardDetails: window.languageManager.getText('cardDetails'),
-        avatar: window.languageManager.getText('avatar'),
-        email: window.languageManager.getText('email'),
-        phone: window.languageManager.getText('phone'),
-        mobile: window.languageManager.getText('mobile'),
-        address: window.languageManager.getText('address'),
-        greetings: window.languageManager.getText('greetings'),
-        social: window.languageManager.getText('social'),
-        generateQR: window.languageManager.getText('generateQR'),
-        downloadVCard: window.languageManager.getText('downloadVCard'),
-        qrCode: window.languageManager.getText('qrCode'),
-        downloadQR: window.languageManager.getText('downloadQR'),
-        copyLink: window.languageManager.getText('copyLink'),
-        qrTip: window.languageManager.getText('qrTip'),
-        versionManagement: window.languageManager.getText('versionManagement')
-      };
-    }
-    
-    // 使用統一的語言獲取方法
+    // TRANS-002: 使用 SafeTranslationHandler 統一錯誤處理，確保無 undefined 返回
     const currentLang = this.getCurrentLanguage();
+    const isEn = currentLang === 'en' || currentLang === 'en-US';
     
-    // 備用方案
-    const labels = {
-      zh: {
-        cardDetails: '名片詳細資訊',
-        avatar: '大頭貼',
-        email: '電子郵件',
-        phone: '電話',
-        mobile: '手機',
-        address: '地址',
-        greetings: '問候語',
-        social: '社群連結',
-        generateQR: '生成 QR 碼',
-        downloadVCard: '下載 vCard',
-        qrCode: 'QR 碼',
-        downloadQR: '下載 QR 碼',
-        copyLink: '複製連結',
-        qrTip: '掃描此 QR 碼即可開啟數位名片',
-        versionManagement: '版本管理'
-      },
-      en: {
-        cardDetails: 'Card Details',
-        avatar: 'Avatar',
-        email: 'Email',
-        phone: 'Phone',
-        mobile: 'Mobile',
-        address: 'Address',
-        greetings: 'Greetings',
-        social: 'Social Links',
-        generateQR: 'Generate QR',
-        downloadVCard: 'Download vCard',
-        qrCode: 'QR Code',
-        downloadQR: 'Download QR Code',
-        copyLink: 'Copy Link',
-        qrTip: 'Scan this QR code to open the digital business card',
-        versionManagement: 'Version Management'
-      }
+    // 定義語言特定的備用文字
+    const fallbacks = {
+      cardDetails: isEn ? 'Card Details' : '名片詳細資訊',
+      avatar: isEn ? 'Avatar' : '大頭貼',
+      email: isEn ? 'Email' : '電子郵件',
+      phone: isEn ? 'Phone' : '電話',
+      mobile: isEn ? 'Mobile' : '手機',
+      address: isEn ? 'Address' : '地址',
+      greetings: isEn ? 'Greetings' : '問候語',
+      social: isEn ? 'Social Links' : '社群連結',
+      generateQR: isEn ? 'Generate QR' : '生成 QR 碼',
+      downloadVCard: isEn ? 'Download vCard' : '下載 vCard',
+      qrCode: isEn ? 'QR Code' : 'QR 碼',
+      downloadQR: isEn ? 'Download QR Code' : '下載 QR 碼',
+      copyLink: isEn ? 'Copy Link' : '複製連結',
+      qrTip: isEn ? 'Scan this QR code to open the digital business card' : '掃描此 QR 碼即可開啟數位名片',
+      versionManagement: isEn ? 'Version Management' : '版本管理'
     };
     
-    const langKey = currentLang === 'en' || currentLang === 'en-US' ? 'en' : 'zh';
-    return labels[langKey] || labels.zh;
+    // 優先使用 SafeTranslationHandler 進行翻譯
+    if (window.SafeTranslationHandler) {
+      try {
+        const result = {};
+        Object.keys(fallbacks).forEach(key => {
+          const translated = window.SafeTranslationHandler.getTranslation(key, currentLang, {
+            fallback: fallbacks[key]
+          });
+          // 確保返回值不為 undefined 或 null
+          result[key] = translated && translated.trim() !== '' ? translated : fallbacks[key];
+        });
+        return result;
+      } catch (error) {
+        console.warn('[PWA] SafeTranslationHandler failed in getUILabels:', error);
+        // 繼續使用備用方案
+      }
+    }
+    
+    // 備用方案 1: 使用語言管理器但加入空值檢查
+    if (window.languageManager && typeof window.languageManager.getText === 'function') {
+      try {
+        const result = {};
+        Object.keys(fallbacks).forEach(key => {
+          const translated = window.languageManager.getText(key, currentLang, { fallback: null });
+          // TRANS-002: 關鍵修復 - 檢查 undefined/null 並使用備用文字
+          result[key] = (translated && translated !== key && translated.trim() !== '') ? 
+            translated : fallbacks[key];
+        });
+        return result;
+      } catch (error) {
+        console.warn('[PWA] Language manager failed in getUILabels:', error);
+        // 繼續使用最終備用方案
+      }
+    }
+    
+    // 最終備用方案: 直接返回備用文字
+    return fallbacks;
   }
 
   showQRModal(dataUrl, url, cardId = null) {
@@ -2197,7 +2333,7 @@ class PWACardApp {
             </button>
           </div>
           <div class="qr-tip">
-            <p>💡 ${labels.qrTip || '掃描此 QR 碼即可開啟數位名片'}</p>
+            <p>${this.getLocalizedText('qrTip')}</p>
           </div>
         </div>
       </div>
@@ -2305,9 +2441,18 @@ class PWACardApp {
       info: 'ℹ️'
     };
 
+    // SEC-02: Sanitize notification content
+    const safeMessage = window.xssProtection ? 
+      window.xssProtection.sanitizeOutput(message) : 
+      String(message || '').replace(/[<>"'&]/g, '');
+
     // 設置通知內容
     icon.textContent = icons[type] || icons.info;
-    messageEl.textContent = message;
+    if (window.xssProtection) {
+      window.xssProtection.safeSetHTML(messageEl, safeMessage);
+    } else {
+      messageEl.textContent = safeMessage;
+    }
 
     // 清除舊的類型類別
     notification.classList.remove('success', 'error', 'warning', 'info');
@@ -2353,6 +2498,11 @@ class PWACardApp {
   }
   
   createTemporaryNotification(message, type) {
+    // SEC-02: Sanitize message before creating notification
+    const safeMessage = window.xssProtection ? 
+      window.xssProtection.sanitizeOutput(message) : 
+      String(message || '').replace(/[<>"'&]/g, '');
+
     // 創建臨時通知元素 - 使用 moda 設計系統
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
@@ -2390,29 +2540,41 @@ class PWACardApp {
     
     notification.style.borderLeftColor = borderColors[type] || borderColors.info;
     
-    notification.innerHTML = `
-      <div style="display: flex; align-items: center; padding: 1.25rem; gap: 1rem; background: var(--md-white-1, #ffffff); color: var(--md-black-1, #1a1a1a); border-radius: 12px;">
-        <span style="font-size: 1.5rem; flex-shrink: 0;">${icons[type] || icons.info}</span>
-        <span style="flex: 1; font-size: 1rem; font-weight: 500; color: var(--md-black-1, #1a1a1a); line-height: 1.4; font-family: inherit;">${message}</span>
-        <button style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--md-secondary-1, #565e62); padding: 0.5rem; border-radius: 6px; min-width: 32px; min-height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;">&times;</button>
-      </div>
-    `;
+    // SEC-02: Create safe HTML structure without innerHTML
+    const container = document.createElement('div');
+    container.style.cssText = 'display: flex; align-items: center; padding: 1.25rem; gap: 1rem; background: var(--md-white-1, #ffffff); color: var(--md-black-1, #1a1a1a); border-radius: 12px;';
     
-    const closeBtn = notification.querySelector('button');
-    closeBtn.addEventListener('click', () => {
+    const iconSpan = document.createElement('span');
+    iconSpan.style.cssText = 'font-size: 1.5rem; flex-shrink: 0;';
+    iconSpan.textContent = icons[type] || icons.info;
+    
+    const messageSpan = document.createElement('span');
+    messageSpan.style.cssText = 'flex: 1; font-size: 1rem; font-weight: 500; color: var(--md-black-1, #1a1a1a); line-height: 1.4; font-family: inherit;';
+    messageSpan.textContent = safeMessage;
+    
+    const closeButton = document.createElement('button');
+    closeButton.style.cssText = 'background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--md-secondary-1, #565e62); padding: 0.5rem; border-radius: 6px; min-width: 32px; min-height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;';
+    closeButton.textContent = '×';
+    
+    container.appendChild(iconSpan);
+    container.appendChild(messageSpan);
+    container.appendChild(closeButton);
+    notification.appendChild(container);
+    
+    closeButton.addEventListener('click', () => {
       notification.style.opacity = '0';
       notification.style.transform = 'translateX(100%)';
       setTimeout(() => notification.remove(), 300);
     });
     
-    closeBtn.addEventListener('mouseenter', () => {
-      closeBtn.style.background = 'var(--md-neutral-9, #f3f5f6)';
-      closeBtn.style.color = 'var(--md-black-1, #1a1a1a)';
+    closeButton.addEventListener('mouseenter', () => {
+      closeButton.style.background = 'var(--md-neutral-9, #f3f5f6)';
+      closeButton.style.color = 'var(--md-black-1, #1a1a1a)';
     });
     
-    closeBtn.addEventListener('mouseleave', () => {
-      closeBtn.style.background = 'none';
-      closeBtn.style.color = 'var(--md-secondary-1, #565e62)';
+    closeButton.addEventListener('mouseleave', () => {
+      closeButton.style.background = 'none';
+      closeButton.style.color = 'var(--md-secondary-1, #565e62)';
     });
     
     document.body.appendChild(notification);

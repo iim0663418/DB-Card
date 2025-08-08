@@ -141,9 +141,9 @@ class PathAuditor {
         if (this.results.summary.upwardReferences > 0) {
             suggestions.push({
                 action: 'copy-resource',
-                source: '../assets/',
+                source: './assets/',
                 target: './assets/',
-                command: 'cp -r ../assets/* ./assets/',
+                command: 'cp -r ./assets/* ./assets/',
                 description: '複製根目錄資源到 PWA 目錄'
             });
         }

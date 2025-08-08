@@ -1,200 +1,64 @@
 /**
- * Jest測試環境設置
- * 為所有測試提供通用的模擬和配置
+ * Jest Setup Configuration
+ * Global test setup and mocks
  */
 
-// 模擬瀏覽器API
-global.TextEncoder = class {
-  encode(str) {
-    return new Uint8Array(str.split('').map(c => c.charCodeAt(0)));
-  }
+// Mock console methods to avoid noise in tests
+global.console = {
+  ...console,
+  log: jest.fn(),
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn()
 };
 
-global.TextDecoder = class {
-  decode(buffer) {
-    return String.fromCharCode(...new Uint8Array(buffer));
-  }
+// Mock localStorage
+const localStorageMock = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
 };
+global.localStorage = localStorageMock;
 
-// 模擬Crypto API
-global.crypto = {
-  subtle: {
-    digest: jest.fn().mockImplementation(async (algorithm, data) => {
-      // 簡單的模擬雜湊
-      const hash = new ArrayBuffer(32);
-      const view = new Uint8Array(hash);
-      for (let i = 0; i < 32; i++) {
-        view[i] = Math.floor(Math.random() * 256);
+// Mock sessionStorage
+const sessionStorageMock = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+};
+global.sessionStorage = sessionStorageMock;
+
+// Mock crypto for Node.js environment
+if (typeof crypto === 'undefined') {
+  global.crypto = {
+    getRandomValues: (arr) => {
+      const nodeCrypto = require('crypto');
+      const bytes = nodeCrypto.randomBytes(arr.length);
+      for (let i = 0; i < arr.length; i++) {
+        arr[i] = bytes[i];
       }
-      return hash;
-    }),
-    importKey: jest.fn().mockResolvedValue({}),
-    deriveKey: jest.fn().mockResolvedValue({}),
-    encrypt: jest.fn().mockImplementation(async () => {
-      return new ArrayBuffer(64);
-    }),
-    decrypt: jest.fn().mockImplementation(async () => {
-      return new TextEncoder().encode('{"decrypted": "data"}');
-    })
-  },
-  getRandomValues: jest.fn().mockImplementation((array) => {
-    for (let i = 0; i < array.length; i++) {
-      array[i] = Math.floor(Math.random() * 256);
+      return arr;
     }
-    return array;
-  })
-};
-
-// 模擬IndexedDB
-global.indexedDB = {
-  open: jest.fn().mockImplementation(() => {
-    const request = {
-      onsuccess: null,
-      onerror: null,
-      onupgradeneeded: null,
-      result: null
-    };
-    
-    setTimeout(() => {
-      request.result = createMockDB();
-      if (request.onsuccess) {
-        request.onsuccess({ target: request });
-      }
-    }, 0);
-    
-    return request;
-  })
-};
-
-// 模擬Storage API
-global.navigator = {
-  ...global.navigator,
-  storage: {
-    estimate: jest.fn().mockResolvedValue({
-      usage: 1024 * 1024, // 1MB
-      quota: 100 * 1024 * 1024 // 100MB
-    })
-  }
-};
-
-// 模擬Performance API
-global.performance = {
-  ...global.performance,
-  memory: {
-    usedJSHeapSize: 10 * 1024 * 1024, // 10MB
-    jsHeapSizeLimit: 100 * 1024 * 1024 // 100MB
-  }
-};
-
-// 通用模擬資料庫
-function createMockDB() {
-  const stores = new Map();
-  
-  return {
-    objectStoreNames: {
-      contains: (name) => ['cards', 'versions', 'settings', 'backups'].includes(name)
-    },
-    createObjectStore: jest.fn().mockImplementation((name) => ({
-      createIndex: jest.fn()
-    })),
-    transaction: jest.fn().mockImplementation((storeNames, mode) => {
-      const transaction = {
-        objectStore: jest.fn().mockImplementation((storeName) => {
-          if (!stores.has(storeName)) {
-            stores.set(storeName, new Map());
-          }
-          
-          const store = stores.get(storeName);
-          
-          return {
-            add: jest.fn().mockImplementation((data) => {
-              const request = { onsuccess: null, onerror: null };
-              setTimeout(() => {
-                store.set(data.id, data);
-                if (request.onsuccess) {
-                  request.onsuccess({ target: { result: data.id } });
-                }
-              }, 0);
-              return request;
-            }),
-            get: jest.fn().mockImplementation((key) => {
-              const request = { onsuccess: null, onerror: null };
-              setTimeout(() => {
-                if (request.onsuccess) {
-                  request.onsuccess({ target: { result: store.get(key) } });
-                }
-              }, 0);
-              return request;
-            }),
-            put: jest.fn().mockImplementation((data) => {
-              const request = { onsuccess: null, onerror: null };
-              setTimeout(() => {
-                store.set(data.id, data);
-                if (request.onsuccess) {
-                  request.onsuccess({ target: { result: data.id } });
-                }
-              }, 0);
-              return request;
-            }),
-            delete: jest.fn().mockImplementation((key) => {
-              const request = { onsuccess: null, onerror: null };
-              setTimeout(() => {
-                store.delete(key);
-                if (request.onsuccess) {
-                  request.onsuccess({ target: { result: undefined } });
-                }
-              }, 0);
-              return request;
-            }),
-            count: jest.fn().mockImplementation(() => {
-              const request = { onsuccess: null, onerror: null };
-              setTimeout(() => {
-                if (request.onsuccess) {
-                  request.onsuccess({ target: { result: store.size } });
-                }
-              }, 0);
-              return request;
-            }),
-            index: jest.fn().mockImplementation(() => ({
-              getAll: jest.fn().mockImplementation(() => {
-                const request = { onsuccess: null, onerror: null };
-                setTimeout(() => {
-                  if (request.onsuccess) {
-                    request.onsuccess({ target: { result: Array.from(store.values()) } });
-                  }
-                }, 0);
-                return request;
-              }),
-              openCursor: jest.fn().mockImplementation(() => {
-                const request = { onsuccess: null, onerror: null };
-                setTimeout(() => {
-                  if (request.onsuccess) {
-                    request.onsuccess({ target: { result: null } }); // 簡化：無cursor
-                  }
-                }, 0);
-                return request;
-              })
-            }))
-          };
-        })
-      };
-      return transaction;
-    }),
-    close: jest.fn(),
-    onclose: null,
-    onversionchange: null
   };
 }
 
-// 清理函數
+// Mock fetch for tests
+global.fetch = jest.fn();
+
+// Mock URL constructor for older Node.js versions
+if (typeof URL === 'undefined') {
+  global.URL = require('url').URL;
+}
+
+// Set test timeout
+jest.setTimeout(30000);
+
+// Clean up after each test
 afterEach(() => {
   jest.clearAllMocks();
+  localStorageMock.clear();
+  sessionStorageMock.clear();
 });
-
-// 全域錯誤處理
-global.console = {
-  ...console,
-  error: jest.fn(),
-  warn: jest.fn(),
-  log: jest.fn()
-};

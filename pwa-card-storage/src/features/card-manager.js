@@ -97,6 +97,7 @@ class PWACardManager {
 
   /**
    * 安全日誌記錄 - 防止 PII 洩漏
+   * SEC-03: Enhanced with SecureLogger integration
    */
   secureLog(level, message, data = {}) {
     // 生產環境檢查
@@ -106,7 +107,10 @@ class PWACardManager {
       return; // 生產環境不輸出 debug 日誌
     }
 
-    if (window.SecurityDataHandler) {
+    // SEC-03: Use SecureLogger if available
+    if (window.secureLogger) {
+      window.secureLogger[level](message, data);
+    } else if (window.SecurityDataHandler) {
       window.SecurityDataHandler.secureLog(level, message, data);
     } else {
       // 基本的資料遮罩
@@ -201,7 +205,8 @@ class PWACardManager {
       };
       
     } catch (error) {
-      console.error('[CardManager] Failed to load bilingual support:', error);
+      // SEC-03: Use secure logging
+      this.secureLog('error', 'Failed to load bilingual support', { error: error.message });
     }
   }
 
@@ -215,7 +220,8 @@ class PWACardManager {
       // 使用標準化識別邏輯
       return this.identifyCardType(cardData);
     } catch (error) {
-      console.error('[CardManager] Card type detection failed:', error);
+      // SEC-03: Use secure logging
+      this.secureLog('error', 'Card type detection failed', { error: error.message });
       return 'personal';
     }
   }
@@ -371,18 +377,19 @@ class PWACardManager {
     
     const textToCheck = textParts.join(' ').toLowerCase();
     
-    console.log('[CardManager] 政府機關檢查:', {
-      textToCheck,
-      organization: cardData.organization,
-      department: cardData.department,
-      email: cardData.email
+    // SEC-03: Use secure logging
+    this.secureLog('debug', 'Government card check', {
+      hasTextToCheck: !!textToCheck,
+      hasOrganization: !!cardData.organization,
+      hasDepartment: !!cardData.department,
+      hasEmail: !!cardData.email
     });
 
     const isGov = govIndicators.some(indicator => 
       textToCheck.includes(indicator.toLowerCase())
     );
     
-    console.log('[CardManager] 政府機關檢查結果:', isGov);
+    this.secureLog('debug', 'Government card check result', { isGov });
     return isGov;
   }
 
@@ -391,21 +398,22 @@ class PWACardManager {
    * 增強雙語檢測邏輯，確保準確識別
    */
   isBilingualCard(cardData) {
-    console.log('[CardManager] 檢查雙語特徵:', {
-      name: cardData.name,
-      title: cardData.title,
-      greetings: cardData.greetings
+    // SEC-03: Use secure logging
+    this.secureLog('debug', 'Checking bilingual features', {
+      hasName: !!cardData.name,
+      hasTitle: !!cardData.title,
+      hasGreetings: !!cardData.greetings
     });
     
     // 檢查姓名是否包含 ~ 分隔符
     if (cardData.name && typeof cardData.name === 'string' && cardData.name.includes('~')) {
-      console.log('[CardManager] 發現雙語姓名:', cardData.name);
+      this.secureLog('debug', 'Found bilingual name');
       return true;
     }
     
     // 檢查職稱是否包含 ~ 分隔符
     if (cardData.title && typeof cardData.title === 'string' && cardData.title.includes('~')) {
-      console.log('[CardManager] 發現雙語職稱:', cardData.title);
+      this.secureLog('debug', 'Found bilingual title');
       return true;
     }
     
@@ -528,11 +536,12 @@ class PWACardManager {
    * 根據類型套用樣式和預設值 - 增強日誌版本
    */
   applyCardTypeDefaults(cardData, detectedType) {
-    console.log(`[CardManager] 套用類型預設值: ${detectedType}`);
+    // SEC-03: Use secure logging
+    this.secureLog('debug', 'Applying card type defaults', { detectedType });
     
     const typeConfig = this.cardTypes[detectedType];
     if (!typeConfig) {
-      console.warn(`[CardManager] 未找到類型配置: ${detectedType}`);
+      this.secureLog('warn', 'Card type configuration not found', { detectedType });
       return cardData;
     }
 
@@ -954,7 +963,8 @@ class PWACardManager {
       // 根據檔案類型處理
       if (isJsonFile) {
         try {
-          importData = JSON.parse(fileContent);
+          // SEC-01: 使用安全的 JSON 解析
+          importData = this.secureJSONParse(fileContent);
           console.log('[CardManager] JSON 解析成功:', {
             hasCards: !!importData.cards,
             cardsLength: importData.cards ? importData.cards.length : 0,
@@ -1144,23 +1154,37 @@ class PWACardManager {
     }
   }
   
-  // SEC-PWA-005: 安全的檔案讀取
+  // SEC-02: 安全的檔案讀取 - Enhanced XSS protection
   secureReadFile(file) {
     return new Promise((resolve, reject) => {
-      // 檔案名稱驗證
+      // SEC-02: Enhanced filename validation
       if (!file.name || file.name.includes('..') || file.name.includes('/') || file.name.includes('\\')) {
         reject(new Error('不安全的檔案名稱'));
         return;
       }
 
+      // SEC-02: Sanitize filename
+      const safeFilename = window.xssProtection ? 
+        window.xssProtection.sanitizeInput(file.name) : 
+        file.name.replace(/[<>"'&]/g, '');
+
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
-          const content = e.target.result;
+          let content = e.target.result;
           if (content.length > 50 * 1024 * 1024) {
             reject(new Error('檔案內容過大'));
             return;
           }
+          
+          // SEC-02: Basic content sanitization for text files
+          if (typeof content === 'string' && window.xssProtection) {
+            // Only sanitize if it's not JSON (preserve structure)
+            if (!content.trim().startsWith('{') && !content.trim().startsWith('[')) {
+              content = window.xssProtection.sanitizeInput(content);
+            }
+          }
+          
           resolve(content);
         } catch (error) {
           reject(new Error('檔案內容處理失敗'));
@@ -1176,9 +1200,19 @@ class PWACardManager {
     return this.secureReadFile(file);
   }
 
-  // SEC-PWA-002: 安全的 JSON 解析
+  // SEC-01: 安全的 JSON 解析 - 使用 SecurityCore
   secureJSONParse(jsonString) {
     try {
+      // 使用 SecurityCore 的安全 JSON 解析
+      if (window.securityCore && window.securityCore.safeJSONParse) {
+        return window.securityCore.safeJSONParse(jsonString, {
+          maxDepth: 5,
+          maxKeys: 50,
+          fallback: null
+        });
+      }
+      
+      // 備用方案：基本安全解析
       return JSON.parse(jsonString, (key, value) => {
         if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
           return undefined;

@@ -1,20 +1,12 @@
 module.exports = {
   testEnvironment: 'jsdom',
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
   testMatch: [
-    '<rootDir>/tests/**/*.test.js'
+    '**/tests/**/*.test.js',
+    '**/tests/**/*.spec.js'
   ],
-  collectCoverageFrom: [
-    'src/**/*.js',
-    'pwa-card-storage/src/**/*.js',
-    '!**/node_modules/**'
-  ],
-  coverageReporters: ['text', 'lcov', 'html'],
-  modulePathIgnorePatterns: ['<rootDir>/tests/package.json'],
-  globals: {
-    'window': {},
-    'document': {},
-    'localStorage': {},
-    'indexedDB': {}
-  }
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
+  testTimeout: 10000, // 10 秒超時
+  verbose: false,
+  collectCoverage: false,
+  maxWorkers: 1 // 單線程執行避免資源競爭
 };

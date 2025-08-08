@@ -1,0 +1,67 @@
+{
+  "platform": "default",
+  "version": "v3.2.0-pwa-deployment-compatibility",
+  "generated": "2025-08-07T12:00:00.000Z",
+  "environment": "development",
+  "basePath": "/",
+  "publicPath": "/",
+  "assetPath": "./assets/",
+  "features": {
+    "serviceWorker": true,
+    "offlineSupport": true,
+    "pushNotifications": false,
+    "backgroundSync": false,
+    "periodicSync": false,
+    "analytics": false
+  },
+  "security": {
+    "level": "basic",
+    "csp": {
+      "enabled": true,
+      "reportOnly": true,
+      "directives": {
+        "default-src": [
+          "'self'"
+        ],
+        "script-src": [
+          "'self'",
+          "'unsafe-inline'"
+        ],
+        "style-src": [
+          "'self'",
+          "'unsafe-inline'",
+          "fonts.googleapis.com"
+        ],
+        "font-src": [
+          "'self'",
+          "fonts.gstatic.com"
+        ],
+        "img-src": [
+          "'self'",
+          "data:",
+          "https:"
+        ],
+        "connect-src": [
+          "'self'"
+        ]
+      }
+    },
+    "headers": {
+      "X-Content-Type-Options": "nosniff"
+    }
+  },
+  "cache": {
+    "strategy": "cache-first",
+    "maxAge": 86400,
+    "resources": [
+      "assets/",
+      "src/"
+    ]
+  },
+  "deployment": {
+    "buildCommand": "npm run build",
+    "outputDir": "dist",
+    "customDomain": false,
+    "httpsOnly": false
+  }
+}

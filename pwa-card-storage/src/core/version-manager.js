@@ -268,7 +268,13 @@ class VersionManager {
         });
         
         if (authResult && !authResult.authorized) {
-          throw new Error(`版本還原被拒絕: ${authResult.reason}`);
+          const getText = (key, fallback) => {
+            if (window.languageManager && window.languageManager.getText) {
+              return window.languageManager.getText(key, null, { fallback });
+            }
+            return fallback;
+          };
+          throw new Error(`${getText('version.restore.denied', '版本還原被拒絕')}: ${authResult.reason}`);
         }
       }
 
@@ -289,11 +295,18 @@ class VersionManager {
       await this.storage.updateCard(cardId, versionSnapshot.data);
 
       // 建立還原版本快照
+      const getText = (key, fallback) => {
+        if (window.languageManager && window.languageManager.getText) {
+          return window.languageManager.getText(key, null, { fallback });
+        }
+        return fallback;
+      };
+      
       await this.createVersionSnapshot(
         cardId, 
         versionSnapshot.data, 
         'restore', 
-        `Restored to version ${targetVersion} (${versionSnapshot.semanticVersion})`
+        `${getText('version.restored.to', 'Restored to version')} ${targetVersion} (${versionSnapshot.semanticVersion})`
       );
 
       // 安全日誌
@@ -663,15 +676,23 @@ class VersionManager {
   generateChangeDescription(changeType, data) {
     const cardName = data.name || 'Unknown';
     
+    // 使用統一語言管理器獲取本地化文字
+    const getText = (key, fallback) => {
+      if (window.languageManager && window.languageManager.getText) {
+        return window.languageManager.getText(key, null, { fallback });
+      }
+      return fallback;
+    };
+    
     switch (changeType) {
       case 'create':
-        return `建立名片: ${cardName}`;
+        return `${getText('version.create', '建立名片')}: ${cardName}`;
       case 'update':
-        return `更新名片: ${cardName}`;
+        return `${getText('version.update', '更新名片')}: ${cardName}`;
       case 'restore':
-        return `還原名片: ${cardName}`;
+        return `${getText('version.restore', '還原名片')}: ${cardName}`;
       default:
-        return `修改名片: ${cardName}`;
+        return `${getText('version.modify', '修改名片')}: ${cardName}`;
     }
   }
 
@@ -818,9 +839,16 @@ class VersionManager {
       const history = await this.getVersionHistory(cardId);
       
       if (history.versions.length <= maxVersions) {
+        const getText = (key, fallback) => {
+          if (window.languageManager && window.languageManager.getText) {
+            return window.languageManager.getText(key, null, { fallback });
+          }
+          return fallback;
+        };
+        
         return {
           success: true,
-          message: '無需清理版本',
+          message: getText('version.cleanup.not.needed', '無需清理版本'),
           deletedCount: 0,
           backupCreated: false
         };
@@ -842,9 +870,16 @@ class VersionManager {
       });
       
       if (versionsToDelete.length === 0) {
+        const getText = (key, fallback) => {
+          if (window.languageManager && window.languageManager.getText) {
+            return window.languageManager.getText(key, null, { fallback });
+          }
+          return fallback;
+        };
+        
         return {
           success: true,
-          message: '無符合清理條件的版本',
+          message: getText('version.cleanup.no.match', '無符合清理條件的版本'),
           deletedCount: 0,
           backupCreated: !!backupId
         };

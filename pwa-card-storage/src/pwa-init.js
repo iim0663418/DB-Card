@@ -8,10 +8,25 @@ const isPWASupported = 'serviceWorker' in navigator && 'BeforeInstallPromptEvent
 
 // Manifest 管理已由 unified-manifest-manager.js 處理
 
-// Service Worker 註冊
+// 🔧 修復：Service Worker 註冊 - 僅在 PWA 環境中註冊
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
+        // 檢查是否在 PWA 目錄中
+        const isPWAEnvironment = window.location.pathname.includes('/pwa-card-storage/') || 
+                                window.location.pathname.endsWith('/pwa-card-storage');
+        
+        if (isPWAEnvironment) {
+            console.log('[PWA] 在 PWA 環境中，註冊 Service Worker');
+            navigator.serviceWorker.register('sw.js')
+                .then(registration => {
+                    console.log('[PWA] Service Worker 註冊成功:', registration.scope);
+                })
+                .catch(error => {
+                    console.warn('[PWA] Service Worker 註冊失敗:', error);
+                });
+        } else {
+            console.log('[PWA] 非 PWA 環境，跳過 Service Worker 註冊');
+        }
     });
 }
 

@@ -2,14 +2,13 @@
   "name": "NFC 數位名片離線儲存",
   "short_name": "名片儲存",
   "description": "數位發展部 NFC 數位名片離線儲存服務",
-  "version": "3.1.3",
+  "version": "v3.2.0",
   "start_url": "./",
   "display": "standalone",
   "orientation": "any",
   "theme_color": "#1976d2",
   "background_color": "#ffffff",
   "lang": "zh-TW",
-  
   "icons": [
     {
       "src": "./assets/icons/icon-32x32.png",
@@ -29,16 +28,18 @@
       "purpose": "any maskable"
     },
     {
-      "src": "../assets/moda-logo.svg",
+      "src": "./assets/images/moda-logo.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     }
   ],
-  
-  "categories": ["business", "productivity", "utilities"],
+  "categories": [
+    "business",
+    "productivity",
+    "utilities"
+  ],
   "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
-  
   "shortcuts": [
     {
       "name": "匯入名片",
@@ -59,26 +60,20 @@
       "url": "./?action=export"
     }
   ],
-  
   "related_applications": [],
   "prefer_related_applications": false,
-  
   "scope": "./",
   "id": "./",
-  
   "launch_handler": {
     "client_mode": "focus-existing"
   },
-  
   "handle_links": "preferred",
-  
   "protocol_handlers": [
     {
       "protocol": "web+nfccard",
       "url": "./?data=%s"
     }
   ],
-  
   "share_target": {
     "action": "./",
     "method": "GET",
@@ -89,28 +84,33 @@
       "url": "url"
     }
   },
-  
   "file_handlers": [
     {
       "action": "./?import=file",
       "accept": {
-        "application/json": [".json"],
-        "text/vcard": [".vcf"],
-        "application/octet-stream": [".enc"]
+        "application/json": [
+          ".json"
+        ],
+        "text/vcard": [
+          ".vcf"
+        ],
+        "application/octet-stream": [
+          ".enc"
+        ]
       }
     }
   ],
-  
   "edge_side_panel": {
     "preferred_width": 400
   },
-  
-  "display_override": ["standalone", "minimal-ui", "browser"],
-  
+  "display_override": [
+    "standalone",
+    "minimal-ui",
+    "browser"
+  ],
   "permissions": [
     "storage-access"
   ],
-  
   "security": {
     "content_security_policy": {
       "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'self';"
@@ -126,7 +126,6 @@
       "third_party_tracking": false
     }
   },
-  
   "cross_platform": {
     "minimum_versions": {
       "ios": "12.0",

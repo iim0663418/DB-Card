@@ -197,6 +197,10 @@ class LanguageManager {
         languageToggle: '語言切換',
         backToHome: '回到首頁',
 
+        // 應用初始化
+        'app.initializing': '初始化應用程式...',
+        'app.init.failed': '應用程式初始化失敗',
+
         // 導航
         home: '首頁',
         cards: '名片',
@@ -223,10 +227,6 @@ class LanguageManager {
         myCards: '我的名片',
         searchCards: '搜尋名片...',
         allTypes: '所有類型',
-        govYanping: '機關版-延平',
-        govShinGuang: '機關版-新光',
-        personal: '個人版',
-        bilingual: '雙語版',
 
         // 匯入頁面
         importCards: '匯入名片',
@@ -275,7 +275,7 @@ class LanguageManager {
         synced: '已同步',
 
         // 通知訊息
-        cardSaved: '名片已儲存',
+        cardSaved: '名片已成功儲存到離線收納',
         cardImported: '名片匯入成功',
         cardExported: '匯出成功',
         qrGenerated: 'QR 碼已生成',
@@ -287,6 +287,10 @@ class LanguageManager {
         switchedToLight: '已切換至淺色模式',
         switchedToDark: '已切換至深色模式',
         backToHomeSuccess: '已返回首頁',
+        versionCreated: '已建立名片新版本',
+        'theme-dark': '已切換至深色模式',
+        'theme-light': '已切換至淺色模式',
+        'theme-failed': '主題切換失敗',
 
         // 錯誤訊息
         importFailed: '匯入失敗',
@@ -296,6 +300,23 @@ class LanguageManager {
         initFailed: '應用程式初始化失敗',
         cardNotFound: '名片不存在',
         invalidUrl: '請輸入名片連結',
+        importFromOriginalPage: '請從原始名片頁面點擊「儲存到離線」',
+        defaultGreeting: '歡迎認識我',
+        importCancelled: '匯入已取消',
+        duplicateSkipped: '已跳過重複名片',
+        duplicateOverwritten: '已覆蓋現有名片',
+        systemNotReady: '系統初始化未完成，請稍後再試',
+        dataFormatError: '名片資料格式錯誤，請從原始名片頁面重新儲存',
+        storageError: '儲存失敗，請檢查儲存空間',
+        processingFailed: '處理失敗',
+        importSuccess: '成功匯入',
+        cards: '張名片',
+        duplicatesDetected: '檢測到',
+        duplicateCardsSkipped: '張重複名片，已跳過匯入',
+        importCompleteNoNew: '匯入完成，但沒有新增名片',
+        encryptedExportSuccess: '加密匯出成功',
+        exportSuccess: '成功匯出',
+        conflictResolutionFailed: '衝突解決失敗',
 
         // 名片列表相關
         loadingCards: '載入名片中...',
@@ -359,6 +380,36 @@ class LanguageManager {
         'security.resetButton': '重設為預設值',
         'security.saveButton': '儲存並關閉',
 
+        // 版本管理
+        versionManagement: '版本管理',
+        versionHistory: '版本歷史',
+        cleanupVersions: '清理版本',
+        exportVersions: '匯出版本',
+        mergeSuggestions: '合併建議',
+        viewVersion: '檢視版本',
+        compareVersion: '比較版本',
+        restoreVersion: '還原版本',
+        deleteVersion: '刪除版本',
+        versionDetails: '版本詳細資訊',
+        createdAt: '建立時間',
+        modifiedAt: '修改時間',
+        versionSize: '版本大小',
+        versionChanges: '版本變更',
+        noVersionsFound: '未找到版本',
+        versionRestored: '版本已還原',
+        versionDeleted: '版本已刪除',
+        
+        // 模態框
+        modalClose: '關閉',
+        modalCancel: '取消',
+        modalConfirm: '確認',
+        modalSave: '儲存',
+        modalDelete: '刪除',
+        modalEdit: '編輯',
+        modalView: '檢視',
+        modalExport: '匯出',
+        modalImport: '匯入',
+        
         // 其他
         processing: '處理中...',
         loading: '載入中...',
@@ -377,6 +428,10 @@ class LanguageManager {
         themeToggle: 'Toggle Theme',
         languageToggle: 'Switch Language',
         backToHome: 'Back to Home',
+
+        // Application initialization
+        'app.initializing': 'Initializing application...',
+        'app.init.failed': 'Application initialization failed',
 
         // Navigation
         home: 'Home',
@@ -404,10 +459,6 @@ class LanguageManager {
         myCards: 'My Cards',
         searchCards: 'Search cards...',
         allTypes: 'All Types',
-        govYanping: 'Gov-Yanping',
-        govShinGuang: 'Gov-ShinGuang',
-        personal: 'Personal',
-        bilingual: 'Bilingual',
 
         // Import Page
         importCards: 'Import Cards',
@@ -456,7 +507,7 @@ class LanguageManager {
         synced: 'Synced',
 
         // Notifications
-        cardSaved: 'Card saved',
+        cardSaved: 'Card successfully saved to offline storage',
         cardImported: 'Card imported successfully',
         cardExported: 'Export successful',
         qrGenerated: 'QR code generated',
@@ -468,6 +519,10 @@ class LanguageManager {
         switchedToLight: 'Switched to light mode',
         switchedToDark: 'Switched to dark mode',
         backToHomeSuccess: 'Returned to Home',
+        versionCreated: 'New card version created',
+        'theme-dark': 'Switched to dark mode',
+        'theme-light': 'Switched to light mode',
+        'theme-failed': 'Theme switch failed',
 
         // Error Messages
         importFailed: 'Import failed',
@@ -477,6 +532,23 @@ class LanguageManager {
         initFailed: 'Application initialization failed',
         cardNotFound: 'Card not found',
         invalidUrl: 'Please enter card link',
+        importFromOriginalPage: 'Please click "Save to Offline" from the original card page',
+        defaultGreeting: 'Nice to meet you!',
+        importCancelled: 'Import cancelled',
+        duplicateSkipped: 'Duplicate card skipped',
+        duplicateOverwritten: 'Existing card overwritten',
+        systemNotReady: 'System initialization incomplete, please try again later',
+        dataFormatError: 'Card data format error, please save again from original card page',
+        storageError: 'Storage failed, please check storage space',
+        processingFailed: 'Processing failed',
+        importSuccess: 'Successfully imported',
+        cards: 'cards',
+        duplicatesDetected: 'Detected',
+        duplicateCardsSkipped: 'duplicate cards, skipped import',
+        importCompleteNoNew: 'Import complete, but no new cards added',
+        encryptedExportSuccess: 'Encrypted export successful',
+        exportSuccess: 'Successfully exported',
+        conflictResolutionFailed: 'Conflict resolution failed',
 
         // Card List Related
         loadingCards: 'Loading cards...',
@@ -540,6 +612,36 @@ class LanguageManager {
         'security.resetButton': 'Reset to Defaults',
         'security.saveButton': 'Save and Close',
 
+        // Version Management
+        versionManagement: 'Version Management',
+        versionHistory: 'Version History',
+        cleanupVersions: 'Cleanup Versions',
+        exportVersions: 'Export Versions',
+        mergeSuggestions: 'Merge Suggestions',
+        viewVersion: 'View Version',
+        compareVersion: 'Compare Version',
+        restoreVersion: 'Restore Version',
+        deleteVersion: 'Delete Version',
+        versionDetails: 'Version Details',
+        createdAt: 'Created At',
+        modifiedAt: 'Modified At',
+        versionSize: 'Version Size',
+        versionChanges: 'Version Changes',
+        noVersionsFound: 'No Versions Found',
+        versionRestored: 'Version Restored',
+        versionDeleted: 'Version Deleted',
+        
+        // Modal
+        modalClose: 'Close',
+        modalCancel: 'Cancel',
+        modalConfirm: 'Confirm',
+        modalSave: 'Save',
+        modalDelete: 'Delete',
+        modalEdit: 'Edit',
+        modalView: 'View',
+        modalExport: 'Export',
+        modalImport: 'Import',
+        
         // Others
         processing: 'Processing...',
         loading: 'Loading...',
@@ -1046,7 +1148,7 @@ class LanguageManager {
     const filterSelect = document.getElementById('card-filter');
     if (filterSelect) {
       const options = filterSelect.querySelectorAll('option');
-      const keys = ['allTypes', 'govYanping', 'govShinGuang', 'personal', 'bilingual'];
+      const keys = ['allTypes', 'cardTypes.index', 'cardTypes.index1', 'cardTypes.personal', 'cardTypes.bilingual', 'cardTypes.bilingual1', 'cardTypes.personal-bilingual', 'cardTypes.en', 'cardTypes.en1', 'cardTypes.personal-en'];
       
       options.forEach((option, index) => {
         if (keys[index]) {

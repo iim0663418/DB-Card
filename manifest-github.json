@@ -29,7 +29,7 @@
       "purpose": "any maskable"
     },
     {
-      "src": "../assets/moda-logo.svg",
+      "src": "./assets/moda-logo.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"

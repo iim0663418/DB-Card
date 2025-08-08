@@ -1,0 +1,424 @@
+/**
+ * moda 設計系統 CSS 變數
+ * 為 PWA 提供完整的數位發展部設計系統支援
+ */
+
+:root {
+  /* moda 主色系 */
+  --md-primary-1: #6868ac;
+  --md-primary-2: rgba(104, 104, 172, 0.89);
+  --md-primary-3: #4e4e81;
+  --md-primary-4: #a4a4cd;
+  --md-primary-5: #dbdbeb;
+  
+  /* moda 次要色系 */
+  --md-secondary-1: #565e62;
+  --md-secondary-2: #6E777C;
+  --md-secondary-3: #7b868c;
+  
+  /* moda 中性色系 */
+  --md-neutral-1: #1a1a1a;
+  --md-neutral-2: #3e4346;
+  --md-neutral-9: #f3f5f6;
+  --md-neutral-10: #f4f6f7;
+  
+  /* moda 基礎色 */
+  --md-white-1: #ffffff;
+  --md-black-1: #1a1a1a;
+  
+  /* 高齡友善字體系統 */
+  --senior-font-size-xs: 0.9rem;
+  --senior-font-size-sm: 1rem;
+  --senior-font-size-base: 1.125rem;
+  --senior-font-size-lg: 1.25rem;
+  --senior-font-size-xl: 1.5rem;
+  --senior-font-size-2xl: 1.75rem;
+  --senior-font-size-3xl: 2rem;
+  --senior-line-height-tight: 1.4;
+  --senior-line-height-normal: 1.6;
+  --senior-line-height-relaxed: 1.8;
+  --senior-letter-spacing: 0.02em;
+  
+  /* Bootstrap 整合變數 */
+  --bs-primary: var(--md-primary-1);
+  --bs-secondary: var(--md-secondary-1);
+  --bs-body-font-family: 'Noto Sans TC', 'Noto Sans', sans-serif;
+  --bs-body-font-size: 0.875rem;
+  --bs-body-font-weight: 400;
+  --bs-body-color: var(--md-black-1);
+  --bs-body-bg: var(--md-white-1);
+  --bs-border-color: var(--md-neutral-9);
+  --bs-link-color: var(--md-primary-1);
+  
+  /* PWA 專用色彩映射 */
+  --pwa-primary: var(--md-primary-1);
+  --pwa-secondary: var(--md-secondary-1);
+  --pwa-background: var(--md-white-1);
+  --pwa-surface: var(--md-white-1);
+  --pwa-text: var(--md-black-1);
+  --pwa-text-secondary: var(--md-secondary-1);
+  --pwa-text-inverse: var(--md-white-1);
+  --pwa-border: #e5e7ea;
+  
+  /* 字體系統 - 高齡友善優化 */
+  --pwa-font-family: var(--bs-body-font-family);
+  --pwa-font-size-base: var(--senior-font-size-base);
+  --pwa-font-weight-normal: 400;
+  --pwa-font-weight-medium: 500;
+  --pwa-font-weight-bold: 600;
+  --pwa-line-height: var(--senior-line-height-normal);
+  --pwa-letter-spacing: var(--senior-letter-spacing);
+  
+  /* 動畫與過渡 */
+  --pwa-transition-duration: 0.3s;
+  --pwa-transition-timing: ease;
+  
+  /* 間距系統 */
+  --pwa-spacing-xs: 0.25rem;
+  --pwa-spacing-sm: 0.5rem;
+  --pwa-spacing-md: 1rem;
+  --pwa-spacing-lg: 1.5rem;
+  --pwa-spacing-xl: 2rem;
+}
+
+/* 深色模式 */
+.dark {
+  /* 保持語義正確的基礎色 */
+  --md-white-1: #ffffff;
+  --md-black-1: #1a1a1a;
+  
+  /* 深色模式專用背景和文字變數 */
+  --md-bg-primary: #121212;
+  --md-bg-secondary: #1e1e1e;
+  --md-text-primary: #ffffff;
+  --md-text-secondary: #e0e0e0;
+  
+  /* 調整主色系 - 降低飽和度和亮度 */
+  --md-primary-1: #5a5a94;
+  --md-primary-2: rgba(78, 78, 129, 0.89);
+  --md-primary-3: #4e4e81;
+  --md-primary-4: #9090c0;
+  --md-primary-5: #2a2a3a;
+  
+  /* 調整次要色系 */
+  --md-secondary-1: #b0b7bb;
+  --md-secondary-2: #9ca6aa;
+  --md-secondary-3: #888f93;
+  
+  /* 深色模式中性色系 */
+  --md-neutral-1: #e0e0e0;
+  --md-neutral-2: #b0b0b0;
+  --md-neutral-9: #858585;
+  --md-neutral-10: #1e1e1e;
+  
+  /* Bootstrap 深色模式變數 */
+  --bs-body-color: var(--md-text-primary);
+  --bs-body-bg: var(--md-bg-primary);
+  --bs-border-color: var(--md-neutral-9);
+  --bs-link-color: var(--md-primary-1);
+  
+  /* PWA 深色模式映射 */
+  --pwa-background: var(--md-bg-primary);
+  --pwa-surface: var(--md-bg-secondary);
+  --pwa-text: var(--md-text-primary);
+  --pwa-text-secondary: var(--md-text-secondary);
+  --pwa-text-inverse: var(--md-black-1);
+  --pwa-border: #858585;
+}
+
+/* PWA 元件樣式更新 */
+.app-container {
+  background-color: var(--pwa-background);
+  color: var(--pwa-text);
+  font-family: var(--pwa-font-family);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  min-height: 100vh;
+}
+
+.app-header {
+  background-color: var(--pwa-primary);
+  color: var(--pwa-text-inverse);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.app-nav {
+  background-color: var(--pwa-surface);
+  border-top: 1px solid var(--pwa-border);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.nav-item {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.nav-item.active {
+  background-color: var(--pwa-primary);
+  color: var(--pwa-text-inverse);
+}
+
+.btn {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+.btn-primary {
+  background-color: var(--pwa-primary);
+  border-color: var(--pwa-primary);
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background-color: var(--md-primary-3);
+  border-color: var(--md-primary-3);
+}
+
+.dark .btn-primary:hover {
+  background-color: var(--md-primary-3);
+  border-color: var(--md-primary-3);
+}
+
+.app-header .btn-icon {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--pwa-text-inverse);
+  border-radius: 8px;
+  padding: 8px;
+  min-width: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-header .btn-icon:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: var(--pwa-text-inverse);
+}
+
+.card, .stat-card, .action-card {
+  background-color: var(--pwa-surface);
+  border: 1px solid var(--pwa-border);
+  color: var(--pwa-text);
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+.notification {
+  background-color: var(--pwa-surface);
+  border: 1px solid var(--pwa-border);
+  color: var(--pwa-text);
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.notification-content {
+  background-color: var(--pwa-surface);
+  color: var(--pwa-text);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.notification-icon {
+  color: var(--pwa-text);
+  transition: color 0.3s ease;
+}
+
+.notification-message {
+  color: var(--pwa-text);
+  transition: color 0.3s ease;
+}
+
+.notification-close {
+  background: transparent;
+  border: none;
+  color: var(--pwa-text-secondary);
+  cursor: pointer;
+  font-size: 1.2em;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.notification-close:hover {
+  background-color: var(--pwa-border);
+  color: var(--pwa-text);
+}
+
+/* 主題切換動畫 */
+* {
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 載入指示器 */
+.loading-overlay {
+  background-color: rgba(var(--md-black-1), 0.8);
+  color: var(--pwa-text);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.loading-spinner {
+  border-color: var(--pwa-border);
+  border-top-color: var(--pwa-primary);
+  transition: border-color 0.3s ease;
+}
+
+.loading-text {
+  color: var(--pwa-text);
+  font-family: var(--pwa-font-family);
+  transition: color 0.3s ease;
+}
+
+/* PWA 安裝提示 */
+.install-prompt {
+  background-color: var(--pwa-surface);
+  border: 1px solid var(--pwa-border);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.install-content {
+  color: var(--pwa-text);
+  font-family: var(--pwa-font-family);
+  transition: color 0.3s ease;
+}
+
+/* 表單元件 */
+.search-input, .url-input, .file-input {
+  background-color: var(--pwa-surface);
+  border: 1px solid var(--pwa-border);
+  color: var(--pwa-text);
+  font-family: var(--pwa-font-family);
+  border-radius: 6px;
+  padding: 8px 12px;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+.search-input:focus, .url-input:focus, .file-input:focus {
+  border-color: var(--pwa-primary);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(var(--md-primary-1), 0.2);
+}
+
+.filter-select {
+  background-color: var(--pwa-surface);
+  border: 1px solid var(--pwa-border);
+  color: var(--pwa-text);
+  font-family: var(--pwa-font-family);
+  border-radius: 6px;
+  padding: 8px 12px;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+.checkbox-label {
+  color: var(--pwa-text);
+  font-family: var(--pwa-font-family);
+  transition: color 0.3s ease;
+}
+
+/* 頁面結構元件 */
+.page-header {
+  border-bottom: 1px solid var(--pwa-border);
+  transition: border-color 0.3s ease;
+}
+
+.welcome-section, .quick-actions, .import-options, .export-options {
+  background-color: var(--pwa-surface);
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+}
+
+.import-card, .export-card {
+  background-color: var(--pwa-surface);
+  border: 1px solid var(--pwa-border);
+  border-radius: 8px;
+  color: var(--pwa-text);
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* 狀態指示器 */
+.status-indicator {
+  font-family: var(--pwa-font-family);
+  font-weight: var(--pwa-font-weight-medium);
+  transition: color 0.3s ease;
+}
+
+.status-indicator.online {
+  color: #28a745;
+}
+
+.status-indicator.offline {
+  color: var(--pwa-text-secondary);
+}
+
+.status-text {
+  color: var(--pwa-text-secondary);
+  font-family: var(--pwa-font-family);
+  transition: color 0.3s ease;
+}
+
+/* 深色模式特定樣式 */
+.dark .btn-icon {
+  border-color: var(--pwa-border);
+  color: var(--pwa-text);
+}
+
+.dark .btn-icon:hover {
+  background-color: var(--pwa-surface);
+  border-color: var(--pwa-primary);
+}
+
+.dark .notification {
+  background-color: var(--pwa-surface);
+  border-color: var(--pwa-border);
+  color: var(--pwa-text);
+}
+
+.dark .notification-content {
+  background-color: var(--pwa-surface);
+  color: var(--pwa-text);
+}
+
+.dark .notification-close {
+  color: var(--pwa-text-secondary);
+}
+
+.dark .notification-close:hover {
+  background-color: var(--pwa-border);
+  color: var(--pwa-text);
+}
+
+.dark .loading-overlay {
+  background-color: rgba(18, 18, 18, 0.9);
+}
+
+/* 深色模式特定修正 */
+.dark .btn-primary {
+  color: var(--md-white-1) !important;
+}
+
+.dark .app-header {
+  color: var(--md-white-1);
+}
+
+.dark .nav-item.active {
+  color: var(--md-white-1);
+}
+
+.dark .search-input, .dark .url-input, .dark .file-input, .dark .filter-select {
+  background-color: var(--pwa-surface);
+  border-color: var(--pwa-border);
+  color: var(--pwa-text);
+}
+
+.dark .import-card, .dark .export-card {
+  background-color: var(--pwa-surface);
+  border-color: var(--pwa-border);
+}
+
+.dark .install-prompt {
+  background-color: var(--pwa-surface);
+  border-color: var(--pwa-border);
+}

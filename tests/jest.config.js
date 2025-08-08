@@ -1,81 +1,82 @@
 /**
- * Jest 測試配置
- * 針對重複處理對話框雙語支援測試
+ * Jest Configuration for Lightweight Security Architecture Tests
+ * Requirement: R-2.4 安全架構輕量化
  */
 
 module.exports = {
-  // 測試環境
+  // Test environment
   testEnvironment: 'jsdom',
   
-  // 測試檔案匹配模式
+  // Test file patterns
   testMatch: [
-    '**/tests/**/*.test.js',
-    '**/tests/**/*.spec.js'
+    '<rootDir>/tests/**/*.test.js',
+    '<rootDir>/tests/**/*.spec.js'
   ],
   
-  // 設置檔案
+  // Setup files
   setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
   
-  // 覆蓋率報告
+  // Coverage configuration
   collectCoverage: true,
   collectCoverageFrom: [
-    'pwa-card-storage/src/**/*.js',
-    '!pwa-card-storage/src/**/*.test.js',
-    '!pwa-card-storage/src/**/*.spec.js'
+    'pwa-card-storage/src/security/**/*.js',
+    '!pwa-card-storage/src/security/**/*.test.js',
+    '!pwa-card-storage/src/security/**/*.spec.js'
   ],
-  coverageDirectory: 'tests/coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
   
-  // 覆蓋率閾值
+  // Coverage thresholds
   coverageThreshold: {
     global: {
-      branches: 80,
-      functions: 80,
-      lines: 80,
-      statements: 80
-    },
-    './pwa-card-storage/src/ui/components/duplicate-dialog.js': {
-      branches: 90,
+      branches: 85,
       functions: 90,
       lines: 90,
       statements: 90
+    },
+    './pwa-card-storage/src/security/': {
+      branches: 90,
+      functions: 95,
+      lines: 95,
+      statements: 95
     }
   },
   
-  // 模組對應
+  // Coverage reporters
+  coverageReporters: [
+    'text',
+    'lcov',
+    'html',
+    'json-summary'
+  ],
+  
+  // Module paths
   moduleNameMapping: {
     '^@/(.*)$': '<rootDir>/pwa-card-storage/src/$1',
-    '^@ui/(.*)$': '<rootDir>/pwa-card-storage/src/ui/$1',
-    '^@core/(.*)$': '<rootDir>/pwa-card-storage/src/core/$1'
+    '^@security/(.*)$': '<rootDir>/pwa-card-storage/src/security/$1'
   },
   
-  // 測試超時
-  testTimeout: 10000,
-  
-  // 詳細輸出
-  verbose: true,
-  
-  // 清除模擬
-  clearMocks: true,
-  restoreMocks: true,
-  
-  // 全域變數
-  globals: {
-    'window': {},
-    'document': {},
-    'navigator': {
-      language: 'zh-TW',
-      languages: ['zh-TW', 'en-US']
-    }
-  },
-  
-  // 轉換設定
+  // Transform configuration
   transform: {
     '^.+\\.js$': 'babel-jest'
   },
   
-  // 忽略轉換的模組
-  transformIgnorePatterns: [
-    'node_modules/(?!(qrcode|other-es6-module)/)'
-  ]
+  // Test timeout
+  testTimeout: 10000,
+  
+  // Verbose output
+  verbose: true,
+  
+  // Clear mocks between tests
+  clearMocks: true,
+  
+  // Restore mocks after each test
+  restoreMocks: true,
+  
+  // Global setup
+  globalSetup: '<rootDir>/tests/globalSetup.js',
+  
+  // Global teardown
+  globalTeardown: '<rootDir>/tests/globalTeardown.js',
+  
+  // Test results processor
+  testResultsProcessor: '<rootDir>/tests/testResultsProcessor.js'
 };

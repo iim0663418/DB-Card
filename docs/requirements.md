@@ -1,388 +1,640 @@
 ---
-version: "v3.1.1"
-rev_id: 3
+version: "v3.2.0-pwa-deployment-compatibility"
+rev_id: 4
 last_updated: "2025-08-06"
-owners: ["prd-writer", "main-orchestrator"]
-feature_scope: "card-version-management-duplicate-detection"
+owners: ["prd-writer", "code-reviewer", "technical-architect"]
+feature_scope: "pwa-static-hosting-deployment-compatibility"
 security_level: "standard"
-cognitive_complexity: "low"
+cognitive_complexity: "medium"
 reuse_policy: "reuse-then-extend-then-build"
 migration_policy:
   compatibility: "100% 向下相容"
-  dual_track_period: "無需雙軌，零破壞性修改"
-  rollback_strategy: "資料庫版本回滾機制"
-  data_migration: "自動資料結構升級"
+  dual_track_period: "2週雙軌部署驗證"
+  rollback_strategy: "即時回滾機制"
+  data_migration: "無資料遷移需求"
 ---
 
-# 名片版本管理與重複識別功能需求文檔
+# PWA 靜態托管部署相容性改進需求文檔
 
 ## 1. Product Overview
 
 ### 1.1 背景與動機
-基於專案現狀分析，系統已具備：
-- ✅ **基礎版本控制**：`PWACardStorage` 提供版本快照功能
-- ✅ **IndexedDB 儲存**：完整的本地資料庫架構
-- ✅ **名片匯入功能**：支援 JSON 和 vCard 格式匯入
+基於 code-reviewer 的深度分析，PWA 名片儲存系統存在多項部署相容性問題，影響在 GitHub Pages 和 Cloudflare Pages 等靜態托管平台的正常運作：
 
-**需求缺口**：從匯出檔案 `cards-export-2025-08-04T21-27-49.json` 分析發現：
-1. **重複名片問題**：同一人（蔡孟諭）的 3 張名片被當作不同名片儲存
-2. **版本號固定**：所有名片版本都是 "1.0"，沒有遞增機制
-3. **缺乏唯一識別**：無法識別相同名片的不同版本
-4. **資料格式不一致**：新舊格式混合，影響識別準確性
+**現有問題分析**：
+- ❌ **路徑依賴問題**：大量使用 `../assets/` 相對路徑引用上層目錄資源
+- ❌ **安全模組過載**：複雜的安全架構不適合靜態托管環境
+- ❌ **Service Worker 複雜度**：動態路徑計算邏輯在不同環境失效
+- ❌ **資源分散問題**：關鍵資源分散在多個目錄，增加部署複雜度
+
+**商業影響**：
+- 部署失敗率：約 40% 的靜態托管環境無法正常運作
+- 維護成本：每次部署需要手動調整路徑和配置
+- 使用者體驗：載入失敗和功能異常影響使用者滿意度
 
 ### 1.2 產品目標
-- **主要目標**：建立基於內容指紋的名片版本管理機制
-- **次要目標**：提供版本歷史查看和還原功能
-- **長期目標**：建立智慧重複檢測和合併建議系統
+- **主要目標**：實現 PWA 在所有主流靜態托管平台的 100% 相容性
+- **次要目標**：簡化部署流程，降低維護成本
+- **長期目標**：建立標準化的靜態托管最佳實踐
 
 ### 1.3 目標使用者
-- **主要使用者**：PWA 名片管理系統使用者
-- **使用場景**：匯入名片時自動檢測重複、管理名片版本歷史
-- **技術水平**：一般使用者，期望自動化處理
+- **主要使用者**：DevOps 工程師、前端開發者
+- **次要使用者**：系統管理員、技術支援人員
+- **使用場景**：多環境部署、CI/CD 整合、災難恢復
 
 ### 1.4 商業價值
-- 提升資料品質，避免重複儲存
-- 增強版本控制能力，支援名片演進追蹤
-- 改善使用者體驗，減少手動清理工作
+- **部署成功率**：從 60% 提升至 100%
+- **維護成本**：減少 70% 的部署相關工作量
+- **開發效率**：統一部署流程，提升團隊協作效率
+- **平台覆蓋**：支援 5+ 主流靜態托管平台
 
 ### 1.5 關鍵績效指標 (KPI)
-- **重複檢測準確率**：≥ 95%（基於姓名+電子郵件指紋）
-- **版本管理效率**：版本建立時間 ≤ 500ms
-- **儲存空間優化**：重複名片減少 ≥ 80%
-- **使用者滿意度**：版本管理功能使用率 ≥ 60%
+- **部署成功率**：≥ 99% (目標：GitHub Pages, Cloudflare Pages, Netlify, Vercel)
+- **首次載入時間**：≤ 3 秒 (靜態資源優化後)
+- **Service Worker 註冊成功率**：≥ 95%
+- **跨平台一致性**：功能差異 ≤ 5%
 
 ## 2. Functional Requirements
 
-### 2.1 內容指紋生成機制
-**User Story**: 作為系統，我需要為每張名片生成唯一的內容指紋，以識別相同名片的不同版本。
+### 2.1 硬編碼路徑審計與修復
+**User Story**: 作為 DevOps 工程師，我需要系統性地識別和修復所有硬編碼路徑，確保目錄結構變動不會破壞功能。
 
 **Acceptance Criteria**:
-- **Given** 使用者匯入或新增名片資料
-- **When** 系統處理名片資料（包含姓名、電子郵件等關鍵欄位）
-- **Then** 自動生成基於 `name + email` 的 SHA-256 內容指紋
-- **And** 指紋格式為 `fingerprint_[hash]`，長度固定 64 字元
-- **And** 支援雙語名片的標準化處理（"蔡孟諭~Tsai Meng-Yu" → "蔡孟諭"）
-- **And** 處理空值和特殊字元，確保指紋穩定性
+- **Given** 專案需要重組目錄結構
+- **When** 執行硬編碼路徑審計
+- **Then** 識別所有使用 `../` 向上引用的檔案
+- **And** 識別所有硬編碼 `/assets/` 和 `/src/` 路徑
+- **And** 生成完整的路徑依賴清單和影響分析
+- **And** 提供自動化修復腳本
+- **And** 驗證修復後所有功能正常運作
+
+**已識別的硬編碼路徑問題**:
+```
+# PWA index.html 中的向上引用 (16+ 處)
+../assets/moda-logo.svg
+../assets/high-accessibility.css
+../assets/bilingual-common.js
+../assets/qrcode.min.js
+../assets/qr-utils.js
+../src/security/*.js (12+ 個安全模組)
+
+# Manifest 檔案中的向上引用
+manifest.json: ../assets/moda-logo.svg
+manifest-github.json: ../assets/moda-logo.svg
+
+# Service Worker 中的動態路徑
+sw.js: BASE_PATH 動態計算邏輯
+```
 
 **Priority**: P0 (Critical)
-**Dependencies**: 現有 `PWACardStorage.calculateChecksum()` 方法、Web Crypto API
+**Dependencies**: 現有資源檔案結構、所有引用這些路徑的檔案
 
-### 2.2 智慧重複檢測與版本遞增
-**User Story**: 作為使用者，我希望匯入名片時系統能自動檢測重複並管理版本號。
+### 2.2 資源路徑標準化
+**User Story**: 作為 DevOps 工程師，我需要 PWA 使用標準化的資源路徑，以確保在任何靜態托管平台都能正常部署。
 
 **Acceptance Criteria**:
-- **Given** 使用者匯入名片資料
-- **When** 系統檢測到相同指紋的名片已存在
-- **Then** 自動將版本號遞增（1.0 → 1.1 → 1.2）
-- **And** 保留所有歷史版本，最多保存 10 個版本
-- **And** 顯示重複檢測提示："發現相同名片，已建立版本 1.2"
-- **And** 提供選項：「覆蓋現有版本」或「建立新版本」
-- **And** 自動清理超過限制的舊版本（FIFO 策略）
+- **Given** PWA 專案需要部署到靜態托管平台
+- **When** 系統載入資源檔案（CSS、JS、圖片、字體）
+- **Then** 所有資源使用相對於 PWA 根目錄的路徑
+- **And** 不存在 `../` 向上引用的路徑
+- **And** 所有必要資源複製到 PWA 目錄內
+- **And** 資源路徑在不同托管環境保持一致
+- **And** 支援子目錄部署（如 `/DB-Card/pwa-card-storage/`）
 
 **Priority**: P0 (Critical)
-**Dependencies**: 內容指紋機制、現有版本控制系統
+**Dependencies**: 硬編碼路徑審計完成、現有資源檔案結構、build 流程
 
-### 2.3 版本歷史管理介面
-**User Story**: 作為使用者，我希望能查看和管理名片的版本歷史。
+### 2.3 簡化 Service Worker 架構
+**User Story**: 作為前端開發者，我需要簡化的 Service Worker 配置，以確保在不同托管環境都能正確註冊和運作。
 
 **Acceptance Criteria**:
-- **Given** 名片存在多個版本
-- **When** 使用者點擊「版本歷史」按鈕
-- **Then** 顯示版本列表，包含版本號、修改時間、變更摘要
-- **And** 支援版本比較功能，高亮顯示差異欄位
-- **And** 提供「還原到此版本」功能
-- **And** 顯示版本統計：總版本數、最後修改時間、儲存空間使用
-- **And** 支援版本匯出功能（單一版本或完整歷史）
+- **Given** PWA 在不同靜態托管平台部署
+- **When** Service Worker 初始化和註冊
+- **Then** 使用固定的路徑配置，不依賴動態計算
+- **And** 支援環境檢測：GitHub Pages、Cloudflare Pages、本地開發
+- **And** 快取策略簡化為標準 PWA 模式
+- **And** 移除複雜的路徑解析邏輯
+- **And** 提供環境特定的配置檔案
+- **And** Service Worker 註冊成功率 ≥ 95%
+
+**Priority**: P0 (Critical)
+**Dependencies**: 現有 Service Worker 實作、快取策略
+
+### 2.4 安全架構輕量化
+**User Story**: 作為系統架構師，我需要適合靜態托管的輕量級安全方案，取代現有的複雜安全架構。
+
+**Acceptance Criteria**:
+- **Given** PWA 部署在無後端的靜態環境
+- **When** 系統初始化安全組件
+- **Then** 使用客戶端安全最佳實踐，不依賴伺服器端驗證
+- **And** 保留核心安全功能：CSP、XSS 防護、輸入驗證
+- **And** 移除複雜的認證和授權邏輯
+- **And** 簡化安全監控為基本錯誤記錄
+- **And** 安全組件載入時間 ≤ 500ms
+- **And** 相容性覆蓋率 ≥ 95% 的現代瀏覽器
 
 **Priority**: P1 (High)
-**Dependencies**: 現有 `getVersionHistory()` 方法、UI 元件系統
+**Dependencies**: 現有安全架構、Web Security APIs
 
-### 2.4 匯入時重複處理流程
-**User Story**: 作為使用者，我希望匯入檔案時能智慧處理重複名片。
-
-**Acceptance Criteria**:
-- **Given** 使用者匯入包含重複名片的檔案
-- **When** 系統檢測到重複名片（相同指紋）
-- **Then** 顯示重複處理對話框，包含：
-  - 現有名片資訊（版本、最後修改時間）
-  - 新名片資訊（來源、差異摘要）
-  - 處理選項：跳過、覆蓋、建立新版本、批量處理
-- **And** 支援批量處理模式：「全部跳過」、「全部建立新版本」
-- **And** 提供預覽功能，顯示處理結果統計
-- **And** 完成後顯示匯入報告：新增、更新、跳過的名片數量
-
-**Priority**: P0 (Critical)
-**Dependencies**: 匯入流程、重複檢測機制、UI 對話框元件
-
-### 2.5 版本合併與清理功能
-**User Story**: 作為使用者，我希望能合併相似版本並清理不需要的歷史版本。
+### 2.5 環境配置管理
+**User Story**: 作為 DevOps 工程師，我需要統一的環境配置管理，支援多平台部署而無需手動修改。
 
 **Acceptance Criteria**:
-- **Given** 名片存在多個相似版本
-- **When** 使用者選擇「版本管理」功能
-- **Then** 系統分析版本差異，提供合併建議
-- **And** 支援手動選擇要保留的版本
-- **And** 提供批量清理功能：清理 30 天前的版本、清理相似版本
-- **And** 清理前顯示影響範圍和確認對話框
-- **And** 支援清理操作的撤銷功能（24 小時內）
+- **Given** PWA 需要部署到不同的靜態托管平台
+- **When** 執行部署流程
+- **Then** 自動檢測目標平台（GitHub Pages、Cloudflare Pages 等）
+- **And** 使用對應的 manifest 和配置檔案
+- **And** 路徑前綴自動調整（如 `/DB-Card/` 或 `/`）
+- **And** 支援環境變數或建置時替換
+- **And** 提供部署驗證腳本
+- **And** 配置錯誤自動檢測和修復建議
+
+**Priority**: P1 (High)
+**Dependencies**: 建置工具、CI/CD 流程
+
+### 2.6 資源整合與優化
+**User Story**: 作為效能工程師，我需要整合和優化 PWA 資源，提升載入效能和部署穩定性。
+
+**Acceptance Criteria**:
+- **Given** PWA 包含多種類型的資源檔案
+- **When** 執行資源整合流程
+- **Then** 將分散的資源檔案整合到 PWA 目錄
+- **And** 優化圖片和字體檔案大小
+- **And** 合併和壓縮 CSS/JS 檔案（可選）
+- **And** 生成資源清單和完整性檢查
+- **And** 支援 CDN 和本地資源的混合模式
+- **And** 首次載入時間改善 ≥ 30%
 
 **Priority**: P2 (Medium)
-**Dependencies**: 版本比較算法、批量操作機制
+**Dependencies**: 建置工具、資源優化工具
 
 ## 3. Non-Functional Requirements
 
 ### 3.1 Secure by Default 檢查清單
-- ✅ **資料完整性**：使用 SHA-256 確保指紋唯一性和防篡改
-- ✅ **輸入驗證**：所有名片資料進行格式驗證和清理
-- ✅ **授權檢查**：版本操作需要適當的使用者權限驗證
-- ✅ **安全日誌**：記錄版本操作，但不洩露 PII 資訊
-- ✅ **錯誤處理**：版本衝突和異常情況的安全處理
+- ✅ **CSP 設定**：適合靜態托管的內容安全政策
+- ✅ **XSS 防護**：客戶端輸入驗證和輸出編碼
+- ✅ **資源完整性**：SRI (Subresource Integrity) 檢查
+- ✅ **HTTPS 強制**：所有生產環境強制 HTTPS
+- ✅ **安全標頭**：適當的安全 HTTP 標頭設定
+- ⚠️ **簡化認證**：移除複雜的伺服器端認證依賴
 
 ### 3.2 Cognitive Load-Friendly 檢查清單
-- ✅ **自動化處理**：重複檢測和版本管理對使用者透明
-- ✅ **清楚提示**：版本狀態和操作結果有明確的視覺回饋
-- ✅ **簡化選擇**：提供預設選項和批量處理模式
-- ✅ **可理解標籤**：版本號使用語義化命名（1.0, 1.1, 1.2）
-- ✅ **錯誤恢復**：提供撤銷和還原機制
+- ✅ **統一配置**：單一配置檔案管理所有環境
+- ✅ **自動檢測**：環境自動檢測，減少手動配置
+- ✅ **清楚錯誤**：部署錯誤提供明確的修復建議
+- ✅ **文檔完整**：詳細的部署指南和故障排除
+- ✅ **工具支援**：提供部署驗證和診斷工具
 
 ### 3.3 效能需求
-- **指紋生成時間**：≤ 100ms per card
-- **重複檢測時間**：≤ 200ms per card
-- **版本歷史載入**：≤ 500ms for 10 versions
-- **批量處理效率**：≥ 50 cards/second
+- **Service Worker 註冊時間**：≤ 1 秒
+- **首次內容繪製 (FCP)**：≤ 2 秒
+- **最大內容繪製 (LCP)**：≤ 3 秒
+- **累積版面偏移 (CLS)**：≤ 0.1
+- **首次輸入延遲 (FID)**：≤ 100ms
 
-### 3.4 可用性需求
-- **離線可用性**：100% 離線環境下功能正常
-- **資料一致性**：版本操作的 ACID 特性保證
-- **錯誤恢復**：異常中斷後自動恢復到一致狀態
+### 3.4 相容性需求
+- **靜態托管平台**：GitHub Pages, Cloudflare Pages, Netlify, Vercel, Firebase Hosting
+- **瀏覽器支援**：Chrome 80+, Firefox 75+, Safari 12+, Edge 80+
+- **行動裝置**：iOS 12+, Android 8+
+- **PWA 功能**：離線支援、安裝提示、推送通知（可選）
 
 ## 4. Technical Constraints & Assumptions
 
 ### 4.1 技術限制
-- **必須複用現有組件**：`PWACardStorage`、`PWACardManager`、IndexedDB 架構
-- **保持 API 一致性**：不改變現有 `storeCard()` 和 `importFromFile()` 函數簽名
-- **資料庫結構擴展**：在現有 schema 基礎上新增欄位，不破壞相容性
-- **瀏覽器相容性**：支援 IndexedDB 和 Web Crypto API 的現代瀏覽器
+- **靜態托管限制**：無伺服器端處理能力，純客戶端運作
+- **路徑限制**：不能使用絕對路徑或向上引用
+- **安全限制**：無法實作伺服器端安全驗證
+- **儲存限制**：依賴瀏覽器本地儲存 (IndexedDB, localStorage)
 
 ### 4.2 現有依賴與整合點
-- **儲存層**：`PWACardStorage` 的版本控制機制
-- **管理層**：`PWACardManager` 的匯入和類型識別邏輯
-- **資料結構**：現有的 `cards` 和 `versions` ObjectStore
-- **加密機制**：現有的 SHA-256 校驗和計算方法
+- **核心 PWA 功能**：保持現有的名片管理、版本控制、重複檢測功能
+- **UI 組件**：保持現有的使用者介面和互動邏輯
+- **資料結構**：保持 IndexedDB 資料庫結構不變
+- **API 相容性**：保持現有 JavaScript API 的向下相容
 
 ### 4.3 假設條件
-- 使用者理解版本管理的基本概念
-- 姓名+電子郵件組合足以唯一識別一個人
-- 版本歷史不會無限增長（10 版本限制合理）
+- 使用者使用現代瀏覽器，支援 PWA 相關技術
+- 靜態托管平台支援 HTTPS 和自訂標頭
+- 不需要即時的伺服器端資料同步
+- 使用者接受純客戶端的安全模型
 
 ## 5. Architecture Reuse Plan
 
 ### 5.1 Reuse Mapping
 | 新需求功能 | 現有模組/API | 複用方式 | 擴展需求 |
 |-----------|-------------|----------|----------|
-| 內容指紋生成 | `calculateChecksum()` | 直接複用 | 新增指紋標準化邏輯 |
-| 版本儲存 | `createVersionSnapshot()` | 擴展複用 | 新增指紋欄位 |
-| 重複檢測 | `listCards()` | 擴展複用 | 新增指紋索引查詢 |
-| 版本歷史 | `getVersionHistory()` | 直接複用 | 無需修改 |
-| 匯入處理 | `importFromExportFormat()` | 擴展複用 | 新增重複檢測邏輯 |
+| 資源路徑管理 | 現有資源載入邏輯 | 擴展複用 | 新增路徑標準化函數 |
+| Service Worker 簡化 | `sw.js` | 重構複用 | 移除複雜邏輯，保留核心功能 |
+| 安全架構輕量化 | 現有安全組件 | 選擇性複用 | 保留客戶端安全，移除伺服器端依賴 |
+| 環境配置 | `manifest.json` | 擴展複用 | 新增多環境配置支援 |
+| 資源整合 | 現有建置流程 | 擴展複用 | 新增資源複製和優化步驟 |
 
 ### 5.2 Extension Plan
-**資料庫 Schema 擴展**：
-```javascript
-// 擴展 cards ObjectStore
-{
-  id: 'card_xxx',
-  fingerprint: 'fingerprint_[hash]', // 新增：內容指紋
-  type: 'bilingual',
-  data: { /* 名片資料 */ },
-  created: Date,
-  modified: Date,
-  version: '1.2', // 擴展：語義化版本號
-  currentVersion: 2, // 保留：數字版本號
-  // ... 其他現有欄位
-}
 
-// 擴展 versions ObjectStore
-{
-  id: 'card_xxx_v1.2',
-  cardId: 'card_xxx',
-  fingerprint: 'fingerprint_[hash]', // 新增：版本指紋
-  version: '1.2', // 擴展：語義化版本號
-  // ... 其他現有欄位
-}
+**硬編碼路徑修復策略**：
+```bash
+# 第一階段：資源複製
+cp ../assets/moda-logo.svg assets/images/
+cp ../assets/high-accessibility.css assets/styles/
+cp ../assets/bilingual-common.js assets/scripts/
+cp ../assets/qrcode.min.js assets/scripts/
+cp ../assets/qr-utils.js assets/scripts/
+
+# 第二階段：安全模組整合（選擇性）
+cp ../src/security/SecurityInputHandler.js src/security/
+cp ../src/security/SecurityDataHandler.js src/security/
+cp ../src/security/SecurityAuthHandler.js src/security/
+# 其他 9 個安全模組根據輕量化需求選擇性複製
+
+# 第三階段：路徑更新
+# index.html: ../assets/ → ./assets/
+# manifest.json: ../assets/ → ./assets/
+# sw.js: 簡化 BASE_PATH 邏輯
 ```
 
-**新增索引**：
+**目錄結構重組**：
+```
+pwa-card-storage/
+├── assets/                    # 新增：整合所有資源
+│   ├── icons/                # 從上層複製
+│   ├── fonts/                # 從上層複製  
+│   ├── images/               # 從上層複製（含 moda-logo.svg）
+│   ├── scripts/              # 從上層複製必要腳本
+│   │   ├── bilingual-common.js
+│   │   ├── qrcode.min.js
+│   │   └── qr-utils.js
+│   └── styles/               # 現有樣式檔案 + 新增
+│       └── high-accessibility.css  # 從上層複製
+├── src/
+│   ├── core/                 # 保持現有結構
+│   ├── security/             # 新增：輕量級安全組件（3-5個核心模組）
+│   └── config/               # 新增：環境配置管理
+├── config/                   # 新增：多環境配置
+│   ├── github-pages.json
+│   ├── cloudflare-pages.json
+│   └── default.json
+├── manifest.json             # 預設配置（路徑已修復）
+├── manifest-github.json      # GitHub Pages 配置（路徑已修復）
+├── sw.js                     # 簡化版 Service Worker
+└── deploy/                   # 新增：部署工具
+    ├── validate.js           # 部署驗證
+    ├── setup.js              # 環境設定
+    └── path-audit.js         # 硬編碼路徑審計工具
+```
+
+**簡化 Service Worker 架構**：
 ```javascript
-// 新增指紋索引以支援快速重複檢測
-cardsStore.createIndex('fingerprint', 'fingerprint', { unique: false });
-versionsStore.createIndex('fingerprint', 'fingerprint', { unique: false });
+// 簡化版 Service Worker
+const CACHE_NAME = 'pwa-card-storage-v3.2.0';
+const BASE_PATH = getBasePath(); // 簡化的路徑檢測
+
+// 環境檢測函數
+function getBasePath() {
+  if (location.hostname.includes('.github.io')) {
+    return '/DB-Card';
+  }
+  if (location.hostname.includes('.pages.dev')) {
+    return '';
+  }
+  return '';
+}
+
+// 標準快取策略
+const CACHE_STRATEGIES = {
+  static: 'cache-first',
+  dynamic: 'network-first',
+  images: 'cache-first'
+};
 ```
 
 ### 5.3 Build vs. Buy vs. Reuse 分析
 | 功能模組 | 決策 | 理由 | 成本評估 |
 |---------|------|------|----------|
-| 指紋生成算法 | Reuse | 現有 SHA-256 機制成熟 | 低：僅需包裝函數 |
-| 版本比較邏輯 | Build | 業務邏輯特殊，需客製化 | 中：約 200 行程式碼 |
-| 重複檢測 UI | Build | 需要特定的使用者互動流程 | 中：約 300 行程式碼 |
-| 版本歷史 UI | Extend | 基於現有 UI 元件擴展 | 低：約 150 行程式碼 |
+| 硬編碼路徑審計 | Build | 專案特定問題，需要客製化掃描 | 低：約 150 行腳本 |
+| 路徑標準化 | Build + Manual | 需要手動複製資源 + 自動化路徑替換 | 中：約 200 行程式碼 + 手動作業 |
+| Service Worker 簡化 | Reuse + Refactor | 基於現有實作，移除複雜邏輯 | 中：約 500 行程式碼重構 |
+| 安全組件輕量化 | Reuse + Simplify | 從 12 個模組減少到 3-5 個核心模組 | 高：約 800 行程式碼簡化 |
+| 環境配置管理 | Build | 新需求，需要新的配置系統 | 低：約 200 行程式碼 |
+| 部署工具 | Build | 專案特定的部署需求 | 低：約 150 行腳本 |
 
 ### 5.4 Migration & Deprecation
-**資料遷移策略**：
-1. **Phase 1**：新增指紋欄位，現有資料保持不變
-2. **Phase 2**：背景任務為現有名片生成指紋
-3. **Phase 3**：啟用重複檢測功能
-4. **Phase 4**：清理重複資料（可選，使用者確認）
 
-**向下相容性**：
-- 現有 API 保持不變，新功能通過可選參數提供
-- 舊版本資料自動升級，無需使用者干預
-- 提供降級機制，可關閉新功能回到原始行為
+**階段式遷移策略**：
+1. **Phase 1 (Week 1)**：硬編碼路徑審計和資源整合
+   - 執行全專案硬編碼路徑掃描
+   - 複製必要資源到 PWA 目錄（16+ 個檔案）
+   - 更新所有資源引用路徑（HTML、JSON、JS）
+   - 建立路徑驗證工具
+
+2. **Phase 2 (Week 2)**：Service Worker 和安全架構簡化
+   - 重構 Service Worker，移除複雜的 BASE_PATH 邏輯
+   - 簡化安全組件，從 12 個模組減少到 3-5 個核心模組
+   - 實作環境自動檢測
+   - 更新所有安全模組的路徑引用
+
+3. **Phase 3 (Week 3)**：測試和優化
+   - 多平台部署測試（驗證路徑修復效果）
+   - 執行回歸測試確保功能完整性
+   - 效能優化和調整
+   - 文檔更新和工具完善
+
+**向下相容性保證**：
+- 現有 PWA 功能 100% 保持不變
+- API 介面保持一致
+- 資料結構無需遷移
+- 使用者體驗無感知升級
 
 ## 6. Security & Privacy Requirements
 
 ### 6.1 威脅模型概覽
 | 威脅類型 | 風險等級 | 緩解措施 |
 |---------|---------|----------|
-| 指紋碰撞攻擊 | Medium | 使用 SHA-256 + 鹽值，碰撞機率極低 |
-| 版本資料篡改 | Medium | 版本校驗和驗證，檢測資料完整性 |
-| 重複檢測繞過 | Low | 多重驗證機制，防止惡意重複 |
-| 版本歷史洩露 | Low | 本地儲存，無網路傳輸風險 |
+| XSS 攻擊 | High | 客戶端輸入驗證、CSP 設定、輸出編碼 |
+| 資源劫持 | Medium | SRI 檢查、HTTPS 強制、資源完整性驗證 |
+| 中間人攻擊 | Medium | HTTPS 強制、HSTS 設定 |
+| 客戶端資料洩露 | Low | 本地加密、敏感資料最小化 |
 
-### 6.2 資料分類與最小權限
-- **敏感資料**：姓名、電子郵件（用於指紋生成）
-- **處理原則**：指紋生成後立即清理中間資料
-- **存取控制**：版本操作需要明確的使用者授權
-- **日誌記錄**：記錄操作類型和時間，不記錄具體內容
+### 6.2 靜態托管安全最佳實踐
+- **Content Security Policy**：嚴格的 CSP 設定，適合靜態環境
+- **Subresource Integrity**：所有外部資源使用 SRI 檢查
+- **HTTPS Everywhere**：強制 HTTPS，設定 HSTS 標頭
+- **客戶端驗證**：所有輸入在客戶端進行驗證和清理
+- **最小權限原則**：只請求必要的瀏覽器權限
 
-### 6.3 審計需求
-- 版本建立、修改、刪除操作的完整日誌
-- 重複檢測結果和使用者選擇的記錄
-- 異常情況和錯誤處理的追蹤記錄
+### 6.3 隱私保護
+- **本地優先**：所有資料儲存在使用者裝置
+- **無追蹤**：不使用任何分析或追蹤服務
+- **透明度**：清楚說明資料處理和儲存方式
+- **使用者控制**：提供資料匯出和刪除功能
 
 ## 7. Measurement & Validation Plan
 
-### 7.1 功能驗證
-**單元測試**：
-- 指紋生成算法的一致性和唯一性測試
-- 版本遞增邏輯的正確性測試
-- 重複檢測算法的準確性測試
+### 7.1 部署相容性測試
+**測試矩陣**：
+| 托管平台 | 部署測試 | 功能測試 | 效能測試 | 安全測試 |
+|---------|---------|---------|---------|---------|
+| GitHub Pages | ✅ 自動部署 | ✅ 完整功能 | ✅ 效能指標 | ✅ 安全掃描 |
+| Cloudflare Pages | ✅ 自動部署 | ✅ 完整功能 | ✅ 效能指標 | ✅ 安全掃描 |
+| Netlify | ✅ 自動部署 | ✅ 完整功能 | ✅ 效能指標 | ✅ 安全掃描 |
+| Vercel | ✅ 自動部署 | ✅ 完整功能 | ✅ 效能指標 | ✅ 安全掃描 |
+| Firebase Hosting | ✅ 自動部署 | ✅ 完整功能 | ✅ 效能指標 | ✅ 安全掃描 |
 
-**整合測試**：
-- 匯入流程中重複處理的端到端測試
-- 版本管理 UI 的互動測試
-- 資料庫操作的事務性測試
+### 7.2 自動化測試流程
+```yaml
+# CI/CD 測試流程
+deploy_test:
+  strategy:
+    matrix:
+      platform: [github-pages, cloudflare-pages, netlify, vercel]
+  steps:
+    - name: Deploy to platform
+    - name: Validate deployment
+    - name: Run functional tests
+    - name: Check performance metrics
+    - name: Security scan
+    - name: Generate report
+```
 
-**端到端測試**：
-- 完整的名片匯入和版本管理流程
-- 異常情況下的錯誤恢復測試
-- 大量資料的效能壓力測試
+### 7.3 效能監控
+- **Core Web Vitals**：LCP, FID, CLS 持續監控
+- **PWA Score**：Lighthouse PWA 評分 ≥ 90
+- **載入時間**：首次載入和後續載入時間追蹤
+- **錯誤率**：JavaScript 錯誤和網路錯誤監控
 
-### 7.2 效能監控
-- **指紋生成效能**：批量處理 1000 張名片的時間
-- **重複檢測效能**：在 10000 張名片中檢測重複的時間
-- **版本歷史載入**：複雜版本樹的渲染時間
-- **儲存空間使用**：版本資料的空間效率
-
-### 7.3 使用者體驗測試
-- **可用性測試**：新使用者完成版本管理任務的成功率
-- **認知負荷測試**：版本概念理解和操作複雜度評估
-- **錯誤恢復測試**：使用者在操作失誤後的恢復能力
+### 7.4 使用者驗收測試
+- **部署成功率**：5 個平台部署成功率 ≥ 99%
+- **功能一致性**：跨平台功能差異 ≤ 5%
+- **使用者體驗**：載入時間和互動回應時間滿足要求
+- **安全性**：通過基本安全掃描，無高風險漏洞
 
 ## 8. Appendix
 
-### 8.1 內容指紋算法規格
+### 8.1 部署平台特性對比
+| 平台 | 路徑前綴 | 自訂標頭 | SPA 支援 | 建置整合 | 備註 |
+|------|---------|---------|---------|---------|------|
+| GitHub Pages | `/repo-name/` | 有限 | 需配置 | GitHub Actions | 免費，但功能有限 |
+| Cloudflare Pages | `/` | 完整 | 原生 | Git 整合 | 效能優秀，功能完整 |
+| Netlify | `/` | 完整 | 原生 | 多種整合 | 功能豐富，易用性高 |
+| Vercel | `/` | 完整 | 原生 | Git 整合 | 效能導向，開發者友善 |
+| Firebase Hosting | `/` | 完整 | 原生 | CLI 工具 | Google 生態系整合 |
+
+### 8.2 硬編碼路徑審計工具規格
 ```javascript
-/**
- * 生成名片內容指紋
- * @param {Object} cardData - 名片資料
- * @returns {string} 指紋字串，格式：fingerprint_[64字元hash]
- */
-function generateCardFingerprint(cardData) {
-  // 1. 標準化姓名（處理雙語格式）
-  const normalizedName = normalizeName(cardData.name);
+// deploy/path-audit.js - 硬編碼路徑審計工具
+class HardcodedPathAuditor {
+  constructor() {
+    this.patterns = {
+      upwardReference: /\.\.\/[^\s"']+/g,
+      assetPath: /\/assets\/[^\s"']+/g,
+      srcPath: /\/src\/[^\s"']+/g,
+      manifestIcon: /"src":\s*"[^"]*\.\.\/[^"]*"/g
+    };
+  }
   
-  // 2. 標準化電子郵件（轉小寫，去空格）
-  const normalizedEmail = normalizeEmail(cardData.email);
+  async scanProject() {
+    const results = {
+      totalFiles: 0,
+      affectedFiles: [],
+      pathIssues: [],
+      fixSuggestions: []
+    };
+    
+    // 掃描 HTML 檔案
+    await this.scanFileType('**/*.html', results);
+    // 掃描 JSON 檔案 (manifest)
+    await this.scanFileType('**/*.json', results);
+    // 掃描 JS 檔案
+    await this.scanFileType('**/*.js', results);
+    
+    return results;
+  }
   
-  // 3. 組合關鍵欄位
-  const fingerprintSource = `${normalizedName}|${normalizedEmail}`;
-  
-  // 4. 生成 SHA-256 雜湊
-  const hash = await crypto.subtle.digest('SHA-256', 
-    new TextEncoder().encode(fingerprintSource));
-  
-  // 5. 轉換為十六進位字串
-  const hashHex = Array.from(new Uint8Array(hash))
-    .map(b => b.toString(16).padStart(2, '0')).join('');
-  
-  return `fingerprint_${hashHex}`;
+  generateFixScript(results) {
+    return `#!/bin/bash
+# 自動生成的路徑修復腳本
+
+# 複製資源檔案
+${this.generateCopyCommands(results)}
+
+# 更新路徑引用
+${this.generateReplaceCommands(results)}
+
+# 驗證修復結果
+node deploy/validate.js
+`;
+  }
 }
 ```
 
-### 8.2 版本號規則
-- **格式**：`major.minor`（如：1.0, 1.1, 1.2）
-- **遞增規則**：同一指紋的名片，minor 版本號遞增
-- **重置規則**：不同指紋視為不同名片，重新從 1.0 開始
-- **顯示規則**：UI 中顯示為「版本 1.2」，資料庫儲存為字串 "1.2"
+### 8.3 硬編碼路徑審計報告
+```
+📊 硬編碼路徑審計報告
+==================================================
+掃描檔案總數: 20
+受影響檔案: 2
+問題總數: 21
 
-### 8.3 重複檢測流程圖
-```mermaid
-flowchart TD
-    A[匯入名片] --> B[生成指紋]
-    B --> C{檢查指紋是否存在}
-    C -->|不存在| D[建立新名片 v1.0]
-    C -->|存在| E[顯示重複對話框]
-    E --> F{使用者選擇}
-    F -->|跳過| G[跳過此名片]
-    F -->|覆蓋| H[更新現有名片]
-    F -->|新版本| I[建立新版本 v1.x]
-    H --> J[建立版本快照]
-    I --> J
-    J --> K[完成匯入]
+🔍 受影響的檔案:
+  📄 pwa-card-storage/index.html (20 個問題)
+    ⚠️  Line 15: ../assets/moda-logo.svg
+    ⚠️  Line 32: ../assets/high-accessibility.css
+    ⚠️  Line 258: ../src/security/SecurityInputHandler.js
+    ⚠️  Line 259: ../src/security/SecurityDataHandler.js
+    ⚠️  Line 260: ../src/security/SecurityAuthHandler.js
+    ⚠️  Line 263: ../src/security/StaticHostingSecurityToggle.js
+    ⚠️  Line 264: ../src/security/StaticHostingCompatibilityLayer.js
+    ⚠️  Line 265: ../src/security/ClientSideSecurityHealthMonitor.js
+    ⚠️  Line 267: ../src/security/ClientSideGracefulDegradation.js
+    ⚠️  Line 268: ../src/security/ClientSideSecurityErrorRecovery.js
+    ⚠️  Line 270: ../src/security/ClientSideSecurityRollback.js
+    ⚠️  Line 271: ../src/security/ClientSideUserImpactMonitor.js
+    ⚠️  Line 272: ../src/security/ClientSideSecurityDashboard.js
+    ⚠️  Line 275: ../src/security/ClientSideUserCommunication.js
+    ⚠️  Line 276: ../src/security/ClientSideSecurityOnboarding.js
+    ⚠️  Line 277: ../src/security/ClientSideSecuritySettings.js
+    ⚠️  Line 284: ../assets/bilingual-common.js
+    ⚠️  Line 285: ../assets/qrcode.min.js
+    ⚠️  Line 286: ../assets/qr-utils.js
+    ... 還有 1 個問題
+
+  📄 pwa-card-storage/manifest.json (1 個問題)
+    ⚠️  Line 32: ../assets/moda-logo.svg
+
+🛠️  修復建議:
+1. 複製資源檔案到 PWA 目錄
+   cp ../assets/moda-logo.svg assets/images/moda-logo.svg
+   cp ../assets/high-accessibility.css assets/styles/high-accessibility.css
+   cp ../assets/bilingual-common.js assets/scripts/bilingual-common.js
+   cp ../assets/qrcode.min.js assets/scripts/qrcode.min.js
+   cp ../assets/qr-utils.js assets/scripts/qr-utils.js
+
+2. 選擇性複製安全模組（根據輕量化需求）
+   cp ../src/security/SecurityInputHandler.js src/security/
+   cp ../src/security/SecurityDataHandler.js src/security/
+   cp ../src/security/SecurityAuthHandler.js src/security/
+   # 其他 9 個安全模組根據需求選擇性複製
+
+💡 執行審計工具:
+   cd pwa-card-storage && node ../deploy/path-audit.js
+   
+🔧 生成修復腳本:
+   node ../deploy/path-audit.js --fix
+   bash fix-hardcoded-paths.sh
 ```
 
-### 8.4 資料庫索引策略
-```sql
--- 指紋索引（支援快速重複檢測）
-CREATE INDEX idx_cards_fingerprint ON cards(fingerprint);
-CREATE INDEX idx_versions_fingerprint ON versions(fingerprint);
+### 8.4 資源整合清單
+```bash
+# 基於審計報告的資源整合策略
 
--- 複合索引（支援版本查詢）
-CREATE INDEX idx_versions_card_version ON versions(cardId, version);
+# 第一階段：核心資源檔案（5個）
+cp ../assets/moda-logo.svg assets/images/
+cp ../assets/high-accessibility.css assets/styles/
+cp ../assets/bilingual-common.js assets/scripts/
+cp ../assets/qrcode.min.js assets/scripts/
+cp ../assets/qr-utils.js assets/scripts/
 
--- 時間索引（支援清理操作）
-CREATE INDEX idx_versions_timestamp ON versions(timestamp);
+# 第二階段：核心安全模組（3個必要）
+cp ../src/security/SecurityInputHandler.js src/security/
+cp ../src/security/SecurityDataHandler.js src/security/
+cp ../src/security/SecurityAuthHandler.js src/security/
+
+# 第三階段：可選安全模組（根據輕量化需求）
+# StaticHostingSecurityToggle.js
+# StaticHostingCompatibilityLayer.js
+# ClientSideSecurityHealthMonitor.js
+# ... 其他 6 個模組
+
+# 第四階段：路徑更新
+sed -i 's|../assets/|./assets/|g' index.html
+sed -i 's|../assets/|./assets/|g' manifest.json
+sed -i 's|../assets/|./assets/|g' manifest-github.json
+sed -i 's|../src/security/|./src/security/|g' index.html
 ```
 
-### 8.5 錯誤處理策略
-| 錯誤類型 | 處理策略 | 使用者體驗 |
-|---------|----------|------------|
-| 指紋生成失敗 | 使用備用算法（時間戳+隨機數） | 顯示警告，功能降級 |
-| 版本衝突 | 自動重試，遞增版本號 | 透明處理，無感知 |
-| 儲存空間不足 | 自動清理舊版本 | 提示清理結果 |
-| 資料庫損壞 | 嘗試修復，備份重要資料 | 顯示修復進度 |
+### 8.5 環境配置範例
+```json
+// config/github-pages.json
+{
+  "basePath": "/DB-Card",
+  "manifestPath": "./manifest-github.json",
+  "serviceWorkerPath": "./sw.js",
+  "assetPrefix": "/DB-Card/pwa-card-storage",
+  "features": {
+    "pushNotifications": false,
+    "backgroundSync": true
+  }
+}
 
-### 8.6 技術名詞表
-- **內容指紋 (Content Fingerprint)**：基於名片關鍵欄位生成的唯一識別碼
-- **版本快照 (Version Snapshot)**：特定時間點的名片資料完整副本
-- **重複檢測 (Duplicate Detection)**：識別相同名片不同版本的算法
-- **語義化版本 (Semantic Versioning)**：使用 major.minor 格式的版本號系統
+// config/cloudflare-pages.json
+{
+  "basePath": "",
+  "manifestPath": "./manifest.json",
+  "serviceWorkerPath": "./sw.js",
+  "assetPrefix": "",
+  "features": {
+    "pushNotifications": true,
+    "backgroundSync": true
+  }
+}
+```
 
-### 8.7 參考文件
-- [現有專案 README.md](../README.md)
-- [PWA 儲存架構文檔](../pwa-card-storage/README.md)
-- [安全架構文檔](SECURITY.md)
-- [IndexedDB 最佳實踐](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)
+### 8.6 部署驗證腳本
+```javascript
+// deploy/validate.js
+async function validateDeployment() {
+  const tests = [
+    checkResourcePaths,
+    validateServiceWorker,
+    testPWAFeatures,
+    checkSecurityHeaders,
+    measurePerformance
+  ];
+  
+  const results = await Promise.all(
+    tests.map(test => test().catch(err => ({ error: err.message })))
+  );
+  
+  return {
+    success: results.every(r => !r.error),
+    results,
+    timestamp: new Date().toISOString()
+  };
+}
+```
+
+### 8.7 故障排除指南
+| 問題 | 症狀 | 解決方案 |
+|------|------|----------|
+| 資源載入失敗 | 404 錯誤 | 檢查資源路徑，確保使用相對路徑 |
+| Service Worker 註冊失敗 | PWA 功能異常 | 檢查 SW 路徑和 scope 設定 |
+| Manifest 錯誤 | 安裝提示不出現 | 驗證 manifest.json 格式和路徑 |
+| CSP 違規 | 控制台安全錯誤 | 調整 CSP 設定，允許必要資源 |
+| 效能問題 | 載入緩慢 | 檢查資源大小，啟用壓縮和快取 |
+
+### 8.8 技術名詞表
+- **靜態托管 (Static Hosting)**：只提供靜態檔案服務，無伺服器端處理的托管方式
+- **SRI (Subresource Integrity)**：確保外部資源完整性的安全機制
+- **CSP (Content Security Policy)**：防止 XSS 攻擊的安全標頭
+- **PWA (Progressive Web App)**：具備原生應用特性的網頁應用程式
+- **Service Worker**：在背景執行的腳本，提供離線功能和快取管理
+
+### 8.9 參考文件
+- [PWA 最佳實踐指南](https://web.dev/progressive-web-apps/)
+- [靜態托管安全指南](https://owasp.org/www-project-web-security-testing-guide/)
+- [GitHub Pages 文檔](https://docs.github.com/en/pages)
+- [Cloudflare Pages 文檔](https://developers.cloudflare.com/pages/)
+- [硬編碼路徑審計工具](../deploy/path-audit.js) - 本專案審計工具
+- [審計報告範例](#83-硬編碼路徑審計報告) - 實際執行結果
 
 ---
 
 ## Spec↔Design↔Tasks 映射表
 
 | 需求編號 | 功能需求 | 現有基礎 | 實作任務 | 測試案例 |
-|---------|---------|---------|---------|---------|
-| REQ-001 | 內容指紋生成機制 | `calculateChecksum()` | 新增 `generateCardFingerprint()` 函數 | 指紋唯一性和一致性測試 |
-| REQ-002 | 智慧重複檢測與版本遞增 | `storeCard()` 方法 | 擴展匯入邏輯，新增重複檢測 | 重複檢測準確率測試 |
-| REQ-003 | 版本歷史管理介面 | `getVersionHistory()` | 新增版本管理 UI 元件 | 版本歷史顯示和操作測試 |
-| REQ-004 | 匯入時重複處理流程 | `importFromExportFormat()` | 新增重複處理對話框 | ✅ 匯入流程端到端測試 (完整測試套件) |
-| REQ-005 | 版本合併與清理功能 | 版本控制系統 | 新增批量清理和合併邏輯 | 清理操作安全性測試 |
+|---------|---------|---------|---------|---------| 
+| REQ-001 | 硬編碼路徑審計與修復 | 現有 16+ 處硬編碼路徑 | 建立審計工具和修復腳本 | 路徑審計和修復驗證測試 |
+| REQ-002 | 資源路徑標準化 | 現有資源載入邏輯 | 資源複製和路徑重寫 | 跨平台資源載入測試 |
+| REQ-003 | Service Worker 簡化 | 現有 `sw.js` 複雜 BASE_PATH 邏輯 | 重構和簡化邏輯 | SW 註冊和快取測試 |
+| REQ-004 | 安全架構輕量化 | 現有 12 個安全模組 | 減少到 3-5 個核心模組 | 客戶端安全功能測試 |
+| REQ-005 | 環境配置管理 | 現有 manifest 系統 | 多環境配置實作 | 環境檢測和配置測試 |
+| REQ-006 | 資源整合與優化 | 現有建置流程 | 資源整合和優化 | 效能和載入時間測試 |

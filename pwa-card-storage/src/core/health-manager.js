@@ -532,6 +532,84 @@ class HealthManager {
   }
 
   /**
+   * Record security events (interface compatibility method)
+   */
+  async recordSecurityEvent(eventType, eventData) {
+    try {
+      console.log(`[Health] Security event: ${eventType}`, eventData);
+      
+      // Store security event in settings for tracking
+      const securityEvents = await this.storage.getSetting('securityEvents') || [];
+      const event = {
+        type: eventType,
+        data: eventData,
+        timestamp: new Date().toISOString()
+      };
+      
+      securityEvents.push(event);
+      
+      // Keep only last 100 events
+      if (securityEvents.length > 100) {
+        securityEvents.splice(0, securityEvents.length - 100);
+      }
+      
+      await this.storage.setSetting('securityEvents', securityEvents);
+      
+      return true;
+    } catch (error) {
+      console.error('[Health] Failed to record security event:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Record general events (interface compatibility method)
+   */
+  async recordEvent(eventType, eventData) {
+    try {
+      console.log(`[Health] Event: ${eventType}`, eventData);
+      return true;
+    } catch (error) {
+      console.error('[Health] Failed to record event:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Cleanup method (interface compatibility)
+   */
+  cleanup(daysToKeep = 7) {
+    try {
+      // Clean up old security events
+      this.cleanupOldSecurityEvents(daysToKeep);
+      this.stopHealthChecks();
+    } catch (error) {
+      console.error('[Health] Cleanup failed:', error);
+    }
+  }
+
+  /**
+   * Clean up old security events
+   */
+  async cleanupOldSecurityEvents(daysToKeep = 7) {
+    try {
+      const securityEvents = await this.storage.getSetting('securityEvents') || [];
+      const cutoffDate = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1000);
+      
+      const filteredEvents = securityEvents.filter(event => {
+        return new Date(event.timestamp) > cutoffDate;
+      });
+      
+      if (filteredEvents.length !== securityEvents.length) {
+        await this.storage.setSetting('securityEvents', filteredEvents);
+        console.log(`[Health] Cleaned up ${securityEvents.length - filteredEvents.length} old security events`);
+      }
+    } catch (error) {
+      console.error('[Health] Failed to cleanup old security events:', error);
+    }
+  }
+
+  /**
    * 清理資源
    */
   destroy() {

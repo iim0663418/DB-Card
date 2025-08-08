@@ -1,0 +1,191 @@
+{
+  "timestamp": "2025-08-07T03:25:10.851Z",
+  "selectedModules": [
+    "SecurityInputHandler.js",
+    "SecurityDataHandler.js",
+    "SecurityAuthHandler.js",
+    "SecurityMonitor.js",
+    "StaticHostingCompatibilityLayer.js"
+  ],
+  "skippedModules": [
+    {
+      "name": "ClientSideGracefulDegradation.js",
+      "reason": "非核心模組，PWA環境不需要"
+    },
+    {
+      "name": "ClientSideSecurityDashboard.js",
+      "reason": "非核心模組，PWA環境不需要"
+    },
+    {
+      "name": "ClientSideSecurityErrorRecovery.js",
+      "reason": "非核心模組，PWA環境不需要"
+    },
+    {
+      "name": "ClientSideSecurityHealthMonitor.js",
+      "reason": "非核心模組，PWA環境不需要"
+    },
+    {
+      "name": "ClientSideSecurityOnboarding.js",
+      "reason": "非核心模組，PWA環境不需要"
+    },
+    {
+      "name": "ClientSideSecurityRollback.js",
+      "reason": "非核心模組，PWA環境不需要"
+    },
+    {
+      "name": "ClientSideSecuritySettings.js",
+      "reason": "非核心模組，PWA環境不需要"
+    },
+    {
+      "name": "ClientSideUserCommunication.js",
+      "reason": "非核心模組，PWA環境不需要"
+    },
+    {
+      "name": "ClientSideUserImpactMonitor.js",
+      "reason": "非核心模組，PWA環境不需要"
+    },
+    {
+      "name": "ClientVulnerabilityScanner.js",
+      "reason": "非核心模組，PWA環境不需要"
+    },
+    {
+      "name": "InputValidationSchema.js",
+      "reason": "非核心模組，PWA環境不需要"
+    },
+    {
+      "name": "OfflineSecurityLogger.js",
+      "reason": "非核心模組，PWA環境不需要"
+    },
+    {
+      "name": "PWASecurityHeaders.js",
+      "reason": "非核心模組，PWA環境不需要"
+    },
+    {
+      "name": "SecureFileValidator.js",
+      "reason": "非核心模組，PWA環境不需要"
+    },
+    {
+      "name": "SecurityPerformanceMonitor.js",
+      "reason": "非核心模組，PWA環境不需要"
+    },
+    {
+      "name": "SecurityTestSuite.js",
+      "reason": "非核心模組，PWA環境不需要"
+    },
+    {
+      "name": "StaticHostingSecurityToggle.js",
+      "reason": "非核心模組，PWA環境不需要"
+    }
+  ],
+  "copyResults": [
+    {
+      "module": "SecurityInputHandler.js",
+      "sourcePath": "/Users/shengfanwu/GitHub/DB-Card/src/security/SecurityInputHandler.js",
+      "targetPath": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/security/scripts/SecurityInputHandler.js",
+      "size": 13998,
+      "hash": "94d34e400bfd2236994e2fd0461511b168e72613a5ed1a70fa27c985388c08fe53e91911eea6fad5318706fbecfb9cde",
+      "status": "success",
+      "reason": "核心安全模組 - 必須保留"
+    },
+    {
+      "module": "SecurityDataHandler.js",
+      "sourcePath": "/Users/shengfanwu/GitHub/DB-Card/src/security/SecurityDataHandler.js",
+      "targetPath": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/security/scripts/SecurityDataHandler.js",
+      "size": 16758,
+      "hash": "1d260b163ad9ad6e0a66d5d977c61c02947bfce378d7b8f9dbf03bca980e8f53e9c8219df2640814da570ac8f60a24f1",
+      "status": "success",
+      "reason": "核心安全模組 - 必須保留"
+    },
+    {
+      "module": "SecurityAuthHandler.js",
+      "sourcePath": "/Users/shengfanwu/GitHub/DB-Card/src/security/SecurityAuthHandler.js",
+      "targetPath": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/security/scripts/SecurityAuthHandler.js",
+      "size": 24707,
+      "hash": "a4f62c0a07518b7554446105a3e4ec91080be1b709e05f5b0fea6857bab933bdeccb3f8a74a1d95b6f6a557de56e2fdf",
+      "status": "success",
+      "reason": "核心安全模組 - 必須保留"
+    },
+    {
+      "module": "SecurityMonitor.js",
+      "sourcePath": "/Users/shengfanwu/GitHub/DB-Card/src/security/SecurityMonitor.js",
+      "targetPath": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/security/SecurityMonitor.js",
+      "size": 13952,
+      "hash": "27692d6329949071c14443b3cf6707c4bd8b59f62fc2896dbc36bf7404d9caebece9f6e0bc13277cdb0127f789736cf0",
+      "status": "success",
+      "reason": "24/7安全監控，適合PWA環境"
+    },
+    {
+      "module": "StaticHostingCompatibilityLayer.js",
+      "sourcePath": "/Users/shengfanwu/GitHub/DB-Card/src/security/StaticHostingCompatibilityLayer.js",
+      "targetPath": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/security/StaticHostingCompatibilityLayer.js",
+      "size": 10901,
+      "hash": "86e2c4665a84663209192d26710511947bf26bfe6166e51d3162b044f09fc9f32008031e638a9d267cd5396198c72592",
+      "status": "success",
+      "reason": "靜態托管相容性，PWA核心需求"
+    }
+  ],
+  "integrityChecks": [
+    {
+      "module": "SecurityInputHandler.js",
+      "check": "file_exists",
+      "passed": true,
+      "message": "檔案存在"
+    },
+    {
+      "module": "SecurityInputHandler.js",
+      "check": "class_definition",
+      "passed": true,
+      "message": "類別定義正確"
+    },
+    {
+      "module": "SecurityInputHandler.js",
+      "check": "global_export",
+      "passed": true,
+      "message": "全域匯出正確"
+    },
+    {
+      "module": "SecurityDataHandler.js",
+      "check": "file_exists",
+      "passed": true,
+      "message": "檔案存在"
+    },
+    {
+      "module": "SecurityDataHandler.js",
+      "check": "class_definition",
+      "passed": true,
+      "message": "類別定義正確"
+    },
+    {
+      "module": "SecurityDataHandler.js",
+      "check": "global_export",
+      "passed": true,
+      "message": "全域匯出正確"
+    },
+    {
+      "module": "SecurityAuthHandler.js",
+      "check": "file_exists",
+      "passed": true,
+      "message": "檔案存在"
+    },
+    {
+      "module": "SecurityAuthHandler.js",
+      "check": "class_definition",
+      "passed": true,
+      "message": "類別定義正確"
+    },
+    {
+      "module": "SecurityAuthHandler.js",
+      "check": "global_export",
+      "passed": true,
+      "message": "全域匯出正確"
+    }
+  ],
+  "totalSize": 80316,
+  "summary": {
+    "totalModulesAnalyzed": 22,
+    "selectedCount": 5,
+    "skippedCount": 17,
+    "totalSizeKB": 78.43,
+    "coreModulesIncluded": true
+  }
+}

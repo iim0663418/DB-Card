@@ -1,0 +1,532 @@
+/* 模態框額外樣式 - moda design system 整合 */
+
+/* 基礎模態框樣式 - moda design system */
+.modal-content {
+  background: var(--md-white-1, #ffffff);
+  border: 2px solid var(--md-primary-1, #6868ac);
+  border-radius: 16px;
+  box-shadow: 0 16px 64px rgba(104, 104, 172, 0.25), 0 4px 16px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(12px);
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: hidden;
+  font-family: var(--pwa-font-family, 'Noto Sans TC', sans-serif);
+}
+
+.modal-header {
+  background: linear-gradient(135deg, var(--md-primary-1, #6868ac), var(--md-primary-2, #5a5a9a));
+  color: var(--md-white-1, #ffffff);
+  padding: 1.5rem 2rem;
+  border-bottom: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--md-white-1, #ffffff);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--md-white-1, #ffffff);
+  font-size: 2rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  min-width: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.modal-body {
+  padding: 2rem;
+  background: var(--md-white-1, #ffffff);
+  color: var(--md-black-1, #1a1a1a);
+  font-family: var(--pwa-font-family, 'Noto Sans TC', sans-serif);
+  line-height: 1.6;
+  font-size: 1rem;
+  border-radius: 0 0 16px 16px;
+}
+
+.modal-body h3 {
+  color: var(--md-primary-1, #6868ac);
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 1.5rem 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--md-neutral-8, #e8eaed);
+}
+
+.modal-body h4 {
+  color: var(--md-secondary-1, #565e62);
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin: 1.25rem 0 0.75rem 0;
+}
+
+.modal-body p {
+  margin: 0.75rem 0;
+  color: var(--md-black-1, #1a1a1a);
+  line-height: 1.7;
+}
+
+.modal-body ul, .modal-body ol {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.modal-body li {
+  margin: 0.5rem 0;
+  color: var(--md-black-1, #1a1a1a);
+}
+
+.modal-body code {
+  background: var(--md-neutral-9, #f3f5f6);
+  color: var(--md-primary-1, #6868ac);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+}
+
+.modal-body pre {
+  background: var(--md-neutral-9, #f3f5f6);
+  border: 1px solid var(--md-neutral-8, #e8eaed);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.modal-body blockquote {
+  border-left: 4px solid var(--md-accent-1, #ff6b35);
+  background: var(--md-neutral-9, #f3f5f6);
+  padding: 1rem 1.5rem;
+  margin: 1rem 0;
+  border-radius: 0 8px 8px 0;
+  font-style: italic;
+  color: var(--md-secondary-1, #565e62);
+}
+
+.modal-body .alert {
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  border-left: 4px solid;
+}
+
+.modal-body .alert-info {
+  background: var(--md-info-light, #e3f2fd);
+  border-left-color: var(--md-info, #2196f3);
+  color: var(--md-info-dark, #1565c0);
+}
+
+.modal-body .alert-warning {
+  background: var(--md-warning-light, #fff3e0);
+  border-left-color: var(--md-warning, #ff9800);
+  color: var(--md-warning-dark, #e65100);
+}
+
+.modal-body .alert-success {
+  background: var(--md-success-light, #e8f5e8);
+  border-left-color: var(--md-success, #4caf50);
+  color: var(--md-success-dark, #2e7d32);
+}
+
+.modal-body .alert-error {
+  background: var(--md-error-light, #ffebee);
+  border-left-color: var(--md-error, #f44336);
+  color: var(--md-error-dark, #c62828);
+}
+
+.modal-body .form-group {
+  margin: 1.5rem 0;
+}
+
+.modal-body label {
+  display: block;
+  color: var(--md-primary-1, #6868ac);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.modal-body input, .modal-body textarea, .modal-body select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid var(--md-neutral-8, #e8eaed);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  background: var(--md-white-1, #ffffff);
+}
+
+.modal-body input:focus, .modal-body textarea:focus, .modal-body select:focus {
+  outline: none;
+  border-color: var(--md-primary-1, #6868ac);
+  box-shadow: 0 0 0 3px rgba(104, 104, 172, 0.1);
+}
+
+.modal-body .btn-group {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--md-neutral-8, #e8eaed);
+}
+
+.modal-body .btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modal-body .btn-primary {
+  background: var(--md-primary-1, #6868ac);
+  color: var(--md-white-1, #ffffff);
+  border-color: var(--md-primary-1, #6868ac);
+}
+
+.modal-body .btn-primary:hover {
+  background: var(--md-primary-2, #5a5a9a);
+  border-color: var(--md-primary-2, #5a5a9a);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(104, 104, 172, 0.3);
+}
+
+.modal-body .btn-secondary {
+  background: transparent;
+  color: var(--md-secondary-1, #565e62);
+  border-color: var(--md-neutral-8, #e8eaed);
+}
+
+.modal-body .btn-secondary:hover {
+  background: var(--md-neutral-9, #f3f5f6);
+  border-color: var(--md-secondary-1, #565e62);
+  color: var(--md-black-1, #1a1a1a);
+}
+
+.modal-body .btn-accent {
+  background: var(--md-accent-1, #ff6b35);
+  color: var(--md-white-1, #ffffff);
+  border-color: var(--md-accent-1, #ff6b35);
+}
+
+.modal-body .btn-accent:hover {
+  background: var(--md-accent-2, #e55a2b);
+  border-color: var(--md-accent-2, #e55a2b);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+}
+
+/* 版本管理模態框特定樣式 - moda design system */
+.version-modal-content {
+  background: var(--md-white-1, #ffffff);
+  border: 2px solid var(--md-primary-1, #6868ac);
+  border-radius: 16px;
+  box-shadow: 0 20px 80px rgba(104, 104, 172, 0.3), 0 6px 20px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(16px);
+  max-width: 95vw;
+  max-height: 95vh;
+  overflow: hidden;
+  font-family: var(--pwa-font-family, 'Noto Sans TC', sans-serif);
+  border-left-width: 6px;
+  border-left-color: var(--md-accent-1, #ff6b35);
+}
+
+.version-modal-content .modal-header {
+  background: linear-gradient(135deg, var(--md-primary-1, #6868ac), var(--md-accent-1, #ff6b35));
+  padding: 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.version-modal-content .modal-header h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.version-modal-content .modal-body {
+  padding: 2.5rem;
+  max-height: calc(95vh - 120px);
+  overflow-y: auto;
+}
+
+/* QR 碼模態框特定樣式 - moda design system */
+.qr-modal .qr-image {
+  max-width: 320px;
+  height: auto;
+  border: 3px solid var(--md-primary-1, #6868ac);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(104, 104, 172, 0.2);
+  background: var(--md-white-1, #ffffff);
+  padding: 1rem;
+}
+
+.qr-modal .qr-url {
+  font-size: 0.875rem;
+  color: var(--md-secondary-1, #565e62);
+  word-break: break-all;
+  margin: 1.5rem 0;
+  max-height: 80px;
+  overflow-y: auto;
+  background: var(--md-neutral-9, #f3f5f6);
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 4px solid var(--md-primary-1, #6868ac);
+}
+
+.qr-modal .qr-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.qr-modal .qr-actions button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.qr-modal .qr-tip {
+  margin-top: 2rem;
+  font-size: 0.95rem;
+  color: var(--md-secondary-1, #565e62);
+  background: var(--md-info-light, #e3f2fd);
+  padding: 1.25rem;
+  border-radius: 12px;
+  border-left: 4px solid var(--md-info, #2196f3);
+}
+
+/* 名片模態框特定樣式 - moda design system */
+.card-modal .card-preview {
+  text-align: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, var(--md-primary-1, #6868ac), var(--md-primary-2, #5a5a9a));
+  color: var(--md-white-1, #ffffff);
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  box-shadow: 0 8px 32px rgba(104, 104, 172, 0.25);
+}
+
+.card-modal .card-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 1.25rem;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.card-modal .card-name {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--md-white-1, #ffffff);
+}
+
+.card-modal .card-title,
+.card-modal .card-department,
+.card-modal .card-organization {
+  opacity: 0.95;
+  margin-bottom: 0.5rem;
+  font-weight: 400;
+}
+
+.card-modal .card-details {
+  margin-bottom: 2rem;
+}
+
+.card-modal .detail-item {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--md-neutral-8, #e8eaed);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.card-modal .detail-item:last-child {
+  border-bottom: none;
+}
+
+.card-modal .detail-item strong {
+  color: var(--md-primary-1, #6868ac);
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card-modal .contact-link {
+  color: var(--md-accent-1, #ff6b35);
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.card-modal .contact-link:hover {
+  color: var(--md-accent-2, #e55a2b);
+  text-decoration: underline;
+}
+
+.card-modal .card-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.card-modal .card-actions .btn {
+  padding: 0.875rem 1.75rem;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+  min-width: 140px;
+}
+
+.card-modal .card-actions .btn-primary {
+  background: var(--md-primary-1, #6868ac);
+  color: var(--md-white-1, #ffffff);
+  border-color: var(--md-primary-1, #6868ac);
+}
+
+.card-modal .card-actions .btn-primary:hover {
+  background: var(--md-primary-2, #5a5a9a);
+  border-color: var(--md-primary-2, #5a5a9a);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(104, 104, 172, 0.3);
+}
+
+.card-modal .card-actions .btn-secondary {
+  background: transparent;
+  color: var(--md-primary-1, #6868ac);
+  border-color: var(--md-primary-1, #6868ac);
+}
+
+.card-modal .card-actions .btn-secondary:hover {
+  background: var(--md-primary-1, #6868ac);
+  color: var(--md-white-1, #ffffff);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(104, 104, 172, 0.2);
+}
+
+/* 社群內容樣式 - moda design system */
+.social-content {
+  line-height: 1.6;
+}
+
+.social-btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  margin: 0.25rem;
+  background: var(--md-accent-1, #ff6b35);
+  color: var(--md-white-1, #ffffff);
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.social-btn:hover {
+  background: var(--md-accent-2, #e55a2b);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
+}
+
+.greetings-container {
+  margin-top: 0.75rem;
+}
+
+.greeting-item {
+  display: inline-block;
+  background: var(--md-neutral-9, #f3f5f6);
+  color: var(--md-black-1, #1a1a1a);
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-style: italic;
+  border-left: 4px solid var(--md-accent-1, #ff6b35);
+  margin: 0.25rem 0;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .modal-content,
+  .version-modal-content {
+    max-width: 95vw;
+    margin: 1rem;
+  }
+  
+  .modal-header,
+  .version-modal-content .modal-header {
+    padding: 1.25rem;
+  }
+  
+  .modal-body,
+  .version-modal-content .modal-body {
+    padding: 1.5rem;
+  }
+  
+  .card-modal .card-actions {
+    flex-direction: column;
+  }
+  
+  .card-modal .card-actions .btn {
+    min-width: auto;
+    width: 100%;
+  }
+  
+  .qr-modal .qr-actions {
+    flex-direction: column;
+  }
+}
+
+/* 通用工具類別 - moda design system */
+.text-center {
+  text-align: center;
+}
+
+.font-small {
+  font-size: 0.875rem;
+}
+
+.font-smaller {
+  font-size: 0.95rem;
+}
+
+.overflow-auto {
+  overflow-y: auto;
+}

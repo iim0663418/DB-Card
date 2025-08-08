@@ -624,14 +624,43 @@ class PWACardManager {
       // 套用類型預設值
       const enhancedData = this.applyCardTypeDefaults(cardData, cardType);
 
-      // 儲存名片
-      const cardId = await this.storage.storeCard(enhancedData);
+      // 🔧 修復：加入重複檢測與版本管理邏輯
+      let cardId;
+      let message = '名片已儲存';
+      
+      if (this.duplicateDetector) {
+        const duplicateResult = await this.duplicateDetector.detectDuplicates(enhancedData);
+        
+        if (duplicateResult.isDuplicate && duplicateResult.existingCards.length > 0) {
+          // 發現重複，自動建立新版本
+          const existingCard = duplicateResult.existingCards[0];
+          const handleResult = await this.duplicateDetector.handleDuplicate(
+            enhancedData, 
+            'version',
+            existingCard.id
+          );
+          
+          if (handleResult.success) {
+            cardId = handleResult.cardId;
+            message = '已建立新版本';
+          } else {
+            throw new Error(handleResult.error);
+          }
+        } else {
+          // 無重複，建立新名片
+          cardId = await this.storage.storeCard(enhancedData);
+        }
+      } else {
+        // 無重複檢測器，直接儲存
+        cardId = await this.storage.storeCard(enhancedData);
+      }
 
       return { 
         success: true, 
         cardId, 
         type: cardType,
-        data: enhancedData 
+        data: enhancedData,
+        message
       };
     } catch (error) {
       console.error('[CardManager] Import from URL failed:', error);
@@ -965,10 +994,22 @@ class PWACardManager {
         try {
           // SEC-01: 使用安全的 JSON 解析
           importData = this.secureJSONParse(fileContent);
+          
+          // 🔧 修復：檢查解析結果是否為 null
+          if (!importData) {
+            console.error('[CardManager] JSON 解析結果為 null');
+            return { 
+              success: false, 
+              error: 'JSON 格式錯誤: 解析結果為空',
+              operationId 
+            };
+          }
+          
           console.log('[CardManager] JSON 解析成功:', {
             hasCards: !!importData.cards,
             cardsLength: importData.cards ? importData.cards.length : 0,
-            topLevelKeys: Object.keys(importData)
+            topLevelKeys: Object.keys(importData),
+            dataType: typeof importData
           });
         } catch (parseError) {
           console.error('[CardManager] JSON 解析失敗:', parseError);
@@ -979,8 +1020,8 @@ class PWACardManager {
           };
         }
         
-        // 檢查是否為標準匯出檔案格式（包含 cards 陣列）
-        if (importData.cards && Array.isArray(importData.cards)) {
+        // 🔧 修復：檢查是否為標準匯出檔案格式（包含 cards 陣列）
+        if (importData && importData.cards && Array.isArray(importData.cards)) {
           console.log('[CardManager] 識別為標準匯出格式，轉交專用處理器');
           return await this.importFromExportFormat(importData);
         }
@@ -1041,15 +1082,38 @@ class PWACardManager {
   async importFromExportFormat(exportData) {
     try {
       console.log('[CardManager] 開始匯入匯出格式資料:', {
-        hasCards: !!exportData.cards,
-        cardsLength: exportData.cards ? exportData.cards.length : 0,
-        version: exportData.version
+        hasCards: !!exportData?.cards,
+        cardsLength: exportData?.cards ? exportData.cards.length : 0,
+        version: exportData?.version,
+        dataType: typeof exportData,
+        dataKeys: exportData ? Object.keys(exportData) : [],
+        cardsType: exportData?.cards ? typeof exportData.cards : 'undefined'
       });
 
-      // 驗證基本格式
-      if (!exportData || !exportData.cards || !Array.isArray(exportData.cards)) {
-        console.error('[CardManager] 無效的匯出檔案格式:', exportData);
-        return { success: false, error: '無效的匯出檔案格式' };
+      // 🔧 修復：加強 JSON 格式驗證
+      if (!exportData) {
+        console.error('[CardManager] exportData 為 null 或 undefined');
+        return { success: false, error: 'JSON 格式錯誤: 無效的資料格式' };
+      }
+      
+      if (typeof exportData !== 'object') {
+        console.error('[CardManager] exportData 不是物件:', typeof exportData);
+        return { success: false, error: 'JSON 格式錯誤: 資料必須是物件格式' };
+      }
+      
+      if (!exportData.hasOwnProperty('cards')) {
+        console.error('[CardManager] exportData 缺少 cards 屬性:', Object.keys(exportData));
+        return { success: false, error: 'JSON 格式錯誤: 缺少 cards 欄位' };
+      }
+      
+      if (exportData.cards === null || exportData.cards === undefined) {
+        console.error('[CardManager] exportData.cards 為 null 或 undefined');
+        return { success: false, error: 'JSON 格式錯誤: cards 欄位不能為空' };
+      }
+      
+      if (!Array.isArray(exportData.cards)) {
+        console.error('[CardManager] exportData.cards 不是陣列:', typeof exportData.cards);
+        return { success: false, error: 'JSON 格式錯誤: cards 欄位必須是陣列' };
       }
 
       // 限制名片數量
@@ -1203,11 +1267,11 @@ class PWACardManager {
   // SEC-01: 安全的 JSON 解析 - 使用 SecurityCore
   secureJSONParse(jsonString) {
     try {
-      // 使用 SecurityCore 的安全 JSON 解析
+      // 使用 SecurityCore 的安全 JSON 解析，增加深度限制
       if (window.securityCore && window.securityCore.safeJSONParse) {
         return window.securityCore.safeJSONParse(jsonString, {
-          maxDepth: 5,
-          maxKeys: 50,
+          maxDepth: 15,  // 增加深度限制以支援複雜的匯出格式
+          maxKeys: 100,  // 增加鍵值限制
           fallback: null
         });
       }
@@ -1220,7 +1284,7 @@ class PWACardManager {
         return value;
       });
     } catch (error) {
-      throw new Error('JSON 格式錯誤');
+      throw new Error('JSON 格式錯誤: ' + error.message);
     }
   }
 

@@ -747,13 +747,50 @@ class PWACardApp {
       console.error('[PWA] localStorage 讀取失敗:', error);
     }
     
-    // 顯示提示訊息
-    setTimeout(() => {
-      this.showNotification(this.getLocalizedText('importFromOriginalPage', '請從原始名片頁面點擊「儲存到離線」'), 'info');
-      this.navigateTo('import');
-    }, 1000);
+    // 🔧 修復：只有在確實有匯入意圖時才顯示提示訊息
+    const hasImportIntent = this.checkImportIntent();
+    if (hasImportIntent) {
+      setTimeout(() => {
+        this.showNotification(this.getLocalizedText('importFromOriginalPage', '請從原始名片頁面點擊「儲存到離線」'), 'info');
+        this.navigateTo('import');
+      }, 1000);
+    }
+    // 如果沒有匯入意圖，直接停留在首頁，不顯示提示訊息
   }
   
+  /**
+   * 🔧 新增：檢測是否有匯入意圖
+   */
+  checkImportIntent() {
+    // 檢查 URL 參數是否有匯入相關的標記
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasImportParam = urlParams.has('import') || urlParams.has('data') || urlParams.has('from');
+    
+    // 檢查 referrer 是否來自名片頁面
+    const referrer = document.referrer;
+    const isFromCardPage = referrer && (
+      referrer.includes('index.html') ||
+      referrer.includes('index1.html') ||
+      referrer.includes('index-en.html') ||
+      referrer.includes('index1-en.html') ||
+      referrer.includes('index-personal.html') ||
+      referrer.includes('index-personal-en.html') ||
+      referrer.includes('index-bilingual.html') ||
+      referrer.includes('index1-bilingual.html') ||
+      referrer.includes('index-bilingual-personal.html')
+    );
+    
+    // 檢查是否有暫存的匯入意圖標記
+    const hasImportFlag = sessionStorage.getItem('pwa_import_intent') === 'true';
+    
+    // 清除暫存的意圖標記
+    if (hasImportFlag) {
+      sessionStorage.removeItem('pwa_import_intent');
+    }
+    
+    return hasImportParam || isFromCardPage || hasImportFlag;
+  }
+
   /**
    * 🔧 新增：直接從名片資料匯入（用於 localStorage 暫存的完整資料）
    */
@@ -1365,7 +1402,9 @@ class PWACardApp {
       if (this.cardManager) {
         const result = await this.cardManager.importFromUrl(url);
         if (result.success) {
-          this.showNotification(this.getLocalizedText('cardImported'), 'success');
+          // 🔧 修復：使用 cardManager 返回的訊息而非固定文字
+          const message = result.message || this.getLocalizedText('cardImported');
+          this.showNotification(message, 'success');
           urlInput.value = '';
           await this.updateStats();
         } else {
@@ -2186,6 +2225,22 @@ class PWACardApp {
     if (cardSearch) {
       cardSearch.placeholder = isZh ? '搜尋名片...' : 'Search cards...';
     }
+    
+    // Update card filter options
+    const filterOptions = {
+      'filter-all': isZh ? '所有類型' : 'All Types',
+      'filter-gov-yp': isZh ? '政府機關版 (延平大樓)' : 'Government (Yanping Building)',
+      'filter-gov-sg': isZh ? '政府機關版 (新光大樓)' : 'Government (Shin Kong Building)',
+      'filter-personal': isZh ? '個人版' : 'Personal',
+      'filter-bilingual': isZh ? '雙語版' : 'Bilingual'
+    };
+    
+    Object.entries(filterOptions).forEach(([elementId, text]) => {
+      const element = document.getElementById(elementId);
+      if (element) {
+        element.textContent = text;
+      }
+    });
   }
 
   /**
@@ -2332,9 +2387,7 @@ class PWACardApp {
               📋 ${labels.copyLink || '複製連結'}
             </button>
           </div>
-          <div class="qr-tip">
-            <p>${this.getLocalizedText('qrTip')}</p>
-          </div>
+
         </div>
       </div>
     `;

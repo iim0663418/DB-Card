@@ -49,6 +49,11 @@ class SimplifiedLanguageManager {
       this.initialized = true;
       console.log(`[SimplifiedLanguageManager] Initialized with language: ${this.currentLanguage}`);
       
+      // Update DOM elements with current language
+      setTimeout(() => {
+        this.updateDOMElements(this.currentLanguage);
+      }, 100);
+      
     } catch (error) {
       console.error('[SimplifiedLanguageManager] Initialization failed:', error);
       
@@ -59,6 +64,11 @@ class SimplifiedLanguageManager {
         this.updateDocumentLanguage();
         this.initialized = true;
         console.warn('[SimplifiedLanguageManager] Initialized with fallback language');
+        
+        // Update DOM elements with fallback language
+        setTimeout(() => {
+          this.updateDOMElements(this.fallbackLanguage);
+        }, 100);
       } catch (fallbackError) {
         console.error('[SimplifiedLanguageManager] Fallback initialization failed:', fallbackError);
         throw fallbackError;
@@ -147,6 +157,51 @@ class SimplifiedLanguageManager {
         'cancel': '取消',
         'confirm': '確認',
         'close': '關閉',
+        // Navigation labels
+        'home': '首頁',
+        'cards': '名片',
+        'import': '匯入',
+        'export': '匯出',
+        // Stats labels
+        'total-cards': '已儲存名片',
+        'storage-used': '儲存空間',
+        'app-version': '應用版本',
+        // Quick actions
+        'quick-actions-title': '快速操作',
+        'action-add-card': '新增名片',
+        'action-add-card-desc': '從 URL 或檔案新增',
+        'action-import-file': '匯入檔案',
+        'action-import-file-desc': '批次匯入名片',
+        'action-backup-all': '備份資料',
+        'action-backup-all-desc': '匯出所有名片',
+        'action-security-settings': '安全狀態',
+        'action-security-settings-desc': '檢視系統安全資訊',
+        // Page titles
+        'page-cards-title': '我的名片',
+        'page-import-title': '匯入名片',
+        'page-export-title': '匯出名片',
+        // Search and filter
+        'card-search': '搜尋名片...',
+        'filter-all': '所有類型',
+        'filter-gov-yp': '政府機關版 (延平大樓)',
+        'filter-gov-sg': '政府機關版 (新光大樓)',
+        'filter-personal': '個人版',
+        'filter-bilingual': '雙語版',
+        // Import/Export
+        'import-url-title': '從 URL 匯入',
+        'import-file-title': '從檔案匯入',
+        'import-url-placeholder': '貼上名片連結...',
+        'import-btn': '匯入',
+        'import-file-btn': '選擇檔案',
+        'export-options-title': '匯出選項',
+        'export-all-label': '匯出所有名片',
+        'export-versions-label': '包含版本歷史',
+        'export-encrypt-label': '加密匯出檔案',
+        'export-format': '匯出格式',
+        'export-btn': '開始匯出',
+        // Status
+        'connection-status-offline': '離線模式',
+        'storage-status-ok': '儲存空間充足',
         'theme-dark': '已切換至深色模式',
         'theme-light': '已切換至淺色模式',
         'theme-failed': '主題切換失敗',
@@ -197,6 +252,51 @@ class SimplifiedLanguageManager {
         'cancel': 'Cancel',
         'confirm': 'Confirm',
         'close': 'Close',
+        // Navigation labels
+        'home': 'Home',
+        'cards': 'Cards',
+        'import': 'Import',
+        'export': 'Export',
+        // Stats labels
+        'total-cards': 'Stored Cards',
+        'storage-used': 'Storage Used',
+        'app-version': 'App Version',
+        // Quick actions
+        'quick-actions-title': 'Quick Actions',
+        'action-add-card': 'Add Card',
+        'action-add-card-desc': 'Add from URL or file',
+        'action-import-file': 'Import File',
+        'action-import-file-desc': 'Batch import cards',
+        'action-backup-all': 'Backup Data',
+        'action-backup-all-desc': 'Export all cards',
+        'action-security-settings': 'Security Status',
+        'action-security-settings-desc': 'View system security info',
+        // Page titles
+        'page-cards-title': 'My Cards',
+        'page-import-title': 'Import Cards',
+        'page-export-title': 'Export Cards',
+        // Search and filter
+        'card-search': 'Search cards...',
+        'filter-all': 'All Types',
+        'filter-gov-yp': 'Government (Yanping Building)',
+        'filter-gov-sg': 'Government (Shin Kong Building)',
+        'filter-personal': 'Personal',
+        'filter-bilingual': 'Bilingual',
+        // Import/Export
+        'import-url-title': 'Import from URL',
+        'import-file-title': 'Import from File',
+        'import-url-placeholder': 'Paste card link...',
+        'import-btn': 'Import',
+        'import-file-btn': 'Choose File',
+        'export-options-title': 'Export Options',
+        'export-all-label': 'Export all cards',
+        'export-versions-label': 'Include version history',
+        'export-encrypt-label': 'Encrypt export file',
+        'export-format': 'Export Format',
+        'export-btn': 'Start Export',
+        // Status
+        'connection-status-offline': 'Offline Mode',
+        'storage-status-ok': 'Storage OK',
         'theme-dark': 'Switched to dark mode',
         'theme-light': 'Switched to light mode',
         'theme-failed': 'Theme switch failed',
@@ -317,7 +417,14 @@ class SimplifiedLanguageManager {
    */
   async toggleLanguage() {
     const newLanguage = this.currentLanguage === 'zh-TW' ? 'en' : 'zh-TW';
-    return this.switchLanguage(newLanguage);
+    const result = await this.switchLanguage(newLanguage);
+    
+    // Force DOM update after language switch
+    setTimeout(() => {
+      this.updateDOMElements(result);
+    }, 100);
+    
+    return result;
   }
 
   /**
@@ -450,6 +557,129 @@ class SimplifiedLanguageManager {
         console.error('[SimplifiedLanguageManager] Observer callback failed:', error);
       }
     });
+    
+    // Update DOM elements with new translations
+    this.updateDOMElements(newLanguage);
+  }
+
+  /**
+   * Update DOM elements with current language translations
+   */
+  updateDOMElements(language = null) {
+    const targetLanguage = language || this.currentLanguage;
+    
+    // Define element mappings for translation
+    const elementMappings = {
+      // App header
+      'app-title': 'app-title',
+      'app-subtitle': 'app-subtitle',
+      
+      // Welcome section
+      'welcome-title': 'welcome-title',
+      'welcome-desc': 'welcome-desc',
+      
+      // Navigation
+      'nav-home .nav-label': 'home',
+      'nav-cards .nav-label': 'cards',
+      'nav-import .nav-label': 'import',
+      'nav-export .nav-label': 'export',
+      
+      // Stats labels
+      'stat-total-cards': 'total-cards',
+      'stat-storage-used': 'storage-used',
+      'stat-app-version': 'app-version',
+      
+      // Quick actions
+      'quick-actions-title': 'quick-actions-title',
+      'action-add-card': 'action-add-card',
+      'action-add-card-desc': 'action-add-card-desc',
+      'action-import-file': 'action-import-file',
+      'action-import-file-desc': 'action-import-file-desc',
+      'action-backup-all': 'action-backup-all',
+      'action-backup-all-desc': 'action-backup-all-desc',
+      'action-security-settings': 'action-security-settings',
+      'action-security-settings-desc': 'action-security-settings-desc',
+      
+      // Page titles
+      'page-cards-title': 'page-cards-title',
+      'page-import-title': 'page-import-title',
+      'page-export-title': 'page-export-title',
+      
+      // Filter options
+      'filter-all': 'filter-all',
+      'filter-gov-yp': 'filter-gov-yp',
+      'filter-gov-sg': 'filter-gov-sg',
+      'filter-personal': 'filter-personal',
+      'filter-bilingual': 'filter-bilingual',
+      
+      // Import/Export
+      'import-url-title': 'import-url-title',
+      'import-file-title': 'import-file-title',
+      'import-btn': 'import-btn',
+      'import-file-btn': 'import-file-btn',
+      'export-options-title': 'export-options-title',
+      'export-all-label': 'export-all-label',
+      'export-versions-label': 'export-versions-label',
+      'export-encrypt-label': 'export-encrypt-label',
+      'export-btn': 'export-btn',
+      
+      // Status
+      'connection-status': 'connection-status-offline',
+      'storage-status': 'storage-status-ok'
+    };
+    
+    // Update text content for each element
+    Object.entries(elementMappings).forEach(([selector, translationKey]) => {
+      try {
+        const element = document.getElementById(selector) || document.querySelector(`#${selector}`);
+        if (element) {
+          const translatedText = this.getText(translationKey, targetLanguage);
+          if (translatedText && translatedText !== translationKey) {
+            element.textContent = translatedText;
+          }
+        }
+      } catch (error) {
+        console.warn(`[SimplifiedLanguageManager] Failed to update element ${selector}:`, error);
+      }
+    });
+    
+    // Update placeholders
+    const placeholderMappings = {
+      'import-url': 'import-url-placeholder',
+      'card-search': 'card-search'
+    };
+    
+    Object.entries(placeholderMappings).forEach(([elementId, translationKey]) => {
+      try {
+        const element = document.getElementById(elementId);
+        if (element) {
+          const translatedText = this.getText(translationKey, targetLanguage);
+          if (translatedText && translatedText !== translationKey) {
+            element.placeholder = translatedText;
+          }
+        }
+      } catch (error) {
+        console.warn(`[SimplifiedLanguageManager] Failed to update placeholder ${elementId}:`, error);
+      }
+    });
+    
+    // Update language toggle button
+    this.updateLanguageButton(targetLanguage);
+  }
+  
+  /**
+   * Update language toggle button
+   */
+  updateLanguageButton(language = null) {
+    const targetLanguage = language || this.currentLanguage;
+    const langToggle = document.getElementById('lang-toggle');
+    
+    if (langToggle) {
+      const icon = langToggle.querySelector('.icon');
+      if (icon) {
+        icon.textContent = targetLanguage === 'zh-TW' ? 'EN' : '中';
+      }
+    }
   }
 
   /**

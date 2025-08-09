@@ -3,12 +3,21 @@
  * 負責加密檔案匯出/匯入和衝突解決
  */
 
+// Use global CodeInjectionProtection if available
+const CodeInjectionProtection = window.CodeInjectionProtection || class {
+  constructor() {}
+  sanitize(input) { return String(input).replace(/[<>"'&]/g, ''); }
+};
+
 class TransferManager {
   constructor(cardManager) {
     this.cardManager = cardManager;
     this.compressionEnabled = false; // 簡化版本不使用壓縮
     this.progressCallbacks = new Map(); // 進度回調管理
     this.lastProgressUpdate = 0; // 防止過於頻繁的進度更新
+    
+    // SEC-002: Initialize code injection protection
+    this.codeInjectionProtection = new CodeInjectionProtection();
   }
 
   /**
@@ -231,7 +240,7 @@ class TransferManager {
           
           // 批次間暫停
           if (i + this.batchSize < totalItems) {
-            await new Promise(resolve => setTimeout(resolve, this.delay));
+            await this.safeDelay(this.delay);
           }
         }
         
@@ -334,7 +343,15 @@ class TransferManager {
         };
       }
     } catch (error) {
-      console.error('[Transfer] Export failed:', error);
+      // SEC-003: Use secure logging to prevent log injection
+      if (window.SecurityDataHandler) {
+        window.SecurityDataHandler.secureLog('error', 'Export operation failed', {
+          error: this.sanitizeLogInput(error.message),
+          operation: 'export'
+        });
+      } else {
+        console.error('[Transfer] Export operation failed');
+      }
       const friendlyError = this.getUserFriendlyError(error, 'export');
       return { 
         success: false, 
@@ -517,7 +534,15 @@ class TransferManager {
 
       return await this.performImport(cardsToImport);
     } catch (error) {
-      console.error('[Transfer] Conflict resolution failed:', error);
+      // SEC-003: Use secure logging to prevent log injection
+      if (window.SecurityDataHandler) {
+        window.SecurityDataHandler.secureLog('error', 'Conflict resolution failed', {
+          error: this.sanitizeLogInput(error.message),
+          operation: 'conflict_resolution'
+        });
+      } else {
+        console.error('[Transfer] Conflict resolution failed');
+      }
       return { success: false, error: error.message };
     }
   }
@@ -601,7 +626,15 @@ class TransferManager {
         iterations: 100000
       };
     } catch (error) {
-      console.error('[Transfer] Encryption failed:', error);
+      // SEC-003: Use secure logging to prevent log injection
+      if (window.SecurityDataHandler) {
+        window.SecurityDataHandler.secureLog('error', 'Encryption operation failed', {
+          error: this.sanitizeLogInput(error.message),
+          operation: 'encryption'
+        });
+      } else {
+        console.error('[Transfer] Encryption operation failed');
+      }
       throw new Error('加密失敗');
     }
   }
@@ -641,7 +674,15 @@ class TransferManager {
       
       return new TextDecoder().decode(decrypted);
     } catch (error) {
-      console.error('[Transfer] Decryption failed:', error);
+      // SEC-003: Use secure logging to prevent log injection
+      if (window.SecurityDataHandler) {
+        window.SecurityDataHandler.secureLog('error', 'Decryption operation failed', {
+          error: this.sanitizeLogInput(error.message),
+          operation: 'decryption'
+        });
+      } else {
+        console.error('[Transfer] Decryption operation failed');
+      }
       throw new Error('解密失敗，請檢查密碼是否正確');
     }
   }
@@ -670,19 +711,40 @@ class TransferManager {
       
       return null;
     } catch (error) {
-      console.error('[Transfer] QR generation failed:', error);
+      // SEC-003: Use secure logging to prevent log injection
+      if (window.SecurityDataHandler) {
+        window.SecurityDataHandler.secureLog('error', 'QR generation failed', {
+          error: this.sanitizeLogInput(error.message),
+          operation: 'qr_generation'
+        });
+      } else {
+        console.error('[Transfer] QR generation failed');
+      }
       return null;
     }
   }
 
-  // SEC-PWA-002: 安全的 JSON 解析
+  // SEC-PWA-002: 安全的 JSON 解析 - SEC-002 增強版本
   secureJSONParse(jsonString) {
     try {
       return JSON.parse(jsonString, (key, value) => {
-        // 防止 Prototype Pollution
+        // SEC-002: 防止 Prototype Pollution 和代碼注入
         if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
           return undefined;
         }
+        
+        // SEC-002: 阻止函數字串可能被執行
+        if (typeof value === 'string' && (
+          value.includes('function(') ||
+          value.includes('=>') ||
+          value.includes('eval(') ||
+          value.includes('Function(') ||
+          value.includes('setTimeout(') ||
+          value.includes('setInterval(')
+        )) {
+          return '[BLOCKED_FUNCTION]';
+        }
+        
         return value;
       });
     } catch (error) {
@@ -912,7 +974,7 @@ class TransferManager {
       
       // 批次間的小暫停，避免阻塞 UI
       if (batchStart + batchSize < totalCards) {
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await this.safeDelay(10);
       }
     }
     
@@ -1292,7 +1354,14 @@ class TransferManager {
   static enableImportFunction() {
     if (window.EMERGENCY_DISABLE_IMPORT) {
       delete window.EMERGENCY_DISABLE_IMPORT;
-      console.log('[Transfer] 匯入功能已恢復');
+      // SEC-003: Use secure logging
+      if (window.SecurityDataHandler) {
+        window.SecurityDataHandler.secureLog('info', 'Import function restored', {
+          operation: 'emergency_restore'
+        });
+      } else {
+        console.log('[Transfer] Import function restored');
+      }
       return true;
     }
     return false;
@@ -1309,6 +1378,98 @@ class TransferManager {
 
   getTimestamp() {
     return new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+  }
+
+  /**
+   * SEC-003: Sanitize log input to prevent CWE-117 log injection
+   * @param {any} input - Input to sanitize
+   * @returns {string} Sanitized input safe for logging
+   */
+  sanitizeLogInput(input) {
+    if (input === null || input === undefined) {
+      return '[null]';
+    }
+    
+    let safeInput = String(input);
+    
+    // Remove control characters that could corrupt logs
+    safeInput = safeInput.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+    
+    // Remove newlines and tabs that could split log entries
+    safeInput = safeInput.replace(/[\r\n\t]/g, ' ');
+    
+    // Mask PII patterns
+    safeInput = safeInput
+      .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL_MASKED]')
+      .replace(/\b\d{3}-\d{3}-\d{4}\b/g, '[PHONE_MASKED]')
+      .replace(/\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g, '[CARD_MASKED]');
+    
+    // Limit length to prevent log flooding
+    if (safeInput.length > 500) {
+      safeInput = safeInput.substring(0, 500) + '...[truncated]';
+    }
+    
+    return safeInput;
+  }
+
+  // SEC-002: Safe delay implementation to prevent code injection
+  async safeDelay(delayMs) {
+    // Validate delay parameter with whitelist approach
+    const validatedDelay = this.validateDelayParameter(delayMs);
+    
+    if (!validatedDelay.success) {
+      // SEC-002: Log security event and use safe fallback
+      this.logSecurityEvent('invalid_delay_blocked', {
+        originalDelay: delayMs,
+        error: validatedDelay.error
+      });
+      
+      // Use safe fallback delay
+      return new Promise(resolve => setTimeout(resolve, 10));
+    }
+    
+    // Use validated delay value
+    return new Promise(resolve => setTimeout(resolve, validatedDelay.data));
+  }
+
+  // SEC-002: Validate delay parameter against whitelist
+  validateDelayParameter(delay) {
+    // Type validation
+    if (typeof delay !== 'number') {
+      return { success: false, error: 'Delay must be a number' };
+    }
+    
+    // Range validation - whitelist safe delay values
+    const allowedDelayRanges = [
+      { min: 0, max: 100 },     // Short delays (0-100ms)
+      { min: 100, max: 1000 },  // Medium delays (100ms-1s)
+      { min: 1000, max: 5000 }  // Long delays (1-5s)
+    ];
+    
+    // Check if delay falls within allowed ranges
+    const isValidRange = allowedDelayRanges.some(range => 
+      delay >= range.min && delay <= range.max
+    );
+    
+    if (!isValidRange) {
+      return { 
+        success: false, 
+        error: `Delay ${delay}ms outside allowed ranges` 
+      };
+    }
+    
+    // Additional safety checks
+    if (!isFinite(delay) || delay < 0) {
+      return { 
+        success: false, 
+        error: 'Delay must be a positive finite number' 
+      };
+    }
+    
+    // Round to prevent precision attacks
+    const safeDelay = Math.round(delay);
+    
+    return { success: true, data: safeDelay };
   }
 }
 

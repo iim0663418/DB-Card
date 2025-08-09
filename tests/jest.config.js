@@ -9,30 +9,26 @@ module.exports = {
   
   // Test file patterns
   testMatch: [
-    '<rootDir>/tests/**/*.test.js',
-    '<rootDir>/tests/**/*.spec.js'
+    '<rootDir>/security/**/*.test.js',
+    '<rootDir>/security/**/*.spec.js'
   ],
   
   // Setup files
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   
   // Coverage configuration
   collectCoverage: true,
   collectCoverageFrom: [
-    'pwa-card-storage/src/security/**/*.js',
-    '!pwa-card-storage/src/security/**/*.test.js',
-    '!pwa-card-storage/src/security/**/*.spec.js'
+    '../pwa-card-storage/src/security/**/*.js',
+    '../assets/bilingual-common.js',
+    '../pwa-card-storage/src/core/storage.js',
+    '!**/*.test.js',
+    '!**/*.spec.js'
   ],
   
   // Coverage thresholds
   coverageThreshold: {
     global: {
-      branches: 85,
-      functions: 90,
-      lines: 90,
-      statements: 90
-    },
-    './pwa-card-storage/src/security/': {
       branches: 90,
       functions: 95,
       lines: 95,
@@ -49,15 +45,20 @@ module.exports = {
   ],
   
   // Module paths
-  moduleNameMapping: {
-    '^@/(.*)$': '<rootDir>/pwa-card-storage/src/$1',
-    '^@security/(.*)$': '<rootDir>/pwa-card-storage/src/security/$1'
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/../pwa-card-storage/src/$1',
+    '^@security/(.*)$': '<rootDir>/../pwa-card-storage/src/security/$1'
   },
   
-  // Transform configuration
+  // Transform configuration for ES6 modules
   transform: {
-    '^.+\\.js$': 'babel-jest'
+    '^.+\\.js$': ['babel-jest', { presets: [['@babel/preset-env', { targets: { node: 'current' } }]] }]
   },
+  
+  // Transform ignore patterns
+  transformIgnorePatterns: [
+    'node_modules/(?!(.*\\.mjs$))'
+  ],
   
   // Test timeout
   testTimeout: 10000,
@@ -69,14 +70,5 @@ module.exports = {
   clearMocks: true,
   
   // Restore mocks after each test
-  restoreMocks: true,
-  
-  // Global setup
-  globalSetup: '<rootDir>/tests/globalSetup.js',
-  
-  // Global teardown
-  globalTeardown: '<rootDir>/tests/globalTeardown.js',
-  
-  // Test results processor
-  testResultsProcessor: '<rootDir>/tests/testResultsProcessor.js'
+  restoreMocks: true
 };

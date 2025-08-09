@@ -7,6 +7,18 @@ class DuplicateDetector {
   constructor(storage) {
     this.storage = storage;
     this.fingerprintGenerator = null;
+    
+    // Initialize SecureLogger for CWE-117 protection
+    if (typeof window !== 'undefined' && window.SecureLogger) {
+      this.secureLogger = new window.SecureLogger({ logLevel: 'INFO', enableMasking: true });
+    } else {
+      // Fallback to console logging with basic sanitization
+      this.secureLogger = {
+        info: (msg, ctx) => console.log(`[DuplicateDetector] ${msg}`, ctx),
+        warn: (msg, ctx) => console.warn(`[DuplicateDetector] ${msg}`, ctx),
+        error: (msg, ctx) => console.error(`[DuplicateDetector] ${msg}`, ctx)
+      };
+    }
   }
 
   /**
@@ -18,10 +30,15 @@ class DuplicateDetector {
       if (typeof ContentFingerprintGenerator !== 'undefined') {
         this.fingerprintGenerator = new ContentFingerprintGenerator();
       } else {
-        console.warn('[DuplicateDetector] ContentFingerprintGenerator not available');
+        this.secureLogger.warn('ContentFingerprintGenerator not available', { 
+          component: 'DuplicateDetector' 
+        });
       }
     } catch (error) {
-      console.error('[DuplicateDetector] Initialization failed:', error);
+      this.secureLogger.error('Initialization failed', { 
+        error: error.message, 
+        component: 'DuplicateDetector' 
+      });
     }
   }
 
@@ -48,7 +65,10 @@ class DuplicateDetector {
       
       return result;
     } catch (error) {
-      console.error('[DuplicateDetector] Detect duplicates failed:', error);
+      this.secureLogger.error('Detect duplicates failed', { 
+        error: error.message, 
+        component: 'DuplicateDetector' 
+      });
       return {
         isDuplicate: false,
         fingerprint: null,
@@ -118,7 +138,11 @@ class DuplicateDetector {
           throw new Error(`Unknown action: ${action}`);
       }
     } catch (error) {
-      console.error('[DuplicateDetector] Handle duplicate failed:', error);
+      this.secureLogger.error('Handle duplicate failed', { 
+        action, 
+        error: error.message, 
+        component: 'DuplicateDetector' 
+      });
       return {
         success: false,
         action,
@@ -147,7 +171,10 @@ class DuplicateDetector {
       const hash = await this.storage.calculateChecksum({ content });
       return `fingerprint_${hash.substring(0, 16)}`;
     } catch (error) {
-      console.error('[DuplicateDetector] Generate fingerprint failed:', error);
+      this.secureLogger.error('Generate fingerprint failed', { 
+        error: error.message, 
+        component: 'DuplicateDetector' 
+      });
       // 最終備用方案
       const timestamp = Date.now();
       const random = Math.random().toString(36).substring(2, 8);
@@ -253,7 +280,10 @@ class DuplicateDetector {
         const result = await this.detectDuplicates(cardData);
         results.push({ cardData, ...result, success: true });
       } catch (error) {
-        console.error('[DuplicateDetector] Batch detection failed for card:', error);
+        this.secureLogger.error('Batch detection failed for card', { 
+          error: error.message, 
+          component: 'DuplicateDetector' 
+        });
         results.push({
           cardData,
           success: false,
@@ -306,7 +336,10 @@ class DuplicateDetector {
         duplicateRate: allCards.length > 0 ? (duplicateCards / allCards.length * 100).toFixed(2) : 0
       };
     } catch (error) {
-      console.error('[DuplicateDetector] Get duplicate stats failed:', error);
+      this.secureLogger.error('Get duplicate stats failed', { 
+        error: error.message, 
+        component: 'DuplicateDetector' 
+      });
       return {
         totalCards: 0,
         uniqueFingerprints: 0,
@@ -364,7 +397,11 @@ class DuplicateDetector {
                 await this.storage.deleteCard(card.id);
                 totalCleaned++;
               } catch (error) {
-                console.error(`Failed to delete duplicate card ${card.id}:`, error);
+                this.secureLogger.error('Failed to delete duplicate card', { 
+                  cardId: card.id, 
+                  error: error.message, 
+                  component: 'DuplicateDetector' 
+                });
               }
             }
           }
@@ -387,7 +424,10 @@ class DuplicateDetector {
         results: cleanupResults
       };
     } catch (error) {
-      console.error('[DuplicateDetector] Cleanup duplicates failed:', error);
+      this.secureLogger.error('Cleanup duplicates failed', { 
+        error: error.message, 
+        component: 'DuplicateDetector' 
+      });
       return {
         success: false,
         error: error.message

@@ -8,6 +8,9 @@
  * @author PWA Deployment Compatibility Team
  */
 
+// Import SecureLogger for CWE-117 protection
+import { SecureLogger } from '../security/secure-logger.js';
+
 class ConfigCacheManager {
     constructor() {
         this.cache = new Map();
@@ -15,6 +18,7 @@ class ConfigCacheManager {
         this.defaultTTL = 30 * 60 * 1000; // 30 minutes
         this.maxCacheSize = 50; // Maximum number of cached items
         this.storageKey = 'pwa-config-cache';
+        this.secureLogger = new SecureLogger({ logLevel: 'INFO', enableMasking: true });
         
         // Initialize persistent storage if available
         this.initializePersistentStorage();
@@ -33,7 +37,10 @@ class ConfigCacheManager {
                         const item = localStorage.getItem(key);
                         return item ? JSON.parse(item) : null;
                     } catch (error) {
-                        console.warn('Failed to read from localStorage:', error.message);
+                        this.secureLogger.warn('Failed to read from localStorage', { 
+                            error: error.message, 
+                            component: 'ConfigCacheManager' 
+                        });
                         return null;
                     }
                 },
@@ -42,7 +49,10 @@ class ConfigCacheManager {
                         localStorage.setItem(key, JSON.stringify(value));
                         return true;
                     } catch (error) {
-                        console.warn('Failed to write to localStorage:', error.message);
+                        this.secureLogger.warn('Failed to write to localStorage', { 
+                            error: error.message, 
+                            component: 'ConfigCacheManager' 
+                        });
                         return false;
                     }
                 },
@@ -51,7 +61,10 @@ class ConfigCacheManager {
                         localStorage.removeItem(key);
                         return true;
                     } catch (error) {
-                        console.warn('Failed to remove from localStorage:', error.message);
+                        this.secureLogger.warn('Failed to remove from localStorage', { 
+                            error: error.message, 
+                            component: 'ConfigCacheManager' 
+                        });
                         return false;
                     }
                 }
@@ -218,7 +231,10 @@ class ConfigCacheManager {
         
         if (lruKey) {
             this.delete(lruKey);
-            console.log(`Evicted LRU cache item: ${lruKey}`);
+            this.secureLogger.info('Evicted LRU cache item', { 
+                evictedKey: lruKey, 
+                component: 'ConfigCacheManager' 
+            });
         }
     }
 
@@ -298,10 +314,16 @@ class ConfigCacheManager {
                 }
             }
             
-            console.log(`Loaded ${this.cache.size} items from persistent cache`);
+            this.secureLogger.info('Loaded items from persistent cache', { 
+                itemCount: this.cache.size, 
+                component: 'ConfigCacheManager' 
+            });
             
         } catch (error) {
-            console.warn('Failed to load cache from persistent storage:', error.message);
+            this.secureLogger.warn('Failed to load cache from persistent storage', { 
+                error: error.message, 
+                component: 'ConfigCacheManager' 
+            });
         }
     }
 
@@ -324,7 +346,10 @@ class ConfigCacheManager {
             this.persistentStorage.set(this.storageKey, { cache, metadata });
             
         } catch (error) {
-            console.warn('Failed to save cache to persistent storage:', error.message);
+            this.secureLogger.warn('Failed to save cache to persistent storage', { 
+                error: error.message, 
+                component: 'ConfigCacheManager' 
+            });
         }
     }
 }

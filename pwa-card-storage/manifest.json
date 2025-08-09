@@ -2,7 +2,7 @@
   "name": "NFC 數位名片離線儲存",
   "short_name": "名片儲存",
   "description": "數位發展部 NFC 數位名片離線儲存服務",
-  "version": "v3.2.0",
+  "version": "v3.2.1",
   "start_url": "./",
   "display": "standalone",
   "orientation": "any",

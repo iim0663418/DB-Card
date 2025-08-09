@@ -20,6 +20,17 @@ class CardListComponent {
     this.filteredCards = [];
     this.currentFilter = {};
     this.currentLanguage = this.getCurrentLanguage();
+    // Initialize SecureLogger with fallback
+    const SecureLoggerClass = window.SecureLogger || window.SecureLoggerClass;
+    if (SecureLoggerClass) {
+      this.secureLogger = new SecureLoggerClass({ logLevel: 'INFO', enableMasking: true });
+    } else {
+      this.secureLogger = {
+        info: (msg, ctx) => console.log(`[INFO] ${msg}`, ctx),
+        warn: (msg, ctx) => console.warn(`[WARN] ${msg}`, ctx),
+        error: (msg, ctx) => console.error(`[ERROR] ${msg}`, ctx)
+      };
+    }
     
     this.init();
     this.registerWithLanguageSystem();
@@ -44,7 +55,7 @@ class CardListComponent {
           priority: 6,
           type: 'card-list'
         });
-        console.log('[CardList] Registered with unified language system');
+        this.secureLogger.info('Registered with unified language system', { component: 'CardList' });
       }
       
       // Register with base language manager as fallback
@@ -55,7 +66,10 @@ class CardListComponent {
         });
       }
     } catch (error) {
-      console.error('[CardList] Failed to register with language system:', error);
+      this.secureLogger.error('Failed to register with language system', { 
+        error: error.message, 
+        component: 'CardList' 
+      });
     }
   }
 
@@ -79,7 +93,10 @@ class CardListComponent {
       const savedLang = localStorage.getItem('pwa-language');
       return savedLang === 'en' ? 'en' : 'zh';
     } catch (error) {
-      console.error('[CardList] Failed to get current language:', error);
+      this.secureLogger.error('Failed to get current language', { 
+        error: error.message, 
+        component: 'CardList' 
+      });
       return 'zh';
     }
   }
@@ -107,7 +124,11 @@ class CardListComponent {
       // 最後備用：返回 fallback 或鍵值
       return fallback || key;
     } catch (error) {
-      console.error('[CardList] Failed to get localized text:', error);
+      this.secureLogger.error('Failed to get localized text', { 
+        error: error.message, 
+        key, 
+        component: 'CardList' 
+      });
       return fallback || this.getDefaultText(key) || key;
     }
   }
@@ -164,9 +185,15 @@ class CardListComponent {
       // Re-render cards with new language
       this.renderCards();
       
-      console.log(`[CardList] Language updated to: ${this.currentLanguage}`);
+      this.secureLogger.info('Language updated', { 
+        newLanguage: this.currentLanguage, 
+        component: 'CardList' 
+      });
     } catch (error) {
-      console.error('[CardList] Language update failed:', error);
+      this.secureLogger.error('Language update failed', { 
+        error: error.message, 
+        component: 'CardList' 
+      });
     }
   }
 
@@ -205,7 +232,10 @@ class CardListComponent {
       this.hideLoading();
       
     } catch (error) {
-      console.error('[CardList] Load cards failed:', error);
+      this.secureLogger.error('Load cards failed', { 
+        error: error.message, 
+        component: 'CardList' 
+      });
       this.showError('載入名片失敗');
       this.hideLoading();
     }
@@ -531,7 +561,11 @@ class CardListComponent {
         default:
       }
     } catch (error) {
-      console.error(`[CardList] Action ${action} failed:`, error);
+      this.secureLogger.error('Card action failed', { 
+        action, 
+        error: error.message, 
+        component: 'CardList' 
+      });
       this.showNotification(`操作失敗: ${error.message}`, 'error');
     }
   }
@@ -606,7 +640,10 @@ class CardListComponent {
             window.SecurityDataHandler.sanitizeOutput(rawName, 'text') : rawName;
         }
       } catch (getError) {
-        console.warn('[CardList] Failed to get card name for deletion message:', getError.message);
+        this.secureLogger.warn('Failed to get card name for deletion message', { 
+          error: getError.message, 
+          component: 'CardList' 
+        });
       }
       
       // 執行刪除操作
@@ -622,7 +659,10 @@ class CardListComponent {
       this.showNotification(successMessage, 'success');
       
     } catch (error) {
-      console.error('[CardList] Delete card failed:', error);
+      this.secureLogger.error('Delete card failed', { 
+        error: error.message, 
+        component: 'CardList' 
+      });
       
       // 提供更詳細的錯誤信息
       let errorMessage = this.getLocalizedText('cardList.deleteFailed');
@@ -645,7 +685,10 @@ class CardListComponent {
         try {
           await this.loadCards();
         } catch (reloadError) {
-          console.warn('[CardList] Failed to reload cards after deletion error:', reloadError.message);
+          this.secureLogger.warn('Failed to reload cards after deletion error', { 
+            error: reloadError.message, 
+            component: 'CardList' 
+          });
         }
       }
     } finally {
@@ -899,9 +942,12 @@ class CardListComponent {
       this.cards = [];
       this.filteredCards = [];
       
-      console.log('[CardList] Cleanup completed');
+      this.secureLogger.info('Cleanup completed', { component: 'CardList' });
     } catch (error) {
-      console.error('[CardList] Cleanup failed:', error);
+      this.secureLogger.error('Cleanup failed', { 
+        error: error.message, 
+        component: 'CardList' 
+      });
     }
   }
 

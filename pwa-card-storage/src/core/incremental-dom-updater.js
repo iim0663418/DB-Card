@@ -2,7 +2,22 @@
  * Incremental DOM Updater
  * Smart incremental updates for language switching instead of full page reloads
  * Optimized for static hosting with accessibility support
+ * 
+ * @version 3.2.1-security-enhanced
+ * @security Fixed CWE-94 code injection vulnerability
  */
+
+// Import security modules for CWE-94 protection
+let CodeInjectionProtection;
+try {
+  if (typeof require !== 'undefined') {
+    ({ CodeInjectionProtection } = require('../security/code-injection-protection.js'));
+  } else if (typeof window !== 'undefined') {
+    CodeInjectionProtection = window.CodeInjectionProtection;
+  }
+} catch (error) {
+  console.warn('[IncrementalDOMUpdater] Security modules not available, using fallback protection');
+}
 
 class IncrementalDOMUpdater {
   constructor(config = {}) {
@@ -15,6 +30,9 @@ class IncrementalDOMUpdater {
       updateTimeout: config.updateTimeout || 100, // ms SLA for updates
       ...config
     };
+    
+    // Initialize code injection protection
+    this.codeInjectionProtection = CodeInjectionProtection ? new CodeInjectionProtection() : null;
 
     this.pendingUpdates = new Map();
     this.updateQueue = [];
@@ -327,21 +345,108 @@ class IncrementalDOMUpdater {
   }
 
   /**
-   * Update element attributes
+   * Update element attributes - SEC-002: 代碼注入防護增強版 + CWE-94 防護
    */
   updateElementAttributes(element, key, value) {
     const attrInfo = element.getAttribute('data-i18n-attr');
     if (!attrInfo) return;
 
     try {
-      const attributes = JSON.parse(attrInfo);
+      // SEC-002: 使用 CodeInjectionProtection 進行安全 JSON 解析
+      let attributes;
+      if (this.codeInjectionProtection) {
+        attributes = this.codeInjectionProtection.safeJSONParse(attrInfo, {
+          allowedKeys: ['title', 'alt', 'aria-label', 'aria-describedby', 'placeholder', 'data-tooltip', 'lang'],
+          maxDepth: 2,
+          preventPrototypePollution: true
+        });
+      } else {
+        // 備用安全解析
+        attributes = this.fallbackSafeJSONParse(attrInfo);
+      }
+      
+      if (!attributes || typeof attributes !== 'object') {
+        console.warn('[IncrementalDOMUpdater] Invalid attribute configuration');
+        return;
+      }
+      
+      // SEC-002: 屬性名稱白名單驗證
+      const allowedAttributes = [
+        'title', 'alt', 'aria-label', 'aria-describedby', 
+        'placeholder', 'data-tooltip', 'lang'
+      ];
+      
       Object.entries(attributes).forEach(([attrName, translationKey]) => {
         if (translationKey === key) {
-          element.setAttribute(attrName, value);
+          // 驗證屬性名稱是否在白名單中
+          if (allowedAttributes.includes(attrName)) {
+            // 使用 CodeInjectionProtection 清理屬性值
+            const sanitizedValue = this.sanitizeAttributeValue(value);
+            element.setAttribute(attrName, sanitizedValue);
+          } else {
+            console.warn(`[IncrementalDOMUpdater] Blocked unsafe attribute: ${attrName}`);
+          }
         }
       });
     } catch (error) {
-      console.warn('[IncrementalDOMUpdater] Failed to parse attribute info:', attrInfo);
+      console.warn('[IncrementalDOMUpdater] Failed to parse attribute info:', attrInfo, error.message);
+    }
+  }
+
+  /**
+   * 備用安全 JSON 解析 - CWE-94 防護
+   */
+  fallbackSafeJSONParse(jsonString) {
+    try {
+      return JSON.parse(jsonString, (parseKey, parseValue) => {
+        // 阻止危險的屬性名稱
+        if (parseKey === '__proto__' || parseKey === 'constructor' || parseKey === 'prototype') {
+          return undefined;
+        }
+        
+        // 阻止函數字串和事件處理器
+        if (typeof parseValue === 'string' && (
+          parseValue.includes('javascript:') ||
+          parseValue.includes('data:') ||
+          parseValue.includes('vbscript:') ||
+          parseValue.startsWith('on') || // 事件處理器
+          parseValue.includes('function(') ||
+          parseValue.includes('eval(') ||
+          parseValue.includes('Function(') ||
+          parseValue.includes('setTimeout(') ||
+          parseValue.includes('setInterval(')
+        )) {
+          return '[BLOCKED]';
+        }
+        
+        return parseValue;
+      });
+    } catch (error) {
+      console.warn('[IncrementalDOMUpdater] JSON parse failed:', error.message);
+      return null;
+    }
+  }
+
+  /**
+   * 安全清理屬性值 - CWE-94 防護
+   */
+  sanitizeAttributeValue(value) {
+    if (this.codeInjectionProtection) {
+      return this.codeInjectionProtection.sanitizeInput(String(value), {
+        allowHTML: false,
+        maxLength: 500
+      });
+    } else {
+      // 備用清理
+      return String(value)
+        .replace(/[<>"'&]/g, (match) => {
+          const entities = { '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;', '&': '&amp;' };
+          return entities[match] || match;
+        })
+        .replace(/javascript:/gi, '')
+        .replace(/data:/gi, '')
+        .replace(/vbscript:/gi, '')
+        .substring(0, 500);
     }
   }
 

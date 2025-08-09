@@ -247,16 +247,39 @@ function switchLanguage(lang) {
 }
 
 /**
- * 更新語言按鈕
+ * 更新語言按鈕 - XSS 安全版本
  */
 function updateLanguageButton(lang) {
     const button = document.getElementById('langSwitch');
     if (button) {
+        // 安全清理現有內容
+        while (button.firstChild) {
+            button.removeChild(button.firstChild);
+        }
+        
         if (lang === 'zh') {
-            button.innerHTML = '<span style="margin-right:4px;">🇺🇸</span> EN';
+            // 安全創建旗幟元素
+            const flagSpan = document.createElement('span');
+            flagSpan.style.marginRight = '4px';
+            flagSpan.textContent = '🇺🇸';
+            
+            // 安全添加文字內容
+            const textNode = document.createTextNode(' EN');
+            
+            button.appendChild(flagSpan);
+            button.appendChild(textNode);
             button.title = 'Switch to English';
         } else {
-            button.innerHTML = '<span style="margin-right:4px;">🇹🇼</span> 中';
+            // 安全創建旗幟元素
+            const flagSpan = document.createElement('span');
+            flagSpan.style.marginRight = '4px';
+            flagSpan.textContent = '🇹🇼';
+            
+            // 安全添加文字內容
+            const textNode = document.createTextNode(' 中');
+            
+            button.appendChild(flagSpan);
+            button.appendChild(textNode);
             button.title = '切換到中文';
         }
     }

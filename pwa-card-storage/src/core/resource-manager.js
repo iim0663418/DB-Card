@@ -10,6 +10,7 @@
 import { ResourceCopier } from '../utils/resource-copier.js';
 import { SRIGenerator } from '../utils/sri-generator.js';
 import { ResourceManifest } from '../utils/resource-manifest.js';
+// SecureLogger loaded via global window object
 
 /**
  * 資源管理器 - 統籌資源整合流程
@@ -20,6 +21,11 @@ export class ResourceManager {
         this.sriGenerator = new SRIGenerator();
         this.manifest = new ResourceManifest();
         this.processedResources = new Map();
+        // Use global SecureLogger if available
+        const SecureLoggerClass = window.SecureLogger || window.SecureLoggerClass;
+        this.secureLogger = SecureLoggerClass ? 
+            new SecureLoggerClass({ logLevel: 'INFO', enableMasking: true }) : 
+            { info: console.log, warn: console.warn, error: console.error };
     }
 
     /**
@@ -28,27 +34,39 @@ export class ResourceManager {
      */
     async integrateResources() {
         try {
-            console.log('[ResourceManager] 開始資源整合流程...');
+            this.secureLogger.info('Starting resource integration process', { component: 'ResourceManager' });
             
             // 1. 發現需要的資源
             const requiredResources = await this.discoverRequiredResources();
-            console.log(`[ResourceManager] 發現 ${requiredResources.length} 個必要資源`);
+            this.secureLogger.info('Required resources discovered', { 
+                resourceCount: requiredResources.length, 
+                component: 'ResourceManager' 
+            });
 
             // 2. 複製資源檔案
             const copyResults = await this.copier.copyResources(requiredResources);
-            console.log(`[ResourceManager] 成功複製 ${copyResults.success.length} 個資源`);
+            this.secureLogger.info('Resources copied successfully', { 
+                successCount: copyResults.success.length, 
+                component: 'ResourceManager' 
+            });
 
             // 3. 生成 SRI hashes
             const sriResults = await this.sriGenerator.generateHashes(copyResults.success);
-            console.log(`[ResourceManager] 生成 ${sriResults.length} 個 SRI hash`);
+            this.secureLogger.info('SRI hashes generated', { 
+                hashCount: sriResults.length, 
+                component: 'ResourceManager' 
+            });
 
             // 4. 建立資源清單
             const manifestResult = await this.manifest.createManifest(sriResults);
-            console.log('[ResourceManager] 資源清單建立完成');
+            this.secureLogger.info('Resource manifest created successfully', { component: 'ResourceManager' });
 
             // 5. 驗證完整性
             const validationResult = await this.validateIntegrity();
-            console.log(`[ResourceManager] 完整性驗證: ${validationResult.valid ? '通過' : '失敗'}`);
+            this.secureLogger.info('Integrity validation completed', { 
+                validationPassed: validationResult.valid, 
+                component: 'ResourceManager' 
+            });
 
             return {
                 success: true,
@@ -59,7 +77,10 @@ export class ResourceManager {
             };
 
         } catch (error) {
-            console.error('[ResourceManager] 資源整合失敗:', error);
+            this.secureLogger.error('Resource integration failed', { 
+                error: error.message, 
+                component: 'ResourceManager' 
+            });
             return {
                 success: false,
                 error: error.message,
@@ -124,7 +145,10 @@ export class ResourceManager {
                 critical: false
             });
         } catch (error) {
-            console.warn('[ResourceManager] 可選資源檢查失敗:', error.message);
+            this.secureLogger.warn('Optional resource check failed', { 
+                error: error.message, 
+                component: 'ResourceManager' 
+            });
         }
 
         return optional;
@@ -162,7 +186,10 @@ export class ResourceManager {
             };
 
         } catch (error) {
-            console.error('[ResourceManager] 完整性驗證失敗:', error);
+            this.secureLogger.error('Integrity validation failed', { 
+                error: error.message, 
+                component: 'ResourceManager' 
+            });
             return {
                 valid: false,
                 error: error.message
@@ -199,10 +226,13 @@ export class ResourceManager {
         try {
             await this.copier.cleanup();
             await this.manifest.cleanup();
-            console.log('[ResourceManager] 資源清理完成');
+            this.secureLogger.info('Resource cleanup completed', { component: 'ResourceManager' });
             return true;
         } catch (error) {
-            console.error('[ResourceManager] 清理失敗:', error);
+            this.secureLogger.error('Resource cleanup failed', { 
+                error: error.message, 
+                component: 'ResourceManager' 
+            });
             return false;
         }
     }

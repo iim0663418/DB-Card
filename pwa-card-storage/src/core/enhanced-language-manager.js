@@ -4,6 +4,9 @@
  * Maintains backward compatibility while adding new unified language management capabilities
  */
 
+// Import SecureLogger for CWE-117 protection
+import { SecureLogger } from '../security/secure-logger.js';
+
 class EnhancedLanguageManager {
   constructor(existingLanguageManager = null) {
     // Use existing language manager if provided, otherwise create basic state
@@ -17,6 +20,7 @@ class EnhancedLanguageManager {
     this.isUpdating = false;
     this.updateQueue = [];
     this.initialized = false;
+    this.secureLogger = new SecureLogger({ logLevel: 'INFO', enableMasking: true });
 
     // Inherit performance components from base manager if available
     this.performanceCollector = this.baseManager?.performanceCollector || null;
@@ -62,9 +66,14 @@ class EnhancedLanguageManager {
       this.initializePerformanceOptimizer();
 
       this.initialized = true;
-      console.log('[EnhancedLanguageManager] Initialized successfully with adapters and accessibility manager');
+      this.secureLogger.info('Initialized successfully with adapters and accessibility manager', { 
+        component: 'EnhancedLanguageManager' 
+      });
     } catch (error) {
-      console.error('[EnhancedLanguageManager] Initialization failed:', error);
+      this.secureLogger.error('Initialization failed', { 
+        error: error.message, 
+        component: 'EnhancedLanguageManager' 
+      });
       throw error;
     }
   }
@@ -97,12 +106,18 @@ class EnhancedLanguageManager {
    */
   async switchLanguage(lang) {
     if (!['zh', 'en'].includes(lang)) {
-      console.warn('[EnhancedLanguageManager] Invalid language:', lang);
+      this.secureLogger.warn('Invalid language code provided', { 
+        invalidLanguage: lang, 
+        component: 'EnhancedLanguageManager' 
+      });
       return this.baseManager.currentLanguage;
     }
 
     if (this.isUpdating) {
-      console.log('[EnhancedLanguageManager] Language update in progress, queuing request');
+      this.secureLogger.info('Language update in progress, queuing request', { 
+        requestedLanguage: lang, 
+        component: 'EnhancedLanguageManager' 
+      });
       return this.queueLanguageUpdate(lang);
     }
 
@@ -143,11 +158,21 @@ class EnhancedLanguageManager {
       const duration = performance.now() - startTime;
       this.recordLanguageSwitchPerformance(duration);
 
-      console.log(`[EnhancedLanguageManager] Language switched: ${previousLanguage} -> ${lang} (${duration.toFixed(2)}ms)`);
+      this.secureLogger.info('Language switched successfully', { 
+        previousLanguage, 
+        newLanguage: lang, 
+        duration: duration.toFixed(2) + 'ms', 
+        component: 'EnhancedLanguageManager' 
+      });
       return lang;
 
     } catch (error) {
-      console.error('[EnhancedLanguageManager] Language switch failed:', error);
+      this.secureLogger.error('Language switch failed', { 
+        targetLanguage: lang, 
+        previousLanguage, 
+        error: error.message, 
+        component: 'EnhancedLanguageManager' 
+      });
       
       // Rollback to previous language
       this.baseManager.currentLanguage = previousLanguage;

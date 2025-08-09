@@ -1,0 +1,68 @@
+{
+  "platform": "local",
+  "version": "v3.2.0-pwa-deployment-compatibility",
+  "generated": "2025-08-07T04:37:08.116Z",
+  "environment": "development",
+  "basePath": "/",
+  "publicPath": "/",
+  "assetPath": "./assets/",
+  "features": {
+    "serviceWorker": true,
+    "offlineSupport": true,
+    "pushNotifications": false,
+    "backgroundSync": false,
+    "periodicSync": false,
+    "devTools": true,
+    "hotReload": true
+  },
+  "security": {
+    "level": "development",
+    "csp": {
+      "enabled": false,
+      "reportOnly": true,
+      "directives": {
+        "default-src": [
+          "'self'",
+          "'unsafe-inline'",
+          "'unsafe-eval'"
+        ],
+        "script-src": [
+          "'self'",
+          "'unsafe-inline'",
+          "'unsafe-eval'"
+        ],
+        "style-src": [
+          "'self'",
+          "'unsafe-inline'"
+        ],
+        "img-src": [
+          "'self'",
+          "data:",
+          "http:",
+          "https:"
+        ],
+        "connect-src": [
+          "'self'",
+          "ws:",
+          "wss:"
+        ]
+      }
+    },
+    "headers": {
+      "X-Content-Type-Options": "nosniff"
+    }
+  },
+  "cache": {
+    "strategy": "network-first",
+    "maxAge": 0,
+    "resources": [],
+    "disabled": true
+  },
+  "deployment": {
+    "buildCommand": "npm run dev",
+    "outputDir": "src",
+    "customDomain": false,
+    "httpsOnly": false,
+    "port": 8080
+  }
+}

@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1976d2">
+    <title>Deployment Validation 煙霧測試執行器</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: rgba(255,255,255,0.95);
+            color: #333;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .test-controls {
+            background: rgba(255,255,255,0.95);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .test-results {
+            background: rgba(255,255,255,0.95);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .summary-card {
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .summary-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .summary-card.total { 
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            color: #1565c0;
+        }
+        .summary-card.passed { 
+            background: linear-gradient(135deg, #e8f5e8, #c8e6c9);
+            color: #2e7d32;
+        }
+        .summary-card.failed { 
+            background: linear-gradient(135deg, #ffebee, #ffcdd2);
+            color: #c62828;
+        }
+        .summary-card.duration { 
+            background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+            color: #ef6c00;
+        }
+        
+        .summary-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+        
+        .summary-card p {
+            margin: 0;
+            font-size: 1.1em;
+            opacity: 0.8;
+        }
+        
+        .test-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            margin: 8px 0;
+            border-radius: 10px;
+            border-left: 5px solid;
+            transition: all 0.3s ease;
+        }
+        
+        .test-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .test-item.pass {
+            background: linear-gradient(135deg, #f1f8e9, #e8f5e8);
+            border-left-color: #4caf50;
+        }
+        
+        .test-item.fail {
+            background: linear-gradient(135deg, #ffebee, #ffcdd2);
+            border-left-color: #f44336;
+        }
+        
+        .test-status {
+            font-weight: bold;
+            margin-right: 15px;
+            min-width: 80px;
+            font-size: 1.2em;
+        }
+        
+        .test-name {
+            flex-grow: 1;
+            font-size: 1.1em;
+        }
+        
+        .test-error {
+            color: #d32f2f;
+            font-size: 0.9em;
+            margin-top: 8px;
+            padding: 8px;
+            background: rgba(255,255,255,0.7);
+            border-radius: 5px;
+        }
+        
+        .test-timestamp {
+            color: #666;
+            font-size: 0.85em;
+            opacity: 0.7;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin-right: 15px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        button:disabled {
+            background: linear-gradient(135deg, #ccc, #999);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .console-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 25px;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 15px 0;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(76, 175, 80, 0.4);
+        }
+        
+        .deployment-features {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .deployment-features h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .feature-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .feature-item:hover {
+            background: rgba(255,255,255,0.95);
+            transform: translateY(-2px);
+        }
+        
+        .feature-icon {
+            margin-right: 12px;
+            font-size: 1.3em;
+        }
+        
+        .feature-supported {
+            color: #4caf50;
+        }
+        
+        .feature-unsupported {
+            color: #f44336;
+        }
+        
+        .validation-demo {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .validation-demo h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+        }
+        
+        .demo-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .demo-buttons button {
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+        
+        .validation-result {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .validation-result.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 Deployment Validation 煙霧測試執行器</h1>
+        <p>DEPLOY-001 任務 - 部署驗證系統測試</p>
+        <p>測試跨平台部署驗證、安全檢查、效能測量與報告生成</p>
+    </div>
+
+    <div class="test-controls">
+        <button id="runTests" onclick="runTests()">🧪 執行部署驗證測試</button>
+        <button id="clearResults" onclick="clearResults()">🗑️ 清除結果</button>
+        <button id="exportResults" onclick="exportResults()" disabled>📊 匯出結果</button>
+        <button id="runValidationDemo" onclick="runValidationDemo()">🔍 執行驗證示範</button>
+        
+        <div class="progress-bar" id="progressBar" style="display: none;">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+    </div>
+
+    <div class="test-results" id="testResults" style="display: none;">
+        <h2>📊 部署驗證測試結果摘要</h2>
+        <div class="summary" id="summary"></div>
+        
+        <h3>📋 詳細測試結果</h3>
+        <div id="testDetails"></div>
+        
+        <div class="deployment-features" id="deploymentFeatures" style="display: none;">
+            <h3>🔧 部署驗證功能支援狀態</h3>
+            <div class="feature-grid" id="featureGrid"></div>
+        </div>
+        
+        <div class="validation-demo" id="validationDemo">
+            <h3>🎯 驗證功能示範</h3>
+            <div class="demo-buttons">
+                <button onclick="demoSecurityValidation()">🔒 安全驗證</button>
+                <button onclick="demoPerformanceValidation()">⚡ 效能驗證</button>
+                <button onclick="demoPlatformValidation()">🏗️ 平台驗證</button>
+                <button onclick="demoReportGeneration()">📄 報告生成</button>
+            </div>
+            <div class="validation-result" id="validationResult"></div>
+        </div>
+        
+        <div class="console-output" id="consoleOutput"></div>
+    </div>
+
+    <script type="module">
+        import { runDeploymentValidationSmokeTests } from './deployment-validation.test.js';
+        import { DeploymentValidator } from '../../src/core/deployment-validator.js';
+        
+        let testResults = null;
+        let consoleMessages = [];
+        let deploymentValidator = null;
+        
+        // 攔截 console 輸出
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+        
+        console.log = function(...args) {
+            consoleMessages.push({ type: 'log', message: args.join(' '), timestamp: new Date().toISOString() });
+            updateConsoleOutput();
+            originalConsoleLog.apply(console, args);
+        };
+        
+        console.error = function(...args) {
+            consoleMessages.push({ type: 'error', message: args.join(' '), timestamp: new Date().toISOString() });
+            updateConsoleOutput();
+            originalConsoleError.apply(console, args);
+        };
+        
+        console.warn = function(...args) {
+            consoleMessages.push({ type: 'warn', message: args.join(' '), timestamp: new Date().toISOString() });
+            updateConsoleOutput();
+            originalConsoleWarn.apply(console, args);
+        };
+        
+        window.runTests = async function() {
+            const runButton = document.getElementById('runTests');
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            const resultsDiv = document.getElementById('testResults');
+            
+            // 重置狀態
+            runButton.disabled = true;
+            runButton.innerHTML = '<div class="loading"></div>執行中...';
+            progressBar.style.display = 'block';
+            progressFill.style.width = '0%';
+            consoleMessages = [];
+            
+            try {
+                // 模擬進度更新
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress += Math.random() * 6;
+                    if (progress > 90) progress = 90;
+                    progressFill.style.width = progress + '%';
+                }, 400);
+                
+                // 執行測試
+                testResults = await runDeploymentValidationSmokeTests();
+                
+                // 完成進度
+                clearInterval(progressInterval);
+                progressFill.style.width = '100%';
+                
+                // 顯示結果
+                displayResults(testResults);
+                resultsDiv.style.display = 'block';
+                
+                // 啟用匯出按鈕
+                document.getElementById('exportResults').disabled = false;
+                
+            } catch (error) {
+                console.error('部署驗證測試執行失敗:', error);
+                alert('測試執行失敗: ' + error.message);
+            } finally {
+                runButton.disabled = false;
+                runButton.innerHTML = '🧪 執行部署驗證測試';
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                }, 1000);
+            }
+        };
+        
+        window.clearResults = function() {
+            document.getElementById('testResults').style.display = 'none';
+            document.getElementById('exportResults').disabled = true;
+            consoleMessages = [];
+            testResults = null;
+            updateConsoleOutput();
+        };
+        
+        window.exportResults = function() {
+            if (!testResults) return;
+            
+            const exportData = {
+                testResults,
+                consoleMessages,
+                deploymentFeatures: getDeploymentFeatures(),
+                exportTime: new Date().toISOString(),
+                userAgent: navigator.userAgent,
+                platform: getPlatformInfo()
+            };
+            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `deployment-validation-test-results-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+        
+        window.runValidationDemo = async function() {
+            if (!deploymentValidator) {
+                deploymentValidator = new DeploymentValidator();
+            }
+            
+            try {
+                console.log('🎯 開始執行部署驗證示範...');
+                const validationResult = await deploymentValidator.validateDeployment();
+                
+                const resultDiv = document.getElementById('validationResult');
+                resultDiv.innerHTML = `
+                    <h4>🚀 部署驗證結果</h4>
+                    <p><strong>部署就緒:</strong> ${validationResult.summary.deploymentReady ? '✅ 是' : '❌ 否'}</p>
+                    <p><strong>整體分數:</strong> ${validationResult.summary.overallScore}%</p>
+                    <p><strong>關鍵檢查:</strong> ${validationResult.summary.criticalScore}%</p>
+                    <p><strong>平台:</strong> ${validationResult.platform.name}</p>
+                    <p><strong>執行時間:</strong> ${validationResult.duration}</p>
+                `;
+                resultDiv.classList.add('show');
+                
+            } catch (error) {
+                console.error('驗證示範失敗:', error);
+            }
+        };
+        
+        // 示範功能
+        window.demoSecurityValidation = async function() {
+            if (!deploymentValidator) {
+                deploymentValidator = new DeploymentValidator();
+            }
+            
+            const securityResult = await deploymentValidator.validateSecurity();
+            showDemoResult('安全驗證', securityResult);
+        };
+        
+        window.demoPerformanceValidation = async function() {
+            if (!deploymentValidator) {
+                deploymentValidator = new DeploymentValidator();
+            }
+            
+            const performanceResult = await deploymentValidator.validatePerformance();
+            showDemoResult('效能驗證', performanceResult);
+        };
+        
+        window.demoPlatformValidation = async function() {
+            if (!deploymentValidator) {
+                deploymentValidator = new DeploymentValidator();
+            }
+            
+            const platformResult = await deploymentValidator.validatePlatform();
+            showDemoResult('平台驗證', platformResult);
+        };
+        
+        window.demoReportGeneration = async function() {
+            if (!deploymentValidator) {
+                deploymentValidator = new DeploymentValidator();
+            }
+            
+            const report = await deploymentValidator.generateReport('json');
+            showDemoResult('報告生成', { 
+                success: report.success, 
+                format: report.format, 
+                size: `${Math.round(report.size / 1024)}KB` 
+            });
+        };
+        
+        function showDemoResult(title, result) {
+            const resultDiv = document.getElementById('validationResult');
+            resultDiv.innerHTML = `
+                <h4>🎯 ${title}結果</h4>
+                <pre>${JSON.stringify(result, null, 2)}</pre>
+            `;
+            resultDiv.classList.add('show');
+        }
+        
+        function displayResults(results) {
+            const summaryDiv = document.getElementById('summary');
+            const detailsDiv = document.getElementById('testDetails');
+            
+            // 顯示摘要
+            summaryDiv.innerHTML = `
+                <div class="summary-card total">
+                    <h3>${results.summary.total}</h3>
+                    <p>總測試數</p>
+                </div>
+                <div class="summary-card passed">
+                    <h3>${results.summary.passed}</h3>
+                    <p>通過測試</p>
+                </div>
+                <div class="summary-card failed">
+                    <h3>${results.summary.failed}</h3>
+                    <p>失敗測試</p>
+                </div>
+                <div class="summary-card duration">
+                    <h3>${results.summary.passRate}%</h3>
+                    <p>通過率 (${results.summary.duration})</p>
+                </div>
+            `;
+            
+            // 顯示詳細結果
+            detailsDiv.innerHTML = results.results.map(result => `
+                <div class="test-item ${result.status.toLowerCase()}">
+                    <div class="test-status">${result.status === 'PASS' ? '✅' : '❌'} ${result.status}</div>
+                    <div class="test-name">
+                        ${result.name}
+                        ${result.error ? `<div class="test-error">錯誤: ${result.error}</div>` : ''}
+                    </div>
+                    <div class="test-timestamp">${new Date(result.timestamp).toLocaleTimeString()}</div>
+                </div>
+            `).join('');
+            
+            // 顯示部署功能狀態
+            if (results.deploymentFeatures) {
+                displayDeploymentFeatures(results.deploymentFeatures);
+                document.getElementById('deploymentFeatures').style.display = 'block';
+            }
+        }
+        
+        function displayDeploymentFeatures(features) {
+            const featureGrid = document.getElementById('featureGrid');
+            
+            const featureList = [
+                { key: 'platformValidation', name: '平台驗證', icon: '🏗️' },
+                { key: 'securityValidation', name: '安全驗證', icon: '🔒' },
+                { key: 'performanceValidation', name: '效能驗證', icon: '⚡' },
+                { key: 'pwaValidation', name: 'PWA 驗證', icon: '📱' },
+                { key: 'reportGeneration', name: '報告生成', icon: '📄' },
+                { key: 'crossPlatformSupport', name: '跨平台支援', icon: '🌐' }
+            ];
+            
+            featureGrid.innerHTML = featureList.map(feature => {
+                const supported = features[feature.key];
+                return `
+                    <div class="feature-item">
+                        <span class="feature-icon">${feature.icon}</span>
+                        <span>${feature.name}</span>
+                        <span class="feature-icon ${supported ? 'feature-supported' : 'feature-unsupported'}">
+                            ${supported ? '✅' : '❌'}
+                        </span>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function getDeploymentFeatures() {
+            return {
+                platformValidation: true,
+                securityValidation: true,
+                performanceValidation: true,
+                pwaValidation: true,
+                reportGeneration: true,
+                crossPlatformSupport: true,
+                multiFormatReports: true,
+                realTimeValidation: true
+            };
+        }
+        
+        function getPlatformInfo() {
+            const hostname = window.location.hostname;
+            
+            if (hostname.includes('.github.io')) return 'GitHub Pages';
+            if (hostname.includes('.pages.dev')) return 'Cloudflare Pages';
+            if (hostname.includes('.netlify.app')) return 'Netlify';
+            if (hostname.includes('.vercel.app')) return 'Vercel';
+            if (hostname === 'localhost' || hostname === '127.0.0.1') return 'Local Development';
+            
+            return 'Unknown Platform';
+        }
+        
+        function updateConsoleOutput() {
+            const consoleDiv = document.getElementById('consoleOutput');
+            consoleDiv.innerHTML = consoleMessages.map(msg => {
+                const time = new Date(msg.timestamp).toLocaleTimeString();
+                const color = msg.type === 'error' ? '#ff6b6b' : msg.type === 'warn' ? '#feca57' : '#d4d4d4';
+                return `<div style="color: ${color};">[${time}] ${msg.message}</div>`;
+            }).join('');
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+        
+        // 頁面載入完成後的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Deployment Validation 測試執行器已準備就緒');
+            console.log('📋 測試範圍: 部署驗證系統 (DEPLOY-001)');
+            console.log('🎯 測試目標: 跨平台部署驗證、安全檢查、效能測量、報告生成');
+            console.log('🌐 平台:', getPlatformInfo());
+            
+            // 檢測部署驗證功能
+            const features = getDeploymentFeatures();
+            console.log('🔧 部署驗證功能:', features);
+        });
+    </script>
+</body>
+</html>

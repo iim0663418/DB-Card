@@ -1,0 +1,627 @@
+[[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/assets/scripts/bilingual-common.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-cross-site-scripting-ide",
+	"severity": 4,
+	"message": "CWE-79,80 - Cross-site scripting",
+	"source": "Amazon Q ",
+	"startLineNumber": 394,
+	"startColumn": 1,
+	"endLineNumber": 395,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/assets/scripts/bilingual-common.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-cross-site-scripting-ide",
+	"severity": 4,
+	"message": "CWE-79,80 - Cross-site scripting",
+	"source": "Amazon Q ",
+	"startLineNumber": 609,
+	"startColumn": 1,
+	"endLineNumber": 692,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/deploy/path-audit.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 60,
+	"startColumn": 1,
+	"endLineNumber": 61,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/app.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-missing-authorization",
+	"severity": 4,
+	"message": "CWE-862 - Missing Authorization",
+	"source": "Amazon Q ",
+	"startLineNumber": 361,
+	"startColumn": 1,
+	"endLineNumber": 362,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/app.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 579,
+	"startColumn": 1,
+	"endLineNumber": 580,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/app.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "java-reverse-tabnabbing-link",
+	"severity": 4,
+	"message": "Reverse Tabnabbing",
+	"source": "Amazon Q ",
+	"startLineNumber": 1447,
+	"startColumn": 1,
+	"endLineNumber": 1448,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/app.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "java-reverse-tabnabbing-link",
+	"severity": 4,
+	"message": "Reverse Tabnabbing",
+	"source": "Amazon Q ",
+	"startLineNumber": 1457,
+	"startColumn": 1,
+	"endLineNumber": 1458,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/accessibility-language-manager.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-cross-site-scripting-ide",
+	"severity": 4,
+	"message": "CWE-79,80 - Cross-site scripting",
+	"source": "Amazon Q ",
+	"startLineNumber": 89,
+	"startColumn": 1,
+	"endLineNumber": 90,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/batch-data-migrator.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 183,
+	"startColumn": 1,
+	"endLineNumber": 184,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/component-health-monitor.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 98,
+	"startColumn": 1,
+	"endLineNumber": 99,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/component-health-monitor.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 399,
+	"startColumn": 1,
+	"endLineNumber": 400,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/config-cache-manager.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 327,
+	"startColumn": 1,
+	"endLineNumber": 328,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/config-manager.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 75,
+	"startColumn": 1,
+	"endLineNumber": 76,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/database-migration-validator.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-redundant-switch-statement",
+	"severity": 4,
+	"message": "CWE-705 - Redundant switch statement",
+	"source": "Amazon Q ",
+	"startLineNumber": 356,
+	"startColumn": 1,
+	"endLineNumber": 357,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/enhanced-language-manager.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-lazy-load-module",
+	"severity": 4,
+	"message": "Checks for lazy module loading.",
+	"source": "Amazon Q ",
+	"startLineNumber": 44,
+	"startColumn": 1,
+	"endLineNumber": 45,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/enhanced-language-manager.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-lazy-load-module",
+	"severity": 4,
+	"message": "Checks for lazy module loading.",
+	"source": "Amazon Q ",
+	"startLineNumber": 54,
+	"startColumn": 1,
+	"endLineNumber": 55,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/incremental-dom-updater.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 344,
+	"startColumn": 1,
+	"endLineNumber": 345,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/incremental-dom-updater.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-code-injection-ide",
+	"severity": 4,
+	"message": "CWE-94 - Unsanitized input is run as code",
+	"source": "Amazon Q ",
+	"startLineNumber": 360,
+	"startColumn": 1,
+	"endLineNumber": 370,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/language-manager.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 60,
+	"startColumn": 1,
+	"endLineNumber": 66,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/simplified-language-manager.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 113,
+	"startColumn": 1,
+	"endLineNumber": 114,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/storage.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 115,
+	"startColumn": 1,
+	"endLineNumber": 116,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/storage.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 313,
+	"startColumn": 1,
+	"endLineNumber": 314,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/storage.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-cross-site-scripting-ide",
+	"severity": 4,
+	"message": "CWE-79,80 - Cross-site scripting",
+	"source": "Amazon Q ",
+	"startLineNumber": 709,
+	"startColumn": 1,
+	"endLineNumber": 710,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/storage.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 826,
+	"startColumn": 1,
+	"endLineNumber": 827,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/storage.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 2847,
+	"startColumn": 1,
+	"endLineNumber": 2848,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/unified-component-registry.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 241,
+	"startColumn": 1,
+	"endLineNumber": 242,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/unified-component-registry.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-cross-site-scripting-ide",
+	"severity": 4,
+	"message": "CWE-79,80 - Cross-site scripting",
+	"source": "Amazon Q ",
+	"startLineNumber": 256,
+	"startColumn": 1,
+	"endLineNumber": 257,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/unified-component-registry.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 481,
+	"startColumn": 1,
+	"endLineNumber": 482,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/unified-language-observer.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 204,
+	"startColumn": 1,
+	"endLineNumber": 205,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/core/unified-language-observer.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 263,
+	"startColumn": 1,
+	"endLineNumber": 269,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/features/card-manager.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 958,
+	"startColumn": 1,
+	"endLineNumber": 963,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/features/card-manager.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 1105,
+	"startColumn": 1,
+	"endLineNumber": 1110,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/features/card-manager.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 1276,
+	"startColumn": 1,
+	"endLineNumber": 1277,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/features/card-manager.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 1599,
+	"startColumn": 1,
+	"endLineNumber": 1600,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/features/card-manager.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 1746,
+	"startColumn": 1,
+	"endLineNumber": 1747,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/features/card-manager.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-instead-of-delete-use-array-splice",
+	"severity": 4,
+	"message": "Items removed from an array using `delete` can cause `undefined` holes in the array.",
+	"source": "Amazon Q ",
+	"startLineNumber": 1942,
+	"startColumn": 1,
+	"endLineNumber": 1943,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/features/transfer-manager.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-code-injection-ide",
+	"severity": 4,
+	"message": "CWE-94 - Unsanitized input is run as code",
+	"source": "Amazon Q ",
+	"startLineNumber": 234,
+	"startColumn": 1,
+	"endLineNumber": 235,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/security/migration-helper.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 173,
+	"startColumn": 1,
+	"endLineNumber": 179,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/ui/components/version-history.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-missing-authorization",
+	"severity": 4,
+	"message": "CWE-862 - Missing Authorization",
+	"source": "Amazon Q ",
+	"startLineNumber": 160,
+	"startColumn": 1,
+	"endLineNumber": 161,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/ui/version-management-interface.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-missing-authorization",
+	"severity": 4,
+	"message": "CWE-862 - Missing Authorization",
+	"source": "Amazon Q ",
+	"startLineNumber": 136,
+	"startColumn": 1,
+	"endLineNumber": 137,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/ui/version-management-interface.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-missing-authorization",
+	"severity": 4,
+	"message": "CWE-862 - Missing Authorization",
+	"source": "Amazon Q ",
+	"startLineNumber": 141,
+	"startColumn": 1,
+	"endLineNumber": 142,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/ui/version-management-interface.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-missing-authorization",
+	"severity": 4,
+	"message": "CWE-862 - Missing Authorization",
+	"source": "Amazon Q ",
+	"startLineNumber": 263,
+	"startColumn": 1,
+	"endLineNumber": 264,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/utils/manifest-manager.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 381,
+	"startColumn": 1,
+	"endLineNumber": 382,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/utils/service-worker-manager.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 150,
+	"startColumn": 1,
+	"endLineNumber": 151,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/utils/service-worker-manager.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 162,
+	"startColumn": 1,
+	"endLineNumber": 163,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/utils/sri-generator.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 46,
+	"startColumn": 1,
+	"endLineNumber": 47,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/src/utils/sri-generator.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 182,
+	"startColumn": 1,
+	"endLineNumber": 183,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/sw.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 118,
+	"startColumn": 1,
+	"endLineNumber": 119,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/sw.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 702,
+	"startColumn": 1,
+	"endLineNumber": 703,
+	"endColumn": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/sw.js",
+	"owner": "Amazon Q Security Scan",
+	"code": "javascript-log-injection-ide",
+	"severity": 4,
+	"message": "CWE-117 - Log injection",
+	"source": "Amazon Q ",
+	"startLineNumber": 717,
+	"startColumn": 1,
+	"endLineNumber": 718,
+	"endColumn": 1,
+	"origin": "extHost1"
+}]

@@ -1,0 +1,64 @@
+graph TB
+    subgraph "Application Layer"
+        PWA[PWACardApp]
+        ELM[EnhancedLanguageManager]
+        UCR[UnifiedComponentRegistry]
+    end
+    
+    subgraph "Component Layer"
+        CL[CardListComponent]
+        VM[VersionManagement]
+        OT[OfflineTools]
+        TM[TransferManager]
+    end
+    
+    subgraph "Language System"
+        TR[TranslationRegistry]
+        UO[UnifiedObserver]
+        AM[AccessibilityManager]
+        SA[SecurityAdapter]
+        PA[PWAAdapter]
+    end
+    
+    subgraph "Fallback Layer"
+        BLM[BaseLanguageManager]
+        FPT[FallbackPerformanceTracker]
+        CSW[ComponentSecurityWrapper]
+    end
+    
+    subgraph "Health Monitoring"
+        CHM[ComponentHealthMonitor]
+        CAH[ComponentAutoHealer]
+        SWV[ServiceWorkerValidator]
+    end
+    
+    PWA --> ELM
+    PWA --> UCR
+    ELM --> TR
+    ELM --> UO
+    ELM --> AM
+    ELM --> SA
+    ELM --> PA
+    
+    UCR --> CL
+    UCR --> VM
+    UCR --> OT
+    UCR --> TM
+    
+    CL --> ELM
+    CL --> BLM
+    
+    ELM -.-> BLM
+    ELM -.-> FPT
+    
+    UCR --> CSW
+    
+    CHM --> CAH
+    CHM --> SWV
+    
+    style PWA fill:#e1f5fe
+    style ELM fill:#fff3e0
+    style UCR fill:#f3e5f5
+    style CHM fill:#e8f5e8
+    style BLM fill:#ffebee
+    style CSW fill:#fff8e1

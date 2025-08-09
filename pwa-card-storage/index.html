@@ -12,7 +12,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="名片儲存">
-    <link rel="apple-touch-icon" href="../assets/moda-logo.svg">
+    <link rel="apple-touch-icon" href="assets/images/moda-logo.svg">
     
     <!-- Security Headers -->
     <meta http-equiv="Content-Security-Policy" content="
@@ -36,7 +36,7 @@
     <link rel="stylesheet" href="assets/styles/main.css">
     <link rel="stylesheet" href="assets/styles/components.css">
     <link rel="stylesheet" href="assets/styles/modal-styles.css">
-    <link rel="stylesheet" href="../assets/high-accessibility.css">
+    <link rel="stylesheet" href="assets/styles/high-accessibility.css">
     <link rel="stylesheet" href="assets/styles/visual-enhancements.css">
     <link rel="stylesheet" href="assets/styles/language-toggle.css">
     
@@ -44,12 +44,554 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <!-- RESOURCE-04: Enhanced Resource Loading Validation -->
+    <script>
+        /**
+         * Resource Loading Validator
+         * Provides comprehensive resource validation and error handling
+         */
+        class ResourceLoadingValidator {
+            constructor() {
+                this.loadedResources = new Set();
+                this.failedResources = new Set();
+                this.loadingTimeout = 30000; // 30 seconds (adjusted for PWA)
+                this.retryAttempts = 3;
+                this.retryDelay = 1000; // 1 second
+            }
+
+            /**
+             * Initialize resource validation
+             */
+            init() {
+                this.setupGlobalErrorHandlers();
+                this.validateCriticalResources();
+                this.monitorResourceLoading();
+            }
+
+            /**
+             * Setup global error handlers for resources
+             */
+            setupGlobalErrorHandlers() {
+                // Handle script loading errors
+                window.addEventListener('error', (event) => {
+                    if (event.target && (event.target.tagName === 'SCRIPT' || event.target.tagName === 'LINK')) {
+                        this.handleResourceError(event.target, event.error || 'Loading failed');
+                    }
+                });
+
+                // Handle unhandled promise rejections
+                window.addEventListener('unhandledrejection', (event) => {
+                    console.warn('[Resource Validator] Unhandled promise rejection:', event.reason);
+                    this.showUserFriendlyError('部分功能可能無法正常運作，請重新整理頁面');
+                });
+            }
+
+            /**
+             * Validate critical resources on page load
+             */
+            validateCriticalResources() {
+                const criticalResources = [
+                    'assets/styles/main.css',
+                    'assets/styles/components.css',
+                    'src/app.js',
+                    'src/core/storage.js'
+                ];
+
+                criticalResources.forEach(resource => {
+                    this.validateResource(resource, true);
+                });
+            }
+
+            /**
+             * Monitor resource loading progress
+             */
+            monitorResourceLoading() {
+                const allResources = document.querySelectorAll('script[src], link[rel="stylesheet"], img[src]');
+                let loadedCount = 0;
+                let totalCount = 0;
+                const validResources = [];
+
+                // Filter out external resources and count only local resources
+                allResources.forEach(resource => {
+                    const originalSrc = resource.src || resource.href;
+                    
+                    // Skip external resources (Google Fonts, CDNs, etc.)
+                    if (this.isExternalResource(originalSrc)) {
+                        return;
+                    }
+                    
+                    validResources.push(resource);
+                    totalCount++;
+                    
+                    // Check if resource is already loaded
+                    if (this.isResourceAlreadyLoaded(resource)) {
+                        loadedCount++;
+                        this.loadedResources.add(originalSrc);
+                    } else {
+                        // Add event listeners for resources that aren't loaded yet
+                        resource.addEventListener('load', () => {
+                            loadedCount++;
+                            this.loadedResources.add(originalSrc);
+                            this.updateLoadingProgress(loadedCount, totalCount);
+                        });
+
+                        resource.addEventListener('error', () => {
+                            this.failedResources.add(originalSrc);
+                            this.handleResourceError(resource, 'Failed to load');
+                        });
+                    }
+                });
+
+                // Update initial progress
+                this.updateLoadingProgress(loadedCount, totalCount);
+
+                // Set loading timeout only if there are pending resources
+                if (loadedCount < totalCount) {
+                    setTimeout(() => {
+                        if (loadedCount < totalCount) {
+                            console.warn(`[Resource Validator] Loading timeout: ${loadedCount}/${totalCount} resources loaded`);
+                            this.handleLoadingTimeout(totalCount - loadedCount);
+                        }
+                    }, this.loadingTimeout);
+                } else {
+                    // All resources already loaded
+                    console.log(`[Resource Validator] All ${totalCount} resources loaded successfully`);
+                }
+            }
+
+            /**
+             * Validate individual resource
+             */
+            async validateResource(resourcePath, isCritical = false) {
+                try {
+                    const response = await fetch(resourcePath, {
+                        method: 'HEAD',
+                        cache: 'no-cache'
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    // Validate content type for security
+                    const contentType = response.headers.get('content-type') || '';
+                    if (!this.isValidContentType(resourcePath, contentType)) {
+                        throw new Error(`Invalid content type: ${contentType}`);
+                    }
+
+                    this.loadedResources.add(resourcePath);
+                    return true;
+
+                } catch (error) {
+                    console.error(`[Resource Validator] Validation failed for ${resourcePath}:`, error.message);
+                    
+                    if (isCritical) {
+                        await this.retryCriticalResource(resourcePath);
+                    } else {
+                        this.failedResources.add(resourcePath);
+                    }
+                    
+                    return false;
+                }
+            }
+
+            /**
+             * Retry loading critical resources
+             */
+            async retryCriticalResource(resourcePath, attempt = 1) {
+                if (attempt > this.retryAttempts) {
+                    this.showCriticalResourceError(resourcePath);
+                    return false;
+                }
+
+                console.log(`[Resource Validator] Retrying critical resource ${resourcePath} (attempt ${attempt})`);
+                
+                await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempt));
+                
+                const success = await this.validateResource(resourcePath, false);
+                if (!success) {
+                    return this.retryCriticalResource(resourcePath, attempt + 1);
+                }
+                
+                return true;
+            }
+
+            /**
+             * Handle resource loading errors
+             */
+            handleResourceError(element, error) {
+                const resourcePath = element.src || element.href || 'unknown';
+                console.error(`[Resource Validator] Resource error: ${resourcePath}`, error);
+
+                // Add error class for styling
+                element.classList.add('resource-error');
+                
+                // Try fallback for critical resources
+                if (this.isCriticalResource(resourcePath)) {
+                    this.loadFallbackResource(element, resourcePath);
+                }
+
+                // Update UI to show degraded functionality
+                this.updateUIForMissingResource(resourcePath);
+            }
+
+            /**
+             * Load fallback resource
+             */
+            loadFallbackResource(element, originalPath) {
+                const fallbacks = {
+                    'assets/styles/main.css': 'assets/styles/fallback.css',
+                    'src/app.js': 'src/app-minimal.js',
+                    'assets/scripts/qrcode.min.js': 'assets/scripts/qrcode-fallback.js'
+                };
+
+                const fallbackPath = fallbacks[originalPath];
+                if (fallbackPath && element.tagName === 'SCRIPT') {
+                    console.log(`[Resource Validator] Loading fallback: ${fallbackPath}`);
+                    
+                    const fallbackScript = document.createElement('script');
+                    fallbackScript.src = fallbackPath;
+                    fallbackScript.onerror = () => {
+                        console.error(`[Resource Validator] Fallback also failed: ${fallbackPath}`);
+                        this.showCriticalResourceError(originalPath);
+                    };
+                    
+                    element.parentNode.insertBefore(fallbackScript, element.nextSibling);
+                }
+            }
+
+            /**
+             * Check if resource is critical
+             */
+            isCriticalResource(resourcePath) {
+                const criticalPatterns = [
+                    /assets\/styles\/main\.css/,
+                    /src\/app\.js/,
+                    /src\/core\/storage\.js/,
+                    /assets\/scripts\/qrcode/
+                ];
+
+                return criticalPatterns.some(pattern => pattern.test(resourcePath));
+            }
+
+            /**
+             * Validate content type for security
+             */
+            isValidContentType(resourcePath, contentType) {
+                const validTypes = {
+                    '.css': ['text/css', 'text/plain'],
+                    '.js': ['application/javascript', 'text/javascript', 'application/x-javascript'],
+                    '.json': ['application/json', 'text/plain'],
+                    '.svg': ['image/svg+xml', 'text/plain'],
+                    '.png': ['image/png'],
+                    '.jpg': ['image/jpeg'],
+                    '.jpeg': ['image/jpeg']
+                };
+
+                const extension = resourcePath.substring(resourcePath.lastIndexOf('.'));
+                const allowedTypes = validTypes[extension];
+                
+                if (!allowedTypes) return true; // Unknown extension, allow
+                
+                return allowedTypes.some(type => contentType.includes(type));
+            }
+
+            /**
+             * Update loading progress
+             */
+            updateLoadingProgress(loaded, total) {
+                const percentage = Math.round((loaded / total) * 100);
+                
+                // Update loading indicator if present
+                const loadingText = document.querySelector('.loading-text');
+                if (loadingText) {
+                    loadingText.textContent = `載入中... ${percentage}%`;
+                }
+
+                // Hide loading overlay when complete
+                if (loaded === total) {
+                    setTimeout(() => {
+                        const loadingOverlay = document.getElementById('loading');
+                        if (loadingOverlay) {
+                            loadingOverlay.classList.add('hidden');
+                        }
+                    }, 500);
+                }
+            }
+
+            /**
+             * Handle loading timeout
+             */
+            handleLoadingTimeout(failedCount) {
+                console.warn(`[Resource Validator] ${failedCount} resources failed to load within timeout`);
+                
+                this.showUserFriendlyError(
+                    `部分資源載入較慢 (${failedCount} 個)，功能可能受限。請檢查網路連線或重新整理頁面。`
+                );
+            }
+
+            /**
+             * Update UI for missing resources
+             */
+            updateUIForMissingResource(resourcePath) {
+                // Disable features that depend on missing resources
+                if (resourcePath.includes('qrcode')) {
+                    const qrButtons = document.querySelectorAll('[data-action*="qr"]');
+                    qrButtons.forEach(btn => {
+                        btn.disabled = true;
+                        btn.title = 'QR 碼功能暫時無法使用';
+                    });
+                }
+
+                if (resourcePath.includes('bilingual')) {
+                    const langToggle = document.getElementById('lang-toggle');
+                    if (langToggle) {
+                        langToggle.disabled = true;
+                        langToggle.title = '語言切換功能暫時無法使用';
+                    }
+                }
+            }
+
+            /**
+             * Show critical resource error
+             */
+            showCriticalResourceError(resourcePath) {
+                const errorMessage = `關鍵資源載入失敗: ${resourcePath.split('/').pop()}。應用程式可能無法正常運作。`;
+                this.showUserFriendlyError(errorMessage, 'error');
+            }
+
+            /**
+             * Show user-friendly error message
+             */
+            showUserFriendlyError(message, type = 'warning') {
+                // Create or update notification
+                let notification = document.getElementById('notification');
+                if (!notification) {
+                    notification = document.createElement('div');
+                    notification.id = 'notification';
+                    notification.className = 'notification';
+                    document.body.appendChild(notification);
+                }
+
+                notification.innerHTML = `
+                    <div class="notification-content ${type}">
+                        <span class="notification-icon">${type === 'error' ? '❌' : '⚠️'}</span>
+                        <span class="notification-message">${this.sanitizeMessage(message)}</span>
+                        <button class="notification-close" onclick="this.parentElement.parentElement.classList.add('hidden')">&times;</button>
+                    </div>
+                `;
+
+                notification.classList.remove('hidden');
+
+                // Auto-hide after 10 seconds for warnings
+                if (type === 'warning') {
+                    setTimeout(() => {
+                        notification.classList.add('hidden');
+                    }, 10000);
+                }
+            }
+
+            /**
+             * Sanitize error message for XSS protection
+             */
+            sanitizeMessage(message) {
+                return message
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#x27;');
+            }
+
+            /**
+             * Check if resource is external (should be excluded from validation)
+             */
+            isExternalResource(resourceUrl) {
+                if (!resourceUrl) return false;
+                
+                const externalPatterns = [
+                    /^https?:\/\/fonts\.(googleapis|gstatic)\.com/,
+                    /^https?:\/\/unpkg\.com/,
+                    /^https?:\/\/cdn\./,
+                    /^https?:\/\/[^/]+\.(com|net|org)\//
+                ];
+                
+                return externalPatterns.some(pattern => pattern.test(resourceUrl));
+            }
+
+            /**
+             * Check if resource is already loaded
+             */
+            isResourceAlreadyLoaded(resource) {
+                if (resource.tagName === 'SCRIPT') {
+                    // For scripts, assume loaded if no src or if readyState indicates completion
+                    if (!resource.src) return true;
+                    return resource.readyState === 'complete' || resource.readyState === 'loaded';
+                } else if (resource.tagName === 'LINK' && resource.rel === 'stylesheet') {
+                    // For stylesheets, be more lenient
+                    if (!resource.href) return true;
+                    try {
+                        return resource.sheet && resource.sheet.cssRules !== null;
+                    } catch (e) {
+                        // Cross-origin or already loaded stylesheets, assume loaded
+                        return true;
+                    }
+                } else if (resource.tagName === 'IMG') {
+                    // For images, check if they are complete
+                    return resource.complete && resource.naturalWidth > 0;
+                }
+                
+                return false;
+            }
+
+            /**
+             * Get validation report
+             */
+            getReport() {
+                const total = this.loadedResources.size + this.failedResources.size;
+                return {
+                    timestamp: new Date().toISOString(),
+                    loadedResources: Array.from(this.loadedResources),
+                    failedResources: Array.from(this.failedResources),
+                    totalLoaded: this.loadedResources.size,
+                    totalFailed: this.failedResources.size,
+                    successRate: total > 0 ? (this.loadedResources.size / total * 100) : 100
+                };
+            }
+        }
+
+        // Initialize resource validator when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                window.resourceValidator = new ResourceLoadingValidator();
+                window.resourceValidator.init();
+            });
+        } else {
+            window.resourceValidator = new ResourceLoadingValidator();
+            window.resourceValidator.init();
+        }
+    </script>
+
+    <!-- RESOURCE-04: Error Handling Styles -->
+    <style>
+        .resource-error {
+            opacity: 0.5;
+            filter: grayscale(100%);
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            max-width: 400px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification:not(.hidden) {
+            transform: translateX(0);
+        }
+        
+        .notification-content {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .notification-content.warning {
+            border-left: 4px solid #ff9800;
+        }
+        
+        .notification-content.error {
+            border-left: 4px solid #f44336;
+        }
+        
+        .notification-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        
+        .notification-message {
+            flex: 1;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .notification-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+        
+        .notification-close:hover {
+            background-color: rgba(0,0,0,0.1);
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease;
+        }
+        
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e3f2fd;
+            border-top: 4px solid #1976d2;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            font-size: 16px;
+            color: #666;
+        }
+        
+        [disabled] {
+            opacity: 0.6;
+            cursor: not-allowed !important;
+        }
+    </style>
 </head>
 <body>
     <!-- PWA 安裝提示 -->
     <div id="install-prompt" class="install-prompt hidden">
         <div class="install-content">
-            <img src="../assets/moda-logo.svg" alt="moda Logo" class="install-icon">
+            <img src="./assets/images/moda-logo.svg" alt="moda Logo" class="install-icon">
             <h3>安裝名片儲存 App</h3>
             <p>安裝到桌面，享受完整的離線體驗</p>
             <div class="install-actions">
@@ -146,9 +688,9 @@
                             <span class="action-desc" id="action-backup-all-desc">匯出所有名片</span>
                         </button>
                         <button class="action-card" data-action="security-settings">
-                            <span class="action-icon">🔒</span>
-                            <span class="action-title" id="action-security-settings">安全設定</span>
-                            <span class="action-desc" id="action-security-settings-desc">管理安全功能與隱私</span>
+                            <span class="action-icon">🛡️</span>
+                            <span class="action-title" id="action-security-settings">安全狀態</span>
+                            <span class="action-desc" id="action-security-settings-desc">檢視系統安全資訊</span>
                         </button>
                     </div>
                 </div>
@@ -161,11 +703,11 @@
                     <div class="page-actions">
                         <input type="search" id="card-search" placeholder="搜尋名片..." class="search-input">
                         <select id="card-filter" class="filter-select">
-                            <option value="">所有類型</option>
-                            <option value="gov-yp">機關版-延平</option>
-                            <option value="gov-sg">機關版-新光</option>
-                            <option value="personal">個人版</option>
-                            <option value="bilingual">雙語版</option>
+                            <option value="" id="filter-all">所有類型</option>
+                            <option value="gov-yp" id="filter-gov-yp">政府機關版 (延平大樓)</option>
+                            <option value="gov-sg" id="filter-gov-sg">政府機關版 (新光大樓)</option>
+                            <option value="personal" id="filter-personal">個人版</option>
+                            <option value="bilingual" id="filter-bilingual">雙語版</option>
                         </select>
                     </div>
                 </div>
@@ -257,39 +799,63 @@
 
     <!-- Scripts -->
     
+    <!-- PWA-001: ES6 Module Integration -->
+    <script type="module">
+        // PWA Core Integration
+        import { initializePWA } from './src/core/pwa-integrator.js';
+        
+        // Initialize PWA when DOM is ready
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                console.log('[PWA] 開始初始化 PWA 系統...');
+                const pwaResult = await initializePWA();
+                
+                if (pwaResult.success) {
+                    console.log('[PWA] PWA 系統初始化成功:', pwaResult.features);
+                } else {
+                    console.warn('[PWA] PWA 系統初始化失敗:', pwaResult.error);
+                }
+            } catch (error) {
+                console.error('[PWA] PWA 初始化錯誤:', error);
+            }
+        });
+    </script>
+    
     <!-- Unified Manifest Manager (最優先載入) -->
     <script src="src/core/unified-manifest-manager.js"></script>
     
-    <!-- Security -->
-    <script src="../src/security/SecurityInputHandler.js"></script>
-    <script src="../src/security/SecurityDataHandler.js"></script>
-    <script src="../src/security/SecurityAuthHandler.js"></script>
+    <!-- Lightweight Security (Static Hosting Compatible) -->
+    <script src="./src/security/LightweightSecurityCore.js"></script>
+    <script src="./src/security/StaticHostingSecurityToggle.js"></script>
+    <script src="./src/security/ClientSideSecurityHealthMonitor.js"></script>
     
-    <!-- SEC-01: Static Hosting Security Components -->
-    <script src="../src/security/StaticHostingSecurityToggle.js"></script>
-    <script src="../src/security/StaticHostingCompatibilityLayer.js"></script>
-    <script src="../src/security/ClientSideSecurityHealthMonitor.js"></script>
-    
-    <!-- SEC-04 to SEC-06: Phase 2 Security Components -->
-    <script src="../src/security/ClientSideGracefulDegradation.js"></script>
-    <script src="../src/security/ClientSideSecurityErrorRecovery.js"></script>
-    
-    <!-- SEC-07 to SEC-09: Phase 3 Security Components -->
-    <script src="../src/security/ClientSideSecurityRollback.js"></script>
-    <script src="../src/security/ClientSideUserImpactMonitor.js"></script>
-    <script src="../src/security/ClientSideSecurityDashboard.js"></script>
-    
-    <!-- SEC-10 to SEC-12: Phase 4 User Experience Components -->
-    <script src="../src/security/ClientSideUserCommunication.js"></script>
-    <script src="../src/security/ClientSideSecurityOnboarding.js"></script>
-    <script src="../src/security/ClientSideSecuritySettings.js"></script>
+    <!-- Legacy Security (Fallback) -->
+    <script src="./src/security/SecuritySettingsInterface.js"></script>
     
     <script src="src/core/error-handler.js"></script>
-    <script src="../assets/bilingual-common.js"></script>
-    <script src="../assets/qrcode.min.js"></script>
-    <script src="../assets/qr-utils.js"></script>
+    <script src="./assets/scripts/bilingual-common.js"></script>
+    <script src="./assets/scripts/qrcode.min.js"></script>
+    <script src="./assets/scripts/qr-utils.js"></script>
     
-    <!-- Language Manager -->
+    <!-- TRANS-001: Safe Translation Handler (Load First) -->
+    <script src="src/core/safe-translation-handler.js"></script>
+    
+    <!-- TRANS-003: Unified Translation Service -->
+    <script src="src/core/unified-translation-service.js"></script>
+    
+    <!-- TRANS-004: Translation Keys Configuration -->
+    <script src="src/core/translation-keys-config.js"></script>
+    
+    <!-- COMP-01: Simplified Language Manager -->
+    <script src="src/core/simplified-language-manager.js"></script>
+    
+    <!-- COMP-02: Unified Component Registry -->
+    <script src="src/core/unified-component-registry.js"></script>
+    
+    <!-- COMP-04: Component Health Monitor -->
+    <script src="src/core/component-health-monitor.js"></script>
+    
+    <!-- Language Manager (Fallback) -->
     <script src="src/core/language-manager.js"></script>
     
     <!-- Debug Tools (Development) -->
@@ -299,7 +865,7 @@
     <!-- Unified Mobile Manager -->
     <script src="src/core/unified-mobile-manager.js"></script>
     
-    <!-- PWA Core Modules -->
+    <!-- PWA Core Modules (Critical Dependencies First) -->
     <script src="src/core/content-fingerprint-generator.js"></script>
     <script src="src/core/duplicate-detector.js"></script>
     <script src="src/core/database-migration-validator.js"></script>
@@ -308,8 +874,12 @@
     <script src="src/core/version-manager.js"></script>
     <script src="src/core/version-manager-utils.js"></script>
     <script src="src/core/pwa-integration.js"></script>
+    
+    <!-- CRITICAL: Storage must load before app.js -->
     <script src="src/core/storage.js"></script>
     <script src="src/core/health-manager.js"></script>
+    
+    <!-- Feature Modules -->
     <script src="src/features/card-manager.js"></script>
     <script src="src/features/offline-tools.js"></script>
     <script src="src/features/transfer-manager.js"></script>
@@ -322,7 +892,7 @@
     <script src="src/utils/simple-card-parser.js"></script>
     <script src="src/utils/pwa-performance.js"></script>
     
-    <!-- Application -->
+    <!-- Application (Load After All Dependencies) -->
     <script src="src/app.js"></script>
     <script src="src/pwa-init.js"></script>
 </body>

@@ -1,0 +1,356 @@
+/**
+ * moda Design System - Version Management Styles
+ * 版本管理介面的 moda 設計系統樣式
+ */
+
+:root {
+  /* moda Design Tokens */
+  --md-primary-1: #6868ac;
+  --md-secondary-1: #565e62;
+  --md-success-1: #4caf50;
+  --md-warning-1: #ff9800;
+  --md-error-1: #f44336;
+  --md-neutral-9: #f3f5f6;
+  --md-white-1: #ffffff;
+  --md-black-1: #1a1a1a;
+  
+  /* Spacing */
+  --md-spacing-xs: 0.25rem;
+  --md-spacing-sm: 0.5rem;
+  --md-spacing-md: 1rem;
+  --md-spacing-lg: 1.5rem;
+  --md-spacing-xl: 2rem;
+  
+  /* Typography */
+  --md-font-family: 'Noto Sans TC', sans-serif;
+  --md-font-size-sm: 0.875rem;
+  --md-font-size-base: 1rem;
+  --md-font-size-lg: 1.125rem;
+  --md-font-size-xl: 1.25rem;
+  
+  /* Border Radius */
+  --md-radius-sm: 4px;
+  --md-radius-md: 8px;
+  --md-radius-lg: 12px;
+  
+  /* Shadows */
+  --md-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --md-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.15);
+  --md-shadow-lg: 0 8px 32px rgba(104, 104, 172, 0.25);
+}
+
+/* Version Management Modal */
+.moda-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+  font-family: var(--md-font-family);
+}
+
+.moda-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.moda-modal-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--md-white-1);
+  border-radius: var(--md-radius-lg);
+  box-shadow: var(--md-shadow-lg);
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+  min-width: 480px;
+}
+
+.moda-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--md-spacing-lg);
+  border-bottom: 1px solid var(--md-neutral-9);
+}
+
+.moda-modal-title {
+  margin: 0;
+  font-size: var(--md-font-size-xl);
+  font-weight: 600;
+  color: var(--md-black-1);
+}
+
+.moda-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--md-secondary-1);
+  padding: var(--md-spacing-sm);
+  border-radius: var(--md-radius-sm);
+  transition: all 0.2s ease;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.moda-modal-close:hover {
+  background: var(--md-neutral-9);
+  color: var(--md-black-1);
+}
+
+.moda-modal-body {
+  padding: var(--md-spacing-lg);
+}
+
+/* Version Management Buttons */
+.moda-btn {
+  padding: var(--md-spacing-sm) var(--md-spacing-md);
+  border: none;
+  border-radius: var(--md-radius-md);
+  font-family: var(--md-font-family);
+  font-size: var(--md-font-size-base);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--md-spacing-sm);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.moda-btn:focus {
+  outline: 2px solid var(--md-primary-1);
+  outline-offset: 2px;
+}
+
+.moda-btn-primary {
+  background: var(--md-primary-1);
+  color: var(--md-white-1);
+}
+
+.moda-btn-primary:hover {
+  background: var(--md-secondary-1);
+}
+
+.moda-btn-secondary {
+  background: var(--md-neutral-9);
+  color: var(--md-black-1);
+  border: 1px solid var(--md-secondary-1);
+}
+
+.moda-btn-secondary:hover {
+  background: var(--md-secondary-1);
+  color: var(--md-white-1);
+}
+
+.moda-btn-danger {
+  background: var(--md-error-1);
+  color: var(--md-white-1);
+}
+
+.moda-btn-danger:hover {
+  background: #d32f2f;
+}
+
+.moda-btn-success {
+  background: var(--md-success-1);
+  color: var(--md-white-1);
+}
+
+.moda-btn-success:hover {
+  background: #388e3c;
+}
+
+/* Version List */
+.version-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-spacing-md);
+  margin: var(--md-spacing-md) 0;
+}
+
+.version-item {
+  padding: var(--md-spacing-md);
+  border: 1px solid var(--md-neutral-9);
+  border-radius: var(--md-radius-md);
+  background: var(--md-white-1);
+  transition: all 0.2s ease;
+}
+
+.version-item:hover {
+  box-shadow: var(--md-shadow-sm);
+  border-color: var(--md-primary-1);
+}
+
+.version-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--md-spacing-sm);
+}
+
+.version-number {
+  font-weight: 600;
+  color: var(--md-primary-1);
+  font-size: var(--md-font-size-lg);
+}
+
+.version-date {
+  color: var(--md-secondary-1);
+  font-size: var(--md-font-size-sm);
+}
+
+.version-actions {
+  display: flex;
+  gap: var(--md-spacing-sm);
+  margin-top: var(--md-spacing-sm);
+}
+
+.version-actions .moda-btn {
+  font-size: var(--md-font-size-sm);
+  padding: var(--md-spacing-xs) var(--md-spacing-sm);
+  min-height: 36px;
+}
+
+/* Status Indicators */
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-spacing-xs);
+  padding: var(--md-spacing-xs) var(--md-spacing-sm);
+  border-radius: var(--md-radius-sm);
+  font-size: var(--md-font-size-sm);
+  font-weight: 500;
+}
+
+.status-current {
+  background: var(--md-success-1);
+  color: var(--md-white-1);
+}
+
+.status-archived {
+  background: var(--md-neutral-9);
+  color: var(--md-secondary-1);
+}
+
+.status-draft {
+  background: var(--md-warning-1);
+  color: var(--md-white-1);
+}
+
+/* Language Switch Animation */
+.language-switching {
+  opacity: 0.7;
+  transition: opacity 0.15s ease-out;
+}
+
+.language-switched {
+  opacity: 1;
+  transition: opacity 0.15s ease-in;
+}
+
+/* Accessibility Enhancements */
+@media (prefers-reduced-motion: reduce) {
+  .moda-btn,
+  .version-item,
+  .language-switching,
+  .language-switched {
+    transition: none;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .moda-btn-primary {
+    border: 2px solid var(--md-black-1);
+  }
+  
+  .moda-btn-secondary {
+    border: 2px solid var(--md-black-1);
+  }
+  
+  .version-item {
+    border: 2px solid var(--md-black-1);
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --md-white-1: #1a1a1a;
+    --md-black-1: #ffffff;
+    --md-neutral-9: #2d2d2d;
+    --md-secondary-1: #b0b0b0;
+  }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .moda-modal-content {
+    min-width: auto;
+    width: 95vw;
+    max-height: 95vh;
+  }
+  
+  .moda-modal-header,
+  .moda-modal-body {
+    padding: var(--md-spacing-md);
+  }
+  
+  .version-actions {
+    flex-direction: column;
+  }
+  
+  .version-actions .moda-btn {
+    width: 100%;
+  }
+}
+
+/* Focus Management */
+.moda-modal[aria-hidden="true"] {
+  display: none;
+}
+
+.moda-modal[aria-hidden="false"] {
+  display: block;
+}
+
+/* Loading States */
+.moda-btn-loading {
+  position: relative;
+  color: transparent;
+}
+
+.moda-btn-loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}

@@ -1,81 +1,74 @@
 /**
- * Jest 測試配置
- * 針對重複處理對話框雙語支援測試
+ * Jest Configuration for Lightweight Security Architecture Tests
+ * Requirement: R-2.4 安全架構輕量化
  */
 
 module.exports = {
-  // 測試環境
+  // Test environment
   testEnvironment: 'jsdom',
   
-  // 測試檔案匹配模式
+  // Test file patterns
   testMatch: [
-    '**/tests/**/*.test.js',
-    '**/tests/**/*.spec.js'
+    '<rootDir>/security/**/*.test.js',
+    '<rootDir>/security/**/*.spec.js'
   ],
   
-  // 設置檔案
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
+  // Setup files
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   
-  // 覆蓋率報告
+  // Coverage configuration
   collectCoverage: true,
   collectCoverageFrom: [
-    'pwa-card-storage/src/**/*.js',
-    '!pwa-card-storage/src/**/*.test.js',
-    '!pwa-card-storage/src/**/*.spec.js'
+    '../pwa-card-storage/src/security/**/*.js',
+    '../assets/bilingual-common.js',
+    '../pwa-card-storage/src/core/storage.js',
+    '!**/*.test.js',
+    '!**/*.spec.js'
   ],
-  coverageDirectory: 'tests/coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
   
-  // 覆蓋率閾值
+  // Coverage thresholds
   coverageThreshold: {
     global: {
-      branches: 80,
-      functions: 80,
-      lines: 80,
-      statements: 80
-    },
-    './pwa-card-storage/src/ui/components/duplicate-dialog.js': {
       branches: 90,
-      functions: 90,
-      lines: 90,
-      statements: 90
+      functions: 95,
+      lines: 95,
+      statements: 95
     }
   },
   
-  // 模組對應
-  moduleNameMapping: {
-    '^@/(.*)$': '<rootDir>/pwa-card-storage/src/$1',
-    '^@ui/(.*)$': '<rootDir>/pwa-card-storage/src/ui/$1',
-    '^@core/(.*)$': '<rootDir>/pwa-card-storage/src/core/$1'
+  // Coverage reporters
+  coverageReporters: [
+    'text',
+    'lcov',
+    'html',
+    'json-summary'
+  ],
+  
+  // Module paths
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/../pwa-card-storage/src/$1',
+    '^@security/(.*)$': '<rootDir>/../pwa-card-storage/src/security/$1'
   },
   
-  // 測試超時
+  // Transform configuration for ES6 modules
+  transform: {
+    '^.+\\.js$': ['babel-jest', { presets: [['@babel/preset-env', { targets: { node: 'current' } }]] }]
+  },
+  
+  // Transform ignore patterns
+  transformIgnorePatterns: [
+    'node_modules/(?!(.*\\.mjs$))'
+  ],
+  
+  // Test timeout
   testTimeout: 10000,
   
-  // 詳細輸出
+  // Verbose output
   verbose: true,
   
-  // 清除模擬
+  // Clear mocks between tests
   clearMocks: true,
-  restoreMocks: true,
   
-  // 全域變數
-  globals: {
-    'window': {},
-    'document': {},
-    'navigator': {
-      language: 'zh-TW',
-      languages: ['zh-TW', 'en-US']
-    }
-  },
-  
-  // 轉換設定
-  transform: {
-    '^.+\\.js$': 'babel-jest'
-  },
-  
-  // 忽略轉換的模組
-  transformIgnorePatterns: [
-    'node_modules/(?!(qrcode|other-es6-module)/)'
-  ]
+  // Restore mocks after each test
+  restoreMocks: true
 };

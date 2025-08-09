@@ -97,6 +97,7 @@ class PWACardManager {
 
   /**
    * 安全日誌記錄 - 防止 PII 洩漏
+   * SEC-03: Enhanced with SecureLogger integration
    */
   secureLog(level, message, data = {}) {
     // 生產環境檢查
@@ -106,7 +107,10 @@ class PWACardManager {
       return; // 生產環境不輸出 debug 日誌
     }
 
-    if (window.SecurityDataHandler) {
+    // SEC-03: Use SecureLogger if available
+    if (window.secureLogger) {
+      window.secureLogger[level](message, data);
+    } else if (window.SecurityDataHandler) {
       window.SecurityDataHandler.secureLog(level, message, data);
     } else {
       // 基本的資料遮罩
@@ -201,7 +205,8 @@ class PWACardManager {
       };
       
     } catch (error) {
-      console.error('[CardManager] Failed to load bilingual support:', error);
+      // SEC-03: Use secure logging
+      this.secureLog('error', 'Failed to load bilingual support', { error: error.message });
     }
   }
 
@@ -215,7 +220,8 @@ class PWACardManager {
       // 使用標準化識別邏輯
       return this.identifyCardType(cardData);
     } catch (error) {
-      console.error('[CardManager] Card type detection failed:', error);
+      // SEC-03: Use secure logging
+      this.secureLog('error', 'Card type detection failed', { error: error.message });
       return 'personal';
     }
   }
@@ -371,18 +377,19 @@ class PWACardManager {
     
     const textToCheck = textParts.join(' ').toLowerCase();
     
-    console.log('[CardManager] 政府機關檢查:', {
-      textToCheck,
-      organization: cardData.organization,
-      department: cardData.department,
-      email: cardData.email
+    // SEC-03: Use secure logging
+    this.secureLog('debug', 'Government card check', {
+      hasTextToCheck: !!textToCheck,
+      hasOrganization: !!cardData.organization,
+      hasDepartment: !!cardData.department,
+      hasEmail: !!cardData.email
     });
 
     const isGov = govIndicators.some(indicator => 
       textToCheck.includes(indicator.toLowerCase())
     );
     
-    console.log('[CardManager] 政府機關檢查結果:', isGov);
+    this.secureLog('debug', 'Government card check result', { isGov });
     return isGov;
   }
 
@@ -391,21 +398,22 @@ class PWACardManager {
    * 增強雙語檢測邏輯，確保準確識別
    */
   isBilingualCard(cardData) {
-    console.log('[CardManager] 檢查雙語特徵:', {
-      name: cardData.name,
-      title: cardData.title,
-      greetings: cardData.greetings
+    // SEC-03: Use secure logging
+    this.secureLog('debug', 'Checking bilingual features', {
+      hasName: !!cardData.name,
+      hasTitle: !!cardData.title,
+      hasGreetings: !!cardData.greetings
     });
     
     // 檢查姓名是否包含 ~ 分隔符
     if (cardData.name && typeof cardData.name === 'string' && cardData.name.includes('~')) {
-      console.log('[CardManager] 發現雙語姓名:', cardData.name);
+      this.secureLog('debug', 'Found bilingual name');
       return true;
     }
     
     // 檢查職稱是否包含 ~ 分隔符
     if (cardData.title && typeof cardData.title === 'string' && cardData.title.includes('~')) {
-      console.log('[CardManager] 發現雙語職稱:', cardData.title);
+      this.secureLog('debug', 'Found bilingual title');
       return true;
     }
     
@@ -528,11 +536,12 @@ class PWACardManager {
    * 根據類型套用樣式和預設值 - 增強日誌版本
    */
   applyCardTypeDefaults(cardData, detectedType) {
-    console.log(`[CardManager] 套用類型預設值: ${detectedType}`);
+    // SEC-03: Use secure logging
+    this.secureLog('debug', 'Applying card type defaults', { detectedType });
     
     const typeConfig = this.cardTypes[detectedType];
     if (!typeConfig) {
-      console.warn(`[CardManager] 未找到類型配置: ${detectedType}`);
+      this.secureLog('warn', 'Card type configuration not found', { detectedType });
       return cardData;
     }
 
@@ -615,14 +624,43 @@ class PWACardManager {
       // 套用類型預設值
       const enhancedData = this.applyCardTypeDefaults(cardData, cardType);
 
-      // 儲存名片
-      const cardId = await this.storage.storeCard(enhancedData);
+      // 🔧 修復：加入重複檢測與版本管理邏輯
+      let cardId;
+      let message = '名片已儲存';
+      
+      if (this.duplicateDetector) {
+        const duplicateResult = await this.duplicateDetector.detectDuplicates(enhancedData);
+        
+        if (duplicateResult.isDuplicate && duplicateResult.existingCards.length > 0) {
+          // 發現重複，自動建立新版本
+          const existingCard = duplicateResult.existingCards[0];
+          const handleResult = await this.duplicateDetector.handleDuplicate(
+            enhancedData, 
+            'version',
+            existingCard.id
+          );
+          
+          if (handleResult.success) {
+            cardId = handleResult.cardId;
+            message = '已建立新版本';
+          } else {
+            throw new Error(handleResult.error);
+          }
+        } else {
+          // 無重複，建立新名片
+          cardId = await this.storage.storeCard(enhancedData);
+        }
+      } else {
+        // 無重複檢測器，直接儲存
+        cardId = await this.storage.storeCard(enhancedData);
+      }
 
       return { 
         success: true, 
         cardId, 
         type: cardType,
-        data: enhancedData 
+        data: enhancedData,
+        message
       };
     } catch (error) {
       console.error('[CardManager] Import from URL failed:', error);
@@ -954,11 +992,24 @@ class PWACardManager {
       // 根據檔案類型處理
       if (isJsonFile) {
         try {
-          importData = JSON.parse(fileContent);
+          // SEC-01: 使用安全的 JSON 解析
+          importData = this.secureJSONParse(fileContent);
+          
+          // 🔧 修復：檢查解析結果是否為 null
+          if (!importData) {
+            console.error('[CardManager] JSON 解析結果為 null');
+            return { 
+              success: false, 
+              error: 'JSON 格式錯誤: 解析結果為空',
+              operationId 
+            };
+          }
+          
           console.log('[CardManager] JSON 解析成功:', {
             hasCards: !!importData.cards,
             cardsLength: importData.cards ? importData.cards.length : 0,
-            topLevelKeys: Object.keys(importData)
+            topLevelKeys: Object.keys(importData),
+            dataType: typeof importData
           });
         } catch (parseError) {
           console.error('[CardManager] JSON 解析失敗:', parseError);
@@ -969,8 +1020,8 @@ class PWACardManager {
           };
         }
         
-        // 檢查是否為標準匯出檔案格式（包含 cards 陣列）
-        if (importData.cards && Array.isArray(importData.cards)) {
+        // 🔧 修復：檢查是否為標準匯出檔案格式（包含 cards 陣列）
+        if (importData && importData.cards && Array.isArray(importData.cards)) {
           console.log('[CardManager] 識別為標準匯出格式，轉交專用處理器');
           return await this.importFromExportFormat(importData);
         }
@@ -1031,15 +1082,38 @@ class PWACardManager {
   async importFromExportFormat(exportData) {
     try {
       console.log('[CardManager] 開始匯入匯出格式資料:', {
-        hasCards: !!exportData.cards,
-        cardsLength: exportData.cards ? exportData.cards.length : 0,
-        version: exportData.version
+        hasCards: !!exportData?.cards,
+        cardsLength: exportData?.cards ? exportData.cards.length : 0,
+        version: exportData?.version,
+        dataType: typeof exportData,
+        dataKeys: exportData ? Object.keys(exportData) : [],
+        cardsType: exportData?.cards ? typeof exportData.cards : 'undefined'
       });
 
-      // 驗證基本格式
-      if (!exportData || !exportData.cards || !Array.isArray(exportData.cards)) {
-        console.error('[CardManager] 無效的匯出檔案格式:', exportData);
-        return { success: false, error: '無效的匯出檔案格式' };
+      // 🔧 修復：加強 JSON 格式驗證
+      if (!exportData) {
+        console.error('[CardManager] exportData 為 null 或 undefined');
+        return { success: false, error: 'JSON 格式錯誤: 無效的資料格式' };
+      }
+      
+      if (typeof exportData !== 'object') {
+        console.error('[CardManager] exportData 不是物件:', typeof exportData);
+        return { success: false, error: 'JSON 格式錯誤: 資料必須是物件格式' };
+      }
+      
+      if (!exportData.hasOwnProperty('cards')) {
+        console.error('[CardManager] exportData 缺少 cards 屬性:', Object.keys(exportData));
+        return { success: false, error: 'JSON 格式錯誤: 缺少 cards 欄位' };
+      }
+      
+      if (exportData.cards === null || exportData.cards === undefined) {
+        console.error('[CardManager] exportData.cards 為 null 或 undefined');
+        return { success: false, error: 'JSON 格式錯誤: cards 欄位不能為空' };
+      }
+      
+      if (!Array.isArray(exportData.cards)) {
+        console.error('[CardManager] exportData.cards 不是陣列:', typeof exportData.cards);
+        return { success: false, error: 'JSON 格式錯誤: cards 欄位必須是陣列' };
       }
 
       // 限制名片數量
@@ -1144,23 +1218,37 @@ class PWACardManager {
     }
   }
   
-  // SEC-PWA-005: 安全的檔案讀取
+  // SEC-02: 安全的檔案讀取 - Enhanced XSS protection
   secureReadFile(file) {
     return new Promise((resolve, reject) => {
-      // 檔案名稱驗證
+      // SEC-02: Enhanced filename validation
       if (!file.name || file.name.includes('..') || file.name.includes('/') || file.name.includes('\\')) {
         reject(new Error('不安全的檔案名稱'));
         return;
       }
 
+      // SEC-02: Sanitize filename
+      const safeFilename = window.xssProtection ? 
+        window.xssProtection.sanitizeInput(file.name) : 
+        file.name.replace(/[<>"'&]/g, '');
+
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
-          const content = e.target.result;
+          let content = e.target.result;
           if (content.length > 50 * 1024 * 1024) {
             reject(new Error('檔案內容過大'));
             return;
           }
+          
+          // SEC-02: Basic content sanitization for text files
+          if (typeof content === 'string' && window.xssProtection) {
+            // Only sanitize if it's not JSON (preserve structure)
+            if (!content.trim().startsWith('{') && !content.trim().startsWith('[')) {
+              content = window.xssProtection.sanitizeInput(content);
+            }
+          }
+          
           resolve(content);
         } catch (error) {
           reject(new Error('檔案內容處理失敗'));
@@ -1176,9 +1264,19 @@ class PWACardManager {
     return this.secureReadFile(file);
   }
 
-  // SEC-PWA-002: 安全的 JSON 解析
+  // SEC-01: 安全的 JSON 解析 - 使用 SecurityCore
   secureJSONParse(jsonString) {
     try {
+      // 使用 SecurityCore 的安全 JSON 解析，增加深度限制
+      if (window.securityCore && window.securityCore.safeJSONParse) {
+        return window.securityCore.safeJSONParse(jsonString, {
+          maxDepth: 15,  // 增加深度限制以支援複雜的匯出格式
+          maxKeys: 100,  // 增加鍵值限制
+          fallback: null
+        });
+      }
+      
+      // 備用方案：基本安全解析
       return JSON.parse(jsonString, (key, value) => {
         if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
           return undefined;
@@ -1186,7 +1284,7 @@ class PWACardManager {
         return value;
       });
     } catch (error) {
-      throw new Error('JSON 格式錯誤');
+      throw new Error('JSON 格式錯誤: ' + error.message);
     }
   }
 

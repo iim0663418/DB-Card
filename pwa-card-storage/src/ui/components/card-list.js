@@ -20,6 +20,17 @@ class CardListComponent {
     this.filteredCards = [];
     this.currentFilter = {};
     this.currentLanguage = this.getCurrentLanguage();
+    // Initialize SecureLogger with fallback
+    const SecureLoggerClass = window.SecureLogger || window.SecureLoggerClass;
+    if (SecureLoggerClass) {
+      this.secureLogger = new SecureLoggerClass({ logLevel: 'INFO', enableMasking: true });
+    } else {
+      this.secureLogger = {
+        info: (msg, ctx) => console.log(`[INFO] ${msg}`, ctx),
+        warn: (msg, ctx) => console.warn(`[WARN] ${msg}`, ctx),
+        error: (msg, ctx) => console.error(`[ERROR] ${msg}`, ctx)
+      };
+    }
     
     this.init();
     this.registerWithLanguageSystem();
@@ -44,7 +55,7 @@ class CardListComponent {
           priority: 6,
           type: 'card-list'
         });
-        console.log('[CardList] Registered with unified language system');
+        this.secureLogger.info('Registered with unified language system', { component: 'CardList' });
       }
       
       // Register with base language manager as fallback
@@ -55,7 +66,10 @@ class CardListComponent {
         });
       }
     } catch (error) {
-      console.error('[CardList] Failed to register with language system:', error);
+      this.secureLogger.error('Failed to register with language system', { 
+        error: error.message, 
+        component: 'CardList' 
+      });
     }
   }
 
@@ -63,13 +77,28 @@ class CardListComponent {
    * Get current language
    */
   getCurrentLanguage() {
-    if (window.enhancedLanguageManager) {
-      return window.enhancedLanguageManager.getCurrentLanguage();
+    try {
+      // 優先使用主應用程式的語言管理器
+      if (window.app && window.app.getCurrentLanguage) {
+        return window.app.getCurrentLanguage();
+      }
+      
+      if (window.languageManager && window.languageManager.getCurrentLanguage) {
+        const lang = window.languageManager.getCurrentLanguage();
+        // 標準化語言代碼
+        return lang === 'zh-TW' || lang === 'zh' ? 'zh' : 'en';
+      }
+      
+      // 備用方案：從 localStorage 獲取
+      const savedLang = localStorage.getItem('pwa-language');
+      return savedLang === 'en' ? 'en' : 'zh';
+    } catch (error) {
+      this.secureLogger.error('Failed to get current language', { 
+        error: error.message, 
+        component: 'CardList' 
+      });
+      return 'zh';
     }
-    if (window.languageManager) {
-      return window.languageManager.getCurrentLanguage();
-    }
-    return localStorage.getItem('pwa-language') || 'zh';
   }
 
   /**
@@ -77,20 +106,30 @@ class CardListComponent {
    */
   getLocalizedText(key, fallback = null) {
     try {
-      if (window.enhancedLanguageManager) {
-        const text = window.enhancedLanguageManager.getUnifiedText(`pwa.${key}`);
-        if (text !== `pwa.${key}`) return text;
-      }
-      
+      // 首先嘗試使用語言管理器獲取翻譯
       if (window.languageManager && window.languageManager.getText) {
-        const text = window.languageManager.getText(key.split('.').pop());
-        if (text !== key.split('.').pop()) return text;
+        const simpleKey = key.split('.').pop();
+        const text = window.languageManager.getText(simpleKey);
+        if (text && text !== simpleKey && text !== key) {
+          return text;
+        }
       }
       
-      return fallback || this.getDefaultText(key);
-    } catch (error) {
-      console.error('[CardList] Failed to get localized text:', error);
+      // 備用方案：使用內建翻譯
+      const defaultText = this.getDefaultText(key);
+      if (defaultText && defaultText !== key) {
+        return defaultText;
+      }
+      
+      // 最後備用：返回 fallback 或鍵值
       return fallback || key;
+    } catch (error) {
+      this.secureLogger.error('Failed to get localized text', { 
+        error: error.message, 
+        key, 
+        component: 'CardList' 
+      });
+      return fallback || this.getDefaultText(key) || key;
     }
   }
 
@@ -98,6 +137,8 @@ class CardListComponent {
    * Get default text for fallback
    */
   getDefaultText(key) {
+    const currentLang = this.getCurrentLanguage();
+    
     const texts = {
       zh: {
         'cardList.view': '檢視',
@@ -127,7 +168,7 @@ class CardListComponent {
       }
     };
     
-    return texts[this.currentLanguage]?.[key] || key;
+    return texts[currentLang]?.[key] || texts.zh?.[key] || key;
   }
 
   /**
@@ -144,9 +185,15 @@ class CardListComponent {
       // Re-render cards with new language
       this.renderCards();
       
-      console.log(`[CardList] Language updated to: ${this.currentLanguage}`);
+      this.secureLogger.info('Language updated', { 
+        newLanguage: this.currentLanguage, 
+        component: 'CardList' 
+      });
     } catch (error) {
-      console.error('[CardList] Language update failed:', error);
+      this.secureLogger.error('Language update failed', { 
+        error: error.message, 
+        component: 'CardList' 
+      });
     }
   }
 
@@ -185,7 +232,10 @@ class CardListComponent {
       this.hideLoading();
       
     } catch (error) {
-      console.error('[CardList] Load cards failed:', error);
+      this.secureLogger.error('Load cards failed', { 
+        error: error.message, 
+        component: 'CardList' 
+      });
       this.showError('載入名片失敗');
       this.hideLoading();
     }
@@ -511,7 +561,11 @@ class CardListComponent {
         default:
       }
     } catch (error) {
-      console.error(`[CardList] Action ${action} failed:`, error);
+      this.secureLogger.error('Card action failed', { 
+        action, 
+        error: error.message, 
+        component: 'CardList' 
+      });
       this.showNotification(`操作失敗: ${error.message}`, 'error');
     }
   }
@@ -586,7 +640,10 @@ class CardListComponent {
             window.SecurityDataHandler.sanitizeOutput(rawName, 'text') : rawName;
         }
       } catch (getError) {
-        console.warn('[CardList] Failed to get card name for deletion message:', getError.message);
+        this.secureLogger.warn('Failed to get card name for deletion message', { 
+          error: getError.message, 
+          component: 'CardList' 
+        });
       }
       
       // 執行刪除操作
@@ -602,7 +659,10 @@ class CardListComponent {
       this.showNotification(successMessage, 'success');
       
     } catch (error) {
-      console.error('[CardList] Delete card failed:', error);
+      this.secureLogger.error('Delete card failed', { 
+        error: error.message, 
+        component: 'CardList' 
+      });
       
       // 提供更詳細的錯誤信息
       let errorMessage = this.getLocalizedText('cardList.deleteFailed');
@@ -625,7 +685,10 @@ class CardListComponent {
         try {
           await this.loadCards();
         } catch (reloadError) {
-          console.warn('[CardList] Failed to reload cards after deletion error:', reloadError.message);
+          this.secureLogger.warn('Failed to reload cards after deletion error', { 
+            error: reloadError.message, 
+            component: 'CardList' 
+          });
         }
       }
     } finally {
@@ -748,8 +811,47 @@ class CardListComponent {
   }
 
   getTypeLabel(type) {
-    const key = `cardTypes.${type}`;
-    return this.getLocalizedText(key, type);
+    // 直接使用語言管理器獲取翻譯
+    if (window.languageManager && window.languageManager.getText) {
+      const key = `cardTypes.${type}`;
+      const translation = window.languageManager.getText(key);
+      
+      // 如果翻譯成功且不是原始鍵值，則使用翻譯
+      if (translation && translation !== key && translation !== type) {
+        return translation;
+      }
+    }
+    
+    // 備用方案：提供直觀的中文顯示
+    const typeLabels = {
+      'index': '機關版-延平',
+      'index1': '機關版-新光', 
+      'personal': '個人版',
+      'bilingual': '雙語版-延平',
+      'bilingual1': '雙語版-新光',
+      'personal-bilingual': '個人雙語版',
+      'en': '英文版-延平',
+      'en1': '英文版-新光',
+      'personal-en': '個人英文版'
+    };
+    
+    // 根據當前語言返回適當的標籤
+    if (this.currentLanguage === 'en') {
+      const englishLabels = {
+        'index': 'Gov-Yanping',
+        'index1': 'Gov-ShinGuang',
+        'personal': 'Personal',
+        'bilingual': 'Bilingual-Yanping',
+        'bilingual1': 'Bilingual-ShinGuang',
+        'personal-bilingual': 'Personal Bilingual',
+        'en': 'English-Yanping',
+        'en1': 'English-ShinGuang',
+        'personal-en': 'Personal English'
+      };
+      return englishLabels[type] || type;
+    }
+    
+    return typeLabels[type] || type;
   }
 
   formatDate(date) {
@@ -840,9 +942,12 @@ class CardListComponent {
       this.cards = [];
       this.filteredCards = [];
       
-      console.log('[CardList] Cleanup completed');
+      this.secureLogger.info('Cleanup completed', { component: 'CardList' });
     } catch (error) {
-      console.error('[CardList] Cleanup failed:', error);
+      this.secureLogger.error('Cleanup failed', { 
+        error: error.message, 
+        component: 'CardList' 
+      });
     }
   }
 

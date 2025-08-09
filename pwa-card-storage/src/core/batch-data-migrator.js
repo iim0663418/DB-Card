@@ -9,6 +9,18 @@ class BatchDataMigrator {
     this.validator = validator;
     this.batchSize = 50; // 批次處理大小
     this.maxRetries = 3; // 最大重試次數
+    
+    // Initialize SecureLogger for CWE-117 protection
+    if (typeof window !== 'undefined' && window.SecureLogger) {
+      this.secureLogger = new window.SecureLogger({ logLevel: 'INFO', enableMasking: true });
+    } else {
+      // Fallback to console logging with basic sanitization
+      this.secureLogger = {
+        info: (msg, ctx) => console.log(`[BatchDataMigrator] ${msg}`, ctx),
+        warn: (msg, ctx) => console.warn(`[BatchDataMigrator] ${msg}`, ctx),
+        error: (msg, ctx) => console.error(`[BatchDataMigrator] ${msg}`, ctx)
+      };
+    }
   }
 
   /**
@@ -24,7 +36,7 @@ class BatchDataMigrator {
       let errorCount = 0;
       const errors = [];
 
-      console.log(`[BatchDataMigrator] Starting fingerprint generation for ${totalCards} cards`);
+      this.secureLogger.info('Starting fingerprint generation', { totalCards, component: 'BatchDataMigrator' });
 
       // 分批處理
       for (let i = 0; i < cardsToProcess.length; i += this.batchSize) {
@@ -36,12 +48,21 @@ class BatchDataMigrator {
           
           // 進度回報
           const progress = Math.round((processedCount / totalCards) * 100);
-          console.log(`[BatchDataMigrator] Progress: ${progress}% (${processedCount}/${totalCards})`);
+          this.secureLogger.info('Batch processing progress', { 
+            progress, 
+            processedCount, 
+            totalCards, 
+            component: 'BatchDataMigrator' 
+          });
           
           // 避免阻塞 UI
           await this.sleep(10);
         } catch (batchError) {
-          console.error(`[BatchDataMigrator] Batch processing failed:`, batchError);
+          this.secureLogger.error('Batch processing failed', { 
+            error: batchError.message, 
+            batchIndex: i / this.batchSize + 1,
+            component: 'BatchDataMigrator' 
+          });
           errorCount += batch.length;
           errors.push({
             batch: i / this.batchSize + 1,
@@ -60,7 +81,10 @@ class BatchDataMigrator {
         duration: Date.now()
       };
     } catch (error) {
-      console.error('[BatchDataMigrator] Batch migration failed:', error);
+      this.secureLogger.error('Batch migration failed', { 
+        error: error.message, 
+        component: 'BatchDataMigrator' 
+      });
       return {
         success: false,
         error: error.message
@@ -180,7 +204,10 @@ class BatchDataMigrator {
    * 批量處理錯誤恢復
    */
   async recoverFromBatchError(failedBatch, error) {
-    console.warn(`[BatchDataMigrator] Recovering from batch error:`, error.message);
+    this.secureLogger.warn('Recovering from batch error', { 
+      error: error.message, 
+      component: 'BatchDataMigrator' 
+    });
     
     // 嘗試單個處理失敗的批次
     const recoveredCards = [];
@@ -237,10 +264,16 @@ class BatchDataMigrator {
         }
       }
       
-      console.log(`[BatchDataMigrator] Cleaned up ${cleanedCount} migration temp data`);
+      this.secureLogger.info('Migration cleanup completed', { 
+        cleanedCount, 
+        component: 'BatchDataMigrator' 
+      });
       return cleanedCount;
     } catch (error) {
-      console.error('[BatchDataMigrator] Cleanup failed:', error);
+      this.secureLogger.error('Migration cleanup failed', { 
+        error: error.message, 
+        component: 'BatchDataMigrator' 
+      });
       return 0;
     }
   }

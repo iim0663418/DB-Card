@@ -1,0 +1,106 @@
+/* 語言切換按鈕增強樣式 */
+
+#lang-toggle {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+#lang-toggle:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+#lang-toggle:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+#lang-toggle .icon {
+  font-weight: var(--pwa-font-weight-medium);
+  font-size: 0.875rem;
+  letter-spacing: 0.5px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-block;
+}
+
+#lang-toggle:hover .icon {
+  transform: scale(1.1);
+}
+
+/* 語言切換動畫效果 */
+#lang-toggle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s ease;
+}
+
+#lang-toggle:hover::before {
+  left: 100%;
+}
+
+/* 語言切換成功動畫 */
+@keyframes languageSwitch {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(0.9) rotate(-5deg);
+  }
+  50% {
+    transform: scale(1.1) rotate(5deg);
+  }
+  75% {
+    transform: scale(0.95) rotate(-2deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+#lang-toggle.switching {
+  animation: languageSwitch 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 深色模式適配 */
+.dark #lang-toggle {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark #lang-toggle:hover {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 高對比度支援 */
+@media (prefers-contrast: high) {
+  #lang-toggle {
+    border-width: 2px;
+    font-weight: var(--pwa-font-weight-bold);
+  }
+}
+
+/* 減少動畫偏好支援 */
+@media (prefers-reduced-motion: reduce) {
+  #lang-toggle,
+  #lang-toggle .icon,
+  #lang-toggle::before {
+    transition: none !important;
+    animation: none !important;
+  }
+  
+  #lang-toggle:hover .icon {
+    transform: none;
+  }
+}

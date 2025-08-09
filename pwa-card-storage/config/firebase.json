@@ -1,0 +1,85 @@
+{
+  "platform": "firebase",
+  "version": "v3.2.0-pwa-deployment-compatibility",
+  "generated": "2025-08-07T12:00:00.000Z",
+  "environment": "production",
+  "basePath": "/",
+  "publicPath": "/",
+  "assetPath": "./assets/",
+  "features": {
+    "serviceWorker": true,
+    "offlineSupport": true,
+    "pushNotifications": true,
+    "backgroundSync": true,
+    "periodicSync": true,
+    "analytics": true,
+    "crashlytics": true,
+    "remoteConfig": true
+  },
+  "security": {
+    "level": "enhanced",
+    "csp": {
+      "enabled": true,
+      "reportOnly": false,
+      "directives": {
+        "default-src": [
+          "'self'"
+        ],
+        "script-src": [
+          "'self'",
+          "https://www.gstatic.com",
+          "https://www.googleapis.com"
+        ],
+        "style-src": [
+          "'self'",
+          "'unsafe-inline'",
+          "fonts.googleapis.com"
+        ],
+        "font-src": [
+          "'self'",
+          "fonts.gstatic.com"
+        ],
+        "img-src": [
+          "'self'",
+          "data:",
+          "https:"
+        ],
+        "connect-src": [
+          "'self'",
+          "https://*.googleapis.com",
+          "https://*.firebase.com"
+        ],
+        "worker-src": [
+          "'self'"
+        ]
+      }
+    },
+    "headers": {
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "X-XSS-Protection": "1; mode=block",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains"
+    }
+  },
+  "cache": {
+    "strategy": "network-first",
+    "maxAge": 3600,
+    "resources": [
+      "assets/",
+      "src/",
+      "config/"
+    ],
+    "firebaseCache": true
+  },
+  "deployment": {
+    "buildCommand": "npm run build",
+    "outputDir": "dist",
+    "customDomain": true,
+    "httpsOnly": true,
+    "globalCDN": true
+  },
+  "allowedDomains": [
+    "*.web.app",
+    "*.firebaseapp.com"
+  ]
+}

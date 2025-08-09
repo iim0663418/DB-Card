@@ -2,10 +2,24 @@
  * 無障礙語言管理器 (AccessibilityLanguageManager)
  * 處理 ARIA 標籤、螢幕閱讀器文字、表單標籤雙語支援
  * 
- * @version 3.1.4-language-architecture
+ * @version 3.1.5-security-enhanced
  * @author code-executor
  * @since 2025-08-06
+ * @security Fixed CWE-117 log injection vulnerabilities
  */
+
+// Import security modules for CWE-117 protection
+let SecureLogger;
+try {
+  if (typeof require !== 'undefined') {
+    ({ SecureLogger } = require('../security/secure-logger.js'));
+  } else if (typeof window !== 'undefined' && window.SecureLogger) {
+    SecureLogger = window.SecureLogger;
+  }
+} catch (error) {
+  // Fallback to console if SecureLogger not available
+  console.warn('[AccessibilityLanguageManager] SecureLogger not available, using fallback logging');
+}
 
 class AccessibilityLanguageManager {
   constructor() {
@@ -16,6 +30,13 @@ class AccessibilityLanguageManager {
     this.isInitialized = false;
     this.currentLanguage = 'zh';
     this.translationRegistry = null;
+    
+    // Initialize secure logger for CWE-117 protection
+    this.secureLogger = SecureLogger ? new SecureLogger({
+      logLevel: 'INFO',
+      enableMasking: true,
+      maxLogLength: 500
+    }) : null;
   }
 
   /**
@@ -34,10 +55,10 @@ class AccessibilityLanguageManager {
       this.setupAccessibilityObserver();
       
       this.isInitialized = true;
-      console.log('[AccessibilityLanguageManager] Initialized successfully');
+      this.safeLog('info', 'AccessibilityLanguageManager initialized successfully');
       
     } catch (error) {
-      console.error('[AccessibilityLanguageManager] Initialization failed:', error);
+      this.safeLog('error', 'AccessibilityLanguageManager initialization failed', { error: error.message });
       throw error;
     }
   }
@@ -67,10 +88,13 @@ class AccessibilityLanguageManager {
       // 更新文檔語言屬性
       this.updateDocumentLanguage(language);
       
-      console.log(`[AccessibilityLanguageManager] Updated accessibility attributes for language: ${language}`);
+      this.safeLog('info', 'Updated accessibility attributes for language', { language });
       
     } catch (error) {
-      console.error('[AccessibilityLanguageManager] Failed to update accessibility attributes:', error);
+      this.safeLog('error', 'Failed to update accessibility attributes', { 
+        language, 
+        error: error.message 
+      });
       throw error;
     }
   }
@@ -401,7 +425,7 @@ class AccessibilityLanguageManager {
   registerAccessibilityElement(elementId, labelKey, type = 'aria-label') {
     const element = document.getElementById(elementId);
     if (!element && type !== 'form-label') {
-      console.warn(`[AccessibilityLanguageManager] Element not found: ${elementId}`);
+      this.safeLog('warn', 'Accessibility element not found', { elementId, type });
       return;
     }
 
@@ -420,7 +444,11 @@ class AccessibilityLanguageManager {
         break;
     }
 
-    console.log(`[AccessibilityLanguageManager] Registered ${type} element: ${elementId} -> ${labelKey}`);
+    this.safeLog('info', 'Registered accessibility element', { 
+      type, 
+      elementId, 
+      labelKey 
+    });
   }
 
   /**
@@ -523,7 +551,42 @@ class AccessibilityLanguageManager {
     this.formLabelMap.clear();
     this.isInitialized = false;
 
-    console.log('[AccessibilityLanguageManager] Cleaned up resources');
+    this.safeLog('info', 'AccessibilityLanguageManager cleaned up resources');
+  }
+
+  /**
+   * 安全日誌記錄方法 - CWE-117 防護
+   * @param {string} level - 日誌級別
+   * @param {string} message - 日誌訊息
+   * @param {Object} context - 上下文資料
+   */
+  safeLog(level, message, context = {}) {
+    if (this.secureLogger) {
+      // 使用 SecureLogger 進行安全日誌記錄
+      this.secureLogger[level](message, {
+        component: 'AccessibilityLanguageManager',
+        ...context
+      });
+    } else {
+      // 備用安全日誌記錄
+      const sanitizedMessage = String(message).replace(/[\x00-\x1F\x7F-\x9F]/g, '').substring(0, 500);
+      const timestamp = new Date().toISOString();
+      const logEntry = `[${timestamp}] [AccessibilityLanguageManager] ${sanitizedMessage}`;
+      
+      switch (level) {
+        case 'error':
+          console.error(logEntry);
+          break;
+        case 'warn':
+          console.warn(logEntry);
+          break;
+        case 'debug':
+          console.debug(logEntry);
+          break;
+        default:
+          console.log(logEntry);
+      }
+    }
   }
 
   /**
@@ -538,7 +601,8 @@ class AccessibilityLanguageManager {
         screenReaderTexts: this.screenReaderTextMap.size,
         formLabels: this.formLabelMap.size
       },
-      hasObserver: !!this.accessibilityObserver
+      hasObserver: !!this.accessibilityObserver,
+      secureLogging: !!this.secureLogger
     };
   }
 }

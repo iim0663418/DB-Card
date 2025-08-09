@@ -4,8 +4,11 @@
  * 
  * Security Features:
  * - CWE-94: Code Injection Prevention
- * - CWE-79/80: XSS Protection with Context-Aware Encoding
+ * - CWE-79/80: XSS Protection with Context-Aware Encoding (Enhanced)
  * - CWE-117: Log Injection Prevention
+ * 
+ * @version 1.1.0 - SEC-001 Enhanced XSS Protection
+ * @security Critical - Multi-CWE Protection
  */
 
 // Configuration constants
@@ -76,6 +79,7 @@ function sanitizeWithWhitelist(input, config) {
 /**
  * Enhanced HTML escaping with context awareness
  * Fixes CWE-79/80: Cross-site Scripting
+ * SEC-001: Enhanced with additional context support
  */
 export function escapeHtml(str, context = 'html') {
   if (!str) return '';
@@ -87,13 +91,25 @@ export function escapeHtml(str, context = 'html') {
       return htmlStr
         .replace(/&/g, '&amp;')
         .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#x27;');
+        .replace(/'/g, '&#x27;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
     
     case 'url':
       return encodeURIComponent(htmlStr);
     
     case 'css':
       return htmlStr.replace(/[<>"'&\\]/g, '\\$&');
+    
+    case 'javascript':
+      // Enhanced JavaScript context escaping
+      return htmlStr
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'") 
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r')
+        .replace(/\t/g, '\\t');
     
     default: // 'html'
       return htmlStr

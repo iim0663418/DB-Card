@@ -8,6 +8,18 @@ class VersionManager {
     this.storage = storage;
     this.maxVersions = 10; // 每張名片最大版本數
     this.semanticVersionPattern = /^(\d+)\.(\d+)$/; // 支援 "1.0", "1.1" 格式
+    
+    // Initialize SecureLogger for CWE-117 protection
+    if (typeof window !== 'undefined' && window.SecureLogger) {
+      this.secureLogger = new window.SecureLogger({ logLevel: 'INFO', enableMasking: true });
+    } else {
+      // Fallback to console logging with basic sanitization
+      this.secureLogger = {
+        info: (msg, ctx) => console.log(`[VersionManager] ${msg}`, ctx),
+        warn: (msg, ctx) => console.warn(`[VersionManager] ${msg}`, ctx),
+        error: (msg, ctx) => console.error(`[VersionManager] ${msg}`, ctx)
+      };
+    }
   }
 
   /**
@@ -77,7 +89,11 @@ class VersionManager {
 
       return versionSnapshot;
     } catch (error) {
-      console.error('[VersionManager] Create version snapshot failed:', error);
+      this.secureLogger.error('Create version snapshot failed', { 
+        cardId: cardId?.substring(0, 8) + '...', 
+        error: error.message, 
+        component: 'VersionManager' 
+      });
       
       // 安全日誌記錄錯誤
       if (window.SecurityDataHandler) {
@@ -111,7 +127,11 @@ class VersionManager {
       const match = latestVersion.match(this.semanticVersionPattern);
       
       if (!match) {
-        console.warn(`[VersionManager] Invalid semantic version format: ${latestVersion}, using 1.0`);
+        this.secureLogger.warn('Invalid semantic version format, using fallback', { 
+          invalidVersion: latestVersion, 
+          fallbackVersion: '1.0', 
+          component: 'VersionManager' 
+        });
         return '1.0';
       }
 
@@ -141,7 +161,10 @@ class VersionManager {
 
       return `${major}.${minor}`;
     } catch (error) {
-      console.error('[VersionManager] Calculate semantic version failed:', error);
+      this.secureLogger.error('Calculate semantic version failed', { 
+        error: error.message, 
+        component: 'VersionManager' 
+      });
       return '1.0'; // 備用版本號
     }
   }
@@ -229,7 +252,11 @@ class VersionManager {
         }
       };
     } catch (error) {
-      console.error('[VersionManager] Get version history failed:', error);
+      this.secureLogger.error('Get version history failed', { 
+        cardId: cardId?.substring(0, 8) + '...', 
+        error: error.message, 
+        component: 'VersionManager' 
+      });
       return {
         cardId,
         versions: [],
@@ -327,7 +354,12 @@ class VersionManager {
         timestamp: new Date()
       };
     } catch (error) {
-      console.error('[VersionManager] Restore version failed:', error);
+      this.secureLogger.error('Restore version failed', { 
+        cardId: cardId?.substring(0, 8) + '...', 
+        targetVersion, 
+        error: error.message, 
+        component: 'VersionManager' 
+      });
       
       // 安全日誌記錄錯誤
       if (window.SecurityDataHandler) {
@@ -446,7 +478,11 @@ class VersionManager {
         await Promise.all(deletePromises);
       });
 
-      console.log(`[VersionManager] Cleaned up ${versionsToDelete.length} old versions for card ${cardId}`);
+      this.secureLogger.info('Old versions cleaned up', { 
+        cardId: cardId?.substring(0, 8) + '...', 
+        deletedCount: versionsToDelete.length, 
+        component: 'VersionManager' 
+      });
     } catch (error) {
       console.error('[VersionManager] Cleanup old versions failed:', error);
       // 不拋出錯誤，清理失敗不應影響主要操作
@@ -1137,7 +1173,11 @@ class VersionManager {
               request.onerror = () => reject(request.error);
             });
           } catch (error) {
-            console.warn(`[VersionManager] Failed to restore version ${version.id}:`, error);
+            this.secureLogger.warn('Failed to restore version', { 
+              versionId: version.id, 
+              error: error.message, 
+              component: 'VersionManager' 
+            });
           }
         }
       });

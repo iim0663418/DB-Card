@@ -865,7 +865,7 @@
     <!-- Unified Mobile Manager -->
     <script src="src/core/unified-mobile-manager.js"></script>
     
-    <!-- PWA Core Modules -->
+    <!-- PWA Core Modules (Critical Dependencies First) -->
     <script src="src/core/content-fingerprint-generator.js"></script>
     <script src="src/core/duplicate-detector.js"></script>
     <script src="src/core/database-migration-validator.js"></script>
@@ -874,8 +874,12 @@
     <script src="src/core/version-manager.js"></script>
     <script src="src/core/version-manager-utils.js"></script>
     <script src="src/core/pwa-integration.js"></script>
+    
+    <!-- CRITICAL: Storage must load before app.js -->
     <script src="src/core/storage.js"></script>
     <script src="src/core/health-manager.js"></script>
+    
+    <!-- Feature Modules -->
     <script src="src/features/card-manager.js"></script>
     <script src="src/features/offline-tools.js"></script>
     <script src="src/features/transfer-manager.js"></script>
@@ -888,7 +892,7 @@
     <script src="src/utils/simple-card-parser.js"></script>
     <script src="src/utils/pwa-performance.js"></script>
     
-    <!-- Application -->
+    <!-- Application (Load After All Dependencies) -->
     <script src="src/app.js"></script>
     <script src="src/pwa-init.js"></script>
 </body>

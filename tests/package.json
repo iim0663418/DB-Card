@@ -1,37 +1,51 @@
 {
-  "name": "db-card-tests",
+  "name": "db-card-security-tests",
   "version": "1.0.0",
-  "description": "Test suite for DB-Card PWA security fixes and deployment compatibility",
+  "description": "Comprehensive security test suite for DB-Card PWA",
+  "main": "security/test-runner.js",
   "scripts": {
     "test": "jest",
-    "test:unit": "jest tests/unit",
-    "test:integration": "jest tests/integration",
-    "test:e2e": "jest tests/e2e",
-    "test:security": "jest tests/security",
-    "test:smoke": "node tests/smoke/recursion-fix.test.js && node tests/smoke/deploy-02.test.js",
+    "test:security:all": "node security/test-runner.js",
+    "test:security:xss": "jest security/test-xss-protection.spec.js",
+    "test:security:injection": "jest security/test-code-injection.spec.js",
+    "test:security:logging": "jest security/test-log-injection.spec.js",
+    "test:security:auth": "jest security/test-authorization.spec.js",
+    "test:security:links": "jest security/test-external-links.spec.js",
+    "test:security:integration": "jest security/test-integration.spec.js",
     "test:coverage": "jest --coverage",
+    "test:coverage:security": "jest --coverage --testPathPattern=security",
     "test:watch": "jest --watch",
-    "test:ci": "jest --ci --coverage --watchAll=false"
+    "test:ci": "jest --ci --coverage --watchAll=false",
+    "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand",
+    "lint": "eslint security/ --ext .js,.spec.js",
+    "lint:fix": "eslint security/ --ext .js,.spec.js --fix",
+    "security:audit": "npm audit --audit-level moderate",
+    "security:scan": "node security/test-runner.js && npm run security:audit",
+    "report:generate": "node security/test-runner.js",
+    "report:open": "open ../docs/reports/test-coverage-$(date +%Y-%m-%d).md"
   },
   "devDependencies": {
+    "@babel/core": "^7.28.0",
+    "@babel/preset-env": "^7.28.0",
+    "@types/jest": "^29.5.0",
+    "babel-jest": "^30.0.5",
+    "eslint": "^8.57.0",
+    "eslint-plugin-security": "^1.7.1",
     "jest": "^29.7.0",
-    "puppeteer": "^21.0.0",
-    "jsdom": "^22.1.0",
-    "@jest/globals": "^29.7.0"
+    "jest-environment-jsdom": "^29.7.0"
   },
-  "jest": {
-    "testEnvironment": "node",
-    "collectCoverageFrom": [
-      "../pwa-card-storage/src/**/*.js",
-      "../pwa-card-storage/*.js",
-      "!../pwa-card-storage/node_modules/**",
-      "!../pwa-card-storage/tests/**"
-    ],
-    "coverageDirectory": "./coverage",
-    "coverageReporters": ["text", "lcov", "html"],
-    "testMatch": [
-      "**/tests/**/*.test.js"
-    ],
-    "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"]
-  }
+  "keywords": [
+    "security",
+    "testing",
+    "xss",
+    "code-injection",
+    "log-injection",
+    "authorization",
+    "tabnabbing",
+    "owasp",
+    "cwe",
+    "vulnerability"
+  ],
+  "author": "Security Testing Team",
+  "license": "MIT"
 }

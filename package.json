@@ -1,24 +1,48 @@
 {
-  "name": "db-card-tests",
-  "version": "3.1.0",
+  "name": "db-card-pwa",
+  "version": "3.2.0",
+  "description": "NFC Digital Business Card PWA with Security Enhancements",
+  "main": "pwa-card-storage/src/app.js",
   "scripts": {
-    "test": "jest",
-    "test:security": "jest tests/security/",
-    "test:integration": "jest tests/integration/",
-    "test:coverage": "jest --coverage",
-    "test:watch": "jest --watch"
+    "lint": "eslint . --ext .js --ignore-path .gitignore",
+    "lint:fix": "eslint . --ext .js --fix --ignore-path .gitignore",
+    "lint:security": "eslint pwa-card-storage/src --ext .js --config .eslintrc.security.js",
+    "test:security": "node test-security-suite.js",
+    "test:log-injection": "node test-log-001-verification.js",
+    "validate:security": "npm run lint:security && npm run test:security",
+    "build": "echo 'Static PWA - no build required'",
+    "serve": "python3 -m http.server 8000",
+    "serve:https": "python3 -m http.server 8443 --bind 127.0.0.1",
+    "deploy:check": "npm run validate:security && echo 'Security validation passed'"
   },
+  "keywords": [
+    "nfc",
+    "digital-business-card",
+    "pwa",
+    "security",
+    "privacy-first",
+    "taiwan",
+    "moda"
+  ],
+  "author": "Ministry of Digital Affairs, Taiwan",
+  "license": "MIT",
+  "type": "module",
   "devDependencies": {
-    "@axe-core/playwright": "^4.8.0",
-    "@babel/core": "^7.28.0",
-    "@babel/preset-env": "^7.28.0",
-    "@playwright/test": "^1.40.0",
-    "@testing-library/jest-dom": "^6.6.4",
-    "babel-jest": "^29.7.0",
-    "fake-indexeddb": "^4.0.2",
-    "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.5.0",
-    "jsdom": "^26.1.0",
-    "puppeteer": "^24.16.0"
+    "eslint": "^9.33.0",
+    "@eslint/js": "^9.33.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/moda-gov-tw/DB-Card.git"
+  },
+  "bugs": {
+    "url": "https://github.com/moda-gov-tw/DB-Card/issues"
+  },
+  "homepage": "https://github.com/moda-gov-tw/DB-Card#readme",
+  "eslintConfig": {
+    "extends": ["./eslint.config.js"]
   }
 }

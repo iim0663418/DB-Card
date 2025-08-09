@@ -1,0 +1,79 @@
+# Cloudflare Pages Security Headers Configuration
+# 適用於 DB-Card 數位名片專案
+
+/*
+  # Content Security Policy - 防止 XSS 攻擊
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'
+  
+  # HTTP Strict Transport Security - 強制 HTTPS
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  
+  # 防止點擊劫持攻擊
+  X-Frame-Options: DENY
+  
+  # 防止 MIME 類型混淆攻擊
+  X-Content-Type-Options: nosniff
+  
+  # 控制 Referrer 資訊洩露
+  Referrer-Policy: strict-origin-when-cross-origin
+  
+  # 限制瀏覽器功能權限
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+  
+  # 快取控制
+  Cache-Control: public, max-age=3600
+
+# JavaScript 文件
+/*.js
+  Cache-Control: public, max-age=86400
+  Content-Type: application/javascript; charset=utf-8
+
+# CSS 文件
+/*.css
+  Cache-Control: public, max-age=86400
+  Content-Type: text/css; charset=utf-8
+
+# HTML 文件
+/*.html
+  Cache-Control: public, max-age=3600
+  Content-Type: text/html; charset=utf-8
+
+# 圖片文件
+/*.jpg
+  Cache-Control: public, max-age=604800
+  Content-Type: image/jpeg
+
+/*.png
+  Cache-Control: public, max-age=604800
+  Content-Type: image/png
+
+/*.svg
+  Cache-Control: public, max-age=604800
+  Content-Type: image/svg+xml
+
+/*.gif
+  Cache-Control: public, max-age=604800
+  Content-Type: image/gif
+
+/*.webp
+  Cache-Control: public, max-age=604800
+  Content-Type: image/webp
+
+# JSON 配置文件
+/*.json
+  Cache-Control: public, max-age=3600
+  Content-Type: application/json; charset=utf-8
+
+# Web App Manifest
+/manifest.json
+  Cache-Control: public, max-age=86400
+  Content-Type: application/manifest+json; charset=utf-8
+
+# Service Worker
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+  Content-Type: application/javascript; charset=utf-8
+
+# PWA 相關文件
+/pwa-card-storage/*
+  Cache-Control: public, max-age=3600

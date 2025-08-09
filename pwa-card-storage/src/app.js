@@ -15,6 +15,27 @@ if (typeof window !== 'undefined' && !window.secureLogger) {
   }
 }
 
+// SEC-004/005: Import security modules for authorization and link protection
+if (typeof window !== 'undefined') {
+  try {
+    // Load SecurityAuthHandler for authorization checks
+    if (!window.SecurityAuthHandler) {
+      const authScript = document.createElement('script');
+      authScript.src = './src/security/SecurityAuthHandler.js';
+      document.head.appendChild(authScript);
+    }
+    
+    // Load ExternalLinkHandler for Tabnabbing protection
+    if (!window.ExternalLinkHandler) {
+      const linkScript = document.createElement('script');
+      linkScript.src = './src/security/external-link-handler.js';
+      document.head.appendChild(linkScript);
+    }
+  } catch (error) {
+    console.warn('[PWA] Failed to load security modules:', error);
+  }
+}
+
 class PWACardApp {
   constructor() {
     this.currentPage = 'home';
@@ -24,6 +45,17 @@ class PWACardApp {
     this.offlineTools = null;
     this.currentLanguage = 'zh';
     
+    // SEC-004/005: Initialize security handlers
+    this.securityAuth = null;
+    this.externalLinkHandler = null;
+    
+    // Initialize external link processing after DOM is ready
+    if (typeof document !== 'undefined') {
+      document.addEventListener('DOMContentLoaded', () => {
+        this.processExternalLinks();
+      });
+    }
+    
     this.init();
   }
 
@@ -32,6 +64,9 @@ class PWACardApp {
       // 使用語言管理器獲取本地化載入訊息
     const loadingMessage = this.getLocalizedText('app.initializing');
     this.showLoading(loadingMessage);
+      
+      // SEC-004/005: Initialize security handlers first
+      await this.initializeSecurityHandlers();
       
       await this.initializeServices();
       this.setupEventListeners();
@@ -64,13 +99,13 @@ class PWACardApp {
       // COMP-02: Initialize Unified Component Registry
       await this.initializeComponentRegistry();
       
-      // 初始化核心儲存
-      if (typeof PWACardStorage !== 'undefined') {
-        this.storage = new PWACardStorage();
-        await this.storage.initialize();
+      // 初始化核心儲存 - 增強可用性檢查
+      await this.initializePWACardStorage();
+      
+      if (this.storage) {
         this.setupCleanupHandlers();
       } else {
-        throw new Error('PWACardStorage not available');
+        throw new Error('PWACardStorage initialization failed after retries');
       }
       
       // COMP-04: Initialize Health Monitor
@@ -107,7 +142,7 @@ class PWACardApp {
               // 整合版本管理和重複檢測
               if (this.versionManager) this.cardManager.versionManager = this.versionManager;
               if (this.duplicateDetector) this.cardManager.duplicateDetector = this.duplicateDetector;
-            } catch (error) {
+            } catch (_error) {
               this.cardManager = null;
             }
           })()
@@ -196,6 +231,131 @@ class PWACardApp {
       
       throw error;
     }
+  }
+
+  /**
+   * 初始化 PWACardStorage 的強化方法
+   * 解決類別可用性時序問題
+   */
+  async initializePWACardStorage() {
+    const maxRetries = 5;
+    const retryDelay = 200; // 200ms
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Debug: 檢查所有可能的 PWACardStorage 位置
+        console.log(`[PWA] Attempt ${attempt} - Checking PWACardStorage availability:`);
+        console.log('  typeof PWACardStorage:', typeof PWACardStorage);
+        console.log('  window.PWACardStorage:', typeof window.PWACardStorage);
+        console.log('  window.PWACardStorage exists:', !!window.PWACardStorage);
+        
+        // 檢查 PWACardStorage 是否可用
+        const StorageClass = typeof PWACardStorage !== 'undefined' ? PWACardStorage : window.PWACardStorage;
+        
+        if (StorageClass && typeof StorageClass === 'function') {
+          console.log(`[PWA] Found PWACardStorage, attempting to instantiate...`);
+          this.storage = new StorageClass();
+          await this.storage.initialize();
+          
+          // SEC-03: Use secure logging
+          if (window.secureLogger) {
+            window.secureLogger.info('PWACardStorage initialized successfully', { attempt });
+          } else {
+            console.log(`[PWA] PWACardStorage initialized successfully on attempt ${attempt}`);
+          }
+          
+          return;
+        }
+        
+        // 如果不可用，等待一段時間後重試
+        if (attempt < maxRetries) {
+          // SEC-03: Use secure logging
+          if (window.secureLogger) {
+            window.secureLogger.warn('PWACardStorage not available, retrying', { attempt, maxRetries });
+          } else {
+            console.warn(`[PWA] PWACardStorage not available, retrying (${attempt}/${maxRetries})`);
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, retryDelay * attempt));
+        }
+      } catch (error) {
+        // SEC-03: Use secure logging
+        if (window.secureLogger) {
+          window.secureLogger.error('PWACardStorage initialization attempt failed', { 
+            attempt, 
+            error: error.message 
+          });
+        } else {
+          console.error(`[PWA] PWACardStorage initialization attempt ${attempt} failed:`, error);
+        }
+        
+        if (attempt === maxRetries) {
+          throw error;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, retryDelay * attempt));
+      }
+    }
+    
+    // 最終備用方案：嘗試直接從 window 物件取得
+    if (window.PWACardStorage) {
+      try {
+        this.storage = new window.PWACardStorage();
+        await this.storage.initialize();
+        
+        console.log('[PWA] PWACardStorage initialized using window fallback');
+        return;
+      } catch (fallbackError) {
+        console.error('[PWA] Window fallback also failed:', fallbackError);
+      }
+    }
+    
+    // 最後的備用方案：等待事件通知
+    try {
+      await this.waitForPWACardStorageEvent();
+      if (window.PWACardStorage) {
+        this.storage = new window.PWACardStorage();
+        await this.storage.initialize();
+        console.log('[PWA] PWACardStorage initialized via event listener');
+        return;
+      }
+    } catch (eventError) {
+      console.error('[PWA] Event-based initialization failed:', eventError);
+    }
+    
+    throw new Error('PWACardStorage not available after all retry attempts');
+  }
+  
+  /**
+   * 等待 PWACardStorage 載入事件
+   */
+  async waitForPWACardStorageEvent() {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        window.removeEventListener('PWACardStorageLoaded', eventHandler);
+        window.removeEventListener('PWACardStorageError', errorHandler);
+        reject(new Error('PWACardStorage event timeout'));
+      }, 3000); // 3 秒逾時
+      
+      const eventHandler = (event) => {
+        clearTimeout(timeout);
+        window.removeEventListener('PWACardStorageLoaded', eventHandler);
+        window.removeEventListener('PWACardStorageError', errorHandler);
+        console.log('[PWA] Received PWACardStorageLoaded event:', event.detail);
+        resolve();
+      };
+      
+      const errorHandler = (event) => {
+        clearTimeout(timeout);
+        window.removeEventListener('PWACardStorageLoaded', eventHandler);
+        window.removeEventListener('PWACardStorageError', errorHandler);
+        console.error('[PWA] Received PWACardStorageError event:', event.detail);
+        reject(new Error(`PWACardStorage loading error: ${event.detail.error}`));
+      };
+      
+      window.addEventListener('PWACardStorageLoaded', eventHandler);
+      window.addEventListener('PWACardStorageError', errorHandler);
+    });
   }
 
   /**
@@ -855,7 +1015,7 @@ class PWACardApp {
   /**
    * 🔧 改善：處理名片資料
    */
-  processCardData(cardData, cardType) {
+  processCardData(cardData, _cardType) {
     try {
       // 如果已經是處理過的格式，直接返回
       if (cardData.data) {
@@ -1337,7 +1497,7 @@ class PWACardApp {
       
       const totalCardsEl = document.getElementById('total-cards');
       const storageUsedEl = document.getElementById('storage-used');
-      const lastSyncEl = document.getElementById('last-sync');
+      const _lastSyncEl = document.getElementById('last-sync');
       
       if (totalCardsEl) totalCardsEl.textContent = stats.totalCards || 0;
       if (storageUsedEl) storageUsedEl.textContent = `${stats.storageUsedPercent || 0}%`;
@@ -1647,10 +1807,10 @@ class PWACardApp {
     }
   }
 
-  async searchCards(query) {
+  async searchCards(_query) {
   }
 
-  async filterCards(type) {
+  async filterCards(_type) {
   }
 
   updateConnectionStatus() {
@@ -1689,7 +1849,7 @@ class PWACardApp {
     const labels = this.getUILabels();
     
     // 處理問候語顯示 - 支援雙語切換
-    let greetingsHtml = '';
+    let _greetingsHtml = '';
     if (displayData.greetings && Array.isArray(displayData.greetings) && displayData.greetings.length > 0) {
       const firstGreeting = displayData.greetings[0];
       let greetingText = this.extractStringFromGreeting(firstGreeting, currentLang);
@@ -1703,7 +1863,7 @@ class PWACardApp {
         window.xssProtection.sanitizeOutput(greetingText) : 
         String(greetingText || '').replace(/[<>"'&]/g, '');
       
-      greetingsHtml = `<div class="detail-item"><strong>${labels.greetings}:</strong><br><div class="greetings-container"><span class="greeting-item">${safeGreetingText}</span></div></div>`;
+      _greetingsHtml = `<div class="detail-item"><strong>${labels.greetings}:</strong><br><div class="greetings-container"><span class="greeting-item">${safeGreetingText}</span></div></div>`;
     }
     
     // 處理社群資訊顯示 - 增強互動性（安全處理）
@@ -1866,27 +2026,43 @@ class PWACardApp {
       // Facebook
       {
         pattern: /Facebook[\uff1a:]\s*([^\s\n]+)/gi,
-        replacement: 'Facebook: <a href="https://facebook.com/$1" target="_blank" class="social-btn">$1</a>'
+        replacement: (match, username) => {
+          const url = `https://facebook.com/${username}`;
+          return `Facebook: ${this.createSecureExternalLink(url, username)}`;
+        }
       },
       // Instagram
       {
         pattern: /Instagram[\uff1a:]\s*@?([^\s\n]+)/gi,
-        replacement: 'Instagram: <a href="https://instagram.com/$1" target="_blank" class="social-btn">@$1</a>'
+        replacement: (match, username) => {
+          const url = `https://instagram.com/${username}`;
+          return `Instagram: ${this.createSecureExternalLink(url, `@${username}`)}`;
+        }
       },
       // Twitter/X
       {
         pattern: /Twitter[\uff1a:]\s*@?([^\s\n]+)/gi,
-        replacement: 'Twitter: <a href="https://twitter.com/$1" target="_blank" class="social-btn">@$1</a>'
+        replacement: (match, username) => {
+          const url = `https://twitter.com/${username}`;
+          return `Twitter: ${this.createSecureExternalLink(url, `@${username}`)}`;
+        }
       },
       // LinkedIn
       {
         pattern: /LinkedIn[\uff1a:]\s*([^\s\n]+)/gi,
-        replacement: 'LinkedIn: <a href="https://linkedin.com/in/$1" target="_blank" class="social-btn">$1</a>'
+        replacement: (match, username) => {
+          const url = `https://linkedin.com/in/${username}`;
+          return `LinkedIn: ${this.createSecureExternalLink(url, username)}`;
+        }
       }
     ];
     
     socialPatterns.forEach(({ pattern, replacement }) => {
-      formatted = formatted.replace(pattern, replacement);
+      if (typeof replacement === 'function') {
+        formatted = formatted.replace(pattern, replacement);
+      } else {
+        formatted = formatted.replace(pattern, replacement);
+      }
     });
     
     // 將換行符轉換為 <br>
@@ -2759,17 +2935,43 @@ class PWACardApp {
 
   async clearUrlParams() {
     try {
+      // SEC-004: Authorization check for URL clearing operation
+      const authResult = await this.checkSensitiveOperationAuth('clear_url_params', {
+        operation: 'clear_params',
+        currentUrl: window.location.href
+      });
+      
+      if (!authResult.authorized) {
+        this.showNotification(authResult.reason || this.getLocalizedText('authorizationRequired'), 'error');
+        return;
+      }
+
       // 方法1: 使用 history.replaceState 清除參數
       const currentUrl = new URL(window.location);
       currentUrl.search = '';
       currentUrl.hash = '';
       window.history.replaceState({}, '', currentUrl.toString());
       
+      // SEC-004: Log successful operation
+      if (this.securityAuth) {
+        this.securityAuth.auditLog('url_params_cleared', {
+          previousUrl: this.sanitizeLogData(window.location.href),
+          newUrl: this.sanitizeLogData(currentUrl.toString())
+        });
+      }
+      
       // 方法2: 正確處理異步導航到首頁
       await this.navigateTo('home');
       
       this.showNotification(this.getLocalizedText('backToHomeSuccess'), 'success');
     } catch (error) {
+      // SEC-004: Log failed operation
+      if (this.securityAuth) {
+        this.securityAuth.auditLog('url_clear_failed', {
+          error: 'Operation failed'
+        }, 'error');
+      }
+      
       console.error('[PWA] Clear URL params failed:', error);
       // 備用方案：直接導航到首頁
       try {
@@ -2792,6 +2994,143 @@ class PWACardApp {
       clearTimeout(timeout);
       timeout = setTimeout(later, wait);
     };
+  }
+
+  // SEC-004/005: Initialize security handlers
+  async initializeSecurityHandlers() {
+    try {
+      // Initialize SecurityAuthHandler
+      if (window.SecurityAuthHandler) {
+        this.securityAuth = window.SecurityAuthHandler;
+      }
+      
+      // Initialize ExternalLinkHandler as instance
+      if (window.ExternalLinkHandler) {
+        this.externalLinkHandler = new window.ExternalLinkHandler({
+          enableLogging: true,
+          autoProcess: false, // We'll process manually
+          addVisualHints: true
+        });
+      }
+      
+      console.log('[PWA] Security handlers initialized');
+    } catch (error) {
+      console.warn('[PWA] Security handlers initialization failed:', error);
+    }
+  }
+
+  // SEC-004: Authorization check for sensitive operations
+  async checkSensitiveOperationAuth(operation, context = {}) {
+    try {
+      if (!this.securityAuth) {
+        return { authorized: true }; // Fallback if no auth handler
+      }
+      
+      const accessResult = this.securityAuth.validateAccess('admin', operation, {
+        userId: 'pwa-user',
+        timestamp: Date.now(),
+        ...context
+      });
+      
+      if (!accessResult.authorized) {
+        this.securityAuth.auditLog('unauthorized_operation', {
+          operation: this.sanitizeLogData(operation),
+          reason: accessResult.reason
+        }, 'warning');
+        
+        return {
+          authorized: false,
+          reason: this.getLocalizedText('authorizationRequired')
+        };
+      }
+      
+      return { authorized: true };
+    } catch (error) {
+      if (this.securityAuth) {
+        this.securityAuth.auditLog('auth_check_error', {
+          operation: this.sanitizeLogData(operation),
+          error: 'Authorization check failed'
+        }, 'error');
+      }
+      
+      return {
+        authorized: false,
+        reason: this.getLocalizedText('authorizationError')
+      };
+    }
+  }
+
+  // SEC-005: Create secure external links to prevent Tabnabbing
+  createSecureExternalLink(url, text) {
+    try {
+      // Manual secure link creation with proper attributes
+      const safeUrl = this.sanitizeUrl(url);
+      const safeText = this.sanitizeLogData(text);
+      
+      // Create secure link with noopener noreferrer
+      const link = `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="social-btn">${safeText}</a>`;
+      
+      // Log security event
+      if (this.securityAuth) {
+        this.securityAuth.auditLog('secure_external_link_created', {
+          url: this.sanitizeLogData(url),
+          text: safeText
+        });
+      }
+      
+      return link;
+    } catch (error) {
+      console.warn('[PWA] Secure link creation failed:', error);
+      
+      // Log security event for failed link creation
+      if (this.securityAuth) {
+        this.securityAuth.auditLog('secure_link_creation_failed', {
+          error: 'Link creation failed'
+        }, 'warning');
+      }
+      
+      return this.sanitizeLogData(text); // Fallback to plain text
+    }
+  }
+
+  // SEC-004: Sanitize data for logging
+  sanitizeLogData(data) {
+    if (typeof data !== 'string') {
+      data = String(data);
+    }
+    
+    return data
+      .replace(/[\r\n\t]/g, ' ')
+      .replace(/[^\w\s-_.:/]/g, '')
+      .substring(0, 100);
+  }
+
+  // SEC-005: Sanitize URLs for security
+  sanitizeUrl(url) {
+    try {
+      const urlObj = new URL(url);
+      // Only allow https and http protocols
+      if (!['https:', 'http:'].includes(urlObj.protocol)) {
+        return '#';
+      }
+      return urlObj.toString();
+    } catch (error) {
+      return '#';
+    }
+  }
+
+  // SEC-005: Process external links for security
+  processExternalLinks() {
+    try {
+      if (this.externalLinkHandler) {
+        const securedCount = this.externalLinkHandler.processAllLinks(document);
+        if (securedCount > 0) {
+          console.log(`[PWA] Secured ${securedCount} external links`);
+        }
+      }
+    } catch (error) {
+      console.warn('[PWA] External link processing failed:', error);
+    }
   }
 }
 

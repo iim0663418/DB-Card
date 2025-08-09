@@ -7,6 +7,10 @@
  * - Format validation with regex patterns
  * - Business logic validation
  * - Schema validation for complex objects
+ * - CWE-94 Code Injection Prevention (SEC-002 Enhanced)
+ * 
+ * @version 1.1.0 - SEC-002 Code Injection Protection
+ * @security Critical - Multi-CWE Protection
  */
 
 // Validation schemas and patterns
@@ -264,11 +268,35 @@ export function validateBusinessCardData(data) {
 
 /**
  * Validate JSON data with depth and size limits
+ * SEC-002: Enhanced with code injection protection
  */
 export function validateJsonData(data, maxDepth = VALIDATION_CONFIG.maxObjectDepth) {
   try {
-    // Check if data is already parsed
-    const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+    let parsed;
+    
+    if (typeof data === 'string') {
+      // SEC-002: Safe JSON parsing with prototype pollution protection
+      parsed = JSON.parse(data, (key, value) => {
+        // Block dangerous keys that could lead to code injection
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+          return undefined;
+        }
+        
+        // Block function strings that could be executed
+        if (typeof value === 'string' && (
+          value.includes('function(') ||
+          value.includes('=>') ||
+          value.includes('eval(') ||
+          value.includes('Function(')
+        )) {
+          return '[BLOCKED_FUNCTION]';
+        }
+        
+        return value;
+      });
+    } else {
+      parsed = data;
+    }
     
     // Check depth
     const depth = getObjectDepth(parsed);
@@ -280,6 +308,11 @@ export function validateJsonData(data, maxDepth = VALIDATION_CONFIG.maxObjectDep
     const jsonString = JSON.stringify(parsed);
     if (jsonString.length > VALIDATION_CONFIG.maxStringLength * 10) {
       return { valid: false, reason: 'JSON data too large' };
+    }
+    
+    // SEC-002: Additional security validation
+    if (containsCodeInjectionPatterns(parsed)) {
+      return { valid: false, reason: 'Data contains potentially dangerous patterns' };
     }
     
     return { valid: true, sanitized: parsed, reason: 'Valid JSON data' };
@@ -384,6 +417,122 @@ export function validateBatch(validations) {
   }
   
   return { valid: allValid, results };
+}
+
+/**
+ * SEC-002: Check for code injection patterns
+ * @param {*} data - Data to check
+ */
+function containsCodeInjectionPatterns(data) {
+  if (typeof data === 'string') {
+    const dangerousPatterns = [
+      /function\s*\(/i,
+      /=>\s*{/i,
+      /eval\s*\(/i,
+      /Function\s*\(/i,
+      /setTimeout\s*\(/i,
+      /setInterval\s*\(/i,
+      /new\s+Function/i,
+      /\[\s*["']constructor["']\s*\]/i,
+      /__proto__/i,
+      /prototype\s*\[/i
+    ];
+    
+    return dangerousPatterns.some(pattern => pattern.test(data));
+  }
+  
+  if (Array.isArray(data)) {
+    return data.some(item => containsCodeInjectionPatterns(item));
+  }
+  
+  if (data && typeof data === 'object') {
+    return Object.values(data).some(value => containsCodeInjectionPatterns(value));
+  }
+  
+  return false;
+}
+
+/**
+ * SEC-002: Safe dynamic property access
+ * @param {Object} obj - Object to access
+ * @param {string} path - Property path
+ * @param {Array} allowedPaths - Whitelist of allowed paths
+ */
+export function safeDynamicAccess(obj, path, allowedPaths = []) {
+  if (!obj || typeof obj !== 'object') {
+    return { valid: false, reason: 'Invalid object' };
+  }
+  
+  if (typeof path !== 'string' || !path.trim()) {
+    return { valid: false, reason: 'Invalid path' };
+  }
+  
+  // Check whitelist if provided
+  if (allowedPaths.length > 0 && !allowedPaths.includes(path)) {
+    return { valid: false, reason: 'Path not in whitelist' };
+  }
+  
+  // Sanitize path to prevent injection
+  const sanitizedPath = path.replace(/[^a-zA-Z0-9._]/g, '');
+  if (sanitizedPath !== path) {
+    return { valid: false, reason: 'Path contains invalid characters' };
+  }
+  
+  try {
+    const keys = sanitizedPath.split('.');
+    let current = obj;
+    
+    for (const key of keys) {
+      if (current === null || current === undefined) {
+        return { valid: true, value: undefined };
+      }
+      
+      // Prevent dangerous property access
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+        return { valid: false, reason: 'Dangerous property access blocked' };
+      }
+      
+      current = current[key];
+    }
+    
+    return { valid: true, value: current };
+  } catch (error) {
+    return { valid: false, reason: `Property access failed: ${error.message}` };
+  }
+}
+
+/**
+ * SEC-002: Safe function name validation
+ * @param {string} functionName - Function name to validate
+ * @param {Array} allowedFunctions - Whitelist of allowed functions
+ */
+export function validateFunctionName(functionName, allowedFunctions = []) {
+  if (typeof functionName !== 'string' || !functionName.trim()) {
+    return { valid: false, reason: 'Invalid function name' };
+  }
+  
+  // Check against whitelist
+  if (allowedFunctions.length > 0 && !allowedFunctions.includes(functionName)) {
+    return { valid: false, reason: 'Function not in whitelist' };
+  }
+  
+  // Validate function name format
+  const functionNamePattern = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
+  if (!functionNamePattern.test(functionName)) {
+    return { valid: false, reason: 'Invalid function name format' };
+  }
+  
+  // Block dangerous function names
+  const dangerousFunctions = [
+    'eval', 'Function', 'setTimeout', 'setInterval',
+    'execScript', 'setImmediate', 'requestAnimationFrame'
+  ];
+  
+  if (dangerousFunctions.includes(functionName)) {
+    return { valid: false, reason: 'Dangerous function blocked' };
+  }
+  
+  return { valid: true, sanitized: functionName };
 }
 
 // Export configuration for testing

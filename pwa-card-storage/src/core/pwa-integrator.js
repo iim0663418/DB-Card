@@ -11,6 +11,7 @@ import { securityCore, initializeSecurity } from '../security/security-core.js';
 import { resourceManager } from './resource-manager.js';
 import { ServiceWorkerManager } from '../utils/service-worker-manager.js';
 import { ManifestManager } from '../utils/manifest-manager.js';
+// Use global SecureLogger instead of ES6 import to avoid conflicts
 
 /**
  * PWA 整合器 - 統籌所有 PWA 功能
@@ -21,6 +22,18 @@ export class PWAIntegrator {
         this.manifestManager = new ManifestManager();
         this.isInitialized = false;
         this.initializationPromise = null;
+        // Initialize SecureLogger with fallback (silent)
+        const SecureLoggerClass = window.SecureLogger || window.SecureLoggerClass;
+        if (SecureLoggerClass) {
+            this.secureLogger = new SecureLoggerClass({ logLevel: 'INFO', enableMasking: true });
+        } else {
+            // Silent fallback - no warning needed as this is expected behavior
+            this.secureLogger = {
+                info: (msg, ctx) => console.log(`[PWAIntegrator] ${msg}`, ctx),
+                warn: (msg, ctx) => console.warn(`[PWAIntegrator] ${msg}`, ctx),
+                error: (msg, ctx) => console.error(`[PWAIntegrator] ${msg}`, ctx)
+            };
+        }
         this.features = {
             serviceWorker: false,
             manifest: false,
@@ -50,7 +63,7 @@ export class PWAIntegrator {
      */
     async _performInitialization() {
         try {
-            console.log('[PWAIntegrator] 開始 PWA 系統初始化...');
+            this.secureLogger.info('Starting PWA system initialization', { component: 'PWAIntegrator' });
             
             const startTime = Date.now();
             const results = {};
@@ -88,13 +101,19 @@ export class PWAIntegrator {
                 timestamp: new Date().toISOString()
             };
 
-            console.log(`[PWAIntegrator] PWA 初始化完成 (${duration}ms)`);
+            this.secureLogger.info('PWA initialization completed', { 
+                duration: duration + 'ms', 
+                component: 'PWAIntegrator' 
+            });
             this.notifyInitializationComplete(summary);
 
             return summary;
 
         } catch (error) {
-            console.error('[PWAIntegrator] PWA 初始化失敗:', error);
+            this.secureLogger.error('PWA initialization failed', { 
+                error: error.message, 
+                component: 'PWAIntegrator' 
+            });
             
             return {
                 success: false,
@@ -111,11 +130,13 @@ export class PWAIntegrator {
      */
     async initializeSecurity() {
         try {
-            console.log('[PWAIntegrator] 初始化安全組件...');
+            this.secureLogger.info('Initializing security components', { component: 'PWAIntegrator' });
 
             // 檢查安全組件是否可用
             if (typeof securityCore === 'undefined') {
-                console.warn('[PWAIntegrator] 安全組件未載入，使用基本安全設定');
+                this.secureLogger.warn('Security components not loaded, using basic security settings', { 
+                    component: 'PWAIntegrator' 
+                });
                 return {
                     success: true,
                     mode: 'basic',
@@ -137,7 +158,10 @@ export class PWAIntegrator {
             };
 
         } catch (error) {
-            console.error('[PWAIntegrator] 安全組件初始化失敗:', error);
+            this.secureLogger.error('Security components initialization failed', { 
+                error: error.message, 
+                component: 'PWAIntegrator' 
+            });
             return {
                 success: false,
                 error: error.message
@@ -151,11 +175,13 @@ export class PWAIntegrator {
      */
     async initializeResources() {
         try {
-            console.log('[PWAIntegrator] 初始化資源管理...');
+            this.secureLogger.info('Initializing resource management', { component: 'PWAIntegrator' });
 
             // 檢查資源管理器是否可用
             if (typeof resourceManager === 'undefined') {
-                console.warn('[PWAIntegrator] 資源管理器未載入，跳過資源整合');
+                this.secureLogger.warn('Resource manager not loaded, skipping resource integration', { 
+                    component: 'PWAIntegrator' 
+                });
                 return {
                     success: true,
                     mode: 'basic',
@@ -173,7 +199,10 @@ export class PWAIntegrator {
             };
 
         } catch (error) {
-            console.error('[PWAIntegrator] 資源管理初始化失敗:', error);
+            this.secureLogger.error('Resource management initialization failed', { 
+                error: error.message, 
+                component: 'PWAIntegrator' 
+            });
             return {
                 success: false,
                 error: error.message
@@ -187,7 +216,7 @@ export class PWAIntegrator {
      */
     async registerServiceWorker() {
         try {
-            console.log('[PWAIntegrator] 註冊 Service Worker...');
+            this.secureLogger.info('Registering Service Worker', { component: 'PWAIntegrator' });
 
             const registration = await this.serviceWorkerManager.register();
             
@@ -198,7 +227,10 @@ export class PWAIntegrator {
             };
 
         } catch (error) {
-            console.error('[PWAIntegrator] Service Worker 註冊失敗:', error);
+            this.secureLogger.error('Service Worker registration failed', { 
+                error: error.message, 
+                component: 'PWAIntegrator' 
+            });
             return {
                 success: false,
                 error: error.message
@@ -212,7 +244,7 @@ export class PWAIntegrator {
      */
     async configureManifest() {
         try {
-            console.log('[PWAIntegrator] 配置 PWA Manifest...');
+            this.secureLogger.info('Configuring PWA Manifest', { component: 'PWAIntegrator' });
 
             const manifestResult = await this.manifestManager.configure();
             
@@ -226,7 +258,10 @@ export class PWAIntegrator {
             };
 
         } catch (error) {
-            console.error('[PWAIntegrator] Manifest 配置失敗:', error);
+            this.secureLogger.error('Manifest configuration failed', { 
+                error: error.message, 
+                component: 'PWAIntegrator' 
+            });
             return {
                 success: false,
                 error: error.message
@@ -349,7 +384,10 @@ export class PWAIntegrator {
                 // 等待使用者選擇
                 const { outcome } = await deferredPrompt.userChoice;
                 
-                console.log(`[PWAIntegrator] 使用者選擇: ${outcome}`);
+                this.secureLogger.info('User installation choice', { 
+                  outcome, 
+                  component: 'PWAIntegrator' 
+                });
                 
                 if (outcome === 'accepted') {
                     console.log('[PWAIntegrator] 使用者接受安裝');
@@ -448,7 +486,11 @@ export class PWAIntegrator {
         const results = await Promise.all(preloadPromises);
         const successCount = results.filter(Boolean).length;
         
-        console.log(`[PWAIntegrator] 預載完成: ${successCount}/${criticalResources.length} 個資源`);
+        this.secureLogger.info('Resource preloading completed', { 
+          successCount, 
+          totalResources: criticalResources.length, 
+          component: 'PWAIntegrator' 
+        });
     }
 
     /**

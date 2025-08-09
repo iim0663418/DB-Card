@@ -1,5 +1,5 @@
 /**
- * Unified Component Registry - v3.2.0-pwa-deployment-compatibility
+ * Unified Component Registry - v3.2.1-security-enhanced
  * COMP-02: 統一元件註冊系統 - 建立一致的生命週期管理
  * 
  * 設計原則：
@@ -7,7 +7,24 @@
  * - 依賴關係管理
  * - 錯誤隔離和恢復
  * - 健康狀態監控
+ * 
+ * @version 3.2.1-security-enhanced
+ * @security Fixed CWE-117 log injection and XSS vulnerabilities
  */
+
+// Import security modules for CWE-117 and XSS protection
+let SecureLogger, XSSProtection;
+try {
+  if (typeof require !== 'undefined') {
+    ({ SecureLogger } = require('../security/secure-logger.js'));
+    ({ XSSProtection } = require('../security/xss-protection.js'));
+  } else if (typeof window !== 'undefined') {
+    SecureLogger = window.SecureLogger;
+    XSSProtection = window.XSSProtection;
+  }
+} catch (error) {
+  console.warn('[UnifiedComponentRegistry] Security modules not available, using fallback protection');
+}
 
 class UnifiedComponentRegistry {
   constructor() {
@@ -17,6 +34,13 @@ class UnifiedComponentRegistry {
     this.healthMonitor = null;
     this.initialized = false;
     this.isInitializing = false;
+    
+    // Initialize secure logger for CWE-117 protection
+    this.secureLogger = SecureLogger ? new SecureLogger({
+      logLevel: 'INFO',
+      enableMasking: true,
+      maxLogLength: 500
+    }) : null;
     
     // 初始化狀態追蹤
     this.initializationStatus = {
@@ -42,9 +66,19 @@ class UnifiedComponentRegistry {
    * @param {Object} options - 註冊選項
    */
   register(name, component, options = {}) {
-    // 輸入驗證
+    // 輸入驗證和 XSS 防護
     if (!name || typeof name !== 'string') {
       throw new Error('Component name must be a non-empty string');
+    }
+    
+    // XSS 防護：清理元件名稱
+    const sanitizedName = this.sanitizeInput(name, { maxLength: 100 });
+    if (sanitizedName !== name) {
+      this.safeLog('warn', 'Component name sanitized for security', { 
+        originalName: name.substring(0, 50),
+        sanitizedName 
+      });
+      name = sanitizedName;
     }
     
     if (!component) {
@@ -53,7 +87,7 @@ class UnifiedComponentRegistry {
 
     // 檢查重複註冊
     if (this.components.has(name)) {
-      console.warn(`[UnifiedComponentRegistry] Component '${name}' is already registered, replacing...`);
+      this.safeLog('warn', 'Component already registered, replacing', { componentName: name });
     }
 
     // 標準化元件配置
@@ -72,9 +106,76 @@ class UnifiedComponentRegistry {
       this.healthMonitor.track(name, componentConfig);
     }
     
-    console.log(`[UnifiedComponentRegistry] Registered component: ${name}`);
+    this.safeLog('info', 'Component registered successfully', { componentName: name });
     
     return this;
+  }
+
+  /**
+   * 安全日誌記錄方法 - CWE-117 防護
+   * @param {string} level - 日誌級別
+   * @param {string} message - 日誌訊息
+   * @param {Object} context - 上下文資料
+   */
+  safeLog(level, message, context = {}) {
+    if (this.secureLogger) {
+      // 使用 SecureLogger 進行安全日誌記錄
+      this.secureLogger[level](message, {
+        component: 'UnifiedComponentRegistry',
+        ...context
+      });
+    } else {
+      // 備用安全日誌記錄
+      const sanitizedMessage = String(message).replace(/[\x00-\x1F\x7F-\x9F]/g, '').substring(0, 500);
+      const timestamp = new Date().toISOString();
+      const logEntry = `[${timestamp}] [UnifiedComponentRegistry] ${sanitizedMessage}`;
+      
+      switch (level) {
+        case 'error':
+          console.error(logEntry);
+          break;
+        case 'warn':
+          console.warn(logEntry);
+          break;
+        case 'debug':
+          console.debug(logEntry);
+          break;
+        default:
+          console.log(logEntry);
+      }
+    }
+  }
+
+  /**
+   * 安全輸入清理方法 - XSS 防護
+   * @param {any} input - 需要清理的輸入
+   * @param {Object} options - 清理選項
+   */
+  sanitizeInput(input, options = {}) {
+    if (XSSProtection && XSSProtection.setTextContent) {
+      // 使用 XSSProtection 進行安全清理
+      const tempDiv = document.createElement('div');
+      XSSProtection.setTextContent(tempDiv, String(input), options);
+      return tempDiv.textContent;
+    } else {
+      // 備用安全清理
+      if (typeof input !== 'string') {
+        input = String(input);
+      }
+      return input
+        .replace(/[<>"'&]/g, (match) => {
+          const escapeMap = {
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#x27;',
+            '&': '&amp;'
+          };
+          return escapeMap[match];
+        })
+        .replace(/[\x00-\x1F\x7F-\x9F]/g, '')
+        .substring(0, options.maxLength || 1000);
+    }
   }
 
   /**
@@ -120,7 +221,7 @@ class UnifiedComponentRegistry {
     }
 
     this.isInitializing = true;
-    console.log('[UnifiedComponentRegistry] Starting component initialization...');
+    this.safeLog('info', 'Starting component initialization');
 
     try {
       // 重置狀態
@@ -136,12 +237,12 @@ class UnifiedComponentRegistry {
       await this.initializeComponentsInOrder();
       
       this.initialized = true;
-      console.log('[UnifiedComponentRegistry] All components initialized successfully');
+      this.safeLog('info', 'All components initialized successfully');
       
       return this.getInitializationReport();
       
     } catch (error) {
-      console.error('[UnifiedComponentRegistry] Initialization failed:', error);
+      this.safeLog('error', 'Component initialization failed', { error: error.message });
       this.initializationStatus.errors.push({
         type: 'initialization_failed',
         message: error.message,
@@ -212,7 +313,7 @@ class UnifiedComponentRegistry {
     }
 
     this.initializationOrder = order;
-    console.log('[UnifiedComponentRegistry] Initialization order calculated:', order);
+    this.safeLog('info', 'Initialization order calculated', { orderCount: order.length });
   }
 
   /**
@@ -238,7 +339,7 @@ class UnifiedComponentRegistry {
       return;
     }
 
-    console.log(`[UnifiedComponentRegistry] Initializing component: ${name}`);
+    this.safeLog('info', 'Initializing component', { componentName: name });
     const startTime = performance.now();
 
     try {
@@ -267,7 +368,10 @@ class UnifiedComponentRegistry {
       
       this.initializationStatus.completed++;
       
-      console.log(`[UnifiedComponentRegistry] Component '${name}' initialized successfully (${config.initializationTime.toFixed(2)}ms)`);
+      this.safeLog('info', 'Component initialized successfully', { 
+        componentName: name,
+        initializationTime: Math.round(config.initializationTime)
+      });
       
     } catch (error) {
       console.error(`[UnifiedComponentRegistry] Failed to initialize component '${name}':`, error);

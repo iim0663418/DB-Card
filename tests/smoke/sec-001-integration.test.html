@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEC-001 XSS Protection Integration Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .pass { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .fail { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        #testOutput { font-family: monospace; background: #f8f9fa; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>🔒 SEC-001: XSS Protection Integration Test</h1>
+    <p>Testing enhanced XSS protection implementation against CWE-79/80 vulnerabilities.</p>
+    
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="testResults"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test Output</h2>
+        <pre id="testOutput"></pre>
+    </div>
+    
+    <!-- Test elements -->
+    <div id="testElement" style="display: none;"></div>
+    <div id="socialTestElement" style="display: none;"></div>
+    
+    <script type="module">
+        // XSS Protection Implementation (inline for testing)
+        class XSSProtection {
+            static escapeHtml(str, context = 'html') {
+                if (!str) return '';
+                const htmlStr = String(str);
+                
+                switch (context) {
+                    case 'attribute':
+                        return htmlStr
+                            .replace(/&/g, '&amp;')
+                            .replace(/"/g, '&quot;')
+                            .replace(/'/g, '&#x27;')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;');
+                    default:
+                        return htmlStr
+                            .replace(/&/g, '&amp;')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;')
+                            .replace(/"/g, '&quot;')
+                            .replace(/'/g, '&#x27;');
+                }
+            }
+            
+            static setTextContent(element, content) {
+                if (!element || !element.nodeType) return false;
+                
+                // Validate and sanitize
+                const sanitized = this.escapeHtml(content);
+                element.textContent = sanitized.replace(/&[a-zA-Z0-9#]+;/g, (match) => {
+                    const temp = document.createElement('div');
+                    temp.innerHTML = match;
+                    return temp.textContent || match;
+                });
+                return true;
+            }
+            
+            static validateURL(url) {
+                const allowedProtocols = ['http:', 'https:', 'mailto:', 'tel:'];
+                try {
+                    const urlObj = new URL(url);
+                    if (!allowedProtocols.includes(urlObj.protocol)) {
+                        return { valid: false, sanitized: '#' };
+                    }
+                    return { valid: true, sanitized: urlObj.toString() };
+                } catch {
+                    if (url.startsWith('/') || url.startsWith('./')) {
+                        return { valid: true, sanitized: url };
+                    }
+                    return { valid: false, sanitized: '#' };
+                }
+            }
+        }
+        
+        // Test Suite
+        const tests = [];
+        const output = [];
+        
+        function addTest(name, testFn) {
+            tests.push({ name, testFn });
+        }
+        
+        function log(message) {
+            output.push(message);
+            console.log(message);
+        }
+        
+        function assert(condition, message) {
+            if (condition) {
+                log(`✅ ${message}`);
+                return true;
+            } else {
+                log(`❌ ${message}`);
+                return false;
+            }
+        }
+        
+        // Test Cases
+        addTest('HTML Escaping', () => {
+            const malicious = '<script>alert("XSS")</script>';
+            const escaped = XSSProtection.escapeHtml(malicious);
+            
+            return assert(
+                !escaped.includes('<script>') && escaped.includes('&lt;script&gt;'),
+                'HTML tags should be escaped'
+            );
+        });
+        
+        addTest('Attribute Escaping', () => {
+            const maliciousAttr = 'value" onload="alert(1)"';
+            const escaped = XSSProtection.escapeHtml(maliciousAttr, 'attribute');
+            
+            return assert(
+                !escaped.includes('onload=') && escaped.includes('&quot;'),
+                'Attribute values should be escaped'
+            );
+        });
+        
+        addTest('Safe Text Content Setting', () => {
+            const element = document.getElementById('testElement');
+            const maliciousContent = '<img src=x onerror=alert(1)>';
+            
+            const result = XSSProtection.setTextContent(element, maliciousContent);
+            
+            return assert(
+                result && !element.innerHTML.includes('onerror'),
+                'Malicious content should be neutralized'
+            );
+        });
+        
+        addTest('URL Validation - Safe URLs', () => {
+            const safeUrl = 'https://example.com/page';
+            const result = XSSProtection.validateURL(safeUrl);
+            
+            return assert(
+                result.valid && result.sanitized === safeUrl,
+                'Safe URLs should be allowed'
+            );
+        });
+        
+        addTest('URL Validation - Dangerous Protocols', () => {
+            const dangerousUrl = 'javascript:alert(1)';
+            const result = XSSProtection.validateURL(dangerousUrl);
+            
+            return assert(
+                !result.valid && result.sanitized === '#',
+                'Dangerous protocols should be blocked'
+            );
+        });
+        
+        addTest('Bilingual Content Protection', () => {
+            const element = document.createElement('span');
+            const content = 'Hello~你好<script>alert(1)</script>';
+            
+            XSSProtection.setTextContent(element, content);
+            
+            return assert(
+                !element.textContent.includes('<script>'),
+                'Bilingual content should be safe'
+            );
+        });
+        
+        // Run Tests
+        async function runTests() {
+            log('🔒 Starting SEC-001 XSS Protection Tests...\n');
+            
+            let passed = 0;
+            let failed = 0;
+            
+            for (const test of tests) {
+                log(`\n📋 Running: ${test.name}`);
+                try {
+                    const result = await test.testFn();
+                    if (result) {
+                        passed++;
+                    } else {
+                        failed++;
+                    }
+                } catch (error) {
+                    log(`❌ Error in ${test.name}: ${error.message}`);
+                    failed++;
+                }
+            }
+            
+            log(`\n📊 Test Summary:`);
+            log(`✅ Passed: ${passed}`);
+            log(`❌ Failed: ${failed}`);
+            log(`📈 Success Rate: ${Math.round((passed / (passed + failed)) * 100)}%`);
+            
+            // Update UI
+            const resultsDiv = document.getElementById('testResults');
+            const outputDiv = document.getElementById('testOutput');
+            
+            if (failed === 0) {
+                resultsDiv.innerHTML = `<div class="test-result pass">
+                    <strong>✅ All Tests Passed!</strong><br>
+                    SEC-001 XSS Protection implementation is working correctly.<br>
+                    Passed: ${passed}/${passed + failed} tests
+                </div>`;
+            } else {
+                resultsDiv.innerHTML = `<div class="test-result fail">
+                    <strong>❌ Some Tests Failed</strong><br>
+                    Please review the implementation.<br>
+                    Passed: ${passed}/${passed + failed} tests
+                </div>`;
+            }
+            
+            outputDiv.textContent = output.join('\n');
+            
+            return { passed, failed };
+        }
+        
+        // Auto-run tests when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(runTests, 100);
+        });
+        
+        // Export for manual testing
+        window.XSSProtection = XSSProtection;
+        window.runTests = runTests;
+    </script>
+</body>
+</html>

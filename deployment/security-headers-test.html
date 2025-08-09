@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DB-Card 安全 Headers 測試頁面</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .pass {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .fail {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .header-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .recommendations {
+            background: #fff3cd;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔒 DB-Card 安全 Headers 測試</h1>
+        
+        <div class="test-section">
+            <h2>📊 當前頁面安全狀態</h2>
+            <button onclick="checkSecurityHeaders()">檢查安全 Headers</button>
+            <button onclick="testCSP()">測試 CSP 防護</button>
+            <button onclick="testXSS()">測試 XSS 防護</button>
+            <div id="results"></div>
+        </div>
+
+        <div class="stats" id="stats" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-number" id="totalHeaders">0</div>
+                <div>檢測到的 Headers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="passedHeaders">0</div>
+                <div>通過的 Headers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="securityScore">0%</div>
+                <div>安全評分</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🛡️ 必要安全 Headers 檢查</h2>
+            <div id="headerChecks"></div>
+        </div>
+
+        <div class="recommendations" id="recommendations" style="display: none;">
+            <h3>💡 改善建議</h3>
+            <ul id="recommendationList"></ul>
+        </div>
+
+        <div class="test-section">
+            <h2>🔍 Headers 詳細資訊</h2>
+            <div id="headerDetails"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>📋 部署平台配置檢查</h2>
+            <button onclick="checkDeploymentConfigs()">檢查部署配置</button>
+            <div id="deploymentResults"></div>
+        </div>
+    </div>
+
+    <script>
+        // 必要的安全 Headers 配置
+        const REQUIRED_HEADERS = {
+            'Content-Security-Policy': {
+                name: 'Content-Security-Policy',
+                description: '內容安全政策 - 防止 XSS 攻擊',
+                required: true,
+                check: (value) => value && value.includes('default-src')
+            },
+            'Strict-Transport-Security': {
+                name: 'Strict-Transport-Security', 
+                description: 'HTTP 嚴格傳輸安全 - 強制 HTTPS',
+                required: true,
+                check: (value) => value && value.includes('max-age=')
+            },
+            'X-Frame-Options': {
+                name: 'X-Frame-Options',
+                description: '防止點擊劫持攻擊',
+                required: true,
+                check: (value) => value && (value.toUpperCase() === 'DENY' || value.toUpperCase() === 'SAMEORIGIN')
+            },
+            'X-Content-Type-Options': {
+                name: 'X-Content-Type-Options',
+                description: '防止 MIME 類型混淆攻擊',
+                required: true,
+                check: (value) => value && value.toLowerCase() === 'nosniff'
+            },
+            'Referrer-Policy': {
+                name: 'Referrer-Policy',
+                description: '控制 Referrer 資訊洩露',
+                required: true,
+                check: (value) => value && value.includes('strict-origin')
+            }
+        };
+
+        // 檢查安全 Headers
+        async function checkSecurityHeaders() {
+            const resultsDiv = document.getElementById('results');
+            const statsDiv = document.getElementById('stats');
+            const headerChecksDiv = document.getElementById('headerChecks');
+            const headerDetailsDiv = document.getElementById('headerDetails');
+            const recommendationsDiv = document.getElementById('recommendations');
+            const recommendationList = document.getElementById('recommendationList');
+            
+            resultsDiv.innerHTML = '<p>🔍 正在檢查安全 Headers...</p>';
+            
+            try {
+                // 使用 fetch 獲取當前頁面的 Headers
+                const response = await fetch(window.location.href, { method: 'HEAD' });
+                const headers = {};
+                
+                // 注意：由於 CORS 限制，我們無法直接讀取所有 Headers
+                // 這裡模擬檢查過程
+                resultsDiv.innerHTML = '<div class="warning">⚠️ 由於瀏覽器安全限制，無法直接讀取 Response Headers。請使用開發者工具手動檢查。</div>';
+                
+                // 顯示檢查指南
+                let checkGuide = '<h3>📋 手動檢查步驟：</h3>';
+                checkGuide += '<ol>';
+                checkGuide += '<li>按 F12 開啟開發者工具</li>';
+                checkGuide += '<li>切換到 Network 標籤</li>';
+                checkGuide += '<li>重新載入頁面</li>';
+                checkGuide += '<li>點擊主文檔請求</li>';
+                checkGuide += '<li>檢查 Response Headers</li>';
+                checkGuide += '</ol>';
+                
+                resultsDiv.innerHTML += checkGuide;
+                
+                // 顯示必要 Headers 清單
+                let headerCheckHtml = '';
+                Object.entries(REQUIRED_HEADERS).forEach(([key, config]) => {
+                    headerCheckHtml += `
+                        <div class="test-result warning">
+                            <strong>${config.name}</strong><br>
+                            ${config.description}<br>
+                            <small>請在開發者工具中確認此 Header 是否存在</small>
+                        </div>
+                    `;
+                });
+                
+                headerChecksDiv.innerHTML = headerCheckHtml;
+                statsDiv.style.display = 'grid';
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="fail">❌ 檢查失敗: ${error.message}</div>`;
+            }
+        }
+
+        // 測試 CSP 防護
+        function testCSP() {
+            const resultsDiv = document.getElementById('results');
+            
+            try {
+                // 嘗試執行內聯腳本（如果 CSP 正確配置，這應該被阻止）
+                const script = document.createElement('script');
+                script.innerHTML = 'console.log("CSP test script executed");';
+                document.head.appendChild(script);
+                
+                resultsDiv.innerHTML += '<div class="warning">⚠️ CSP 測試：內聯腳本可能被執行（檢查控制台）</div>';
+            } catch (error) {
+                resultsDiv.innerHTML += '<div class="pass">✅ CSP 測試：內聯腳本被正確阻止</div>';
+            }
+        }
+
+        // 測試 XSS 防護
+        function testXSS() {
+            const resultsDiv = document.getElementById('results');
+            
+            // 測試常見的 XSS 向量
+            const xssPayloads = [
+                '<script>alert("XSS")</script>',
+                '<img src="x" onerror="alert(\'XSS\')">',
+                'javascript:alert("XSS")'
+            ];
+            
+            let testResults = '<h4>🛡️ XSS 防護測試結果：</h4>';
+            
+            xssPayloads.forEach((payload, index) => {
+                try {
+                    // 創建一個安全的測試環境
+                    const testDiv = document.createElement('div');
+                    testDiv.innerHTML = payload;
+                    
+                    if (testDiv.innerHTML === payload) {
+                        testResults += `<div class="fail">❌ 測試 ${index + 1}: 可能存在 XSS 風險</div>`;
+                    } else {
+                        testResults += `<div class="pass">✅ 測試 ${index + 1}: XSS 載荷被正確清理</div>`;
+                    }
+                } catch (error) {
+                    testResults += `<div class="pass">✅ 測試 ${index + 1}: XSS 載荷被阻止</div>`;
+                }
+            });
+            
+            resultsDiv.innerHTML += testResults;
+        }
+
+        // 檢查部署配置
+        function checkDeploymentConfigs() {
+            const deploymentResults = document.getElementById('deploymentResults');
+            
+            const configs = [
+                { name: 'GitHub Pages', file: '_headers', status: 'unknown' },
+                { name: 'Netlify', file: 'netlify.toml', status: 'unknown' },
+                { name: 'Vercel', file: 'vercel.json', status: 'unknown' },
+                { name: 'Cloudflare Pages', file: '_headers', status: 'unknown' },
+                { name: 'AWS CloudFront', file: 'cloudformation.yml', status: 'unknown' }
+            ];
+            
+            let configHtml = '<h4>📋 部署配置狀態：</h4>';
+            
+            configs.forEach(config => {
+                configHtml += `
+                    <div class="test-result warning">
+                        <strong>${config.name}</strong><br>
+                        配置文件: ${config.file}<br>
+                        <small>請確認配置文件已正確部署到目標平台</small>
+                    </div>
+                `;
+            });
+            
+            configHtml += `
+                <div class="header-info">
+                    <strong>驗證命令：</strong><br>
+                    node deployment/validate-headers.js https://your-domain.com
+                </div>
+            `;
+            
+            deploymentResults.innerHTML = configHtml;
+        }
+
+        // 頁面載入時顯示基本資訊
+        window.addEventListener('load', function() {
+            const headerDetailsDiv = document.getElementById('headerDetails');
+            
+            let detailsHtml = '<h4>🌐 當前頁面資訊：</h4>';
+            detailsHtml += `<div class="header-info">`;
+            detailsHtml += `URL: ${window.location.href}<br>`;
+            detailsHtml += `Protocol: ${window.location.protocol}<br>`;
+            detailsHtml += `Host: ${window.location.host}<br>`;
+            detailsHtml += `User Agent: ${navigator.userAgent}<br>`;
+            detailsHtml += `</div>`;
+            
+            detailsHtml += '<p><strong>💡 提示：</strong>這是一個本地測試頁面。實際的安全 Headers 檢查需要在部署後的網站上進行。</p>';
+            
+            headerDetailsDiv.innerHTML = detailsHtml;
+        });
+    </script>
+</body>
+</html>

@@ -5,6 +5,7 @@
 
 import { modaDesign } from '../../core/moda-design-integration.js';
 import { languageOptimizer } from '../../core/language-performance-optimizer.js';
+import { SecurityAuthHandler } from '../../security/SecurityAuthHandler.js';
 
 export class VersionManagementInterface {
   constructor(storage, versionManager) {
@@ -12,6 +13,9 @@ export class VersionManagementInterface {
     this.versionManager = versionManager;
     this.currentModal = null;
     this.currentLanguage = 'zh';
+    
+    // SEC-004: Initialize security auth handler
+    this.securityAuth = SecurityAuthHandler;
     
     // 載入 moda 樣式
     this.loadModaStyles();
@@ -306,6 +310,18 @@ export class VersionManagementInterface {
    */
   async restoreVersion(cardId, versionId) {
     try {
+      // SEC-004: Authorization check for version restore
+      const authResult = await this.checkSensitiveOperationAuth('restore_version', {
+        cardId,
+        versionId,
+        operation: 'restore'
+      });
+      
+      if (!authResult.authorized) {
+        this.showError(authResult.reason || this.getLocalizedText('authorizationFailed'));
+        return;
+      }
+
       const confirmed = await this.showConfirmDialog(
         this.getLocalizedText('confirmRestore'),
         this.getLocalizedText('restoreVersionWarning')
@@ -313,6 +329,13 @@ export class VersionManagementInterface {
 
       if (confirmed) {
         await this.versionManager.restoreVersion(cardId, versionId);
+        
+        // SEC-004: Log successful operation
+        this.securityAuth.auditLog('version_restored', {
+          cardId: this.sanitizeLogData(cardId),
+          versionId: this.sanitizeLogData(versionId)
+        });
+        
         this.showSuccess(this.getLocalizedText('versionRestored'));
         this.closeModal();
         
@@ -322,6 +345,12 @@ export class VersionManagementInterface {
         }
       }
     } catch (error) {
+      // SEC-004: Log failed operation
+      this.securityAuth.auditLog('version_restore_failed', {
+        cardId: this.sanitizeLogData(cardId),
+        error: 'Operation failed'
+      }, 'error');
+      
       console.error('[VersionManagementInterface] Restore version failed:', error);
       this.showError(this.getLocalizedText('operationFailed'));
     }
@@ -332,6 +361,18 @@ export class VersionManagementInterface {
    */
   async deleteVersion(cardId, versionId) {
     try {
+      // SEC-004: Authorization check for version deletion
+      const authResult = await this.checkSensitiveOperationAuth('delete_version', {
+        cardId,
+        versionId,
+        operation: 'delete'
+      });
+      
+      if (!authResult.authorized) {
+        this.showError(authResult.reason || this.getLocalizedText('authorizationFailed'));
+        return;
+      }
+
       const confirmed = await this.showConfirmDialog(
         this.getLocalizedText('confirmDelete'),
         this.getLocalizedText('deleteVersionWarning')
@@ -339,12 +380,25 @@ export class VersionManagementInterface {
 
       if (confirmed) {
         await this.versionManager.deleteVersion(cardId, versionId);
+        
+        // SEC-004: Log successful operation
+        this.securityAuth.auditLog('version_deleted', {
+          cardId: this.sanitizeLogData(cardId),
+          versionId: this.sanitizeLogData(versionId)
+        });
+        
         this.showSuccess(this.getLocalizedText('versionDeleted'));
         
         // 重新載入版本列表
         await this.refreshVersionList(cardId);
       }
     } catch (error) {
+      // SEC-004: Log failed operation
+      this.securityAuth.auditLog('version_delete_failed', {
+        cardId: this.sanitizeLogData(cardId),
+        error: 'Operation failed'
+      }, 'error');
+      
       console.error('[VersionManagementInterface] Delete version failed:', error);
       this.showError(this.getLocalizedText('operationFailed'));
     }
@@ -355,14 +409,46 @@ export class VersionManagementInterface {
    */
   async cleanupVersions(cardId) {
     try {
-      const result = await this.versionManager.cleanupOldVersions(cardId);
-      this.showSuccess(
-        this.getLocalizedText('cleanupComplete').replace('{count}', result.deletedCount)
-      );
+      // SEC-004: Authorization check for version cleanup
+      const authResult = await this.checkSensitiveOperationAuth('cleanup_versions', {
+        cardId,
+        operation: 'cleanup'
+      });
       
-      // 重新載入版本列表
-      await this.refreshVersionList(cardId);
+      if (!authResult.authorized) {
+        this.showError(authResult.reason || this.getLocalizedText('authorizationFailed'));
+        return;
+      }
+
+      // SEC-004: Additional confirmation for bulk operation
+      const confirmed = await this.showConfirmDialog(
+        this.getLocalizedText('confirmCleanup'),
+        this.getLocalizedText('cleanupVersionsWarning')
+      );
+
+      if (confirmed) {
+        const result = await this.versionManager.cleanupOldVersions(cardId);
+        
+        // SEC-004: Log successful operation
+        this.securityAuth.auditLog('versions_cleaned', {
+          cardId: this.sanitizeLogData(cardId),
+          deletedCount: result.deletedCount
+        });
+        
+        this.showSuccess(
+          this.getLocalizedText('cleanupComplete').replace('{count}', result.deletedCount)
+        );
+        
+        // 重新載入版本列表
+        await this.refreshVersionList(cardId);
+      }
     } catch (error) {
+      // SEC-004: Log failed operation
+      this.securityAuth.auditLog('version_cleanup_failed', {
+        cardId: this.sanitizeLogData(cardId),
+        error: 'Operation failed'
+      }, 'error');
+      
       console.error('[VersionManagementInterface] Cleanup versions failed:', error);
       this.showError(this.getLocalizedText('operationFailed'));
     }
@@ -373,27 +459,58 @@ export class VersionManagementInterface {
    */
   async exportVersions(cardId) {
     try {
-      const versions = await this.versionManager.getVersionHistory(cardId);
-      const exportData = {
+      // SEC-004: Authorization check for version export
+      const authResult = await this.checkSensitiveOperationAuth('export_versions', {
         cardId,
-        exportDate: new Date().toISOString(),
-        versions
-      };
-
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-        type: 'application/json'
+        operation: 'export'
       });
+      
+      if (!authResult.authorized) {
+        this.showError(authResult.reason || this.getLocalizedText('authorizationFailed'));
+        return;
+      }
 
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `card-versions-${cardId}-${Date.now()}.json`;
-      link.click();
-      
-      URL.revokeObjectURL(url);
-      this.showSuccess(this.getLocalizedText('exportSuccess'));
-      
+      // SEC-004: Confirmation for data export
+      const confirmed = await this.showConfirmDialog(
+        this.getLocalizedText('confirmExport'),
+        this.getLocalizedText('exportVersionsWarning')
+      );
+
+      if (confirmed) {
+        const versions = await this.versionManager.getVersionHistory(cardId);
+        const exportData = {
+          cardId,
+          exportDate: new Date().toISOString(),
+          versions
+        };
+
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+          type: 'application/json'
+        });
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `card-versions-${cardId}-${Date.now()}.json`;
+        link.click();
+        
+        URL.revokeObjectURL(url);
+        
+        // SEC-004: Log successful operation
+        this.securityAuth.auditLog('versions_exported', {
+          cardId: this.sanitizeLogData(cardId),
+          versionCount: versions.length
+        });
+        
+        this.showSuccess(this.getLocalizedText('exportSuccess'));
+      }
     } catch (error) {
+      // SEC-004: Log failed operation
+      this.securityAuth.auditLog('version_export_failed', {
+        cardId: this.sanitizeLogData(cardId),
+        error: 'Operation failed'
+      }, 'error');
+      
       console.error('[VersionManagementInterface] Export versions failed:', error);
       this.showError(this.getLocalizedText('operationFailed'));
     }
@@ -548,5 +665,54 @@ export class VersionManagementInterface {
     if (window.languageManager) {
       window.languageManager.removeObserver(this.updateModalLanguage);
     }
+  }
+
+  // SEC-004: Authorization check for sensitive operations
+  async checkSensitiveOperationAuth(operation, context = {}) {
+    try {
+      // Validate access using SecurityAuthHandler
+      const accessResult = this.securityAuth.validateAccess('admin', operation, {
+        userId: 'version-manager-user',
+        timestamp: Date.now(),
+        ...context
+      });
+      
+      if (!accessResult.authorized) {
+        // Log unauthorized attempt
+        this.securityAuth.auditLog('unauthorized_version_operation', {
+          operation: this.sanitizeLogData(operation),
+          reason: accessResult.reason
+        }, 'warning');
+        
+        return {
+          authorized: false,
+          reason: this.getLocalizedText('authorizationRequired')
+        };
+      }
+      
+      return { authorized: true };
+    } catch (error) {
+      this.securityAuth.auditLog('auth_check_error', {
+        operation: this.sanitizeLogData(operation),
+        error: 'Authorization check failed'
+      }, 'error');
+      
+      return {
+        authorized: false,
+        reason: this.getLocalizedText('authorizationError')
+      };
+    }
+  }
+
+  // SEC-004: Sanitize data for logging
+  sanitizeLogData(data) {
+    if (typeof data !== 'string') {
+      data = String(data);
+    }
+    
+    return data
+      .replace(/[\r\n\t]/g, ' ')
+      .replace(/[^\w\s-_.]/g, '')
+      .substring(0, 50);
   }
 }

@@ -1,0 +1,95 @@
+[build]
+  publish = "."
+  command = "echo 'Static site - no build required'"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Content Security Policy - 防止 XSS 攻擊
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'"
+    
+    # HTTP Strict Transport Security - 強制 HTTPS
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+    
+    # 防止點擊劫持攻擊
+    X-Frame-Options = "DENY"
+    
+    # 防止 MIME 類型混淆攻擊
+    X-Content-Type-Options = "nosniff"
+    
+    # 控制 Referrer 資訊洩露
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    
+    # 限制瀏覽器功能權限
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+    
+    # 快取控制
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+    Content-Type = "application/javascript; charset=utf-8"
+
+[[headers]]
+  for = "*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+    Content-Type = "text/css; charset=utf-8"
+
+[[headers]]
+  for = "*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+    Content-Type = "text/html; charset=utf-8"
+
+[[headers]]
+  for = "*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+    Content-Type = "image/jpeg"
+
+[[headers]]
+  for = "*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+    Content-Type = "image/png"
+
+[[headers]]
+  for = "*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+    Content-Type = "image/svg+xml"
+
+[[headers]]
+  for = "*.json"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+    Content-Type = "application/json; charset=utf-8"
+
+[[headers]]
+  for = "/manifest.json"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+    Content-Type = "application/manifest+json; charset=utf-8"
+
+# 重定向規則
+[[redirects]]
+  from = "/nfc-generator"
+  to = "/nfc-generator.html"
+  status = 301
+
+[[redirects]]
+  from = "/pwa"
+  to = "/pwa-card-storage/"
+  status = 301
+
+# 404 頁面
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 404

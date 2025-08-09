@@ -7,6 +7,10 @@
  */
 
 import { detectEnvironment, getCurrentPlatform } from './environment-detector.js';
+import { SecureLogger } from '../security/secure-logger.js';
+
+// Initialize secure logger for CWE-117 protection
+const secureLogger = new SecureLogger({ logLevel: 'INFO', enableMasking: true });
 
 // Configuration cache with TTL
 const configCache = new Map();
@@ -46,14 +50,20 @@ export async function loadConfig(platform = null) {
 
         // Validate platform
         if (!SUPPORTED_PLATFORMS.includes(platform)) {
-            console.warn(`[Config] Unsupported platform: ${platform}, falling back to default`);
+            secureLogger.warn('Unsupported platform detected, falling back to default', { 
+                platform, 
+                component: 'ConfigManager' 
+            });
             platform = 'local';
         }
 
         // Check cache first
         const cachedConfig = getCachedConfig(platform);
         if (cachedConfig) {
-            console.log(`[Config] Using cached configuration for ${platform}`);
+            secureLogger.info('Using cached configuration', { 
+                platform, 
+                component: 'ConfigManager' 
+            });
             return cachedConfig;
         }
 
@@ -72,15 +82,24 @@ export async function loadConfig(platform = null) {
         // Cache configuration
         setCachedConfig(platform, sanitizedConfig);
         
-        console.log(`[Config] Loaded configuration for ${platform}`);
+        secureLogger.info('Configuration loaded successfully', { 
+            platform, 
+            component: 'ConfigManager' 
+        });
         return sanitizedConfig;
         
     } catch (error) {
-        console.error(`[Config] Failed to load configuration for ${platform}:`, error.message);
+        secureLogger.error('Failed to load configuration', { 
+            platform, 
+            error: error.message, 
+            component: 'ConfigManager' 
+        });
         
         // Try fallback to default configuration
         if (platform !== 'default') {
-            console.log('[Config] Attempting fallback to default configuration...');
+            secureLogger.info('Attempting fallback to default configuration', { 
+                component: 'ConfigManager' 
+            });
             return await loadDefaultConfig();
         }
         
@@ -136,7 +155,9 @@ async function loadDefaultConfig() {
         const config = await response.json();
         return sanitizeConfig(config);
     } catch (error) {
-        console.warn('[Config] Default config file not found, using hardcoded fallback');
+        secureLogger.warn('Default config file not found, using hardcoded fallback', { 
+            component: 'ConfigManager' 
+        });
         return getHardcodedFallbackConfig();
     }
 }
@@ -277,7 +298,11 @@ function sanitizeConfig(config) {
         });
         
         if (!isAllowed && sanitized.platform !== 'local' && sanitized.platform !== 'fallback') {
-            console.warn(`[Config] Domain ${currentDomain} not in allowed list for ${sanitized.platform}`);
+            secureLogger.warn('Domain not in allowed list', { 
+                domain: currentDomain, 
+                platform: sanitized.platform, 
+                component: 'ConfigManager' 
+            });
         }
     }
     
@@ -296,12 +321,17 @@ export async function getSecureConfig(platform = null) {
     if (config.security?.level === 'enhanced') {
         // Enforce HTTPS in production
         if (window.location.protocol !== 'https:' && config.environment === 'production') {
-            console.warn('[Config] HTTPS required for enhanced security level');
+            secureLogger.warn('HTTPS required for enhanced security level', { 
+                currentProtocol: window.location.protocol, 
+                component: 'ConfigManager' 
+            });
         }
         
         // Validate CSP headers
         if (config.security.csp?.enabled && !config.security.csp.reportOnly) {
-            console.log('[Config] CSP enforcement enabled');
+            secureLogger.info('CSP enforcement enabled', { 
+                component: 'ConfigManager' 
+            });
         }
     }
     
@@ -365,5 +395,7 @@ if (typeof window !== 'undefined') {
         _deprecated: 'Use ES6 imports: import { loadConfig } from "./config-manager.js"'
     };
     
-    console.warn('[Config] Global ConfigManager is deprecated. Use ES6 imports instead.');
+    secureLogger.warn('Global ConfigManager is deprecated, use ES6 imports instead', { 
+        component: 'ConfigManager' 
+    });
 }

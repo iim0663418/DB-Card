@@ -1,0 +1,369 @@
+/**
+ * PWA 視覺增強樣式
+ * 最終調色和版面優化
+ */
+
+/* 全域視覺增強 */
+:root {
+  /* 增強的陰影系統 */
+  --shadow-soft: 0 2px 8px rgba(104, 104, 172, 0.08);
+  --shadow-medium: 0 4px 16px rgba(104, 104, 172, 0.12);
+  --shadow-strong: 0 8px 32px rgba(104, 104, 172, 0.16);
+  --shadow-intense: 0 12px 48px rgba(104, 104, 172, 0.2);
+  
+  /* 漸層系統 */
+  --gradient-primary: linear-gradient(135deg, var(--md-primary-1) 0%, var(--md-primary-3) 100%);
+  --gradient-surface: linear-gradient(135deg, var(--md-white-1) 0%, var(--md-neutral-10) 100%);
+  --gradient-accent: linear-gradient(90deg, var(--md-primary-1), var(--md-primary-4));
+  
+  /* 動畫曲線 */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* 深色模式增強 */
+.dark {
+  --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-strong: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-intense: 0 12px 48px rgba(0, 0, 0, 0.6);
+  
+  --gradient-primary: linear-gradient(135deg, var(--md-primary-1) 0%, var(--md-primary-4) 100%);
+  --gradient-surface: linear-gradient(135deg, var(--md-white-1) 0%, var(--md-neutral-10) 100%);
+}
+
+/* 頁面載入動畫 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 頁面元素動畫 */
+.page.active {
+  animation: fadeInUp 0.6s var(--ease-smooth);
+}
+
+.stat-card {
+  animation: scaleIn 0.5s var(--ease-smooth);
+  animation-fill-mode: both;
+}
+
+.stat-card:nth-child(1) { animation-delay: 0.1s; }
+.stat-card:nth-child(2) { animation-delay: 0.2s; }
+.stat-card:nth-child(3) { animation-delay: 0.3s; }
+
+.action-card {
+  animation: slideInRight 0.6s var(--ease-smooth);
+  animation-fill-mode: both;
+}
+
+.action-card:nth-child(1) { animation-delay: 0.2s; }
+.action-card:nth-child(2) { animation-delay: 0.3s; }
+.action-card:nth-child(3) { animation-delay: 0.4s; }
+
+/* 卡片懸停效果增強 */
+.card-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-item::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.6s ease;
+}
+
+.card-item:hover::after {
+  left: 100%;
+}
+
+/* 按鈕微互動 */
+.btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.btn:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* 表單元素增強 */
+.search-input,
+.url-input,
+.file-input {
+  position: relative;
+}
+
+.search-input::placeholder,
+.url-input::placeholder {
+  transition: all 0.3s ease;
+}
+
+.search-input:focus::placeholder,
+.url-input:focus::placeholder {
+  opacity: 0.5;
+  transform: translateY(-2px);
+}
+
+/* 導航項目增強 */
+.nav-item {
+  position: relative;
+}
+
+.nav-item::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 3px;
+  background: var(--gradient-accent);
+  border-radius: 2px;
+  transform: translateX(-50%);
+  transition: width 0.3s var(--ease-smooth);
+}
+
+.nav-item.active::before {
+  width: 80%;
+}
+
+/* 狀態指示器動畫 */
+.status-indicator::before {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+/* 載入動畫增強 */
+.loading-spinner {
+  position: relative;
+}
+
+.loading-spinner::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border: 2px solid transparent;
+  border-top: 2px solid var(--md-primary-4);
+  border-radius: 50%;
+  animation: spin 1.5s linear infinite reverse;
+}
+
+/* 通知增強 */
+.notification {
+  position: relative;
+}
+
+.notification::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--gradient-accent);
+  border-radius: 0 4px 4px 0;
+}
+
+/* 模態框增強 */
+.modal-content {
+  animation: modalSlideIn 0.4s var(--ease-smooth);
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* 空狀態增強 */
+.empty-icon {
+  position: relative;
+  display: inline-block;
+}
+
+.empty-icon::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 120%;
+  height: 120%;
+  border: 2px solid var(--md-primary-5);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: ripple 2s infinite;
+}
+
+@keyframes ripple {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+}
+
+/* 響應式增強 */
+@media (max-width: 768px) {
+  .stat-card,
+  .action-card {
+    animation-duration: 0.4s;
+  }
+  
+  .card-item:hover::after {
+    display: none; /* 移動設備上移除懸停效果 */
+  }
+}
+
+/* 高對比度模式支援 */
+@media (prefers-contrast: high) {
+  :root {
+    --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.4);
+    --shadow-strong: 0 8px 32px rgba(0, 0, 0, 0.5);
+  }
+  
+  .btn {
+    border: 2px solid currentColor;
+  }
+  
+  .card-item {
+    border-width: 2px;
+  }
+}
+
+/* 減少動畫偏好支援 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .card-item::after,
+  .btn::before,
+  .empty-icon::after {
+    display: none;
+  }
+}
+
+/* 焦點可見性增強 */
+.btn:focus-visible,
+.nav-item:focus-visible,
+.search-input:focus-visible,
+.url-input:focus-visible {
+  outline: 3px solid var(--md-primary-4);
+  outline-offset: 2px;
+}
+
+/* 選擇文字樣式 */
+::selection {
+  background: var(--md-primary-5);
+  color: var(--md-primary-1);
+}
+
+.dark ::selection {
+  background: var(--md-primary-3);
+  color: var(--md-white-1);
+}
+
+/* 滾動條樣式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--md-neutral-9);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--md-primary-4);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--md-primary-1);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: var(--md-neutral-10);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--md-primary-1);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--md-primary-4);
+}

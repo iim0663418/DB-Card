@@ -1,0 +1,439 @@
+/**
+ * 重複處理對話框樣式
+ * 支援 moda 設計系統與無障礙設計
+ */
+
+.duplicate-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.duplicate-dialog-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.duplicate-dialog-overlay.hide {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.duplicate-dialog {
+  background: var(--md-white-1, #ffffff);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 800px;
+  width: 90vw;
+  max-height: 90vh;
+  overflow: hidden;
+  transform: scale(0.9) translateY(20px);
+  transition: transform 0.3s ease;
+}
+
+.duplicate-dialog-overlay.show .duplicate-dialog {
+  transform: scale(1) translateY(0);
+}
+
+.duplicate-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid var(--md-neutral-8, #e5e7eb);
+  background: var(--md-primary-1, #6868ac);
+  color: white;
+}
+
+.duplicate-dialog-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: white;
+}
+
+.duplicate-dialog-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+  min-width: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.duplicate-dialog-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.duplicate-dialog-close:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+.duplicate-dialog-content {
+  padding: 2rem;
+  overflow-y: auto;
+  max-height: calc(90vh - 200px);
+}
+
+.duplicate-info {
+  margin-bottom: 2rem;
+}
+
+.duplicate-message {
+  font-size: 1rem;
+  color: var(--md-black-1, #1a1a1a);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.card-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid var(--md-neutral-8, #e5e7eb);
+  border-radius: 12px;
+  padding: 1.5rem;
+  background: var(--md-neutral-10, #f9fafb);
+}
+
+.existing-card h3,
+.new-card h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--md-black-1, #1a1a1a);
+}
+
+.card-preview {
+  background: white;
+  border: 1px solid var(--md-neutral-7, #d1d5db);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.card-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.card-avatar-small {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.card-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-name {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--md-black-1, #1a1a1a);
+  margin-bottom: 0.25rem;
+}
+
+.card-title {
+  font-size: 0.875rem;
+  color: var(--md-secondary-1, #565e62);
+  margin-bottom: 0.25rem;
+}
+
+.card-email,
+.card-phone {
+  font-size: 0.75rem;
+  color: var(--md-secondary-2, #6b7280);
+}
+
+.card-meta {
+  margin-top: 0.5rem;
+}
+
+.card-meta small {
+  color: var(--md-secondary-2, #6b7280);
+  font-size: 0.75rem;
+}
+
+.action-options h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--md-black-1, #1a1a1a);
+}
+
+.option-buttons {
+  display: grid;
+  gap: 1rem;
+}
+
+.option-btn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 2px solid var(--md-neutral-7, #d1d5db);
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.option-btn:hover {
+  border-color: var(--md-primary-1, #6868ac);
+  background: var(--md-primary-10, #f8f9ff);
+}
+
+.option-btn:focus {
+  outline: 2px solid var(--md-primary-1, #6868ac);
+  outline-offset: 2px;
+}
+
+.option-btn.recommended {
+  border-color: var(--md-primary-1, #6868ac);
+  background: var(--md-primary-10, #f8f9ff);
+  position: relative;
+}
+
+.option-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.option-content {
+  flex: 1;
+}
+
+.option-title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--md-black-1, #1a1a1a);
+  margin-bottom: 0.25rem;
+}
+
+.option-desc {
+  font-size: 0.875rem;
+  color: var(--md-secondary-1, #565e62);
+  line-height: 1.4;
+}
+
+.recommended-badge {
+  display: inline-block;
+  background: var(--md-primary-1, #6868ac);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  margin-top: 0.5rem;
+}
+
+.duplicate-dialog-footer {
+  padding: 1rem 2rem;
+  border-top: 1px solid var(--md-neutral-8, #e5e7eb);
+  background: var(--md-neutral-10, #f9fafb);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  font-size: 0.875rem;
+}
+
+.btn-secondary {
+  background: var(--md-neutral-6, #9ca3af);
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: var(--md-neutral-5, #6b7280);
+}
+
+.btn-secondary:focus {
+  outline: 2px solid var(--md-neutral-5, #6b7280);
+  outline-offset: 2px;
+}
+
+/* 批量處理對話框樣式 */
+.batch-dialog {
+  max-width: 600px;
+}
+
+.batch-options {
+  display: grid;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.batch-option-btn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 2px solid var(--md-neutral-7, #d1d5db);
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  width: 100%;
+  font-size: 1rem;
+}
+
+.batch-option-btn:hover {
+  border-color: var(--md-primary-1, #6868ac);
+  background: var(--md-primary-10, #f8f9ff);
+}
+
+.batch-option-btn:focus {
+  outline: 2px solid var(--md-primary-1, #6868ac);
+  outline-offset: 2px;
+}
+
+.batch-option-btn.recommended {
+  border-color: var(--md-primary-1, #6868ac);
+  background: var(--md-primary-10, #f8f9ff);
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .duplicate-dialog {
+    width: 95vw;
+    margin: 1rem;
+  }
+  
+  .duplicate-dialog-content {
+    padding: 1.5rem;
+  }
+  
+  .card-comparison {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .duplicate-dialog-header {
+    padding: 1rem 1.5rem;
+  }
+  
+  .duplicate-dialog-footer {
+    padding: 1rem 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .duplicate-dialog {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    max-height: 100vh;
+  }
+  
+  .duplicate-dialog-content {
+    padding: 1rem;
+    max-height: calc(100vh - 160px);
+  }
+}
+
+/* 深色模式支援 */
+.dark .duplicate-dialog {
+  background: var(--md-black-2, #1f2937);
+  color: var(--md-white-1, #ffffff);
+}
+
+.dark .duplicate-dialog-header {
+  border-bottom-color: var(--md-neutral-3, #374151);
+}
+
+.dark .duplicate-dialog-footer {
+  border-top-color: var(--md-neutral-3, #374151);
+  background: var(--md-black-3, #111827);
+}
+
+.dark .card-comparison {
+  background: var(--md-black-3, #111827);
+  border-color: var(--md-neutral-3, #374151);
+}
+
+.dark .card-preview {
+  background: var(--md-black-2, #1f2937);
+  border-color: var(--md-neutral-3, #374151);
+}
+
+.dark .option-btn {
+  background: var(--md-black-2, #1f2937);
+  border-color: var(--md-neutral-3, #374151);
+  color: var(--md-white-1, #ffffff);
+}
+
+.dark .option-btn:hover {
+  background: var(--md-black-3, #111827);
+  border-color: var(--md-primary-1, #6868ac);
+}
+
+.dark .batch-option-btn {
+  background: var(--md-black-2, #1f2937);
+  border-color: var(--md-neutral-3, #374151);
+  color: var(--md-white-1, #ffffff);
+}
+
+.dark .batch-option-btn:hover {
+  background: var(--md-black-3, #111827);
+  border-color: var(--md-primary-1, #6868ac);
+}
+
+/* 高對比度模式 */
+@media (prefers-contrast: high) {
+  .option-btn {
+    border-width: 3px;
+  }
+  
+  .option-btn:focus {
+    outline-width: 3px;
+  }
+  
+  .duplicate-dialog-close:focus {
+    outline-width: 3px;
+  }
+}
+
+/* 減少動畫模式 */
+@media (prefers-reduced-motion: reduce) {
+  .duplicate-dialog-overlay,
+  .duplicate-dialog,
+  .option-btn,
+  .batch-option-btn {
+    transition: none;
+  }
+}

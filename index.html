@@ -494,7 +494,7 @@
     <div id="card-container" style="display: none;">
         <div class="card">
             <div class="logo-section">
-                <img src="assets/moda-logo.svg" alt="moda Logo" class="moda-logo">
+                <img src="assets/images/moda-logo.svg" alt="moda Logo" class="moda-logo">
             </div>
             
             <div class="avatar-section">
@@ -648,10 +648,10 @@
         function renderCard(userData) {
             const data = userData.data;
             
-            // 基本資訊 - 確保所有欄位都轉換為字串
-            document.getElementById('user-name').textContent = String(data.name || '');
-            document.getElementById('user-title').textContent = String(data.title || '');
-            document.getElementById('user-department').textContent = String(data.department || '');
+            // 基本資訊
+            document.getElementById('user-name').textContent = data.name;
+            document.getElementById('user-title').textContent = data.title;
+            document.getElementById('user-department').textContent = data.department;
             
             // 頭像
             const avatar = document.getElementById('user-avatar');
@@ -1014,7 +1014,7 @@
                     phone: compactData.p || '',
                     mobile: compactData.m || '',
                     avatar: compactData.a || '',
-                    address: '100057臺北市中正區延平南路143號', // 延平大樓地址
+                    address: '100009臺北市中正區延平南路143號', // 延平大樓地址
                     greetings: compactData.g || ['歡迎認識我！'],
                     socialLinks: {
                         email: compactData.e ? `mailto:${compactData.e}` : '',
@@ -1134,59 +1134,58 @@
             return processedLines.join('\n');
         }
 
-        // PWA 儲存功能
+                                // PWA 儲存功能 - localStorage 完整方式
         function setupPWASaveButton(cardData) {
             const saveButton = document.getElementById('save-to-pwa-btn');
             if (!saveButton) return;
             
             saveButton.addEventListener('click', function() {
-                // 檢查 PWA 是否可用
-                if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-                    alert('離線儲存功能需要 HTTPS 連線或本地環境');
-                    return;
-                }
-                
-                // 立即暫存當前頁面 URL
-                const currentUrl = window.location.href;
                 try {
-                    sessionStorage.setItem('pwa_card_source_url', JSON.stringify({
-                        sourceUrl: currentUrl,
-                        timestamp: Date.now(),
-                        referrer: document.referrer
-                    }));
-                    console.log('[PWA] 已暫存來源 URL:', currentUrl);
-                } catch (error) {
-                    console.error('[PWA] 暫存失敗:', error);
-                }
-                
-                // 開啟 PWA 並傳遞資料
-                const urlParams = new URLSearchParams(window.location.search);
-                const dataParam = urlParams.get('data') || urlParams.get('c');
-                
-                // 正確構建 PWA URL，相容 GitHub Pages 和 Cloudflare Pages
-                const currentPath = window.location.pathname;
-                const basePath = currentPath.includes('/') ? currentPath.replace(/\/[^/]*$/, '') : '';
-                const pwaUrl = window.location.origin + basePath + '/pwa-card-storage/?c=' + encodeURIComponent(dataParam);
-                
-                // 在新窗口開啟 PWA
-                const pwaWindow = window.open(pwaUrl, '_blank');
-                
-                if (pwaWindow) {
-                    // 更新按鈕狀態
-                    saveButton.textContent = '✅ 已開啟 PWA';
-                    saveButton.style.background = '#6c757d';
+                    saveButton.textContent = '⏳ 處理中...';
                     saveButton.disabled = true;
                     
-                    setTimeout(() => {
-                        saveButton.textContent = '💾 儲存到離線';
+                    // 暫存完整名片資料到 localStorage
+                    const sourceData = {
+                        sourceUrl: window.location.href,
+                        timestamp: Date.now(),
+                        cardData: cardData
+                    };
+                    
+                    localStorage.setItem('pwa_card_source_url', JSON.stringify(sourceData));
+                    console.log('[PWA] 已暫存完整名片資料');
+                    
+                    // 構建 PWA URL（不帶資料參數）
+                    const currentPath = window.location.pathname;
+                    const basePath = currentPath.includes('/') ? currentPath.replace(/\/[^/]*$/, '') : '';
+                    const pwaUrl = window.location.origin + basePath + '/pwa-card-storage/';
+                    
+                    // 開啟 PWA
+                    const pwaWindow = window.open(pwaUrl, '_blank', 'width=1200,height=800');
+                    
+                    if (pwaWindow) {
+                        saveButton.textContent = '✅ 已開啟 PWA';
                         saveButton.style.background = '#28a745';
-                        saveButton.disabled = false;
-                    }, 3000);
-                } else {
-                    alert('無法開啟 PWA，請檢查瀏覽器設定');
+                        
+                        setTimeout(() => {
+                            saveButton.textContent = '💾 儲存到離線';
+                            saveButton.style.background = '#6868ac';
+                            saveButton.disabled = false;
+                        }, 3000);
+                    } else {
+                        throw new Error('無法開啟 PWA');
+                    }
+                    
+                } catch (error) {
+                    console.error('[PWA] 儲存失敗:', error);
+                    saveButton.textContent = '💾 儲存到離線';
+                    saveButton.style.background = '#6868ac';
+                    saveButton.disabled = false;
+                    alert('請允許彈出視窗並重試');
                 }
             });
         }
+
+
 
         window.addEventListener('load', function() {
             // 延遲一點時間讓使用者看到載入狀態
@@ -1227,7 +1226,7 @@
                     setTimeout(changeGreeting, 1000); // 觸發打字機效果
                     generateQRCode(); // 產生 QR Code
                     setupVCardLink(cardData); // 設定 vCard 下載連結
-                    setupPWASaveButton(cardData);
+                    setupPWASaveButton(cardData); // 設定 PWA 儲存按鈕
 
                 } catch (error) {
                     // 資料驗證失敗，隱藏載入狀態並顯示錯誤

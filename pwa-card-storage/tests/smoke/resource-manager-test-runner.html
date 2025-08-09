@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResourceManager 煙霧測試執行器</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .test-controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .test-results {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-card {
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .summary-card.total { background-color: #e3f2fd; }
+        .summary-card.passed { background-color: #e8f5e8; }
+        .summary-card.failed { background-color: #ffebee; }
+        .summary-card.duration { background-color: #fff3e0; }
+        
+        .summary-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 2em;
+            font-weight: bold;
+        }
+        
+        .summary-card p {
+            margin: 0;
+            color: #666;
+        }
+        
+        .test-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+        
+        .test-item.pass {
+            background-color: #f1f8e9;
+            border-left-color: #4caf50;
+        }
+        
+        .test-item.fail {
+            background-color: #ffebee;
+            border-left-color: #f44336;
+        }
+        
+        .test-status {
+            font-weight: bold;
+            margin-right: 10px;
+            min-width: 60px;
+        }
+        
+        .test-name {
+            flex-grow: 1;
+        }
+        
+        .test-error {
+            color: #d32f2f;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .test-timestamp {
+            color: #666;
+            font-size: 0.8em;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .console-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧪 ResourceManager 煙霧測試執行器</h1>
+        <p>RESOURCE-001 任務 - 資源整合管理系統測試</p>
+    </div>
+
+    <div class="test-controls">
+        <button id="runTests" onclick="runTests()">🚀 執行煙霧測試</button>
+        <button id="clearResults" onclick="clearResults()">🗑️ 清除結果</button>
+        <button id="exportResults" onclick="exportResults()" disabled>📊 匯出結果</button>
+        
+        <div class="progress-bar" id="progressBar" style="display: none;">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+    </div>
+
+    <div class="test-results" id="testResults" style="display: none;">
+        <h2>📊 測試結果摘要</h2>
+        <div class="summary" id="summary"></div>
+        
+        <h3>📋 詳細測試結果</h3>
+        <div id="testDetails"></div>
+        
+        <div class="console-output" id="consoleOutput"></div>
+    </div>
+
+    <script type="module">
+        import { runResourceManagerSmokeTests } from './resource-manager.test.js';
+        
+        let testResults = null;
+        let consoleMessages = [];
+        
+        // 攔截 console 輸出
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+        
+        console.log = function(...args) {
+            consoleMessages.push({ type: 'log', message: args.join(' '), timestamp: new Date().toISOString() });
+            updateConsoleOutput();
+            originalConsoleLog.apply(console, args);
+        };
+        
+        console.error = function(...args) {
+            consoleMessages.push({ type: 'error', message: args.join(' '), timestamp: new Date().toISOString() });
+            updateConsoleOutput();
+            originalConsoleError.apply(console, args);
+        };
+        
+        console.warn = function(...args) {
+            consoleMessages.push({ type: 'warn', message: args.join(' '), timestamp: new Date().toISOString() });
+            updateConsoleOutput();
+            originalConsoleWarn.apply(console, args);
+        };
+        
+        window.runTests = async function() {
+            const runButton = document.getElementById('runTests');
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            const resultsDiv = document.getElementById('testResults');
+            
+            // 重置狀態
+            runButton.disabled = true;
+            runButton.innerHTML = '<div class="loading"></div>執行中...';
+            progressBar.style.display = 'block';
+            progressFill.style.width = '0%';
+            consoleMessages = [];
+            
+            try {
+                // 模擬進度更新
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress += Math.random() * 10;
+                    if (progress > 90) progress = 90;
+                    progressFill.style.width = progress + '%';
+                }, 200);
+                
+                // 執行測試
+                testResults = await runResourceManagerSmokeTests();
+                
+                // 完成進度
+                clearInterval(progressInterval);
+                progressFill.style.width = '100%';
+                
+                // 顯示結果
+                displayResults(testResults);
+                resultsDiv.style.display = 'block';
+                
+                // 啟用匯出按鈕
+                document.getElementById('exportResults').disabled = false;
+                
+            } catch (error) {
+                console.error('測試執行失敗:', error);
+                alert('測試執行失敗: ' + error.message);
+            } finally {
+                runButton.disabled = false;
+                runButton.innerHTML = '🚀 執行煙霧測試';
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                }, 1000);
+            }
+        };
+        
+        window.clearResults = function() {
+            document.getElementById('testResults').style.display = 'none';
+            document.getElementById('exportResults').disabled = true;
+            consoleMessages = [];
+            testResults = null;
+            updateConsoleOutput();
+        };
+        
+        window.exportResults = function() {
+            if (!testResults) return;
+            
+            const exportData = {
+                testResults,
+                consoleMessages,
+                exportTime: new Date().toISOString(),
+                userAgent: navigator.userAgent
+            };
+            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `resource-manager-test-results-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+        
+        function displayResults(results) {
+            const summaryDiv = document.getElementById('summary');
+            const detailsDiv = document.getElementById('testDetails');
+            
+            // 顯示摘要
+            summaryDiv.innerHTML = `
+                <div class="summary-card total">
+                    <h3>${results.summary.total}</h3>
+                    <p>總測試數</p>
+                </div>
+                <div class="summary-card passed">
+                    <h3>${results.summary.passed}</h3>
+                    <p>通過測試</p>
+                </div>
+                <div class="summary-card failed">
+                    <h3>${results.summary.failed}</h3>
+                    <p>失敗測試</p>
+                </div>
+                <div class="summary-card duration">
+                    <h3>${results.summary.passRate}%</h3>
+                    <p>通過率 (${results.summary.duration})</p>
+                </div>
+            `;
+            
+            // 顯示詳細結果
+            detailsDiv.innerHTML = results.results.map(result => `
+                <div class="test-item ${result.status.toLowerCase()}">
+                    <div class="test-status">${result.status === 'PASS' ? '✅' : '❌'} ${result.status}</div>
+                    <div class="test-name">
+                        ${result.name}
+                        ${result.error ? `<div class="test-error">錯誤: ${result.error}</div>` : ''}
+                    </div>
+                    <div class="test-timestamp">${new Date(result.timestamp).toLocaleTimeString()}</div>
+                </div>
+            `).join('');
+        }
+        
+        function updateConsoleOutput() {
+            const consoleDiv = document.getElementById('consoleOutput');
+            consoleDiv.innerHTML = consoleMessages.map(msg => {
+                const time = new Date(msg.timestamp).toLocaleTimeString();
+                const color = msg.type === 'error' ? '#ff6b6b' : msg.type === 'warn' ? '#feca57' : '#d4d4d4';
+                return `<div style="color: ${color};">[${time}] ${msg.message}</div>`;
+            }).join('');
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+        
+        // 頁面載入完成後的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🧪 ResourceManager 測試執行器已準備就緒');
+            console.log('📋 測試範圍: 資源整合管理系統 (RESOURCE-001)');
+            console.log('🎯 測試目標: 驗證資源複製、SRI 生成、清單管理功能');
+        });
+    </script>
+</body>
+</html>

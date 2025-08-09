@@ -1,0 +1,131 @@
+{
+  "timestamp": "2025-08-07T04:37:08.113Z",
+  "tool": "multi-env-config-generator",
+  "version": "1.0.0",
+  "platforms": [
+    {
+      "platform": "github-pages",
+      "path": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/config/github-pages-config.json",
+      "size": 1452,
+      "hash": "22f884c201f4d4a6bd0376be9f0f3b29b9e29b101dfd4b9cb3a27dee29f22d1f",
+      "features": [
+        "serviceWorker",
+        "offlineSupport",
+        "pushNotifications",
+        "backgroundSync",
+        "periodicSync"
+      ],
+      "securityLevel": "standard"
+    },
+    {
+      "platform": "cloudflare-pages",
+      "path": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/config/cloudflare-pages-config.json",
+      "size": 1561,
+      "hash": "8cc54e0239eab5d7d9e0924c0fcb4667405b81e9e8d1d62f8901d4566e844047",
+      "features": [
+        "serviceWorker",
+        "offlineSupport",
+        "pushNotifications",
+        "backgroundSync",
+        "periodicSync",
+        "edgeFunctions"
+      ],
+      "securityLevel": "enhanced"
+    },
+    {
+      "platform": "netlify",
+      "path": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/config/netlify-config.json",
+      "size": 1541,
+      "hash": "9b12a1b53cbc5a4f2275b2a0ffc33d5ac4881c39c14f65e0cef205aa2256495b",
+      "features": [
+        "serviceWorker",
+        "offlineSupport",
+        "pushNotifications",
+        "backgroundSync",
+        "periodicSync",
+        "serverlessFunctions"
+      ],
+      "securityLevel": "enhanced"
+    },
+    {
+      "platform": "vercel",
+      "path": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/config/vercel-config.json",
+      "size": 1677,
+      "hash": "d8b03d8f581b66ab3e5b409512a341f285f400877ec023705d96d6067526eece",
+      "features": [
+        "serviceWorker",
+        "offlineSupport",
+        "pushNotifications",
+        "backgroundSync",
+        "periodicSync",
+        "edgeConfig",
+        "serverlessApi"
+      ],
+      "securityLevel": "enhanced"
+    },
+    {
+      "platform": "local",
+      "path": "/Users/shengfanwu/GitHub/DB-Card/pwa-card-storage/config/local-config.json",
+      "size": 1373,
+      "hash": "8ae5414973c2486acf92a0c5af3d422d4e03aabd2ae40e696287f7add132261e",
+      "features": [
+        "serviceWorker",
+        "offlineSupport",
+        "pushNotifications",
+        "backgroundSync",
+        "periodicSync",
+        "devTools",
+        "hotReload"
+      ],
+      "securityLevel": "development"
+    }
+  ],
+  "totalConfigs": 5,
+  "validationResults": [
+    {
+      "platform": "github-pages",
+      "valid": true,
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "platform": "cloudflare-pages",
+      "valid": true,
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "platform": "netlify",
+      "valid": true,
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "platform": "vercel",
+      "valid": true,
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "platform": "local",
+      "valid": true,
+      "errors": [],
+      "warnings": []
+    }
+  ],
+  "securityFeatures": [
+    "CSP (Content Security Policy) configuration",
+    "Security headers implementation",
+    "HTTPS enforcement",
+    "XSS protection",
+    "Content type validation"
+  ],
+  "errors": [],
+  "summary": {
+    "totalPlatforms": 5,
+    "validConfigurations": 5,
+    "totalErrors": 0,
+    "totalWarnings": 0,
+    "successRate": "100%"
+  }
+}

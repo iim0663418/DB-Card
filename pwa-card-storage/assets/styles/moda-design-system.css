@@ -359,6 +359,64 @@
   transition: color 0.3s ease;
 }
 
+/* 統計標籤樣式 - moda 設計系統 */
+.stat-label {
+  color: var(--pwa-text-secondary);
+  font-family: var(--pwa-font-family);
+  font-size: var(--senior-font-size-sm);
+  font-weight: var(--pwa-font-weight-medium);
+  letter-spacing: var(--senior-letter-spacing);
+  transition: color 0.3s ease;
+}
+
+.stat-value {
+  color: var(--pwa-text);
+  font-family: var(--pwa-font-family);
+  font-size: var(--senior-font-size-lg);
+  font-weight: var(--pwa-font-weight-bold);
+  transition: color 0.3s ease;
+}
+
+/* 版本管理統計樣式 */
+.version-stats {
+  background-color: var(--pwa-surface);
+  border: 1px solid var(--pwa-border);
+  border-radius: 8px;
+  padding: var(--pwa-spacing-md);
+  margin-bottom: var(--pwa-spacing-lg);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.version-stats .stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--pwa-spacing-sm) 0;
+  border-bottom: 1px solid var(--pwa-border);
+  transition: border-color 0.3s ease;
+}
+
+.version-stats .stat-item:last-child {
+  border-bottom: none;
+}
+
+.version-stats .stat-label {
+  color: var(--pwa-text-secondary);
+  font-family: var(--pwa-font-family);
+  font-size: var(--senior-font-size-base);
+  font-weight: var(--pwa-font-weight-medium);
+  letter-spacing: var(--senior-letter-spacing);
+  transition: color 0.3s ease;
+}
+
+.version-stats .stat-value {
+  color: var(--pwa-primary);
+  font-family: var(--pwa-font-family);
+  font-size: var(--senior-font-size-base);
+  font-weight: var(--pwa-font-weight-bold);
+  transition: color 0.3s ease;
+}
+
 /* 深色模式特定樣式 */
 .dark .btn-icon {
   border-color: var(--pwa-border);
@@ -421,4 +479,227 @@
 .dark .install-prompt {
   background-color: var(--pwa-surface);
   border-color: var(--pwa-border);
+}
+
+/* 深色模式統計樣式 */
+.dark .stat-label {
+  color: var(--pwa-text-secondary);
+}
+
+.dark .stat-value {
+  color: var(--pwa-text);
+}
+
+.dark .version-stats {
+  background-color: var(--pwa-surface);
+  border-color: var(--pwa-border);
+}
+
+.dark .version-stats .stat-item {
+  border-color: var(--pwa-border);
+}
+
+.dark .version-stats .stat-label {
+  color: var(--pwa-text-secondary);
+}
+
+.dark .version-stats .stat-value {
+  color: var(--pwa-primary);
+}
+
+/* 版本管理介面完整樣式 */
+.version-modal-content {
+  background-color: var(--pwa-surface);
+  border: 1px solid var(--pwa-border);
+  border-radius: 12px;
+  color: var(--pwa-text);
+  max-width: 800px;
+  width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.version-actions {
+  display: flex;
+  gap: var(--pwa-spacing-sm);
+  margin-bottom: var(--pwa-spacing-lg);
+  flex-wrap: wrap;
+}
+
+.version-list-container {
+  background-color: var(--pwa-surface);
+  border: 1px solid var(--pwa-border);
+  border-radius: 8px;
+  padding: var(--pwa-spacing-md);
+}
+
+.version-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--pwa-spacing-md);
+  padding-bottom: var(--pwa-spacing-sm);
+  border-bottom: 1px solid var(--pwa-border);
+}
+
+.version-list-header h3 {
+  color: var(--pwa-text);
+  font-family: var(--pwa-font-family);
+  font-size: var(--senior-font-size-lg);
+  font-weight: var(--pwa-font-weight-bold);
+  margin: 0;
+}
+
+.version-filters select {
+  background-color: var(--pwa-surface);
+  border: 1px solid var(--pwa-border);
+  border-radius: 6px;
+  color: var(--pwa-text);
+  font-family: var(--pwa-font-family);
+  padding: var(--pwa-spacing-xs) var(--pwa-spacing-sm);
+}
+
+.version-item {
+  background-color: var(--pwa-surface);
+  border: 1px solid var(--pwa-border);
+  border-radius: 8px;
+  margin-bottom: var(--pwa-spacing-sm);
+  padding: var(--pwa-spacing-md);
+  transition: all 0.3s ease;
+}
+
+.version-item:hover {
+  border-color: var(--pwa-primary);
+  box-shadow: 0 2px 8px rgba(104, 104, 172, 0.15);
+}
+
+.version-item.current-version {
+  border-color: var(--pwa-primary);
+  background-color: rgba(104, 104, 172, 0.05);
+}
+
+.version-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--pwa-spacing-sm);
+}
+
+.version-info {
+  display: flex;
+  align-items: center;
+  gap: var(--pwa-spacing-sm);
+}
+
+.version-number {
+  color: var(--pwa-primary);
+  font-family: var(--pwa-font-family);
+  font-size: var(--senior-font-size-base);
+  font-weight: var(--pwa-font-weight-bold);
+}
+
+.version-type {
+  color: var(--pwa-text-secondary);
+  font-family: var(--pwa-font-family);
+  font-size: var(--senior-font-size-sm);
+}
+
+.current-badge {
+  background-color: var(--pwa-primary);
+  color: var(--md-white-1);
+  border-radius: 12px;
+  font-size: var(--senior-font-size-xs);
+  font-weight: var(--pwa-font-weight-medium);
+  padding: 2px 8px;
+}
+
+.version-date {
+  color: var(--pwa-text-secondary);
+  font-family: var(--pwa-font-family);
+  font-size: var(--senior-font-size-sm);
+}
+
+.version-description {
+  color: var(--pwa-text);
+  font-family: var(--pwa-font-family);
+  font-size: var(--senior-font-size-base);
+  line-height: var(--senior-line-height-normal);
+  margin-bottom: var(--pwa-spacing-sm);
+}
+
+.version-actions {
+  display: flex;
+  gap: var(--pwa-spacing-xs);
+  flex-wrap: wrap;
+}
+
+.btn-sm {
+  font-size: var(--senior-font-size-sm);
+  padding: var(--pwa-spacing-xs) var(--pwa-spacing-sm);
+  border-radius: 6px;
+}
+
+.no-versions, .error-message, .loading-placeholder {
+  color: var(--pwa-text-secondary);
+  font-family: var(--pwa-font-family);
+  font-size: var(--senior-font-size-base);
+  text-align: center;
+  padding: var(--pwa-spacing-lg);
+}
+
+/* 深色模式版本管理樣式 */
+.dark .version-modal-content {
+  background-color: var(--pwa-surface);
+  border-color: var(--pwa-border);
+  color: var(--pwa-text);
+}
+
+.dark .version-list-container {
+  background-color: var(--pwa-surface);
+  border-color: var(--pwa-border);
+}
+
+.dark .version-list-header {
+  border-color: var(--pwa-border);
+}
+
+.dark .version-list-header h3 {
+  color: var(--pwa-text);
+}
+
+.dark .version-filters select {
+  background-color: var(--pwa-surface);
+  border-color: var(--pwa-border);
+  color: var(--pwa-text);
+}
+
+.dark .version-item {
+  background-color: var(--pwa-surface);
+  border-color: var(--pwa-border);
+}
+
+.dark .version-item.current-version {
+  background-color: rgba(90, 90, 148, 0.1);
+  border-color: var(--pwa-primary);
+}
+
+.dark .version-number {
+  color: var(--pwa-primary);
+}
+
+.dark .version-type, .dark .version-date {
+  color: var(--pwa-text-secondary);
+}
+
+.dark .version-description {
+  color: var(--pwa-text);
+}
+
+.dark .current-badge {
+  background-color: var(--pwa-primary);
+  color: var(--md-white-1);
+}
+
+.dark .no-versions, .dark .error-message, .dark .loading-placeholder {
+  color: var(--pwa-text-secondary);
 }

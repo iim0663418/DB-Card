@@ -6,7 +6,7 @@
 class UnifiedManifestManager {
   constructor() {
     this.manifestData = null;
-    this.currentVersion = '1.0.5';
+    this.currentVersion = null;
     this.isInitialized = false;
     this.init();
   }
@@ -43,7 +43,7 @@ class UnifiedManifestManager {
         const response = await fetch(url, { cache: 'no-cache' });
         if (response.ok) {
           this.manifestData = await response.json();
-          this.currentVersion = this.manifestData.version || '1.0.5';
+          this.currentVersion = this.manifestData.version || null;
           this.isInitialized = true;
           return this.manifestData;
         }
@@ -70,7 +70,7 @@ class UnifiedManifestManager {
   getFallbackManifest() {
     return {
       name: "NFC 數位名片離線儲存",
-      version: "1.0.5",
+      version: null,
       start_url: "./",
       display: "standalone",
       theme_color: "#1976d2"
@@ -82,7 +82,11 @@ class UnifiedManifestManager {
     const updateVersion = () => {
       const versionEl = document.getElementById('app-version');
       if (versionEl) {
-        versionEl.textContent = `v${this.currentVersion}`;
+        if (this.currentVersion) {
+          versionEl.textContent = this.currentVersion.startsWith('v') ? this.currentVersion : `v${this.currentVersion}`;
+        } else {
+          versionEl.textContent = '載入中...';
+        }
       }
     };
 
@@ -98,7 +102,7 @@ class UnifiedManifestManager {
 
   // 獲取版本
   getVersion() {
-    return this.currentVersion;
+    return this.currentVersion || 'unknown';
   }
 
   // 檢查是否已初始化
@@ -113,5 +117,10 @@ window.manifestManager = new UnifiedManifestManager();
 // 向後相容
 window.manifestLoader = window.manifestManager;
 window.loadAppVersion = (element) => {
-  element.textContent = `v${window.manifestManager.getVersion()}`;
+  const version = window.manifestManager.getVersion();
+  if (version && version !== 'unknown') {
+    element.textContent = version.startsWith('v') ? version : `v${version}`;
+  } else {
+    element.textContent = '載入中...';
+  }
 };

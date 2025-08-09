@@ -1,0 +1,139 @@
+{
+  "name": "NFC 數位名片離線儲存",
+  "short_name": "名片儲存",
+  "description": "數位發展部 NFC 數位名片離線儲存服務",
+  "version": "v3.2.1",
+  "start_url": "/DB-Card/pwa-card-storage/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#1976d2",
+  "background_color": "#ffffff",
+  "lang": "zh-TW",
+  
+  "icons": [
+    {
+      "src": "./assets/icons/icon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/images/moda-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  
+  "categories": ["business", "productivity", "utilities"],
+  "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
+  
+  "shortcuts": [
+    {
+      "name": "匯入名片",
+      "short_name": "匯入",
+      "description": "快速匯入新的數位名片",
+      "url": "/DB-Card/pwa-card-storage/?action=import"
+    },
+    {
+      "name": "瀏覽名片",
+      "short_name": "瀏覽",
+      "description": "瀏覽已儲存的名片",
+      "url": "/DB-Card/pwa-card-storage/?action=browse"
+    },
+    {
+      "name": "匯出備份",
+      "short_name": "備份",
+      "description": "匯出名片備份檔案",
+      "url": "/DB-Card/pwa-card-storage/?action=export"
+    }
+  ],
+  
+  "related_applications": [],
+  "prefer_related_applications": false,
+  
+  "scope": "/DB-Card/pwa-card-storage/",
+  "id": "/DB-Card/pwa-card-storage/",
+  
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  
+  "handle_links": "preferred",
+  
+  "protocol_handlers": [
+    {
+      "protocol": "web+nfccard",
+      "url": "/DB-Card/pwa-card-storage/?data=%s"
+    }
+  ],
+  
+  "share_target": {
+    "action": "/DB-Card/pwa-card-storage/",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  
+  "file_handlers": [
+    {
+      "action": "/DB-Card/pwa-card-storage/?import=file",
+      "accept": {
+        "application/json": [".json"],
+        "text/vcard": [".vcf"],
+        "application/octet-stream": [".enc"]
+      }
+    }
+  ],
+  
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  
+  "permissions": [
+    "storage-access"
+  ],
+  
+  "security": {
+    "content_security_policy": {
+      "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'self';"
+    },
+    "encryption": {
+      "algorithm": "AES-GCM",
+      "key_derivation": "PBKDF2",
+      "iterations": 100000
+    },
+    "privacy": {
+      "data_collection": false,
+      "analytics": false,
+      "third_party_tracking": false
+    }
+  },
+  
+  "cross_platform": {
+    "minimum_versions": {
+      "ios": "12.0",
+      "android": "8.0",
+      "chrome": "80",
+      "safari": "12",
+      "firefox": "75"
+    }
+  }
+}

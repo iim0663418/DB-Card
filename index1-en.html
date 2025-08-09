@@ -1116,55 +1116,115 @@
             return processedLines.join('\n');
         }
 
-        // PWA 儲存功能
+                                // PWA 儲存功能 - localStorage 完整方式
         function setupPWASaveButton(cardData) {
             const saveButton = document.getElementById('save-to-pwa-btn');
             if (!saveButton) return;
             
             saveButton.addEventListener('click', function() {
-                // 檢查 PWA 是否可用
-                if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-                    alert('離線儲存功能需要 HTTPS 連線或本地環境');
-                    return;
-                }
-                
-                // 立即暫存當前頁面 URL
-                const currentUrl = window.location.href;
                 try {
-                    sessionStorage.setItem('pwa_card_source_url', JSON.stringify({
-                        sourceUrl: currentUrl,
-                        timestamp: Date.now(),
-                        referrer: document.referrer
-                    }));
-                    console.log('[PWA] 已暫存來源 URL:', currentUrl);
-                } catch (error) {
-                    console.error('[PWA] 暫存失敗:', error);
-                }
-                
-                // 開啟 PWA 並傳遞資料
-                const urlParams = new URLSearchParams(window.location.search);
-                const dataParam = urlParams.get('data') || urlParams.get('c');
-                // 正確構建 PWA URL，相容 GitHub Pages 和 Cloudflare Pages
-                const currentPath = window.location.pathname;
-                const basePath = currentPath.includes('/') ? currentPath.replace(/\/[^/]*$/, '') : '';
-                const pwaUrl = window.location.origin + basePath + '/pwa-card-storage/?c=' + encodeURIComponent(dataParam);
-                
-                // 在新窗口開啟 PWA
-                const pwaWindow = window.open(pwaUrl, '_blank');
-                
-                if (pwaWindow) {
-                    // 更新按鈕狀態
-                    saveButton.textContent = '✅ 已開啟 PWA';
-                    saveButton.style.background = '#6c757d';
+                    saveButton.textContent = '⏳ 處理中...';
                     saveButton.disabled = true;
                     
-                    setTimeout(() => {
-                        saveButton.textContent = '💾 儲存到離線';
+                    // 暫存完整名片資料到 localStorage
+                    const sourceData = {
+                        sourceUrl: window.location.href,
+                        timestamp: Date.now(),
+                        cardData: cardData
+                    };
+                    
+                    localStorage.setItem('pwa_card_source_url', JSON.stringify(sourceData));
+                    console.log('[PWA] 已暫存完整名片資料');
+                    
+                    // 構建 PWA URL（不帶資料參數）
+                    const currentPath = window.location.pathname;
+                    const basePath = currentPath.includes('/') ? currentPath.replace(/\/[^/]*$/, '') : '';
+                    const pwaUrl = window.location.origin + basePath + '/pwa-card-storage/';
+                    
+                    // 開啟 PWA
+                    const pwaWindow = window.open(pwaUrl, '_blank', 'width=1200,height=800');
+                    
+                    if (pwaWindow) {
+                        saveButton.textContent = '✅ 已開啟 PWA';
                         saveButton.style.background = '#28a745';
-                        saveButton.disabled = false;
-                    }, 3000);
-                } else {
-                    alert('無法開啟 PWA，請檢查瀏覽器設定');
+                        
+                        setTimeout(() => {
+                            saveButton.textContent = '💾 儲存到離線';
+                            saveButton.style.background = '#6868ac';
+                            saveButton.disabled = false;
+                        }, 3000);
+                    } else {
+                        throw new Error('無法開啟 PWA');
+                    }
+                    
+                } catch (error) {
+                    console.error('[PWA] 儲存失敗:', error);
+                    saveButton.textContent = '💾 儲存到離線';
+                    saveButton.style.background = '#6868ac';
+                    saveButton.disabled = false;
+                    alert('請允許彈出視窗並重試');
+                }
+            });
+        }
+                    
+                    if (!dataParam) {
+                        throw new Error('找不到名片資料參數');
+                    }
+                    
+                    // 正確構建 PWA URL，相容多種部署環境
+                    const currentPath = window.location.pathname;
+                    let basePath = '';
+                    
+                    // GitHub Pages: /repo-name/index.html -> /repo-name
+                    if (currentPath.includes('/') && !currentPath.startsWith('/pwa-card-storage')) {
+                        basePath = currentPath.replace(/\/[^/]*$/, '');
+                    }
+                    
+                    const pwaUrl = window.location.origin + basePath + '/pwa-card-storage/?action=import&data=' + encodeURIComponent(dataParam);
+                    console.log('[PWA] 構建的 PWA URL:', pwaUrl);
+                    
+                    // 在新窗口開啟 PWA
+                    const pwaWindow = window.open(pwaUrl, '_blank', 'width=1200,height=800');
+                    
+                    if (pwaWindow) {
+                        // 更新按鈕狀態為成功
+                        saveButton.textContent = '✅ 已開啟 PWA';
+                        saveButton.style.background = '#28a745';
+                        
+                        // 監聽窗口關閉事件
+                        const checkClosed = setInterval(() => {
+                            if (pwaWindow.closed) {
+                                clearInterval(checkClosed);
+                                // 恢復按鈕狀態
+                                saveButton.textContent = '💾 儲存到離線';
+                                saveButton.style.background = '#6868ac';
+                                saveButton.disabled = false;
+                            }
+                        }, 1000);
+                        
+                        // 5秒後自動恢復按鈕（防止監聽失效）
+                        setTimeout(() => {
+                            if (!pwaWindow.closed) {
+                                clearInterval(checkClosed);
+                                saveButton.textContent = '💾 儲存到離線';
+                                saveButton.style.background = '#6868ac';
+                                saveButton.disabled = false;
+                            }
+                        }, 5000);
+                    } else {
+                        throw new Error('無法開啟 PWA 窗口');
+                    }
+                    
+                } catch (error) {
+                    console.error('[PWA] 儲存失敗:', error);
+                    
+                    // 恢復按鈕狀態
+                    saveButton.textContent = '💾 儲存到離線';
+                    saveButton.style.background = '#6868ac';
+                    saveButton.disabled = false;
+                    
+                    // 顯示錯誤訊息
+                    alert('儲存失敗: ' + error.message + '\n\n請確認：\n1. 瀏覽器允許彈出視窗\n2. 網路連線正常\n3. 使用 HTTPS 或本地環境');
                 }
             });
         }

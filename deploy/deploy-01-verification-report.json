@@ -1,0 +1,182 @@
+{
+  "timestamp": "2025-08-07T04:48:23.050Z",
+  "tool": "deployment-verifier",
+  "version": "1.0.0",
+  "verificationResults": [
+    {
+      "platform": "local",
+      "baseUrl": "http://localhost:8080/pwa-card-storage/",
+      "startTime": 1754542103051,
+      "tests": [
+        {
+          "name": "Resource Loading: ",
+          "type": "resource_loading",
+          "passed": false,
+          "details": {
+            "url": "http://localhost:8080/pwa-card-storage/",
+            "error": "",
+            "critical": true
+          },
+          "timestamp": "2025-08-07T04:48:23.057Z"
+        },
+        {
+          "name": "Resource Loading: manifest.json",
+          "type": "resource_loading",
+          "passed": false,
+          "details": {
+            "url": "http://localhost:8080/pwa-card-storage/manifest.json",
+            "error": "",
+            "critical": true
+          },
+          "timestamp": "2025-08-07T04:48:23.057Z"
+        },
+        {
+          "name": "Resource Loading: sw.js",
+          "type": "resource_loading",
+          "passed": false,
+          "details": {
+            "url": "http://localhost:8080/pwa-card-storage/sw.js",
+            "error": "",
+            "critical": true
+          },
+          "timestamp": "2025-08-07T04:48:23.058Z"
+        },
+        {
+          "name": "Resource Loading: assets/moda-logo.svg",
+          "type": "resource_loading",
+          "passed": false,
+          "details": {
+            "url": "http://localhost:8080/pwa-card-storage/assets/moda-logo.svg",
+            "error": "",
+            "critical": false
+          },
+          "timestamp": "2025-08-07T04:48:23.059Z"
+        },
+        {
+          "name": "Resource Loading: src/core/configuration-manager.js",
+          "type": "resource_loading",
+          "passed": false,
+          "details": {
+            "url": "http://localhost:8080/pwa-card-storage/src/core/configuration-manager.js",
+            "error": "",
+            "critical": true
+          },
+          "timestamp": "2025-08-07T04:48:23.059Z"
+        },
+        {
+          "name": "Resource Loading: src/core/config-validator.js",
+          "type": "resource_loading",
+          "passed": false,
+          "details": {
+            "url": "http://localhost:8080/pwa-card-storage/src/core/config-validator.js",
+            "error": "",
+            "critical": true
+          },
+          "timestamp": "2025-08-07T04:48:23.060Z"
+        },
+        {
+          "name": "Resource Loading: config/github-pages-config.json",
+          "type": "resource_loading",
+          "passed": false,
+          "details": {
+            "url": "http://localhost:8080/pwa-card-storage/config/github-pages-config.json",
+            "error": "",
+            "critical": false
+          },
+          "timestamp": "2025-08-07T04:48:23.060Z"
+        },
+        {
+          "name": "Resource Loading: config/local-config.json",
+          "type": "resource_loading",
+          "passed": false,
+          "details": {
+            "url": "http://localhost:8080/pwa-card-storage/config/local-config.json",
+            "error": "",
+            "critical": false
+          },
+          "timestamp": "2025-08-07T04:48:23.061Z"
+        },
+        {
+          "name": "Configuration Management Error",
+          "type": "config_management",
+          "passed": false,
+          "details": {
+            "error": ""
+          },
+          "timestamp": "2025-08-07T04:48:23.062Z"
+        },
+        {
+          "name": "Security Features Error",
+          "type": "security",
+          "passed": false,
+          "details": {
+            "error": ""
+          },
+          "timestamp": "2025-08-07T04:48:23.063Z"
+        },
+        {
+          "name": "PWA Features Error",
+          "type": "pwa",
+          "passed": false,
+          "details": {
+            "error": ""
+          },
+          "timestamp": "2025-08-07T04:48:23.063Z"
+        },
+        {
+          "name": "Performance Metrics Error",
+          "type": "performance",
+          "passed": false,
+          "details": {
+            "error": ""
+          },
+          "timestamp": "2025-08-07T04:48:23.064Z"
+        }
+      ],
+      "endTime": 1754542103064,
+      "duration": 13,
+      "passedTests": 0,
+      "totalTests": 12,
+      "successRate": 0
+    }
+  ],
+  "performanceMetrics": [],
+  "securityChecks": [],
+  "errors": [],
+  "summary": {
+    "totalPlatforms": 1,
+    "totalTests": 12,
+    "passedTests": 0,
+    "failedTests": 12,
+    "successRate": "0%",
+    "testsByType": [
+      {
+        "type": "resource_loading",
+        "total": 8,
+        "passed": 0
+      },
+      {
+        "type": "config_management",
+        "total": 1,
+        "passed": 0
+      },
+      {
+        "type": "security",
+        "total": 1,
+        "passed": 0
+      },
+      {
+        "type": "pwa",
+        "total": 1,
+        "passed": 0
+      },
+      {
+        "type": "performance",
+        "total": 1,
+        "passed": 0
+      }
+    ],
+    "averageLoadTime": "0ms",
+    "criticalIssues": 5
+  }
+}

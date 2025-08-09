@@ -33,7 +33,9 @@ describe('modaDesignSystemManager', () => {
     }));
 
     global.performance = {
-      now: jest.fn(() => Date.now())
+      now: jest.fn(() => Date.now()),
+      mark: jest.fn(),
+      measure: jest.fn()
     };
 
     manager = new modaDesignSystemManager();
@@ -105,7 +107,7 @@ describe('modaDesignSystemManager', () => {
       expect(tokens).not.toBeNull();
       expect(tokens.colors.primary['1']).toBe('#6868ac');
       expect(tokens.colors.secondary['1']).toBe('#565e62');
-      expect(tokens.typography.fontFamily).toBe("'PingFang TC', 'Noto Sans TC', sans-serif");
+      expect(tokens.typography.fontFamily).toBe("'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif");
     });
   });
 
@@ -127,8 +129,8 @@ describe('modaDesignSystemManager', () => {
       expect(setProperty).toHaveBeenCalledWith('--md-secondary-2', '#6E777C');
       
       // 驗證字體變數
-      expect(setProperty).toHaveBeenCalledWith('--bs-body-font-family', "'PingFang TC', 'Noto Sans TC', sans-serif");
-      expect(setProperty).toHaveBeenCalledWith('--bs-body-font-weight', '300');
+      expect(setProperty).toHaveBeenCalledWith('--bs-body-font-family', "'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif");
+      expect(setProperty).toHaveBeenCalledWith('--bs-body-font-weight', '400');
       
       // 驗證Bootstrap整合變數
       expect(setProperty).toHaveBeenCalledWith('--bs-primary', 'var(--md-primary-1)');

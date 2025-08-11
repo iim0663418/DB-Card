@@ -147,6 +147,8 @@ class PWACardStorage {
   initializeManagers() {
     this.duplicateDetector = null;
     this.versionManager = null;
+    this.userKeyManager = null;
+    this.keyRecoveryManager = null;
   }
 
   initializeDatabaseStores() {
@@ -454,6 +456,16 @@ class PWACardStorage {
         this.versionManager = new VersionManager(this);
       }
       
+      // UCE-05: Initialize user key manager
+      if (typeof UserKeyManager !== 'undefined') {
+        this.userKeyManager = new UserKeyManager(this);
+      }
+      
+      // UCE-05: Initialize key recovery manager
+      if (typeof KeyRecoveryManager !== 'undefined') {
+        this.keyRecoveryManager = new KeyRecoveryManager(this, this.userKeyManager);
+      }
+      
       // 確保批量遷移器已初始化
       if (!this.batchMigrator && typeof BatchDataMigrator !== 'undefined') {
         this.batchMigrator = new BatchDataMigrator(this, this.migrationValidator);
@@ -578,51 +590,26 @@ class PWACardStorage {
 
   async initializeEncryption() {
     try {
-      // PWA-05: Enhanced field-level encryption initialization
-      let keyData = await this.getSetting('encryptionKey');
+      // UCE-05: Initialize user-controlled encryption system
+      await this.initializeUserKeyManager();
       
-      if (!keyData) {
-        // Generate new encryption key with enhanced security
-        const salt = crypto.getRandomValues(new Uint8Array(this.CONSTANTS.ENCRYPTION.SALT_LENGTH));
-        const keyMaterial = await this.deriveKeyFromPBKDF2('default-password', salt);
-        
-        this.encryptionKey = keyMaterial;
-        this.encryptionSalt = salt;
-        
-        // PWA-05: Initialize field-level encryption keys
-        this.fieldEncryptionKeys = await this.generateFieldEncryptionKeys();
-        
-        // Store key metadata (never store actual keys)
-        await this.setSetting('encryptionKey', {
-          created: new Date().toISOString(),
+      // Check if user has configured passphrase
+      const userKeyConfig = await this.getSetting('userKeyConfig');
+      
+      if (userKeyConfig) {
+        // User-controlled encryption configured
+        this.safeLog('info', 'User-controlled encryption detected');
+        this.encryptionStatus = {
+          enabled: true,
+          userControlled: true,
+          requiresUnlock: true,
           algorithm: 'AES-GCM',
-          keyDerivation: 'PBKDF2',
-          iterations: this.CONSTANTS.ENCRYPTION.PBKDF2_ITERATIONS,
-          saltLength: this.CONSTANTS.ENCRYPTION.SALT_LENGTH,
-          salt: Array.from(salt),
-          fieldEncryption: true,
-          version: '2.0'
-        });
-        
+          keyDerivation: 'PBKDF2'
+        };
       } else {
-        // Use existing salt to regenerate keys
-        const salt = new Uint8Array(keyData.salt);
-        const keyMaterial = await this.deriveKeyFromPBKDF2('default-password', salt);
-        
-        this.encryptionKey = keyMaterial;
-        this.encryptionSalt = salt;
-        
-        // PWA-05: Regenerate field-level encryption keys
-        this.fieldEncryptionKeys = await this.generateFieldEncryptionKeys();
+        // Fallback to legacy system for backward compatibility
+        await this.initializeLegacyEncryption();
       }
-      
-      // PWA-05: Initialize encryption status tracking
-      this.encryptionStatus = {
-        enabled: true,
-        fieldLevel: true,
-        algorithm: 'AES-GCM',
-        keyDerivation: 'PBKDF2'
-      };
       
     } catch (error) {
       this.safeLog('error', 'Encryption initialization failed', { 
@@ -3171,6 +3158,16 @@ class PWACardStorage {
         }
       }
       
+      // UCE-05: Cleanup user key manager
+      if (this.userKeyManager) {
+        await this.userKeyManager.clearMemory();
+      }
+      
+      // UCE-05: Cleanup key recovery manager
+      if (this.keyRecoveryManager) {
+        await this.keyRecoveryManager.cleanup();
+      }
+      
       // SEC-03: Cleanup security components
       if (this.healthMonitor) {
         await this.healthMonitor.cleanup(this.CONSTANTS.MATH.HEALTH_DATA_RETENTION_DAYS);
@@ -3602,6 +3599,392 @@ class PWACardStorage {
         error: error.message
       };
     }
+  }
+  /**
+   * UCE-05: Initialize user key manager
+   * @returns {Promise<void>}
+   */
+  async initializeUserKeyManager() {
+    try {
+      if (typeof UserKeyManager !== 'undefined') {
+        this.userKeyManager = new UserKeyManager(this);
+        this.safeLog('info', 'User key manager initialized');
+      } else {
+        this.safeLog('warn', 'UserKeyManager not available');
+      }
+    } catch (error) {
+      this.safeLog('error', 'Failed to initialize user key manager', {
+        error: this.sanitizeInput(error.message, { maxLength: 200 })
+      });
+    }
+  }
+
+  /**
+   * UCE-05: Initialize legacy encryption for backward compatibility
+   * @returns {Promise<void>}
+   */
+  async initializeLegacyEncryption() {
+    try {
+      // PWA-05: Enhanced field-level encryption initialization
+      let keyData = await this.getSetting('encryptionKey');
+      
+      if (!keyData) {
+        // Generate new encryption key with enhanced security
+        const salt = crypto.getRandomValues(new Uint8Array(this.CONSTANTS.ENCRYPTION.SALT_LENGTH));
+        const keyMaterial = await this.deriveKeyFromPBKDF2('default-password', salt);
+        
+        this.encryptionKey = keyMaterial;
+        this.encryptionSalt = salt;
+        
+        // PWA-05: Initialize field-level encryption keys
+        this.fieldEncryptionKeys = await this.generateFieldEncryptionKeys();
+        
+        // Store key metadata (never store actual keys)
+        await this.setSetting('encryptionKey', {
+          created: new Date().toISOString(),
+          algorithm: 'AES-GCM',
+          keyDerivation: 'PBKDF2',
+          iterations: this.CONSTANTS.ENCRYPTION.PBKDF2_ITERATIONS,
+          saltLength: this.CONSTANTS.ENCRYPTION.SALT_LENGTH,
+          salt: Array.from(salt),
+          fieldEncryption: true,
+          version: '2.0'
+        });
+        
+      } else {
+        // Use existing salt to regenerate keys
+        const salt = new Uint8Array(keyData.salt);
+        const keyMaterial = await this.deriveKeyFromPBKDF2('default-password', salt);
+        
+        this.encryptionKey = keyMaterial;
+        this.encryptionSalt = salt;
+        
+        // PWA-05: Regenerate field-level encryption keys
+        this.fieldEncryptionKeys = await this.generateFieldEncryptionKeys();
+      }
+      
+      // PWA-05: Initialize encryption status tracking
+      this.encryptionStatus = {
+        enabled: true,
+        fieldLevel: true,
+        algorithm: 'AES-GCM',
+        keyDerivation: 'PBKDF2',
+        legacy: true
+      };
+      
+    } catch (error) {
+      this.safeLog('error', 'Legacy encryption initialization failed', { 
+        error: this.sanitizeInput(error.message, { maxLength: 200 }) 
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * UCE-05: Set user passphrase for encryption
+   * @param {Object} phrases - Three-phrase structure
+   * @returns {Promise<{success: boolean, keyId: string, entropy: number}>}
+   */
+  async setUserPassphrase(phrases) {
+    try {
+      if (!this.userKeyManager) {
+        throw new Error('User key manager not initialized');
+      }
+
+      const result = await this.userKeyManager.setUserPassphrase(phrases);
+      
+      if (result.success) {
+        // Update encryption status
+        this.encryptionStatus = {
+          enabled: true,
+          userControlled: true,
+          requiresUnlock: false,
+          algorithm: 'AES-GCM',
+          keyDerivation: 'PBKDF2',
+          keyId: result.keyId
+        };
+
+        // Derive encryption key for immediate use
+        this.encryptionKey = await this.userKeyManager.deriveEncryptionKey(phrases);
+        
+        this.safeLog('info', 'User passphrase set successfully', {
+          keyId: result.keyId,
+          entropy: result.entropy
+        });
+      }
+
+      return result;
+
+    } catch (error) {
+      this.safeLog('error', 'Failed to set user passphrase', {
+        error: this.sanitizeInput(error.message, { maxLength: 200 })
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * UCE-05: Unlock with user passphrase
+   * @param {Object} phrases - Three-phrase structure
+   * @returns {Promise<{success: boolean, keyId?: string, remainingAttempts?: number}>}
+   */
+  async unlockWithPassphrase(phrases) {
+    try {
+      if (!this.userKeyManager) {
+        throw new Error('User key manager not initialized');
+      }
+
+      const result = await this.userKeyManager.verifyUserPassphrase(phrases);
+      
+      if (result.success) {
+        // Derive encryption key
+        this.encryptionKey = await this.userKeyManager.deriveEncryptionKey(phrases);
+        
+        // Update encryption status
+        this.encryptionStatus.requiresUnlock = false;
+        this.encryptionStatus.keyId = result.keyId;
+        
+        this.safeLog('info', 'Successfully unlocked with user passphrase', {
+          keyId: result.keyId
+        });
+      }
+
+      return result;
+
+    } catch (error) {
+      this.safeLog('error', 'Failed to unlock with passphrase', {
+        error: this.sanitizeInput(error.message, { maxLength: 200 })
+      });
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * UCE-05: Check if user-controlled encryption is configured
+   * @returns {Promise<boolean>}
+   */
+  async isUserEncryptionConfigured() {
+    try {
+      const userKeyConfig = await this.getSetting('userKeyConfig');
+      return !!userKeyConfig;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * UCE-05: Check if system requires unlock
+   * @returns {boolean}
+   */
+  requiresUnlock() {
+    return this.encryptionStatus?.requiresUnlock === true;
+  }
+
+  /**
+   * UCE-05: Trigger key recovery
+   * @param {string} reason - Recovery reason
+   * @returns {Promise<{recoveryId: string, hints: string[]}>}
+   */
+  async triggerKeyRecovery(reason) {
+    try {
+      if (!this.keyRecoveryManager) {
+        throw new Error('Key recovery manager not initialized');
+      }
+
+      return await this.keyRecoveryManager.triggerRecovery(reason);
+
+    } catch (error) {
+      this.safeLog('error', 'Failed to trigger key recovery', {
+        error: this.sanitizeInput(error.message, { maxLength: 200 }),
+        reason: this.sanitizeInput(reason, { maxLength: 100 })
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * UCE-05: Perform batch data recovery
+   * @param {CryptoKey} newKey - New encryption key
+   * @returns {Promise<{totalItems: number, recoveredItems: number, failedItems: string[]}>}
+   */
+  async performBatchRecovery(newKey) {
+    try {
+      if (!this.keyRecoveryManager) {
+        throw new Error('Key recovery manager not initialized');
+      }
+
+      return await this.keyRecoveryManager.batchDataRecovery(newKey);
+
+    } catch (error) {
+      this.safeLog('error', 'Failed to perform batch recovery', {
+        error: this.sanitizeInput(error.message, { maxLength: 200 })
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * UCE-05: Enhanced health check with key recovery integration
+   * @returns {Promise<Object>}
+   */
+  async performEnhancedHealthCheck() {
+    try {
+      // Perform standard health check
+      const standardHealth = await this.performHealthCheck();
+      
+      // Add key recovery health check
+      let keyRecoveryHealth = {
+        keyIntegrity: true,
+        dataIntegrity: true,
+        recommendations: []
+      };
+
+      if (this.keyRecoveryManager) {
+        keyRecoveryHealth = await this.keyRecoveryManager.performHealthCheck();
+      }
+
+      // Combine results
+      const enhancedHealth = {
+        ...standardHealth,
+        keyRecovery: keyRecoveryHealth,
+        encryptionStatus: this.encryptionStatus,
+        requiresUnlock: this.requiresUnlock(),
+        userEncryptionConfigured: await this.isUserEncryptionConfigured()
+      };
+
+      this.safeLog('info', 'Enhanced health check completed', {
+        healthy: standardHealth.healthy && keyRecoveryHealth.keyIntegrity && keyRecoveryHealth.dataIntegrity,
+        requiresUnlock: enhancedHealth.requiresUnlock,
+        userControlled: this.encryptionStatus?.userControlled
+      });
+
+      return enhancedHealth;
+
+    } catch (error) {
+      this.safeLog('error', 'Enhanced health check failed', {
+        error: this.sanitizeInput(error.message, { maxLength: 200 })
+      });
+      return {
+        healthy: false,
+        error: error.message,
+        keyRecovery: {
+          keyIntegrity: false,
+          dataIntegrity: false,
+          recommendations: ['Health check failed - please restart application']
+        }
+      };
+    }
+  }
+
+  /**
+   * UCE-05: Migrate from legacy to user-controlled encryption
+   * @param {Object} phrases - User passphrase
+   * @returns {Promise<{success: boolean, migratedItems: number, errors: string[]}>}
+   */
+  async migrateToUserEncryption(phrases) {
+    try {
+      this.safeLog('info', 'Starting migration to user-controlled encryption');
+
+      const result = {
+        success: true,
+        migratedItems: 0,
+        errors: []
+      };
+
+      // Set up user passphrase
+      const passphraseResult = await this.setUserPassphrase(phrases);
+      if (!passphraseResult.success) {
+        throw new Error('Failed to set user passphrase');
+      }
+
+      // Get all cards that need migration
+      const cards = await this.listCards();
+      const legacyCards = cards.filter(card => !card.userEncrypted);
+
+      if (legacyCards.length === 0) {
+        this.safeLog('info', 'No cards require migration');
+        return result;
+      }
+
+      // Migrate cards in batches
+      const batchSize = 10;
+      for (let i = 0; i < legacyCards.length; i += batchSize) {
+        const batch = legacyCards.slice(i, i + batchSize);
+        
+        for (const card of batch) {
+          try {
+            // Decrypt with legacy key and re-encrypt with user key
+            let cardData = card.data;
+            if (card.encrypted) {
+              cardData = await this.decryptCardData(card.data);
+            }
+
+            // Re-encrypt with user key
+            const encryptedData = await this.encryptCardData(cardData);
+            
+            // Update card
+            const updatedCard = {
+              ...card,
+              data: encryptedData,
+              encrypted: true,
+              userEncrypted: true,
+              migratedAt: Date.now()
+            };
+
+            await this.safeTransaction(['cards'], 'readwrite', async (transaction) => {
+              const store = transaction.objectStore('cards');
+              return new Promise((resolve, reject) => {
+                const request = store.put(updatedCard);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+              });
+            });
+
+            result.migratedItems++;
+
+          } catch (error) {
+            result.errors.push(`Failed to migrate card ${card.id}: ${error.message}`);
+          }
+        }
+
+        // Avoid blocking UI
+        if (i + batchSize < legacyCards.length) {
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+      }
+
+      this.safeLog('info', 'Migration to user-controlled encryption completed', {
+        migratedItems: result.migratedItems,
+        errors: result.errors.length
+      });
+
+      return result;
+
+    } catch (error) {
+      this.safeLog('error', 'Migration to user-controlled encryption failed', {
+        error: this.sanitizeInput(error.message, { maxLength: 200 })
+      });
+      return {
+        success: false,
+        migratedItems: 0,
+        errors: [error.message]
+      };
+    }
+  }
+
+  /**
+   * UCE-05: Get encryption system status
+   * @returns {Object}
+   */
+  getEncryptionStatus() {
+    return {
+      ...this.encryptionStatus,
+      userKeyManager: this.userKeyManager ? this.userKeyManager.getStatus() : null,
+      keyRecoveryManager: this.keyRecoveryManager ? this.keyRecoveryManager.getStatus() : null
+    };
   }
 }
 

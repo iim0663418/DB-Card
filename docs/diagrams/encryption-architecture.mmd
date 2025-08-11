@@ -1,0 +1,45 @@
+graph TB
+    subgraph "Browser Environment"
+        subgraph "PWA Application Layer"
+            UI[BilingualEncryptionSetupUI]
+            LM[UnifiedLanguageManager]
+            DS[moda Design System]
+        end
+        
+        subgraph "Encryption Management Layer"
+            UKM[UserKeyManager]
+            KRM[KeyRecoveryManager]
+            EIL[EncryptionIntegrationLayer]
+        end
+        
+        subgraph "Storage & Security Layer"
+            PWA[PWACardStorage]
+            SEC[SecurityLogger]
+            XSS[XSSProtection]
+        end
+        
+        subgraph "Browser APIs"
+            WC[Web Crypto API]
+            IDB[IndexedDB]
+            MEM[Memory Management]
+        end
+    end
+    
+    UI --> UKM
+    UI --> LM
+    UI --> DS
+    UKM --> KRM
+    UKM --> EIL
+    EIL --> PWA
+    EIL --> SEC
+    PWA --> WC
+    PWA --> IDB
+    KRM --> WC
+    
+    classDef newModule fill:#e1f5fe
+    classDef existingModule fill:#f3e5f5
+    classDef browserAPI fill:#fff3e0
+    
+    class UKM,KRM,UI newModule
+    class PWA,SEC,XSS,LM,DS existingModule
+    class WC,IDB,MEM browserAPI

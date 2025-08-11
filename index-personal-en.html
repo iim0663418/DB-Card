@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Personal Digital Business Card</title>
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="./manifest-personal-en.json" id="manifest-link">
+    <meta name="theme-color" content="#0066cc">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Personal Card">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -570,9 +577,9 @@
                     <a href="#" id="add-contact-btn" class="download-btn">
                         📱 Add to Contacts
                     </a>
-                    <button id="save-to-pwa-btn" class="pwa-save-btn">
-                        <span class="icon">💾</span>
-                        <span>Save Offline</span>
+                    <button id="install-pwa-btn" class="pwa-save-btn" style="display: none;">
+                        <span class="icon">📱</span>
+                        <span>Save to Desktop</span>
                     </button>
                 </div>
                 <p id="contact-helper-text" style="font-size: 0.9em; color: #4b5563; margin-top: 15px;"></p>
@@ -848,9 +855,27 @@
 
         function getCardDataFromNFC() {
             const urlParams = new URLSearchParams(window.location.search);
+            
+            // 檢查是否為 PWA 模式
+            const pwaKey = urlParams.get('pwa');
+            if (pwaKey) {
+                try {
+                    const savedData = localStorage.getItem(pwaKey);
+                    if (savedData) {
+                        const cardData = JSON.parse(savedData);
+                        console.log('Received card data from PWA localStorage:', cardData);
+                        return cardData;
+                    }
+                } catch (error) {
+                    console.error('Failed to parse PWA card data:', error);
+                }
+            }
+            
+            // 從 URL 參數中獲取 NFC 傳送的 JSON 資料
             let cardDataParam = urlParams.get('data');
             let isCompactFormat = false;
             
+            // 檢查是否為精簡格式
             if (!cardDataParam) {
                 cardDataParam = urlParams.get('c');
                 isCompactFormat = true;
@@ -858,22 +883,43 @@
             
             if (cardDataParam) {
                 try {
+                    // 先解 URL 編碼，再解 Base64，最後解析 JSON（支援 UTF-8）
                     const urlDecodedData = decodeURIComponent(cardDataParam);
                     const base64DecodedData = decodeURIComponent(escape(atob(urlDecodedData)));
                     const rawData = JSON.parse(base64DecodedData);
                     
                     let cardData;
                     if (isCompactFormat) {
+                        // 轉換精簡格式為標準格式
                         cardData = convertCompactToFull(rawData);
                     } else {
                         cardData = rawData;
                     }
                     
+                    console.log('Received card data from NFC:', cardData);
                     return cardData;
                 } catch (error) {
                     console.error('Failed to parse card data:', error);
+                    console.error('Raw data:', cardDataParam);
                     return null;
                 }
+            }
+            
+            // 檢查是否有直接的 JSON 資料參數（開發測試用）
+            const jsonParam = urlParams.get('json');
+            if (jsonParam) {
+                try {
+                    const cardData = JSON.parse(decodeURIComponent(jsonParam));
+                    console.log('Received card data from JSON param:', cardData);
+                    return cardData;
+                } catch (error) {
+                    console.error('Failed to parse JSON param:', error);
+                    return null;
+                }
+            }
+            
+            return null;
+        }
             }
             
             return null;
@@ -979,56 +1025,7 @@
             return processedLines.join('\n');
         }
 
-                                // PWA 儲存功能 - localStorage 完整方式
-        function setupPWASaveButton(cardData) {
-            const saveButton = document.getElementById('save-to-pwa-btn');
-            if (!saveButton) return;
-            
-            saveButton.addEventListener('click', function() {
-                try {
-                    saveButton.textContent = '⏳ 處理中...';
-                    saveButton.disabled = true;
-                    
-                    // 暫存完整名片資料到 localStorage
-                    const sourceData = {
-                        sourceUrl: window.location.href,
-                        timestamp: Date.now(),
-                        cardData: cardData
-                    };
-                    
-                    localStorage.setItem('pwa_card_source_url', JSON.stringify(sourceData));
-                    console.log('[PWA] 已暫存完整名片資料');
-                    
-                    // 構建 PWA URL（不帶資料參數）
-                    const currentPath = window.location.pathname;
-                    const basePath = currentPath.includes('/') ? currentPath.replace(/\/[^/]*$/, '') : '';
-                    const pwaUrl = window.location.origin + basePath + '/pwa-card-storage/';
-                    
-                    // 開啟 PWA
-                    const pwaWindow = window.open(pwaUrl, '_blank', 'width=1200,height=800');
-                    
-                    if (pwaWindow) {
-                        saveButton.textContent = '✅ 已開啟 PWA';
-                        saveButton.style.background = '#28a745';
-                        
-                        setTimeout(() => {
-                            saveButton.textContent = '💾 儲存到離線';
-                            saveButton.style.background = '#6868ac';
-                            saveButton.disabled = false;
-                        }, 3000);
-                    } else {
-                        throw new Error('無法開啟 PWA');
-                    }
-                    
-                } catch (error) {
-                    console.error('[PWA] 儲存失敗:', error);
-                    saveButton.textContent = '💾 儲存到離線';
-                    saveButton.style.background = '#6868ac';
-                    saveButton.disabled = false;
-                    alert('請允許彈出視窗並重試');
-                }
-            });
-        }
+
 
         window.addEventListener('load', function() {
             setTimeout(() => {
@@ -1041,7 +1038,15 @@
                     
                     const errorElement = document.querySelector('#access-denied p');
                     if (errorElement) {
-                        errorElement.textContent = 'Please access via NFC card or link with data.';
+                        errorElement.textContent = '請使用 NFC 卡片或包含資料的連結訪問。';
+                    }
+                    
+                    // 檢查是否有孤立的 PWA 資料需要清理
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const pwaKey = urlParams.get('pwa');
+                    if (pwaKey) {
+                        console.log('Cleaning up orphaned PWA data:', pwaKey);
+                        localStorage.removeItem(pwaKey);
                     }
                     return;
                 }
@@ -1060,7 +1065,7 @@
                     setTimeout(changeGreeting, 1000);
                     generateQRCode();
                     setupVCardLink(cardData);
-                    setupPWASaveButton(cardData);
+
 
                 } catch (error) {
                     console.error('Business card data validation failed:', error);
@@ -1078,5 +1083,6 @@
     </script>
     <script src="assets/qr-utils.js"></script>
     <script src="assets/offline-qr-enhancement.js"></script>
+    <script src="assets/pwa-install.js"></script>
 </body>
 </html>

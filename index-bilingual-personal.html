@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>數位名片</title>
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="./manifest-bilingual-personal.json" id="manifest-link">
+    <meta name="theme-color" content="#0066cc">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="雙語個人名片">
+    <link rel="apple-touch-icon" href="./pwa-card-storage/assets/icons/icon-192x192.png">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=Noto+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -545,9 +554,9 @@
                     <button id="downloadBtn" onclick="downloadBilingualVCard(currentData, currentLanguage)" class="download-btn">
                         📱 <span id="downloadBtnText">加入聯絡人</span>
                     </button>
-                    <button id="save-to-pwa-btn" class="pwa-save-btn">
-                        <span class="icon">💾</span>
-                        <span id="savePwaText">儲存到離線</span>
+                    <button id="pwa-install-btn" class="pwa-save-btn" style="display: none;">
+                        <span class="icon">💻</span>
+                        <span id="installPwaText">儲存到桌面</span>
                     </button>
                 </div>
                 <div id="vcardGuide" style="background: #f3f5f6; border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px 15px; margin-bottom: 20px; font-size: 0.85em; color: #495057; line-height: 1.5; max-width: 90%;">
@@ -672,7 +681,8 @@
                     contactTitle: '聯絡資訊',
                     socialTitle: '🔗 社群連結',
                     downloadBtnText: '加入聯絡人',
-                    savePwaText: '儲存到離線',
+
+                    installPwaText: '儲存到桌面',
                     qrLabel: '這是這張名片的 QR code，你也可以請別人掃描來讀取這張名片',
 
                     loadingTitle: '載入中',
@@ -690,7 +700,8 @@
                     contactTitle: 'Contact Information',
                     socialTitle: '🔗 Social Links',
                     downloadBtnText: 'Add to Contacts',
-                    savePwaText: 'Save Offline',
+
+                    installPwaText: 'Save to Desktop',
                     qrLabel: 'This is the QR code for this card, you can also ask others to scan it to view this card',
 
                     loadingTitle: 'Loading',
@@ -714,7 +725,8 @@
             updateElement('errorTitle', text.errorTitle);
             updateElement('errorText', text.errorText);
             updateElement('downloadBtnText', text.downloadBtnText);
-            updateElement('savePwaText', text.savePwaText);
+
+            updateElement('installPwaText', text.installPwaText);
 
             updateElement('privacyTitle', text.privacyTitle);
             updateElement('projectInfo', text.projectInfo);
@@ -817,62 +829,12 @@
             }
         }
 
-                        // PWA 儲存功能 - localStorage 完整方式
-        function setupPWASaveButton(cardData) {
-            const saveButton = document.getElementById('save-to-pwa-btn');
-            if (!saveButton) return;
-            
-            saveButton.addEventListener('click', function() {
-                try {
-                    saveButton.textContent = '⏳ 處理中...';
-                    saveButton.disabled = true;
-                    
-                    // 暫存完整名片資料到 localStorage
-                    const sourceData = {
-                        sourceUrl: window.location.href,
-                        timestamp: Date.now(),
-                        cardData: cardData
-                    };
-                    
-                    localStorage.setItem('pwa_card_source_url', JSON.stringify(sourceData));
-                    console.log('[PWA] 已暫存完整名片資料');
-                    
-                    // 構建 PWA URL（不帶資料參數）
-                    const currentPath = window.location.pathname;
-                    const basePath = currentPath.includes('/') ? currentPath.replace(/\/[^/]*$/, '') : '';
-                    const pwaUrl = window.location.origin + basePath + '/pwa-card-storage/';
-                    
-                    // 開啟 PWA
-                    const pwaWindow = window.open(pwaUrl, '_blank', 'width=1200,height=800');
-                    
-                    if (pwaWindow) {
-                        saveButton.textContent = '✅ 已開啟 PWA';
-                        saveButton.style.background = '#28a745';
-                        
-                        setTimeout(() => {
-                            saveButton.textContent = '💾 儲存到離線';
-                            saveButton.style.background = '#6868ac';
-                            saveButton.disabled = false;
-                        }, 3000);
-                    } else {
-                        throw new Error('無法開啟 PWA');
-                    }
-                    
-                } catch (error) {
-                    console.error('[PWA] 儲存失敗:', error);
-                    saveButton.textContent = '💾 儲存到離線';
-                    saveButton.style.background = '#6868ac';
-                    saveButton.disabled = false;
-                    alert('請允許彈出視窗並重試');
-                }
-            });
-            });
-        });
-        }
+
 
         // 頁面初始化由 bilingual-common.js 統一處理
     </script>
     <script src="assets/qr-utils.js"></script>
     <script src="assets/offline-qr-enhancement.js"></script>
+    <script src="assets/pwa-install.js"></script>
 </body>
 </html>

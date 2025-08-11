@@ -1,0 +1,601 @@
+/**
+ * 加密設定介面樣式 - moda 設計系統整合
+ * 支援 UCE-02 和 UCE-03 任務的雙語加密介面
+ * 高齡友善設計與無障礙支援
+ */
+
+/* 對話框覆蓋層 */
+.encryption-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: var(--pwa-spacing-md);
+  backdrop-filter: blur(4px);
+}
+
+/* 主對話框 */
+.encryption-dialog {
+  background-color: var(--pwa-surface);
+  border: 1px solid var(--pwa-border);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  max-width: 480px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: dialogSlideIn 0.3s ease-out;
+}
+
+@keyframes dialogSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 對話框標題區 */
+.dialog-header {
+  padding: var(--pwa-spacing-xl) var(--pwa-spacing-xl) var(--pwa-spacing-lg);
+  text-align: center;
+  border-bottom: 1px solid var(--pwa-border);
+}
+
+.dialog-title {
+  color: var(--pwa-text);
+  font-family: var(--pwa-font-family);
+  font-size: var(--senior-font-size-xl);
+  font-weight: var(--pwa-font-weight-bold);
+  margin: 0 0 var(--pwa-spacing-sm);
+  line-height: var(--senior-line-height-tight);
+}
+
+.dialog-subtitle {
+  color: var(--pwa-text-secondary);
+  font-family: var(--pwa-font-family);
+  font-size: var(--senior-font-size-base);
+  margin: 0;
+  line-height: var(--senior-line-height-normal);
+}
+
+/* 對話框內容區 */
+.dialog-content {
+  padding: var(--pwa-spacing-xl);
+}
+
+/* 短語輸入區 */
+.phrase-inputs {
+  margin-bottom: var(--pwa-spacing-lg);
+}
+
+.input-group {
+  margin-bottom: var(--pwa-spacing-lg);
+}
+
+.input-label {
+  display: block;
+  color: var(--pwa-text);
+  font-family: var(--pwa-font-family);
+  font-size: var(--senior-font-size-base);
+  font-weight: var(--pwa-font-weight-medium);
+  margin-bottom: var(--pwa-spacing-sm);
+  letter-spacing: var(--senior-letter-spacing);
+}
+
+.input-with-suggestion {
+  display: flex;
+  gap: var(--pwa-spacing-sm);
+  align-items: stretch;
+}
+
+.phrase-input {
+  flex: 1;
+  background-color: var(--pwa-surface);
+  border: 2px solid var(--pwa-border);
+  border-radius: 8px;
+  color: var(--pwa-text);
+  font-family: var(--pwa-font-family);
+  font-size: var(--senior-font-size-base);
+  padding: 12px 16px;
+  min-height: 48px;
+  transition: all 0.3s ease;
+  letter-spacing: var(--senior-letter-spacing);
+}
+
+.phrase-input:focus {
+  border-color: var(--pwa-primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(104, 104, 172, 0.2);
+}
+
+.phrase-input::placeholder {
+  color: var(--pwa-text-secondary);
+  opacity: 0.7;
+}
+
+/* 建議按鈕 */
+.suggestion-btn {
+  background-color: var(--md-primary-5);
+  border: 2px solid var(--pwa-border);
+  border-radius: 8px;
+  color: var(--pwa-text);
+  cursor: pointer;
+  font-family: var(--pwa-font-family);
+  font-size: var(--senior-font-size-sm);
+  padding: 8px 12px;
+  min-width: 80px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.suggestion-btn:hover {
+  background-color: var(--pwa-primary);
+  border-color: var(--pwa-primary);
+  color: var(--pwa-text-inverse);
+  transform: translateY(-1px);
+}
+
+.suggestion-btn:active {
+  transform: translateY(0);
+}
+
+.suggestion-text {
+  font-weight: var(--pwa-font-weight-medium);
+}
+
+/* 預覽區 */
+.phrase-preview {
+  background-color: var(--md-neutral-10);
+  border: 1px solid var(--pwa-border);
+  border-radius: 8px;
+  padding: var(--pwa-spacing-md);
+  margin-bottom: var(--pwa-spacing-lg);
+}
+
+.preview-label {
+  color: var(--pwa-text-secondary);
+  font-family: var(--pwa-font-family);
+  font-size: var(--senior-font-size-sm);
+  font-weight: var(--pwa-font-weight-medium);
+  display: block;
+  margin-bottom: var(--pwa-spacing-xs);
+}
+
+.preview-text {
+  color: var(--pwa-primary);
+  font-family: var(--pwa-font-family);
+  font-size: var(--senior-font-size-lg);
+  font-weight: var(--pwa-font-weight-bold);
+  min-height: 1.5em;
+  letter-spacing: var(--senior-letter-spacing);
+}
+
+/* 熵值指示器 */
+.entropy-indicator {
+  margin-bottom: var(--pwa-spacing-lg);
+}
+
+.entropy-bar {
+  background-color: var(--md-neutral-9);
+  border-radius: 4px;
+  height: 8px;
+  margin-bottom: var(--pwa-spacing-sm);
+  overflow: hidden;
+}
+
+.entropy-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  width: 0%;
+}
+
+.entropy-fill.entropy-weak {
+  background-color: #dc3545;
+}
+
+.entropy-fill.entropy-good {
+  background-color: #ffc107;
+}
+
+.entropy-fill.entropy-strong {
+  background-color: #28a745;
+}
+
+.entropy-text {
+  color: var(--pwa-text-secondary);
+  font-family: var(--pwa-font-family);
+  font-size: var(--senior-font-size-sm);
+  text-align: center;
+}
+
+/* 安全提示 */
+.security-tip {
+  background-color: rgba(104, 104, 172, 0.1);
+  border: 1px solid rgba(104, 104, 172, 0.3);
+  border-radius: 8px;
+  padding: var(--pwa-spacing-md);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pwa-spacing-sm);
+  margin-bottom: var(--pwa-spacing-lg);
+}
+
+.tip-icon {
+  font-size: var(--senior-font-size-lg);
+  flex-shrink: 0;
+}
+
+.tip-text {
+  color: var(--pwa-text);
+  font-family: var(--pwa-font-family);
+  font-size: var(--senior-font-size-sm);
+  line-height: var(--senior-line-height-normal);
+}
+
+/* 解鎖狀態 */
+.unlock-status {
+  background-color: var(--md-neutral-10);
+  border-radius: 8px;
+  padding: var(--pwa-spacing-md);
+  margin-bottom: var(--pwa-spacing-lg);
+  text-align: center;
+  font-family: var(--pwa-font-family);
+  font-size: var(--senior-font-size-base);
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.unlock-status.error {
+  background-color: rgba(220, 53, 69, 0.1);
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  color: #dc3545;
+}
+
+.unlock-status.success {
+  background-color: rgba(40, 167, 69, 0.1);
+  border: 1px solid rgba(40, 167, 69, 0.3);
+  color: #28a745;
+}
+
+/* 重試資訊 */
+.retry-info {
+  background-color: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 8px;
+  padding: var(--pwa-spacing-md);
+  margin-bottom: var(--pwa-spacing-lg);
+  text-align: center;
+}
+
+.retry-text {
+  color: #856404;
+  font-family: var(--pwa-font-family);
+  font-size: var(--senior-font-size-base);
+  font-weight: var(--pwa-font-weight-medium);
+}
+
+/* 對話框動作區 */
+.dialog-actions {
+  padding: var(--pwa-spacing-lg) var(--pwa-spacing-xl) var(--pwa-spacing-xl);
+  border-top: 1px solid var(--pwa-border);
+  display: flex;
+  gap: var(--pwa-spacing-sm);
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* 按鈕樣式 */
+.btn {
+  background-color: var(--pwa-surface);
+  border: 2px solid var(--pwa-border);
+  border-radius: 8px;
+  color: var(--pwa-text);
+  cursor: pointer;
+  font-family: var(--pwa-font-family);
+  font-size: var(--senior-font-size-base);
+  font-weight: var(--pwa-font-weight-medium);
+  padding: 12px 24px;
+  min-height: 48px;
+  min-width: 100px;
+  transition: all 0.3s ease;
+  letter-spacing: var(--senior-letter-spacing);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: var(--pwa-primary);
+  border-color: var(--pwa-primary);
+  color: var(--pwa-text-inverse);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--md-primary-3);
+  border-color: var(--md-primary-3);
+}
+
+.btn-secondary {
+  background-color: var(--pwa-surface);
+  border-color: var(--pwa-border);
+  color: var(--pwa-text);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--md-neutral-10);
+  border-color: var(--pwa-primary);
+}
+
+.btn-danger {
+  background-color: #dc3545;
+  border-color: #dc3545;
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #c82333;
+  border-color: #c82333;
+}
+
+/* 深色模式支援 */
+.dark .encryption-dialog-overlay {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.dark .encryption-dialog {
+  background-color: var(--pwa-surface);
+  border-color: var(--pwa-border);
+}
+
+.dark .dialog-header {
+  border-color: var(--pwa-border);
+}
+
+.dark .dialog-title {
+  color: var(--pwa-text);
+}
+
+.dark .dialog-subtitle {
+  color: var(--pwa-text-secondary);
+}
+
+.dark .input-label {
+  color: var(--pwa-text);
+}
+
+.dark .phrase-input {
+  background-color: var(--pwa-surface);
+  border-color: var(--pwa-border);
+  color: var(--pwa-text);
+}
+
+.dark .phrase-input:focus {
+  border-color: var(--pwa-primary);
+  box-shadow: 0 0 0 3px rgba(90, 90, 148, 0.3);
+}
+
+.dark .phrase-input::placeholder {
+  color: var(--pwa-text-secondary);
+}
+
+.dark .suggestion-btn {
+  background-color: var(--md-primary-5);
+  border-color: var(--pwa-border);
+  color: var(--pwa-text);
+}
+
+.dark .suggestion-btn:hover {
+  background-color: var(--pwa-primary);
+  border-color: var(--pwa-primary);
+  color: var(--md-white-1);
+}
+
+.dark .phrase-preview {
+  background-color: var(--pwa-surface);
+  border-color: var(--pwa-border);
+}
+
+.dark .preview-label {
+  color: var(--pwa-text-secondary);
+}
+
+.dark .preview-text {
+  color: var(--pwa-primary);
+}
+
+.dark .entropy-bar {
+  background-color: var(--pwa-border);
+}
+
+.dark .entropy-text {
+  color: var(--pwa-text-secondary);
+}
+
+.dark .security-tip {
+  background-color: rgba(90, 90, 148, 0.15);
+  border-color: rgba(90, 90, 148, 0.4);
+}
+
+.dark .tip-text {
+  color: var(--pwa-text);
+}
+
+.dark .unlock-status {
+  background-color: var(--pwa-surface);
+  border-color: var(--pwa-border);
+  color: var(--pwa-text);
+}
+
+.dark .unlock-status.error {
+  background-color: rgba(220, 53, 69, 0.2);
+  border-color: rgba(220, 53, 69, 0.5);
+  color: #ff6b7a;
+}
+
+.dark .unlock-status.success {
+  background-color: rgba(40, 167, 69, 0.2);
+  border-color: rgba(40, 167, 69, 0.5);
+  color: #51cf66;
+}
+
+.dark .retry-info {
+  background-color: rgba(255, 193, 7, 0.2);
+  border-color: rgba(255, 193, 7, 0.5);
+}
+
+.dark .retry-text {
+  color: #ffd43b;
+}
+
+.dark .dialog-actions {
+  border-color: var(--pwa-border);
+}
+
+.dark .btn {
+  background-color: var(--pwa-surface);
+  border-color: var(--pwa-border);
+  color: var(--pwa-text);
+}
+
+.dark .btn-primary {
+  background-color: var(--pwa-primary);
+  border-color: var(--pwa-primary);
+  color: var(--md-white-1);
+}
+
+.dark .btn-primary:hover:not(:disabled) {
+  background-color: var(--md-primary-3);
+  border-color: var(--md-primary-3);
+}
+
+.dark .btn-secondary:hover:not(:disabled) {
+  background-color: var(--pwa-surface);
+  border-color: var(--pwa-primary);
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .encryption-dialog-overlay {
+    padding: var(--pwa-spacing-sm);
+  }
+  
+  .encryption-dialog {
+    max-width: 100%;
+    border-radius: 12px;
+  }
+  
+  .dialog-header {
+    padding: var(--pwa-spacing-lg);
+  }
+  
+  .dialog-content {
+    padding: var(--pwa-spacing-lg);
+  }
+  
+  .dialog-actions {
+    padding: var(--pwa-spacing-lg);
+    flex-direction: column;
+  }
+  
+  .btn {
+    width: 100%;
+    margin-bottom: var(--pwa-spacing-sm);
+  }
+  
+  .btn:last-child {
+    margin-bottom: 0;
+  }
+  
+  .input-with-suggestion {
+    flex-direction: column;
+    gap: var(--pwa-spacing-sm);
+  }
+  
+  .suggestion-btn {
+    min-width: auto;
+    width: 100%;
+  }
+}
+
+/* 高對比模式支援 */
+@media (prefers-contrast: high) {
+  .phrase-input {
+    border-width: 3px;
+  }
+  
+  .phrase-input:focus {
+    box-shadow: 0 0 0 4px rgba(104, 104, 172, 0.4);
+  }
+  
+  .btn {
+    border-width: 3px;
+  }
+  
+  .entropy-fill {
+    height: 12px;
+  }
+}
+
+/* 減少動畫偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .encryption-dialog {
+    animation: none;
+  }
+  
+  .phrase-input,
+  .suggestion-btn,
+  .btn,
+  .entropy-fill {
+    transition: none;
+  }
+}
+
+/* 無障礙焦點指示器增強 */
+.phrase-input:focus-visible,
+.suggestion-btn:focus-visible,
+.btn:focus-visible {
+  outline: 3px solid var(--pwa-primary);
+  outline-offset: 2px;
+}
+
+/* 螢幕閱讀器專用樣式 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

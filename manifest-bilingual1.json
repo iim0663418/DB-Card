@@ -1,0 +1,26 @@
+{
+  "name": "雙語數位名片 - 新光大樓",
+  "short_name": "雙語名片-新光",
+  "description": "雙語版 NFC 數位名片 - 新光大樓版本",
+  "start_url": "./index1-bilingual.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0066cc",
+  "icons": [
+    {
+      "src": "./pwa-card-storage/assets/icons/icon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "./pwa-card-storage/assets/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./pwa-card-storage/assets/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

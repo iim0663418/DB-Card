@@ -1,0 +1,25 @@
+sequenceDiagram
+    participant U as User
+    participant UI as BilingualEncryptionSetupUI
+    participant UKM as UserKeyManager
+    participant WC as Web Crypto API
+    participant IDB as IndexedDB
+    
+    Note over U,IDB: 首次設定流程
+    U->>UI: 輸入三短語組合
+    UI->>UKM: validatePassphrase(phrases)
+    UKM->>UKM: calculateEntropy(phrases)
+    UKM->>WC: deriveKey(passphrase, salt, 100000)
+    WC-->>UKM: CryptoKey (non-extractable)
+    UKM->>IDB: storeVerificationHash(hash)
+    UKM-->>UI: keyGenerated(success)
+    UI-->>U: 顯示成功訊息
+    
+    Note over U,IDB: 解鎖流程
+    U->>UI: 輸入密碼短語
+    UI->>UKM: unlockWithPassphrase(phrases)
+    UKM->>IDB: getVerificationHash()
+    UKM->>UKM: verifyPassphrase(phrases, hash)
+    UKM->>WC: deriveKey(passphrase, salt, 100000)
+    WC-->>UKM: CryptoKey (non-extractable)
+    UKM-->>UI: unlocked(success)

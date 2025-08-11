@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UCE-05 儲存整合測試執行器</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            color: #4a5568;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+        }
+        
+        .test-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+        
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+        
+        .status-panel {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4299e1;
+        }
+        
+        .test-results {
+            margin-top: 20px;
+        }
+        
+        .test-category {
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .category-header {
+            background: #edf2f7;
+            padding: 15px;
+            font-weight: 600;
+            color: #2d3748;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .test-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .test-item:last-child {
+            border-bottom: none;
+        }
+        
+        .test-status {
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .status-pass {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .status-fail {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+        
+        .status-running {
+            background: #fef5e7;
+            color: #744210;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #48bb78, #38a169);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: 700;
+            color: #4a5568;
+        }
+        
+        .stat-label {
+            color: #718096;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .log-output {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+            white-space: pre-wrap;
+        }
+        
+        .assessment {
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .assessment-excellent {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 2px solid #48bb78;
+        }
+        
+        .assessment-good {
+            background: #fef5e7;
+            color: #744210;
+            border: 2px solid #ed8936;
+        }
+        
+        .assessment-needs-work {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 2px solid #e53e3e;
+        }
+        
+        .assessment-critical {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 2px solid #e53e3e;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e2e8f0;
+            border-radius: 50%;
+            border-top-color: #4299e1;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 UCE-05 儲存整合測試執行器</h1>
+        
+        <div class="status-panel">
+            <h3>測試狀態</h3>
+            <div id="status-text">準備執行測試...</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+        </div>
+        
+        <div class="test-controls">
+            <button class="btn-primary" onclick="runTests()">
+                <span id="run-btn-text">🚀 執行測試</span>
+            </button>
+            <button class="btn-secondary" onclick="clearResults()">🗑️ 清除結果</button>
+            <button class="btn-secondary" onclick="exportResults()">📊 匯出報告</button>
+        </div>
+        
+        <div id="test-results" class="test-results" style="display: none;">
+            <h3>測試結果</h3>
+            <div id="results-container"></div>
+            
+            <div class="summary-stats" id="summary-stats" style="display: none;">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-tests">0</div>
+                    <div class="stat-label">總測試數</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="passed-tests">0</div>
+                    <div class="stat-label">通過測試</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="failed-tests">0</div>
+                    <div class="stat-label">失敗測試</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="pass-rate">0%</div>
+                    <div class="stat-label">通過率</div>
+                </div>
+            </div>
+            
+            <div id="assessment" style="display: none;"></div>
+        </div>
+        
+        <div id="log-output" class="log-output" style="display: none;"></div>
+    </div>
+
+    <!-- 載入必要的模組 -->
+    <script src="src/core/storage.js"></script>
+    <script src="src/core/user-key-manager.js"></script>
+    <script src="src/core/key-recovery-manager.js"></script>
+    <script src="tests/uce-05-storage-integration.test.js"></script>
+
+    <script>
+        let testSuite = null;
+        let isTestRunning = false;
+        let logBuffer = [];
+
+        // 攔截 console 輸出
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+
+        function interceptConsole() {
+            console.log = function(...args) {
+                logBuffer.push(`[LOG] ${args.join(' ')}`);
+                updateLogOutput();
+                originalConsoleLog.apply(console, args);
+            };
+
+            console.error = function(...args) {
+                logBuffer.push(`[ERROR] ${args.join(' ')}`);
+                updateLogOutput();
+                originalConsoleError.apply(console, args);
+            };
+
+            console.warn = function(...args) {
+                logBuffer.push(`[WARN] ${args.join(' ')}`);
+                updateLogOutput();
+                originalConsoleWarn.apply(console, args);
+            };
+        }
+
+        function updateLogOutput() {
+            const logOutput = document.getElementById('log-output');
+            logOutput.textContent = logBuffer.slice(-100).join('\n'); // 只顯示最後 100 行
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+
+        function updateStatus(text, progress = 0) {
+            document.getElementById('status-text').textContent = text;
+            document.getElementById('progress-fill').style.width = `${progress}%`;
+        }
+
+        function updateRunButton(running) {
+            const btn = document.getElementById('run-btn-text');
+            if (running) {
+                btn.innerHTML = '<span class="loading"></span> 測試執行中...';
+            } else {
+                btn.textContent = '🚀 執行測試';
+            }
+        }
+
+        async function runTests() {
+            if (isTestRunning) return;
+            
+            isTestRunning = true;
+            updateRunButton(true);
+            updateStatus('初始化測試環境...', 10);
+            
+            // 顯示日誌輸出
+            document.getElementById('log-output').style.display = 'block';
+            
+            try {
+                // 確保測試類別可用
+                if (typeof UCE05StorageIntegrationTest === 'undefined') {
+                    throw new Error('UCE05StorageIntegrationTest 類別未載入');
+                }
+                
+                updateStatus('建立測試實例...', 20);
+                testSuite = new UCE05StorageIntegrationTest();
+                
+                updateStatus('執行測試套件...', 30);
+                
+                // 監聽測試進度
+                let testCount = 0;
+                const totalTests = 9; // 預期的測試數量
+                
+                // 模擬測試進度更新
+                const progressInterval = setInterval(() => {
+                    if (testSuite && testSuite.testResults) {
+                        const currentTests = testSuite.testResults.length;
+                        if (currentTests > testCount) {
+                            testCount = currentTests;
+                            const progress = 30 + (currentTests / totalTests) * 60;
+                            updateStatus(`執行測試 ${currentTests}/${totalTests}...`, progress);
+                            updateTestResults();
+                        }
+                    }
+                }, 500);
+                
+                // 執行測試
+                const results = await testSuite.runAllTests();
+                
+                clearInterval(progressInterval);
+                updateStatus('測試完成！', 100);
+                
+                // 顯示最終結果
+                displayFinalResults(results);
+                
+            } catch (error) {
+                updateStatus(`測試執行失敗: ${error.message}`, 0);
+                console.error('測試執行錯誤:', error);
+            } finally {
+                isTestRunning = false;
+                updateRunButton(false);
+            }
+        }
+
+        function updateTestResults() {
+            if (!testSuite || !testSuite.testResults) return;
+            
+            const resultsContainer = document.getElementById('results-container');
+            const testResults = document.getElementById('test-results');
+            
+            testResults.style.display = 'block';
+            
+            // 按類別分組
+            const categories = {};
+            testSuite.testResults.forEach(result => {
+                if (!categories[result.category]) {
+                    categories[result.category] = [];
+                }
+                categories[result.category].push(result);
+            });
+            
+            // 生成 HTML
+            let html = '';
+            Object.keys(categories).forEach(category => {
+                html += `
+                    <div class="test-category">
+                        <div class="category-header">${category}</div>
+                        ${categories[category].map(test => `
+                            <div class="test-item">
+                                <div>
+                                    <strong>${test.testName}</strong>
+                                    <div style="font-size: 14px; color: #718096; margin-top: 4px;">
+                                        ${test.details}
+                                    </div>
+                                </div>
+                                <div class="test-status ${test.passed ? 'status-pass' : 'status-fail'}">
+                                    ${test.passed ? '✅ PASS' : '❌ FAIL'}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            });
+            
+            resultsContainer.innerHTML = html;
+        }
+
+        function displayFinalResults(results) {
+            // 更新統計數據
+            document.getElementById('total-tests').textContent = results.totalTests;
+            document.getElementById('passed-tests').textContent = results.passedTests;
+            document.getElementById('failed-tests').textContent = results.failedTests;
+            document.getElementById('pass-rate').textContent = `${results.passRate}%`;
+            
+            document.getElementById('summary-stats').style.display = 'grid';
+            
+            // 顯示評估結果
+            const assessment = document.getElementById('assessment');
+            let assessmentClass = '';
+            let assessmentText = '';
+            
+            if (results.passRate >= 90) {
+                assessmentClass = 'assessment-excellent';
+                assessmentText = '🎉 優秀：UCE-05 實作已準備好投入生產環境';
+            } else if (results.passRate >= 75) {
+                assessmentClass = 'assessment-good';
+                assessmentText = '⚠️ 良好：UCE-05 實作大致就緒，需要關注少數問題';
+            } else if (results.passRate >= 50) {
+                assessmentClass = 'assessment-needs-work';
+                assessmentText = '🔧 需要改進：UCE-05 實作有重大問題需要修復';
+            } else {
+                assessmentClass = 'assessment-critical';
+                assessmentText = '🚨 嚴重：UCE-05 實作有重大問題，尚未準備就緒';
+            }
+            
+            assessment.className = `assessment ${assessmentClass}`;
+            assessment.textContent = assessmentText;
+            assessment.style.display = 'block';
+        }
+
+        function clearResults() {
+            document.getElementById('test-results').style.display = 'none';
+            document.getElementById('log-output').style.display = 'none';
+            document.getElementById('summary-stats').style.display = 'none';
+            document.getElementById('assessment').style.display = 'none';
+            
+            logBuffer = [];
+            testSuite = null;
+            
+            updateStatus('準備執行測試...', 0);
+        }
+
+        function exportResults() {
+            if (!testSuite || !testSuite.testResults) {
+                alert('沒有測試結果可以匯出');
+                return;
+            }
+            
+            const results = {
+                timestamp: new Date().toISOString(),
+                testResults: testSuite.testResults,
+                summary: {
+                    totalTests: testSuite.testResults.length,
+                    passedTests: testSuite.testResults.filter(r => r.passed).length,
+                    failedTests: testSuite.testResults.filter(r => !r.passed).length,
+                    passRate: Math.round((testSuite.testResults.filter(r => r.passed).length / testSuite.testResults.length) * 100)
+                },
+                logs: logBuffer
+            };
+            
+            const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `uce-05-test-results-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            interceptConsole();
+            console.log('[UCE-05-Test-Runner] 測試執行器已準備就緒');
+        });
+
+        // 監聽測試完成事件
+        window.addEventListener('UCE05TestCompleted', function(event) {
+            console.log('[UCE-05-Test-Runner] 收到測試完成事件:', event.detail);
+        });
+    </script>
+</body>
+</html>

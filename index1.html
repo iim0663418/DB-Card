@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>數位發展部數位名片</title>
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="./manifest-index1.json" id="manifest-link">
+    <meta name="theme-color" content="#0066cc">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="moda名片-新光">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -555,9 +562,9 @@
                     <a href="#" id="add-contact-btn" class="download-btn">
                         📱 加入聯絡人
                     </a>
-                    <button id="save-to-pwa-btn" class="pwa-save-btn">
-                        <span class="icon">💾</span>
-                        <span id="savePwaText">儲存到離線</span>
+                    <button id="install-pwa-btn" class="pwa-save-btn" style="display: none;">
+                        <span class="icon">📱</span>
+                        <span>儲存到桌面</span>
                     </button>
                 </div>
                 <p id="contact-helper-text" style="font-size: 0.9em; color: #4b5563; margin-top: 15px;"></p>
@@ -951,8 +958,24 @@
         }
 
         function getCardDataFromNFC() {
-            // 從 URL 參數中獲取 NFC 傳送的 JSON 資料
             const urlParams = new URLSearchParams(window.location.search);
+            
+            // 檢查是否為 PWA 模式
+            const pwaKey = urlParams.get('pwa');
+            if (pwaKey) {
+                try {
+                    const savedData = localStorage.getItem(pwaKey);
+                    if (savedData) {
+                        const cardData = JSON.parse(savedData);
+                        console.log('Received card data from PWA localStorage:', cardData);
+                        return cardData;
+                    }
+                } catch (error) {
+                    console.error('Failed to parse PWA card data:', error);
+                }
+            }
+            
+            // 從 URL 參數中獲取 NFC 傳送的 JSON 資料
             let cardDataParam = urlParams.get('data');
             let isCompactFormat = false;
             
@@ -1134,58 +1157,73 @@
             return processedLines.join('\n');
         }
 
-                                // PWA 儲存功能 - localStorage 完整方式
-        function setupPWASaveButton(cardData) {
-            const saveButton = document.getElementById('save-to-pwa-btn');
-            if (!saveButton) return;
+
+
+        // 動態生成包含當前參數的 manifest 並保存名片資料
+        function generateDynamicManifest() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const hasData = urlParams.get('data') || urlParams.get('c');
             
-            saveButton.addEventListener('click', function() {
-                try {
-                    saveButton.textContent = '⏳ 處理中...';
-                    saveButton.disabled = true;
-                    
-                    // 暫存完整名片資料到 localStorage
-                    const sourceData = {
-                        sourceUrl: window.location.href,
-                        timestamp: Date.now(),
-                        cardData: cardData
-                    };
-                    
-                    localStorage.setItem('pwa_card_source_url', JSON.stringify(sourceData));
-                    console.log('[PWA] 已暫存完整名片資料');
-                    
-                    // 構建 PWA URL（不帶資料參數）
-                    const currentPath = window.location.pathname;
-                    const basePath = currentPath.includes('/') ? currentPath.replace(/\/[^/]*$/, '') : '';
-                    const pwaUrl = window.location.origin + basePath + '/pwa-card-storage/';
-                    
-                    // 開啟 PWA
-                    const pwaWindow = window.open(pwaUrl, '_blank', 'width=1200,height=800');
-                    
-                    if (pwaWindow) {
-                        saveButton.textContent = '✅ 已開啟 PWA';
-                        saveButton.style.background = '#28a745';
-                        
-                        setTimeout(() => {
-                            saveButton.textContent = '💾 儲存到離線';
-                            saveButton.style.background = '#6868ac';
-                            saveButton.disabled = false;
-                        }, 3000);
-                    } else {
-                        throw new Error('無法開啟 PWA');
-                    }
-                    
-                } catch (error) {
-                    console.error('[PWA] 儲存失敗:', error);
-                    saveButton.textContent = '💾 儲存到離線';
-                    saveButton.style.background = '#6868ac';
-                    saveButton.disabled = false;
-                    alert('請允許彈出視窗並重試');
+            if (hasData) {
+                // 生成唯一的應用名稱和儲存鍵，避免覆蓋
+                const timestamp = Date.now().toString(36);
+                const storageKey = `pwa-card-data-${timestamp}`;
+                
+                // 保存名片資料到 localStorage
+                const cardData = getCardDataFromNFC();
+                if (cardData) {
+                    localStorage.setItem(storageKey, JSON.stringify(cardData));
+                    console.log('Card data saved to localStorage with key:', storageKey);
                 }
-            });
+                
+                const manifest = {
+                    "name": `數位發展部名片-${timestamp}`,
+                    "short_name": `名片-${timestamp}`,
+                    "description": "數位發展部 NFC 數位名片",
+                    "start_url": `./index1.html?pwa=${storageKey}`,
+                    "display": "standalone",
+                    "background_color": "#ffffff",
+                    "theme_color": "#0066cc",
+                    "scope": "./",
+                    "icons": [
+                        {
+                            "src": "./pwa-card-storage/assets/icons/icon-32x32.png",
+                            "sizes": "32x32",
+                            "type": "image/png"
+                        },
+                        {
+                            "src": "./pwa-card-storage/assets/icons/icon-192x192.png",
+                            "sizes": "192x192",
+                            "type": "image/png"
+                        },
+                        {
+                            "src": "./pwa-card-storage/assets/icons/icon-512x512.png",
+                            "sizes": "512x512",
+                            "type": "image/png"
+                        }
+                    ]
+                };
+                
+                const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+                const manifestUrl = URL.createObjectURL(manifestBlob);
+                document.getElementById('manifest-link').href = manifestUrl;
+                
+                // 強制重新載入 manifest
+                const existingLink = document.querySelector('link[rel="manifest"]');
+                if (existingLink) {
+                    existingLink.remove();
+                }
+                const newLink = document.createElement('link');
+                newLink.rel = 'manifest';
+                newLink.href = manifestUrl;
+                document.head.appendChild(newLink);
+            }
         }
 
         window.addEventListener('load', function() {
+            // 生成動態 manifest
+            generateDynamicManifest();
+            
             // 延遲一點時間讓使用者看到載入狀態
             setTimeout(() => {
                 // 嘗試從 NFC 獲取名片資料
@@ -1201,6 +1239,14 @@
                     const errorElement = document.querySelector('#access-denied p');
                     if (errorElement) {
                         errorElement.textContent = '請使用 NFC 卡片或包含資料的連結訪問。';
+                    }
+                    
+                    // 檢查是否有孤立的 PWA 資料需要清理
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const pwaKey = urlParams.get('pwa');
+                    if (pwaKey) {
+                        console.log('Cleaning up orphaned PWA data:', pwaKey);
+                        localStorage.removeItem(pwaKey);
                     }
                     return;
                 }
@@ -1224,7 +1270,7 @@
                     setTimeout(changeGreeting, 1000); // 觸發打字機效果
                     generateQRCode(); // 產生 QR Code
                     setupVCardLink(cardData); // 設定 vCard 下載連結
-                    setupPWASaveButton(cardData); // 設定 PWA 儲存按鈕
+
 
                 } catch (error) {
                     // 資料驗證失敗，隱藏載入狀態並顯示錯誤
@@ -1244,5 +1290,6 @@
     </script>
     <script src="assets/qr-utils.js"></script>
     <script src="assets/offline-qr-enhancement.js"></script>
+    <script src="assets/pwa-install.js"></script>
 </body>
 </html>

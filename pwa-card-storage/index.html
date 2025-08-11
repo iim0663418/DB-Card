@@ -31,444 +31,82 @@
     
     <title>數位名片收納 - 離線儲存中心</title>
     
-    <!-- Styles -->
-    <link rel="stylesheet" href="assets/styles/moda-design-system.css">
+    <!-- Essential Styles Only -->
     <link rel="stylesheet" href="assets/styles/main.css">
     <link rel="stylesheet" href="assets/styles/components.css">
-    <link rel="stylesheet" href="assets/styles/modal-styles.css">
-    <link rel="stylesheet" href="assets/styles/high-accessibility.css">
-    <link rel="stylesheet" href="assets/styles/visual-enhancements.css">
-    <link rel="stylesheet" href="assets/styles/language-toggle.css">
     
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Minimal Fonts -->
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans TC', sans-serif; }
+    </style>
 
-    <!-- RESOURCE-04: Enhanced Resource Loading Validation -->
+    <!-- Simplified Resource Monitor (Static Hosting Compatible) -->
     <script>
         /**
-         * Resource Loading Validator
-         * Provides comprehensive resource validation and error handling
+         * Lightweight Resource Monitor
+         * Simple error handling for static hosting compatibility
          */
-        class ResourceLoadingValidator {
+        class SimpleResourceMonitor {
             constructor() {
-                this.loadedResources = new Set();
-                this.failedResources = new Set();
-                this.loadingTimeout = 30000; // 30 seconds (adjusted for PWA)
-                this.retryAttempts = 3;
-                this.retryDelay = 1000; // 1 second
+                this.criticalErrors = [];
             }
 
-            /**
-             * Initialize resource validation
-             */
             init() {
-                this.setupGlobalErrorHandlers();
-                this.validateCriticalResources();
-                this.monitorResourceLoading();
+                this.setupBasicErrorHandling();
+                console.log('[Resource Monitor] 輕量級資源監控已啟動');
             }
 
-            /**
-             * Setup global error handlers for resources
-             */
-            setupGlobalErrorHandlers() {
-                // Handle script loading errors
+            setupBasicErrorHandling() {
+                // Only handle critical script errors
                 window.addEventListener('error', (event) => {
-                    if (event.target && (event.target.tagName === 'SCRIPT' || event.target.tagName === 'LINK')) {
-                        this.handleResourceError(event.target, event.error || 'Loading failed');
+                    if (event.target && event.target.tagName === 'SCRIPT') {
+                        const src = event.target.src;
+                        if (this.isCriticalScript(src)) {
+                            this.criticalErrors.push(src);
+                            console.error('[Resource Monitor] 關鍵腳本載入失敗:', src);
+                            this.showCriticalError();
+                        }
                     }
                 });
 
                 // Handle unhandled promise rejections
                 window.addEventListener('unhandledrejection', (event) => {
-                    console.warn('[Resource Validator] Unhandled promise rejection:', event.reason);
-                    this.showUserFriendlyError('部分功能可能無法正常運作，請重新整理頁面');
+                    console.warn('[Resource Monitor] Promise rejection:', event.reason);
                 });
             }
 
-            /**
-             * Validate critical resources on page load
-             */
-            validateCriticalResources() {
-                const criticalResources = [
-                    'assets/styles/main.css',
-                    'assets/styles/components.css',
-                    'src/app.js',
-                    'src/core/storage.js'
-                ];
-
-                criticalResources.forEach(resource => {
-                    this.validateResource(resource, true);
-                });
-            }
-
-            /**
-             * Monitor resource loading progress
-             */
-            monitorResourceLoading() {
-                const allResources = document.querySelectorAll('script[src], link[rel="stylesheet"], img[src]');
-                let loadedCount = 0;
-                let totalCount = 0;
-                const validResources = [];
-
-                // Filter out external resources and count only local resources
-                allResources.forEach(resource => {
-                    const originalSrc = resource.src || resource.href;
-                    
-                    // Skip external resources (Google Fonts, CDNs, etc.)
-                    if (this.isExternalResource(originalSrc)) {
-                        return;
-                    }
-                    
-                    validResources.push(resource);
-                    totalCount++;
-                    
-                    // Check if resource is already loaded
-                    if (this.isResourceAlreadyLoaded(resource)) {
-                        loadedCount++;
-                        this.loadedResources.add(originalSrc);
-                    } else {
-                        // Add event listeners for resources that aren't loaded yet
-                        resource.addEventListener('load', () => {
-                            loadedCount++;
-                            this.loadedResources.add(originalSrc);
-                            this.updateLoadingProgress(loadedCount, totalCount);
-                        });
-
-                        resource.addEventListener('error', () => {
-                            this.failedResources.add(originalSrc);
-                            this.handleResourceError(resource, 'Failed to load');
-                        });
-                    }
-                });
-
-                // Update initial progress
-                this.updateLoadingProgress(loadedCount, totalCount);
-
-                // Set loading timeout only if there are pending resources
-                if (loadedCount < totalCount) {
-                    setTimeout(() => {
-                        if (loadedCount < totalCount) {
-                            console.warn(`[Resource Validator] Loading timeout: ${loadedCount}/${totalCount} resources loaded`);
-                            this.handleLoadingTimeout(totalCount - loadedCount);
-                        }
-                    }, this.loadingTimeout);
-                } else {
-                    // All resources already loaded
-                    console.log(`[Resource Validator] All ${totalCount} resources loaded successfully`);
-                }
-            }
-
-            /**
-             * Validate individual resource
-             */
-            async validateResource(resourcePath, isCritical = false) {
-                try {
-                    const response = await fetch(resourcePath, {
-                        method: 'HEAD',
-                        cache: 'no-cache'
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-
-                    // Validate content type for security
-                    const contentType = response.headers.get('content-type') || '';
-                    if (!this.isValidContentType(resourcePath, contentType)) {
-                        throw new Error(`Invalid content type: ${contentType}`);
-                    }
-
-                    this.loadedResources.add(resourcePath);
-                    return true;
-
-                } catch (error) {
-                    console.error(`[Resource Validator] Validation failed for ${resourcePath}:`, error.message);
-                    
-                    if (isCritical) {
-                        await this.retryCriticalResource(resourcePath);
-                    } else {
-                        this.failedResources.add(resourcePath);
-                    }
-                    
-                    return false;
-                }
-            }
-
-            /**
-             * Retry loading critical resources
-             */
-            async retryCriticalResource(resourcePath, attempt = 1) {
-                if (attempt > this.retryAttempts) {
-                    this.showCriticalResourceError(resourcePath);
-                    return false;
-                }
-
-                console.log(`[Resource Validator] Retrying critical resource ${resourcePath} (attempt ${attempt})`);
-                
-                await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempt));
-                
-                const success = await this.validateResource(resourcePath, false);
-                if (!success) {
-                    return this.retryCriticalResource(resourcePath, attempt + 1);
-                }
-                
-                return true;
-            }
-
-            /**
-             * Handle resource loading errors
-             */
-            handleResourceError(element, error) {
-                const resourcePath = element.src || element.href || 'unknown';
-                console.error(`[Resource Validator] Resource error: ${resourcePath}`, error);
-
-                // Add error class for styling
-                element.classList.add('resource-error');
-                
-                // Try fallback for critical resources
-                if (this.isCriticalResource(resourcePath)) {
-                    this.loadFallbackResource(element, resourcePath);
-                }
-
-                // Update UI to show degraded functionality
-                this.updateUIForMissingResource(resourcePath);
-            }
-
-            /**
-             * Load fallback resource
-             */
-            loadFallbackResource(element, originalPath) {
-                const fallbacks = {
-                    'assets/styles/main.css': 'assets/styles/fallback.css',
-                    'src/app.js': 'src/app-minimal.js',
-                    'assets/scripts/qrcode.min.js': 'assets/scripts/qrcode-fallback.js'
-                };
-
-                const fallbackPath = fallbacks[originalPath];
-                if (fallbackPath && element.tagName === 'SCRIPT') {
-                    console.log(`[Resource Validator] Loading fallback: ${fallbackPath}`);
-                    
-                    const fallbackScript = document.createElement('script');
-                    fallbackScript.src = fallbackPath;
-                    fallbackScript.onerror = () => {
-                        console.error(`[Resource Validator] Fallback also failed: ${fallbackPath}`);
-                        this.showCriticalResourceError(originalPath);
-                    };
-                    
-                    element.parentNode.insertBefore(fallbackScript, element.nextSibling);
-                }
-            }
-
-            /**
-             * Check if resource is critical
-             */
-            isCriticalResource(resourcePath) {
+            isCriticalScript(src) {
                 const criticalPatterns = [
-                    /assets\/styles\/main\.css/,
-                    /src\/app\.js/,
-                    /src\/core\/storage\.js/,
-                    /assets\/scripts\/qrcode/
+                    /src\/app\.js$/,
+                    /src\/core\/storage\.js$/
                 ];
-
-                return criticalPatterns.some(pattern => pattern.test(resourcePath));
+                return criticalPatterns.some(pattern => pattern.test(src));
             }
 
-            /**
-             * Validate content type for security
-             */
-            isValidContentType(resourcePath, contentType) {
-                const validTypes = {
-                    '.css': ['text/css', 'text/plain'],
-                    '.js': ['application/javascript', 'text/javascript', 'application/x-javascript'],
-                    '.json': ['application/json', 'text/plain'],
-                    '.svg': ['image/svg+xml', 'text/plain'],
-                    '.png': ['image/png'],
-                    '.jpg': ['image/jpeg'],
-                    '.jpeg': ['image/jpeg']
-                };
-
-                const extension = resourcePath.substring(resourcePath.lastIndexOf('.'));
-                const allowedTypes = validTypes[extension];
-                
-                if (!allowedTypes) return true; // Unknown extension, allow
-                
-                return allowedTypes.some(type => contentType.includes(type));
-            }
-
-            /**
-             * Update loading progress
-             */
-            updateLoadingProgress(loaded, total) {
-                const percentage = Math.round((loaded / total) * 100);
-                
-                // Update loading indicator if present
-                const loadingText = document.querySelector('.loading-text');
-                if (loadingText) {
-                    loadingText.textContent = `載入中... ${percentage}%`;
-                }
-
-                // Hide loading overlay when complete
-                if (loaded === total) {
-                    setTimeout(() => {
-                        const loadingOverlay = document.getElementById('loading');
-                        if (loadingOverlay) {
-                            loadingOverlay.classList.add('hidden');
-                        }
-                    }, 500);
+            showCriticalError() {
+                if (this.criticalErrors.length > 0) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.innerHTML = `
+                        <div style="position: fixed; top: 20px; left: 20px; right: 20px; background: #ffebee; border: 1px solid #f44336; border-radius: 8px; padding: 16px; z-index: 10000; font-family: sans-serif;">
+                            <h3 style="margin: 0 0 8px 0; color: #d32f2f;">⚠️ 載入錯誤</h3>
+                            <p style="margin: 0; color: #666;">部分功能可能無法正常運作，請重新整理頁面或檢查網路連線。</p>
+                        </div>
+                    `;
+                    document.body.appendChild(errorDiv);
                 }
             }
 
-            /**
-             * Handle loading timeout
-             */
-            handleLoadingTimeout(failedCount) {
-                console.warn(`[Resource Validator] ${failedCount} resources failed to load within timeout`);
-                
-                this.showUserFriendlyError(
-                    `部分資源載入較慢 (${failedCount} 個)，功能可能受限。請檢查網路連線或重新整理頁面。`
-                );
-            }
-
-            /**
-             * Update UI for missing resources
-             */
-            updateUIForMissingResource(resourcePath) {
-                // Disable features that depend on missing resources
-                if (resourcePath.includes('qrcode')) {
-                    const qrButtons = document.querySelectorAll('[data-action*="qr"]');
-                    qrButtons.forEach(btn => {
-                        btn.disabled = true;
-                        btn.title = 'QR 碼功能暫時無法使用';
-                    });
-                }
-
-                if (resourcePath.includes('bilingual')) {
-                    const langToggle = document.getElementById('lang-toggle');
-                    if (langToggle) {
-                        langToggle.disabled = true;
-                        langToggle.title = '語言切換功能暫時無法使用';
-                    }
-                }
-            }
-
-            /**
-             * Show critical resource error
-             */
-            showCriticalResourceError(resourcePath) {
-                const errorMessage = `關鍵資源載入失敗: ${resourcePath.split('/').pop()}。應用程式可能無法正常運作。`;
-                this.showUserFriendlyError(errorMessage, 'error');
-            }
-
-            /**
-             * Show user-friendly error message
-             */
-            showUserFriendlyError(message, type = 'warning') {
-                // Create or update notification
-                let notification = document.getElementById('notification');
-                if (!notification) {
-                    notification = document.createElement('div');
-                    notification.id = 'notification';
-                    notification.className = 'notification';
-                    document.body.appendChild(notification);
-                }
-
-                notification.innerHTML = `
-                    <div class="notification-content ${type}">
-                        <span class="notification-icon">${type === 'error' ? '❌' : '⚠️'}</span>
-                        <span class="notification-message">${this.sanitizeMessage(message)}</span>
-                        <button class="notification-close" onclick="this.parentElement.parentElement.classList.add('hidden')">&times;</button>
-                    </div>
-                `;
-
-                notification.classList.remove('hidden');
-
-                // Auto-hide after 10 seconds for warnings
-                if (type === 'warning') {
-                    setTimeout(() => {
-                        notification.classList.add('hidden');
-                    }, 10000);
-                }
-            }
-
-            /**
-             * Sanitize error message for XSS protection
-             */
-            sanitizeMessage(message) {
-                return message
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#x27;');
-            }
-
-            /**
-             * Check if resource is external (should be excluded from validation)
-             */
-            isExternalResource(resourceUrl) {
-                if (!resourceUrl) return false;
-                
-                const externalPatterns = [
-                    /^https?:\/\/fonts\.(googleapis|gstatic)\.com/,
-                    /^https?:\/\/unpkg\.com/,
-                    /^https?:\/\/cdn\./,
-                    /^https?:\/\/[^/]+\.(com|net|org)\//
-                ];
-                
-                return externalPatterns.some(pattern => pattern.test(resourceUrl));
-            }
-
-            /**
-             * Check if resource is already loaded
-             */
-            isResourceAlreadyLoaded(resource) {
-                if (resource.tagName === 'SCRIPT') {
-                    // For scripts, assume loaded if no src or if readyState indicates completion
-                    if (!resource.src) return true;
-                    return resource.readyState === 'complete' || resource.readyState === 'loaded';
-                } else if (resource.tagName === 'LINK' && resource.rel === 'stylesheet') {
-                    // For stylesheets, be more lenient
-                    if (!resource.href) return true;
-                    try {
-                        return resource.sheet && resource.sheet.cssRules !== null;
-                    } catch (e) {
-                        // Cross-origin or already loaded stylesheets, assume loaded
-                        return true;
-                    }
-                } else if (resource.tagName === 'IMG') {
-                    // For images, check if they are complete
-                    return resource.complete && resource.naturalWidth > 0;
-                }
-                
-                return false;
-            }
-
-            /**
-             * Get validation report
-             */
-            getReport() {
-                const total = this.loadedResources.size + this.failedResources.size;
-                return {
-                    timestamp: new Date().toISOString(),
-                    loadedResources: Array.from(this.loadedResources),
-                    failedResources: Array.from(this.failedResources),
-                    totalLoaded: this.loadedResources.size,
-                    totalFailed: this.failedResources.size,
-                    successRate: total > 0 ? (this.loadedResources.size / total * 100) : 100
-                };
-            }
         }
 
-        // Initialize resource validator when DOM is ready
+        // Initialize simple resource monitor
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
-                window.resourceValidator = new ResourceLoadingValidator();
-                window.resourceValidator.init();
+                window.resourceMonitor = new SimpleResourceMonitor();
+                window.resourceMonitor.init();
             });
         } else {
-            window.resourceValidator = new ResourceLoadingValidator();
-            window.resourceValidator.init();
+            window.resourceMonitor = new SimpleResourceMonitor();
+            window.resourceMonitor.init();
         }
     </script>
 
@@ -601,184 +239,28 @@
         </div>
     </div>
 
-    <!-- 主要內容 -->
-    <div id="app" class="app-container">
-        <!-- 標題列 -->
-        <header class="app-header">
-            <div class="header-content">
-                <div class="header-text">
-                    <h1 id="app-title">數位名片收納</h1>
-                    <p id="app-subtitle">離線儲存中心</p>
-                </div>
-                <div class="header-actions">
-                    <button id="theme-toggle" class="btn btn-icon" title="主題切換">
-                        <span class="icon">🌙</span>
-                    </button>
-                    <button id="lang-toggle" class="btn btn-icon" title="語言切換">
-                        <span class="icon">EN</span>
-                    </button>
-                    <button id="settings-button" class="btn btn-icon" title="回到首頁">
-                        <span class="icon">🏠</span>
-                    </button>
-                </div>
-            </div>
+    <!-- 極簡名片儲存 -->
+    <div id="app">
+        <header style="padding: 20px; text-align: center; border-bottom: 1px solid #eee;">
+            <h1>📇 數位名片收納</h1>
+            <p>離線儲存 9 種名片類型</p>
         </header>
-
-        <!-- 導航列 -->
-        <nav class="app-nav">
-            <button id="nav-home" class="nav-item active" data-page="home">
-                <span class="nav-icon">🏠</span>
-                <span class="nav-label">首頁</span>
-            </button>
-            <button id="nav-cards" class="nav-item" data-page="cards">
-                <span class="nav-icon">📇</span>
-                <span class="nav-label">名片</span>
-            </button>
-            <button id="nav-import" class="nav-item" data-page="import">
-                <span class="nav-icon">📥</span>
-                <span class="nav-label">匯入</span>
-            </button>
-            <button id="nav-export" class="nav-item" data-page="export">
-                <span class="nav-icon">📤</span>
-                <span class="nav-label">匯出</span>
-            </button>
-        </nav>
-
-        <!-- 頁面內容 -->
-        <main id="main-content" class="main-content">
-            <!-- 首頁 -->
-            <div id="page-home" class="page active">
-                <div class="welcome-section">
-                    <h2 id="welcome-title">歡迎使用離線名片儲存</h2>
-                    <p id="welcome-desc">安全地儲存和管理您的數位名片，完全離線運作</p>
-                    
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-number" id="total-cards">0</div>
-                            <div class="stat-label" id="stat-total-cards">已儲存名片</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-number" id="storage-used">0%</div>
-                            <div class="stat-label" id="stat-storage-used">儲存空間</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-number" id="app-version">載入中...</div>
-                            <div class="stat-label" id="stat-app-version">應用版本</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="quick-actions">
-                    <h3 id="quick-actions-title">快速操作</h3>
-                    <div class="action-grid">
-                        <button class="action-card" data-action="add-card">
-                            <span class="action-icon">➕</span>
-                            <span class="action-title" id="action-add-card">新增名片</span>
-                            <span class="action-desc" id="action-add-card-desc">從 URL 或檔案新增</span>
-                        </button>
-
-                        <button class="action-card" data-action="import-file">
-                            <span class="action-icon">📁</span>
-                            <span class="action-title" id="action-import-file">匯入檔案</span>
-                            <span class="action-desc" id="action-import-file-desc">批次匯入名片</span>
-                        </button>
-                        <button class="action-card" data-action="backup-all">
-                            <span class="action-icon">💾</span>
-                            <span class="action-title" id="action-backup-all">備份資料</span>
-                            <span class="action-desc" id="action-backup-all-desc">匯出所有名片</span>
-                        </button>
-                        <button class="action-card" data-action="security-settings">
-                            <span class="action-icon">🛡️</span>
-                            <span class="action-title" id="action-security-settings">安全狀態</span>
-                            <span class="action-desc" id="action-security-settings-desc">檢視系統安全資訊</span>
-                        </button>
-                    </div>
-                </div>
+        
+        <main style="padding: 20px; max-width: 800px; margin: 0 auto;">
+            <div id="cards-container">
+                <h2>已儲存名片 (<span id="card-count">0</span>)</h2>
+                <div id="cards-list" style="display: grid; gap: 15px; margin-top: 20px;"></div>
             </div>
-
-            <!-- 名片列表頁 -->
-            <div id="page-cards" class="page">
-                <div class="page-header">
-                    <h2 id="page-cards-title">我的名片</h2>
-                    <div class="page-actions">
-                        <input type="search" id="card-search" placeholder="搜尋名片..." class="search-input">
-                        <select id="card-filter" class="filter-select">
-                            <option value="" id="filter-all">所有類型</option>
-                            <option value="gov-yp" id="filter-gov-yp">政府機關版 (延平大樓)</option>
-                            <option value="gov-sg" id="filter-gov-sg">政府機關版 (新光大樓)</option>
-                            <option value="personal" id="filter-personal">個人版</option>
-                            <option value="bilingual" id="filter-bilingual">雙語版</option>
-                        </select>
-                    </div>
-                </div>
-                <div id="cards-list" class="cards-list">
-                    <!-- 名片列表將動態載入 -->
-                </div>
-            </div>
-
-            <!-- 匯入頁 -->
-            <div id="page-import" class="page">
-                <div class="page-header">
-                    <h2 id="page-import-title">匯入名片</h2>
-                </div>
-                <div class="import-options">
-                    <div class="import-card">
-                        <h3 id="import-url-title">從 URL 匯入</h3>
-                        <input type="url" id="import-url" placeholder="貼上名片連結..." class="url-input">
-                        <button id="import-url-btn" class="btn btn-primary">匯入</button>
-                    </div>
-                    <div class="import-card">
-                        <h3 id="import-file-title">從檔案匯入</h3>
-                        <input type="file" id="import-file" accept=".json,.vcf" class="file-input">
-                        <button id="import-file-btn" class="btn btn-primary">選擇檔案</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 匯出頁 -->
-            <div id="page-export" class="page">
-                <div class="page-header">
-                    <h2 id="page-export-title">匯出名片</h2>
-                </div>
-                <div class="export-options">
-                    <div class="export-card">
-                        <h3 id="export-options-title">匯出選項</h3>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="export-all" checked>
-                            <span id="export-all-label">匯出所有名片</span>
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="export-versions">
-                            <span id="export-versions-label">包含版本歷史</span>
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="export-encrypt">
-                            <span id="export-encrypt-label">加密匯出檔案</span>
-                        </label>
-                        <div class="format-selection">
-                            <label for="export-format">匯出格式:</label>
-                            <select id="export-format">
-                                <option value="json">JSON 格式</option>
-                                <option value="vcard">vCard 格式</option>
-                                <option value="both">兩種格式</option>
-                            </select>
-                        </div>
-                        <button id="export-btn" class="btn btn-primary">開始匯出</button>
-                    </div>
-                </div>
+            
+            <div style="margin-top: 30px; padding: 20px; background: #f5f5f5; border-radius: 8px;">
+                <h3>新增名片</h3>
+                <input type="url" id="card-url" placeholder="貼上名片連結 (index.html?data=...)" style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px;">
+                <button onclick="addCard()" style="padding: 10px 20px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer;">儲存名片</button>
             </div>
         </main>
-
-        <!-- 狀態列 -->
-        <footer class="app-footer">
-            <div class="status-info">
-                <span id="connection-status" class="status-indicator offline">離線模式</span>
-                <span id="storage-status" class="status-text">儲存空間充足</span>
-            </div>
-            <div class="app-info">
-                <span>🇹🇼 moda 開源專案</span>
-                <a href="https://github.com/moda-gov-tw/DB-Card" target="_blank" rel="noopener">GitHub</a>
-            </div>
+        
+        <footer style="text-align: center; padding: 20px; color: #666; border-top: 1px solid #eee; margin-top: 40px;">
+            🇹🇼 moda 開源專案 | <a href="https://github.com/moda-gov-tw/DB-Card" target="_blank">GitHub</a>
         </footer>
     </div>
 
@@ -797,103 +279,133 @@
         </div>
     </div>
 
-    <!-- Scripts -->
-    
-    <!-- PWA-001: ES6 Module Integration -->
-    <script type="module">
-        // PWA Core Integration
-        import { initializePWA } from './src/core/pwa-integrator.js';
+    <!-- 極簡名片儲存功能 -->
+    <script>
+        const STORAGE_KEY = 'pwa_stored_cards';
         
-        // Initialize PWA when DOM is ready
-        document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                console.log('[PWA] 開始初始化 PWA 系統...');
-                const pwaResult = await initializePWA();
-                
-                if (pwaResult.success) {
-                    console.log('[PWA] PWA 系統初始化成功:', pwaResult.features);
-                } else {
-                    console.warn('[PWA] PWA 系統初始化失敗:', pwaResult.error);
-                }
-            } catch (error) {
-                console.error('[PWA] PWA 初始化錯誤:', error);
+        // PWA 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('[PWA] 極簡名片儲存啟動');
+            
+            // 註冊 Service Worker
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(() => console.log('[PWA] SW 註冊成功'))
+                    .catch(() => console.log('[PWA] SW 註冊失敗'));
+            }
+            
+            loadCards();
+            
+            // 檢查是否有來源名片資料
+            const sourceData = localStorage.getItem('pwa_card_source_url');
+            if (sourceData) {
+                try {
+                    const data = JSON.parse(sourceData);
+                    document.getElementById('card-url').value = data.sourceUrl;
+                    localStorage.removeItem('pwa_card_source_url');
+                } catch (e) {}
             }
         });
+        
+        function addCard() {
+            const url = document.getElementById('card-url').value.trim();
+            if (!url) return alert('請輸入名片連結');
+            
+            // 解析名片資料
+            const cardData = parseCardFromUrl(url);
+            if (!cardData) return alert('無效的名片連結');
+            
+            // 儲存名片
+            const cards = getStoredCards();
+            const cardId = Date.now().toString();
+            cards[cardId] = {
+                id: cardId,
+                url: url,
+                data: cardData,
+                savedAt: new Date().toISOString(),
+                type: detectCardType(url)
+            };
+            
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+            document.getElementById('card-url').value = '';
+            loadCards();
+            alert('名片儲存成功！');
+        }
+        
+        function parseCardFromUrl(url) {
+            try {
+                const urlObj = new URL(url);
+                const dataParam = urlObj.searchParams.get('data') || urlObj.searchParams.get('c');
+                if (!dataParam) return null;
+                
+                const decoded = decodeURIComponent(escape(atob(decodeURIComponent(dataParam))));
+                return JSON.parse(decoded);
+            } catch (e) {
+                return null;
+            }
+        }
+        
+        function detectCardType(url) {
+            if (url.includes('index.html')) return '機關版-延平';
+            if (url.includes('index1.html')) return '機關版-新光';
+            if (url.includes('index-en.html')) return '機關版-延平-EN';
+            if (url.includes('index1-en.html')) return '機關版-新光-EN';
+            if (url.includes('index-personal.html')) return '個人版';
+            if (url.includes('index-personal-en.html')) return '個人版-EN';
+            if (url.includes('index-bilingual.html')) return '雙語版-延平';
+            if (url.includes('index1-bilingual.html')) return '雙語版-新光';
+            if (url.includes('index-bilingual-personal.html')) return '雙語版-個人';
+            return '未知類型';
+        }
+        
+        function getStoredCards() {
+            try {
+                return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            } catch (e) {
+                return {};
+            }
+        }
+        
+        function loadCards() {
+            const cards = getStoredCards();
+            const cardsList = document.getElementById('cards-list');
+            const cardCount = document.getElementById('card-count');
+            
+            const cardArray = Object.values(cards);
+            cardCount.textContent = cardArray.length;
+            
+            if (cardArray.length === 0) {
+                cardsList.innerHTML = '<p style="color: #666; text-align: center; padding: 40px;">尚未儲存任何名片</p>';
+                return;
+            }
+            
+            cardsList.innerHTML = cardArray.map(card => `
+                <div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; background: white;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <div>
+                            <h4 style="margin: 0; color: #333;">${card.data.data?.name || '未知姓名'}</h4>
+                            <p style="margin: 5px 0; color: #666; font-size: 14px;">${card.type}</p>
+                        </div>
+                        <button onclick="deleteCard('${card.id}')" style="background: #f44336; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; font-size: 12px;">刪除</button>
+                    </div>
+                    <p style="margin: 5px 0; color: #666; font-size: 13px;">儲存時間: ${new Date(card.savedAt).toLocaleString()}</p>
+                    <button onclick="openCard('${card.url}')" style="background: #1976d2; color: white; border: none; border-radius: 4px; padding: 8px 15px; cursor: pointer; margin-top: 10px;">開啟名片</button>
+                </div>
+            `).join('');
+        }
+        
+        function openCard(url) {
+            window.open(url, '_blank');
+        }
+        
+        function deleteCard(cardId) {
+            if (!confirm('確定要刪除這張名片嗎？')) return;
+            
+            const cards = getStoredCards();
+            delete cards[cardId];
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+            loadCards();
+        }
     </script>
-    
-    <!-- Unified Manifest Manager (最優先載入) -->
-    <script src="src/core/unified-manifest-manager.js"></script>
-    
-    <!-- Lightweight Security (Static Hosting Compatible) -->
-    <script src="./src/security/LightweightSecurityCore.js"></script>
-    <script src="./src/security/StaticHostingSecurityToggle.js"></script>
-    <script src="./src/security/ClientSideSecurityHealthMonitor.js"></script>
-    
-    <!-- Legacy Security (Fallback) -->
-    <script src="./src/security/SecuritySettingsInterface.js"></script>
-    
-    <script src="src/core/error-handler.js"></script>
-    <script src="./assets/scripts/bilingual-common.js"></script>
-    <script src="./assets/scripts/qrcode.min.js"></script>
-    <script src="./assets/scripts/qr-utils.js"></script>
-    
-    <!-- TRANS-001: Safe Translation Handler (Load First) -->
-    <script src="src/core/safe-translation-handler.js"></script>
-    
-    <!-- TRANS-003: Unified Translation Service -->
-    <script src="src/core/unified-translation-service.js"></script>
-    
-    <!-- TRANS-004: Translation Keys Configuration -->
-    <script src="src/core/translation-keys-config.js"></script>
-    
-    <!-- COMP-01: Simplified Language Manager -->
-    <script src="src/core/simplified-language-manager.js"></script>
-    
-    <!-- COMP-02: Unified Component Registry -->
-    <script src="src/core/unified-component-registry.js"></script>
-    
-    <!-- COMP-04: Component Health Monitor -->
-    <script src="src/core/component-health-monitor.js"></script>
-    
-    <!-- Language Manager (Fallback) -->
-    <script src="src/core/language-manager.js"></script>
-    
-    <!-- Debug Tools (Development) -->
-    <link rel="stylesheet" href="src/debug/debug-panel-styles.css">
-    <script src="src/debug/language-debug-panel.js"></script>
-    
-    <!-- Unified Mobile Manager -->
-    <script src="src/core/unified-mobile-manager.js"></script>
-    
-    <!-- PWA Core Modules (Critical Dependencies First) -->
-    <script src="src/core/content-fingerprint-generator.js"></script>
-    <script src="src/core/duplicate-detector.js"></script>
-    <script src="src/core/database-migration-validator.js"></script>
-    <script src="src/core/batch-data-migrator.js"></script>
-    <script src="src/core/migration-log-manager.js"></script>
-    <script src="src/core/version-manager.js"></script>
-    <script src="src/core/version-manager-utils.js"></script>
-    <script src="src/core/pwa-integration.js"></script>
-    
-    <!-- CRITICAL: Storage must load before app.js -->
-    <script src="src/core/storage.js"></script>
-    <script src="src/core/health-manager.js"></script>
-    
-    <!-- Feature Modules -->
-    <script src="src/features/card-manager.js"></script>
-    <script src="src/features/offline-tools.js"></script>
-    <script src="src/features/transfer-manager.js"></script>
-    
-    <!-- UI Components -->
-    <script src="src/ui/components/card-list.js"></script>
-    <script src="src/ui/version-management-interface.js"></script>
-    
-    <!-- Utilities -->
-    <script src="src/utils/simple-card-parser.js"></script>
-    <script src="src/utils/pwa-performance.js"></script>
-    
-    <!-- Application (Load After All Dependencies) -->
-    <script src="src/app.js"></script>
-    <script src="src/pwa-init.js"></script>
 </body>
 </html>

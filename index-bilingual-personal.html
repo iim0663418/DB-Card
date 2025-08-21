@@ -643,6 +643,188 @@
         }
 
         // 生成 QR 碼
+        
+        // 生成 QR 碼內容
+        function generateQRCodeContent(url) {
+            const canvas = document.createElement('canvas');
+            const qr = new QRCode(canvas, {
+                text: url,
+                width: 240,
+                height: 240,
+                colorDark: "#6b7280",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            return canvas.toDataURL();
+        }
+        
+        // 從 manifest 中獲取 QR 碼
+        function getQRFromManifest() {
+            try {
+                const manifestLink = document.getElementById('manifest-link');
+                if (manifestLink && manifestLink.href.startsWith('blob:')) {
+                    // 無法直接讀取 blob URL，使用備用方案
+                    return window.pwaQRFallback || null;
+                }
+            } catch (error) {
+                console.error('Failed to get QR from manifest:', error);
+            }
+            return null;
+        }
+        
+        // QR 碼備用模式顯示
+        function showQRFallback(qrContent) {
+            document.querySelector('.card').innerHTML = `
+                <div style="text-align: center; padding: 40px 20px;">
+                    <h2 style="color: #6868ac; margin-bottom: 20px;">📱 名片資料暫時無法載入</h2>
+                    <p style="color: #666; margin-bottom: 30px; line-height: 1.6;">請掃描下方 QR 碼重新獲取完整名片資訊</p>
+                    <div style="display: flex; justify-content: center; margin: 30px 0;">
+                        <img src="${qrContent}" alt="QR Code" style="width: 240px; height: 240px;" />
+                    </div>
+                </div>
+            `;
+        }
+
+                // 動態生成包含當前參數的 manifest 並保存名片資料
+        function generateDynamicManifest() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const hasData = urlParams.get('data') || urlParams.get('c');
+            
+            if (hasData) {
+                // 生成唯一的應用名稱和儲存鍵，避免覆蓋
+                const timestamp = Date.now().toString(36);
+                const storageKey = `pwa-card-data-${timestamp}`;
+                
+                // 保存名片資料到 localStorage
+                const cardData = getCardDataFromNFC();
+                if (cardData) {
+                    localStorage.setItem(storageKey, JSON.stringify(cardData));
+                    console.log('Card data saved to localStorage with key:', storageKey);
+                }
+                
+                const manifest = {
+                    "name": `數位發展部名片-${timestamp}`,
+                    "short_name": `名片-${timestamp}`,
+                    "description": "數位發展部 NFC 數位名片",
+                    "start_url": `./index-bilingual-personal.html?pwa=${storageKey}`,
+                    "display": "standalone",
+                    "background_color": "#ffffff",
+                    "theme_color": "#0066cc",
+                    "scope": "./",
+                    "qr_fallback": generateQRCodeContent(window.location.href),
+                    "icons": [
+                        {
+                            "src": "./assets/icons/icon-32x32.png",
+                            "sizes": "32x32",
+                            "type": "image/png"
+                        },
+                        {
+                            "src": "./assets/icons/icon-192x192.png",
+                            "sizes": "192x192",
+                            "type": "image/png"
+                        },
+                        {
+                            "src": "./assets/icons/icon-512x512.png",
+                            "sizes": "512x512",
+                            "type": "image/png"
+                        }
+                    ]
+                };
+                
+                // 將 QR 碼備用保存到全域變數
+                window.pwaQRFallback = manifest.qr_fallback;
+                
+                const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+                const manifestUrl = URL.createObjectURL(manifestBlob);
+                document.getElementById('manifest-link').href = manifestUrl;
+                
+                // 強制重新載入 manifest
+                const existingLink = document.querySelector('link[rel="manifest"]');
+                if (existingLink) {
+                    existingLink.remove();
+                }
+                const newLink = document.createElement('link');
+                newLink.rel = 'manifest';
+                newLink.href = manifestUrl;
+                document.head.appendChild(newLink);
+            }
+        }
+        
+        // 生成 QR 碼內容
+        function generateQRCodeContent(url) {
+            const canvas = document.createElement('canvas');
+            const qr = new QRCode(canvas, {
+                text: url,
+                width: 240,
+                height: 240,
+                colorDark: "#6b7280",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            return canvas.toDataURL();
+        }
+        
+        // 從 manifest 中獲取 QR 碼
+        function getQRFromManifest() {
+            try {
+                const manifestLink = document.getElementById('manifest-link');
+                if (manifestLink && manifestLink.href.startsWith('blob:')) {
+                    // 無法直接讀取 blob URL，使用備用方案
+                    return window.pwaQRFallback || null;
+                }
+            } catch (error) {
+                console.error('Failed to get QR from manifest:', error);
+            }
+            return null;
+        }
+        
+        // QR 碼備用模式顯示
+        function showQRFallback(qrContent) {
+            document.querySelector('.card').innerHTML = `
+                <div style="text-align: center; padding: 40px 20px;">
+                    <h2 style="color: #6868ac; margin-bottom: 20px;">📱 名片資料暫時無法載入</h2>
+                    <p style="color: #666; margin-bottom: 30px; line-height: 1.6;">請掃描下方 QR 碼重新獲取完整名片資訊</p>
+                    <div style="display: flex; justify-content: center; margin: 30px 0;">
+                        <img src="${qrContent}" alt="QR Code" style="width: 240px; height: 240px;" />
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 檢查是否為 PWA 模式的函數
+        function getCardDataFromNFC() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // 檢查是否為 PWA 模式
+            const pwaKey = urlParams.get('pwa');
+            if (pwaKey) {
+                try {
+                    const savedData = localStorage.getItem(pwaKey);
+                    if (savedData) {
+                        const cardData = JSON.parse(savedData);
+                        console.log('Received card data from PWA localStorage:', cardData);
+                        return cardData;
+                    } else {
+                        // 嘗試從 manifest 中獲取 QR 碼備用
+                        const qrContent = getQRFromManifest();
+                        if (qrContent) {
+                            console.log('Card data missing, using QR fallback from manifest');
+                            return { qrFallback: true, qrContent: qrContent };
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to parse PWA card data:', error);
+                }
+            }
+            
+            // 從 bilingual-common.js 的全域函數獲取資料
+            if (typeof window.getCardDataFromNFC === 'function') {
+                return window.getCardDataFromNFC();
+            }
+            
+            return null;
+        }
+
         function generateQRCode() {
             const currentURL = window.location.href;
             const qrContainer = document.getElementById('qrcode');
@@ -832,6 +1014,10 @@
 
 
         // 頁面初始化由 bilingual-common.js 統一處理
+        window.addEventListener('load', function() {
+            // 生成動態 manifest
+            generateDynamicManifest();
+        });
     </script>
     <script src="assets/qr-utils.js"></script>
     <script src="assets/offline-qr-enhancement.js"></script>

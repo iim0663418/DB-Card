@@ -620,6 +620,48 @@
         }
 
         // 生成 QR 碼
+        
+        // 生成 QR 碼內容
+        function generateQRCodeContent(url) {
+            const canvas = document.createElement('canvas');
+            const qr = new QRCode(canvas, {
+                text: url,
+                width: 240,
+                height: 240,
+                colorDark: "#6b7280",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            return canvas.toDataURL();
+        }
+        
+        // 從 manifest 中獲取 QR 碼
+        function getQRFromManifest() {
+            try {
+                const manifestLink = document.getElementById('manifest-link');
+                if (manifestLink && manifestLink.href.startsWith('blob:')) {
+                    // 無法直接讀取 blob URL，使用備用方案
+                    return window.pwaQRFallback || null;
+                }
+            } catch (error) {
+                console.error('Failed to get QR from manifest:', error);
+            }
+            return null;
+        }
+        
+        // QR 碼備用模式顯示
+        function showQRFallback(qrContent) {
+            document.querySelector('.card').innerHTML = `
+                <div style="text-align: center; padding: 40px 20px;">
+                    <h2 style="color: #6868ac; margin-bottom: 20px;">📱 名片資料暫時無法載入</h2>
+                    <p style="color: #666; margin-bottom: 30px; line-height: 1.6;">請掃描下方 QR 碼重新獲取完整名片資訊</p>
+                    <div style="display: flex; justify-content: center; margin: 30px 0;">
+                        <img src="${qrContent}" alt="QR Code" style="width: 240px; height: 240px;" />
+                    </div>
+                </div>
+            `;
+        }
+
         function generateQRCode() {
             const currentURL = window.location.href;
             const qrContainer = document.getElementById('qrcode');
@@ -969,8 +1011,18 @@
                         const cardData = JSON.parse(savedData);
                         console.log('Received card data from PWA localStorage:', cardData);
                         return cardData;
+                    } else {
+                        // 嘗試從 manifest 中獲取 QR 碼備用
+                        const qrContent = getQRFromManifest();
+                        if (qrContent) {
+                            console.log('Card data missing, using QR fallback from manifest');
+                            return { qrFallback: true, qrContent: qrContent };
+                        }
                     }
                 } catch (error) {
+                    console.error('Failed to parse PWA card data:', error);
+                }
+            } catch (error) {
                     console.error('Failed to parse PWA card data:', error);
                 }
             }
@@ -1185,6 +1237,7 @@
                     "background_color": "#ffffff",
                     "theme_color": "#0066cc",
                     "scope": "./",
+                    "qr_fallback": generateQRCodeContent(window.location.href),
                     "icons": [
                         {
                             "src": "./pwa-card-storage/assets/icons/icon-32x32.png",
@@ -1203,6 +1256,9 @@
                         }
                     ]
                 };
+                
+                // 將 QR 碼備用保存到全域變數
+                window.pwaQRFallback = manifest.qr_fallback;
                 
                 const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
                 const manifestUrl = URL.createObjectURL(manifestBlob);
@@ -1248,6 +1304,17 @@
                         console.log('Cleaning up orphaned PWA data:', pwaKey);
                         localStorage.removeItem(pwaKey);
                     }
+                    return;
+                }
+                
+                // 檢查是否為 QR 碼備用模式
+                if (cardData.qrFallback) {
+                    document.getElementById('loading-state').style.display = 'none';
+                    document.getElementById('access-denied').style.display = 'none';
+                    document.getElementById('card-container').style.display = 'block';
+                    
+                    // 顯示 QR 碼備用介面
+                    showQRFallback(cardData.qrContent);
                     return;
                 }
 

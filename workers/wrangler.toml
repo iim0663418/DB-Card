@@ -17,6 +17,10 @@ binding = "DB"
 database_name = "db-card-prod"
 database_id = "947e021c-2858-47b3-8495-2aaf8fa956ad"
 
+[[env.production.kv_namespaces]]
+binding = "KV"
+id = "87221de061f049d3a4c976b7b5092dd9"
+
 # Staging Environment
 [env.staging]
 name = "db-card-api-staging"
@@ -26,3 +30,7 @@ vars = { ENVIRONMENT = "staging" }
 binding = "DB"
 database_name = "db-card-staging"
 database_id = "d31b5e42-d8bf-4044-9744-4aff5669de4b"
+
+[[env.staging.kv_namespaces]]
+binding = "KV"
+id = "87221de061f049d3a4c976b7b5092dd9"

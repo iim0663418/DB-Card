@@ -79,7 +79,7 @@ export const CARD_POLICIES: Record<CardType, CardPolicy> = {
 
 export interface AuditLog {
   id?: number;
-  event_type: 'tap' | 'read' | 'create' | 'update' | 'delete' | 'revoke';
+  event_type: 'tap' | 'read' | 'create' | 'card_create' | 'card_update' | 'card_delete' | 'update' | 'delete' | 'revoke' | 'admin_revoke' | 'emergency_revoke' | 'kek_rotation';
   card_uuid?: string;
   session_id?: string;
   user_agent?: string;

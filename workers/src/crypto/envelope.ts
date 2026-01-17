@@ -100,4 +100,62 @@ export class EnvelopeEncryption {
     const decoder = new TextDecoder();
     return JSON.parse(decoder.decode(decryptedData));
   }
+
+  /**
+   * Unwrap (decrypt) a DEK using the KEK
+   * Used for KEK rotation to extract the raw DEK
+   *
+   * @param wrapped_dek - Base64-encoded wrapped DEK (IV + encrypted DEK)
+   * @param kek - The KEK to use for unwrapping (can be different from this.kek)
+   * @returns Base64-encoded raw DEK (32 bytes for AES-256)
+   */
+  async unwrapDek(wrapped_dek: string, kek: CryptoKey): Promise<string> {
+    // 1. Decode base64 wrapped DEK
+    const wrappedDekBytes = Uint8Array.from(atob(wrapped_dek), c => c.charCodeAt(0));
+
+    // 2. Extract IV and wrapped DEK data
+    const wrapIv = wrappedDekBytes.slice(0, 12);
+    const wrappedDekData = wrappedDekBytes.slice(12);
+
+    // 3. Unwrap DEK with KEK
+    const dekBytes = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: wrapIv },
+      kek,
+      wrappedDekData
+    );
+
+    // 4. Return base64-encoded raw DEK
+    return btoa(String.fromCharCode(...new Uint8Array(dekBytes)));
+  }
+
+  /**
+   * Wrap (encrypt) a DEK using the KEK
+   * Used for KEK rotation to re-wrap the DEK with a new KEK
+   *
+   * @param dek - Base64-encoded raw DEK (32 bytes for AES-256)
+   * @param kek - The KEK to use for wrapping (can be different from this.kek)
+   * @returns Base64-encoded wrapped DEK (IV + encrypted DEK)
+   */
+  async wrapDek(dek: string, kek: CryptoKey): Promise<string> {
+    // 1. Decode base64 DEK
+    const dekBytes = Uint8Array.from(atob(dek), c => c.charCodeAt(0));
+
+    // 2. Generate random IV for wrapping
+    const wrapIv = crypto.getRandomValues(new Uint8Array(12));
+
+    // 3. Wrap DEK with KEK
+    const wrappedDek = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv: wrapIv },
+      kek,
+      dekBytes
+    );
+
+    // 4. Combine IV + wrapped DEK
+    const wrappedDekWithIv = new Uint8Array(wrapIv.length + wrappedDek.byteLength);
+    wrappedDekWithIv.set(wrapIv, 0);
+    wrappedDekWithIv.set(new Uint8Array(wrappedDek), wrapIv.length);
+
+    // 5. Return base64-encoded wrapped DEK
+    return btoa(String.fromCharCode(...wrappedDekWithIv));
+  }
 }

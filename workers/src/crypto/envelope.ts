@@ -21,11 +21,11 @@ export class EnvelopeEncryption {
     if (!this.kek) throw new Error('KEK not initialized');
 
     // 1. Generate random DEK (256-bit)
-    const dek = await crypto.subtle.generateKey(
+    const dekKey = await crypto.subtle.generateKey(
       { name: 'AES-GCM', length: 256 },
       true,
       ['encrypt', 'decrypt']
-    );
+    ) as CryptoKey;
 
     // 2. Encrypt card data with DEK
     const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -34,16 +34,17 @@ export class EnvelopeEncryption {
 
     const encryptedData = await crypto.subtle.encrypt(
       { name: 'AES-GCM', iv },
-      dek,
+      dekKey,
       dataBytes
     );
 
     // 3. Wrap DEK with KEK
     const wrapIv = crypto.getRandomValues(new Uint8Array(12));
+    const dekRaw = await crypto.subtle.exportKey('raw', dekKey) as ArrayBuffer;
     const wrappedDek = await crypto.subtle.encrypt(
       { name: 'AES-GCM', iv: wrapIv },
       this.kek,
-      await crypto.subtle.exportKey('raw', dek)
+      dekRaw
     );
 
     // 4. Combine IV + encrypted data, wrapIv + wrapped DEK

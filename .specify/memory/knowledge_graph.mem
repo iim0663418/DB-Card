@@ -1,0 +1,63 @@
+# Knowledge Graph: DB-Card NFC Digital Business Card System
+# Format: Date|Subject|Predicate|Object
+# Version: v3.2.1
+
+260118|DB-Card|type|NFC_Digital_Business_Card_System
+260118|DB-Card|version|v3.2.1
+260118|DB-Card|architecture|Pure_Frontend_PWA
+260118|DB-Card|license|MIT
+260118|DB-Card|privacy_model|Privacy_First_Design
+260118|DB-Card|storage|NFC_Card_Local_Storage
+260118|DB-Card|language_support|Bilingual_ZH_EN
+260118|DB-Card|deployment|GitHub_Pages_Static_Hosting
+
+260118|Core_Features|includes|NFC_Data_Self_Contained
+260118|Core_Features|includes|Dynamic_vCard_Generation
+260118|Core_Features|includes|Offline_QR_Code_Generation
+260118|Core_Features|includes|PWA_Offline_Storage
+
+260118|Security_Architecture|layer|Input_Security_Handler
+260118|Security_Architecture|layer|Auth_Security_Handler
+260118|Security_Architecture|layer|Data_Security_Handler
+260118|Security_Architecture|monitoring|24_7_Security_Monitor
+
+260118|PWA_System|version|v1.1.0
+260118|PWA_System|storage|IndexedDB
+260118|PWA_System|feature|Offline_Card_Management
+260118|PWA_System|feature|Cross_Device_Transfer
+
+260118|Translation_System|version|v3.1.3
+260118|Translation_System|module|Unified_Language_Manager
+260118|Translation_System|quality_score|9.2_out_of_10
+
+260118|Recent_Fixes|v3.2.1|ComponentHealthMonitor_Track_Method
+260118|Recent_Fixes|v3.2.1|ES6_Module_Loading_Compatibility
+260118|Recent_Fixes|v3.2.1|PWA_Initialization_Success_Rate_100_Percent
+
+# Project Scope Update (2026-01-18)
+260118|DB-Card|project_type|Personal_Private_Project
+260118|DB-Card|previous_scope|Government_Open_Source_Project
+260118|DB-Card|data_controller|DB-Card_Project_Team
+260118|DB-Card|contact_email|privacy@db-card.example.com
+260118|Privacy_Policy|version|2.0.0_Personal_Edition
+260118|Privacy_Policy|compliance|GDPR_Taiwan_PDPA
+260118|Privacy_Policy|removed|Ministry_of_Digital_Affairs_References
+
+# ADR-002 Security Architecture (2026-01-18)
+260118|Security_Architecture|model|Envelope_Encryption
+260118|Security_Architecture|dek_strategy|One_DEK_Per_Card
+260118|Security_Architecture|kek_rotation|Event_Triggered_90_Days
+260118|Authorization_Model|type|ReadSession
+260118|ReadSession|ttl|24_Hours
+260118|ReadSession|max_reads|20_Default
+260118|ReadSession|revocable|True
+260118|ReadSession|renewable|False
+260118|Revocation_Mechanism|trigger|Retap_NFC_Card
+260118|Revocation_Mechanism|target|Last_1_Session
+260118|Revocation_Mechanism|condition|10_Min_Or_2_Reads
+260118|CardType|personal|TTL_24h_MaxReads_20
+260118|CardType|event_booth|TTL_24h_MaxReads_50
+260118|CardType|sensitive|TTL_24h_MaxReads_5
+260118|Emergency_Response|method|Token_Version_Increment
+260118|Emergency_Response|method|KEK_Rotation
+260118|Emergency_Response|method|Maintenance_Mode

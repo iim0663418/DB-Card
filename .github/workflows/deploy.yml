@@ -1,0 +1,62 @@
+name: Deploy to Cloudflare Workers
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: workers/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd workers
+          npm ci
+
+      - name: Run type check
+        run: |
+          cd workers
+          npx tsc --noEmit
+
+      - name: Deploy to Staging
+        if: github.ref == 'refs/heads/develop'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers
+          command: deploy --env staging
+
+      - name: Deploy to Production
+        if: github.ref == 'refs/heads/main'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers
+          command: deploy --env production
+
+      - name: Run health check (Staging)
+        if: github.ref == 'refs/heads/develop'
+        run: |
+          sleep 5
+          curl -f https://db-card-api-staging.workers.dev/health || exit 1
+
+      - name: Run health check (Production)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          sleep 5
+          curl -f https://db-card-api-prod.workers.dev/health || exit 1

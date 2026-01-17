@@ -1,0 +1,28 @@
+name = "db-card-api"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+# KV Namespace for Rate Limiting
+[[kv_namespaces]]
+binding = "KV"
+id = "87221de061f049d3a4c976b7b5092dd9"
+
+# Production Environment
+[env.production]
+name = "db-card-api-prod"
+vars = { ENVIRONMENT = "production" }
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "db-card-prod"
+database_id = "947e021c-2858-47b3-8495-2aaf8fa956ad"
+
+# Staging Environment
+[env.staging]
+name = "db-card-api-staging"
+vars = { ENVIRONMENT = "staging" }
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "db-card-staging"
+database_id = "d31b5e42-d8bf-4044-9744-4aff5669de4b"

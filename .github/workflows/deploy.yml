@@ -53,10 +53,10 @@ jobs:
         if: github.ref == 'refs/heads/develop'
         run: |
           sleep 5
-          curl -f https://db-card-api-staging.workers.dev/health || exit 1
+          curl -f https://db-card-api-staging.csw30454.workers.dev/health || exit 1
 
       - name: Run health check (Production)
         if: github.ref == 'refs/heads/main'
         run: |
           sleep 5
-          curl -f https://db-card-api-prod.workers.dev/health || exit 1
+          curl -f https://db-card-api-prod.csw30454.workers.dev/health || exit 1

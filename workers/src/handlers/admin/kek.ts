@@ -25,15 +25,22 @@ async function importKek(kekBase64: string): Promise<CryptoKey> {
 /**
  * Handle POST /api/admin/kek/rotate
  *
+ * Request Body (optional):
+ * {
+ *   "old_kek": "base64_encoded_old_kek" // Optional: for migration from external KEK
+ * }
+ *
  * BDD Scenarios:
  * - Scenario 1: Success - Rotate KEK and rewrap all cards
  * - Scenario 2: Success - No cards to rewrap (cards_rewrapped = 0)
- * - Scenario 3: 401 - Unauthorized (missing Authorization header)
- * - Scenario 4: 500 - KEK not configured
+ * - Scenario 3: Success - Migrate from external KEK (old_kek in request body)
+ * - Scenario 4: 401 - Unauthorized (missing Authorization header)
+ * - Scenario 5: 400 - Invalid old_kek format
+ * - Scenario 6: 500 - KEK not configured
  */
 export async function handleKekRotate(request: Request, env: Env): Promise<Response> {
   try {
-    // Scenario 3: Verify authorization
+    // Scenario 4: Verify authorization
     const isAuthorized = await verifySetupToken(request, env);
 
     if (!isAuthorized) {
@@ -41,7 +48,7 @@ export async function handleKekRotate(request: Request, env: Env): Promise<Respo
       const authHeader = request.headers.get('Authorization');
 
       if (!authHeader) {
-        // Scenario 3: Missing token
+        // Scenario 4: Missing token
         return adminErrorResponse('Authentication required', 401, request);
       } else {
         // Invalid token
@@ -49,9 +56,24 @@ export async function handleKekRotate(request: Request, env: Env): Promise<Respo
       }
     }
 
-    // Scenario 4: Check KEK configuration
+    // Scenario 6: Check KEK configuration
     if (!env.KEK) {
       return errorResponse('kek_not_configured', 'KEK 未配置', 500, request);
+    }
+
+    // Parse request body for optional old_kek
+    let oldKekValue: string | null = null;
+    try {
+      const body = await request.json() as { old_kek?: string };
+      if (body.old_kek) {
+        // Scenario 5: Validate old_kek format (should be base64)
+        if (!/^[A-Za-z0-9+/]+=*$/.test(body.old_kek)) {
+          return errorResponse('invalid_kek_format', 'old_kek 必須是 base64 格式', 400, request);
+        }
+        oldKekValue = body.old_kek;
+      }
+    } catch (e) {
+      // No body or invalid JSON, continue with env variables
     }
 
     // Get current active KEK version
@@ -65,10 +87,13 @@ export async function handleKekRotate(request: Request, env: Env): Promise<Respo
     const oldVersion = currentVersionResult?.version || 1;
     const newVersion = oldVersion + 1;
 
-    // Import KEK from environment
-    // Note: In Phase 1, we use the same KEK. In production, this should fetch a new KEK from Secrets Manager
-    const oldKek = await importKek(env.KEK);
-    const newKek = await importKek(env.KEK); // Same KEK for Phase 1 demonstration
+    // Determine old KEK source (priority: request body > OLD_KEK env > KEK env)
+    const oldKekSource = oldKekValue || env.OLD_KEK || env.KEK;
+    const newKekSource = env.KEK;
+
+    // Scenario 3: Import KEKs
+    const oldKek = await importKek(oldKekSource);
+    const newKek = await importKek(newKekSource);
 
     // Initialize EnvelopeEncryption
     const encryption = new EnvelopeEncryption();

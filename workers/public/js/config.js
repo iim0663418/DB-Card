@@ -1,5 +1,5 @@
 // API Configuration
-export const API_BASE = 'https://db-card-api-staging.csw30454.workers.dev';
+export const API_BASE = '';
 
 // IndexedDB Configuration
 export const DB_NAME = 'DBCardStorage';

@@ -7,6 +7,79 @@ let scene, camera, renderer, mesh, grid;
 let currentLanguage = 'zh';
 let typewriterTimeout = null;
 
+// 更新按鈕文字（根據當前語言）
+function updateButtonTexts() {
+    const desktopText = document.getElementById('save-vcard-text-desktop');
+    const mobileText = document.getElementById('save-vcard-text-mobile');
+    
+    if (desktopText && mobileText) {
+        if (currentLanguage === 'zh') {
+            desktopText.textContent = 'Sync Identity';
+            mobileText.textContent = '下載名片';
+        } else {
+            desktopText.textContent = 'Sync Identity';
+            mobileText.textContent = 'Download';
+        }
+    }
+    
+    // 更新所有 data-i18n 元素
+    const i18nElements = document.querySelectorAll('[data-i18n]');
+    i18nElements.forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (i18nTexts[key]) {
+            el.textContent = i18nTexts[key][currentLanguage];
+        }
+    });
+}
+
+// 多語言文字對照表
+const i18nTexts = {
+    'loading': {
+        'zh': 'Synchronizing Secure Identity...',
+        'en': 'Synchronizing Secure Identity...'
+    },
+    'qr-title': {
+        'zh': 'Scan for Official Verification',
+        'en': 'Scan for Official Verification'
+    },
+    'card-system': {
+        'zh': '數位名片系統 Digital Business Card',
+        'en': 'Digital Business Card System'
+    },
+    'transmission-feed': {
+        'zh': 'Dynamic Transmission Feed',
+        'en': 'Dynamic Transmission Feed'
+    },
+    'communication-node': {
+        'zh': 'Communication Node',
+        'en': 'Communication Node'
+    },
+    'voice-access': {
+        'zh': 'Voice Access',
+        'en': 'Voice Access'
+    },
+    'official-portal': {
+        'zh': 'Official Portal',
+        'en': 'Official Portal'
+    },
+    'security-spec': {
+        'zh': '資料安全規範',
+        'en': 'Security Specification'
+    },
+    'security-desc': {
+        'zh': 'Serverless Encrypted Node. No trace retained on node. Securely rendered via DB-Card gateway.',
+        'en': 'Serverless Encrypted Node. No trace retained on node. Securely rendered via DB-Card gateway.'
+    },
+    'offline-mode': {
+        'zh': '離線模式',
+        'en': 'Offline Mode'
+    },
+    'privacy-notice': {
+        'zh': '🔒 本應用使用 IndexedDB 在您的瀏覽器本地儲存名片資料，不會上傳到伺服器',
+        'en': '🔒 This app uses IndexedDB to store card data locally in your browser, no data uploaded to server'
+    }
+};
+
 async function initApp() {
     initThree();
     lucide.createIcons();
@@ -15,8 +88,14 @@ async function initApp() {
     const uuid = params.get('uuid');
     currentLanguage = params.get('lang') || 'zh';
     
+    // 設定 HTML lang 屬性（無障礙）
+    document.documentElement.lang = currentLanguage === 'zh' ? 'zh-TW' : 'en';
+    
     // 設定語言切換按鈕文字
     document.getElementById('lang-switch').textContent = currentLanguage === 'zh' ? 'EN' : '繁中';
+    
+    // 設定按鈕文字（根據語言）
+    updateButtonTexts();
 
     if (!uuid) {
         showError('錯誤：缺少名片 UUID 參數');
@@ -55,13 +134,23 @@ async function loadCard(uuid) {
     let isOffline = false;
 
     try {
-        const existingSession = await getSession(uuid);
+        // 優先使用 URL 中的 session 參數（從管理後台查看時）
+        const params = new URLSearchParams(window.location.search);
+        const urlSessionId = params.get('session');
+        
+        if (urlSessionId) {
+            // 使用 URL 提供的新 session
+            sessionId = urlSessionId;
+        } else {
+            // 嘗試從 IndexedDB 讀取現有 session
+            const existingSession = await getSession(uuid);
 
-        if (existingSession && existingSession.session_id && existingSession.expires_at) {
-            const expiresAt = new Date(existingSession.expires_at);
-            if (expiresAt > new Date() && existingSession.reads_remaining > 0) {
-                sessionId = existingSession.session_id;
-                sessionData = existingSession;
+            if (existingSession && existingSession.session_id && existingSession.expires_at) {
+                const expiresAt = new Date(existingSession.expires_at);
+                if (expiresAt > new Date() && existingSession.reads_remaining > 0) {
+                    sessionId = existingSession.session_id;
+                    sessionData = existingSession;
+                }
             }
         }
 
@@ -138,10 +227,31 @@ function renderCard(cardData, sessionData, isOffline = false) {
     document.getElementById('user-name').textContent = name || '---';
     document.getElementById('user-title').textContent = title || '---';
     
-    // 大頭貼處理 - 無圖片時隱藏整個容器
+    // 大頭貼處理 - 支援 Google Drive URL 轉換
     const avatarContainer = document.getElementById('user-avatar').closest('.relative');
     if (cardData.avatar) {
-        document.getElementById('user-avatar').src = cardData.avatar;
+        let avatarUrl = cardData.avatar;
+        
+        // 轉換 Google Drive 分享連結為直接圖片 URL
+        // 支援多種格式：
+        // 1. https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+        // 2. https://drive.google.com/open?id=FILE_ID
+        const driveMatch = avatarUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^\/\?&]+)/);
+        if (driveMatch) {
+            const fileId = driveMatch[1];
+            // 使用 thumbnail API 更穩定
+            avatarUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
+        }
+        
+        const imgElement = document.getElementById('user-avatar');
+        imgElement.src = avatarUrl;
+        
+        // 圖片載入失敗時的處理
+        imgElement.onerror = function() {
+            console.warn('Avatar failed to load:', avatarUrl);
+            if (avatarContainer) avatarContainer.style.display = 'none';
+        };
+        
         if (avatarContainer) avatarContainer.style.display = 'block';
     } else {
         if (avatarContainer) avatarContainer.style.display = 'none';
@@ -225,31 +335,45 @@ function parseSocialLinks(socialText) {
     const cluster = document.getElementById('social-cluster');
     cluster.innerHTML = '';
 
-    const platforms = [
-        { key: 'FB', icon: 'facebook', url: u => `https://fb.com/${u.replace('@', '')}` },
-        { key: 'IG', icon: 'instagram', url: u => `https://instagram.com/${u.replace('@', '')}` },
-        { key: 'GitHub', icon: 'github', url: u => `https://github.com/${u}` },
-        { key: 'LinkedIn', icon: 'linkedin', url: u => `https://linkedin.com/in/${u}` },
-        { key: 'X', icon: 'twitter', url: u => `https://twitter.com/${u.replace('@', '')}` },
-        { key: 'YouTube', icon: 'youtube', url: u => `https://youtube.com/@${u.replace('@', '')}` },
-        { key: 'Discord', icon: 'hash', url: u => `https://discord.gg/${u}` }
-    ];
-
     if (!socialText) return;
 
-    socialText.split('\n').forEach(line => {
-        platforms.forEach(p => {
-            const regex = new RegExp(`${p.key}:\\s*([\\w\\.-@\\/]+)`, 'i');
-            const match = line.match(regex);
-            if (match) {
-                const node = document.createElement('a');
-                node.href = p.url(match[1]);
-                node.target = '_blank';
-                node.className = 'social-node w-12 h-12 flex items-center justify-center rounded-xl';
-                node.innerHTML = `<i data-lucide="${p.icon}" class="w-5 h-5"></i>`;
-                cluster.appendChild(node);
+    // 平台配置：使用 hostname 精確匹配
+    const platforms = [
+        { hostnames: ['github.com'], icon: 'github' },
+        { hostnames: ['linkedin.com'], icon: 'linkedin' },
+        { hostnames: ['facebook.com', 'fb.com', 'fb.me'], icon: 'facebook' },
+        { hostnames: ['instagram.com', 'instagr.am'], icon: 'instagram' },
+        { hostnames: ['twitter.com', 'x.com', 't.co'], icon: 'twitter' },
+        { hostnames: ['youtube.com', 'youtu.be'], icon: 'youtube' }
+    ];
+
+    const lines = socialText.split('\n').filter(line => line.trim());
+
+    lines.forEach(line => {
+        const url = line.trim();
+        
+        try {
+            // 使用 URL API 解析（更可靠）
+            const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
+            const hostname = urlObj.hostname.replace(/^www\./, ''); // 移除 www
+            
+            // 精確匹配 hostname
+            for (const platform of platforms) {
+                if (platform.hostnames.includes(hostname)) {
+                    const node = document.createElement('a');
+                    node.href = url.startsWith('http') ? url : `https://${url}`;
+                    node.target = '_blank';
+                    node.rel = 'noopener noreferrer';
+                    node.className = 'social-node w-12 h-12 flex items-center justify-center rounded-xl';
+                    node.innerHTML = `<i data-lucide="${platform.icon}" class="w-5 h-5"></i>`;
+                    cluster.appendChild(node);
+                    break; // 每行只匹配一個平台
+                }
             }
-        });
+        } catch (e) {
+            // URL 解析失敗，跳過此行
+            console.warn('Invalid social URL:', url);
+        }
     });
 
     lucide.createIcons();
@@ -399,8 +523,14 @@ document.getElementById('lang-switch').addEventListener('click', () => {
     // 切換語言
     currentLanguage = currentLanguage === 'zh' ? 'en' : 'zh';
     
+    // 更新 HTML lang 屬性（無障礙）
+    document.documentElement.lang = currentLanguage === 'zh' ? 'zh-TW' : 'en';
+    
     // 更新按鈕文字
     document.getElementById('lang-switch').textContent = currentLanguage === 'zh' ? 'EN' : '繁中';
+    
+    // 更新按鈕文字（根據語言）
+    updateButtonTexts();
     
     // 重新渲染名片
     const params = new URLSearchParams(window.location.search);

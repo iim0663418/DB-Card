@@ -34,7 +34,7 @@ id = "87221de061f049d3a4c976b7b5092dd9"
 
 # Staging Environment
 [env.staging]
-name = "db-card-api-staging"
+name = "db-card-staging"
 vars = { ENVIRONMENT = "staging" }
 
 [[env.staging.d1_databases]]

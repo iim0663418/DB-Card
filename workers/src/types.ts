@@ -5,8 +5,10 @@ export interface Env {
   DB: D1Database;
   KV: KVNamespace;
   KEK: string;
+  OLD_KEK?: string;
   SETUP_TOKEN?: string;
   ENVIRONMENT: 'production' | 'staging';
+  ASSETS: Fetcher;
 }
 
 // Bilingual support types

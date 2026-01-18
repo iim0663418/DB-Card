@@ -7,6 +7,11 @@
     --ui-text: #1e1e3f;
 }
 
+/* Accessibility: Ensure text can be zoomed */
+html {
+    font-size: 100%; /* Allow browser zoom */
+}
+
 body {
     font-family: 'Outfit', 'Noto Sans TC', sans-serif;
     background-color: #f4f7f9;
@@ -14,6 +19,46 @@ body {
     margin: 0;
     overflow-x: hidden;
     height: 100vh;
+    /* Prevent text size adjustment on mobile */
+    -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+/* Accessibility: Screen reader only */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+.sr-only:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: inherit;
+    margin: inherit;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+}
+
+/* Accessibility: Focus visible for keyboard navigation */
+.focus\:not-sr-only:focus {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    padding: inherit !important;
+    margin: inherit !important;
+    overflow: visible !important;
+    clip: auto !important;
+    white-space: normal !important;
 }
 
 #three-canvas {

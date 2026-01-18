@@ -54,8 +54,7 @@ DB-Card/
 │   │       ├── audit.ts            # 審計日誌
 │   │       └── response.ts         # CORS 與回應
 │   ├── public/                     # 前端資源
-│   │   ├── admin-dashboard.html    # 管理後台
-│   │   ├── nfc-generator.html      # 名片生成器
+│   │   ├── admin-dashboard.html    # 管理後台（含名片生成）
 │   │   ├── card-display.html       # 名片顯示頁
 │   │   ├── js/
 │   │   │   ├── api.js              # API 客戶端
@@ -251,7 +250,7 @@ v4.0 採用後端 API 架構，提供更強的安全性與管理能力。
 - v4.0: 資料加密儲存於 D1 Database，NFC 卡片僅含 UUID
 
 **遷移步驟**：
-1. 使用 nfc-generator.html 創建新名片
+1. 使用 admin-dashboard.html 創建新名片
 2. 透過管理後台取得 card_uuid
 3. 將 UUID 寫入 NFC 卡片（格式：`https://your-domain/card-display.html?card={uuid}`）
 

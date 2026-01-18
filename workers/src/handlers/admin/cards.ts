@@ -5,7 +5,7 @@ import type { Env, CardData, CardType } from '../../types';
 import { verifySetupToken } from '../../middleware/auth';
 import { EnvelopeEncryption } from '../../crypto/envelope';
 import { logEvent } from '../../utils/audit';
-import { jsonResponse, errorResponse } from '../../utils/response';
+import { jsonResponse, errorResponse, adminErrorResponse } from '../../utils/response';
 
 /**
  * Validate email format using RFC 5322 simplified regex
@@ -252,11 +252,11 @@ export async function handleCreateCard(request: Request, env: Env): Promise<Resp
       const authHeader = request.headers.get('Authorization');
 
       if (!authHeader) {
-        // Scenario 2: Missing token
-        return errorResponse('unauthorized', '缺少授權 Token', 401, request);
+        // Scenario 2: Missing token - use admin error response
+        return adminErrorResponse('Authentication required', 401, request);
       } else {
-        // Scenario 3: Invalid token
-        return errorResponse('forbidden', '無效的授權 Token', 403, request);
+        // Scenario 3: Invalid token - use admin error response
+        return adminErrorResponse('Invalid token', 403, request);
       }
     }
 
@@ -402,10 +402,10 @@ export async function handleDeleteCard(
 
       if (!authHeader) {
         // Scenario 4: Missing token
-        return errorResponse('unauthorized', '缺少授權 Token', 401, request);
+        return adminErrorResponse('Authentication required', 401, request);
       } else {
         // Invalid token
-        return errorResponse('forbidden', '無效的授權 Token', 403, request);
+        return adminErrorResponse('Invalid token', 403, request);
       }
     }
 
@@ -511,10 +511,10 @@ export async function handleUpdateCard(
 
       if (!authHeader) {
         // Scenario 4: Missing token
-        return errorResponse('unauthorized', '缺少授權 Token', 401, request);
+        return adminErrorResponse('Authentication required', 401, request);
       } else {
         // Invalid token
-        return errorResponse('forbidden', '無效的授權 Token', 403, request);
+        return adminErrorResponse('Invalid token', 403, request);
       }
     }
 
@@ -643,9 +643,9 @@ export async function handleListCards(request: Request, env: Env): Promise<Respo
       const authHeader = request.headers.get('Authorization');
 
       if (!authHeader) {
-        return errorResponse('unauthorized', '缺少授權 Token', 401, request);
+        return adminErrorResponse('Authentication required', 401, request);
       } else {
-        return errorResponse('forbidden', '無效的授權 Token', 403, request);
+        return adminErrorResponse('Invalid token', 403, request);
       }
     }
 
@@ -737,9 +737,9 @@ export async function handleGetCard(
       const authHeader = request.headers.get('Authorization');
 
       if (!authHeader) {
-        return errorResponse('unauthorized', '缺少授權 Token', 401, request);
+        return adminErrorResponse('Authentication required', 401, request);
       } else {
-        return errorResponse('forbidden', '無效的授權 Token', 403, request);
+        return adminErrorResponse('Invalid token', 403, request);
       }
     }
 

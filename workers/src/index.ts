@@ -9,6 +9,7 @@ import { handleRevoke } from './handlers/admin/revoke';
 import { handleKekRotate } from './handlers/admin/kek';
 import { handleAdminLogin, handleAdminLogout } from './handlers/admin/auth';
 import { errorResponse, publicErrorResponse } from './utils/response';
+import { checkRateLimit } from './middleware/rate-limit';
 
 /**
  * Add security headers to HTML responses
@@ -132,6 +133,12 @@ export default {
     }
 
     // 404 for unknown routes - use public error response to prevent information disclosure
+    // Check rate limit for 404 errors
+    const rateLimitResponse = await checkRateLimit(request, env, '404');
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+    
     let response = publicErrorResponse(404, request);
 
     // Apply security headers to HTML responses

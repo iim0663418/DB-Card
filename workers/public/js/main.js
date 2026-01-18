@@ -297,15 +297,54 @@ function renderCard(cardData, sessionData, isOffline = false) {
         webLink.style.display = 'none';
     }
 
+    // 地址處理 - 無資料時隱藏
+    const addressLink = document.getElementById('address-link');
+    if (addressLink && cardData.address) {
+        const addr = getLocalizedText(cardData.address, currentLanguage);
+        if (addr) {
+            document.getElementById('user-address').textContent = addr;
+            addressLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
+            addressLink.style.display = 'flex';
+        } else {
+            addressLink.style.display = 'none';
+        }
+    } else if (addressLink) {
+        addressLink.style.display = 'none';
+    }
+
     if (sessionData) {
         const expiresAt = new Date(sessionData.expires_at);
         document.getElementById('session-expiry').textContent = `SESSION EXPIRES: ${expiresAt.toLocaleString(currentLanguage === 'zh' ? 'zh-TW' : 'en-US')}`;
         document.getElementById('session-reads').textContent = `ATTEMPTS REMAINING: ${sessionData.reads_remaining}`;
     }
 
-    // 社群連結處理 - 無資料時隱藏整個區塊
+    // 社群連結處理 - 支援新舊格式
     const socialCluster = document.getElementById('social-cluster');
-    if (cardData.socialLinks && cardData.socialLinks.socialNote) {
+    
+    // 新格式：獨立欄位
+    const socialLinks = [];
+    if (cardData.social_github) socialLinks.push({ url: cardData.social_github, icon: 'github' });
+    if (cardData.social_linkedin) socialLinks.push({ url: cardData.social_linkedin, icon: 'linkedin' });
+    if (cardData.social_facebook) socialLinks.push({ url: cardData.social_facebook, icon: 'facebook' });
+    if (cardData.social_instagram) socialLinks.push({ url: cardData.social_instagram, icon: 'instagram' });
+    if (cardData.social_twitter) socialLinks.push({ url: cardData.social_twitter, icon: 'twitter' });
+    if (cardData.social_youtube) socialLinks.push({ url: cardData.social_youtube, icon: 'youtube' });
+    
+    if (socialLinks.length > 0) {
+        socialCluster.innerHTML = '';
+        socialLinks.forEach(link => {
+            const node = document.createElement('a');
+            node.href = link.url;
+            node.target = '_blank';
+            node.rel = 'noopener noreferrer';
+            node.className = 'social-node w-12 h-12 flex items-center justify-center rounded-xl';
+            node.innerHTML = `<i data-lucide="${link.icon}" class="w-5 h-5"></i>`;
+            socialCluster.appendChild(node);
+        });
+        lucide.createIcons();
+        socialCluster.style.display = 'flex';
+    } else if (cardData.socialLinks && cardData.socialLinks.socialNote) {
+        // 舊格式：向後相容
         parseSocialLinks(cardData.socialLinks.socialNote);
         if (socialCluster.children.length > 0) {
             socialCluster.style.display = 'flex';

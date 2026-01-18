@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數位名片 | 使用者門戶</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&family=Noto+Sans+TC:wght@300;500;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+
+        :root {
+            --moda-accent: #6868ac;
+            --moda-glow: rgba(104, 104, 172, 0.2);
+            --crystal-bg: rgba(255, 255, 255, 0.5);
+            --ui-text: #1e1e3f;
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+            background-color: #f4f7f9;
+            color: var(--ui-text);
+            margin: 0;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        #three-canvas {
+            position: fixed;
+            top: 0; left: 0; z-index: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        .glass-panel {
+            background: var(--crystal-bg);
+            backdrop-filter: blur(40px) saturate(150%);
+            -webkit-backdrop-filter: blur(40px) saturate(150%);
+            border: 1px solid rgba(104, 104, 172, 0.1);
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 雙語輸入框組合 */
+        .bilingual-field {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            background: #e2e8f0;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        .bilingual-field input, .bilingual-field textarea {
+            background: #fff;
+            padding: 14px 18px;
+            font-size: 14px;
+            border: none;
+            outline: none;
+        }
+        .bilingual-field input:focus, .bilingual-field textarea:focus {
+            background: #fdfdff;
+            z-index: 10;
+            box-shadow: inset 0 0 0 2px var(--moda-accent);
+        }
+
+        /* 卡片選擇位樣式優化 */
+        .selection-card {
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 1px solid rgba(104, 104, 172, 0.05);
+        }
+        .selection-card:hover:not(.disabled) {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px -10px rgba(104, 104, 172, 0.2);
+            border-color: var(--moda-accent);
+        }
+        .selection-card.revoked {
+            border: 2px solid #ef4444;
+            background: rgba(254, 242, 242, 0.8);
+        }
+
+        .btn-google {
+            background: white;
+            border: 1px solid #dadce0;
+            color: #3c4043;
+            transition: all 0.2s;
+        }
+        .btn-google:hover:not(:disabled) {
+            background-color: #f8f9fa;
+            box-shadow: 0 1px 3px rgba(60,64,67,0.3);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+
+        /* MODA Accent 顏色覆蓋 Tailwind indigo */
+        .bg-moda { background-color: var(--moda-accent) !important; }
+        .text-moda { color: var(--moda-accent) !important; }
+        .border-moda { border-color: var(--moda-accent) !important; }
+        .hover\:bg-moda:hover { background-color: #5858a0 !important; }
+        .hover\:text-moda:hover { color: var(--moda-accent) !important; }
+        .hover\:border-moda:hover { border-color: var(--moda-accent) !important; }
+        .focus\:border-moda:focus { border-color: var(--moda-accent) !important; }
+        .shadow-moda { box-shadow: 0 20px 25px -5px rgba(104, 104, 172, 0.1), 0 8px 10px -6px rgba(104, 104, 172, 0.1) !important; }
+
+        .social-chip-prev {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(104, 104, 172, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--moda-accent);
+            transition: all 0.2s;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center min-h-screen p-4 lg:p-8">
+
+    <canvas id="three-canvas"></canvas>
+
+    <!-- Loading 遮罩 -->
+    <div id="global-loading" class="loading-overlay hidden">
+        <div class="flex flex-col items-center gap-4">
+            <div class="w-12 h-12 border-4 border-moda opacity-20 border-t-moda rounded-full animate-spin"></div>
+            <p class="text-xs font-black text-moda uppercase tracking-widest">Processing Request</p>
+        </div>
+    </div>
+
+    <!-- 頂部導航列 -->
+    <header id="app-header" class="hidden fixed top-0 left-0 right-0 z-50 p-6 flex justify-between items-center pointer-events-none">
+        <div class="flex items-center gap-3 bg-white/60 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white/50 pointer-events-auto shadow-sm">
+            <div class="w-8 h-8 bg-moda text-white rounded-lg flex items-center justify-center">
+                <i data-lucide="component" class="w-5 h-5"></i>
+            </div>
+            <span class="text-sm font-black tracking-tight uppercase">User Portal</span>
+        </div>
+        <div class="flex items-center gap-4 pointer-events-auto">
+            <div class="hidden md:flex flex-col items-end">
+                <span id="user-email-display" class="text-[10px] font-black text-slate-400 uppercase tracking-widest">---</span>
+                <span class="text-[9px] font-bold text-green-600 uppercase">Secure Link</span>
+            </div>
+            <button onclick="handleLogout()" class="px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:text-red-600 transition-all uppercase tracking-widest shadow-sm">
+                Logout
+            </button>
+        </div>
+    </header>
+
+    <!-- 主要視圖 -->
+    <main id="view-container" class="relative z-10 w-full max-w-6xl mt-20 lg:mt-24">
+
+        <!-- 1. OAuth 登入頁 -->
+        <section id="view-login" class="flex flex-col items-center justify-center min-h-[70vh] space-y-10 fade-in">
+            <div class="text-center space-y-4">
+                <div class="w-20 h-20 bg-moda text-white rounded-[2rem] flex items-center justify-center shadow-2xl mx-auto mb-8">
+                    <i data-lucide="shield-check" class="w-10 h-10"></i>
+                </div>
+                <h1 class="text-4xl font-black tracking-tighter">DB-Card 數位名片系統</h1>
+                <p class="text-slate-400 font-medium">請使用內部 Google 帳號登入</p>
+            </div>
+
+            <div class="glass-panel p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] w-full max-w-md space-y-6 sm:space-y-8 text-center">
+                <div id="login-error-box" class="hidden p-4 bg-red-50 border border-red-100 rounded-2xl text-xs text-red-600 font-bold mb-4">
+                    <!-- 錯誤訊息注入 -->
+                </div>
+                <button id="google-login-btn" onclick="handleGoogleLogin()" class="btn-google w-full flex items-center justify-center gap-4 py-4 rounded-2xl font-bold text-sm">
+                    <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" class="w-5 h-5" alt="Google">
+                    Login with Google
+                </button>
+                <div class="space-y-2">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Authorized Access Only</p>
+                    <p class="text-[11px] text-slate-400">僅限 @moda.gov.tw 網域使用者訪問</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. 卡片選擇頁 -->
+        <section id="view-selection" class="hidden space-y-12 fade-in">
+            <div class="flex flex-col items-center text-center space-y-2">
+                <h2 class="text-3xl font-black tracking-tight">我的數位名片庫</h2>
+                <p class="text-slate-400 font-medium text-sm">您最多可持有三種用途的數位名片</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8" id="card-slots-container">
+                <!-- Slot Template (由 JS 渲染) -->
+            </div>
+        </section>
+
+        <!-- 3. 卡片編輯表單 -->
+        <section id="view-form" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-10 fade-in">
+            <div class="lg:col-span-8 space-y-8">
+                <div class="flex items-center gap-4 mb-2">
+                    <button onclick="showView('selection')" class="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-colors">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    </button>
+                    <div>
+                        <h2 id="form-title" class="text-2xl font-black tracking-tight">編輯數位名片</h2>
+                        <p id="form-subtitle" class="text-xs text-slate-400 font-bold uppercase tracking-widest">Self-Service Issuance</p>
+                    </div>
+                </div>
+
+                <form id="edit-form" class="glass-panel p-6 lg:p-10 rounded-[2rem] lg:rounded-[3rem] space-y-6 lg:space-y-8">
+                    <!-- 隱藏欄位 -->
+                    <input type="hidden" id="form-type" name="form-type">
+                    <input type="hidden" id="form-uuid" name="form-uuid">
+
+                    <!-- 姓名與職稱 -->
+                    <div class="space-y-6">
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                                <span>Chinese Name *</span><span>English Name *</span>
+                            </div>
+                            <div class="bilingual-field">
+                                <input type="text" id="name_zh" name="name_zh" placeholder="如：王大明" required>
+                                <input type="text" id="name_en" name="name_en" placeholder="e.g. John Smith" required>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                                <span>Position (ZH)</span><span>Title (EN)</span>
+                            </div>
+                            <div class="bilingual-field">
+                                <input type="text" id="title_zh" name="title_zh" placeholder="如：科長">
+                                <input type="text" id="title_en" name="title_en" placeholder="e.g. Section Chief">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 部門選擇下拉選單 -->
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">所屬部門</label>
+                        <select id="department" name="department" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold appearance-none">
+                            <option value="">請選擇部門</option>
+                            <option value="數位策略司">數位策略司</option>
+                            <option value="數位政府司">數位政府司</option>
+                            <option value="資源管理司">資源管理司</option>
+                            <option value="韌性建設司">韌性建設司</option>
+                            <option value="數位國際司">數位國際司</option>
+                            <option value="資料創新司">資料創新司</option>
+                            <option value="秘書處">秘書處</option>
+                            <option value="人事處">人事處</option>
+                            <option value="政風處">政風處</option>
+                            <option value="主計處">主計處</option>
+                            <option value="資訊處">資訊處</option>
+                            <option value="法制處">法制處</option>
+                            <option value="部長室">部長室</option>
+                            <option value="政務次長室">政務次長室</option>
+                            <option value="常務次長室">常務次長室</option>
+                            <option value="主任秘書室">主任秘書室</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email *</label>
+                            <input type="email" id="email" name="email" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" required>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone</label>
+                            <input type="text" id="phone" name="phone" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="02-2380-XXXX">
+                        </div>
+                    </div>
+
+                    <!-- 地址預設選擇 + 自訂 -->
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">地址 Address</label>
+                        <select id="address-preset" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold appearance-none mb-2">
+                            <option value="">-- 選擇預設地址或自訂 --</option>
+                            <option value="yanping">延平大樓（數位發展部）</option>
+                            <option value="shinkong">新光大樓（數位發展部）</option>
+                            <option value="custom">自訂地址</option>
+                        </select>
+
+                        <div id="custom-address-fields" class="hidden space-y-2">
+                            <input type="text" id="address_zh" name="address_zh" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="中文地址（例：10058 台北市中正區延平南路143號）">
+                            <input type="text" id="address_en" name="address_en" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="English Address (e.g., No. 143, Yanping S. Rd., Taipei 10058)">
+                        </div>
+                    </div>
+
+                    <!-- 進階資訊折疊區 -->
+                    <details class="group border-t border-slate-100 pt-6 mt-6">
+                        <summary class="list-none cursor-pointer flex items-center justify-between text-xs font-black text-moda hover:text-moda transition-colors uppercase tracking-widest">
+                            <span>+ 進階與社群資訊</span>
+                            <i data-lucide="chevron-down" class="w-4 h-4 group-open:rotate-180 transition-transform"></i>
+                        </summary>
+                        <div class="pt-6 space-y-6">
+                            <!-- 手機 & 大頭貼 -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">手機號碼</label>
+                                    <input type="text" id="mobile" name="mobile" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="0912-345-678">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">大頭貼 URL</label>
+                                    <input type="url" id="avatar_url" name="avatar_url" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="https://...">
+                                </div>
+                            </div>
+
+                            <!-- 問候語 -->
+                            <div class="space-y-2">
+                                <div class="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                                    <span>Greeting (ZH)</span><span>Greeting (EN)</span>
+                                </div>
+                                <div class="bilingual-field">
+                                    <textarea id="greetings_zh" name="greetings_zh" class="h-24 resize-none" placeholder="您好，很高興認識您"></textarea>
+                                    <textarea id="greetings_en" name="greetings_en" class="h-24 resize-none" placeholder="Hello, nice to meet you"></textarea>
+                                </div>
+                            </div>
+
+                            <!-- 社群連結 -->
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">社群連結 Social Links</label>
+
+                                <!-- GitHub -->
+                                <div class="flex items-center gap-2">
+                                    <div class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                        <i data-lucide="github" class="w-4 h-4 text-slate-600"></i>
+                                    </div>
+                                    <input type="url" id="social_github" name="social_github" class="flex-1 px-5 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" placeholder="https://github.com/username">
+                                </div>
+
+                                <!-- LinkedIn -->
+                                <div class="flex items-center gap-2">
+                                    <div class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                        <i data-lucide="linkedin" class="w-4 h-4 text-slate-600"></i>
+                                    </div>
+                                    <input type="url" id="social_linkedin" name="social_linkedin" class="flex-1 px-5 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" placeholder="https://linkedin.com/in/username">
+                                </div>
+
+                                <!-- Facebook -->
+                                <div class="flex items-center gap-2">
+                                    <div class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                        <i data-lucide="facebook" class="w-4 h-4 text-slate-600"></i>
+                                    </div>
+                                    <input type="url" id="social_facebook" name="social_facebook" class="flex-1 px-5 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" placeholder="https://facebook.com/username">
+                                </div>
+
+                                <!-- Instagram -->
+                                <div class="flex items-center gap-2">
+                                    <div class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                        <i data-lucide="instagram" class="w-4 h-4 text-slate-600"></i>
+                                    </div>
+                                    <input type="url" id="social_instagram" name="social_instagram" class="flex-1 px-5 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" placeholder="https://instagram.com/username">
+                                </div>
+
+                                <!-- X/Twitter -->
+                                <div class="flex items-center gap-2">
+                                    <div class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                        <i data-lucide="twitter" class="w-4 h-4 text-slate-600"></i>
+                                    </div>
+                                    <input type="url" id="social_twitter" name="social_twitter" class="flex-1 px-5 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" placeholder="https://x.com/username">
+                                </div>
+
+                                <!-- YouTube -->
+                                <div class="flex items-center gap-2">
+                                    <div class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                        <i data-lucide="youtube" class="w-4 h-4 text-slate-600"></i>
+                                    </div>
+                                    <input type="url" id="social_youtube" name="social_youtube" class="flex-1 px-5 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" placeholder="https://youtube.com/@channel">
+                                </div>
+
+                                <p class="text-[9px] text-slate-400 italic">直接貼上完整連結，留空表示不顯示該平台</p>
+                            </div>
+                        </div>
+                    </details>
+
+                    <div id="form-error-msg" class="hidden p-4 bg-red-50 text-red-600 rounded-2xl text-xs font-bold"></div>
+
+                    <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-6">
+                        <button type="button" onclick="showView('selection')" class="sm:flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-200">Cancel</button>
+                        <button type="submit" class="sm:flex-[2] py-4 bg-moda text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-moda shadow-xl shadow-moda transition-all">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 右側預覽 -->
+            <div class="lg:col-span-4 space-y-6">
+                <div class="glass-panel p-6 lg:p-8 rounded-[3rem] lg:sticky lg:top-28 text-center flex flex-col items-center">
+                    <p class="text-[10px] font-black text-moda opacity-60 uppercase tracking-[0.3em] mb-10">Real-time Context</p>
+                    <div id="preview-lang-switch" class="flex bg-slate-100 p-1 rounded-lg mb-6">
+                        <button data-lang="zh" class="px-4 py-1 text-[10px] font-bold rounded-md bg-white shadow-sm transition-all">中</button>
+                        <button data-lang="en" class="px-4 py-1 text-[10px] font-bold rounded-md text-slate-500 hover:text-slate-900 transition-all">EN</button>
+                    </div>
+                    <div id="preview-card" class="w-full max-w-[240px] sm:max-w-[260px] bg-white rounded-[2rem] sm:rounded-[3rem] shadow-2xl border-t-[6px] sm:border-t-[8px] border-t-moda p-6 sm:p-8 space-y-4 sm:space-y-6">
+                        <img id="prev-avatar" src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80" class="w-24 h-24 rounded-[2rem] mx-auto object-cover border-2 border-slate-50">
+                        <div>
+                            <h3 id="prev-name" class="text-2xl font-black italic">---</h3>
+                            <p id="prev-title" class="text-moda font-bold text-[10px] uppercase tracking-widest mt-2">---</p>
+                        </div>
+
+                        <!-- 社群圖標預覽 -->
+                        <div id="prev-social-cluster" class="flex justify-center gap-2 flex-wrap min-h-[32px] mt-4">
+                            <!-- 動態生成 -->
+                        </div>
+
+                        <!-- 問候語區塊 -->
+                        <div id="prev-greeting-section" class="mt-6 pt-6 border-t border-moda opacity-20 hidden">
+                            <p class="text-[8px] font-black tracking-widest text-slate-400 uppercase mb-3 opacity-40">Dynamic Transmission Feed</p>
+                            <p id="prev-greeting" class="text-slate-600 font-medium italic text-[10px]"></p>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="bg-slate-50 p-3 rounded-xl flex items-center gap-3 text-left mt-2">
+                            <i data-lucide="mail" class="w-4 h-4 text-moda opacity-60"></i>
+                            <span id="prev-email" class="text-[10px] font-bold text-slate-600 truncate">---</span>
+                        </div>
+
+                        <!-- Phone -->
+                        <div class="bg-slate-50 p-3 rounded-xl flex items-center gap-3 text-left mt-2">
+                            <i data-lucide="phone" class="w-4 h-4 text-moda opacity-60"></i>
+                            <span id="prev-phone" class="text-[10px] font-bold text-slate-600 truncate">---</span>
+                        </div>
+
+                        <!-- Address -->
+                        <div class="bg-slate-50 p-3 rounded-xl flex items-center gap-3 text-left mt-2">
+                            <i data-lucide="map-pin" class="w-4 h-4 text-moda opacity-60"></i>
+                            <span id="prev-address" class="text-[10px] font-bold text-slate-600 truncate">---</span>
+                        </div>
+                    </div>
+                    <p class="text-[9px] text-slate-400 mt-10 italic uppercase font-bold tracking-widest">Digital Twin Preview</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[300] px-8 py-4 bg-slate-900 text-white rounded-2xl shadow-2xl text-xs font-bold uppercase tracking-widest hidden fade-in"></div>
+
+    <script>
+        // --- 1. 核心狀態與數據結構 ---
+        const state = {
+            isLoggedIn: false,
+            currentUser: null,
+            authToken: null, // JWT token
+            cards: [], // 格式: { uuid, type, status, name_zh, name_en, updated_at }
+            loading: false
+        };
+
+        let previewLang = 'zh';
+
+        const SocialParser = {
+            collectFromInputs() {
+                const platforms = [
+                    { id: 'social_github', icon: 'github' },
+                    { id: 'social_linkedin', icon: 'linkedin' },
+                    { id: 'social_facebook', icon: 'facebook' },
+                    { id: 'social_instagram', icon: 'instagram' },
+                    { id: 'social_twitter', icon: 'twitter' },
+                    { id: 'social_youtube', icon: 'youtube' }
+                ];
+
+                const results = [];
+
+                for (const platform of platforms) {
+                    const input = document.getElementById(platform.id);
+                    if (input && input.value.trim()) {
+                        results.push(platform.icon);
+                    }
+                }
+
+                return results;
+            }
+        };
+
+        const CARD_TYPES = [
+            { id: 'personal', label: 'Personal', icon: 'user', color: 'indigo', desc: '標準個人名片 (20 次讀取)' },
+            { id: 'event', label: 'Event', icon: 'megaphone', color: 'green', desc: '活動專用名片 (50 次讀取)' },
+            { id: 'sensitive', label: 'Sensitive', icon: 'shield', color: 'red', desc: '敏感資料保護 (5 次讀取)' }
+        ];
+
+        // 地址預設選項
+        const ADDRESS_PRESETS = {
+            yanping: {
+                zh: '10058 台北市中正區延平南路143號',
+                en: 'No. 143, Yanping S. Rd., Zhongzheng Dist., Taipei City 10058, Taiwan (R.O.C.)'
+            },
+            shinkong: {
+                zh: '臺北市中正區忠孝西路一段66號（17、19樓）',
+                en: '66 Zhongxiao W. Rd. Sec. 1, Zhongzheng Dist., Taipei City, Taiwan (17F, 19F)'
+            }
+        };
+
+        // --- 2. API 整合層 (BDD Scenarios F3, F4, F5) ---
+
+        async function apiCall(endpoint, options = {}) {
+            try {
+                const headers = {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                };
+
+                // Use JWT token instead of email
+                if (state.authToken) {
+                    headers['Authorization'] = `Bearer ${state.authToken}`;
+                }
+
+                const res = await fetch(endpoint, {
+                    ...options,
+                    credentials: 'include',
+                    headers
+                });
+
+                if (!res.ok) {
+                    const error = await res.json().catch(() => ({ message: 'Request failed' }));
+
+                    // Handle token expiration
+                    if (res.status === 401) {
+                        state.isLoggedIn = false;
+                        state.authToken = null;
+                        state.currentUser = null;
+                        showView('login');
+                        showToast('登入已過期，請重新登入');
+                    }
+
+                    throw { status: res.status, message: error.message || error.error };
+                }
+
+                return res.json();
+            } catch (err) {
+                if (err.status) throw err;
+                throw { status: 0, message: '網路連線失敗' };
+            }
+        }
+
+        async function handleGoogleLogin() {
+            const errorBox = document.getElementById('login-error-box');
+            errorBox.classList.add('hidden');
+
+            const clientId = '675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com';
+            const redirectUri = window.location.origin + '/oauth/callback';
+            const scope = 'openid email profile';
+
+            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` + new URLSearchParams({
+                client_id: clientId,
+                redirect_uri: redirectUri,
+                response_type: 'code',
+                scope: scope,
+                access_type: 'online',
+                prompt: 'select_account'
+            });
+
+            // Open popup
+            const popup = window.open(authUrl, 'Google Login', 'width=500,height=600');
+
+            // Listen for message from popup
+            window.addEventListener('message', async (event) => {
+                if (event.data.type === 'oauth_success') {
+                    const { token, email, name, picture } = event.data;
+
+                    // Check domain
+                    if (!email.endsWith('@moda.gov.tw')) {
+                        errorBox.innerText = '您的 Email 網域未授權';
+                        errorBox.classList.remove('hidden');
+                        return;
+                    }
+
+                    state.isLoggedIn = true;
+                    state.authToken = token; // Store JWT token
+                    state.currentUser = { email, name, picture };
+                    document.getElementById('user-email-display').innerText = email;
+
+                    await fetchUserCards();
+                    showView('selection');
+                    showToast('登入成功');
+                } else if (event.data.type === 'oauth_error') {
+                    errorBox.innerText = '登入失敗：' + event.data.error;
+                    errorBox.classList.remove('hidden');
+                }
+            }, { once: true });
+        }
+
+        function handleLogout() {
+            state.isLoggedIn = false;
+            state.authToken = null;
+            state.currentUser = null;
+            state.cards = [];
+            showView('login');
+        }
+
+        // Scenario F3: GET /api/user/cards
+        async function fetchUserCards() {
+            try {
+                const response = await apiCall('/api/user/cards', { method: 'GET' });
+                const cards = response.data?.cards || [];
+
+                // 使用後端返回的 status
+                state.cards = ['personal', 'event', 'sensitive'].map(type => {
+                    const card = cards.find(c => c.type === type);
+                    if (card) {
+                        return { ...card, status: card.status || 'bound' };
+                    }
+                    return { type, status: 'empty' };
+                });
+
+                renderSelectionPage();
+            } catch (err) {
+                handleError(err);
+            }
+        }
+
+        // Scenario F4 (POST/PUT): Create/Edit Card
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = {};
+
+            // 收集表單資料
+            ['type', 'name_zh', 'name_en', 'title_zh', 'title_en',
+             'department', 'email', 'phone', 'address_zh', 'address_en',
+             'mobile', 'avatar_url', 'greetings_zh', 'greetings_en',
+             'social_github', 'social_linkedin', 'social_facebook',
+             'social_instagram', 'social_twitter', 'social_youtube'].forEach(key => {
+                const val = formData.get(key);
+                if (val) data[key] = val;
+            });
+
+            const uuid = formData.get('form-uuid');
+            const type = formData.get('form-type');
+
+            try {
+                if (uuid) {
+                    // PUT /api/user/cards/:uuid
+                    await apiCall(`/api/user/cards/${uuid}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(data)
+                    });
+                } else {
+                    // POST /api/user/cards
+                    const response = await apiCall('/api/user/cards', {
+                        method: 'POST',
+                        body: JSON.stringify({ ...data, type })
+                    });
+
+                    // 儲存新生成的 UUID
+                    const card = state.cards.find(c => c.type === type);
+                    if (card && response.data?.uuid) {
+                        card.uuid = response.data.uuid;
+                    }
+                }
+
+                showToast('成功儲存名片變更');
+                await fetchUserCards(); // 重新載入
+                showView('selection');
+            } catch (err) {
+                const errEl = document.getElementById('form-error-msg');
+
+                // 對應 BDD Scenarios 的錯誤訊息
+                if (err.status === 409) {
+                    errEl.innerText = '您已建立過此類型名片';
+                } else if (err.status === 429) {
+                    errEl.innerText = '操作過於頻繁,請稍後再試';
+                } else if (err.status === 410) {
+                    errEl.innerText = '此名片已被撤銷';
+                } else {
+                    errEl.innerText = err.message || '儲存失敗,請檢查網路連線';
+                }
+
+                errEl.classList.remove('hidden');
+            }
+        }
+
+        // Scenario F5: GET /api/user/cards/:uuid (編輯模式)
+        async function openEditForm(type) {
+            const card = state.cards.find(c => c.type === type);
+            
+            // 阻擋 revoked 卡片
+            if (card && card.status === 'revoked') {
+                showToast('此名片已被撤銷，無法編輯');
+                return;
+            }
+            
+            const isEdit = card && card.status === 'bound';
+
+            document.getElementById('edit-form').reset();
+            document.getElementById('form-error-msg').classList.add('hidden');
+            document.getElementById('form-type').value = type;
+
+            if (isEdit && card.uuid) {
+                try {
+                    toggleLoading(true);
+                    const response = await apiCall(`/api/user/cards/${card.uuid}`, { method: 'GET' });
+                    const fullCard = response.data || response;
+
+                    document.getElementById('form-uuid').value = card.uuid;
+
+                    // 預填所有欄位（扁平結構）
+                    ['name_zh', 'name_en', 'title_zh', 'title_en', 'department',
+                     'email', 'phone', 'mobile', 'avatar_url',
+                     'greetings_zh', 'greetings_en',
+                     'social_github', 'social_linkedin', 'social_facebook',
+                     'social_instagram', 'social_twitter', 'social_youtube'].forEach(key => {
+                        const el = document.getElementById(key);
+                        if (el && fullCard[key] !== undefined) el.value = fullCard[key];
+                    });
+
+                    // 處理地址預設選項
+                    if (fullCard.address_zh || fullCard.address_en) {
+                        // 檢查是否為預設地址
+                        if (fullCard.address_zh === ADDRESS_PRESETS.yanping.zh) {
+                            document.getElementById('address-preset').value = 'yanping';
+                            document.getElementById('custom-address-fields').classList.add('hidden');
+                        } else if (fullCard.address_zh === ADDRESS_PRESETS.shinkong.zh) {
+                            document.getElementById('address-preset').value = 'shinkong';
+                            document.getElementById('custom-address-fields').classList.add('hidden');
+                        } else {
+                            // 自訂地址
+                            document.getElementById('address-preset').value = 'custom';
+                            document.getElementById('address_zh').value = fullCard.address_zh || '';
+                            document.getElementById('address_en').value = fullCard.address_en || '';
+                            document.getElementById('custom-address-fields').classList.remove('hidden');
+                        }
+                    }
+
+                    document.getElementById('form-title').innerText = '編輯數位名片';
+                } catch (err) {
+                    showToast('載入名片資料失敗');
+                    return;
+                } finally {
+                    toggleLoading(false);
+                }
+            } else {
+                document.getElementById('form-uuid').value = '';
+                document.getElementById('email').value = state.currentUser?.email || '';
+                document.getElementById('form-title').innerText = '建立新名片';
+            }
+
+            updatePreview();
+            showView('form');
+        }
+
+        // --- 3. UI 渲染與控制 ---
+
+        function renderSelectionPage() {
+            const container = document.getElementById('card-slots-container');
+            container.innerHTML = CARD_TYPES.map(config => {
+                const data = state.cards.find(c => c.type === config.id) || { status: 'empty' };
+                const isBound = data.status === 'bound';
+                const isRevoked = data.status === 'revoked';
+
+                return `
+                    <div class="selection-card glass-panel p-8 rounded-[2.5rem] flex flex-col justify-between min-h-[380px] ${isRevoked ? 'revoked' : ''}">
+                        <div class="space-y-6">
+                            <div class="flex justify-between items-start">
+                                <div class="w-12 h-12 bg-${config.color}-50 rounded-2xl flex items-center justify-center text-${config.color}-600">
+                                    <i data-lucide="${config.icon}"></i>
+                                </div>
+                                <span class="badge bg-${config.color}-100 text-${config.color}-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                                    ${config.label}
+                                </span>
+                            </div>
+                            <div class="space-y-1">
+                                <h3 class="text-xl font-black ${isBound || isRevoked ? 'text-slate-900' : 'text-slate-300'}">
+                                    ${isBound || isRevoked ? data.name_zh : '尚未建立'}
+                                </h3>
+                                <p class="text-xs ${isBound || isRevoked ? 'text-slate-500' : 'text-slate-400'}">
+                                    ${isBound || isRevoked ? (data.name_en || '') : config.desc}
+                                </p>
+                                ${isBound || isRevoked ? `<p class="text-[9px] text-moda font-bold mt-4 uppercase tracking-tighter">Updated: ${data.updated_at}</p>` : ''}
+                                ${isRevoked ? `<p class="text-[10px] text-red-600 font-black mt-2 uppercase tracking-widest">⚠️ 已被管理員撤銷</p>` : ''}
+                            </div>
+                        </div>
+                        ${isRevoked ? `
+                            <div class="space-y-3 mt-10">
+                                <p class="text-xs text-red-600 text-center font-medium">此名片已被撤銷，無法使用或編輯</p>
+                                <button onclick="showToast('請聯繫管理員恢復名片')"
+                                        class="w-full py-3 bg-slate-100 text-slate-400 rounded-2xl font-black uppercase text-[10px] tracking-widest cursor-not-allowed">
+                                    已撤銷
+                                </button>
+                            </div>
+                        ` : isBound ? `
+                            <div class="space-y-3 mt-10">
+                                <button onclick="viewCard('${data.uuid}')"
+                                        class="w-full py-3 bg-moda text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-[1.02] transition-all shadow-moda">
+                                    查看名片
+                                </button>
+                                <div class="flex gap-2">
+                                    <button onclick="openEditForm('${config.id}')"
+                                            class="flex-1 py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all">
+                                        編輯
+                                    </button>
+                                    <button onclick="copyCardLink('${data.uuid}')"
+                                            class="flex-1 py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all">
+                                        複製連結
+                                    </button>
+                                </div>
+                            </div>
+                        ` : `
+                            <button onclick="openEditForm('${config.id}')"
+                                    class="w-full py-4 bg-moda text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-[1.02] transition-all mt-10 shadow-moda shadow-lg">
+                                建立名片
+                            </button>
+                        `}
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        // --- 4. 輔助函數 ---
+
+        function viewCard(uuid) {
+            const url = `${window.location.origin}/card-display.html?uuid=${uuid}`;
+            window.open(url, '_blank');
+        }
+
+        function copyCardLink(uuid) {
+            const url = `${window.location.origin}/card-display.html?uuid=${uuid}`;
+            navigator.clipboard.writeText(url).then(() => {
+                showToast('連結已複製到剪貼簿');
+            }).catch(() => {
+                showToast('複製失敗，請手動複製');
+            });
+        }
+
+        function toggleLoading(show) {
+            state.loading = show;
+            document.getElementById('global-loading').classList.toggle('hidden', !show);
+        }
+
+        function showView(viewId) {
+            document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`view-${viewId}`).classList.remove('hidden');
+            if (state.isLoggedIn) document.getElementById('app-header').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function updatePreview() {
+            const isEn = previewLang === 'en';
+            const name = isEn ? document.getElementById('name_en').value || '---' : document.getElementById('name_zh').value || '---';
+            const title = isEn ? document.getElementById('title_en').value || '---' : document.getElementById('title_zh').value || '---';
+
+            // 問候語
+            const greetingInput = isEn ? document.getElementById('greetings_en').value : document.getElementById('greetings_zh').value;
+            const greet = greetingInput ? greetingInput.split('\n').filter(g => g.trim())[0] || '' : '';
+
+            const email = document.getElementById('email').value || '---';
+            const phone = document.getElementById('phone').value || '---';
+            const avatar = document.getElementById('avatar_url').value || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80";
+
+            // 地址
+            const preset = document.getElementById('address-preset').value;
+            let addressZh = '', addressEn = '';
+            if (preset === 'yanping') {
+                addressZh = ADDRESS_PRESETS.yanping.zh;
+                addressEn = ADDRESS_PRESETS.yanping.en;
+            } else if (preset === 'shinkong') {
+                addressZh = ADDRESS_PRESETS.shinkong.zh;
+                addressEn = ADDRESS_PRESETS.shinkong.en;
+            } else {
+                addressZh = document.getElementById('address_zh').value || '';
+                addressEn = document.getElementById('address_en').value || '';
+            }
+            const addressText = isEn ? (addressEn || '---') : (addressZh || '---');
+
+            // 更新預覽
+            document.getElementById('prev-name').innerText = name;
+            document.getElementById('prev-title').innerText = title;
+            document.getElementById('prev-email').innerText = email;
+            document.getElementById('prev-phone').innerText = phone;
+            document.getElementById('prev-address').innerText = addressText;
+
+            // 問候語條件顯示
+            const greetingSection = document.getElementById('prev-greeting-section');
+            if (greet) {
+                greetingSection.classList.remove('hidden');
+                document.getElementById('prev-greeting').innerText = greet;
+            } else {
+                greetingSection.classList.add('hidden');
+            }
+
+            // 大頭貼
+            const prevAvatar = document.getElementById('prev-avatar');
+            prevAvatar.src = avatar;
+            prevAvatar.onerror = function() {
+                this.src = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80';
+            };
+
+            // 社群連結預覽
+            const icons = SocialParser.collectFromInputs();
+            const cluster = document.getElementById('prev-social-cluster');
+            cluster.innerHTML = '';
+            icons.forEach(icon => {
+                const node = document.createElement('div');
+                node.className = 'social-chip-prev';
+                node.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4"></i>`;
+                cluster.appendChild(node);
+            });
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.classList.remove('hidden');
+            setTimeout(() => t.classList.add('hidden'), 3000);
+        }
+
+        function handleError(err) {
+            console.error('[API Error]', err);
+
+            if (err.status === 401 || err.status === 403) {
+                // Token 過期或無權限,返回登入頁
+                state.isLoggedIn = false;
+                showView('login');
+                showToast('登入已過期,請重新登入');
+            } else if (err.status === 429) {
+                showToast('操作過於頻繁,請稍後再試');
+            } else {
+                showToast(err.message || '操作失敗');
+            }
+        }
+
+        // 暴露函數到全域作用域供 onclick 使用
+        window.viewCard = viewCard;
+        window.copyCardLink = copyCardLink;
+
+        // --- 5. 初始化 ---
+        let scene, camera, renderer, mesh;
+        function initThree() {
+            const canvas = document.getElementById('three-canvas');
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            const starGeo = new THREE.BufferGeometry();
+            const pos = new Float32Array(1500 * 3);
+            for(let i=0; i<1500*3; i++) pos[i] = (Math.random() - 0.5) * 45;
+            starGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            mesh = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.04, color: 0x6868ac, transparent: true, opacity: 0.2 }));
+            scene.add(mesh);
+            camera.position.z = 12;
+            function animate() { requestAnimationFrame(animate); if(mesh) mesh.rotation.y += 0.0002; renderer.render(scene, camera); }
+            animate();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            initThree();
+            document.getElementById('edit-form').onsubmit = handleFormSubmit;
+
+            // 綁定預覽聯動
+            document.querySelectorAll('input, textarea, select').forEach(el => el.addEventListener('input', updatePreview));
+            document.querySelectorAll('input, textarea, select').forEach(el => el.addEventListener('change', updatePreview));
+
+            // 預覽語言切換
+            document.querySelectorAll('#preview-lang-switch button').forEach(btn => {
+                btn.onclick = () => {
+                    previewLang = btn.dataset.lang;
+                    document.querySelectorAll('#preview-lang-switch button').forEach(b => {
+                        b.classList.remove('bg-white', 'shadow-sm', 'text-slate-900');
+                        b.classList.add('text-slate-500');
+                    });
+                    btn.classList.add('bg-white', 'shadow-sm', 'text-slate-900');
+                    btn.classList.remove('text-slate-500');
+                    updatePreview();
+                };
+            });
+
+            // 地址預設選擇監聽
+            document.getElementById('address-preset').addEventListener('change', (e) => {
+                const value = e.target.value;
+                const customFields = document.getElementById('custom-address-fields');
+
+                if (value === 'custom') {
+                    customFields.classList.remove('hidden');
+                } else if (value && ADDRESS_PRESETS[value]) {
+                    customFields.classList.add('hidden');
+                    document.getElementById('address_zh').value = ADDRESS_PRESETS[value].zh;
+                    document.getElementById('address_en').value = ADDRESS_PRESETS[value].en;
+                } else {
+                    customFields.classList.add('hidden');
+                    document.getElementById('address_zh').value = '';
+                    document.getElementById('address_en').value = '';
+                }
+                updatePreview();
+            });
+        });
+
+        window.onresize = () => {
+            if(camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        };
+    </script>
+</body>
+</html>

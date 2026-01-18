@@ -1,7 +1,7 @@
 // NFC Tap Handler
 // POST /api/nfc/tap - Issue ReadSession on NFC card tap
 
-import type { Env, Card } from '../types';
+import type { Env, Card, CardType } from '../types';
 import { jsonResponse, errorResponse } from '../utils/response';
 import { createSession, getRecentSession, revokeSession, shouldRevoke } from '../utils/session';
 import { logEvent } from '../utils/audit';
@@ -69,26 +69,42 @@ export async function handleTap(request: Request, env: Env): Promise<Response> {
       return errorResponse('rate_limit_exceeded', '請求過於頻繁,請稍後再試', 429, request);
     }
 
-    // Fetch card from database
-    const card = await env.DB.prepare(`
-      SELECT * FROM cards WHERE uuid = ?
-    `).bind(card_uuid).first<Card>();
+    // Fetch card and binding status
+    const result = await env.DB.prepare(`
+      SELECT 
+        c.uuid, c.encrypted_payload, c.wrapped_dek, c.key_version,
+        c.created_at, c.updated_at,
+        b.type as card_type,
+        b.status as binding_status
+      FROM cards c
+      LEFT JOIN uuid_bindings b ON c.uuid = b.uuid
+      WHERE c.uuid = ?
+    `).bind(card_uuid).first<{
+      uuid: string;
+      encrypted_payload: string;
+      wrapped_dek: string;
+      key_version: number;
+      created_at: number;
+      updated_at: number;
+      card_type: string | null;
+      binding_status: string | null;
+    }>();
 
     // Scenario 4: Card not found
-    if (!card) {
+    if (!result) {
       await logEvent(env, 'tap', request, card_uuid, undefined, {
         error: 'card_not_found'
       });
       return errorResponse('card_not_found', '名片不存在', 404, request);
     }
 
-    // Scenario 5: Card inactive
-    if (card.status !== 'active') {
+    // Scenario 5: Card revoked
+    if (result.binding_status === 'revoked') {
       await logEvent(env, 'tap', request, card_uuid, undefined, {
-        error: 'card_inactive',
-        status: card.status
+        error: 'card_revoked',
+        status: result.binding_status
       });
-      return errorResponse('card_inactive', '名片已停用', 403, request);
+      return errorResponse('card_revoked', '名片已撤銷', 403, request);
     }
 
     // Check for recent session (Scenario 2)
@@ -106,11 +122,19 @@ export async function handleTap(request: Request, env: Env): Promise<Response> {
     }
 
     // Create new session (Scenario 1 & 2)
-    const newSession = await createSession(env, card_uuid, card.card_type);
+    // Map user card type to CardType
+    let cardType: CardType = 'personal';
+    if (result.card_type === 'event') {
+      cardType = 'event_booth';
+    } else if (result.card_type === 'sensitive') {
+      cardType = 'sensitive';
+    }
+    
+    const newSession = await createSession(env, card_uuid, cardType);
 
     // Log tap event
     await logEvent(env, 'tap', request, card_uuid, newSession.session_id, {
-      card_type: card.card_type,
+      card_type: result.card_type,
       revoked_previous
     });
 

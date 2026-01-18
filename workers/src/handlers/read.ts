@@ -105,9 +105,15 @@ export async function handleRead(request: Request, env: Env): Promise<Response> 
 
     // Fetch card data
     const card = await env.DB.prepare(`
-      SELECT * FROM cards
-      WHERE uuid = ? AND status = 'active'
-    `).bind(card_uuid).first<Card>();
+      SELECT uuid, encrypted_payload, wrapped_dek, key_version
+      FROM cards
+      WHERE uuid = ?
+    `).bind(card_uuid).first<{
+      uuid: string;
+      encrypted_payload: string;
+      wrapped_dek: string;
+      key_version: number;
+    }>();
 
     if (!card) {
       await logEvent(env, 'read', request, card_uuid, session_id, {

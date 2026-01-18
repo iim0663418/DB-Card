@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數位名片系統 | 使用者自助門戶</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Noto+Sans+TC:wght@300;500;700;900&display=swap');
+        
+        :root {
+            --moda-accent: #6868ac;
+            --crystal-bg: rgba(255, 255, 255, 0.75);
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #f4f7f9;
+            color: #1e1e3f;
+            margin: 0;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        #three-canvas {
+            position: fixed;
+            top: 0; left: 0; z-index: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        .glass-panel {
+            background: var(--crystal-bg);
+            backdrop-filter: blur(40px) saturate(150%);
+            -webkit-backdrop-filter: blur(40px) saturate(150%);
+            border: 1px solid rgba(104, 104, 172, 0.1);
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 雙語輸入框組合 */
+        .bilingual-field {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            background: #e2e8f0;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        .bilingual-field input, .bilingual-field textarea {
+            background: #fff;
+            padding: 14px 18px;
+            font-size: 14px;
+            border: none;
+            outline: none;
+        }
+        .bilingual-field input:focus {
+            background: #fdfdff;
+            z-index: 10;
+            box-shadow: inset 0 0 0 2px var(--moda-accent);
+        }
+
+        /* 卡片選擇位樣式優化 */
+        .selection-card {
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 1px solid rgba(104, 104, 172, 0.05);
+        }
+        .selection-card:hover:not(.disabled) {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px -10px rgba(104, 104, 172, 0.2);
+            border-color: var(--moda-accent);
+        }
+        .selection-card.revoked {
+            border: 2px solid #ef4444;
+            background: rgba(254, 242, 242, 0.8);
+        }
+
+        .btn-google {
+            background: white;
+            border: 1px solid #dadce0;
+            color: #3c4043;
+            transition: all 0.2s;
+        }
+        .btn-google:hover:not(:disabled) {
+            background-color: #f8f9fa;
+            box-shadow: 0 1px 3px rgba(60,64,67,0.3);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="flex flex-col items-center min-h-screen p-4 lg:p-8">
+
+    <canvas id="three-canvas"></canvas>
+
+    <!-- Loading 遮罩 -->
+    <div id="global-loading" class="loading-overlay hidden">
+        <div class="flex flex-col items-center gap-4">
+            <div class="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
+            <p class="text-xs font-black text-indigo-600 uppercase tracking-widest">Processing Request</p>
+        </div>
+    </div>
+
+    <!-- 頂部導航列 -->
+    <header id="app-header" class="hidden fixed top-0 left-0 right-0 z-50 p-6 flex justify-between items-center pointer-events-none">
+        <div class="flex items-center gap-3 bg-white/60 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white/50 pointer-events-auto shadow-sm">
+            <div class="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center">
+                <i data-lucide="component" class="w-5 h-5"></i>
+            </div>
+            <span class="text-sm font-black tracking-tight uppercase">User Portal</span>
+        </div>
+        <div class="flex items-center gap-4 pointer-events-auto">
+            <div class="hidden md:flex flex-col items-end">
+                <span id="user-email-display" class="text-[10px] font-black text-slate-400 uppercase tracking-widest">---</span>
+                <span class="text-[9px] font-bold text-green-600 uppercase">Secure Link</span>
+            </div>
+            <button onclick="handleLogout()" class="px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:text-red-600 transition-all uppercase tracking-widest shadow-sm">
+                Logout
+            </button>
+        </div>
+    </header>
+
+    <!-- 主要視圖 -->
+    <main id="view-container" class="relative z-10 w-full max-w-6xl mt-20 lg:mt-24">
+        
+        <!-- 1. OAuth 登入頁 -->
+        <section id="view-login" class="flex flex-col items-center justify-center min-h-[70vh] space-y-10 fade-in">
+            <div class="text-center space-y-4">
+                <div class="w-20 h-20 bg-indigo-600 text-white rounded-[2rem] flex items-center justify-center shadow-2xl mx-auto mb-8">
+                    <i data-lucide="shield-check" class="w-10 h-10"></i>
+                </div>
+                <h1 class="text-4xl font-black tracking-tighter">數位名片系統</h1>
+                <p class="text-slate-400 font-medium">請使用內部 Google 帳號登入管理您的名片</p>
+            </div>
+
+            <div class="glass-panel p-10 rounded-[3rem] w-full max-w-md space-y-8 text-center">
+                <div id="login-error-box" class="hidden p-4 bg-red-50 border border-red-100 rounded-2xl text-xs text-red-600 font-bold mb-4">
+                    <!-- 錯誤訊息注入 -->
+                </div>
+                <button id="google-login-btn" onclick="handleGoogleLogin()" class="btn-google w-full flex items-center justify-center gap-4 py-4 rounded-2xl font-bold text-sm">
+                    <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" class="w-5 h-5" alt="Google">
+                    Login with Google
+                </button>
+                <div class="space-y-4">
+                    <div class="space-y-1">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Authorized Access Only</p>
+                        <p class="text-[11px] text-slate-400 italic">僅限 @moda.gov.tw 網域使用者訪問</p>
+                    </div>
+                    <!-- OAuth 合規連結 -->
+                    <div class="pt-4 flex items-center justify-center gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-t border-slate-100/50">
+                        <a href="https://card.moda.gov.tw/privacy" class="hover:text-indigo-600 transition-colors">Privacy Policy</a>
+                        <span class="opacity-30">|</span>
+                        <a href="https://card.moda.gov.tw/terms" class="hover:text-indigo-600 transition-colors">Terms of Service</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. 卡片選擇頁 -->
+        <section id="view-selection" class="hidden space-y-12 fade-in">
+            <div class="flex flex-col items-center text-center space-y-2">
+                <h2 class="text-3xl font-black tracking-tight">我的數位名片庫</h2>
+                <p class="text-slate-400 font-medium text-sm">您最多可持有三種用途的數位名片</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8" id="card-slots-container">
+                <!-- Slot Template (由 JS 渲染) -->
+            </div>
+        </section>
+
+        <!-- 3. 卡片編輯表單 -->
+        <section id="view-form" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-10 fade-in">
+            <div class="lg:col-span-8 space-y-8">
+                <div class="flex items-center gap-4 mb-2">
+                    <button onclick="showView('selection')" class="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-colors">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    </button>
+                    <div>
+                        <h2 id="form-title" class="text-2xl font-black tracking-tight">編輯數位名片</h2>
+                        <p id="form-subtitle" class="text-xs text-slate-400 font-bold uppercase tracking-widest">Self-Service Issuance</p>
+                    </div>
+                </div>
+
+                <form id="edit-form" class="glass-panel p-10 rounded-[3rem] space-y-8">
+                    <!-- 隱藏欄位 -->
+                    <input type="hidden" id="form-type">
+                    <input type="hidden" id="form-uuid">
+
+                    <!-- 姓名與職稱 -->
+                    <div class="space-y-6">
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                                <span>Chinese Name *</span><span>English Name *</span>
+                            </div>
+                            <div class="bilingual-field">
+                                <input type="text" id="name_zh" name="name_zh" placeholder="如：唐鳳" required>
+                                <input type="text" id="name_en" name="name_en" placeholder="Audrey Tang" required>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                                <span>Position (ZH)</span><span>Title (EN)</span>
+                            </div>
+                            <div class="bilingual-field">
+                                <input type="text" id="title_zh" name="title_zh" placeholder="如：部長">
+                                <input type="text" id="title_en" name="title_en" placeholder="Minister">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 部門 -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                            <span>Department (ZH)</span><span>Department (EN)</span>
+                        </div>
+                        <div class="bilingual-field">
+                            <input type="text" id="department_zh" name="department_zh" placeholder="數位策略司">
+                            <input type="text" id="department_en" name="department_en" placeholder="Digital Strategy">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email *</label>
+                            <input type="email" id="email" name="email" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-indigo-500 font-bold" required>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone</label>
+                            <input type="text" id="phone" name="phone" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-indigo-500 font-bold" placeholder="02-2380-XXXX">
+                        </div>
+                    </div>
+
+                    <!-- 地址 -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                            <span>Address (ZH)</span><span>Address (EN)</span>
+                        </div>
+                        <div class="bilingual-field">
+                            <input type="text" id="address_zh" name="address_zh" placeholder="延平南路 143 號">
+                            <input type="text" id="address_en" name="address_en" placeholder="143 Yanping S. Rd.">
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Photo URL</label>
+                        <input type="url" id="photo_url" name="photo_url" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-indigo-500 font-bold" placeholder="https://...">
+                    </div>
+
+                    <div id="form-error-msg" class="hidden p-4 bg-red-50 text-red-600 rounded-2xl text-xs font-bold"></div>
+
+                    <div class="flex gap-4 pt-6">
+                        <button type="button" onclick="showView('selection')" class="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-200">Cancel</button>
+                        <button type="submit" class="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 右側預覽 -->
+            <div class="lg:col-span-4 space-y-6">
+                <div class="glass-panel p-8 rounded-[3rem] sticky top-28 text-center flex flex-col items-center">
+                    <p class="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-10">Real-time Context</p>
+                    <div id="preview-card" class="w-full max-w-[260px] bg-white rounded-[3rem] shadow-2xl border-t-[8px] border-indigo-600 p-8 space-y-6">
+                        <img id="prev-avatar" src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80" class="w-24 h-24 rounded-[2rem] mx-auto object-cover border-2 border-slate-50">
+                        <div>
+                            <h3 id="prev-name" class="text-2xl font-black italic">---</h3>
+                            <p id="prev-title" class="text-indigo-600 font-bold text-[10px] uppercase tracking-widest mt-2">---</p>
+                        </div>
+                    </div>
+                    <p class="text-[9px] text-slate-400 mt-10 italic uppercase font-bold tracking-widest">Digital Twin Preview</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[300] px-8 py-4 bg-slate-900 text-white rounded-2xl shadow-2xl text-xs font-bold uppercase tracking-widest hidden fade-in"></div>
+
+    <script>
+        // --- 1. 核心狀態與數據結構 ---
+        const state = {
+            isLoggedIn: false,
+            currentUser: null,
+            cards: [], // 格式: { uuid, type, status, name_zh, name_en, updated_at }
+            loading: false
+        };
+
+        const CARD_TYPES = [
+            { id: 'official', label: 'Official', icon: 'award', color: 'indigo', desc: '機關正式名片' },
+            { id: 'temporary', label: 'Temporary', icon: 'clock', color: 'amber', desc: '臨時職務名片' },
+            { id: 'event', label: 'Event', icon: 'megaphone', color: 'green', desc: '活動推廣名片' }
+        ];
+
+        // --- 2. API 整合層 (F1-F8 Scenarios) ---
+
+        async function apiCall(endpoint, options = {}) {
+            toggleLoading(true);
+            try {
+                console.log(`[API] calling ${endpoint} with scopes: email, profile, openid`, options);
+                await new Promise(r => setTimeout(r, 800)); // 模擬網路延遲
+                
+                if (endpoint === '/api/user/cards' && options.method === 'GET') {
+                    return state.cards; 
+                }
+                return { success: true };
+            } catch (err) {
+                handleError(err);
+                throw err;
+            } finally {
+                toggleLoading(false);
+            }
+        }
+
+        // F1: OAuth Login (整合同意畫面範圍)
+        async function handleGoogleLogin() {
+            const errorBox = document.getElementById('login-error-box');
+            errorBox.classList.add('hidden');
+            
+            try {
+                toggleLoading(true);
+                // 模擬 OAuth 流程 (轉向 Google 同意畫面)
+                console.log("[OAuth] Requesting Scopes: userinfo.email, userinfo.profile, openid");
+                await new Promise(r => setTimeout(r, 1200));
+                
+                // Scenario F2: 檢查 domain
+                const mockEmail = 'audrey@moda.gov.tw'; // 模擬從 Google 取得的 Email
+                if (!mockEmail.endsWith('@moda.gov.tw')) {
+                    throw { status: 403, message: '您的 Email 網域未授權，僅限 @moda.gov.tw' };
+                }
+
+                state.isLoggedIn = true;
+                state.currentUser = { 
+                    email: mockEmail,
+                    name: 'Audrey Tang', // 模擬 profile 範圍取得的資料
+                    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80'
+                };
+                
+                document.getElementById('user-email-display').innerText = state.currentUser.email;
+                
+                // F3: 取得卡片清單
+                await fetchUserCards();
+                showView('selection');
+                showToast('登入成功');
+            } catch (err) {
+                errorBox.innerText = err.message || '登入失敗，請重試';
+                errorBox.classList.remove('hidden');
+            } finally {
+                toggleLoading(false);
+            }
+        }
+
+        // F8: Logout
+        function handleLogout() {
+            state.isLoggedIn = false;
+            state.currentUser = null;
+            state.cards = [];
+            showView('login');
+        }
+
+        async function fetchUserCards() {
+            if (state.cards.length === 0) {
+                state.cards = [
+                    { type: 'official', status: 'empty' },
+                    { type: 'temporary', status: 'empty' },
+                    { type: 'event', status: 'empty' }
+                ];
+            }
+            renderSelectionPage();
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            const uuid = data.form_uuid;
+            const type = data.form_type;
+
+            try {
+                if (uuid) {
+                    await apiCall(`/api/user/cards/${uuid}`, { method: 'PUT', body: JSON.stringify(data) });
+                } else {
+                    const existing = state.cards.find(c => c.type === type && c.status === 'bound');
+                    if (existing) throw { status: 409, message: '您已建立過此類型名片' };
+                    
+                    await apiCall('/api/user/cards', { method: 'POST', body: JSON.stringify(data) });
+                }
+
+                const card = state.cards.find(c => c.type === type);
+                Object.assign(card, data, { status: 'bound', updated_at: new Date().toISOString().split('T')[0] });
+                
+                showToast('成功儲存名片變更');
+                showView('selection');
+                renderSelectionPage();
+            } catch (err) {
+                const errEl = document.getElementById('form-error-msg');
+                errEl.innerText = err.message || '儲存失敗，請檢查網路連線';
+                errEl.classList.remove('hidden');
+            }
+        }
+
+        // --- 3. UI 渲染與控制 ---
+
+        function renderSelectionPage() {
+            const container = document.getElementById('card-slots-container');
+            container.innerHTML = CARD_TYPES.map(config => {
+                const data = state.cards.find(c => c.type === config.id) || { status: 'empty' };
+                const isBound = data.status === 'bound';
+                const isRevoked = data.status === 'revoked';
+                
+                return `
+                    <div class="selection-card glass-panel p-8 rounded-[2.5rem] flex flex-col justify-between min-h-[380px] ${isRevoked ? 'revoked' : ''}">
+                        <div class="space-y-6">
+                            <div class="flex justify-between items-start">
+                                <div class="w-12 h-12 bg-${config.color}-50 rounded-2xl flex items-center justify-center text-${config.color}-600">
+                                    <i data-lucide="${config.icon}"></i>
+                                </div>
+                                <span class="badge bg-${config.color}-100 text-${config.color}-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                                    ${config.label}
+                                </span>
+                            </div>
+                            <div class="space-y-1">
+                                <h3 class="text-xl font-black ${isBound ? 'text-slate-900' : 'text-slate-300'}">
+                                    ${isBound ? data.name_zh : '尚未建立'}
+                                </h3>
+                                <p class="text-xs ${isBound ? 'text-slate-500' : 'text-slate-400'}">
+                                    ${isBound ? (data.name_en || '') : config.desc}
+                                </p>
+                                ${isBound ? `<p class="text-[9px] text-indigo-500 font-bold mt-4 uppercase tracking-tighter">Updated: ${data.updated_at}</p>` : ''}
+                                ${isRevoked ? `<p class="text-[10px] text-red-600 font-black mt-2 uppercase tracking-widest">Card Revoked</p>` : ''}
+                            </div>
+                        </div>
+                        <button onclick="openEditForm('${config.id}')" 
+                                ${isRevoked ? 'disabled' : ''}
+                                class="w-full py-4 ${isBound ? 'bg-white border border-slate-200 text-slate-700' : 'bg-indigo-600 text-white shadow-indigo-100 shadow-lg'} rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-[1.02] transition-all mt-10">
+                            ${isBound ? '編輯名片' : '建立名片'}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function openEditForm(type) {
+            const card = state.cards.find(c => c.type === type);
+            const isEdit = card && card.status === 'bound';
+            
+            document.getElementById('edit-form').reset();
+            document.getElementById('form-error-msg').classList.add('hidden');
+            document.getElementById('form-type').value = type;
+            document.getElementById('form-uuid').value = card?.uuid || '';
+            document.getElementById('form-title').innerText = isEdit ? '編輯數位名片' : '建立新名片';
+
+            if (isEdit) {
+                ['name_zh', 'name_en', 'title_zh', 'title_en', 'department_zh', 'department_en', 'email', 'phone', 'address_zh', 'address_en', 'photo_url'].forEach(key => {
+                    const el = document.getElementById(key);
+                    if (el) el.value = card[key] || '';
+                });
+            } else {
+                document.getElementById('email').value = state.currentUser?.email || '';
+                // 預填從 OAuth profile 取得的頭像 (如果是新建立)
+                document.getElementById('photo_url').value = state.currentUser?.avatar || '';
+            }
+
+            updatePreview();
+            showView('form');
+        }
+
+        function toggleLoading(show) {
+            state.loading = show;
+            document.getElementById('global-loading').classList.toggle('hidden', !show);
+        }
+
+        function showView(viewId) {
+            document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`view-${viewId}`).classList.remove('hidden');
+            if (state.isLoggedIn) document.getElementById('app-header').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function updatePreview() {
+            const n_zh = document.getElementById('name_zh').value || '---';
+            const t_zh = document.getElementById('title_zh').value || '---';
+            const img = document.getElementById('photo_url').value || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80";
+            document.getElementById('prev-name').innerText = n_zh;
+            document.getElementById('prev-title').innerText = t_zh;
+            document.getElementById('prev-avatar').src = img;
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.classList.remove('hidden');
+            setTimeout(() => t.classList.add('hidden'), 3000);
+        }
+
+        function handleError(err) {
+            console.error(err);
+            if (err.status === 429) showToast('操作過於頻繁，請稍後再試');
+        }
+
+        let scene, camera, renderer, mesh;
+        function initThree() {
+            const canvas = document.getElementById('three-canvas');
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            const starGeo = new THREE.BufferGeometry();
+            const pos = new Float32Array(1500 * 3);
+            for(let i=0; i<1500*3; i++) pos[i] = (Math.random() - 0.5) * 45;
+            starGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            mesh = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.04, color: 0x6868ac, transparent: true, opacity: 0.2 }));
+            scene.add(mesh);
+            camera.position.z = 12;
+            function animate() { requestAnimationFrame(animate); if(mesh) mesh.rotation.y += 0.0002; renderer.render(scene, camera); }
+            animate();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            initThree();
+            document.getElementById('edit-form').onsubmit = handleFormSubmit;
+            document.querySelectorAll('input').forEach(input => input.addEventListener('input', updatePreview));
+        });
+
+        window.onresize = () => {
+            if(camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        };
+    </script>
+</body>
+</html>

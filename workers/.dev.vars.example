@@ -1,0 +1,16 @@
+# Local Development Environment Variables
+# Copy this file to .dev.vars and fill in the actual values
+
+# Admin Setup Token (generate with: openssl rand -hex 32)
+SETUP_TOKEN=your-setup-token-here
+
+# Key Encryption Key (generate with: openssl rand -base64 32)
+KEK=your-kek-here
+
+# Google OAuth 2.0
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-your-google-client-secret
+
+# JWT Secret for token signing (generate with: node -e "console.log(require('crypto').randomBytes(32).toString('base64'))")
+# IMPORTANT: Use a strong random secret, at least 32 bytes
+JWT_SECRET=your-jwt-secret-here

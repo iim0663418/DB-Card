@@ -9,6 +9,9 @@ export interface Env {
   SETUP_TOKEN?: string;
   ENVIRONMENT: 'production' | 'staging';
   ASSETS: Fetcher;
+  GOOGLE_CLIENT_ID: string;
+  GOOGLE_CLIENT_SECRET: string;
+  JWT_SECRET: string;
 }
 
 // Bilingual support types
@@ -85,13 +88,78 @@ export const CARD_POLICIES: Record<CardType, CardPolicy> = {
 
 export interface AuditLog {
   id?: number;
-  event_type: 'tap' | 'read' | 'create' | 'card_create' | 'card_update' | 'card_delete' | 'update' | 'delete' | 'revoke' | 'admin_revoke' | 'emergency_revoke' | 'kek_rotation';
+  event_type: 'tap' | 'read' | 'create' | 'card_create' | 'card_update' | 'card_delete' | 'card_revoke' | 'card_restore' | 'update' | 'delete' | 'revoke' | 'admin_revoke' | 'emergency_revoke' | 'kek_rotation' | 'user_card_create' | 'user_card_update';
   card_uuid?: string;
   session_id?: string;
   user_agent?: string;
   ip_address?: string;
   timestamp: number;
   details?: string;
+  actor_type?: 'admin' | 'user' | 'system';
+  actor_id?: string;
+  target_uuid?: string;
+}
+
+// User Self-Service Types (v2.0)
+export type UserCardType = 'personal' | 'event' | 'sensitive';
+export type UUIDBindingStatus = 'bound' | 'revoked' | 'quarantine';
+
+export interface UUIDBinding {
+  uuid: string;
+  type: UserCardType;
+  status: UUIDBindingStatus;
+  bound_email: string | null;
+  bound_at: number | null;
+  created_ip: string | null;
+  created_user_agent: string | null;
+  revoked_at: number | null;
+  revoke_reason: string | null;
+  quarantine_until: number | null;
+}
+
+export interface UserCardCreateRequest {
+  type: UserCardType;
+  name_zh: string;
+  name_en: string;
+  title_zh?: string;
+  title_en?: string;
+  department?: string;
+  phone?: string;
+  mobile?: string;
+  email: string;
+  address_zh?: string;
+  address_en?: string;
+  avatar_url?: string;
+  greetings_zh?: string;
+  greetings_en?: string;
+  social_github?: string;
+  social_linkedin?: string;
+  social_facebook?: string;
+  social_instagram?: string;
+  social_twitter?: string;
+  social_youtube?: string;
+}
+
+export interface UserCardUpdateRequest {
+  name_zh?: string;
+  name_en?: string;
+  title_zh?: string;
+  title_en?: string;
+  department?: string;
+  phone?: string;
+  mobile?: string;
+  email?: string;
+  address_zh?: string;
+  address_en?: string;
+  avatar_url?: string;
+  greetings_zh?: string;
+  greetings_en?: string;
+  social_github?: string;
+  social_linkedin?: string;
+  social_facebook?: string;
+  social_instagram?: string;
+  social_twitter?: string;
+  social_youtube?: string;
 }
 
 export interface ApiResponse<T = any> {

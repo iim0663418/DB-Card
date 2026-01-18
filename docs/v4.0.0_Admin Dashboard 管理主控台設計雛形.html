@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>moda Admin Dashboard | 統一管理主控台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Noto+Sans+TC:wght@300;500;700;900&display=swap');
+        
+        :root {
+            --moda-accent: #6868ac;
+            --moda-success: #10b981;
+            --moda-warning: #f59e0b;
+            --moda-danger: #ef4444;
+            --crystal-bg: rgba(255, 255, 255, 0.8);
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            margin: 0;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        #three-canvas {
+            position: fixed;
+            top: 0; left: 0; z-index: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            opacity: 0.2;
+        }
+
+        .glass-surface {
+            background: var(--crystal-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Tab 系統樣式 */
+        .tab-btn {
+            position: relative;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #64748b;
+            transition: all 0.3s ease;
+        }
+        .tab-btn.active {
+            color: var(--moda-accent);
+        }
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px; left: 0; right: 0;
+            height: 3px;
+            background: var(--moda-accent);
+            border-radius: 3px 3px 0 0;
+        }
+
+        /* 雙語輸入框 */
+        .bilingual-field {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            background: #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        .bilingual-field input, .bilingual-field textarea {
+            background: #fff;
+            padding: 12px 16px;
+            font-size: 14px;
+            border: none;
+            outline: none;
+        }
+
+        /* Badge 樣式 */
+        .badge {
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+        .badge-personal { background: #dbeafe; color: #1e40af; }
+        .badge-event { background: #fef3c7; color: #92400e; }
+        .badge-sensitive { background: #fee2e2; color: #991b1b; }
+        .badge-active { background: #d1fae5; color: #065f46; }
+        .badge-suspended { background: #fed7aa; color: #9a3412; }
+
+        /* 動畫 */
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="p-4 lg:p-8">
+
+    <canvas id="three-canvas"></canvas>
+
+    <div class="relative z-10 max-w-7xl mx-auto space-y-6">
+        
+        <!-- 頂部導航與驗證 -->
+        <header class="glass-surface p-6 rounded-3xl flex flex-col lg:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg">
+                    <i data-lucide="layout-dashboard" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-black tracking-tight">Admin Dashboard</h1>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ministry of Digital Affairs</p>
+                </div>
+            </div>
+
+            <!-- Setup Token 驗證區 (Don't Make Me Think: 驗證後隱藏或縮小) -->
+            <div id="token-section" class="flex items-center gap-3 bg-white/50 p-2 rounded-2xl border border-white">
+                <input type="password" id="setup-token" placeholder="輸入 SETUP_TOKEN" class="w-48 px-4 py-2 bg-transparent outline-none text-sm">
+                <button id="verify-btn" class="bg-slate-900 text-white px-6 py-2 rounded-xl text-xs font-bold hover:bg-black transition-all">驗證權限</button>
+                <div id="auth-status" class="hidden flex items-center gap-2 px-3 border-l border-slate-200">
+                    <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span class="text-[10px] font-black text-green-600">已授權</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tab 控制切換區 -->
+        <nav id="admin-nav" class="hidden glass-surface rounded-2xl px-2 flex border-b border-slate-100 overflow-x-auto no-scrollbar">
+            <button onclick="switchTab('list')" id="tab-list" class="tab-btn active flex items-center gap-2">
+                <i data-lucide="list" class="w-4 h-4"></i> 名片列表
+            </button>
+            <button onclick="switchTab('create')" id="tab-create" class="tab-btn flex items-center gap-2">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i> 創建名片
+            </button>
+            <button onclick="switchTab('tools')" id="tab-tools" class="tab-btn flex items-center gap-2">
+                <i data-lucide="settings" class="w-4 h-4"></i> 系統工具
+            </button>
+        </nav>
+
+        <!-- 主要內容容器 -->
+        <div id="content-area" class="hidden">
+            
+            <!-- Tab 1: 名片列表 -->
+            <section id="section-list" class="space-y-6 fade-in">
+                <div class="glass-surface p-6 rounded-3xl flex flex-wrap gap-4 items-center justify-between">
+                    <div class="relative flex-1 min-w-[300px]">
+                        <i data-lucide="search" class="absolute left-4 top-3.5 w-4 h-4 text-slate-400"></i>
+                        <input type="text" id="search-input" placeholder="搜尋姓名、Email..." class="w-full pl-12 pr-4 py-3 bg-white/50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm">
+                    </div>
+                    <div class="flex gap-2">
+                        <select id="filter-type" class="px-4 py-3 bg-white/50 border border-slate-200 rounded-xl text-xs font-bold outline-none">
+                            <option value="">所有類型</option>
+                            <option value="personal">個人</option>
+                            <option value="event_booth">活動</option>
+                            <option value="sensitive">敏感</option>
+                        </select>
+                        <button onclick="loadCards()" class="p-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50"><i data-lucide="refresh-cw" class="w-4 h-4 text-slate-600"></i></button>
+                    </div>
+                </div>
+
+                <div id="cards-grid" class="grid grid-cols-1 gap-4">
+                    <!-- 卡片列表由 JS 注入 -->
+                    <div class="text-center py-20 bg-white/40 rounded-3xl border border-dashed border-slate-200">
+                        <i data-lucide="inbox" class="w-12 h-12 text-slate-300 mx-auto mb-4"></i>
+                        <p class="text-slate-400 font-medium">尚無名片資料</p>
+                    </div>
+                </div>
+
+                <!-- 分頁區 -->
+                <div class="flex items-center justify-center gap-6 py-4">
+                    <button class="p-2 rounded-lg hover:bg-white transition-colors disabled:opacity-30"><i data-lucide="chevron-left"></i></button>
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Page 1 of 1</span>
+                    <button class="p-2 rounded-lg hover:bg-white transition-colors disabled:opacity-30"><i data-lucide="chevron-right"></i></button>
+                </div>
+            </section>
+
+            <!-- Tab 2: 創建名片 (複用原有表單) -->
+            <section id="section-create" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-8 fade-in">
+                <div class="lg:col-span-7 glass-surface p-8 rounded-3xl space-y-8">
+                    <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                        <i data-lucide="file-plus" class="w-4 h-4"></i> 錄入名片資料
+                    </h2>
+                    <form id="card-form" class="space-y-6">
+                        <div>
+                            <div class="flex justify-between mb-1"><span class="text-[10px] font-black text-slate-400">CHINESE</span><span class="text-[10px] font-black text-slate-400">ENGLISH</span></div>
+                            <div class="bilingual-field">
+                                <input type="text" id="name_zh" placeholder="中文姓名" required>
+                                <input type="text" id="name_en" placeholder="English Name" required>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <input type="email" id="email" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm" placeholder="公務 Email">
+                            <select id="department" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm appearance-none">
+                                <option value="數位策略司">數位策略司</option>
+                                <option value="數位政府司">數位政府司</option>
+                                <option value="部長室">部長室</option>
+                            </select>
+                        </div>
+                        <details class="group border-t border-slate-100 pt-4">
+                            <summary class="list-none cursor-pointer flex items-center justify-between text-xs font-bold text-indigo-600">
+                                <span>+ 進階資訊與社群</span>
+                                <i data-lucide="chevron-down" class="w-4 h-4 group-open:rotate-180 transition-transform"></i>
+                            </summary>
+                            <div class="pt-6 space-y-6">
+                                <div class="bilingual-field">
+                                    <input type="text" id="title_zh" placeholder="中文職稱">
+                                    <input type="text" id="title_en" placeholder="English Title">
+                                </div>
+                                <textarea id="social_note" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm h-24" placeholder="社群備註 (FB:, IG:, LinkedIn:...)"></textarea>
+                            </div>
+                        </details>
+                        <div class="pt-6 flex gap-4">
+                            <select id="card_type" class="flex-1 px-4 py-3 bg-slate-100 border-none rounded-xl text-sm font-bold">
+                                <option value="personal">個人名片 (20次)</option>
+                                <option value="event_booth">活動名片 (50次)</option>
+                                <option value="sensitive">敏感資料 (5次)</option>
+                            </select>
+                            <button type="submit" class="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 shadow-lg transition-all">簽發並部署</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- 預覽區 -->
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="glass-surface p-6 rounded-3xl sticky top-8">
+                        <p class="text-[10px] font-black text-slate-400 mb-6 uppercase tracking-widest">Real-time Rendering</p>
+                        <div id="preview-card" class="bg-white rounded-[2rem] shadow-2xl border-t-[6px] border-indigo-600 p-8 text-center space-y-6">
+                            <img id="prev-avatar" src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80" class="w-24 h-24 rounded-2xl mx-auto object-cover border-2 border-slate-50">
+                            <div>
+                                <h3 id="prev-name" class="text-2xl font-black">唐鳳</h3>
+                                <p id="prev-title" class="text-indigo-600 font-bold text-[10px] uppercase tracking-widest mt-1">部長</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab 3: 系統工具 -->
+            <section id="section-tools" class="hidden space-y-6 fade-in">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="glass-surface p-8 rounded-3xl space-y-4">
+                        <h2 class="text-lg font-black text-slate-900 flex items-center gap-3">
+                            <i data-lucide="zap-off" class="text-amber-500"></i> 緊急撤銷
+                        </h2>
+                        <p class="text-sm text-slate-500 leading-relaxed">撤銷目前所有活躍中的 Session。這將迫使所有使用者重新進行 NFC 碰卡驗證。僅在發生安全性疑慮時執行。</p>
+                        <button onclick="confirmAction('revoke_all')" class="w-full py-4 bg-amber-100 text-amber-700 rounded-xl font-bold hover:bg-amber-200 transition-all">執行全局撤銷</button>
+                    </div>
+
+                    <div class="glass-surface p-8 rounded-3xl space-y-4">
+                        <h2 class="text-lg font-black text-slate-900 flex items-center gap-3">
+                            <i data-lucide="shield-alert" class="text-red-500"></i> KEK 密鑰輪替
+                        </h2>
+                        <p class="text-sm text-slate-500 leading-relaxed">輪替系統主密鑰 (Key Encryption Key)。執行此操作後，舊有的加密資料將進行重新封裝。建議每季執行一次。</p>
+                        <button onclick="confirmAction('kek_rotate')" class="w-full py-4 bg-red-100 text-red-700 rounded-xl font-bold hover:bg-red-200 transition-all">啟動 KEK 輪替</button>
+                    </div>
+
+                    <div class="md:col-span-2 glass-surface p-8 rounded-3xl">
+                        <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400 mb-6">System Health Status</h2>
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div class="p-4 bg-white rounded-2xl border border-slate-100">
+                                <p class="text-[10px] text-slate-400 mb-1">API Node</p>
+                                <p class="font-bold text-green-600">Operational</p>
+                            </div>
+                            <div class="p-4 bg-white rounded-2xl border border-slate-100">
+                                <p class="text-[10px] text-slate-400 mb-1">Database</p>
+                                <p class="font-bold text-green-600">Connected</p>
+                            </div>
+                            <div class="p-4 bg-white rounded-2xl border border-slate-100">
+                                <p class="text-[10px] text-slate-400 mb-1">KEK Version</p>
+                                <p class="font-bold text-indigo-600">v4.0.2</p>
+                            </div>
+                            <div class="p-4 bg-white rounded-2xl border border-slate-100">
+                                <p class="text-[10px] text-slate-400 mb-1">Active Cards</p>
+                                <p class="font-bold text-slate-900">1,284</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+    </div>
+
+    <!-- 戰略性摩擦：確認 Modal (Good Friction) -->
+    <div id="confirm-modal" class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md hidden flex items-center justify-center p-6">
+        <div class="glass-surface max-w-md w-full p-8 rounded-3xl space-y-6">
+            <div class="text-center">
+                <div id="modal-icon-container" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-100 text-red-600">
+                    <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+                </div>
+                <h2 id="modal-title" class="text-xl font-black text-slate-900">確定執行此操作？</h2>
+                <p id="modal-desc" class="text-sm text-slate-500 mt-2">此操作具有高度破壞性，且無法輕易復原。</p>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="closeModal()" class="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200">取消</button>
+                <button id="modal-confirm-btn" class="flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 shadow-lg">確認執行</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Three.js 背景 ---
+        let scene, camera, renderer, mesh;
+        function initThree() {
+            const canvas = document.getElementById('three-canvas');
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            const starGeo = new THREE.BufferGeometry();
+            const count = 1000;
+            const pos = new Float32Array(count * 3);
+            for(let i=0; i<count*3; i++) pos[i] = (Math.random() - 0.5) * 40;
+            starGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            mesh = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.05, color: 0x6868ac, transparent: true, opacity: 0.3 }));
+            scene.add(mesh);
+            camera.position.z = 10;
+            function animate() { requestAnimationFrame(animate); mesh.rotation.y += 0.0003; renderer.render(scene, camera); }
+            animate();
+        }
+
+        // --- 2. 應用程式狀態 ---
+        let isVerified = false;
+        let activeTab = 'list';
+        const MOCK_CARDS = [
+            { uuid: "550e8400-e29b-41d4-a716-446655440000", card_type: "personal", status: "active", data: { name: { zh: "王小明", en: "John Smith" }, title: { zh: "數位策略司 司長", en: "Director General" }, email: "john@example.com" }, ts: "2026-01-18" },
+            { uuid: "660e8400-e29b-41d4-a716-446655440001", card_type: "event_booth", status: "active", data: { name: { zh: "李小華", en: "Jane Lee" }, title: { zh: "數位政府司 科長", en: "Section Chief" }, email: "jane@example.com" }, ts: "2026-01-17" }
+        ];
+
+        // --- 3. UI 邏輯 ---
+        function switchTab(tabId) {
+            if(!isVerified) return;
+            activeTab = tabId;
+            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`section-${tabId}`).classList.remove('hidden');
+            
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            
+            if(tabId === 'list') loadCards();
+        }
+
+        function loadCards() {
+            const grid = document.getElementById('cards-grid');
+            grid.innerHTML = MOCK_CARDS.map(c => `
+                <div class="glass-surface p-6 rounded-2xl flex flex-col lg:flex-row justify-between items-center gap-6 group hover:border-indigo-200 transition-all">
+                    <div class="flex items-center gap-6 w-full lg:w-auto">
+                        <div class="w-14 h-14 bg-slate-50 rounded-xl flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                            <i data-lucide="user" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-3 mb-1">
+                                <h3 class="font-black text-slate-800">${c.data.name.zh} <span class="text-xs font-medium text-slate-400 ml-1">${c.data.name.en}</span></h3>
+                                <span class="badge badge-${c.card_type}">${c.card_type}</span>
+                                <span class="badge badge-${c.status}">${c.status}</span>
+                            </div>
+                            <p class="text-xs text-slate-500 font-bold uppercase tracking-tight">${c.data.title.zh} • ${c.data.email}</p>
+                            <p class="text-[10px] font-mono text-slate-400 mt-2">UUID: ${c.uuid}</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 w-full lg:w-auto border-t lg:border-none pt-4 lg:pt-0">
+                        <button onclick="window.open('./card-display?uuid=${c.uuid}')" class="flex-1 lg:flex-none px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-indigo-600 hover:text-white transition-all">查看</button>
+                        <button onclick="editCard('${c.uuid}')" class="flex-1 lg:flex-none px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-900 hover:text-white transition-all">編輯</button>
+                        <button onclick="confirmAction('revoke', '${c.uuid}')" class="flex-1 lg:flex-none px-4 py-2 bg-amber-50 text-amber-600 rounded-lg text-xs font-bold hover:bg-amber-500 hover:text-white transition-all">撤銷</button>
+                        <button onclick="confirmAction('delete', '${c.uuid}')" class="flex-1 lg:flex-none px-4 py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-500 hover:text-white transition-all">刪除</button>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function confirmAction(type, uuid = null) {
+            const modal = document.getElementById('confirm-modal');
+            const title = document.getElementById('modal-title');
+            const desc = document.getElementById('modal-desc');
+            const btn = document.getElementById('modal-confirm-btn');
+            
+            if(type === 'delete') {
+                title.innerText = "確認刪除名片？";
+                desc.innerText = "刪除後此 UUID 將永久失效，無法再透過任何管道存取。";
+                btn.className = "flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700";
+            } else if(type === 'revoke') {
+                title.innerText = "確認撤銷所有 Session？";
+                desc.innerText = "此名片目前已簽發的讀取授權將全數作廢，使用者須重新碰卡。";
+                btn.className = "flex-1 py-4 bg-amber-500 text-white rounded-2xl font-bold hover:bg-amber-600";
+            } else if(type === 'revoke_all') {
+                title.innerText = "緊急：確認全局撤銷？";
+                desc.innerText = "這將關閉系統內所有名片的所有活動 Session。";
+                btn.className = "flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700";
+            }
+            
+            modal.classList.remove('hidden');
+            btn.onclick = () => {
+                alert(`模擬操作：執行 ${type} (${uuid || 'ALL'})`);
+                closeModal();
+            };
+        }
+
+        function closeModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+        }
+
+        // --- 4. 初始化 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            initThree();
+
+            const verifyBtn = document.getElementById('verify-btn');
+            verifyBtn.onclick = async () => {
+                const token = document.getElementById('setup-token').value;
+                if(token === "moda-secret-2026") {
+                    isVerified = true;
+                    document.getElementById('token-section').classList.add('hidden');
+                    document.getElementById('auth-status').classList.remove('hidden');
+                    document.getElementById('admin-nav').classList.remove('hidden');
+                    document.getElementById('content-area').classList.remove('hidden');
+                    switchTab('list');
+                } else {
+                    alert("驗證失敗，請確認管理權限。");
+                }
+            };
+        });
+
+        window.onresize = () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        };
+    </script>
+</body>
+</html>

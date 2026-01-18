@@ -49,7 +49,7 @@ export async function handleTap(request: Request, env: Env): Promise<Response> {
       await logEvent(env, 'tap', request, undefined, undefined, {
         error: 'missing_card_uuid'
       });
-      return errorResponse('invalid_request', '缺少必要參數 card_uuid', 400);
+      return errorResponse('invalid_request', '缺少必要參數 card_uuid', 400, request);
     }
 
     // Validate UUID format
@@ -57,7 +57,7 @@ export async function handleTap(request: Request, env: Env): Promise<Response> {
       await logEvent(env, 'tap', request, card_uuid, undefined, {
         error: 'invalid_uuid_format'
       });
-      return errorResponse('invalid_request', '無效的 UUID 格式', 400);
+      return errorResponse('invalid_request', '無效的 UUID 格式', 400, request);
     }
 
     // Check rate limiting
@@ -66,7 +66,7 @@ export async function handleTap(request: Request, env: Env): Promise<Response> {
       await logEvent(env, 'tap', request, card_uuid, undefined, {
         error: 'rate_limit_exceeded'
       });
-      return errorResponse('rate_limit_exceeded', '請求過於頻繁,請稍後再試', 429);
+      return errorResponse('rate_limit_exceeded', '請求過於頻繁,請稍後再試', 429, request);
     }
 
     // Fetch card from database
@@ -79,7 +79,7 @@ export async function handleTap(request: Request, env: Env): Promise<Response> {
       await logEvent(env, 'tap', request, card_uuid, undefined, {
         error: 'card_not_found'
       });
-      return errorResponse('card_not_found', '名片不存在', 404);
+      return errorResponse('card_not_found', '名片不存在', 404, request);
     }
 
     // Scenario 5: Card inactive
@@ -88,7 +88,7 @@ export async function handleTap(request: Request, env: Env): Promise<Response> {
         error: 'card_inactive',
         status: card.status
       });
-      return errorResponse('card_inactive', '名片已停用', 403);
+      return errorResponse('card_inactive', '名片已停用', 403, request);
     }
 
     // Check for recent session (Scenario 2)
@@ -121,7 +121,7 @@ export async function handleTap(request: Request, env: Env): Promise<Response> {
       max_reads: newSession.max_reads,
       reads_used: newSession.reads_used,
       revoked_previous
-    });
+    }, 200, request);
 
   } catch (error) {
     // Log error
@@ -133,7 +133,8 @@ export async function handleTap(request: Request, env: Env): Promise<Response> {
     return errorResponse(
       'internal_error',
       '伺服器內部錯誤',
-      500
+      500,
+      request
     );
   }
 }

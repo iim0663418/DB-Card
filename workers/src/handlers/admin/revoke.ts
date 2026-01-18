@@ -27,10 +27,10 @@ export async function handleRevoke(request: Request, env: Env): Promise<Response
 
       if (!authHeader) {
         // Scenario 4: Missing token
-        return errorResponse('unauthorized', '缺少授權 Token', 401);
+        return errorResponse('unauthorized', '缺少授權 Token', 401, request);
       } else {
         // Invalid token
-        return errorResponse('forbidden', '無效的授權 Token', 403);
+        return errorResponse('forbidden', '無效的授權 Token', 403, request);
       }
     }
 
@@ -39,14 +39,14 @@ export async function handleRevoke(request: Request, env: Env): Promise<Response
     try {
       body = await request.json();
     } catch (error) {
-      return errorResponse('invalid_request', '無效的 JSON 格式', 400);
+      return errorResponse('invalid_request', '無效的 JSON 格式', 400, request);
     }
 
     const { card_uuid, global } = body;
 
     // Scenario 5: Validate parameters - must provide either card_uuid or global
     if (!card_uuid && !global) {
-      return errorResponse('invalid_request', '必須提供 card_uuid 或 global 參數', 400);
+      return errorResponse('invalid_request', '必須提供 card_uuid 或 global 參數', 400, request);
     }
 
     // Scenario 2: Global emergency revocation
@@ -60,7 +60,7 @@ export async function handleRevoke(request: Request, env: Env): Promise<Response
     }
 
     // Should not reach here due to validation above
-    return errorResponse('invalid_request', '無效的請求參數', 400);
+    return errorResponse('invalid_request', '無效的請求參數', 400, request);
   } catch (error) {
     console.error('Error in handleRevoke:', error);
 
@@ -68,7 +68,8 @@ export async function handleRevoke(request: Request, env: Env): Promise<Response
     return errorResponse(
       'internal_error',
       '撤銷操作時發生錯誤',
-      500
+      500,
+      request
     );
   }
 }
@@ -90,7 +91,7 @@ async function handleCardRevocation(
 
     if (!card) {
       // Scenario 3: Card not found
-      return errorResponse('card_not_found', '名片不存在', 404);
+      return errorResponse('card_not_found', '名片不存在', 404, request);
     }
 
     // Scenario 1: Revoke all active ReadSessions for this card
@@ -124,7 +125,8 @@ async function handleCardRevocation(
         sessions_revoked: sessionsRevoked,
         revoked_at: revokedAt
       },
-      200
+      200,
+      request
     );
   } catch (error) {
     console.error('Error in handleCardRevocation:', error);
@@ -188,7 +190,8 @@ async function handleGlobalRevocation(
         new_token_version: newTokenVersion,
         revoked_at: revokedAt
       },
-      200
+      200,
+      request
     );
   } catch (error) {
     console.error('Error in handleGlobalRevocation:', error);

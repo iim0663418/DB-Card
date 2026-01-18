@@ -72,6 +72,7 @@
 - 雙語名片: e6544ccd-67d4-4979-85eb-cc3b886a4237
 
 ## Git History
+- 92189e1: docs: update README.md to v4.0 and finalize project structure
 - 2685b76: docs: add archive README for v3.X reference
 - f671908: refactor: archive v3.X implementation to archive/ directory
 - effe7b9: feat: complete frontend v4.0 with security enhancements

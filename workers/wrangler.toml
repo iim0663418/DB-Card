@@ -2,6 +2,10 @@ name = "db-card-api"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
+# Environment Variables
+[vars]
+GOOGLE_CLIENT_ID = "675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com"
+
 # Static Assets
 [assets]
 directory = "./public"
@@ -17,6 +21,10 @@ database_id = "local-db"
 [[kv_namespaces]]
 binding = "KV"
 id = "87221de061f049d3a4c976b7b5092dd9"
+
+# Cron Triggers
+[triggers]
+crons = ["0 2 * * *"]  # Daily at 02:00 UTC
 
 # Production Environment
 [env.production]
@@ -35,7 +43,7 @@ id = "87221de061f049d3a4c976b7b5092dd9"
 # Staging Environment
 [env.staging]
 name = "db-card-staging"
-vars = { ENVIRONMENT = "staging" }
+vars = { ENVIRONMENT = "staging", GOOGLE_CLIENT_ID = "675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com" }
 
 [[env.staging.d1_databases]]
 binding = "DB"

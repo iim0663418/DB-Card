@@ -4,11 +4,13 @@ import type { Env } from './types';
 import { handleHealth } from './handlers/health';
 import { handleTap } from './handlers/tap';
 import { handleRead } from './handlers/read';
-import { handleCreateCard, handleUpdateCard, handleDeleteCard, handleListCards, handleGetCard } from './handlers/admin/cards';
+import { handleCreateCard, handleUpdateCard, handleDeleteCard, handleRestoreCard, handleListCards, handleGetCard } from './handlers/admin/cards';
 import { handleRevoke } from './handlers/admin/revoke';
 import { handleKekRotate } from './handlers/admin/kek';
 import { handleAdminLogin, handleAdminLogout } from './handlers/admin/auth';
 import { handleSecurityStats, handleSecurityEvents, handleSecurityTimeline, handleBlockIP, handleUnblockIP, handleIPDetail, handleSecurityExport } from './handlers/admin/security';
+import { handleUserCreateCard, handleUserUpdateCard, handleUserListCards, handleUserGetCard } from './handlers/user/cards';
+import { handleOAuthCallback } from './handlers/oauth';
 import { errorResponse, publicErrorResponse } from './utils/response';
 import { checkRateLimit } from './middleware/rate-limit';
 
@@ -26,7 +28,7 @@ function addSecurityHeaders(response: Response): Response {
     "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.tailwindcss.com; " +
     "font-src 'self' fonts.gstatic.com; " +
     "img-src 'self' data: https:; " +
-    "connect-src 'self' cdn.jsdelivr.net https://api.db-card.moda.gov.tw"
+    "connect-src 'self' cdn.jsdelivr.net https://api.db-card.moda.gov.tw https://oauth2.googleapis.com https://www.googleapis.com accounts.google.com"
   );
 
   // Additional security headers
@@ -80,6 +82,11 @@ export default {
       return handleAdminLogout(request, env);
     }
 
+    // OAuth callback
+    if (url.pathname === '/oauth/callback' && request.method === 'GET') {
+      return handleOAuthCallback(request, env);
+    }
+
     // Health check
     if (url.pathname === '/health') {
       return handleHealth(request, env);
@@ -93,6 +100,30 @@ export default {
       return handleRead(request, env);
     }
 
+    // User Self-Service APIs (OAuth required)
+    if (url.pathname === '/api/user/cards' && request.method === 'POST') {
+      return handleUserCreateCard(request, env);
+    }
+
+    if (url.pathname === '/api/user/cards' && request.method === 'GET') {
+      return handleUserListCards(request, env);
+    }
+
+    // PUT /api/user/cards/:uuid - Update user's own card
+    const updateUserCardMatch = url.pathname.match(/^\/api\/user\/cards\/([a-f0-9-]{36})$/);
+    if (updateUserCardMatch && request.method === 'PUT') {
+      const uuid = updateUserCardMatch[1];
+      return handleUserUpdateCard(request, env, uuid);
+    }
+
+    // GET /api/user/cards/:uuid - Get user's own card details
+    const getUserCardMatch = url.pathname.match(/^\/api\/user\/cards\/([a-f0-9-]{36})$/);
+    if (getUserCardMatch && request.method === 'GET') {
+      const uuid = getUserCardMatch[1];
+      return handleUserGetCard(request, env, uuid);
+    }
+
+    // Admin APIs
     if (url.pathname === '/api/admin/cards' && request.method === 'POST') {
       return handleCreateCard(request, env);
     }
@@ -116,11 +147,18 @@ export default {
       return handleUpdateCard(request, env, uuid);
     }
 
-    // DELETE /api/admin/cards/:uuid - Delete a card
+    // DELETE /api/admin/cards/:uuid - Revoke a card
     const deleteCardMatch = url.pathname.match(/^\/api\/admin\/cards\/([a-f0-9-]{36})$/);
     if (deleteCardMatch && request.method === 'DELETE') {
       const uuid = deleteCardMatch[1];
       return handleDeleteCard(request, env, uuid);
+    }
+
+    // POST /api/admin/cards/:uuid/restore - Restore a revoked card
+    const restoreCardMatch = url.pathname.match(/^\/api\/admin\/cards\/([a-f0-9-]{36})\/restore$/);
+    if (restoreCardMatch && request.method === 'POST') {
+      const uuid = restoreCardMatch[1];
+      return handleRestoreCard(request, env, uuid);
     }
 
     // POST /api/admin/revoke - Emergency revocation
@@ -205,5 +243,10 @@ export default {
     }
 
     return response;
+  },
+
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    const { handleScheduledCleanup } = await import('./scheduled-cleanup');
+    ctx.waitUntil(handleScheduledCleanup(env));
   }
 };

@@ -103,8 +103,18 @@ npm install
 
 # 設定環境變數
 cp .dev.vars.example .dev.vars
-# 編輯 .dev.vars 設定 SETUP_TOKEN 和 KEK
+# 編輯 .dev.vars 設定以下變數：
+# - SETUP_TOKEN: 管理員認證 token
+# - KEK: 主加密金鑰 (Key Encryption Key)
+# - GOOGLE_CLIENT_ID: Google OAuth Client ID
+# - GOOGLE_CLIENT_SECRET: Google OAuth Client Secret
+# - JWT_SECRET: JWT token 簽名密鑰 (至少 32 bytes)
+
+# 生成 JWT Secret
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
+
+**重要**：請參閱 [JWT Secret 管理指南](docs/JWT_SECRET_MANAGEMENT.md) 了解詳細的安全配置。
 
 ### 2. 本地開發
 

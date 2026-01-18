@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>moda Admin Dashboard | 統一管理主控台</title>
+    <title>數位名片 | 管理後台</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -123,6 +123,8 @@
         .badge-personal { background: #dbeafe; color: #1e40af; }
         .badge-event { background: #fef3c7; color: #92400e; }
         .badge-sensitive { background: #fee2e2; color: #991b1b; }
+        .badge-bound { background: #d1fae5; color: #065f46; }
+        .badge-revoked { background: #fecaca; color: #991b1b; }
         .badge-active { background: #d1fae5; color: #065f46; }
         .badge-suspended { background: #fed7aa; color: #9a3412; }
 
@@ -131,6 +133,20 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
+
+        /* MODA Accent 顏色覆蓋 Tailwind indigo */
+        .bg-moda { background-color: var(--moda-accent) !important; }
+        .text-moda { color: var(--moda-accent) !important; }
+        .text-moda-dark { color: #4a4a8a !important; }
+        .border-moda { border-color: var(--moda-accent) !important; }
+        .border-moda-light { border-color: rgba(104, 104, 172, 0.1) !important; }
+        .bg-moda-light { background-color: rgba(104, 104, 172, 0.1) !important; }
+        .hover\:bg-moda:hover { background-color: #5858a0 !important; }
+        .hover\:text-moda:hover { color: var(--moda-accent) !important; }
+        .hover\:border-moda:hover { border-color: var(--moda-accent) !important; }
+        .focus\:border-moda:focus { border-color: var(--moda-accent) !important; }
+        .focus\:ring-moda:focus { --tw-ring-color: var(--moda-accent) !important; }
+        .shadow-moda { box-shadow: 0 20px 25px -5px rgba(104, 104, 172, 0.1), 0 8px 10px -6px rgba(104, 104, 172, 0.1) !important; }
     </style>
 </head>
 <body class="p-4 lg:p-8">
@@ -142,7 +158,7 @@
         <!-- 頂部導航與驗證 -->
         <header class="glass-surface p-6 rounded-3xl flex flex-col lg:flex-row justify-between items-center gap-6">
             <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg">
+                <div class="w-12 h-12 bg-moda text-white rounded-2xl flex items-center justify-center shadow-lg">
                     <i data-lucide="layout-dashboard" class="w-6 h-6"></i>
                 </div>
                 <div>
@@ -186,7 +202,7 @@
                 <div class="glass-surface p-6 rounded-3xl flex flex-wrap gap-4 items-center justify-between">
                     <div class="relative flex-1 min-w-[300px]">
                         <i data-lucide="search" class="absolute left-4 top-3.5 w-4 h-4 text-slate-400"></i>
-                        <input type="text" id="search-input" placeholder="搜尋姓名、Email..." class="w-full pl-12 pr-4 py-3 bg-white/50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm">
+                        <input type="text" id="search-input" placeholder="搜尋姓名、Email..." class="w-full pl-12 pr-4 py-3 bg-white/50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm">
                     </div>
                     <div class="flex gap-2">
                         <select id="filter-type" class="px-4 py-3 bg-white/50 border border-slate-200 rounded-xl text-xs font-bold outline-none">
@@ -242,11 +258,11 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">公務 Email</label>
-                                <input type="email" id="email" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm" placeholder="example@moda.gov.tw">
+                                <input type="email" id="email" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" placeholder="example@moda.gov.tw">
                             </div>
                             <div>
                                 <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">所屬部門</label>
-                                <select id="department" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm appearance-none">
+                                <select id="department" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm appearance-none">
                                     <option value="">請選擇部門</option>
                                     <option value="數位策略司">數位策略司</option>
                                     <option value="數位政府司">數位政府司</option>
@@ -274,7 +290,7 @@
                                 公務電話 Office Phone
                             </label>
                             <input type="text" id="phone"
-                                   class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm"
+                                   class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm"
                                    placeholder="(02) 2700-0000 #1234">
                         </div>
 
@@ -283,7 +299,7 @@
                                 地址 Address
                             </label>
 
-                            <select id="address-preset" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm mb-2">
+                            <select id="address-preset" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm mb-2">
                                 <option value="">-- 選擇預設地址或自訂 --</option>
                                 <option value="yanping">延平大樓（數位發展部）</option>
                                 <option value="shinkong">新光大樓（數位發展部）</option>
@@ -292,17 +308,17 @@
 
                             <div id="custom-address-fields" class="hidden space-y-2">
                                 <input type="text" id="address_zh"
-                                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm"
+                                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm"
                                        placeholder="中文地址（例：10058 台北市中正區延平南路143號）">
                                 <input type="text" id="address_en"
-                                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm"
+                                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm"
                                        placeholder="English Address (e.g., No. 143, Yanping S. Rd., Taipei 10058)">
                             </div>
                         </div>
 
                         <!-- 進階資訊（折疊） -->
                         <details class="group border-t border-slate-100 pt-4">
-                            <summary class="list-none cursor-pointer flex items-center justify-between text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors">
+                            <summary class="list-none cursor-pointer flex items-center justify-between text-xs font-bold text-moda hover:text-moda transition-colors">
                                 <span>+ 進階與社群資訊 (手機、頭像、問候語、社群)</span>
                                 <i data-lucide="chevron-down" class="w-4 h-4 group-open:rotate-180 transition-transform"></i>
                             </summary>
@@ -396,7 +412,7 @@
                                     <i data-lucide="x" class="w-5 h-5"></i>
                                     取消編輯
                                 </button>
-                                <button type="submit" class="md:flex-1 bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-indigo-700 shadow-lg transition-all flex items-center justify-center gap-3">
+                                <button type="submit" class="md:flex-1 bg-moda text-white px-8 py-4 rounded-xl font-bold hover:bg-moda shadow-lg transition-all flex items-center justify-center gap-3">
                                     <i data-lucide="zap" class="w-5 h-5"></i>
                                     簽發數位名片
                                 </button>
@@ -417,13 +433,13 @@
                         </div>
 
                         <div class="transform scale-85 origin-top">
-                            <div id="preview-card" class="bg-white rounded-[2.5rem] shadow-2xl border-t-[6px] border-indigo-600 overflow-hidden text-center p-8 space-y-6">
+                            <div id="preview-card" class="bg-white rounded-[2.5rem] shadow-2xl border-t-[6px] border-moda overflow-hidden text-center p-8 space-y-6">
                                 <div class="relative inline-block">
                                     <img id="prev-avatar" src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80" class="w-28 h-28 rounded-[2rem] object-cover shadow-lg border-2 border-slate-50">
                                 </div>
                                 <div>
                                     <h3 id="prev-name" class="text-3xl font-black text-slate-900 italic">王小明</h3>
-                                    <p id="prev-title" class="text-indigo-600 font-bold text-[10px] uppercase tracking-[0.2em] mt-2">部長</p>
+                                    <p id="prev-title" class="text-moda font-bold text-[10px] uppercase tracking-[0.2em] mt-2">部長</p>
                                 </div>
 
                                 <!-- 社群圖標預覽區 -->
@@ -431,20 +447,20 @@
                                     <!-- 動態生成 -->
                                 </div>
 
-                                <div id="prev-greeting-section" class="mt-8 pt-8 border-t border-indigo-50 hidden">
+                                <div id="prev-greeting-section" class="mt-8 pt-8 border-t border-moda-light hidden">
                                     <p class="hud-text mb-4 opacity-40 text-[8px] font-black tracking-widest text-slate-400 uppercase">Dynamic Transmission Feed</p>
                                     <p id="prev-greeting" class="text-slate-600 font-medium italic min-h-[1.5em] text-[10px]"></p>
                                 </div>
                                 <div class="bg-slate-50 p-4 rounded-2xl flex items-center gap-4 text-left mt-2">
-                                    <i data-lucide="mail" class="w-4 h-4 text-indigo-400"></i>
+                                    <i data-lucide="mail" class="w-4 h-4 text-moda opacity-60"></i>
                                     <span id="prev-email" class="text-[10px] font-bold text-slate-600 truncate">---</span>
                                 </div>
                                 <div class="bg-slate-50 p-4 rounded-2xl flex items-center gap-4 text-left mt-2">
-                                    <i data-lucide="phone" class="w-4 h-4 text-indigo-400"></i>
+                                    <i data-lucide="phone" class="w-4 h-4 text-moda opacity-60"></i>
                                     <span id="prev-phone" class="text-[10px] font-bold text-slate-600 truncate">---</span>
                                 </div>
                                 <div class="bg-slate-50 p-4 rounded-2xl flex items-center gap-4 text-left mt-2">
-                                    <i data-lucide="map-pin" class="w-4 h-4 text-indigo-400"></i>
+                                    <i data-lucide="map-pin" class="w-4 h-4 text-moda opacity-60"></i>
                                     <span id="prev-address" class="text-[10px] font-bold text-slate-600 truncate">---</span>
                                 </div>
                             </div>
@@ -472,7 +488,7 @@
                     </div>
                     <div class="glass-surface p-6 rounded-2xl">
                         <p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Rate Limit Hits</p>
-                        <p id="stat-ratelimit" class="text-3xl font-black text-indigo-600">---</p>
+                        <p id="stat-ratelimit" class="text-3xl font-black text-moda">---</p>
                     </div>
                 </div>
 
@@ -524,7 +540,7 @@
                                 <option value="suspicious_activity">Suspicious</option>
                                 <option value="blocked_ip">Blocked IP</option>
                             </select>
-                            <button onclick="exportSecurityEvents()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700">Export CSV</button>
+                            <button onclick="exportSecurityEvents()" class="px-4 py-2 bg-moda text-white rounded-xl text-xs font-bold hover:bg-moda">Export CSV</button>
                         </div>
                     </div>
                     <div class="overflow-x-auto">
@@ -587,11 +603,12 @@
                             </div>
                             <div class="p-4 bg-white rounded-2xl border border-slate-100">
                                 <p class="text-[10px] text-slate-400 mb-1">KEK Version</p>
-                                <p id="health-kek-version" class="font-bold text-indigo-600">Loading...</p>
+                                <p id="health-kek-version" class="font-bold text-moda">Loading...</p>
                             </div>
                             <div class="p-4 bg-white rounded-2xl border border-slate-100">
                                 <p class="text-[10px] text-slate-400 mb-1">Active Cards</p>
                                 <p id="health-active-cards" class="font-bold text-slate-900">Loading...</p>
+                                <p class="text-[8px] text-slate-400 mt-1">Bound + Revoked</p>
                             </div>
                         </div>
                     </div>
@@ -976,7 +993,7 @@
             // 使用 DOM API 安全渲染每張卡片
             cards.forEach(c => {
                 const cardDiv = document.createElement('div');
-                cardDiv.className = 'glass-surface p-6 rounded-2xl flex flex-col lg:flex-row justify-between items-center gap-6 group hover:border-indigo-200 transition-all';
+                cardDiv.className = 'glass-surface p-6 rounded-2xl flex flex-col lg:flex-row justify-between items-center gap-6 group hover:border-moda transition-all';
 
                 // 左側：資訊區
                 const infoSection = document.createElement('div');
@@ -984,7 +1001,7 @@
 
                 // 圖標
                 const iconDiv = document.createElement('div');
-                iconDiv.className = 'w-14 h-14 bg-slate-50 rounded-xl flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all';
+                iconDiv.className = 'w-14 h-14 bg-slate-50 rounded-xl flex items-center justify-center text-moda opacity-60 group-hover:bg-moda group-hover:text-white transition-all';
                 iconDiv.innerHTML = '<i data-lucide="user" class="w-6 h-6"></i>';
                 infoSection.appendChild(iconDiv);
 
@@ -1032,19 +1049,24 @@
                 infoSection.appendChild(textDiv);
                 cardDiv.appendChild(infoSection);
 
-                // 右側：操作按鈕
+                // 右側：操作按鈕（根據狀態顯示）
                 const actionDiv = document.createElement('div');
                 actionDiv.className = 'flex gap-2 w-full lg:w-auto border-t lg:border-none pt-4 lg:pt-0';
 
-                const viewBtn = createActionButton('查看', 'bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white', () => viewCard(c.uuid));
-                const editBtn = createActionButton('編輯', 'bg-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white', () => editCard(c.uuid));
-                const revokeBtn = createActionButton('撤銷', 'bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white', () => confirmAction('revoke', c.uuid));
-                const deleteBtn = createActionButton('刪除', 'bg-red-50 text-red-600 hover:bg-red-500 hover:text-white', () => confirmAction('delete', c.uuid));
-
+                const viewBtn = createActionButton('查看', 'bg-slate-100 text-slate-600 hover:bg-moda hover:text-white', () => viewCard(c.uuid));
                 actionDiv.appendChild(viewBtn);
-                actionDiv.appendChild(editBtn);
-                actionDiv.appendChild(revokeBtn);
-                actionDiv.appendChild(deleteBtn);
+
+                if (c.status === 'revoked') {
+                    // Revoked 卡片：只能查看和恢復
+                    const restoreBtn = createActionButton('恢復', 'bg-green-50 text-green-600 hover:bg-green-500 hover:text-white', () => confirmAction('restore', c.uuid));
+                    actionDiv.appendChild(restoreBtn);
+                } else {
+                    // Bound 卡片：可編輯和撤銷
+                    const editBtn = createActionButton('編輯', 'bg-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white', () => editCard(c.uuid));
+                    const deleteBtn = createActionButton('撤銷', 'bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white', () => confirmAction('delete', c.uuid));
+                    actionDiv.appendChild(editBtn);
+                    actionDiv.appendChild(deleteBtn);
+                }
 
                 cardDiv.appendChild(actionDiv);
                 grid.appendChild(cardDiv);
@@ -1432,23 +1454,54 @@
             try {
                 const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}`, {
                     method: 'DELETE',
-                    credentials: 'include', // Cookie auto-attached
+                    credentials: 'include',
                     headers: {
-                        'Authorization': `Bearer ${token}` // Fallback
+                        'Authorization': `Bearer ${token}`
                     }
                 });
 
                 if (!response.ok) {
-                    await handleApiError(response, '刪除失敗');
+                    await handleApiError(response, '撤銷失敗');
                     return;
                 }
 
-                showNotification('名片已刪除', 'success');
+                showNotification('名片已撤銷', 'success');
                 loadCards();
 
             } catch (error) {
-                console.error('Delete card error:', error);
-                showNotification('刪除失敗: ' + error.message, 'error');
+                console.error('Revoke card error:', error);
+                showNotification('撤銷失敗: ' + error.message, 'error');
+            }
+        }
+
+        // Restore Card
+        async function handleRestoreCard(uuid) {
+            const token = sessionStorage.getItem('setup_token');
+            if (!token) {
+                showNotification('未授權：請重新驗證', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}/restore`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    await handleApiError(response, '恢復失敗');
+                    return;
+                }
+
+                showNotification('名片已恢復', 'success');
+                loadCards();
+
+            } catch (error) {
+                console.error('Restore card error:', error);
+                showNotification('恢復失敗: ' + error.message, 'error');
             }
         }
 
@@ -1496,12 +1549,20 @@
             const btn = document.getElementById('modal-confirm-btn');
 
             if(type === 'delete') {
-                title.innerText = "確認刪除名片？";
-                desc.innerText = "刪除後此 UUID 將永久失效，無法再透過任何管道存取。";
-                btn.className = "flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700";
+                title.innerText = "確認撤銷名片？";
+                desc.innerText = "撤銷後使用者將無法編輯或使用此名片，但管理員可以恢復。";
+                btn.className = "flex-1 py-4 bg-amber-500 text-white rounded-2xl font-bold hover:bg-amber-600";
                 btn.onclick = async () => {
                     closeModal();
                     await handleDeleteCard(uuid);
+                };
+            } else if(type === 'restore') {
+                title.innerText = "確認恢復名片？";
+                desc.innerText = "恢復後使用者將可以正常使用此名片。";
+                btn.className = "flex-1 py-4 bg-green-500 text-white rounded-2xl font-bold hover:bg-green-600";
+                btn.onclick = async () => {
+                    closeModal();
+                    await handleRestoreCard(uuid);
                 };
             } else if(type === 'revoke') {
                 title.innerText = "確認撤銷所有 Session？";
@@ -1513,20 +1574,55 @@
                 };
             } else if(type === 'revoke_all') {
                 title.innerText = "緊急：確認全局撤銷？";
-                desc.innerText = "這將關閉系統內所有名片的所有活動 Session。";
+                desc.innerText = "這將撤銷所有活躍中的 Session，所有使用者需重新 NFC 碰卡驗證。";
                 btn.className = "flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700";
-                btn.onclick = () => {
+                btn.onclick = async () => {
                     closeModal();
-                    showNotification('全局撤銷功能尚未實作', 'warning');
+                    await handleGlobalRevoke();
                 };
             }
 
             modal.classList.remove('hidden');
         }
 
+        // Global Revoke
+        async function handleGlobalRevoke() {
+            const token = sessionStorage.getItem('setup_token');
+            if (!token) {
+                showNotification('未授權：請重新驗證', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/revoke`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ global: true })
+                });
+
+                if (!response.ok) {
+                    await handleApiError(response, '全局撤銷失敗');
+                    return;
+                }
+
+                const result = await response.json();
+                showNotification(`全局撤銷成功！新 Token Version: ${result.new_token_version}`, 'success');
+                loadSystemHealth();
+
+            } catch (error) {
+                console.error('Global revoke error:', error);
+                showNotification('全局撤銷失敗: ' + error.message, 'error');
+            }
+        }
+
         function closeModal() {
             document.getElementById('confirm-modal').classList.add('hidden');
         }
+        window.closeModal = closeModal;
 
         // Fill form with card data
         function fillFormWithCardData(card) {
@@ -1563,7 +1659,7 @@
             document.getElementById('mobile').value = data.mobile || '';
             document.getElementById('avatar_url').value = data.avatar_url || data.avatar || '';
 
-            // 問候語處理（從陣列轉換為多行文字）
+            // 問候語處理
             if (data.greetings) {
                 const greetingsZh = Array.isArray(data.greetings.zh) ? data.greetings.zh.join('\n') : data.greetings.zh || '';
                 const greetingsEn = Array.isArray(data.greetings.en) ? data.greetings.en.join('\n') : data.greetings.en || '';
@@ -1571,8 +1667,16 @@
                 document.getElementById('greetings_en').value = greetingsEn;
             }
 
-            // 社群連結 - 解析並填入獨立輸入框
-            if (data.socialLinks?.socialNote) {
+            // 社群連結 - 支援新舊格式
+            if (data.social_github) document.getElementById('social_github').value = data.social_github;
+            if (data.social_linkedin) document.getElementById('social_linkedin').value = data.social_linkedin;
+            if (data.social_facebook) document.getElementById('social_facebook').value = data.social_facebook;
+            if (data.social_instagram) document.getElementById('social_instagram').value = data.social_instagram;
+            if (data.social_twitter) document.getElementById('social_twitter').value = data.social_twitter;
+            if (data.social_youtube) document.getElementById('social_youtube').value = data.social_youtube;
+            
+            // 向後相容：舊格式 socialLinks.socialNote
+            if (data.socialLinks?.socialNote && !data.social_github) {
                 const lines = data.socialLinks.socialNote.split('\n');
                 lines.forEach(line => {
                     const lower = line.toLowerCase();
@@ -1791,7 +1895,7 @@
                         ipSpan.textContent = item.ip;
 
                         const countSpan = document.createElement('span');
-                        countSpan.className = 'text-xs font-bold text-indigo-600';
+                        countSpan.className = 'text-xs font-bold text-moda';
                         countSpan.textContent = item.count;
 
                         div.appendChild(ipSpan);
@@ -1946,7 +2050,7 @@
                                 <span class="badge ${getEventTypeBadgeClass(event.event_type)}">${event.event_type}</span>
                             </td>
                             <td class="px-4 py-3">
-                                <button onclick="loadIPDetail('${event.ip}')" class="text-xs font-bold text-indigo-600 hover:underline">${event.ip}</button>
+                                <button onclick="loadIPDetail('${event.ip}')" class="text-xs font-bold text-moda hover:underline">${event.ip}</button>
                             </td>
                             <td class="px-4 py-3 text-xs text-slate-600">${event.endpoint || details.path || 'N/A'}</td>
                             <td class="px-4 py-3 text-xs text-slate-500 truncate max-w-xs">${event.user_agent || 'unknown'}</td>
@@ -2206,6 +2310,21 @@
                 showNotification('匯出失敗: ' + error.message, 'error');
             }
         }
+
+        // 暴露函數到全域作用域供 onclick 使用
+        window.switchTab = switchTab;
+        window.editCard = editCard;
+        window.viewCard = viewCard;
+        window.deleteCard = handleDeleteCard;
+        window.restoreCard = handleRestoreCard;
+        window.confirmAction = confirmAction;
+        window.revokeCard = handleRevokeCard;
+        window.cancelEdit = cancelEdit;
+        window.handleBlockIP = handleBlockIP;
+        window.handleUnblockIP = handleUnblockIP;
+        window.showIPDetail = loadIPDetail;
+        window.closeIPDetailModal = closeIPDetailModal;
+        window.exportSecurityCSV = exportSecurityEvents;
 
         // --- 12. Initialization ---
         document.addEventListener('DOMContentLoaded', () => {

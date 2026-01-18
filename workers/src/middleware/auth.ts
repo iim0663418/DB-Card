@@ -4,34 +4,20 @@
 import type { Env } from '../types';
 
 /**
- * Verify SETUP_TOKEN from Authorization header using timing-safe comparison
+ * Verify SETUP_TOKEN from Cookie (preferred) or Authorization header (fallback)
+ * Supports backward compatibility by checking both authentication methods
  *
  * BDD Scenarios:
- * - Scenario 2: Missing Authorization header -> return false
- * - Scenario 3: Invalid token -> return false
- * - Scenario 1: Valid token -> return true
+ * - Scenario 1: Valid Cookie -> return true
+ * - Scenario 2: Valid Authorization header -> return true
+ * - Scenario 3: Missing both -> return false
+ * - Scenario 4: Invalid token -> return false
  *
  * @param request - Incoming HTTP request
  * @param env - Worker environment bindings
  * @returns Promise<boolean> - true if token is valid
  */
 export async function verifySetupToken(request: Request, env: Env): Promise<boolean> {
-  // Extract Authorization header
-  const authHeader = request.headers.get('Authorization');
-
-  if (!authHeader) {
-    return false;
-  }
-
-  // Check Bearer format
-  const parts = authHeader.split(' ');
-  if (parts.length !== 2 || parts[0] !== 'Bearer') {
-    return false;
-  }
-
-  const providedToken = parts[1];
-
-  // Get expected token from environment
   const expectedToken = env.SETUP_TOKEN;
 
   if (!expectedToken) {
@@ -39,8 +25,50 @@ export async function verifySetupToken(request: Request, env: Env): Promise<bool
     return false;
   }
 
-  // Timing-safe comparison to prevent timing attacks
-  return timingSafeEqual(providedToken, expectedToken);
+  // Priority 1: Check HttpOnly Cookie (Phase 2)
+  const cookieHeader = request.headers.get('Cookie');
+  if (cookieHeader) {
+    const cookies = parseCookies(cookieHeader);
+    const tokenFromCookie = cookies['admin_token'];
+
+    if (tokenFromCookie) {
+      const isValid = timingSafeEqual(tokenFromCookie, expectedToken);
+      if (isValid) {
+        return true;
+      }
+    }
+  }
+
+  // Priority 2: Fallback to Authorization header (backward compatibility)
+  const authHeader = request.headers.get('Authorization');
+  if (authHeader) {
+    const parts = authHeader.split(' ');
+    if (parts.length === 2 && parts[0] === 'Bearer') {
+      const providedToken = parts[1];
+      return timingSafeEqual(providedToken, expectedToken);
+    }
+  }
+
+  // No valid authentication found
+  return false;
+}
+
+/**
+ * Parse Cookie header into key-value pairs
+ *
+ * @param cookieHeader - Cookie header string
+ * @returns Record of cookie name-value pairs
+ */
+function parseCookies(cookieHeader: string): Record<string, string> {
+  return cookieHeader.split(';').reduce((acc, cookie) => {
+    const trimmed = cookie.trim();
+    const [key, ...valueParts] = trimmed.split('=');
+    const value = valueParts.join('='); // Handle cookies with = in value
+    if (key) {
+      acc[key] = value || '';
+    }
+    return acc;
+  }, {} as Record<string, string>);
 }
 
 /**

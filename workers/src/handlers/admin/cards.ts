@@ -253,10 +253,10 @@ export async function handleCreateCard(request: Request, env: Env): Promise<Resp
 
       if (!authHeader) {
         // Scenario 2: Missing token
-        return errorResponse('unauthorized', '缺少授權 Token', 401);
+        return errorResponse('unauthorized', '缺少授權 Token', 401, request);
       } else {
         // Scenario 3: Invalid token
-        return errorResponse('forbidden', '無效的授權 Token', 403);
+        return errorResponse('forbidden', '無效的授權 Token', 403, request);
       }
     }
 
@@ -265,7 +265,7 @@ export async function handleCreateCard(request: Request, env: Env): Promise<Resp
     try {
       body = await request.json();
     } catch (error) {
-      return errorResponse('invalid_request', '無效的 JSON 格式', 400);
+      return errorResponse('invalid_request', '無效的 JSON 格式', 400, request);
     }
 
     const { cardData, cardType } = body;
@@ -273,13 +273,13 @@ export async function handleCreateCard(request: Request, env: Env): Promise<Resp
     // Scenario 4: Validate cardData
     const cardDataValidation = validateCardData(cardData);
     if (!cardDataValidation.valid) {
-      return errorResponse('invalid_request', cardDataValidation.error!, 400);
+      return errorResponse('invalid_request', cardDataValidation.error!, 400, request);
     }
 
     // Scenario 5: Validate cardType
     const cardTypeValidation = validateCardType(cardType);
     if (!cardTypeValidation.valid) {
-      return errorResponse('invalid_card_type', cardTypeValidation.error!, 400);
+      return errorResponse('invalid_card_type', cardTypeValidation.error!, 400, request);
     }
 
     // Scenario 1: Success path
@@ -337,7 +337,8 @@ export async function handleCreateCard(request: Request, env: Env): Promise<Resp
         status,
         created_at: timestamp
       },
-      201
+      201,
+      request
     );
   } catch (error) {
     console.error('Error creating card:', error);
@@ -346,7 +347,8 @@ export async function handleCreateCard(request: Request, env: Env): Promise<Resp
     return errorResponse(
       'internal_error',
       '創建名片時發生錯誤',
-      500
+      500,
+      request
     );
   }
 }
@@ -400,10 +402,10 @@ export async function handleDeleteCard(
 
       if (!authHeader) {
         // Scenario 4: Missing token
-        return errorResponse('unauthorized', '缺少授權 Token', 401);
+        return errorResponse('unauthorized', '缺少授權 Token', 401, request);
       } else {
         // Invalid token
-        return errorResponse('forbidden', '無效的授權 Token', 403);
+        return errorResponse('forbidden', '無效的授權 Token', 403, request);
       }
     }
 
@@ -419,7 +421,7 @@ export async function handleDeleteCard(
 
     if (!card) {
       // Scenario 2: Card not found
-      return errorResponse('card_not_found', '名片不存在', 404);
+      return errorResponse('card_not_found', '名片不存在', 404, request);
     }
 
     // Scenario 3: Card already deleted (idempotent)
@@ -431,7 +433,8 @@ export async function handleDeleteCard(
           sessions_revoked: 0,
           message: '名片已刪除'
         },
-        200
+        200,
+        request
       );
     }
 
@@ -467,7 +470,8 @@ export async function handleDeleteCard(
         deleted_at: timestamp,
         sessions_revoked: sessionsRevoked
       },
-      200
+      200,
+      request
     );
   } catch (error) {
     console.error('Error deleting card:', error);
@@ -476,7 +480,8 @@ export async function handleDeleteCard(
     return errorResponse(
       'internal_error',
       '刪除名片時發生錯誤',
-      500
+      500,
+      request
     );
   }
 }
@@ -506,10 +511,10 @@ export async function handleUpdateCard(
 
       if (!authHeader) {
         // Scenario 4: Missing token
-        return errorResponse('unauthorized', '缺少授權 Token', 401);
+        return errorResponse('unauthorized', '缺少授權 Token', 401, request);
       } else {
         // Invalid token
-        return errorResponse('forbidden', '無效的授權 Token', 403);
+        return errorResponse('forbidden', '無效的授權 Token', 403, request);
       }
     }
 
@@ -518,7 +523,7 @@ export async function handleUpdateCard(
     try {
       body = await request.json();
     } catch (error) {
-      return errorResponse('invalid_request', '無效的 JSON 格式', 400);
+      return errorResponse('invalid_request', '無效的 JSON 格式', 400, request);
     }
 
     const { cardData } = body;
@@ -526,7 +531,7 @@ export async function handleUpdateCard(
     // Scenario 5: Validate cardData
     const cardDataValidation = validateUpdateCardData(cardData);
     if (!cardDataValidation.valid) {
-      return errorResponse('invalid_request', cardDataValidation.error!, 400);
+      return errorResponse('invalid_request', cardDataValidation.error!, 400, request);
     }
 
     // Scenario 2 & 3: Check if card exists and is active
@@ -545,12 +550,12 @@ export async function handleUpdateCard(
 
     if (!card) {
       // Scenario 2: Card not found
-      return errorResponse('card_not_found', '名片不存在', 404);
+      return errorResponse('card_not_found', '名片不存在', 404, request);
     }
 
     if (card.status === 'deleted') {
       // Scenario 3: Card deleted
-      return errorResponse('card_deleted', '無法更新已刪除的名片', 403);
+      return errorResponse('card_deleted', '無法更新已刪除的名片', 403, request);
     }
 
     // Scenario 1: Success path
@@ -605,7 +610,8 @@ export async function handleUpdateCard(
         updated_at: timestamp,
         sessions_revoked: sessionsRevoked
       },
-      200
+      200,
+      request
     );
   } catch (error) {
     console.error('Error updating card:', error);
@@ -614,7 +620,177 @@ export async function handleUpdateCard(
     return errorResponse(
       'internal_error',
       '更新名片時發生錯誤',
-      500
+      500,
+      request
+    );
+  }
+}
+
+/**
+ * Handle GET /api/admin/cards - List all cards
+ *
+ * BDD Scenarios:
+ * - Scenario 1: Success - Return all non-deleted cards
+ * - Scenario 2: 401 - Unauthorized (missing token)
+ */
+export async function handleListCards(request: Request, env: Env): Promise<Response> {
+  try {
+    // Verify authorization
+    const isAuthorized = await verifySetupToken(request, env);
+
+    if (!isAuthorized) {
+      // Check if Authorization header exists
+      const authHeader = request.headers.get('Authorization');
+
+      if (!authHeader) {
+        return errorResponse('unauthorized', '缺少授權 Token', 401, request);
+      } else {
+        return errorResponse('forbidden', '無效的授權 Token', 403, request);
+      }
+    }
+
+    // Query all non-deleted cards, ordered by created_at DESC
+    const cards = await env.DB.prepare(`
+      SELECT uuid, card_type, encrypted_payload, wrapped_dek,
+             key_version, status, created_at, updated_at
+      FROM cards
+      WHERE status != 'deleted'
+      ORDER BY created_at DESC
+    `).all();
+
+    if (!cards.results) {
+      return jsonResponse({
+        cards: [],
+        total: 0
+      }, 200, request);
+    }
+
+    // Initialize encryption for decryption
+    const encryption = new EnvelopeEncryption();
+    await encryption.initialize(env);
+
+    // Decrypt each card's data
+    const decryptedCards = await Promise.all(
+      cards.results.map(async (card: any) => {
+        try {
+          const cardData = await encryption.decryptCard(
+            card.encrypted_payload,
+            card.wrapped_dek
+          );
+
+          return {
+            uuid: card.uuid,
+            card_type: card.card_type,
+            status: card.status,
+            data: cardData,
+            created_at: new Date(card.created_at).toISOString(),
+            updated_at: new Date(card.updated_at).toISOString()
+          };
+        } catch (error) {
+          console.error(`Error decrypting card ${card.uuid}:`, error);
+          // Skip cards that fail to decrypt
+          return null;
+        }
+      })
+    );
+
+    // Filter out null values (cards that failed to decrypt)
+    const validCards = decryptedCards.filter(card => card !== null);
+
+    // Return success response
+    return jsonResponse({
+      cards: validCards,
+      total: validCards.length
+    }, 200, request);
+  } catch (error) {
+    console.error('Error listing cards:', error);
+
+    return errorResponse(
+      'internal_error',
+      '列出名片時發生錯誤',
+      500,
+      request
+    );
+  }
+}
+
+/**
+ * Handle GET /api/admin/cards/:uuid - Get single card
+ *
+ * BDD Scenarios:
+ * - Scenario 1: Success - Return single card with decrypted data
+ * - Scenario 2: 404 - Card not found
+ * - Scenario 3: 404 - Card deleted
+ * - Scenario 4: 401 - Unauthorized (missing token)
+ */
+export async function handleGetCard(
+  request: Request,
+  env: Env,
+  uuid: string
+): Promise<Response> {
+  try {
+    // Verify authorization
+    const isAuthorized = await verifySetupToken(request, env);
+
+    if (!isAuthorized) {
+      // Check if Authorization header exists
+      const authHeader = request.headers.get('Authorization');
+
+      if (!authHeader) {
+        return errorResponse('unauthorized', '缺少授權 Token', 401, request);
+      } else {
+        return errorResponse('forbidden', '無效的授權 Token', 403, request);
+      }
+    }
+
+    // Query card by UUID (exclude deleted)
+    const card = await env.DB.prepare(`
+      SELECT uuid, card_type, encrypted_payload, wrapped_dek,
+             key_version, status, created_at, updated_at
+      FROM cards
+      WHERE uuid = ? AND status != 'deleted'
+    `).bind(uuid).first<{
+      uuid: string;
+      card_type: string;
+      encrypted_payload: string;
+      wrapped_dek: string;
+      key_version: number;
+      status: string;
+      created_at: number;
+      updated_at: number;
+    }>();
+
+    if (!card) {
+      return errorResponse('not_found', '名片不存在', 404, request);
+    }
+
+    // Initialize encryption for decryption
+    const encryption = new EnvelopeEncryption();
+    await encryption.initialize(env);
+
+    // Decrypt card data
+    const cardData = await encryption.decryptCard(
+      card.encrypted_payload,
+      card.wrapped_dek
+    );
+
+    // Return success response
+    return jsonResponse({
+      uuid: card.uuid,
+      card_type: card.card_type,
+      status: card.status,
+      data: cardData,
+      created_at: new Date(card.created_at).toISOString(),
+      updated_at: new Date(card.updated_at).toISOString()
+    }, 200, request);
+  } catch (error) {
+    console.error('Error getting card:', error);
+
+    return errorResponse(
+      'internal_error',
+      '取得名片時發生錯誤',
+      500,
+      request
     );
   }
 }

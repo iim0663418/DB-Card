@@ -42,16 +42,16 @@ export async function handleKekRotate(request: Request, env: Env): Promise<Respo
 
       if (!authHeader) {
         // Scenario 3: Missing token
-        return errorResponse('unauthorized', '缺少授權 Token', 401);
+        return errorResponse('unauthorized', '缺少授權 Token', 401, request);
       } else {
         // Invalid token
-        return errorResponse('forbidden', '無效的授權 Token', 403);
+        return errorResponse('forbidden', '無效的授權 Token', 403, request);
       }
     }
 
     // Scenario 4: Check KEK configuration
     if (!env.KEK) {
-      return errorResponse('kek_not_configured', 'KEK 未配置', 500);
+      return errorResponse('kek_not_configured', 'KEK 未配置', 500, request);
     }
 
     // Get current active KEK version
@@ -150,7 +150,8 @@ export async function handleKekRotate(request: Request, env: Env): Promise<Respo
         cards_rewrapped: cardsRewrapped,
         rotated_at: rotatedAt
       },
-      200
+      200,
+      request
     );
   } catch (error) {
     console.error('Error rotating KEK:', error);
@@ -159,7 +160,8 @@ export async function handleKekRotate(request: Request, env: Env): Promise<Respo
     return errorResponse(
       'internal_error',
       'KEK 輪換時發生錯誤',
-      500
+      500,
+      request
     );
   }
 }

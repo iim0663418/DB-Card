@@ -195,8 +195,13 @@ function renderCard(cardData, sessionData, isOffline = false) {
     hideLoading();
     document.getElementById('main-container').classList.remove('hidden');
 
+    // 顯示問候語區塊（如果有內容）
+    const greetingSection = document.getElementById('greeting-section');
     if (greetings && greetings.length > 0) {
+        greetingSection.classList.remove('hidden');
         startTypewriter(greetings);
+    } else {
+        greetingSection.classList.add('hidden');
     }
 
     lucide.createIcons();
@@ -408,7 +413,11 @@ document.getElementById('save-vcard').addEventListener('click', () => {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${cardData.name || 'contact'}.vcf`;
+            // 根據當前語言狀態決定檔名
+            const name = typeof cardData.name === 'object' 
+                ? (currentLanguage === 'zh' ? (cardData.name.zh || cardData.name.en) : (cardData.name.en || cardData.name.zh))
+                : cardData.name;
+            a.download = `${name || 'contact'}.vcf`;
             a.click();
             URL.revokeObjectURL(url);
             showNotification('vCard 已下載', 'success');

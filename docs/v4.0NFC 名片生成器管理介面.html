@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>moda NFC 生成器 | 最佳化管理終端</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Noto+Sans+TC:wght@300;500;700;900&display=swap');
+        
+        :root {
+            --moda-accent: #6868ac;
+            --moda-bg: #f8fafc;
+            --input-border: #e2e8f0;
+            --input-focus: #6868ac;
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: var(--moda-bg);
+            color: #1e293b;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        #three-canvas {
+            position: fixed;
+            top: 0; left: 0; z-index: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        .app-surface {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            border-radius: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        .bilingual-field {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            background: var(--input-border);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--input-border);
+        }
+
+        .bilingual-field input, .bilingual-field textarea {
+            background: #fff;
+            padding: 12px 16px;
+            font-size: 14px;
+            border: none;
+            outline: none;
+        }
+
+        .bilingual-field input:focus, .bilingual-field textarea:focus {
+            background: #fdfdff;
+            box-shadow: inset 0 0 0 2px var(--moda-accent);
+            z-index: 10;
+        }
+
+        .lang-indicator {
+            font-size: 9px;
+            font-weight: 800;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .mini-card-preview {
+            transform: scale(0.85);
+            transform-origin: center top;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-deploy {
+            background: var(--moda-accent);
+            color: white;
+            padding: 16px;
+            border-radius: 16px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 15px -3px rgba(104, 104, 172, 0.3);
+        }
+        .btn-deploy:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(104, 104, 172, 0.4);
+        }
+
+        .social-chip-prev {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f1f5f9;
+            color: var(--moda-accent);
+            border: 1px solid #e2e8f0;
+        }
+
+        .friction-warning {
+            background: #fffbeb;
+            border: 1px solid #fef3c7;
+            color: #92400e;
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="p-6 md:p-12">
+
+    <canvas id="three-canvas"></canvas>
+
+    <div class="relative z-10 max-w-6xl mx-auto">
+        
+        <!-- 頂部：權限驗證 -->
+        <header id="auth-header" class="app-surface p-6 mb-8 flex flex-col md:flex-row justify-between items-center gap-6 transition-all duration-500">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg">
+                    <i data-lucide="key-round" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-tight">身分簽發終端</h1>
+                    <p class="text-xs text-slate-400 font-medium">NFC Identity Issuance Node</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <div class="relative">
+                    <input type="password" id="setup-token" placeholder="輸入管理金鑰" class="w-64 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm">
+                    <div id="verify-spinner" class="hidden absolute right-3 top-3"><i data-lucide="loader-2" class="w-5 h-5 animate-spin text-slate-400"></i></div>
+                </div>
+                <button id="verify-btn" class="bg-slate-900 text-white px-6 py-3 rounded-xl text-xs font-bold hover:bg-black transition-all">驗證權限</button>
+            </div>
+        </header>
+
+        <main id="editor-main" class="grid grid-cols-1 lg:grid-cols-12 gap-8 opacity-20 pointer-events-none transition-all duration-700 blur-sm">
+            
+            <!-- 表單區 -->
+            <div class="lg:col-span-7 space-y-8">
+                <section class="app-surface p-8">
+                    <h2 class="text-sm font-bold uppercase tracking-[0.2em] text-slate-400 mb-8 flex items-center gap-2">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i>
+                        基本身分資訊 (雙語必填)
+                    </h2>
+
+                    <div class="space-y-6">
+                        <div>
+                            <div class="lang-indicator"><span>中文姓名 / CHINESE</span><span>英文姓名 / ENGLISH</span></div>
+                            <div class="bilingual-field">
+                                <input type="text" id="name_zh" placeholder="如：唐鳳" required>
+                                <input type="text" id="name_en" placeholder="e.g. Audrey Tang" required>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="lang-indicator"><span>中文職稱 / POSITION</span><span>英文職稱 / TITLE</span></div>
+                            <div class="bilingual-field">
+                                <input type="text" id="title_zh" placeholder="如：部長">
+                                <input type="text" id="title_en" placeholder="e.g. Minister">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">公務 Email</label>
+                                <input type="email" id="email" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm" placeholder="audrey@moda.gov.tw">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">所屬部門</label>
+                                <select id="department" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm appearance-none">
+                                    <option value="數位策略司">數位策略司</option>
+                                    <option value="數位政府司">數位政府司</option>
+                                    <option value="部長室">部長室</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 漸進式揭露 -->
+                        <details class="group border-t border-slate-100 pt-4">
+                            <summary class="list-none cursor-pointer flex items-center justify-between text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors">
+                                <span>+ 進階與社群資訊 (手機、頭像、問候語、社群)</span>
+                                <i data-lucide="chevron-down" class="w-4 h-4 group-open:rotate-180 transition-transform"></i>
+                            </summary>
+                            <div class="pt-6 space-y-6">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">手機號碼</label>
+                                        <input type="text" id="mobile" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="0912-345-678">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">大頭貼 URL</label>
+                                        <input type="url" id="avatar_url" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="https://...">
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="lang-indicator"><span>中文問候語 (每行一句)</span><span>ENGLISH GREETINGS</span></div>
+                                    <div class="bilingual-field">
+                                        <textarea id="greetings_zh" class="h-24" placeholder="Hello, 數位連結未來"></textarea>
+                                        <textarea id="greetings_en" class="h-24" placeholder="Nice to meet you!"></textarea>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">社群連結備註 (Social Note)</label>
+                                    <textarea id="social_note" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm h-20" placeholder="格式範例：&#10;FB: @username&#10;IG: @username&#10;LinkedIn: username"></textarea>
+                                    <p class="text-[9px] text-slate-400 mt-2 italic">※ 支援自動識別 FB, IG, GitHub, LinkedIn, X, YouTube</p>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+                </section>
+
+                <section class="app-surface p-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                        <div>
+                            <label class="text-sm font-bold mb-2 block">名片安全性等級</label>
+                            <select id="card_type" class="w-full px-4 py-3 bg-slate-100 border-none rounded-xl text-sm font-bold">
+                                <option value="personal">標準個人名片 (20 次讀取)</option>
+                                <option value="event">活動專用名片 (50 次讀取)</option>
+                                <option value="sensitive">敏感資料保護 (5 次讀取)</option>
+                            </select>
+                        </div>
+                        <button id="submit-btn" class="btn-deploy flex items-center justify-center gap-3">
+                            <i data-lucide="zap" class="w-5 h-5"></i>
+                            簽發數位名片
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- 右側：即時預覽 -->
+            <div class="lg:col-span-5 space-y-6">
+                <div class="app-surface p-6 sticky top-12">
+                    <div class="flex justify-between items-center mb-6">
+                        <span class="text-[10px] font-black tracking-widest text-slate-400">REAL-TIME CONTEXT</span>
+                        <div id="preview-lang-switch" class="flex bg-slate-100 p-1 rounded-lg">
+                            <button data-lang="zh" class="px-4 py-1 text-[10px] font-bold rounded-md bg-white shadow-sm transition-all">中</button>
+                            <button data-lang="en" class="px-4 py-1 text-[10px] font-bold rounded-md text-slate-500 hover:text-slate-900 transition-all">EN</button>
+                        </div>
+                    </div>
+                    
+                    <div class="mini-card-preview">
+                        <div id="preview-card" class="bg-white rounded-[2.5rem] shadow-2xl border-t-[6px] border-indigo-600 overflow-hidden text-center p-8 space-y-6">
+                            <div class="relative inline-block">
+                                <img id="prev-avatar" src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80" class="w-28 h-28 rounded-[2rem] object-cover shadow-lg border-2 border-slate-50">
+                                <div class="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-2 rounded-lg"><i data-lucide="check" class="w-3 h-3"></i></div>
+                            </div>
+                            <div>
+                                <h3 id="prev-name" class="text-3xl font-black text-slate-900 italic">唐鳳</h3>
+                                <p id="prev-title" class="text-indigo-600 font-bold text-[10px] uppercase tracking-[0.2em] mt-2">部長</p>
+                            </div>
+                            
+                            <!-- 社群圖標預覽區 -->
+                            <div id="prev-social-cluster" class="flex justify-center gap-2 flex-wrap min-h-[32px]">
+                                <!-- 動態生成 -->
+                            </div>
+
+                            <div class="h-6 border-t border-slate-50 pt-4">
+                                <p id="prev-greeting" class="text-slate-400 text-[10px] italic font-medium italic">Hello, 數位連結未來</p>
+                            </div>
+                            <div class="bg-slate-50 p-4 rounded-2xl flex items-center gap-4 text-left mt-2">
+                                <i data-lucide="mail" class="w-4 h-4 text-indigo-400"></i>
+                                <span id="prev-email" class="text-[10px] font-bold text-slate-600 truncate">---</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 生成結果 -->
+        <div id="result-modal" class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md hidden flex items-center justify-center p-6">
+            <div class="app-surface max-w-lg w-full p-10 space-y-8 animate-in fade-in zoom-in duration-300">
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="check-circle-2" class="w-10 h-10"></i>
+                    </div>
+                    <h2 class="text-2xl font-black text-slate-900">簽發成功！</h2>
+                    <p class="text-sm text-slate-400">身分憑證已部署至加密通道</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                        <label class="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">NFC 寫入連結</label>
+                        <div class="flex gap-2">
+                            <input id="result-url" readonly class="flex-1 bg-transparent text-xs font-mono font-bold outline-none" value="https://...">
+                            <button onclick="copyResult()" class="text-indigo-600 hover:text-indigo-800"><i data-lucide="copy" class="w-5 h-5"></i></button>
+                        </div>
+                    </div>
+                    <div class="flex justify-center p-6 bg-white rounded-2xl border border-slate-100">
+                        <div id="result-qr"></div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <button id="close-modal" class="w-full py-4 bg-slate-900 text-white rounded-xl font-bold">返回編輯</button>
+                    <p class="text-[10px] text-center text-slate-400 italic">下一步：請使用 NFC Tools 寫入網址至實體卡片</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Three.js 背景 ---
+        let scene, camera, renderer, mesh;
+        function initThree() {
+            const canvas = document.getElementById('three-canvas');
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            const starGeo = new THREE.BufferGeometry();
+            const starCount = 1000;
+            const starPos = new Float32Array(starCount * 3);
+            for(let i=0; i < starCount * 3; i++) starPos[i] = (Math.random() - 0.5) * 40;
+            starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+            mesh = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.05, color: 0x6868ac, transparent: true, opacity: 0.2 }));
+            scene.add(mesh);
+            camera.position.z = 10;
+            function animate() { requestAnimationFrame(animate); mesh.rotation.y += 0.0002; renderer.render(scene, camera); }
+            animate();
+        }
+
+        // --- 2. 交互邏輯 ---
+        let previewLang = 'zh';
+
+        const SocialParser = {
+            parse(text) {
+                const platforms = [
+                    { key: 'FB', icon: 'facebook' },
+                    { key: 'IG', icon: 'instagram' },
+                    { key: 'GitHub', icon: 'github' },
+                    { key: 'LinkedIn', icon: 'linkedin' },
+                    { key: 'X', icon: 'twitter' },
+                    { key: 'YouTube', icon: 'youtube' }
+                ];
+                let results = [];
+                if(!text) return results;
+                text.split('\n').forEach(line => {
+                    platforms.forEach(p => {
+                        const regex = new RegExp(`${p.key}:`, 'i');
+                        if (regex.test(line)) results.push(p.icon);
+                    });
+                });
+                return [...new Set(results)]; // 去重
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            initThree();
+
+            const verifyBtn = document.getElementById('verify-btn');
+            verifyBtn.onclick = async () => {
+                const spinner = document.getElementById('verify-spinner');
+                spinner.classList.remove('hidden');
+                verifyBtn.disabled = true;
+                setTimeout(() => {
+                    const token = document.getElementById('setup-token').value;
+                    if(token === "moda-secret-2026") {
+                        document.getElementById('auth-header').style.opacity = "0.7";
+                        document.getElementById('editor-main').classList.remove('opacity-20', 'pointer-events-none', 'blur-sm');
+                        verifyBtn.innerHTML = "已通過驗證";
+                        verifyBtn.classList.replace('bg-slate-900', 'bg-green-600');
+                    } else { alert("金鑰無效。"); }
+                    spinner.classList.add('hidden');
+                    verifyBtn.disabled = false;
+                }, 800);
+            };
+
+            // 監聽所有輸入
+            const inputIds = ['name_zh', 'name_en', 'title_zh', 'title_en', 'email', 'avatar_url', 'greetings_zh', 'greetings_en', 'social_note'];
+            inputIds.forEach(id => document.getElementById(id).addEventListener('input', updatePreview));
+
+            // 預覽語言切換
+            document.querySelectorAll('#preview-lang-switch button').forEach(btn => {
+                btn.onclick = () => {
+                    previewLang = btn.dataset.lang;
+                    document.querySelectorAll('#preview-lang-switch button').forEach(b => {
+                        b.classList.remove('bg-white', 'shadow-sm', 'text-slate-900');
+                        b.classList.add('text-slate-500');
+                    });
+                    btn.classList.add('bg-white', 'shadow-sm', 'text-slate-900');
+                    btn.classList.remove('text-slate-500');
+                    updatePreview();
+                };
+            });
+
+            document.getElementById('submit-btn').onclick = generateResult;
+            document.getElementById('close-modal').onclick = () => document.getElementById('result-modal').classList.add('hidden');
+        });
+
+        function updatePreview() {
+            const isEn = previewLang === 'en';
+            const name = isEn ? document.getElementById('name_en').value || "Audrey Tang" : document.getElementById('name_zh').value || "唐鳳";
+            const title = isEn ? document.getElementById('title_en').value || "Minister" : document.getElementById('title_zh').value || "部長";
+            const greet = isEn ? document.getElementById('greetings_en').value.split('\n')[0] || "Connecting the Future" : document.getElementById('greetings_zh').value.split('\n')[0] || "Hello, 數位連結未來";
+            const email = document.getElementById('email').value || "---";
+            const avatar = document.getElementById('avatar_url').value || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80";
+            const socialText = document.getElementById('social_note').value;
+
+            document.getElementById('prev-name').innerText = name;
+            document.getElementById('prev-title').innerText = title;
+            document.getElementById('prev-greeting').innerText = greet;
+            document.getElementById('prev-email').innerText = email;
+            document.getElementById('prev-avatar').src = avatar;
+
+            // 社群解析與渲染
+            const icons = SocialParser.parse(socialText);
+            const cluster = document.getElementById('prev-social-cluster');
+            cluster.innerHTML = '';
+            icons.forEach(icon => {
+                const node = document.createElement('div');
+                node.className = "social-chip-prev";
+                node.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4"></i>`;
+                cluster.appendChild(node);
+            });
+            lucide.createIcons();
+        }
+
+        function generateResult() {
+            const btn = document.getElementById('submit-btn');
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> 簽發中...`;
+            setTimeout(() => {
+                const uuid = "550e8400-e2-41d4-a716-" + Math.floor(Math.random()*900000 + 100000);
+                const url = window.location.origin + "/card-display?uuid=" + uuid;
+                document.getElementById('result-url').value = url;
+                const qrBox = document.getElementById('result-qr');
+                qrBox.innerHTML = "";
+                new QRCode(qrBox, { text: url, width: 200, height: 200 });
+                document.getElementById('result-modal').classList.remove('hidden');
+                btn.innerHTML = `<i data-lucide="zap" class="w-5 h-5"></i> 簽發數位名片`;
+                lucide.createIcons();
+            }, 1200);
+        }
+
+        function copyResult() {
+            const el = document.getElementById('result-url');
+            el.select();
+            document.execCommand("copy");
+            alert("連結已複製。");
+        }
+
+        window.onresize = () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        };
+    </script>
+</body>
+</html>

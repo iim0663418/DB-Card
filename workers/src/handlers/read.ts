@@ -83,7 +83,7 @@ export async function handleRead(request: Request, env: Env): Promise<Response> 
       await logEvent(env, 'read', request, card_uuid || undefined, session_id || undefined, {
         error: 'missing_parameters'
       });
-      return errorResponse('invalid_request', '缺少必要參數 uuid 或 session', 400);
+      return errorResponse('invalid_request', '缺少必要參數 uuid 或 session', 400, request);
     }
 
     // Fetch session from database
@@ -100,7 +100,7 @@ export async function handleRead(request: Request, env: Env): Promise<Response> 
       });
 
       const statusCode = validation.reason === 'session_not_found' ? 404 : 403;
-      return errorResponse(validation.reason!, validation.message!, statusCode);
+      return errorResponse(validation.reason!, validation.message!, statusCode, request);
     }
 
     // Fetch card data
@@ -113,7 +113,7 @@ export async function handleRead(request: Request, env: Env): Promise<Response> 
       await logEvent(env, 'read', request, card_uuid, session_id, {
         error: 'card_not_found'
       });
-      return errorResponse('card_not_found', '名片不存在或已刪除', 404);
+      return errorResponse('card_not_found', '名片不存在或已刪除', 404, request);
     }
 
     // Decrypt card data
@@ -131,7 +131,7 @@ export async function handleRead(request: Request, env: Env): Promise<Response> 
         error: 'decryption_failed',
         message: error instanceof Error ? error.message : 'Unknown error'
       });
-      return errorResponse('internal_error', '解密失敗', 500);
+      return errorResponse('internal_error', '解密失敗', 500, request);
     }
 
     // Update reads_used
@@ -157,7 +157,7 @@ export async function handleRead(request: Request, env: Env): Promise<Response> 
         reads_remaining,
         expires_at: session!.expires_at
       }
-    });
+    }, 200, request);
 
   } catch (error) {
     console.error('Read handler error:', error);
@@ -165,6 +165,6 @@ export async function handleRead(request: Request, env: Env): Promise<Response> 
       error: 'internal_error',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
-    return errorResponse('internal_error', '伺服器錯誤', 500);
+    return errorResponse('internal_error', '伺服器錯誤', 500, request);
   }
 }

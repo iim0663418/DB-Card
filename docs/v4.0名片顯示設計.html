@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數位名片 | Governance Portal Light v3.1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;700&family=Noto+Sans+TC:wght@300;500;900&display=swap');
+        
+        :root {
+            --moda-accent: #6868ac;
+            --moda-glow: rgba(104, 104, 172, 0.2);
+            --crystal-bg: rgba(255, 255, 255, 0.5);
+            --ui-text: #1e1e3f;
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+            background-color: #f4f7f9;
+            color: var(--ui-text);
+            margin: 0;
+            overflow-x: hidden;
+            height: 100vh;
+        }
+
+        #three-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: block;
+        }
+
+        /* 晶體卷宗：政府權威與透明度 */
+        .crystal-container {
+            background: var(--crystal-bg);
+            backdrop-filter: blur(40px) saturate(160%);
+            -webkit-backdrop-filter: blur(40px) saturate(160%);
+            border: 1px solid rgba(104, 104, 172, 0.1);
+            border-top: 5px solid var(--moda-accent);
+            position: relative;
+        }
+
+        .hud-text {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            color: var(--moda-accent);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .watermark {
+            position: absolute;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10vw;
+            color: rgba(104, 104, 172, 0.04);
+            font-weight: 900;
+            user-select: none;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        /* 資訊晶片：輕量化排版 */
+        .info-chip {
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(104, 104, 172, 0.05);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .info-chip:hover {
+            background: #ffffff;
+            border-color: var(--moda-accent);
+            transform: translateY(-4px);
+            box-shadow: 0 15px 30px -10px rgba(104, 104, 172, 0.15);
+        }
+
+        .social-node {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(104, 104, 172, 0.1);
+            color: var(--moda-accent);
+            transition: all 0.3s ease;
+        }
+        .social-node:hover {
+            background: var(--moda-accent);
+            color: #ffffff;
+            transform: scale(1.15) rotate(5deg);
+        }
+
+        .reveal {
+            animation: crystalReveal 1.2s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+        }
+        @keyframes crystalReveal {
+            from { opacity: 0; transform: translateY(60px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .cursor::after {
+            content: '_';
+            animation: blink 1s infinite;
+            color: var(--moda-accent);
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="no-scrollbar flex flex-col items-center">
+
+    <!-- 背景 3D 光纖場域 -->
+    <canvas id="three-canvas"></canvas>
+
+    <!-- 載入動畫門戶 -->
+    <div id="loading" class="fixed inset-0 bg-[#f8fafd] z-[100] flex flex-col items-center justify-center transition-opacity duration-1000">
+        <div class="relative w-32 h-32">
+            <div class="absolute inset-0 border-2 border-indigo-100 rounded-full animate-ping"></div>
+            <div class="absolute inset-0 border-t-2 border-indigo-500 rounded-full animate-spin"></div>
+            <div class="absolute inset-0 flex items-center justify-center text-indigo-500">
+                <i data-lucide="shield-check" class="w-10 h-10 animate-pulse"></i>
+            </div>
+        </div>
+        <p class="mt-8 hud-text animate-pulse">Synchronizing Secure Identity...</p>
+    </div>
+
+    <!-- UI 工具列 -->
+    <div id="ui-header" class="fixed top-0 left-0 right-0 z-50 p-6 flex justify-between items-start pointer-events-none">
+        <div class="space-y-1">
+            <p class="hud-text opacity-40">IDENTITY_NODE_V3</p>
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                <span class="text-[9px] font-bold tracking-widest text-slate-500 uppercase">Authenticated Session</span>
+            </div>
+        </div>
+        <div class="pointer-events-auto">
+            <button id="lang-switch" class="px-5 py-2 bg-white border border-slate-200 rounded-lg text-[10px] font-black text-slate-700 hover:border-indigo-400 hover:text-indigo-600 shadow-sm transition-all uppercase tracking-widest">
+                繁中 / EN
+            </button>
+        </div>
+    </div>
+
+    <!-- QR Code 彈窗 -->
+    <div id="qr-modal" class="fixed inset-0 z-[60] bg-white/80 backdrop-blur-xl hidden flex flex-col items-center justify-center p-10">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl border border-slate-100">
+            <div id="qrcode-target" class="w-64 h-64 flex items-center justify-center text-black font-bold border-4 border-slate-50">QR CODE</div>
+        </div>
+        <p class="hud-text mt-8 mb-10 text-slate-800">Scan for Official Verification</p>
+        <button id="close-qr" class="px-12 py-4 bg-slate-900 text-white rounded-full text-xs font-bold hover:bg-indigo-600 shadow-lg transition-all">CLOSE PORTAL</button>
+    </div>
+
+    <!-- 主容器 -->
+    <div id="main-container" class="relative z-10 w-full max-w-4xl px-4 py-24 hidden reveal">
+        
+        <main class="crystal-container rounded-3xl overflow-hidden shadow-2xl">
+            <!-- 背景浮水印 -->
+            <div class="watermark -top-5 -left-10">AUTHENTIC</div>
+            <div class="watermark bottom-10 -right-20">VERIFIED</div>
+
+            <!-- 身分首部 -->
+            <div class="p-10 lg:p-20 border-b border-indigo-50 flex flex-col lg:flex-row gap-12 items-center lg:items-start relative z-10">
+                <div class="relative">
+                    <div class="absolute -inset-4 border border-indigo-100 pointer-events-none"></div>
+                    <img id="user-avatar" src="" class="w-48 h-48 lg:w-60 lg:h-60 object-cover border-4 border-white shadow-xl transition-all duration-700">
+                    <div class="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-3 rounded-xl shadow-lg">
+                        <i data-lucide="badge-check" class="w-6 h-6"></i>
+                    </div>
+                </div>
+
+                <div class="flex-1 text-center lg:text-left">
+                    <p class="hud-text mb-4 opacity-40">Digital Identity Protocol</p>
+                    <h1 id="user-name" class="text-5xl lg:text-7xl font-black tracking-tighter text-slate-900 mb-2 italic">---</h1>
+                    <p id="user-title" class="text-indigo-600 font-bold tracking-widest text-sm uppercase">---</p>
+                    
+                    <div class="mt-8 pt-8 border-t border-indigo-50">
+                        <p class="hud-text mb-4 opacity-40">Dynamic Transmission Feed</p>
+                        <p id="typewriter" class="text-slate-600 font-medium italic min-h-[1.5em] text-lg cursor"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 資訊晶片網格 -->
+            <div class="p-8 lg:p-14 grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10">
+                <a id="email-link" href="#" class="info-chip p-6 rounded-2xl flex items-center gap-6 group">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                        <i data-lucide="mail" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <p class="hud-text text-[8px] opacity-40">Communication Node</p>
+                        <p id="user-email" class="font-bold text-slate-700">---</p>
+                    </div>
+                </a>
+                <a id="phone-link" href="#" class="info-chip p-6 rounded-2xl flex items-center gap-6 group">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                        <i data-lucide="phone" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <p class="hud-text text-[8px] opacity-40">Voice Access</p>
+                        <p id="user-phone" class="font-bold text-slate-700">---</p>
+                    </div>
+                </a>
+                <a id="web-link" href="#" target="_blank" class="info-chip p-6 rounded-2xl flex items-center gap-6 group md:col-span-2">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                        <i data-lucide="globe" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <p class="hud-text text-[8px] opacity-40">Official Portal</p>
+                        <p id="user-web" class="font-bold text-slate-700">---</p>
+                    </div>
+                </a>
+            </div>
+
+            <!-- 社群連結聚落 -->
+            <div id="social-cluster" class="px-10 lg:px-14 pb-14 flex flex-wrap gap-4 justify-center lg:justify-start relative z-10">
+                <!-- 由 JS 動態注入 -->
+            </div>
+        </main>
+
+        <!-- 頁尾控制與安全規範 -->
+        <div class="mt-10 w-full flex flex-col md:flex-row gap-6 items-stretch">
+            <div class="flex-1 flex gap-4">
+                <button id="save-vcard" class="flex-1 bg-slate-900 text-white font-black uppercase text-[10px] tracking-[0.3em] py-5 px-8 rounded-2xl hover:bg-indigo-600 shadow-xl transition-all flex items-center justify-center gap-4">
+                    <i data-lucide="user-plus" class="w-4 h-4"></i>
+                    Sync Identity
+                </button>
+                <button id="open-qr" class="bg-white border border-slate-200 text-slate-700 px-8 py-5 rounded-2xl hover:bg-slate-50 shadow-sm transition-all">
+                    <i data-lucide="qr-code" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="md:w-72 p-6 border border-indigo-100 bg-white/80 rounded-2xl shadow-sm">
+                <div class="flex items-center gap-3 mb-2 text-indigo-600">
+                    <i data-lucide="shield-check" class="w-4 h-4"></i>
+                    <p class="hud-text text-[8px]">資料安全規範</p>
+                </div>
+                <p class="text-[10px] text-slate-500 font-medium leading-relaxed uppercase">
+                    Serverless Encrypted Node. No trace retained on node. Securely rendered via MoDA gateway.
+                </p>
+            </div>
+        </div>
+
+        <!-- 階段資訊 -->
+        <div id="token-info" class="mt-12 opacity-40 text-center space-y-2">
+            <p id="session-expiry" class="hud-text text-[8px] text-slate-400">SESSION EXPIRES: --</p>
+            <p id="session-reads" class="hud-text text-[8px] text-slate-400">ATTEMPTS REMAINING: --</p>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Three.js 背景核心 (明亮場域) ---
+        let scene, camera, renderer, mesh, grid;
+
+        function initThree() {
+            const canvas = document.getElementById('three-canvas');
+            if (!canvas) return;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf4f7f9);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 10);
+
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            // 數據網格 (Light Neural Grid)
+            const gridGeo = new THREE.PlaneGeometry(150, 150, 45, 45);
+            const gridMat = new THREE.MeshBasicMaterial({ 
+                color: 0x6868ac, 
+                wireframe: true, 
+                transparent: true, 
+                opacity: 0.05 
+            });
+            grid = new THREE.Mesh(gridGeo, gridMat);
+            grid.rotation.x = -Math.PI / 2.2;
+            grid.position.y = -6;
+            scene.add(grid);
+
+            // 粒子系統 (Crystal Particles)
+            const starCount = 2000;
+            const starGeo = new THREE.BufferGeometry();
+            const starPos = new Float32Array(starCount * 3);
+            for(let i=0; i < starCount * 3; i++) {
+                starPos[i] = (Math.random() - 0.5) * 50;
+            }
+            starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+            const starMat = new THREE.PointsMaterial({ 
+                size: 0.05, 
+                color: 0x6868ac, 
+                transparent: true, 
+                opacity: 0.3
+            });
+            mesh = new THREE.Points(starGeo, starMat);
+            scene.add(mesh);
+
+            handleResize();
+            animate();
+        }
+
+        let mX = 0, mY = 0;
+        window.addEventListener('mousemove', (e) => {
+            mX = (e.clientX - window.innerWidth / 2) / 3000;
+            mY = (e.clientY - window.innerHeight / 2) / 3000;
+        });
+
+        function handleResize() {
+            if (!camera || !renderer) return;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (mesh) mesh.rotation.y += 0.0003;
+            if (grid) {
+                grid.position.z += 0.012;
+                if(grid.position.z > 5) grid.position.z = 0;
+            }
+            camera.position.x += (mX * 5 - camera.position.x) * 0.05;
+            camera.position.y += (-mY * 5 - camera.position.y) * 0.05;
+            camera.lookAt(scene.position);
+            renderer.render(scene, camera);
+        }
+
+        // --- 2. 社群與核心邏輯 ---
+        const SocialHandler = {
+            parse(text) {
+                const cluster = document.getElementById('social-cluster');
+                cluster.innerHTML = '';
+                const platforms = [
+                    { key: 'FB', icon: 'facebook', url: u => `https://fb.com/${u.replace('@','')}` },
+                    { key: 'IG', icon: 'instagram', url: u => `https://instagram.com/${u.replace('@','')}` },
+                    { key: 'GitHub', icon: 'github', url: u => `https://github.com/${u}` },
+                    { key: 'LinkedIn', icon: 'linkedin', url: u => `https://linkedin.com/in/${u}` },
+                    { key: 'X', icon: 'twitter', url: u => `https://twitter.com/${u.replace('@','')}` },
+                    { key: 'YouTube', icon: 'youtube', url: u => `https://youtube.com/@${u.replace('@','')}` },
+                    { key: 'Discord', icon: 'hash', url: u => `https://discord.gg/${u}` }
+                ];
+                if(!text) return;
+                text.split('\n').forEach(line => {
+                    platforms.forEach(p => {
+                        const reg = new RegExp(`${p.key}:\\s*([\\w\\.-@\\/]+)`, 'i');
+                        const m = line.match(reg);
+                        if (m) {
+                            const node = document.createElement('a');
+                            node.href = p.url(m[1]);
+                            node.target = '_blank';
+                            node.className = "social-node w-12 h-12 flex items-center justify-center rounded-xl";
+                            node.innerHTML = `<i data-lucide="${p.icon}" class="w-5 h-5"></i>`;
+                            cluster.appendChild(node);
+                        }
+                    });
+                });
+                lucide.createIcons();
+            }
+        };
+
+        const MOCK_DATA = {
+            name_zh: "唐鳳", name_en: "Audrey Tang",
+            title_zh: "數位發展部 首任部長", title_en: "Founding Minister, MoDA",
+            email: "audrey@moda.gov.tw", phone: "+886 2 2380 0000",
+            web: "https://moda.gov.tw",
+            avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=600&q=80",
+            social: "FB: @audreyt\nIG: audreytang\nGitHub: audreyt\nLinkedIn: audreyt\nX: @audreyt",
+            greetings: {
+                zh: ["Hello, 數位連結未來", "引領臺灣數位轉型", "資料安全，數據自主"],
+                en: ["Connecting the Future", "Digital Democracy", "Secure Identity"]
+            }
+        };
+
+        async function initApp() {
+            initThree();
+            const p = new URLSearchParams(window.location.search);
+            const lang = p.get('lang') || 'zh';
+
+            setTimeout(() => {
+                renderUI(MOCK_DATA, lang);
+            }, 1800);
+        }
+
+        function renderUI(data, lang) {
+            const isEn = lang === 'en';
+            document.getElementById('user-name').innerText = isEn ? data.name_en : data.name_zh;
+            document.getElementById('user-title').innerText = isEn ? data.title_en : data.title_zh;
+            document.getElementById('user-avatar').src = data.avatar;
+            document.getElementById('user-email').innerText = data.email;
+            document.getElementById('email-link').href = `mailto:${data.email}`;
+            document.getElementById('user-phone').innerText = data.phone;
+            document.getElementById('phone-link').href = `tel:${data.phone.replace(/ /g,'')}`;
+            document.getElementById('user-web').innerText = data.web.replace('https://','');
+            document.getElementById('web-link').href = data.web;
+
+            document.getElementById('session-expiry').innerText = `SESSION VALID UNTIL: ${new Date(Date.now() + 3600000).toLocaleTimeString()}`;
+            document.getElementById('session-reads').innerText = `ATTEMPTS REMAINING: 5`;
+            SocialHandler.parse(data.social);
+
+            const loading = document.getElementById('loading');
+            loading.style.opacity = '0';
+            setTimeout(() => {
+                loading.style.display = 'none';
+                document.getElementById('main-container').classList.remove('hidden');
+                startTypewriter(isEn ? data.greetings.en : data.greetings.zh);
+            }, 1000);
+        }
+
+        function startTypewriter(phrases) {
+            const el = document.getElementById('typewriter');
+            let i=0, j=0, isDel=false;
+            const type = () => {
+                const curr = phrases[i];
+                el.textContent = isDel ? curr.substring(0, j--) : curr.substring(0, j++);
+                if(!isDel && j > curr.length) { isDel=true; setTimeout(type, 2000); }
+                else if(isDel && j === 0) { isDel=false; i=(i+1)%phrases.length; setTimeout(type, 500); }
+                else setTimeout(type, isDel ? 30 : 80);
+            };
+            type();
+        }
+
+        window.addEventListener('resize', handleResize);
+        document.getElementById('lang-switch').onclick = () => {
+            const p = new URLSearchParams(window.location.search);
+            p.set('lang', (p.get('lang') || 'zh') === 'zh' ? 'en' : 'zh');
+            window.location.search = p.toString();
+        };
+        document.getElementById('open-qr').onclick = () => document.getElementById('qr-modal').classList.remove('hidden');
+        document.getElementById('close-qr').onclick = () => document.getElementById('qr-modal').classList.add('hidden');
+
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>

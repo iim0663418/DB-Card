@@ -2,29 +2,208 @@
 
 import type { Env } from './types';
 import { handleHealth } from './handlers/health';
-import { errorResponse } from './utils/response';
+import { handleTap } from './handlers/tap';
+import { handleRead } from './handlers/read';
+import { handleCreateCard, handleUpdateCard, handleDeleteCard, handleListCards, handleGetCard } from './handlers/admin/cards';
+import { handleRevoke } from './handlers/admin/revoke';
+import { handleKekRotate } from './handlers/admin/kek';
+import { handleAdminLogin, handleAdminLogout } from './handlers/admin/auth';
+import { handleSecurityStats, handleSecurityEvents, handleSecurityTimeline, handleBlockIP, handleUnblockIP, handleIPDetail, handleSecurityExport } from './handlers/admin/security';
+import { errorResponse, publicErrorResponse } from './utils/response';
+import { checkRateLimit } from './middleware/rate-limit';
+
+/**
+ * Add security headers to HTML responses
+ * Includes CSP, X-Content-Type-Options, X-Frame-Options, etc.
+ */
+function addSecurityHeaders(response: Response): Response {
+  const headers = new Headers(response.headers);
+
+  // Content Security Policy
+  headers.set('Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' cdn.tailwindcss.com unpkg.com cdnjs.cloudflare.com cdn.jsdelivr.net; " +
+    "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.tailwindcss.com; " +
+    "font-src 'self' fonts.gstatic.com; " +
+    "img-src 'self' data: https:; " +
+    "connect-src 'self' cdn.jsdelivr.net https://api.db-card.moda.gov.tw"
+  );
+
+  // Additional security headers
+  headers.set('X-Content-Type-Options', 'nosniff');
+  headers.set('X-Frame-Options', 'DENY');
+  headers.set('X-XSS-Protection', '1; mode=block');
+  headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+}
+
+// CORS allowed origins whitelist (duplicated from response.ts for OPTIONS handling)
+const ALLOWED_ORIGINS = [
+  'http://localhost:8788',
+  'http://localhost:8787',
+  'https://db-card-staging.csw30454.workers.dev',
+  'https://db-card.moda.gov.tw'
+];
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
-    // CORS preflight
+    // CORS preflight with whitelist
     if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type'
-        }
-      });
+      const origin = request.headers.get('Origin');
+      const headers: HeadersInit = {};
+
+      if (origin && ALLOWED_ORIGINS.includes(origin)) {
+        headers['Access-Control-Allow-Origin'] = origin;
+        headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+        headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
+        headers['Access-Control-Allow-Credentials'] = 'true';
+      }
+
+      return new Response(null, { headers });
     }
 
     // Router
-    if (url.pathname === '/health') {
-      return handleHealth(env);
+
+    // Admin authentication endpoints
+    if (url.pathname === '/api/admin/login' && request.method === 'POST') {
+      return handleAdminLogin(request, env);
     }
 
-    // 404 for unknown routes
-    return errorResponse('not_found', 'Endpoint not found', 404);
+    if (url.pathname === '/api/admin/logout' && request.method === 'POST') {
+      return handleAdminLogout(request, env);
+    }
+
+    // Health check
+    if (url.pathname === '/health') {
+      return handleHealth(request, env);
+    }
+
+    if (url.pathname === '/api/nfc/tap' && request.method === 'POST') {
+      return handleTap(request, env);
+    }
+
+    if (url.pathname === '/api/read' && request.method === 'GET') {
+      return handleRead(request, env);
+    }
+
+    if (url.pathname === '/api/admin/cards' && request.method === 'POST') {
+      return handleCreateCard(request, env);
+    }
+
+    // GET /api/admin/cards - List all cards
+    if (url.pathname === '/api/admin/cards' && request.method === 'GET') {
+      return handleListCards(request, env);
+    }
+
+    // GET /api/admin/cards/:uuid - Get single card
+    const getCardMatch = url.pathname.match(/^\/api\/admin\/cards\/([a-f0-9-]{36})$/);
+    if (getCardMatch && request.method === 'GET') {
+      const uuid = getCardMatch[1];
+      return handleGetCard(request, env, uuid);
+    }
+
+    // PUT /api/admin/cards/:uuid - Update a card
+    const updateCardMatch = url.pathname.match(/^\/api\/admin\/cards\/([a-f0-9-]{36})$/);
+    if (updateCardMatch && request.method === 'PUT') {
+      const uuid = updateCardMatch[1];
+      return handleUpdateCard(request, env, uuid);
+    }
+
+    // DELETE /api/admin/cards/:uuid - Delete a card
+    const deleteCardMatch = url.pathname.match(/^\/api\/admin\/cards\/([a-f0-9-]{36})$/);
+    if (deleteCardMatch && request.method === 'DELETE') {
+      const uuid = deleteCardMatch[1];
+      return handleDeleteCard(request, env, uuid);
+    }
+
+    // POST /api/admin/revoke - Emergency revocation
+    if (url.pathname === '/api/admin/revoke' && request.method === 'POST') {
+      return handleRevoke(request, env);
+    }
+
+    // POST /api/admin/kek/rotate - KEK rotation
+    if (url.pathname === '/api/admin/kek/rotate' && request.method === 'POST') {
+      return handleKekRotate(request, env);
+    }
+
+    // GET /api/admin/security/stats - Security statistics
+    if (url.pathname === '/api/admin/security/stats' && request.method === 'GET') {
+      return handleSecurityStats(request, env);
+    }
+
+    // GET /api/admin/security/events - Security events list
+    if (url.pathname === '/api/admin/security/events' && request.method === 'GET') {
+      return handleSecurityEvents(request, env);
+    }
+
+    // GET /api/admin/security/timeline - Security timeline
+    if (url.pathname === '/api/admin/security/timeline' && request.method === 'GET') {
+      return handleSecurityTimeline(request, env);
+    }
+
+    // POST /api/admin/security/block - Block IP
+    if (url.pathname === '/api/admin/security/block' && request.method === 'POST') {
+      return handleBlockIP(request, env);
+    }
+
+    // DELETE /api/admin/security/block/:ip - Unblock IP
+    const unblockMatch = url.pathname.match(/^\/api\/admin\/security\/block\/(.+)$/);
+    if (unblockMatch && request.method === 'DELETE') {
+      const ip = decodeURIComponent(unblockMatch[1]);
+      return handleUnblockIP(request, env, ip);
+    }
+
+    // GET /api/admin/security/ip/:ip - IP detail analysis
+    const ipDetailMatch = url.pathname.match(/^\/api\/admin\/security\/ip\/(.+)$/);
+    if (ipDetailMatch && request.method === 'GET') {
+      const ip = decodeURIComponent(ipDetailMatch[1]);
+      return handleIPDetail(request, env, ip);
+    }
+
+    // GET /api/admin/security/export - Export security events as CSV
+    if (url.pathname === '/api/admin/security/export' && request.method === 'GET') {
+      return handleSecurityExport(request, env);
+    }
+
+    // Serve static assets (admin-dashboard.html, etc.)
+    // This handles requests for static files before falling through to 404
+    if (env.ASSETS) {
+      try {
+        const asset = await env.ASSETS.fetch(request);
+        if (asset.status !== 404) {
+          // Apply security headers to HTML responses
+          if (asset.headers.get('content-type')?.includes('text/html')) {
+            return addSecurityHeaders(asset);
+          }
+          return asset;
+        }
+      } catch (e) {
+        // If ASSETS fetch fails, continue to 404 handling
+        console.error('Failed to fetch asset:', e);
+      }
+    }
+
+    // 404 for unknown routes - use public error response to prevent information disclosure
+    // Check rate limit for 404 errors
+    const rateLimitResponse = await checkRateLimit(request, env, '404');
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+    
+    let response = await publicErrorResponse(404, request);
+
+    // Apply security headers to HTML responses
+    if (response.headers.get('content-type')?.includes('text/html')) {
+      response = await addSecurityHeaders(response);
+    }
+
+    return response;
   }
 };

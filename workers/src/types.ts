@@ -5,21 +5,27 @@ export interface Env {
   DB: D1Database;
   KV: KVNamespace;
   KEK: string;
+  OLD_KEK?: string;
   SETUP_TOKEN?: string;
   ENVIRONMENT: 'production' | 'staging';
+  ASSETS: Fetcher;
 }
 
+// Bilingual support types
+export type BilingualString = string | { zh: string; en: string };
+export type BilingualStringArray = string[] | { zh: string[]; en: string[] };
+
 export interface CardData {
-  name: string;
-  title: string;
-  department?: string;
-  organization?: string;
+  name: BilingualString;
+  title: BilingualString;
+  department?: BilingualString;
+  organization?: BilingualString;
   email: string;
   phone?: string;
   mobile?: string;
   avatar?: string;
-  address?: string;
-  greetings?: string[];
+  address?: BilingualString;
+  greetings?: BilingualStringArray;
   socialLinks?: {
     email?: string;
     socialNote?: string;
@@ -79,7 +85,7 @@ export const CARD_POLICIES: Record<CardType, CardPolicy> = {
 
 export interface AuditLog {
   id?: number;
-  event_type: 'tap' | 'read' | 'create' | 'update' | 'delete' | 'revoke';
+  event_type: 'tap' | 'read' | 'create' | 'card_create' | 'card_update' | 'card_delete' | 'update' | 'delete' | 'revoke' | 'admin_revoke' | 'emergency_revoke' | 'kek_rotation';
   card_uuid?: string;
   session_id?: string;
   user_agent?: string;

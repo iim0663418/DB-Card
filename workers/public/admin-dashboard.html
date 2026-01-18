@@ -1,0 +1,2301 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>moda Admin Dashboard | 統一管理主控台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Noto+Sans+TC:wght@300;500;700;900&display=swap');
+        
+        :root {
+            --moda-accent: #6868ac;
+            --moda-success: #10b981;
+            --moda-warning: #f59e0b;
+            --moda-danger: #ef4444;
+            --crystal-bg: rgba(255, 255, 255, 0.8);
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            margin: 0;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        #three-canvas {
+            position: fixed;
+            top: 0; left: 0; z-index: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            opacity: 0.2;
+        }
+
+        .glass-surface {
+            background: var(--crystal-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Tab 系統樣式 */
+        .tab-btn {
+            position: relative;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #64748b;
+            transition: all 0.3s ease;
+        }
+        .tab-btn.active {
+            color: var(--moda-accent);
+        }
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px; left: 0; right: 0;
+            height: 3px;
+            background: var(--moda-accent);
+            border-radius: 3px 3px 0 0;
+        }
+
+        /* 雙語輸入框 */
+        .bilingual-field {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            background: #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        .bilingual-field input, .bilingual-field textarea {
+            background: #fff;
+            padding: 12px 16px;
+            font-size: 14px;
+            border: none;
+            outline: none;
+        }
+        .bilingual-field input:focus, .bilingual-field textarea:focus {
+            background: #fdfdff;
+            box-shadow: inset 0 0 0 2px var(--moda-accent);
+            z-index: 10;
+        }
+
+        .lang-indicator {
+            font-size: 9px;
+            font-weight: 800;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .social-chip-prev {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f1f5f9;
+            color: var(--moda-accent);
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Badge 樣式 */
+        .badge {
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+        .badge-personal { background: #dbeafe; color: #1e40af; }
+        .badge-event { background: #fef3c7; color: #92400e; }
+        .badge-sensitive { background: #fee2e2; color: #991b1b; }
+        .badge-active { background: #d1fae5; color: #065f46; }
+        .badge-suspended { background: #fed7aa; color: #9a3412; }
+
+        /* 動畫 */
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="p-4 lg:p-8">
+
+    <canvas id="three-canvas"></canvas>
+
+    <div class="relative z-10 max-w-7xl mx-auto space-y-6">
+        
+        <!-- 頂部導航與驗證 -->
+        <header class="glass-surface p-6 rounded-3xl flex flex-col lg:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg">
+                    <i data-lucide="layout-dashboard" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-black tracking-tight">Admin Dashboard</h1>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ministry of Digital Affairs</p>
+                </div>
+            </div>
+
+            <!-- Setup Token 驗證區 (Don't Make Me Think: 驗證後隱藏或縮小) -->
+            <div id="token-section" class="flex items-center gap-3 bg-white/50 p-2 rounded-2xl border border-white">
+                <input type="password" id="setup-token" placeholder="輸入 SETUP_TOKEN" class="w-48 px-4 py-2 bg-transparent outline-none text-sm">
+                <button id="verify-btn" class="bg-slate-900 text-white px-6 py-2 rounded-xl text-xs font-bold hover:bg-black transition-all">驗證權限</button>
+                <div id="auth-status" class="hidden flex items-center gap-2 px-3 border-l border-slate-200">
+                    <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span class="text-[10px] font-black text-green-600">已授權</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tab 控制切換區 -->
+        <nav id="admin-nav" class="hidden glass-surface rounded-2xl px-2 flex border-b border-slate-100 overflow-x-auto no-scrollbar">
+            <button onclick="switchTab('list')" id="tab-list" class="tab-btn active flex items-center gap-2">
+                <i data-lucide="list" class="w-4 h-4"></i> 名片列表
+            </button>
+            <button onclick="switchTab('create')" id="tab-create" class="tab-btn flex items-center gap-2">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i> 創建名片
+            </button>
+            <button onclick="switchTab('security')" id="tab-security" class="tab-btn flex items-center gap-2">
+                <i data-lucide="shield-alert" class="w-4 h-4"></i> 安全監控
+            </button>
+            <button onclick="switchTab('tools')" id="tab-tools" class="tab-btn flex items-center gap-2">
+                <i data-lucide="settings" class="w-4 h-4"></i> 系統工具
+            </button>
+        </nav>
+
+        <!-- 主要內容容器 -->
+        <div id="content-area" class="hidden">
+            
+            <!-- Tab 1: 名片列表 -->
+            <section id="section-list" class="space-y-6 fade-in">
+                <div class="glass-surface p-6 rounded-3xl flex flex-wrap gap-4 items-center justify-between">
+                    <div class="relative flex-1 min-w-[300px]">
+                        <i data-lucide="search" class="absolute left-4 top-3.5 w-4 h-4 text-slate-400"></i>
+                        <input type="text" id="search-input" placeholder="搜尋姓名、Email..." class="w-full pl-12 pr-4 py-3 bg-white/50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm">
+                    </div>
+                    <div class="flex gap-2">
+                        <select id="filter-type" class="px-4 py-3 bg-white/50 border border-slate-200 rounded-xl text-xs font-bold outline-none">
+                            <option value="">所有類型</option>
+                            <option value="personal">個人</option>
+                            <option value="event_booth">活動</option>
+                            <option value="sensitive">敏感</option>
+                        </select>
+                        <button onclick="loadCards()" class="p-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50"><i data-lucide="refresh-cw" class="w-4 h-4 text-slate-600"></i></button>
+                    </div>
+                </div>
+
+                <div id="cards-grid" class="grid grid-cols-1 gap-4">
+                    <!-- 卡片列表由 JS 注入 -->
+                    <div class="text-center py-20 bg-white/40 rounded-3xl border border-dashed border-slate-200">
+                        <i data-lucide="inbox" class="w-12 h-12 text-slate-300 mx-auto mb-4"></i>
+                        <p class="text-slate-400 font-medium">尚無名片資料</p>
+                    </div>
+                </div>
+
+                <!-- 分頁區 -->
+                <div class="flex items-center justify-center gap-6 py-4">
+                    <button class="p-2 rounded-lg hover:bg-white transition-colors disabled:opacity-30"><i data-lucide="chevron-left"></i></button>
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Page 1 of 1</span>
+                    <button class="p-2 rounded-lg hover:bg-white transition-colors disabled:opacity-30"><i data-lucide="chevron-right"></i></button>
+                </div>
+            </section>
+
+            <!-- Tab 2: 創建名片 (完全對齊 nfc-generator) -->
+            <section id="section-create" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-8 fade-in">
+                <div class="lg:col-span-7 glass-surface p-8 rounded-3xl space-y-8">
+                    <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i> 基本身分資訊 (雙語必填)
+                    </h2>
+                    <form id="card-form" class="space-y-6">
+                        <!-- 基本資訊區 -->
+                        <div>
+                            <div class="lang-indicator"><span>中文姓名 / CHINESE</span><span>英文姓名 / ENGLISH</span></div>
+                            <div class="bilingual-field">
+                                <input type="text" id="name_zh" placeholder="如：王小明" required>
+                                <input type="text" id="name_en" placeholder="e.g. John Smith" required>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="lang-indicator"><span>中文職稱 / POSITION</span><span>英文職稱 / TITLE</span></div>
+                            <div class="bilingual-field">
+                                <input type="text" id="title_zh" placeholder="如：部長">
+                                <input type="text" id="title_en" placeholder="e.g. Minister">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">公務 Email</label>
+                                <input type="email" id="email" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm" placeholder="example@moda.gov.tw">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">所屬部門</label>
+                                <select id="department" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm appearance-none">
+                                    <option value="">請選擇部門</option>
+                                    <option value="數位策略司">數位策略司</option>
+                                    <option value="數位政府司">數位政府司</option>
+                                    <option value="資源管理司">資源管理司</option>
+                                    <option value="韌性建設司">韌性建設司</option>
+                                    <option value="數位國際司">數位國際司</option>
+                                    <option value="資料創新司">資料創新司</option>
+                                    <option value="秘書處">秘書處</option>
+                                    <option value="人事處">人事處</option>
+                                    <option value="政風處">政風處</option>
+                                    <option value="主計處">主計處</option>
+                                    <option value="資訊處">資訊處</option>
+                                    <option value="法制處">法制處</option>
+                                    <option value="部長室">部長室</option>
+                                    <option value="政務次長室">政務次長室</option>
+                                    <option value="常務次長室">常務次長室</option>
+                                    <option value="主任秘書室">主任秘書室</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 聯絡資訊區 -->
+                        <div class="mb-4">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">
+                                公務電話 Office Phone
+                            </label>
+                            <input type="text" id="phone"
+                                   class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm"
+                                   placeholder="(02) 2700-0000 #1234">
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">
+                                地址 Address
+                            </label>
+
+                            <select id="address-preset" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm mb-2">
+                                <option value="">-- 選擇預設地址或自訂 --</option>
+                                <option value="yanping">延平大樓（數位發展部）</option>
+                                <option value="shinkong">新光大樓（數位發展部）</option>
+                                <option value="custom">自訂地址</option>
+                            </select>
+
+                            <div id="custom-address-fields" class="hidden space-y-2">
+                                <input type="text" id="address_zh"
+                                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm"
+                                       placeholder="中文地址（例：10058 台北市中正區延平南路143號）">
+                                <input type="text" id="address_en"
+                                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm"
+                                       placeholder="English Address (e.g., No. 143, Yanping S. Rd., Taipei 10058)">
+                            </div>
+                        </div>
+
+                        <!-- 進階資訊（折疊） -->
+                        <details class="group border-t border-slate-100 pt-4">
+                            <summary class="list-none cursor-pointer flex items-center justify-between text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors">
+                                <span>+ 進階與社群資訊 (手機、頭像、問候語、社群)</span>
+                                <i data-lucide="chevron-down" class="w-4 h-4 group-open:rotate-180 transition-transform"></i>
+                            </summary>
+                            <div class="pt-6 space-y-6">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">手機號碼</label>
+                                        <input type="text" id="mobile" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="0912-345-678">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">大頭貼 URL</label>
+                                        <input type="url" id="avatar_url" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="https://...">
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="lang-indicator"><span>中文問候語 (每行一句)</span><span>ENGLISH GREETINGS</span></div>
+                                    <div class="bilingual-field">
+                                        <textarea id="greetings_zh" class="h-24" placeholder="Hello, 數位連結未來"></textarea>
+                                        <textarea id="greetings_en" class="h-24" placeholder="Nice to meet you!"></textarea>
+                                    </div>
+                                </div>
+                                
+                                <!-- 社群連結 - 獨立輸入框 -->
+                                <div class="space-y-3">
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase mb-2 block">社群連結 (Social Links)</label>
+                                    
+                                    <div class="grid grid-cols-1 gap-3">
+                                        <!-- GitHub -->
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <i data-lucide="github" class="w-4 h-4 text-slate-600"></i>
+                                            </div>
+                                            <input type="url" id="social_github" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs" placeholder="https://github.com/username">
+                                        </div>
+                                        
+                                        <!-- LinkedIn -->
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <i data-lucide="linkedin" class="w-4 h-4 text-slate-600"></i>
+                                            </div>
+                                            <input type="url" id="social_linkedin" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs" placeholder="https://linkedin.com/in/username">
+                                        </div>
+                                        
+                                        <!-- Facebook -->
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <i data-lucide="facebook" class="w-4 h-4 text-slate-600"></i>
+                                            </div>
+                                            <input type="url" id="social_facebook" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs" placeholder="https://facebook.com/username">
+                                        </div>
+                                        
+                                        <!-- Instagram -->
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <i data-lucide="instagram" class="w-4 h-4 text-slate-600"></i>
+                                            </div>
+                                            <input type="url" id="social_instagram" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs" placeholder="https://instagram.com/username">
+                                        </div>
+                                        
+                                        <!-- X/Twitter -->
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <i data-lucide="twitter" class="w-4 h-4 text-slate-600"></i>
+                                            </div>
+                                            <input type="url" id="social_twitter" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs" placeholder="https://x.com/username">
+                                        </div>
+                                        
+                                        <!-- YouTube -->
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <i data-lucide="youtube" class="w-4 h-4 text-slate-600"></i>
+                                            </div>
+                                            <input type="url" id="social_youtube" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs" placeholder="https://youtube.com/@channel">
+                                        </div>
+                                    </div>
+                                    
+                                    <p class="text-[9px] text-slate-400 italic">直接貼上完整連結，留空表示不顯示該平台</p>
+                                </div>
+                            </div>
+                        </details>
+
+                        <!-- 名片設定 -->
+                        <div class="pt-6 space-y-4">
+                            <select id="card_type" class="w-full px-4 py-3 bg-slate-100 border-none rounded-xl text-sm font-bold">
+                                <option value="personal">標準個人名片 (20 次讀取)</option>
+                                <option value="event">活動專用名片 (50 次讀取)</option>
+                                <option value="sensitive">敏感資料保護 (5 次讀取)</option>
+                            </select>
+                            <div class="flex flex-col md:flex-row gap-4">
+                                <button id="cancel-edit-btn" type="button" onclick="cancelEdit()" class="hidden md:flex-1 bg-slate-100 text-slate-600 px-8 py-4 rounded-xl font-bold hover:bg-slate-200 transition-all flex items-center justify-center gap-3">
+                                    <i data-lucide="x" class="w-5 h-5"></i>
+                                    取消編輯
+                                </button>
+                                <button type="submit" class="md:flex-1 bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-indigo-700 shadow-lg transition-all flex items-center justify-center gap-3">
+                                    <i data-lucide="zap" class="w-5 h-5"></i>
+                                    簽發數位名片
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- 預覽區 -->
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="glass-surface p-6 rounded-3xl sticky top-8">
+                        <div class="flex justify-between items-center mb-6">
+                            <span class="text-[10px] font-black tracking-widest text-slate-400">REAL-TIME CONTEXT</span>
+                            <div id="preview-lang-switch" class="flex bg-slate-100 p-1 rounded-lg">
+                                <button data-lang="zh" class="px-4 py-1 text-[10px] font-bold rounded-md bg-white shadow-sm transition-all">中</button>
+                                <button data-lang="en" class="px-4 py-1 text-[10px] font-bold rounded-md text-slate-500 hover:text-slate-900 transition-all">EN</button>
+                            </div>
+                        </div>
+
+                        <div class="transform scale-85 origin-top">
+                            <div id="preview-card" class="bg-white rounded-[2.5rem] shadow-2xl border-t-[6px] border-indigo-600 overflow-hidden text-center p-8 space-y-6">
+                                <div class="relative inline-block">
+                                    <img id="prev-avatar" src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80" class="w-28 h-28 rounded-[2rem] object-cover shadow-lg border-2 border-slate-50">
+                                </div>
+                                <div>
+                                    <h3 id="prev-name" class="text-3xl font-black text-slate-900 italic">王小明</h3>
+                                    <p id="prev-title" class="text-indigo-600 font-bold text-[10px] uppercase tracking-[0.2em] mt-2">部長</p>
+                                </div>
+
+                                <!-- 社群圖標預覽區 -->
+                                <div id="prev-social-cluster" class="flex justify-center gap-2 flex-wrap min-h-[32px]">
+                                    <!-- 動態生成 -->
+                                </div>
+
+                                <div id="prev-greeting-section" class="mt-8 pt-8 border-t border-indigo-50 hidden">
+                                    <p class="hud-text mb-4 opacity-40 text-[8px] font-black tracking-widest text-slate-400 uppercase">Dynamic Transmission Feed</p>
+                                    <p id="prev-greeting" class="text-slate-600 font-medium italic min-h-[1.5em] text-[10px]"></p>
+                                </div>
+                                <div class="bg-slate-50 p-4 rounded-2xl flex items-center gap-4 text-left mt-2">
+                                    <i data-lucide="mail" class="w-4 h-4 text-indigo-400"></i>
+                                    <span id="prev-email" class="text-[10px] font-bold text-slate-600 truncate">---</span>
+                                </div>
+                                <div class="bg-slate-50 p-4 rounded-2xl flex items-center gap-4 text-left mt-2">
+                                    <i data-lucide="phone" class="w-4 h-4 text-indigo-400"></i>
+                                    <span id="prev-phone" class="text-[10px] font-bold text-slate-600 truncate">---</span>
+                                </div>
+                                <div class="bg-slate-50 p-4 rounded-2xl flex items-center gap-4 text-left mt-2">
+                                    <i data-lucide="map-pin" class="w-4 h-4 text-indigo-400"></i>
+                                    <span id="prev-address" class="text-[10px] font-bold text-slate-600 truncate">---</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab 2.5: 安全監控 -->
+            <section id="section-security" class="hidden space-y-6 fade-in">
+
+                <!-- 統計卡片 -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="glass-surface p-6 rounded-2xl">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Total Events</p>
+                        <p id="stat-total" class="text-3xl font-black text-slate-900">---</p>
+                    </div>
+                    <div class="glass-surface p-6 rounded-2xl">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Blocked Attempts</p>
+                        <p id="stat-blocked" class="text-3xl font-black text-red-600">---</p>
+                    </div>
+                    <div class="glass-surface p-6 rounded-2xl">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Suspicious IPs</p>
+                        <p id="stat-suspicious" class="text-3xl font-black text-amber-600">---</p>
+                    </div>
+                    <div class="glass-surface p-6 rounded-2xl">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Rate Limit Hits</p>
+                        <p id="stat-ratelimit" class="text-3xl font-black text-indigo-600">---</p>
+                    </div>
+                </div>
+
+                <!-- Top IPs & 時間軸圖表 -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="glass-surface p-6 rounded-2xl">
+                        <h3 class="text-sm font-bold uppercase tracking-widest text-slate-400 mb-4">Top 5 IPs</h3>
+                        <div id="top-ips-list" class="space-y-2">
+                            <p class="text-xs text-slate-400">Loading...</p>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2 glass-surface p-6 rounded-2xl">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-400">Timeline</h3>
+                            <select id="timeline-range" class="px-3 py-1 bg-slate-100 border-none rounded-lg text-xs font-bold">
+                                <option value="24">24h</option>
+                                <option value="48">48h</option>
+                                <option value="168">7d</option>
+                            </select>
+                        </div>
+                        <canvas id="timeline-chart" class="w-full" style="max-height: 200px;"></canvas>
+                    </div>
+                </div>
+
+                <!-- IP 封鎖表單 -->
+                <div class="glass-surface p-6 rounded-2xl">
+                    <h3 class="text-sm font-bold uppercase tracking-widest text-slate-400 mb-4">Block IP Address</h3>
+                    <form id="block-ip-form" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <input type="text" id="block-ip" placeholder="192.168.1.1" class="px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm" required>
+                        <select id="block-duration" class="px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm">
+                            <option value="3600">1 Hour</option>
+                            <option value="86400">24 Hours</option>
+                            <option value="604800">7 Days</option>
+                            <option value="0">Permanent</option>
+                        </select>
+                        <input type="text" id="block-reason" placeholder="Reason (optional)" class="px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm">
+                        <button type="submit" class="bg-red-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-700 transition-all">Block IP</button>
+                    </form>
+                </div>
+
+                <!-- 事件列表 -->
+                <div class="glass-surface p-6 rounded-2xl">
+                    <div class="flex flex-wrap gap-4 items-center justify-between mb-6">
+                        <h3 class="text-sm font-bold uppercase tracking-widest text-slate-400">Security Events</h3>
+                        <div class="flex gap-2">
+                            <select id="event-type-filter" class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold">
+                                <option value="">All Types</option>
+                                <option value="rate_limit">Rate Limit</option>
+                                <option value="suspicious_activity">Suspicious</option>
+                                <option value="blocked_ip">Blocked IP</option>
+                            </select>
+                            <button onclick="exportSecurityEvents()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700">Export CSV</button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                <tr>
+                                    <th class="px-4 py-3 text-left">ID</th>
+                                    <th class="px-4 py-3 text-left">Type</th>
+                                    <th class="px-4 py-3 text-left">IP Address</th>
+                                    <th class="px-4 py-3 text-left">Endpoint</th>
+                                    <th class="px-4 py-3 text-left">User Agent</th>
+                                    <th class="px-4 py-3 text-left">Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="events-table-body" class="divide-y divide-slate-100">
+                                <tr>
+                                    <td colspan="6" class="px-4 py-8 text-center text-slate-400">Loading events...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="flex items-center justify-between mt-6 pt-6 border-t border-slate-100">
+                        <button id="events-prev-btn" onclick="loadSecurityEvents(currentEventPage - 1)" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-200 disabled:opacity-30" disabled>Previous</button>
+                        <span id="events-page-info" class="text-xs font-bold text-slate-500">Page 1</span>
+                        <button id="events-next-btn" onclick="loadSecurityEvents(currentEventPage + 1)" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-200 disabled:opacity-30" disabled>Next</button>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- Tab 3: 系統工具 -->
+            <section id="section-tools" class="hidden space-y-6 fade-in">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="glass-surface p-8 rounded-3xl space-y-4">
+                        <h2 class="text-lg font-black text-slate-900 flex items-center gap-3">
+                            <i data-lucide="zap-off" class="text-amber-500"></i> 緊急撤銷
+                        </h2>
+                        <p class="text-sm text-slate-500 leading-relaxed">撤銷目前所有活躍中的 Session。這將迫使所有使用者重新進行 NFC 碰卡驗證。僅在發生安全性疑慮時執行。</p>
+                        <button onclick="confirmAction('revoke_all')" class="w-full py-4 bg-amber-100 text-amber-700 rounded-xl font-bold hover:bg-amber-200 transition-all">執行全局撤銷</button>
+                    </div>
+
+                    <div class="glass-surface p-8 rounded-3xl space-y-4">
+                        <h2 class="text-lg font-black text-slate-900 flex items-center gap-3">
+                            <i data-lucide="shield-alert" class="text-red-500"></i> KEK 密鑰輪替
+                        </h2>
+                        <p class="text-sm text-slate-500 leading-relaxed">輪替系統主密鑰 (Key Encryption Key)。執行此操作後，舊有的加密資料將進行重新封裝。建議每季執行一次。</p>
+                        <button onclick="confirmAction('kek_rotate')" class="w-full py-4 bg-red-100 text-red-700 rounded-xl font-bold hover:bg-red-200 transition-all">啟動 KEK 輪替</button>
+                    </div>
+
+                    <div class="md:col-span-2 glass-surface p-8 rounded-3xl">
+                        <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400 mb-6">System Health Status</h2>
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div class="p-4 bg-white rounded-2xl border border-slate-100">
+                                <p class="text-[10px] text-slate-400 mb-1">API Node</p>
+                                <p id="health-api" class="font-bold text-green-600">Operational</p>
+                            </div>
+                            <div class="p-4 bg-white rounded-2xl border border-slate-100">
+                                <p class="text-[10px] text-slate-400 mb-1">Database</p>
+                                <p id="health-database" class="font-bold text-green-600">Connected</p>
+                            </div>
+                            <div class="p-4 bg-white rounded-2xl border border-slate-100">
+                                <p class="text-[10px] text-slate-400 mb-1">KEK Version</p>
+                                <p id="health-kek-version" class="font-bold text-indigo-600">Loading...</p>
+                            </div>
+                            <div class="p-4 bg-white rounded-2xl border border-slate-100">
+                                <p class="text-[10px] text-slate-400 mb-1">Active Cards</p>
+                                <p id="health-active-cards" class="font-bold text-slate-900">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+    </div>
+
+    <!-- 戰略性摩擦：確認 Modal (Good Friction) -->
+    <div id="confirm-modal" class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md hidden flex items-center justify-center p-6">
+        <div class="glass-surface max-w-md w-full p-8 rounded-3xl space-y-6">
+            <div class="text-center">
+                <div id="modal-icon-container" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-100 text-red-600">
+                    <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+                </div>
+                <h2 id="modal-title" class="text-xl font-black text-slate-900">確定執行此操作？</h2>
+                <p id="modal-desc" class="text-sm text-slate-500 mt-2">此操作具有高度破壞性，且無法輕易復原。</p>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="closeModal()" class="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200">取消</button>
+                <button id="modal-confirm-btn" class="flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 shadow-lg">確認執行</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- IP 詳情 Modal -->
+    <div id="ip-detail-modal" class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md hidden flex items-center justify-center p-6">
+        <div class="glass-surface max-w-2xl w-full p-8 rounded-3xl space-y-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-black text-slate-900">IP Details</h2>
+                <button onclick="closeIPDetailModal()" class="p-2 hover:bg-slate-100 rounded-lg"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div class="bg-slate-50 p-4 rounded-2xl">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">IP Address</p>
+                    <p id="ip-detail-address" class="font-black text-lg text-slate-900">---</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-50 p-4 rounded-2xl">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Status</p>
+                        <p id="ip-detail-status" class="font-bold text-sm">---</p>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-2xl">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Total Events</p>
+                        <p id="ip-detail-total" class="font-bold text-sm">---</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-50 p-4 rounded-2xl">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">First Seen</p>
+                        <p id="ip-detail-first" class="font-bold text-xs text-slate-600">---</p>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-2xl">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Last Seen</p>
+                        <p id="ip-detail-last" class="font-bold text-xs text-slate-600">---</p>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase mb-3">Event Type Distribution</p>
+                    <canvas id="ip-detail-chart" style="max-height: 200px;"></canvas>
+                </div>
+                <div id="ip-detail-unblock-section" class="hidden">
+                    <button onclick="handleUnblockIP()" class="w-full py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700">Unblock IP</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import validation utilities
+        import { validateURL, sanitizeText, validateEmail, validatePhone, validateSocialURL, SOCIAL_PLATFORMS } from './js/validation.js';
+        
+        // --- 1. API Configuration ---
+        const API_BASE = window.location.hostname === 'localhost'
+            ? '' // Use same origin for local development
+            : ''; // Use same origin for staging/production
+
+        // --- 2. Three.js 背景 ---
+        let scene, camera, renderer, mesh;
+        function initThree() {
+            const canvas = document.getElementById('three-canvas');
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            const starGeo = new THREE.BufferGeometry();
+            const count = 1000;
+            const pos = new Float32Array(count * 3);
+            for(let i=0; i<count*3; i++) pos[i] = (Math.random() - 0.5) * 40;
+            starGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            mesh = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.05, color: 0x6868ac, transparent: true, opacity: 0.3 }));
+            scene.add(mesh);
+            camera.position.z = 10;
+            function animate() { requestAnimationFrame(animate); mesh.rotation.y += 0.0003; renderer.render(scene, camera); }
+            animate();
+        }
+
+        // --- 3. 應用程式狀態 ---
+        let isVerified = false;
+        let activeTab = 'list';
+        let previewLang = 'zh';
+
+        // 安全監控狀態
+        let currentEventPage = 1;
+        let currentEventType = '';
+        let timelineChart = null;
+        let ipDetailChart = null;
+        let securityStatsInterval = null;
+        let currentIPAddress = null;
+
+        // 地址預設選項
+        const ADDRESS_PRESETS = {
+            yanping: {
+                zh: '10058 台北市中正區延平南路143號',
+                en: 'No. 143, Yanping S. Rd., Zhongzheng Dist., Taipei City 10058, Taiwan (R.O.C.)'
+            },
+            shinkong: {
+                zh: '臺北市中正區忠孝西路一段66號（17、19樓）',
+                en: '66 Zhongxiao W. Rd. Sec. 1, Zhongzheng Dist., Taipei City, Taiwan (17F, 19F)'
+            }
+        };
+
+        // 社群解析器
+        const SocialParser = {
+            // 從獨立輸入框收集社群連結
+            collectFromInputs() {
+                const platforms = [
+                    { id: 'social_github', icon: 'github' },
+                    { id: 'social_linkedin', icon: 'linkedin' },
+                    { id: 'social_facebook', icon: 'facebook' },
+                    { id: 'social_instagram', icon: 'instagram' },
+                    { id: 'social_twitter', icon: 'twitter' },
+                    { id: 'social_youtube', icon: 'youtube' }
+                ];
+                
+                const results = [];
+                const links = [];
+                
+                for (const platform of platforms) {
+                    const input = document.getElementById(platform.id);
+                    if (input && input.value.trim()) {
+                        results.push(platform.icon);
+                        links.push(input.value.trim());
+                    }
+                }
+                
+                return { icons: results, text: links.join('\n') };
+            },
+            
+            // 向後相容：從文字解析（用於預覽）
+            parse(text) {
+                if (!text) return [];
+                
+                const platforms = [
+                    { patterns: ['github.com'], icon: 'github' },
+                    { patterns: ['linkedin.com'], icon: 'linkedin' },
+                    { patterns: ['facebook.com', 'fb.com'], icon: 'facebook' },
+                    { patterns: ['instagram.com'], icon: 'instagram' },
+                    { patterns: ['twitter.com', 'x.com'], icon: 'twitter' },
+                    { patterns: ['youtube.com', 'youtu.be'], icon: 'youtube' }
+                ];
+                
+                const results = [];
+                const lines = text.split('\n').filter(line => line.trim());
+                
+                for (const line of lines) {
+                    for (const platform of platforms) {
+                        const matched = platform.patterns.some(pattern => 
+                            line.toLowerCase().includes(pattern)
+                        );
+                        
+                        if (matched && !results.includes(platform.icon)) {
+                            results.push(platform.icon);
+                            break;
+                        }
+                    }
+                }
+                
+                return results;
+            }
+        };
+
+        // 地址資料取得函數
+        function getAddressData() {
+            const preset = document.getElementById('address-preset').value;
+
+            if (preset && preset !== 'custom') {
+                return ADDRESS_PRESETS[preset];
+            } else if (preset === 'custom') {
+                const zh = document.getElementById('address_zh').value.trim();
+                const en = document.getElementById('address_en').value.trim();
+                if (zh || en) {
+                    return { zh: zh || '', en: en || '' };
+                }
+            }
+            return null;
+        }
+
+        // --- 4. Notification System ---
+        function showNotification(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-6 right-6 px-6 py-4 rounded-2xl shadow-2xl z-[200] font-bold text-sm transition-all ${
+                type === 'success' ? 'bg-green-500 text-white' :
+                type === 'error' ? 'bg-red-500 text-white' :
+                'bg-amber-500 text-white'
+            }`;
+            toast.textContent = message;
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(20px)';
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateY(0)';
+            }, 10);
+
+            const duration = type === 'error' ? 5000 : 2000;
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(20px)';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        // --- 5. Token Verification (Phase 2: using login API with HttpOnly Cookie) ---
+        async function verifyToken() {
+            const token = document.getElementById('setup-token').value;
+
+            if (!token) {
+                showNotification('請輸入 SETUP_TOKEN', 'error');
+                return;
+            }
+
+            try {
+                // Call login API to set HttpOnly cookie
+                const response = await fetch(`${API_BASE}/api/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include', // Important: allows cookie
+                    body: JSON.stringify({ token })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error?.message || '驗證失敗');
+                }
+
+                // Session token is now stored in HttpOnly cookie
+                // Also keep in sessionStorage for backward compatibility
+                sessionStorage.setItem('setup_token', token);
+                isVerified = true;
+
+                // 更新 UI
+                document.getElementById('token-section').classList.add('hidden');
+                document.getElementById('auth-status').classList.remove('hidden');
+                document.getElementById('admin-nav').classList.remove('hidden');
+                document.getElementById('content-area').classList.remove('hidden');
+
+                showNotification('授權驗證成功', 'success');
+
+                // Load system health status
+                await loadSystemHealth();
+
+                switchTab('list');
+
+            } catch (error) {
+                console.error('Token verification error:', error);
+                showNotification('驗證失敗: ' + error.message, 'error');
+            }
+        }
+
+        // Load system health status
+        async function loadSystemHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+
+                if (!response.ok) {
+                    throw new Error('Health check failed');
+                }
+
+                const result = await response.json();
+                const health = result.data;
+
+                // Update API status
+                const apiEl = document.getElementById('health-api');
+                if (apiEl) {
+                    apiEl.textContent = health.status === 'ok' ? 'Operational' : 'Degraded';
+                    apiEl.className = health.status === 'ok' ? 'font-bold text-green-600' : 'font-bold text-red-600';
+                }
+
+                // Update Database status
+                const dbEl = document.getElementById('health-database');
+                if (dbEl) {
+                    dbEl.textContent = health.database === 'connected' ? 'Connected' : 'Disconnected';
+                    dbEl.className = health.database === 'connected' ? 'font-bold text-green-600' : 'font-bold text-red-600';
+                }
+
+                // Update KEK Version
+                const kekEl = document.getElementById('health-kek-version');
+                if (kekEl) {
+                    const version = health.kek_version;
+                    kekEl.textContent = version !== 'N/A' && typeof version === 'number' ? `v${version}` : 'N/A';
+                }
+
+                // Update Active Cards
+                const cardsEl = document.getElementById('health-active-cards');
+                if (cardsEl) {
+                    const count = health.active_cards;
+                    cardsEl.textContent = count !== 'N/A' && typeof count === 'number' ? count.toLocaleString() : 'N/A';
+                }
+
+            } catch (error) {
+                console.error('Failed to load system health:', error);
+
+                // Show N/A on error
+                const kekEl = document.getElementById('health-kek-version');
+                const cardsEl = document.getElementById('health-active-cards');
+
+                if (kekEl) kekEl.textContent = 'N/A';
+                if (cardsEl) cardsEl.textContent = 'N/A';
+            }
+        }
+
+        // --- 6. UI Logic ---
+        function switchTab(tabId) {
+            if(!isVerified) return;
+            activeTab = tabId;
+            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`section-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+
+            if(tabId === 'list') loadCards();
+            if(tabId === 'security') initSecurityDashboard();
+            if(tabId === 'tools') loadSystemHealth();
+            
+            // 切換到創建 Tab 時，如果不是編輯模式，清空表單
+            if(tabId === 'create' && !window.editingCardUuid) {
+                cancelEdit();
+            }
+        }
+
+        // Show loading state
+        function showLoadingState() {
+            const grid = document.getElementById('cards-grid');
+            grid.innerHTML = `
+                <div class="col-span-full text-center py-12">
+                    <i data-lucide="loader-2" class="w-12 h-12 text-slate-300 mx-auto mb-4 animate-spin"></i>
+                    <p class="text-slate-400">載入中...</p>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        // Show empty state
+        function showEmptyState() {
+            const grid = document.getElementById('cards-grid');
+            grid.innerHTML = `
+                <div class="col-span-full text-center py-12">
+                    <i data-lucide="inbox" class="w-12 h-12 text-slate-300 mx-auto mb-4"></i>
+                    <p class="text-slate-400">尚無名片</p>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        // Render cards list (Phase 2: XSS防護 - 使用 DOM API 而非 innerHTML)
+        function renderCardsList(cards) {
+            const grid = document.getElementById('cards-grid');
+
+            if (!cards || cards.length === 0) {
+                showEmptyState();
+                return;
+            }
+
+            // 清空列表
+            grid.innerHTML = '';
+
+            // 使用 DOM API 安全渲染每張卡片
+            cards.forEach(c => {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'glass-surface p-6 rounded-2xl flex flex-col lg:flex-row justify-between items-center gap-6 group hover:border-indigo-200 transition-all';
+
+                // 左側：資訊區
+                const infoSection = document.createElement('div');
+                infoSection.className = 'flex items-center gap-6 w-full lg:w-auto';
+
+                // 圖標
+                const iconDiv = document.createElement('div');
+                iconDiv.className = 'w-14 h-14 bg-slate-50 rounded-xl flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all';
+                iconDiv.innerHTML = '<i data-lucide="user" class="w-6 h-6"></i>';
+                infoSection.appendChild(iconDiv);
+
+                // 文字資訊
+                const textDiv = document.createElement('div');
+
+                // 名稱與標籤行
+                const nameRow = document.createElement('div');
+                nameRow.className = 'flex items-center gap-3 mb-1';
+
+                const nameH3 = document.createElement('h3');
+                nameH3.className = 'font-black text-slate-800';
+                nameH3.textContent = `${c.data.name.zh} `;
+
+                const nameEnSpan = document.createElement('span');
+                nameEnSpan.className = 'text-xs font-medium text-slate-400 ml-1';
+                nameEnSpan.textContent = c.data.name.en;
+                nameH3.appendChild(nameEnSpan);
+
+                const typeBadge = document.createElement('span');
+                typeBadge.className = `badge badge-${c.card_type}`;
+                typeBadge.textContent = c.card_type;
+
+                const statusBadge = document.createElement('span');
+                statusBadge.className = `badge badge-${c.status}`;
+                statusBadge.textContent = c.status;
+
+                nameRow.appendChild(nameH3);
+                nameRow.appendChild(typeBadge);
+                nameRow.appendChild(statusBadge);
+                textDiv.appendChild(nameRow);
+
+                // 職稱與 Email
+                const titleP = document.createElement('p');
+                titleP.className = 'text-xs text-slate-500 font-bold uppercase tracking-tight';
+                titleP.textContent = `${c.data.title?.zh || ''} • ${c.data.email}`;
+                textDiv.appendChild(titleP);
+
+                // UUID
+                const uuidP = document.createElement('p');
+                uuidP.className = 'text-[10px] font-mono text-slate-400 mt-2';
+                uuidP.textContent = `UUID: ${c.uuid}`;
+                textDiv.appendChild(uuidP);
+
+                infoSection.appendChild(textDiv);
+                cardDiv.appendChild(infoSection);
+
+                // 右側：操作按鈕
+                const actionDiv = document.createElement('div');
+                actionDiv.className = 'flex gap-2 w-full lg:w-auto border-t lg:border-none pt-4 lg:pt-0';
+
+                const viewBtn = createActionButton('查看', 'bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white', () => viewCard(c.uuid));
+                const editBtn = createActionButton('編輯', 'bg-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white', () => editCard(c.uuid));
+                const revokeBtn = createActionButton('撤銷', 'bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white', () => confirmAction('revoke', c.uuid));
+                const deleteBtn = createActionButton('刪除', 'bg-red-50 text-red-600 hover:bg-red-500 hover:text-white', () => confirmAction('delete', c.uuid));
+
+                actionDiv.appendChild(viewBtn);
+                actionDiv.appendChild(editBtn);
+                actionDiv.appendChild(revokeBtn);
+                actionDiv.appendChild(deleteBtn);
+
+                cardDiv.appendChild(actionDiv);
+                grid.appendChild(cardDiv);
+            });
+
+            lucide.createIcons();
+        }
+
+        // Helper: 創建安全的操作按鈕
+        function createActionButton(text, className, onClick) {
+            const btn = document.createElement('button');
+            btn.className = `flex-1 lg:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all ${className}`;
+            btn.textContent = text;
+            btn.onclick = onClick;
+            return btn;
+        }
+
+        // Store all cards for search filtering
+        let allCards = [];
+
+        // Load cards from API (Phase 2: with credentials)
+        async function loadCards() {
+            const token = sessionStorage.getItem('setup_token');
+
+            showLoadingState();
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/cards`, {
+                    credentials: 'include', // Cookie auto-attached
+                    headers: { 'Authorization': `Bearer ${token}` } // Fallback
+                });
+
+                if (!response.ok) {
+                    await handleApiError(response, '載入失敗');
+                    showEmptyState();
+                    return;
+                }
+
+                const result = await response.json();
+                allCards = result.data.cards; // Store for search
+
+                renderCardsList(allCards);
+
+            } catch (error) {
+                console.error('Load cards error:', error);
+                showNotification('載入名片失敗: ' + error.message, 'error');
+                showEmptyState();
+            }
+        }
+
+        // Search cards
+        function searchCards(query) {
+            if (!query || query.trim() === '') {
+                renderCardsList(allCards);
+                return;
+            }
+
+            const lowerQuery = query.toLowerCase();
+            const filtered = allCards.filter(card => {
+                const nameZh = card.data.name?.zh?.toLowerCase() || '';
+                const nameEn = card.data.name?.en?.toLowerCase() || '';
+                const email = card.data.email?.toLowerCase() || '';
+                const titleZh = card.data.title?.zh?.toLowerCase() || '';
+                const titleEn = card.data.title?.en?.toLowerCase() || '';
+                const phone = card.data.phone || '';
+                const mobile = card.data.mobile || '';
+
+                return nameZh.includes(lowerQuery) ||
+                       nameEn.includes(lowerQuery) ||
+                       email.includes(lowerQuery) ||
+                       titleZh.includes(lowerQuery) ||
+                       titleEn.includes(lowerQuery) ||
+                       phone.includes(lowerQuery) ||
+                       mobile.includes(lowerQuery);
+            });
+
+            renderCardsList(filtered);
+        }
+
+        // Handle API errors (Phase 2: unified error handling with auto logout)
+        async function handleApiError(response, defaultMessage = '操作失敗') {
+            if (response.status === 401 || response.status === 403) {
+                showNotification('授權已過期，請重新登入', 'error');
+
+                // Clear verification state
+                isVerified = false;
+                sessionStorage.removeItem('setup_token');
+
+                // Call logout API to clear cookie
+                try {
+                    await fetch(`${API_BASE}/api/admin/logout`, {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                } catch (e) {
+                    console.error('Logout error:', e);
+                }
+
+                // Show login section
+                document.getElementById('token-section').classList.remove('hidden');
+                document.getElementById('auth-status').classList.add('hidden');
+                document.getElementById('admin-nav').classList.add('hidden');
+                document.getElementById('content-area').classList.add('hidden');
+
+                return true; // Handled
+            } else if (response.status === 404) {
+                showNotification('資源不存在或已刪除', 'error');
+                return true; // Handled
+            } else {
+                showNotification(defaultMessage, 'error');
+                return true; // Handled
+            }
+        }
+
+        // --- 7. View Card with Session (Phase 2: with credentials) ---
+        async function viewCard(uuid) {
+            try {
+                // 先 tap 獲取 session
+                const response = await fetch(`${API_BASE}/api/nfc/tap`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ card_uuid: uuid })
+                });
+
+                if (!response.ok) {
+                    throw new Error('無法獲取查看授權');
+                }
+
+                const result = await response.json();
+                const sessionId = result.data.session_id;
+
+                // 打開名片頁面（帶 session）
+                window.open(`./card-display?uuid=${uuid}&session=${sessionId}`, '_blank');
+
+            } catch (error) {
+                showNotification('查看失敗: ' + error.message, 'error');
+            }
+        }
+
+        // --- 8. API Integration Functions ---
+
+        // 構建名片資料（與 generator-api.js 一致）
+        function buildCardData(formData) {
+            const cardData = {
+                name: {
+                    zh: formData.name_zh,
+                    en: formData.name_en
+                },
+                email: formData.email
+            };
+
+            // 職稱（雙語）
+            if (formData.title_zh && formData.title_en) {
+                cardData.title = {
+                    zh: formData.title_zh,
+                    en: formData.title_en
+                };
+            }
+
+            // 部門
+            if (formData.department) {
+                cardData.department = formData.department;
+            }
+
+            // 公務電話
+            if (formData.phone) {
+                cardData.phone = formData.phone;
+            }
+
+            // 手機
+            if (formData.mobile) {
+                cardData.mobile = formData.mobile;
+            }
+
+            // 大頭貼
+            if (formData.avatar_url) {
+                cardData.avatar = formData.avatar_url;
+            }
+
+            // 地址（雙語）
+            if (formData.address) {
+                cardData.address = formData.address;
+            }
+
+            // 問候語（雙語）
+            const greetingsZh = formData.greetings_zh ? formData.greetings_zh.split('\n').filter(g => g.trim()) : [];
+            const greetingsEn = formData.greetings_en ? formData.greetings_en.split('\n').filter(g => g.trim()) : [];
+
+            if (greetingsZh.length > 0 && greetingsEn.length > 0) {
+                cardData.greetings = {
+                    zh: greetingsZh,
+                    en: greetingsEn
+                };
+            }
+
+            // 社群連結 - 從獨立輸入框收集
+            const socialData = SocialParser.collectFromInputs();
+            if (socialData.text) {
+                cardData.socialLinks = {
+                    email: `mailto:${formData.email}`,
+                    socialNote: socialData.text
+                };
+            }
+
+            return cardData;
+        }
+
+        // Create or Update Card
+        async function handleCreateCard(e) {
+            e.preventDefault();
+
+            const token = sessionStorage.getItem('setup_token');
+            if (!token) {
+                showNotification('未授權：請重新驗證', 'error');
+                return;
+            }
+
+            const isEditing = !!window.editingCardUuid;
+
+            // 收集表單資料（完全對齊 nfc-generator）
+            const formData = {
+                name_zh: document.getElementById('name_zh').value.trim(),
+                name_en: document.getElementById('name_en').value.trim(),
+                title_zh: document.getElementById('title_zh').value.trim(),
+                title_en: document.getElementById('title_en').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                department: document.getElementById('department').value,
+                mobile: document.getElementById('mobile').value.trim(),
+                avatar_url: document.getElementById('avatar_url').value.trim(),
+                greetings_zh: document.getElementById('greetings_zh').value,
+                greetings_en: document.getElementById('greetings_en').value,
+                social_note: SocialParser.collectFromInputs().text, // 從獨立輸入框收集
+                cardType: document.getElementById('card_type').value,
+                address: getAddressData()
+            };
+
+            // 安全驗證和清理
+            const validation = {
+                errors: []
+            };
+            
+            // 必填欄位驗證
+            if (!formData.name_zh || !formData.name_zh.trim()) {
+                validation.errors.push('中文姓名為必填');
+            }
+            if (!formData.name_en || !formData.name_en.trim()) {
+                validation.errors.push('英文姓名為必填');
+            }
+            if (!formData.title_zh || !formData.title_zh.trim()) {
+                validation.errors.push('中文職稱為必填');
+            }
+            if (!formData.title_en || !formData.title_en.trim()) {
+                validation.errors.push('英文職稱為必填');
+            }
+            
+            // Email 驗證
+            if (formData.email) {
+                if (!validateEmail(formData.email)) {
+                    validation.errors.push('Email 格式不正確');
+                }
+            } else {
+                validation.errors.push('Email 為必填');
+            }
+            
+            // 電話驗證
+            if (formData.phone && !validatePhone(formData.phone)) {
+                validation.errors.push('電話格式不正確');
+            }
+            if (formData.mobile && !validatePhone(formData.mobile)) {
+                validation.errors.push('手機格式不正確');
+            }
+            
+            // 大頭貼 URL 驗證
+            if (formData.avatar_url) {
+                const validAvatar = validateURL(formData.avatar_url);
+                if (!validAvatar) {
+                    validation.errors.push('大頭貼 URL 格式不正確');
+                } else {
+                    formData.avatar_url = validAvatar; // 使用清理後的 URL
+                }
+            }
+            
+            // 社群連結驗證
+            const socialFields = [
+                { field: 'social_github', platform: 'github', name: 'GitHub' },
+                { field: 'social_linkedin', platform: 'linkedin', name: 'LinkedIn' },
+                { field: 'social_facebook', platform: 'facebook', name: 'Facebook' },
+                { field: 'social_instagram', platform: 'instagram', name: 'Instagram' },
+                { field: 'social_twitter', platform: 'twitter', name: 'X/Twitter' },
+                { field: 'social_youtube', platform: 'youtube', name: 'YouTube' }
+            ];
+            
+            for (const { field, platform, name } of socialFields) {
+                const input = document.getElementById(field);
+                if (input && input.value.trim()) {
+                    const validURL = validateSocialURL(input.value, platform);
+                    if (!validURL) {
+                        validation.errors.push(`${name} 連結格式不正確或不是官方域名`);
+                    }
+                }
+            }
+            
+            // 如果有錯誤，顯示並停止
+            if (validation.errors.length > 0) {
+                showNotification(validation.errors.join('、'), 'error');
+                return;
+            }
+
+            // 文字清理（防止 XSS）
+            formData.name_zh = sanitizeText(formData.name_zh, 100);
+            formData.name_en = sanitizeText(formData.name_en, 100);
+            formData.title_zh = sanitizeText(formData.title_zh, 100);
+            formData.title_en = sanitizeText(formData.title_en, 100);
+            formData.email = formData.email.trim().toLowerCase();
+            if (formData.phone) formData.phone = formData.phone.trim();
+            if (formData.mobile) formData.mobile = formData.mobile.trim();
+
+
+            // 構建 API 資料格式
+            const cardData = buildCardData(formData);
+            const cardType = formData.cardType;
+
+            try {
+                const url = isEditing
+                    ? `${API_BASE}/api/admin/cards/${window.editingCardUuid}`
+                    : `${API_BASE}/api/admin/cards`;
+
+                const method = isEditing ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    credentials: 'include', // Cookie auto-attached
+                    headers: {
+                        'Authorization': `Bearer ${token}`, // Fallback
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        cardType: cardType,
+                        cardData: cardData
+                    })
+                });
+
+                if (!response.ok) {
+                    await handleApiError(response, '操作失敗');
+                    return;
+                }
+
+                const result = await response.json();
+                showNotification(
+                    isEditing ? '名片已更新' : '名片已創建',
+                    'success'
+                );
+
+                // 清除編輯狀態
+                window.editingCardUuid = null;
+
+                // 重置表單
+                document.getElementById('card-form').reset();
+                document.getElementById('custom-address-fields').classList.add('hidden');
+
+                // 更新 UI 為創建模式
+                updateEditModeUI(false);
+
+                // 切換到列表 Tab
+                switchTab('list');
+
+            } catch (error) {
+                console.error('Create/Update card error:', error);
+                showNotification('操作失敗: ' + error.message, 'error');
+            }
+        }
+
+        // Delete Card
+        async function handleDeleteCard(uuid) {
+            const token = sessionStorage.getItem('setup_token');
+            if (!token) {
+                showNotification('未授權：請重新驗證', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}`, {
+                    method: 'DELETE',
+                    credentials: 'include', // Cookie auto-attached
+                    headers: {
+                        'Authorization': `Bearer ${token}` // Fallback
+                    }
+                });
+
+                if (!response.ok) {
+                    await handleApiError(response, '刪除失敗');
+                    return;
+                }
+
+                showNotification('名片已刪除', 'success');
+                loadCards();
+
+            } catch (error) {
+                console.error('Delete card error:', error);
+                showNotification('刪除失敗: ' + error.message, 'error');
+            }
+        }
+
+        // Revoke Card Sessions
+        async function handleRevokeCard(uuid) {
+            const token = sessionStorage.getItem('setup_token');
+            if (!token) {
+                showNotification('未授權：請重新驗證', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/revoke`, {
+                    method: 'POST',
+                    credentials: 'include', // Cookie auto-attached
+                    headers: {
+                        'Authorization': `Bearer ${token}`, // Fallback
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        card_uuid: uuid
+                    })
+                });
+
+                if (!response.ok) {
+                    await handleApiError(response, '撤銷失敗');
+                    return;
+                }
+
+                const result = await response.json();
+                const count = result.sessions_revoked || result.data?.sessions_revoked || 0;
+                showNotification(`已撤銷 ${count} 個 Session`, 'success');
+
+            } catch (error) {
+                console.error('Revoke card error:', error);
+                showNotification('撤銷失敗: ' + error.message, 'error');
+            }
+        }
+
+        // --- 8. Confirmation Modal ---
+        function confirmAction(type, uuid = null) {
+            const modal = document.getElementById('confirm-modal');
+            const title = document.getElementById('modal-title');
+            const desc = document.getElementById('modal-desc');
+            const btn = document.getElementById('modal-confirm-btn');
+
+            if(type === 'delete') {
+                title.innerText = "確認刪除名片？";
+                desc.innerText = "刪除後此 UUID 將永久失效，無法再透過任何管道存取。";
+                btn.className = "flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700";
+                btn.onclick = async () => {
+                    closeModal();
+                    await handleDeleteCard(uuid);
+                };
+            } else if(type === 'revoke') {
+                title.innerText = "確認撤銷所有 Session？";
+                desc.innerText = "此名片目前已簽發的讀取授權將全數作廢，使用者須重新碰卡。";
+                btn.className = "flex-1 py-4 bg-amber-500 text-white rounded-2xl font-bold hover:bg-amber-600";
+                btn.onclick = async () => {
+                    closeModal();
+                    await handleRevokeCard(uuid);
+                };
+            } else if(type === 'revoke_all') {
+                title.innerText = "緊急：確認全局撤銷？";
+                desc.innerText = "這將關閉系統內所有名片的所有活動 Session。";
+                btn.className = "flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700";
+                btn.onclick = () => {
+                    closeModal();
+                    showNotification('全局撤銷功能尚未實作', 'warning');
+                };
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+        }
+
+        // Fill form with card data
+        function fillFormWithCardData(card) {
+            const data = card.data;
+
+            // 基本資訊
+            document.getElementById('name_zh').value = data.name?.zh || '';
+            document.getElementById('name_en').value = data.name?.en || '';
+            document.getElementById('title_zh').value = data.title?.zh || '';
+            document.getElementById('title_en').value = data.title?.en || '';
+            document.getElementById('email').value = data.email || '';
+            document.getElementById('department').value = data.department || '';
+
+            // 聯絡資訊
+            document.getElementById('phone').value = data.phone || '';
+
+            // 地址處理
+            if (data.address) {
+                // 檢查是否為預設地址
+                if (data.address.zh === ADDRESS_PRESETS.yanping.zh) {
+                    document.getElementById('address-preset').value = 'yanping';
+                } else if (data.address.zh === ADDRESS_PRESETS.shinkong.zh) {
+                    document.getElementById('address-preset').value = 'shinkong';
+                } else {
+                    // 自訂地址
+                    document.getElementById('address-preset').value = 'custom';
+                    document.getElementById('address_zh').value = data.address.zh || '';
+                    document.getElementById('address_en').value = data.address.en || '';
+                    document.getElementById('custom-address-fields').classList.remove('hidden');
+                }
+            }
+
+            // 進階資訊
+            document.getElementById('mobile').value = data.mobile || '';
+            document.getElementById('avatar_url').value = data.avatar_url || data.avatar || '';
+
+            // 問候語處理（從陣列轉換為多行文字）
+            if (data.greetings) {
+                const greetingsZh = Array.isArray(data.greetings.zh) ? data.greetings.zh.join('\n') : data.greetings.zh || '';
+                const greetingsEn = Array.isArray(data.greetings.en) ? data.greetings.en.join('\n') : data.greetings.en || '';
+                document.getElementById('greetings_zh').value = greetingsZh;
+                document.getElementById('greetings_en').value = greetingsEn;
+            }
+
+            // 社群連結 - 解析並填入獨立輸入框
+            if (data.socialLinks?.socialNote) {
+                const lines = data.socialLinks.socialNote.split('\n');
+                lines.forEach(line => {
+                    const lower = line.toLowerCase();
+                    if (lower.includes('github.com')) document.getElementById('social_github').value = line.trim();
+                    else if (lower.includes('linkedin.com')) document.getElementById('social_linkedin').value = line.trim();
+                    else if (lower.includes('facebook.com') || lower.includes('fb.com')) document.getElementById('social_facebook').value = line.trim();
+                    else if (lower.includes('instagram.com')) document.getElementById('social_instagram').value = line.trim();
+                    else if (lower.includes('twitter.com') || lower.includes('x.com')) document.getElementById('social_twitter').value = line.trim();
+                    else if (lower.includes('youtube.com') || lower.includes('youtu.be')) document.getElementById('social_youtube').value = line.trim();
+                });
+            }
+
+            // 名片類型
+            document.getElementById('card_type').value = card.card_type;
+
+            // 更新預覽
+            updatePreview();
+        }
+
+        // Edit card
+        async function editCard(uuid) {
+            const token = sessionStorage.getItem('setup_token');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}`, {
+                    credentials: 'include', // Cookie auto-attached
+                    headers: { 'Authorization': `Bearer ${token}` } // Fallback
+                });
+
+                if (!response.ok) {
+                    await handleApiError(response, '載入失敗');
+                    return;
+                }
+
+                const result = await response.json();
+                const card = result.data;
+
+                // 預填表單
+                fillFormWithCardData(card);
+
+                // 切換到創建 Tab（實際上是編輯模式）
+                switchTab('create');
+
+                // 儲存編輯狀態
+                window.editingCardUuid = uuid;
+
+                // 更新 UI 為編輯模式
+                updateEditModeUI(true);
+
+            } catch (error) {
+                console.error('Edit card error:', error);
+                showNotification('載入名片失敗: ' + error.message, 'error');
+            }
+        }
+
+        // Cancel editing
+        function cancelEdit() {
+            // 清除編輯狀態
+            window.editingCardUuid = null;
+
+            // 重置表單
+            document.getElementById('card-form').reset();
+            document.getElementById('custom-address-fields').classList.add('hidden');
+
+            // 更新 UI 為創建模式
+            updateEditModeUI(false);
+
+            // 更新預覽
+            updatePreview();
+        }
+
+        // Update UI for edit mode
+        function updateEditModeUI(isEditing) {
+            const submitBtn = document.querySelector('#card-form button[type="submit"]');
+            const cancelBtn = document.getElementById('cancel-edit-btn');
+
+            if (isEditing) {
+                submitBtn.innerHTML = '<i data-lucide="save" class="w-5 h-5"></i> 更新名片';
+                if (cancelBtn) {
+                    cancelBtn.classList.remove('hidden');
+                }
+            } else {
+                submitBtn.innerHTML = '<i data-lucide="zap" class="w-5 h-5"></i> 簽發數位名片';
+                if (cancelBtn) {
+                    cancelBtn.classList.add('hidden');
+                }
+            }
+
+            lucide.createIcons();
+        }
+
+        // --- 10. Real-time Preview ---
+        function updatePreview() {
+            const isEn = previewLang === 'en';
+            const name = isEn ? document.getElementById('name_en').value || "John Smith" : document.getElementById('name_zh').value || "王小明";
+            const title = isEn ? document.getElementById('title_en').value || "Minister" : document.getElementById('title_zh').value || "部長";
+
+            // 問候語處理
+            const greetingInput = isEn ? document.getElementById('greetings_en').value : document.getElementById('greetings_zh').value;
+            const greet = greetingInput.split('\n').filter(g => g.trim())[0] || "";
+
+            const email = document.getElementById('email').value || "---";
+            const phone = document.getElementById('phone').value || "---";
+            const avatar = document.getElementById('avatar_url').value || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80";
+            
+            // 從獨立輸入框收集社群連結
+            const socialData = SocialParser.collectFromInputs();
+            const socialText = socialData.text;
+
+            document.getElementById('prev-name').innerText = name;
+            document.getElementById('prev-title').innerText = title;
+
+            // 問候語區塊條件顯示
+            const greetingSection = document.getElementById('prev-greeting-section');
+            if (greet) {
+                greetingSection.classList.remove('hidden');
+                document.getElementById('prev-greeting').innerText = greet;
+            } else {
+                greetingSection.classList.add('hidden');
+            }
+
+            document.getElementById('prev-email').innerText = email;
+            document.getElementById('prev-phone').innerText = phone;
+            
+            // 大頭貼處理 - 支援 Google Drive URL 轉換
+            let avatarUrl = avatar;
+            const driveMatch = avatarUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^\/\?&]+)/);
+            if (driveMatch) {
+                const fileId = driveMatch[1];
+                avatarUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
+            }
+            
+            const prevAvatar = document.getElementById('prev-avatar');
+            prevAvatar.src = avatarUrl;
+            prevAvatar.onerror = function() {
+                console.warn('Preview avatar failed to load:', avatarUrl);
+                this.src = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80';
+            };
+
+            // 地址預覽
+            const addressData = getAddressData();
+            const addressText = addressData
+                ? (previewLang === 'zh' ? (addressData.zh || '---') : (addressData.en || '---'))
+                : '---';
+
+            document.getElementById('prev-address').innerText = addressText;
+
+            // 社群解析與渲染
+            const icons = SocialParser.parse(socialText);
+            const cluster = document.getElementById('prev-social-cluster');
+            cluster.innerHTML = '';
+            icons.forEach(icon => {
+                const node = document.createElement('div');
+                node.className = "social-chip-prev";
+                node.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4"></i>`;
+                cluster.appendChild(node);
+            });
+            lucide.createIcons();
+        }
+
+        // --- 11. Security Dashboard Functions ---
+
+        // 初始化安全監控儀表板
+        function initSecurityDashboard() {
+            loadSecurityStats();
+            loadSecurityTimeline(24);
+            loadSecurityEvents(1);
+
+            // 清除舊的自動刷新間隔
+            if (securityStatsInterval) {
+                clearInterval(securityStatsInterval);
+            }
+
+            // 每 60 秒刷新統計
+            securityStatsInterval = setInterval(() => {
+                loadSecurityStats();
+            }, 60000);
+        }
+
+        // 載入安全統計
+        async function loadSecurityStats() {
+            const token = sessionStorage.getItem('setup_token');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/security/stats`, {
+                    credentials: 'include',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    await handleApiError(response, '載入統計失敗');
+                    return;
+                }
+
+                const result = await response.json();
+                const stats = result.data;
+
+                // 更新統計卡片
+                document.getElementById('stat-total').textContent = stats.last24h.total_events.toLocaleString();
+                document.getElementById('stat-blocked').textContent = stats.last24h.blocked_attempts.toLocaleString();
+                document.getElementById('stat-suspicious').textContent = stats.last24h.suspicious_ips.toLocaleString();
+                document.getElementById('stat-ratelimit').textContent = stats.last24h.rate_limit_hits.toLocaleString();
+
+                // 更新 Top 5 IPs
+                const topIPsList = document.getElementById('top-ips-list');
+                topIPsList.innerHTML = '';
+
+                if (stats.top_ips && stats.top_ips.length > 0) {
+                    stats.top_ips.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'flex justify-between items-center p-2 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer transition-all';
+                        div.onclick = () => loadIPDetail(item.ip);
+
+                        const ipSpan = document.createElement('span');
+                        ipSpan.className = 'text-xs font-bold text-slate-700';
+                        ipSpan.textContent = item.ip;
+
+                        const countSpan = document.createElement('span');
+                        countSpan.className = 'text-xs font-bold text-indigo-600';
+                        countSpan.textContent = item.count;
+
+                        div.appendChild(ipSpan);
+                        div.appendChild(countSpan);
+                        topIPsList.appendChild(div);
+                    });
+                } else {
+                    topIPsList.innerHTML = '<p class="text-xs text-slate-400">No data</p>';
+                }
+
+            } catch (error) {
+                console.error('Load security stats error:', error);
+                showNotification('載入統計失敗: ' + error.message, 'error');
+            }
+        }
+
+        // 載入安全時間軸
+        async function loadSecurityTimeline(hours) {
+            const token = sessionStorage.getItem('setup_token');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/security/timeline?hours=${hours}`, {
+                    credentials: 'include',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    await handleApiError(response, '載入時間軸失敗');
+                    return;
+                }
+
+                const result = await response.json();
+                const timeline = result.data.timeline;
+
+                // 準備圖表資料
+                const labels = timeline.map(t => {
+                    const date = new Date(t.hour);
+                    return date.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+                });
+
+                const totalData = timeline.map(t => t.total);
+                const rateLimitData = timeline.map(t => t.rate_limit);
+                const suspiciousData = timeline.map(t => t.suspicious);
+
+                // 銷毀舊圖表
+                if (timelineChart) {
+                    timelineChart.destroy();
+                }
+
+                // 創建新圖表
+                const ctx = document.getElementById('timeline-chart').getContext('2d');
+                timelineChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Total',
+                                data: totalData,
+                                borderColor: '#6868ac',
+                                backgroundColor: 'rgba(104, 104, 172, 0.1)',
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Rate Limit',
+                                data: rateLimitData,
+                                borderColor: '#ef4444',
+                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Suspicious',
+                                data: suspiciousData,
+                                borderColor: '#f59e0b',
+                                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                tension: 0.4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'bottom'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('Load security timeline error:', error);
+                showNotification('載入時間軸失敗: ' + error.message, 'error');
+            }
+        }
+
+        // 載入安全事件列表
+        async function loadSecurityEvents(page = 1, eventType = '') {
+            const token = sessionStorage.getItem('setup_token');
+            currentEventPage = page;
+            currentEventType = eventType;
+
+            try {
+                let url = `${API_BASE}/api/admin/security/events?page=${page}&limit=20`;
+                if (eventType) {
+                    url += `&event_type=${eventType}`;
+                }
+
+                const response = await fetch(url, {
+                    credentials: 'include',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    await handleApiError(response, '載入事件失敗');
+                    return;
+                }
+
+                const result = await response.json();
+                const events = result.data.events;
+                const pagination = result.data.pagination;
+
+                // 更新表格
+                const tbody = document.getElementById('events-table-body');
+                tbody.innerHTML = '';
+
+                if (events && events.length > 0) {
+                    events.forEach(event => {
+                        const tr = document.createElement('tr');
+                        tr.className = 'hover:bg-slate-50 transition-all';
+
+                        const eventDate = new Date(event.created_at);
+                        const timeStr = eventDate.toLocaleString('zh-TW');
+
+                        // Parse details JSON if it's a string
+                        let details = {};
+                        try {
+                            details = typeof event.details === 'string' ? JSON.parse(event.details) : event.details;
+                        } catch (e) {
+                            details = {};
+                        }
+
+                        tr.innerHTML = `
+                            <td class="px-4 py-3 text-xs font-mono text-slate-500">#${event.id}</td>
+                            <td class="px-4 py-3">
+                                <span class="badge ${getEventTypeBadgeClass(event.event_type)}">${event.event_type}</span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <button onclick="loadIPDetail('${event.ip}')" class="text-xs font-bold text-indigo-600 hover:underline">${event.ip}</button>
+                            </td>
+                            <td class="px-4 py-3 text-xs text-slate-600">${event.endpoint || details.path || 'N/A'}</td>
+                            <td class="px-4 py-3 text-xs text-slate-500 truncate max-w-xs">${event.user_agent || 'unknown'}</td>
+                            <td class="px-4 py-3 text-xs text-slate-500">${timeStr}</td>
+                        `;
+
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">No events found</td></tr>';
+                }
+
+                // 更新分頁按鈕
+                const prevBtn = document.getElementById('events-prev-btn');
+                const nextBtn = document.getElementById('events-next-btn');
+                const pageInfo = document.getElementById('events-page-info');
+
+                prevBtn.disabled = page <= 1;
+                nextBtn.disabled = page >= pagination.total_pages;
+                pageInfo.textContent = `Page ${page} of ${pagination.total_pages}`;
+
+            } catch (error) {
+                console.error('Load security events error:', error);
+                showNotification('載入事件失敗: ' + error.message, 'error');
+            }
+        }
+
+        // 取得事件類型 Badge 樣式
+        function getEventTypeBadgeClass(type) {
+            const typeMap = {
+                'rate_limit': 'badge-event',
+                'suspicious_activity': 'badge-sensitive',
+                'blocked_ip': 'badge-suspended'
+            };
+            return typeMap[type] || 'badge-personal';
+        }
+
+        // 截斷字串
+        function truncate(str, len) {
+            return str.length > len ? str.substring(0, len) + '...' : str;
+        }
+
+        // 封鎖 IP
+        async function handleBlockIP(e) {
+            e.preventDefault();
+
+            const token = sessionStorage.getItem('setup_token');
+            const ip = document.getElementById('block-ip').value.trim();
+            const duration = parseInt(document.getElementById('block-duration').value);
+            const reason = document.getElementById('block-reason').value.trim();
+
+            if (!ip) {
+                showNotification('請輸入 IP 地址', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/security/block`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        ip: ip,
+                        duration: duration,
+                        reason: reason || 'Manual block'
+                    })
+                });
+
+                if (!response.ok) {
+                    await handleApiError(response, '封鎖失敗');
+                    return;
+                }
+
+                showNotification('IP 已封鎖', 'success');
+
+                // 重置表單
+                document.getElementById('block-ip-form').reset();
+
+                // 刷新統計和事件
+                loadSecurityStats();
+                loadSecurityEvents(currentEventPage, currentEventType);
+
+            } catch (error) {
+                console.error('Block IP error:', error);
+                showNotification('封鎖失敗: ' + error.message, 'error');
+            }
+        }
+
+        // 解除封鎖 IP
+        async function handleUnblockIP() {
+            const token = sessionStorage.getItem('setup_token');
+            const ip = currentIPAddress;
+
+            if (!ip) {
+                showNotification('無效的 IP 地址', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/security/block/${encodeURIComponent(ip)}`, {
+                    method: 'DELETE',
+                    credentials: 'include',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    await handleApiError(response, '解除封鎖失敗');
+                    return;
+                }
+
+                showNotification('IP 已解除封鎖', 'success');
+
+                // 關閉 Modal 並刷新資料
+                closeIPDetailModal();
+                loadSecurityStats();
+                loadSecurityEvents(currentEventPage, currentEventType);
+
+            } catch (error) {
+                console.error('Unblock IP error:', error);
+                showNotification('解除封鎖失敗: ' + error.message, 'error');
+            }
+        }
+
+        // 載入 IP 詳情
+        async function loadIPDetail(ip) {
+            const token = sessionStorage.getItem('setup_token');
+            currentIPAddress = ip;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/security/ip/${encodeURIComponent(ip)}`, {
+                    credentials: 'include',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    await handleApiError(response, '載入 IP 詳情失敗');
+                    return;
+                }
+
+                const result = await response.json();
+                const data = result.data;
+
+                // 更新 Modal 內容
+                document.getElementById('ip-detail-address').textContent = data.ip;
+                document.getElementById('ip-detail-status').textContent = data.is_blocked ? 'Blocked' : 'Active';
+                document.getElementById('ip-detail-status').className = data.is_blocked
+                    ? 'font-bold text-sm text-red-600'
+                    : 'font-bold text-sm text-green-600';
+
+                document.getElementById('ip-detail-total').textContent = data.total_events.toLocaleString();
+
+                const firstDate = new Date(data.first_seen);
+                const lastDate = new Date(data.last_seen);
+                document.getElementById('ip-detail-first').textContent = firstDate.toLocaleString('zh-TW');
+                document.getElementById('ip-detail-last').textContent = lastDate.toLocaleString('zh-TW');
+
+                // 顯示/隱藏解除封鎖按鈕
+                const unblockSection = document.getElementById('ip-detail-unblock-section');
+                if (data.is_blocked) {
+                    unblockSection.classList.remove('hidden');
+                } else {
+                    unblockSection.classList.add('hidden');
+                }
+
+                // 繪製圓餅圖
+                const eventTypes = data.event_types || {};
+                const labels = Object.keys(eventTypes);
+                const values = Object.values(eventTypes);
+
+                if (ipDetailChart) {
+                    ipDetailChart.destroy();
+                }
+
+                const ctx = document.getElementById('ip-detail-chart').getContext('2d');
+                ipDetailChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: [
+                                '#6868ac',
+                                '#ef4444',
+                                '#f59e0b',
+                                '#10b981',
+                                '#3b82f6'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+
+                // 顯示 Modal
+                document.getElementById('ip-detail-modal').classList.remove('hidden');
+                lucide.createIcons();
+
+            } catch (error) {
+                console.error('Load IP detail error:', error);
+                showNotification('載入 IP 詳情失敗: ' + error.message, 'error');
+            }
+        }
+
+        // 關閉 IP 詳情 Modal
+        function closeIPDetailModal() {
+            document.getElementById('ip-detail-modal').classList.add('hidden');
+            currentIPAddress = null;
+        }
+
+        // 匯出 CSV
+        async function exportSecurityEvents() {
+            const token = sessionStorage.getItem('setup_token');
+
+            try {
+                let url = `${API_BASE}/api/admin/security/export`;
+                if (currentEventType) {
+                    url += `?event_type=${currentEventType}`;
+                }
+
+                const response = await fetch(url, {
+                    credentials: 'include',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    await handleApiError(response, '匯出失敗');
+                    return;
+                }
+
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+
+                const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+                a.download = `security-events-${today}.csv`;
+
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(downloadUrl);
+
+                showNotification('CSV 已匯出', 'success');
+
+            } catch (error) {
+                console.error('Export CSV error:', error);
+                showNotification('匯出失敗: ' + error.message, 'error');
+            }
+        }
+
+        // --- 12. Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            initThree();
+
+            // 綁定驗證按鈕
+            const verifyBtn = document.getElementById('verify-btn');
+            verifyBtn.onclick = verifyToken;
+
+            // 綁定表單提交
+            const cardForm = document.getElementById('card-form');
+            cardForm.onsubmit = handleCreateCard;
+
+            // 綁定搜尋輸入框
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    searchCards(e.target.value);
+                });
+            }
+
+            // 綁定所有輸入事件到實時預覽
+            const inputIds = ['name_zh', 'name_en', 'title_zh', 'title_en', 'email', 'phone', 'mobile', 'avatar_url', 'greetings_zh', 'greetings_en', 'address_zh', 'address_en', 'social_github', 'social_linkedin', 'social_facebook', 'social_instagram', 'social_twitter', 'social_youtube'];
+            inputIds.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', updatePreview);
+                }
+            });
+
+            // 地址預設選單事件監聽器
+            document.getElementById('address-preset').addEventListener('change', (e) => {
+                const value = e.target.value;
+                const customFields = document.getElementById('custom-address-fields');
+
+                if (value === 'custom') {
+                    customFields.classList.remove('hidden');
+                } else {
+                    customFields.classList.add('hidden');
+                }
+                updatePreview();
+            });
+
+            // 預覽語言切換
+            document.querySelectorAll('#preview-lang-switch button').forEach(btn => {
+                btn.onclick = () => {
+                    previewLang = btn.dataset.lang;
+                    document.querySelectorAll('#preview-lang-switch button').forEach(b => {
+                        b.classList.remove('bg-white', 'shadow-sm', 'text-slate-900');
+                        b.classList.add('text-slate-500');
+                    });
+                    btn.classList.add('bg-white', 'shadow-sm', 'text-slate-900');
+                    btn.classList.remove('text-slate-500');
+                    updatePreview();
+                };
+            });
+
+            // 檢查是否已有保存的 token（自動填入）
+            const savedToken = sessionStorage.getItem('setup_token');
+            if (savedToken) {
+                document.getElementById('setup-token').value = savedToken;
+            }
+
+            // 綁定安全監控事件
+            const blockIPForm = document.getElementById('block-ip-form');
+            if (blockIPForm) {
+                blockIPForm.onsubmit = handleBlockIP;
+            }
+
+            const timelineRangeSelect = document.getElementById('timeline-range');
+            if (timelineRangeSelect) {
+                timelineRangeSelect.addEventListener('change', (e) => {
+                    loadSecurityTimeline(parseInt(e.target.value));
+                });
+            }
+
+            const eventTypeFilter = document.getElementById('event-type-filter');
+            if (eventTypeFilter) {
+                eventTypeFilter.addEventListener('change', (e) => {
+                    loadSecurityEvents(1, e.target.value);
+                });
+            }
+        });
+
+        window.onresize = () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="DB-Card 數位名片系統 - 安全的企業級數位名片">
+    <title>數位名片 | DB-Card v4.0</title>
+    <script>
+        // 隱藏 Tailwind CDN 警告
+        const originalWarn = console.warn;
+        console.warn = function(...args) {
+            if (args[0]?.includes?.('cdn.tailwindcss.com')) return;
+            originalWarn.apply(console, args);
+        };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="css/v4-design.css">
+</head>
+<body class="no-scrollbar flex flex-col items-center">
+
+    <!-- Skip to main content link (A11y) -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[200] focus:px-6 focus:py-3 focus:bg-indigo-600 focus:text-white focus:rounded-lg focus:shadow-lg">
+        跳到主要內容
+    </a>
+
+    <!-- 背景 3D 光纖場域 -->
+    <canvas id="three-canvas" aria-hidden="true"></canvas>
+
+    <!-- 載入動畫門戶 -->
+    <div id="loading" class="fixed inset-0 bg-[#f8fafd] z-[100] flex flex-col items-center justify-center transition-opacity duration-1000" role="status" aria-live="polite">
+        <div class="relative w-32 h-32">
+            <div class="absolute inset-0 border-2 border-indigo-100 rounded-full animate-ping"></div>
+            <div class="absolute inset-0 border-t-2 border-indigo-500 rounded-full animate-spin"></div>
+            <div class="absolute inset-0 flex items-center justify-center text-indigo-500">
+                <i data-lucide="shield-check" class="w-10 h-10 animate-pulse" aria-hidden="true"></i>
+            </div>
+        </div>
+        <p class="mt-8 hud-text animate-pulse" data-i18n="loading">Synchronizing Secure Identity...</p>
+    </div>
+
+    <!-- Offline Badge -->
+    <div id="offline-badge" class="offline-badge hidden" role="status" aria-live="polite">
+        <i data-lucide="wifi-off" class="w-4 h-4" aria-hidden="true"></i>
+        <span data-i18n="offline-mode">離線模式</span>
+    </div>
+
+    <!-- Error Container -->
+    <div id="error-container" role="alert" aria-live="assertive"></div>
+
+    <!-- Notification Container -->
+    <div id="notification-container" role="status" aria-live="polite"></div>
+
+    <!-- UI 工具列 -->
+    <header id="ui-header" class="fixed top-0 left-0 right-0 z-50 p-6 flex justify-between items-start pointer-events-none">
+        <div class="space-y-1">
+            <p class="hud-text opacity-40" aria-hidden="true">IDENTITY_NODE_V4</p>
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse" aria-hidden="true"></div>
+                <span class="text-[9px] font-bold tracking-widest text-slate-500 uppercase">Authenticated Session</span>
+            </div>
+        </div>
+        <div class="pointer-events-auto">
+            <button id="lang-switch" 
+                    class="px-5 py-2 bg-white border border-slate-200 rounded-lg text-[10px] font-black text-slate-700 hover:border-indigo-400 hover:text-indigo-600 shadow-sm transition-all uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    aria-label="切換語言">
+                繁中 / EN
+            </button>
+        </div>
+    </header>
+
+    <!-- QR Code 彈窗 -->
+    <div id="qr-modal" 
+         class="fixed inset-0 z-[60] bg-white/80 backdrop-blur-xl hidden flex flex-col items-center justify-center p-10"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="qr-modal-title">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl border border-slate-100">
+            <div id="qrcode-target" class="w-64 h-64 flex items-center justify-center text-black font-bold border-4 border-slate-50" role="img" aria-label="名片 QR Code">QR CODE</div>
+        </div>
+        <p id="qr-modal-title" class="hud-text mt-8 mb-10 text-slate-800" data-i18n="qr-title">Scan for Official Verification</p>
+        <button id="close-qr" 
+                class="px-12 py-4 bg-slate-900 text-white rounded-full text-xs font-bold hover:bg-indigo-600 shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                aria-label="關閉 QR Code">
+            CLOSE PORTAL
+        </button>
+    </div>
+
+    <!-- 主容器 -->
+    <div id="main-container" class="relative z-10 w-full max-w-4xl px-4 py-24 hidden reveal">
+
+        <main id="main-content" class="crystal-container rounded-3xl overflow-hidden shadow-2xl">
+            <!-- 背景浮水印 -->
+            <div class="watermark -top-5 -left-10" aria-hidden="true">數位發展部</div>
+            <div class="watermark bottom-10 -right-20" aria-hidden="true">MODA</div>
+
+            <!-- 身分首部 -->
+            <article class="p-10 lg:p-20 border-b border-indigo-50 flex flex-col lg:flex-row gap-12 items-center lg:items-start relative z-10">
+                <div class="relative">
+                    <div class="absolute -inset-4 border border-indigo-100 pointer-events-none" aria-hidden="true"></div>
+                    <img id="user-avatar" src="" alt="名片大頭貼" class="w-48 h-48 lg:w-60 lg:h-60 object-cover border-4 border-white shadow-xl transition-all duration-700">
+                </div>
+
+                <div class="flex-1 text-center lg:text-left">
+                    <p class="hud-text mb-4 opacity-40" aria-hidden="true" data-i18n="card-system">數位名片系統 Digital Business Card</p>
+                    <h1 id="user-name" class="text-5xl lg:text-7xl font-black tracking-tighter text-slate-900 mb-2 italic">---</h1>
+                    <p id="user-title" class="text-indigo-600 font-bold tracking-widest text-sm uppercase">---</p>
+
+                    <div id="greeting-section" class="mt-8 pt-8 border-t border-indigo-50 hidden">
+                        <p class="hud-text mb-4 opacity-40" aria-hidden="true" data-i18n="transmission-feed">Dynamic Transmission Feed</p>
+                        <p id="typewriter" class="text-slate-600 font-medium italic min-h-[1.5em] text-lg cursor" aria-live="polite"></p>
+                    </div>
+                </div>
+            </article>
+
+            <!-- 資訊晶片網格 -->
+            <section class="p-8 lg:p-14 grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10" aria-label="聯絡資訊">
+                <a id="email-link" href="#" class="info-chip p-6 rounded-2xl flex items-center gap-6 group focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-label="Email 聯絡">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                        <i data-lucide="mail" class="w-5 h-5" aria-hidden="true"></i>
+                    </div>
+                    <div>
+                        <p class="hud-text text-[8px] opacity-40" aria-hidden="true" data-i18n="communication-node">Communication Node</p>
+                        <p id="user-email" class="font-bold text-slate-700">---</p>
+                    </div>
+                </a>
+                <a id="phone-link" href="#" class="info-chip p-6 rounded-2xl flex items-center gap-6 group focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-label="電話聯絡">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                        <i data-lucide="phone" class="w-5 h-5" aria-hidden="true"></i>
+                    </div>
+                    <div>
+                        <p class="hud-text text-[8px] opacity-40" aria-hidden="true" data-i18n="voice-access">Voice Access</p>
+                        <p id="user-phone" class="font-bold text-slate-700">---</p>
+                    </div>
+                </a>
+                <a id="web-link" href="#" target="_blank" rel="noopener noreferrer" class="info-chip p-6 rounded-2xl flex items-center gap-6 group md:col-span-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-label="官方網站">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                        <i data-lucide="globe" class="w-5 h-5" aria-hidden="true"></i>
+                    </div>
+                    <div>
+                        <p class="hud-text text-[8px] opacity-40" aria-hidden="true" data-i18n="official-portal">Official Portal</p>
+                        <p id="user-web" class="font-bold text-slate-700">---</p>
+                    </div>
+                </a>
+            </section>
+
+            <!-- 社群連結聚落 -->
+            <nav id="social-cluster" class="px-10 lg:px-14 pb-14 flex flex-wrap gap-4 justify-center lg:justify-start relative z-10" aria-label="社群媒體連結">
+                <!-- 由 JS 動態注入 -->
+            </nav>
+        </main>
+
+        <!-- 頁尾控制與安全規範 -->
+        <footer class="mt-10 w-full flex flex-col md:flex-row gap-6 items-stretch">
+            <div class="flex-1 flex gap-4">
+                <button id="save-vcard" 
+                        class="flex-1 bg-slate-900 text-white font-black uppercase text-xs md:text-[10px] tracking-wider md:tracking-[0.3em] py-6 md:py-5 px-6 md:px-8 rounded-2xl hover:bg-indigo-600 shadow-xl transition-all flex items-center justify-center gap-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        aria-label="下載 vCard 名片">
+                    <i data-lucide="user-plus" class="w-5 h-5 md:w-4 md:h-4" aria-hidden="true"></i>
+                    <span id="save-vcard-text-desktop" class="hidden sm:inline">Sync Identity</span>
+                    <span id="save-vcard-text-mobile" class="sm:hidden">下載名片</span>
+                </button>
+                <button id="open-qr" 
+                        class="bg-white border-2 border-slate-200 text-slate-700 px-6 md:px-8 py-6 md:py-5 rounded-2xl hover:bg-slate-50 shadow-sm transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        aria-label="顯示 QR Code">
+                    <i data-lucide="qr-code" class="w-6 h-6" aria-hidden="true"></i>
+                    <span class="text-xs font-bold md:hidden">QR</span>
+                </button>
+            </div>
+            <aside class="md:w-72 p-6 border border-indigo-100 bg-white/80 rounded-2xl shadow-sm">
+                <div class="flex items-center gap-3 mb-2 text-indigo-600">
+                    <i data-lucide="shield-check" class="w-4 h-4" aria-hidden="true"></i>
+                    <p class="hud-text text-[8px]" data-i18n="security-spec">資料安全規範</p>
+                </div>
+                <p class="text-[10px] text-slate-500 font-medium leading-relaxed uppercase" data-i18n="security-desc">
+                    Serverless Encrypted Node. No trace retained on node. Securely rendered via DB-Card gateway.
+                </p>
+            </aside>
+        </footer>
+
+        <!-- 階段資訊 -->
+        <div id="token-info" class="mt-12 opacity-40 text-center space-y-2" role="status" aria-live="polite">
+            <p id="session-expiry" class="hud-text text-[8px] text-slate-400">SESSION EXPIRES: --</p>
+            <p id="session-reads" class="hud-text text-[8px] text-slate-400">ATTEMPTS REMAINING: --</p>
+        </div>
+    </div>
+
+    <!-- 隱私聲明 -->
+    <div style="position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #94a3b8; text-align: center; padding: 8px 16px; background: rgba(255,255,255,0.9); border-radius: 20px; backdrop-filter: blur(10px); box-shadow: 0 2px 8px rgba(0,0,0,0.05); z-index: 50;">
+        <span data-i18n="privacy-notice">🔒 本應用使用 IndexedDB 在您的瀏覽器本地儲存名片資料，不會上傳到伺服器</span>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

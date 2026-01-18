@@ -8,6 +8,7 @@ import { handleCreateCard, handleUpdateCard, handleDeleteCard, handleListCards, 
 import { handleRevoke } from './handlers/admin/revoke';
 import { handleKekRotate } from './handlers/admin/kek';
 import { handleAdminLogin, handleAdminLogout } from './handlers/admin/auth';
+import { handleSecurityStats, handleSecurityEvents, handleSecurityTimeline, handleBlockIP, handleUnblockIP, handleIPDetail, handleSecurityExport } from './handlers/admin/security';
 import { errorResponse, publicErrorResponse } from './utils/response';
 import { checkRateLimit } from './middleware/rate-limit';
 
@@ -21,11 +22,11 @@ function addSecurityHeaders(response: Response): Response {
   // Content Security Policy
   headers.set('Content-Security-Policy',
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' cdn.tailwindcss.com unpkg.com cdnjs.cloudflare.com; " +
+    "script-src 'self' 'unsafe-inline' cdn.tailwindcss.com unpkg.com cdnjs.cloudflare.com cdn.jsdelivr.net; " +
     "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.tailwindcss.com; " +
     "font-src 'self' fonts.gstatic.com; " +
     "img-src 'self' data: https:; " +
-    "connect-src 'self' https://db-card-api-staging.csw30454.workers.dev https://api.db-card.moda.gov.tw"
+    "connect-src 'self' cdn.jsdelivr.net https://api.db-card.moda.gov.tw"
   );
 
   // Additional security headers
@@ -132,6 +133,63 @@ export default {
       return handleKekRotate(request, env);
     }
 
+    // GET /api/admin/security/stats - Security statistics
+    if (url.pathname === '/api/admin/security/stats' && request.method === 'GET') {
+      return handleSecurityStats(request, env);
+    }
+
+    // GET /api/admin/security/events - Security events list
+    if (url.pathname === '/api/admin/security/events' && request.method === 'GET') {
+      return handleSecurityEvents(request, env);
+    }
+
+    // GET /api/admin/security/timeline - Security timeline
+    if (url.pathname === '/api/admin/security/timeline' && request.method === 'GET') {
+      return handleSecurityTimeline(request, env);
+    }
+
+    // POST /api/admin/security/block - Block IP
+    if (url.pathname === '/api/admin/security/block' && request.method === 'POST') {
+      return handleBlockIP(request, env);
+    }
+
+    // DELETE /api/admin/security/block/:ip - Unblock IP
+    const unblockMatch = url.pathname.match(/^\/api\/admin\/security\/block\/(.+)$/);
+    if (unblockMatch && request.method === 'DELETE') {
+      const ip = decodeURIComponent(unblockMatch[1]);
+      return handleUnblockIP(request, env, ip);
+    }
+
+    // GET /api/admin/security/ip/:ip - IP detail analysis
+    const ipDetailMatch = url.pathname.match(/^\/api\/admin\/security\/ip\/(.+)$/);
+    if (ipDetailMatch && request.method === 'GET') {
+      const ip = decodeURIComponent(ipDetailMatch[1]);
+      return handleIPDetail(request, env, ip);
+    }
+
+    // GET /api/admin/security/export - Export security events as CSV
+    if (url.pathname === '/api/admin/security/export' && request.method === 'GET') {
+      return handleSecurityExport(request, env);
+    }
+
+    // Serve static assets (admin-dashboard.html, etc.)
+    // This handles requests for static files before falling through to 404
+    if (env.ASSETS) {
+      try {
+        const asset = await env.ASSETS.fetch(request);
+        if (asset.status !== 404) {
+          // Apply security headers to HTML responses
+          if (asset.headers.get('content-type')?.includes('text/html')) {
+            return addSecurityHeaders(asset);
+          }
+          return asset;
+        }
+      } catch (e) {
+        // If ASSETS fetch fails, continue to 404 handling
+        console.error('Failed to fetch asset:', e);
+      }
+    }
+
     // 404 for unknown routes - use public error response to prevent information disclosure
     // Check rate limit for 404 errors
     const rateLimitResponse = await checkRateLimit(request, env, '404');
@@ -139,11 +197,11 @@ export default {
       return rateLimitResponse;
     }
     
-    let response = publicErrorResponse(404, request);
+    let response = await publicErrorResponse(404, request);
 
     // Apply security headers to HTML responses
     if (response.headers.get('content-type')?.includes('text/html')) {
-      response = addSecurityHeaders(response);
+      response = await addSecurityHeaders(response);
     }
 
     return response;

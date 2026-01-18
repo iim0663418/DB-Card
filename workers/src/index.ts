@@ -8,7 +8,7 @@ import { handleCreateCard, handleUpdateCard, handleDeleteCard, handleListCards, 
 import { handleRevoke } from './handlers/admin/revoke';
 import { handleKekRotate } from './handlers/admin/kek';
 import { handleAdminLogin, handleAdminLogout } from './handlers/admin/auth';
-import { errorResponse } from './utils/response';
+import { errorResponse, publicErrorResponse } from './utils/response';
 
 /**
  * Add security headers to HTML responses
@@ -131,8 +131,8 @@ export default {
       return handleKekRotate(request, env);
     }
 
-    // 404 for unknown routes
-    let response = errorResponse('not_found', 'Endpoint not found', 404, request);
+    // 404 for unknown routes - use public error response to prevent information disclosure
+    let response = publicErrorResponse(404, request);
 
     // Apply security headers to HTML responses
     if (response.headers.get('content-type')?.includes('text/html')) {

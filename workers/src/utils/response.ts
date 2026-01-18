@@ -59,6 +59,44 @@ export function errorResponse(code: string, message: string, status: number = 40
   });
 }
 
+/**
+ * Public error response - minimal information to prevent information disclosure
+ * Use for unauthenticated endpoints (404, 401, 403)
+ */
+export function publicErrorResponse(status: number = 400, request?: Request): Response {
+  const corsHeaders = request ? getCorsHeaders(request) : {};
+
+  return new Response(
+    JSON.stringify({ success: false }),
+    {
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders
+      }
+    }
+  );
+}
+
+/**
+ * Admin error response - moderate detail for authenticated users
+ * Use for admin API endpoints after authentication
+ */
+export function adminErrorResponse(message: string, status: number = 400, request?: Request): Response {
+  const corsHeaders = request ? getCorsHeaders(request) : {};
+
+  return new Response(
+    JSON.stringify({ success: false, error: message }),
+    {
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders
+      }
+    }
+  );
+}
+
 export function htmlResponse(html: string, status: number = 200): Response {
   return new Response(html, {
     status,

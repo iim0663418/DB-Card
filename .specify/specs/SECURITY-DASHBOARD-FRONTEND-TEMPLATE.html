@@ -1,0 +1,236 @@
+<!-- 安全儀表板區塊 - 插入到 admin-dashboard.html 的系統狀態區塊後 -->
+
+<!-- Security Dashboard Section -->
+<div class="security-dashboard-section" style="margin-top: 2rem;">
+    <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem;">🛡️ Security Monitoring</h2>
+    
+    <!-- Statistics Cards -->
+    <div class="stats-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+        <div class="stat-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem; text-align: center;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</div>
+            <div id="total-events" style="font-size: 2rem; font-weight: bold; color: #1f2937;">0</div>
+            <div style="font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem;">Total Events (24h)</div>
+        </div>
+        
+        <div class="stat-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem; text-align: center;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🚫</div>
+            <div id="rate-limit-events" style="font-size: 2rem; font-weight: bold; color: #1f2937;">0</div>
+            <div style="font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem;">Rate Limit Exceeded</div>
+        </div>
+        
+        <div class="stat-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem; text-align: center;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔍</div>
+            <div id="enumeration-events" style="font-size: 2rem; font-weight: bold; color: #1f2937;">0</div>
+            <div style="font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem;">Endpoint Enumeration</div>
+        </div>
+        
+        <div class="stat-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem; text-align: center;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">✅</div>
+            <div id="critical-threats" style="font-size: 2rem; font-weight: bold; color: #10b981;">0</div>
+            <div style="font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem;">Critical Threats</div>
+        </div>
+    </div>
+    
+    <!-- Two Column Layout -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+        <!-- Top Attacking IPs -->
+        <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem;">
+            <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">🎯 Top Attacking IPs</h3>
+            <div id="top-ips-list">
+                <!-- Dynamically populated -->
+                <div style="text-align: center; color: #6b7280; padding: 2rem;">
+                    No attacks detected in the last 24 hours
+                </div>
+            </div>
+        </div>
+        
+        <!-- Last Event Info -->
+        <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem;">
+            <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">⏱️ Last Event</h3>
+            <div id="last-event-info">
+                <div style="text-align: center; color: #6b7280; padding: 2rem;">
+                    No recent events
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Events Table -->
+    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="font-size: 1.125rem; font-weight: 600;">📋 Recent Security Events</h3>
+            <button onclick="loadSecurityEvents()" style="padding: 0.5rem 1rem; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                🔄 Refresh
+            </button>
+        </div>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #f9fafb; border-bottom: 2px solid #e5e7eb;">
+                        <th style="padding: 0.75rem; text-align: left; font-weight: 600;">Time</th>
+                        <th style="padding: 0.75rem; text-align: left; font-weight: 600;">Type</th>
+                        <th style="padding: 0.75rem; text-align: left; font-weight: 600;">IP Address</th>
+                        <th style="padding: 0.75rem; text-align: left; font-weight: 600;">Details</th>
+                    </tr>
+                </thead>
+                <tbody id="events-tbody">
+                    <tr>
+                        <td colspan="4" style="padding: 2rem; text-align: center; color: #6b7280;">
+                            Loading events...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// Security Dashboard Functions
+
+async function loadSecurityStats() {
+    try {
+        const response = await fetch('/api/admin/security/stats', {
+            credentials: 'include'
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            updateStatsCards(data.data);
+            updateTopIPs(data.data.top_ips);
+            updateLastEvent(data.data.last_event_time);
+        }
+    } catch (error) {
+        console.error('Failed to load security stats:', error);
+    }
+}
+
+async function loadSecurityEvents(limit = 10) {
+    try {
+        const response = await fetch(`/api/admin/security/events?limit=${limit}`, {
+            credentials: 'include'
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            updateEventsTable(data.data.events);
+        }
+    } catch (error) {
+        console.error('Failed to load security events:', error);
+    }
+}
+
+function updateStatsCards(stats) {
+    document.getElementById('total-events').textContent = stats.last_24h.total_events;
+    document.getElementById('rate-limit-events').textContent = stats.last_24h.rate_limit_exceeded;
+    document.getElementById('enumeration-events').textContent = stats.last_24h.endpoint_enumeration;
+    document.getElementById('critical-threats').textContent = stats.last_24h.suspicious_pattern || 0;
+}
+
+function updateTopIPs(topIPs) {
+    const container = document.getElementById('top-ips-list');
+    
+    if (!topIPs || topIPs.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: #6b7280; padding: 2rem;">No attacks detected</div>';
+        return;
+    }
+    
+    const maxCount = topIPs[0].count;
+    container.innerHTML = topIPs.map(item => `
+        <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; border-bottom: 1px solid #e5e7eb;">
+            <span style="min-width: 120px; font-family: monospace; font-size: 0.875rem;">${item.ip}</span>
+            <div style="flex-grow: 1; height: 8px; background: #fee2e2; border-radius: 4px; overflow: hidden;">
+                <div style="width: ${(item.count / maxCount * 100)}%; height: 100%; background: #ef4444;"></div>
+            </div>
+            <span style="min-width: 80px; text-align: right; color: #6b7280; font-size: 0.875rem;">${item.count} events</span>
+        </div>
+    `).join('');
+}
+
+function updateLastEvent(lastEventTime) {
+    const container = document.getElementById('last-event-info');
+    
+    if (!lastEventTime) {
+        container.innerHTML = '<div style="text-align: center; color: #6b7280; padding: 2rem;">No recent events</div>';
+        return;
+    }
+    
+    const date = new Date(lastEventTime);
+    const timeAgo = getTimeAgo(date);
+    
+    container.innerHTML = `
+        <div style="padding: 1rem;">
+            <div style="font-size: 1.5rem; font-weight: bold; color: #1f2937; margin-bottom: 0.5rem;">${timeAgo}</div>
+            <div style="font-size: 0.875rem; color: #6b7280;">${date.toLocaleString()}</div>
+        </div>
+    `;
+}
+
+function updateEventsTable(events) {
+    const tbody = document.getElementById('events-tbody');
+    
+    if (!events || events.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="padding: 2rem; text-align: center; color: #6b7280;">No events found</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = events.map(event => {
+        const date = new Date(event.created_at);
+        const details = typeof event.details === 'string' ? JSON.parse(event.details) : event.details;
+        
+        return `
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 0.75rem; font-size: 0.875rem;">${date.toLocaleString()}</td>
+                <td style="padding: 0.75rem;">
+                    <span style="display: inline-block; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${getEventTypeStyle(event.event_type)}">
+                        ${formatEventType(event.event_type)}
+                    </span>
+                </td>
+                <td style="padding: 0.75rem; font-family: monospace; font-size: 0.875rem;">${event.ip_address}</td>
+                <td style="padding: 0.75rem; font-size: 0.875rem;">${formatDetails(details)}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function getEventTypeStyle(type) {
+    switch(type) {
+        case 'rate_limit_exceeded':
+            return 'background: #fee2e2; color: #991b1b;';
+        case 'endpoint_enumeration':
+            return 'background: #fef3c7; color: #92400e;';
+        case 'suspicious_pattern':
+            return 'background: #fecaca; color: #7f1d1d;';
+        default:
+            return 'background: #e5e7eb; color: #374151;';
+    }
+}
+
+function formatEventType(type) {
+    return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+}
+
+function formatDetails(details) {
+    if (!details) return '-';
+    return `${details.error_type || ''} ${details.path || ''} (${details.count || 0} attempts)`;
+}
+
+function getTimeAgo(date) {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    
+    if (seconds < 60) return `${seconds}s ago`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    return `${Math.floor(seconds / 86400)}d ago`;
+}
+
+// Auto-refresh every 30 seconds
+setInterval(() => {
+    loadSecurityStats();
+    loadSecurityEvents();
+}, 30000);
+
+// Initial load
+loadSecurityStats();
+loadSecurityEvents();
+</script>

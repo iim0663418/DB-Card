@@ -2,7 +2,7 @@
 // Provides login/logout endpoints with HttpOnly cookie support
 
 import type { Env } from '../../types';
-import { jsonResponse, errorResponse } from '../../utils/response';
+import { jsonResponse, errorResponse, adminErrorResponse } from '../../utils/response';
 
 /**
  * Handle admin login - sets HttpOnly cookie
@@ -30,7 +30,7 @@ export async function handleAdminLogin(request: Request, env: Env): Promise<Resp
     // Timing-safe comparison
     const isValid = await timingSafeEqual(token, expectedToken);
     if (!isValid) {
-      return errorResponse('forbidden', '無效的授權 Token', 403, request);
+      return adminErrorResponse('Invalid token', 403, request);
     }
 
     // Set HttpOnly Cookie

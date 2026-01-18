@@ -5,7 +5,7 @@ import type { Env } from '../../types';
 import { verifySetupToken } from '../../middleware/auth';
 import { EnvelopeEncryption } from '../../crypto/envelope';
 import { logEvent } from '../../utils/audit';
-import { jsonResponse, errorResponse } from '../../utils/response';
+import { jsonResponse, errorResponse, adminErrorResponse } from '../../utils/response';
 
 /**
  * Import KEK from environment variable
@@ -42,10 +42,10 @@ export async function handleKekRotate(request: Request, env: Env): Promise<Respo
 
       if (!authHeader) {
         // Scenario 3: Missing token
-        return errorResponse('unauthorized', '缺少授權 Token', 401, request);
+        return adminErrorResponse('Authentication required', 401, request);
       } else {
         // Invalid token
-        return errorResponse('forbidden', '無效的授權 Token', 403, request);
+        return adminErrorResponse('Invalid token', 403, request);
       }
     }
 

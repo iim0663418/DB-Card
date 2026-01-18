@@ -163,3 +163,81 @@
 260118|Deployment|health_check|Passing
 260118|Deployment|kek_version|1
 260118|Deployment|active_cards|5
+
+# Security Dashboard Planning (2026-01-18)
+260118|Security_Dashboard|status|Planning_Complete
+260118|Security_Dashboard|frontend_prd|admin-security-dashboard.md
+260118|Security_Dashboard|frontend_template|SECURITY-DASHBOARD-FRONTEND-TEMPLATE.html
+260118|Security_Dashboard|design_review|SECURITY-DASHBOARD-DESIGN-REVIEW.md
+260118|Security_Dashboard|api_requirements|SECURITY-DASHBOARD-API-REQUIREMENTS.md
+260118|Security_Dashboard|total_apis|8_Endpoints
+260118|Security_Dashboard|priority_p0|2_APIs_stats_events
+260118|Security_Dashboard|priority_p1|3_APIs_timeline_block_unblock
+260118|Security_Dashboard|priority_p2|2_APIs_ip_detail_export
+260118|Security_Dashboard|priority_p3|1_API_websocket_live
+
+# API Specifications
+260118|API_security_stats|method|GET
+260118|API_security_stats|path|/api/admin/security/stats
+260118|API_security_stats|purpose|24h_statistics_top_ips_last_event
+260118|API_security_events|method|GET
+260118|API_security_events|path|/api/admin/security/events
+260118|API_security_events|purpose|event_list_with_filtering
+260118|API_security_timeline|method|GET
+260118|API_security_timeline|path|/api/admin/security/timeline
+260118|API_security_timeline|purpose|hourly_distribution_chart_data
+260118|API_security_block|method|POST
+260118|API_security_block|path|/api/admin/security/block
+260118|API_security_block|purpose|manual_ip_blocking
+260118|API_security_unblock|method|DELETE
+260118|API_security_unblock|path|/api/admin/security/block/:ip
+260118|API_security_unblock|purpose|unblock_ip_address
+260118|API_security_ip_detail|method|GET
+260118|API_security_ip_detail|path|/api/admin/security/ip/:ip
+260118|API_security_ip_detail|purpose|detailed_ip_analysis
+260118|API_security_export|method|GET
+260118|API_security_export|path|/api/admin/security/export
+260118|API_security_export|purpose|csv_export_functionality
+260118|API_security_live|method|WebSocket
+260118|API_security_live|path|/api/admin/security/live
+260118|API_security_live|purpose|realtime_event_streaming
+
+# Design Prototype Analysis
+260118|Design_Prototype|file|v4.0.0_Admin_Dashboard_增加安全監控.html
+260118|Design_Prototype|total_lines|437
+260118|Design_Prototype|visual_design|5_stars_glassmorphism_threejs
+260118|Design_Prototype|interaction|4_stars_tab_system_auto_refresh
+260118|Design_Prototype|architecture|4_stars_clear_structure
+260118|Design_Prototype|issue_critical|mock_data_integration
+260118|Design_Prototype|issue_high|data_structure_mismatch
+260118|Design_Prototype|issue_high|event_details_parsing
+260118|Design_Prototype|issue_medium|fixed_time_display
+260118|Design_Prototype|issue_medium|missing_error_handling
+260118|Design_Prototype|issue_low|threejs_performance
+
+# Integration Strategy
+260118|Integration_Phase1|duration|2_3_hours
+260118|Integration_Phase1|tasks|P0_APIs_real_data_error_handling
+260118|Integration_Phase2|duration|1_week
+260118|Integration_Phase2|tasks|P1_APIs_timeline_blocking
+260118|Integration_Phase3|duration|2_weeks
+260118|Integration_Phase3|tasks|P2_P3_APIs_advanced_features
+
+# Database Requirements
+260118|Database_New_Table|name|blocked_ips
+260118|Database_New_Table|columns|ip_address_blocked_until_reason
+260118|Database_New_Table|indexes|idx_blocked_ips_until
+
+# Security Considerations
+260118|Security_API|authentication|admin_required_httponly_cookie
+260118|Security_API|rate_limiting|60_requests_per_minute
+260118|Security_API|data_protection|ip_anonymized_30_day_retention
+260118|Security_API|cors|whitelist_only_credentials_include
+
+# Performance Optimization
+260118|Performance_Cache|stats_api|30_seconds
+260118|Performance_Cache|timeline_api|5_minutes
+260118|Performance_Cache|events_api|no_cache_realtime
+260118|Performance_Query|max_range|7_days
+260118|Performance_Query|max_limit|50_records
+260118|Performance_Query|indexes|created_at_event_type_ip_address

@@ -312,7 +312,7 @@ MIT License - 詳見 [LICENSE](LICENSE)
 
 - **文檔**: `docs/`
 - **Issues**: [GitHub Issues](https://github.com/iim0663418/DB-Card/issues)
-- **Email**: support@db-card.example.com
+- **Email**: iim0663418@moda.gov.tw
 
 ## 版本歷程
 

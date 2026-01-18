@@ -43,9 +43,11 @@ DB-Card/
 │   │   │       ├── cards.ts        # CRUD 操作
 │   │   │       ├── auth.ts         # 登入/登出
 │   │   │       ├── revoke.ts       # 撤銷機制
-│   │   │       └── kek.ts          # KEK 輪換
+│   │   │       ├── kek.ts          # KEK 輪換
+│   │   │       └── security.ts     # 安全監控（7 APIs）
 │   │   ├── middleware/
-│   │   │   └── auth.ts             # 時序安全認證
+│   │   │   ├── auth.ts             # 時序安全認證
+│   │   │   └── rate-limit.ts      # 速率限制
 │   │   ├── crypto/
 │   │   │   └── envelope.ts         # 信封加密實作
 │   │   └── utils/
@@ -54,17 +56,22 @@ DB-Card/
 │   │       ├── audit.ts            # 審計日誌
 │   │       └── response.ts         # CORS 與回應
 │   ├── public/                     # 前端資源
-│   │   ├── admin-dashboard.html    # 管理後台（含名片生成）
+│   │   ├── admin-dashboard.html    # 管理後台（含安全監控）
 │   │   ├── card-display.html       # 名片顯示頁
 │   │   ├── js/
 │   │   │   ├── api.js              # API 客戶端
 │   │   │   ├── storage.js          # IndexedDB
-│   │   │   ├── main.js             # 主邏輯
-│   │   │   └── error-handler.js    # 錯誤處理
+│   │   │   ├── main.js             # 主邏輯（含 i18n）
+│   │   │   ├── validation.js       # 表單驗證
+│   │   │   ├── error-handler.js    # 錯誤處理
+│   │   │   └── utils/
+│   │   │       └── bilingual.js    # 雙語工具
 │   │   └── css/
 │   │       └── v4-design.css       # v4.0 設計系統
 │   ├── migrations/
-│   │   └── 0001_initial_schema.sql # 資料庫結構
+│   │   ├── 0001_initial_schema.sql # 資料庫結構
+│   │   ├── 0002_security_events.sql # 安全事件表
+│   │   └── 0003_blocked_ips.sql    # IP 封鎖表
 │   ├── wrangler.toml               # Cloudflare 配置
 │   └── package.json                # 依賴管理
 ├── docs/                           # 技術文檔
@@ -74,7 +81,8 @@ DB-Card/
 │   └── api/                        # API 文檔
 │       ├── nfc-tap.md
 │       ├── read.md
-│       └── admin-apis.md
+│       ├── admin-apis.md
+│       └── kek-migration.md
 ├── .specify/                       # 開發記憶系統
 │   ├── specs/                      # BDD 規格書
 │   └── memory/                     # 知識圖譜

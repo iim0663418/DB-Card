@@ -7,6 +7,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&family=Noto+Sans+TC:wght@300;500;900&display=swap" rel="stylesheet">
+    <script>
+        // 隱藏 Tailwind CDN 警告
+        const originalWarn = console.warn;
+        console.warn = function(...args) {
+            if (args[0]?.includes?.('cdn.tailwindcss.com')) return;
+            originalWarn.apply(console, args);
+        };
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -21,7 +29,7 @@
 
         body {
             font-family: 'Outfit', 'Noto Sans TC', sans-serif;
-            background-color: #f4f7f9;
+            background: linear-gradient(135deg, rgba(244,247,249,0.3) 0%, rgba(230,235,240,0.4) 100%);
             color: var(--ui-text);
             margin: 0;
             overflow-x: hidden;
@@ -33,7 +41,7 @@
             top: 0; left: 0; z-index: 0;
             width: 100%; height: 100%;
             pointer-events: none;
-            opacity: 0.3;
+            opacity: 0.6;
         }
 
         .glass-panel {
@@ -400,7 +408,7 @@
                         <button data-lang="en" class="px-4 py-1 text-[10px] font-bold rounded-md text-slate-500 hover:text-slate-900 transition-all">EN</button>
                     </div>
                     <div id="preview-card" class="w-full max-w-[240px] sm:max-w-[260px] bg-white rounded-[2rem] sm:rounded-[3rem] shadow-2xl border-t-[6px] sm:border-t-[8px] border-t-moda p-6 sm:p-8 space-y-4 sm:space-y-6">
-                        <img id="prev-avatar" src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80" class="w-24 h-24 rounded-[2rem] mx-auto object-cover border-2 border-slate-50">
+                        <img id="prev-avatar" src="" class="w-24 h-24 rounded-[2rem] mx-auto object-cover border-2 border-slate-50 hidden">
                         <div>
                             <h3 id="prev-name" class="text-2xl font-black italic">---</h3>
                             <p id="prev-title" class="text-moda font-bold text-[10px] uppercase tracking-widest mt-2">---</p>
@@ -621,14 +629,14 @@
             const formData = new FormData(e.target);
             const data = {};
 
-            // 收集表單資料
+            // 收集表單資料（允許空字串以支援清空欄位）
             ['type', 'name_zh', 'name_en', 'title_zh', 'title_en',
              'department', 'email', 'phone', 'address_zh', 'address_en',
              'mobile', 'avatar_url', 'greetings_zh', 'greetings_en',
              'social_github', 'social_linkedin', 'social_facebook',
              'social_instagram', 'social_twitter', 'social_youtube'].forEach(key => {
                 const val = formData.get(key);
-                if (val) data[key] = val;
+                if (val !== null && val !== undefined) data[key] = val;
             });
 
             const uuid = formData.get('form-uuid');
@@ -815,9 +823,31 @@
 
         // --- 4. 輔助函數 ---
 
-        function viewCard(uuid) {
-            const url = `${window.location.origin}/card-display.html?uuid=${uuid}`;
-            window.open(url, '_blank');
+        async function viewCard(uuid) {
+            try {
+                toggleLoading(true);
+                
+                // 先 tap 獲取 session（與 admin-dashboard 一致）
+                const response = await apiCall('/api/nfc/tap', {
+                    method: 'POST',
+                    body: JSON.stringify({ card_uuid: uuid })
+                });
+
+                const sessionId = response.session_id || response.data?.session_id;
+                
+                if (!sessionId) {
+                    throw new Error('無法獲取查看授權');
+                }
+
+                // 打開名片頁面（帶 session）
+                const url = `${window.location.origin}/card-display.html?uuid=${uuid}&session=${sessionId}`;
+                window.open(url, '_blank');
+                
+                toggleLoading(false);
+            } catch (error) {
+                toggleLoading(false);
+                showToast('查看失敗: ' + (error.message || '未知錯誤'));
+            }
         }
 
         function copyCardLink(uuid) {
@@ -885,9 +915,15 @@
                 greetingSection.classList.add('hidden');
             }
 
-            // 大頭貼
+            // 大頭貼條件顯示
             const prevAvatar = document.getElementById('prev-avatar');
-            prevAvatar.src = avatar;
+            const avatarUrl = document.getElementById('avatar_url').value;
+            if (avatarUrl && avatarUrl.trim()) {
+                prevAvatar.classList.remove('hidden');
+                prevAvatar.src = avatarUrl;
+            } else {
+                prevAvatar.classList.add('hidden');
+            }
             prevAvatar.onerror = function() {
                 this.src = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80';
             };
@@ -934,21 +970,43 @@
         window.copyCardLink = copyCardLink;
 
         // --- 5. 初始化 ---
-        let scene, camera, renderer, mesh;
+        let scene, camera, renderer, mesh, grid;
         function initThree() {
             const canvas = document.getElementById('three-canvas');
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 10);
             renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
+            
+            // 網格效果
+            const gridGeo = new THREE.PlaneGeometry(150, 150, 45, 45);
+            const gridMat = new THREE.MeshBasicMaterial({
+                color: 0x6868ac,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.08
+            });
+            grid = new THREE.Mesh(gridGeo, gridMat);
+            grid.rotation.x = -Math.PI / 2.2;
+            grid.position.y = -6;
+            scene.add(grid);
+            
+            // 星空效果
             const starGeo = new THREE.BufferGeometry();
-            const pos = new Float32Array(1500 * 3);
-            for(let i=0; i<1500*3; i++) pos[i] = (Math.random() - 0.5) * 45;
+            const pos = new Float32Array(2000 * 3);
+            for(let i=0; i<2000*3; i++) pos[i] = (Math.random() - 0.5) * 50;
             starGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-            mesh = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.04, color: 0x6868ac, transparent: true, opacity: 0.2 }));
+            mesh = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.05, color: 0x6868ac, transparent: true, opacity: 0.3 }));
             scene.add(mesh);
-            camera.position.z = 12;
-            function animate() { requestAnimationFrame(animate); if(mesh) mesh.rotation.y += 0.0002; renderer.render(scene, camera); }
+            
+            camera.position.z = 10;
+            function animate() { 
+                requestAnimationFrame(animate); 
+                if(mesh) mesh.rotation.y += 0.0002;
+                if(grid) grid.rotation.z += 0.0001;
+                renderer.render(scene, camera); 
+            }
             animate();
         }
 

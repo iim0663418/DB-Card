@@ -311,13 +311,16 @@ MIT License - 詳見 [LICENSE](LICENSE)
 
 - **文檔**: `docs/`
 - **Issues**: [GitHub Issues](https://github.com/iim0663418/DB-Card/issues)
-- **Email**: iim0663418@moda.gov.tw
 
 ## 版本歷程
 
 ### v4.0.0 (2026-01-18) - 企業級安全架構
 - 信封加密機制
 - 授權會話系統
+- 完整雙語支援（11 個 i18n keys）
+- 安全監控儀表板（7 個 APIs）
+- 表單驗證與清理
+- KEK 遷移基礎設施
 - 管理後台完整 CRUD
 - HttpOnly Cookies 安全增強
 - 審計日誌與監控

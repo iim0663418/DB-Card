@@ -54,19 +54,23 @@ Value: <your_account_id>
 ## 驗證部署
 
 部署完成後，可訪問：
-- Staging: https://db-card-api-staging.workers.dev/health
-- Production: https://db-card-api-prod.workers.dev/health
+- Staging: https://db-card-staging.csw30454.workers.dev/health
+- Production: https://db-card.csw30454.workers.dev/health
 
 預期回應：
 ```json
 {
   "success": true,
   "data": {
-    "status": "ok",
-    "database": "connected",
-    "kek": "configured",
-    "environment": "production",
-    "timestamp": 1737158354092
+    "status": "healthy",
+    "timestamp": "2026-01-18T14:00:00.000Z",
+    "kek": {
+      "version": 4,
+      "status": "active"
+    },
+    "database": {
+      "active_cards": 5
+    }
   }
 }
 ```

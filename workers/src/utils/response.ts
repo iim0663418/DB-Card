@@ -62,8 +62,12 @@ export function errorResponse(code: string, message: string, status: number = 40
 /**
  * Public error response - minimal information to prevent information disclosure
  * Use for unauthenticated endpoints (404, 401, 403)
+ * Includes standardized delay to prevent timing attacks
  */
-export function publicErrorResponse(status: number = 400, request?: Request): Response {
+export async function publicErrorResponse(status: number = 400, request?: Request): Promise<Response> {
+  // Standardized delay to prevent timing attacks (100ms)
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
   const corsHeaders = request ? getCorsHeaders(request) : {};
 
   return new Response(

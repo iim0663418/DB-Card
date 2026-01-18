@@ -30,6 +30,30 @@ export function anonymizeIP(ip: string): string {
 }
 
 /**
+ * Log security event for monitoring and analysis
+ * Records endpoint enumeration, rate limiting, and suspicious patterns
+ */
+export async function logSecurityEvent(
+  db: D1Database,
+  eventType: 'endpoint_enumeration' | 'rate_limit_exceeded' | 'suspicious_pattern',
+  ip: string,
+  details?: Record<string, any>
+): Promise<void> {
+  try {
+    const anonymizedIP = anonymizeIP(ip);
+    const detailsJson = details ? JSON.stringify(details) : null;
+
+    await db.prepare(`
+      INSERT INTO security_events (event_type, ip_address, details, created_at)
+      VALUES (?, ?, ?, datetime('now'))
+    `).bind(eventType, anonymizedIP, detailsJson).run();
+  } catch (error) {
+    // Log error but don't throw - security logging should not break main flow
+    console.error('Failed to log security event:', error);
+  }
+}
+
+/**
  * Log an audit event to the database
  */
 export async function logEvent(

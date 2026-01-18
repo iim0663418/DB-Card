@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>moda Admin Dashboard | 數位治理主控台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&family=Noto+Sans+TC:wght@300;500;700;900&display=swap');
+        
+        :root {
+            --moda-accent: #6868ac;
+            --moda-success: #10b981;
+            --moda-warning: #f59e0b;
+            --moda-danger: #ef4444;
+            --crystal-bg: rgba(255, 255, 255, 0.7);
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #f4f7f9;
+            color: #1e1e3f;
+            margin: 0;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        #three-canvas {
+            position: fixed;
+            top: 0; left: 0; z-index: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            opacity: 0.25;
+        }
+
+        .glass-panel {
+            background: var(--crystal-bg);
+            backdrop-filter: blur(40px) saturate(150%);
+            -webkit-backdrop-filter: blur(40px) saturate(150%);
+            border: 1px solid rgba(104, 104, 172, 0.1);
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Tab 系統優化 */
+        .tab-btn {
+            position: relative;
+            padding: 16px 28px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #94a3b8;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 0.5px;
+        }
+        .tab-btn.active {
+            color: var(--moda-accent);
+            background: rgba(104, 104, 172, 0.05);
+        }
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 4px;
+            background: var(--moda-accent);
+        }
+
+        /* 安全指標卡片系統 */
+        .security-kpi-card {
+            border-left: 4px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        .security-kpi-card.danger { border-left-color: var(--moda-danger); }
+        .security-kpi-card.warning { border-left-color: var(--moda-warning); }
+        .security-kpi-card.success { border-left-color: var(--moda-success); }
+        .security-kpi-card:hover { transform: translateY(-3px); box-shadow: 0 15px 30px -10px rgba(0,0,0,0.1); }
+
+        /* 威脅熱力條 */
+        .threat-bar-bg { height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
+        .threat-bar-fill { 
+            height: 100%; 
+            background: linear-gradient(90deg, var(--moda-warning), var(--moda-danger));
+            border-radius: 3px;
+            transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* 等寬字體專屬 */
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="p-4 lg:p-8">
+
+    <canvas id="three-canvas"></canvas>
+
+    <div class="relative z-10 max-w-7xl mx-auto space-y-6">
+        
+        <!-- Header -->
+        <header class="glass-panel p-6 rounded-3xl flex flex-col lg:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-2xl">
+                    <i data-lucide="shield-check" class="w-7 h-7"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-black tracking-tight">Governance Portal</h1>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Security Management Console</span>
+                        <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+                        <span class="text-[10px] font-bold text-indigo-500 uppercase">v4.0.5</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="token-section" class="flex items-center gap-3 bg-white/60 p-2 rounded-2xl border border-white">
+                <input type="password" id="setup-token" placeholder="輸入授權密鑰..." class="w-56 px-4 py-2 bg-transparent outline-none text-sm font-medium">
+                <button id="verify-btn" class="bg-slate-900 text-white px-6 py-2 rounded-xl text-xs font-black tracking-widest hover:bg-indigo-600 transition-all">驗證</button>
+            </div>
+            
+            <div id="auth-status" class="hidden flex items-center gap-4 px-6 py-3 bg-green-50 rounded-2xl border border-green-100">
+                <div class="relative">
+                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                    <div class="absolute inset-0 w-3 h-3 rounded-full bg-green-500 animate-ping"></div>
+                </div>
+                <span class="text-xs font-black text-green-700 uppercase tracking-widest">Authorized Session</span>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav id="admin-nav" class="hidden glass-panel rounded-2xl flex border-b border-indigo-50 overflow-x-auto no-scrollbar">
+            <button onclick="switchTab('list')" id="tab-list" class="tab-btn active flex items-center gap-3">
+                <i data-lucide="database" class="w-4 h-4"></i> 名片數據
+            </button>
+            <button onclick="switchTab('create')" id="tab-create" class="tab-btn flex items-center gap-3">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i> 簽發憑證
+            </button>
+            <button onclick="switchTab('security')" id="tab-security" class="tab-btn flex items-center gap-3">
+                <i data-lucide="activity" class="w-4 h-4 text-red-500"></i> 安全監控
+            </button>
+            <button onclick="switchTab('tools')" id="tab-tools" class="tab-btn flex items-center gap-3">
+                <i data-lucide="cpu" class="w-4 h-4"></i> 系統工具
+            </button>
+        </nav>
+
+        <div id="content-area" class="hidden min-h-[600px]">
+            
+            <!-- Tab: 名片列表 -->
+            <section id="section-list" class="space-y-6 fade-in">
+                <div class="glass-panel p-6 rounded-3xl flex flex-wrap gap-4 items-center justify-between">
+                    <div class="relative flex-1 min-w-[300px]">
+                        <i data-lucide="search" class="absolute left-4 top-3.5 w-4 h-4 text-slate-400"></i>
+                        <input type="text" id="search-input" placeholder="搜尋身分標籤或電子郵件..." class="w-full pl-12 pr-4 py-3 bg-white/50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm">
+                    </div>
+                </div>
+                <div id="cards-grid" class="grid grid-cols-1 gap-4"></div>
+            </section>
+
+            <!-- Tab: 創建名片 -->
+            <section id="section-create" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-8 fade-in">
+                <div class="lg:col-span-7 glass-panel p-10 rounded-3xl">
+                    <form id="card-form" class="space-y-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Chinese Name</label>
+                                <input type="text" id="name_zh" placeholder="如：唐鳳" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-indigo-500 font-bold transition-all">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">English Name</label>
+                                <input type="text" id="name_en" placeholder="Audrey Tang" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-indigo-500 font-bold transition-all">
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-indigo-600 shadow-2xl transition-all">簽發數位身分憑證</button>
+                    </form>
+                </div>
+                <div class="lg:col-span-5">
+                    <div class="glass-panel p-10 rounded-3xl text-center flex flex-col items-center justify-center min-h-full">
+                        <p class="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-10">Verification Preview</p>
+                        <div class="w-full max-w-[280px] bg-white rounded-[3rem] shadow-2xl border-t-[8px] border-indigo-600 p-10">
+                            <div class="w-24 h-24 bg-slate-100 rounded-[2rem] mx-auto mb-6 shadow-inner"></div>
+                            <div class="h-4 w-32 bg-slate-100 mx-auto rounded-full mb-4"></div>
+                            <div class="h-2 w-20 bg-slate-50 mx-auto rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab: 安全監控 (UI Designer 重構版) -->
+            <section id="section-security" class="hidden space-y-8 fade-in">
+                
+                <!-- 核心指標矩陣 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="security-kpi-card glass-panel border-none p-8 flex flex-col items-center">
+                        <div class="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-500 mb-4"><i data-lucide="shield"></i></div>
+                        <div class="stat-value" id="total-events">0</div>
+                        <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-3">24h Total Events</div>
+                    </div>
+                    <div class="security-kpi-card danger glass-panel border-none p-8 flex flex-col items-center">
+                        <div class="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 mb-4"><i data-lucide="zap"></i></div>
+                        <div class="stat-value text-red-600" id="rate-limit-events">0</div>
+                        <div class="text-[10px] font-black text-red-400 uppercase tracking-widest mt-3">Rate Limit Triggers</div>
+                    </div>
+                    <div class="security-kpi-card warning glass-panel border-none p-8 flex flex-col items-center">
+                        <div class="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 mb-4"><i data-lucide="fingerprint"></i></div>
+                        <div class="stat-value text-amber-700" id="enumeration-events">0</div>
+                        <div class="text-[10px] font-black text-amber-500 uppercase tracking-widest mt-3">API Probing</div>
+                    </div>
+                    <div class="security-kpi-card success glass-panel border-none p-8 flex flex-col items-center">
+                        <div class="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600 mb-4"><i data-lucide="shield-check"></i></div>
+                        <div class="stat-value text-green-600" id="critical-threats">0</div>
+                        <div class="text-[10px] font-black text-green-500 uppercase tracking-widest mt-3">Neutralized Risks</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <!-- 攻擊來源分析 -->
+                    <div class="lg:col-span-7 glass-panel p-10 rounded-3xl">
+                        <div class="flex items-center justify-between mb-10">
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500"><i data-lucide="map-pin"></i></div>
+                                <h3 class="font-black text-sm uppercase tracking-widest">Threat Origin Distribution</h3>
+                            </div>
+                            <span class="text-[10px] font-bold text-slate-400">TOP 5 VECTORS</span>
+                        </div>
+                        <div id="top-ips-list" class="space-y-6">
+                            <!-- 由 JS 動態注入 -->
+                        </div>
+                    </div>
+
+                    <!-- 最後事件情報 (改版為 HUD 質感) -->
+                    <div class="lg:col-span-5 glass-panel p-10 rounded-3xl relative overflow-hidden">
+                        <div class="absolute top-0 right-0 p-4 opacity-5 pointer-events-none"><i data-lucide="clock" class="w-32 h-32"></i></div>
+                        <div class="flex items-center gap-4 mb-10">
+                            <div class="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-500"><i data-lucide="timer"></i></div>
+                            <h3 class="font-black text-sm uppercase tracking-widest">Last Event Logic</h3>
+                        </div>
+                        <div id="last-event-info" class="flex flex-col items-center justify-center py-10 bg-white/40 rounded-[2rem] border border-white/60">
+                             <p class="text-slate-300 text-xs italic">Awaiting synchronization...</p>
+                        </div>
+                    </div>
+
+                    <!-- 事件即時日誌 (高密度專業表格) -->
+                    <div class="lg:col-span-12 glass-panel p-10 rounded-3xl">
+                        <div class="flex items-center justify-between mb-8">
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white"><i data-lucide="terminal" class="w-5 h-5"></i></div>
+                                <h3 class="font-black text-sm uppercase tracking-widest">System Security Ledger</h3>
+                            </div>
+                            <button onclick="loadSecurityData()" class="p-3 bg-white border border-slate-100 rounded-xl hover:bg-slate-50 transition-all text-slate-400 hover:text-indigo-600"><i data-lucide="rotate-cw" class="w-4 h-4"></i></button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr class="border-b border-indigo-50">
+                                        <th class="pb-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Timestamp</th>
+                                        <th class="pb-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Event Classifier</th>
+                                        <th class="pb-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Source IP</th>
+                                        <th class="pb-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Resource Path / Payload</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="events-tbody" class="text-xs font-bold text-slate-600">
+                                    <!-- 由 JS 動態注入 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab: 系統工具 -->
+            <section id="section-tools" class="hidden space-y-6 fade-in">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="glass-panel p-10 rounded-3xl">
+                        <h2 class="text-lg font-black flex items-center gap-4 mb-6"><i data-lucide="shield-alert" class="text-red-500"></i> KEK 密鑰管理</h2>
+                        <button onclick="confirmAction('kek_rotate')" class="w-full py-5 bg-red-50 text-red-700 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-red-600 hover:text-white transition-all shadow-sm">啟動密鑰輪替協議</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="confirm-modal" class="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-md hidden flex items-center justify-center p-6">
+        <div class="glass-panel max-w-md w-full p-10 rounded-[2.5rem] space-y-8 animate-in fade-in zoom-in duration-300 shadow-2xl">
+            <div class="text-center">
+                <div class="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6"><i data-lucide="alert-octagon" class="w-10 h-10"></i></div>
+                <h2 id="modal-title" class="text-xl font-black tracking-tight mb-2">確定執行此操作？</h2>
+                <p class="text-sm text-slate-400 leading-relaxed">此項操作將永久影響伺服器節點的加密狀態，且不可撤銷。</p>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="closeModal()" class="flex-1 py-4 bg-slate-50 text-slate-500 rounded-2xl font-black uppercase text-[10px] tracking-widest">取消</button>
+                <button id="modal-confirm-btn" class="flex-1 py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl">確定執行</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Three.js Background ---
+        let scene, camera, renderer, mesh;
+        function initThree() {
+            const canvas = document.getElementById('three-canvas');
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            const starGeo = new THREE.BufferGeometry();
+            const pos = new Float32Array(1500 * 3);
+            for(let i=0; i<1500*3; i++) pos[i] = (Math.random() - 0.5) * 45;
+            starGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            mesh = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.04, color: 0x6868ac, transparent: true, opacity: 0.25 }));
+            scene.add(mesh);
+            camera.position.z = 12;
+            function animate() { requestAnimationFrame(animate); if(mesh) mesh.rotation.y += 0.0002; renderer.render(scene, camera); }
+            animate();
+        }
+
+        // --- 2. 狀態與數據引擎 ---
+        let isVerified = false;
+        let securityInterval = null;
+
+        // --- 3. UI 邏輯 ---
+        function switchTab(tabId) {
+            if(!isVerified) return;
+            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`section-${tabId}`).classList.remove('hidden');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            
+            if(tabId === 'security') {
+                loadSecurityData();
+                if(!securityInterval) securityInterval = setInterval(loadSecurityData, 30000);
+            } else {
+                clearInterval(securityInterval);
+                securityInterval = null;
+            }
+        }
+
+        // 核心安全數據處理
+        async function loadSecurityData() {
+            try {
+                // 模擬 API 回應
+                const mockData = {
+                    stats: { total: 124, rate_limit: 42, probing: 78, critical: 4 },
+                    topIPs: [
+                        { ip: "114.33.20.12", count: 56, risk: "High" },
+                        { ip: "39.101.44.201", count: 32, risk: "Medium" },
+                        { ip: "192.168.1.10", count: 12, risk: "Low" }
+                    ],
+                    lastEvent: { time: new Date(Date.now() - 45000).toISOString(), type: "Probing" },
+                    events: [
+                        { time: "18:20:11", type: "rate_limit_exceeded", ip: "114.33.20.12", path: "/api/read", count: 120 },
+                        { time: "18:15:45", type: "endpoint_enumeration", ip: "39.101.44.201", path: "/api/admin/debug", count: 45 }
+                    ]
+                };
+
+                // 更新指標
+                document.getElementById('total-events').innerText = mockData.stats.total;
+                document.getElementById('rate-limit-events').innerText = mockData.stats.rate_limit;
+                document.getElementById('enumeration-events').innerText = mockData.stats.probing;
+                document.getElementById('critical-threats').innerText = mockData.stats.critical;
+
+                // 更新 IP 排行
+                const ipList = document.getElementById('top-ips-list');
+                const max = mockData.topIPs[0].count;
+                ipList.innerHTML = mockData.topIPs.map(item => `
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+                            <span class="mono text-indigo-600">${item.ip}</span>
+                            <span class="text-slate-400">${item.count} ATTACKS</span>
+                        </div>
+                        <div class="threat-bar-bg"><div class="threat-bar-fill" style="width: ${(item.count/max)*100}%"></div></div>
+                    </div>
+                `).join('');
+
+                // 更新 Last Event (HUD 質感)
+                const lastDate = new Date(mockData.lastEvent.time);
+                document.getElementById('last-event-info').innerHTML = `
+                    <div class="text-center">
+                        <div class="text-5xl font-black tracking-tighter text-slate-900 mb-2">45<span class="text-xl">s ago</span></div>
+                        <div class="px-4 py-1 bg-indigo-600 text-white rounded-full text-[9px] font-black uppercase tracking-[0.2em] mb-4">${mockData.lastEvent.type}</div>
+                        <div class="text-[9px] font-bold text-slate-300 mono">${lastDate.toLocaleTimeString()}</div>
+                    </div>
+                `;
+
+                // 更新表格
+                document.getElementById('events-tbody').innerHTML = mockData.events.map(ev => `
+                    <tr class="border-b border-indigo-50/50 hover:bg-white/40 transition-colors">
+                        <td class="py-5 mono opacity-60">${ev.time}</td>
+                        <td class="py-5"><span class="badge ${getStyle(ev.type)}">${ev.type.replace(/_/g,' ')}</span></td>
+                        <td class="py-5 mono text-indigo-600 font-black">${ev.ip}</td>
+                        <td class="py-5 text-slate-400 font-medium">${ev.path} <span class="ml-2 text-[9px] bg-slate-100 px-2 py-0.5 rounded text-slate-500">${ev.count} hits</span></td>
+                    </tr>
+                `).join('');
+                lucide.createIcons();
+            } catch (e) { console.error("Sync Error", e); }
+        }
+
+        function getStyle(t) {
+            return t === 'rate_limit_exceeded' ? 'background: #fee2e2; color: #ef4444;' : 'background: #fef3c7; color: #d97706;';
+        }
+
+        function closeModal() { document.getElementById('confirm-modal').classList.add('hidden'); }
+        function confirmAction() { document.getElementById('confirm-modal').classList.remove('hidden'); }
+
+        function loadCards() {
+            document.getElementById('cards-grid').innerHTML = `<div class="text-center py-20 text-slate-300 text-xs italic">Synchronizing identity vault...</div>`;
+        }
+
+        // --- 4. 初始化 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            initThree();
+
+            document.getElementById('verify-btn').onclick = () => {
+                if(document.getElementById('setup-token').value === "moda-secret-2026") {
+                    isVerified = true;
+                    document.getElementById('token-section').classList.add('hidden');
+                    document.getElementById('auth-status').classList.remove('hidden');
+                    document.getElementById('admin-nav').classList.remove('hidden');
+                    document.getElementById('content-area').classList.remove('hidden');
+                    switchTab('security'); // 預設進入監控
+                } else { alert("INVALID TOKEN"); }
+            };
+        });
+
+        window.onresize = () => {
+            if(camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        };
+    </script>
+</body>
+</html>

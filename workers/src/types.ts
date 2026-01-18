@@ -9,17 +9,21 @@ export interface Env {
   ENVIRONMENT: 'production' | 'staging';
 }
 
+// Bilingual support types
+export type BilingualString = string | { zh: string; en: string };
+export type BilingualStringArray = string[] | { zh: string[]; en: string[] };
+
 export interface CardData {
-  name: string;
-  title: string;
-  department?: string;
-  organization?: string;
+  name: BilingualString;
+  title: BilingualString;
+  department?: BilingualString;
+  organization?: BilingualString;
   email: string;
   phone?: string;
   mobile?: string;
   avatar?: string;
-  address?: string;
-  greetings?: string[];
+  address?: BilingualString;
+  greetings?: BilingualStringArray;
   socialLinks?: {
     email?: string;
     socialNote?: string;

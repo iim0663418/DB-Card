@@ -16,10 +16,44 @@ function isValidEmail(email: string): boolean {
 }
 
 /**
+ * Validate BilingualString format
+ */
+function validateBilingualString(value: any): boolean {
+  // Single language (string)
+  if (typeof value === 'string') return true;
+  
+  // Bilingual (object with zh and en)
+  if (typeof value === 'object' && value !== null) {
+    return typeof value.zh === 'string' && typeof value.en === 'string';
+  }
+  
+  return false;
+}
+
+/**
+ * Validate BilingualStringArray format
+ */
+function validateBilingualStringArray(value: any): boolean {
+  // Single language (string array)
+  if (Array.isArray(value)) {
+    return value.every(item => typeof item === 'string');
+  }
+  
+  // Bilingual (object with zh and en arrays)
+  if (typeof value === 'object' && value !== null) {
+    return Array.isArray(value.zh) && Array.isArray(value.en) &&
+           value.zh.every((item: any) => typeof item === 'string') &&
+           value.en.every((item: any) => typeof item === 'string');
+  }
+  
+  return false;
+}
+
+/**
  * Validate cardData according to BDD spec
  *
  * Required fields:
- * - name: 1-100 characters
+ * - name: BilingualString (1-100 characters)
  * - email: valid email format
  *
  * Optional fields:
@@ -31,12 +65,18 @@ function validateCardData(cardData: any): { valid: boolean; error?: string } {
     return { valid: false, error: '缺少 cardData' };
   }
 
-  // Validate name (required)
+  // Validate name (required, supports bilingual)
   if (!cardData.name) {
     return { valid: false, error: '缺少必要欄位: name' };
   }
 
-  if (typeof cardData.name !== 'string' || cardData.name.length < 1 || cardData.name.length > 100) {
+  if (!validateBilingualString(cardData.name)) {
+    return { valid: false, error: 'name 格式無效（必須為字串或 {zh, en} 物件）' };
+  }
+
+  // Validate name length
+  const nameStr = typeof cardData.name === 'string' ? cardData.name : cardData.name.zh;
+  if (nameStr.length < 1 || nameStr.length > 100) {
     return { valid: false, error: 'name 必須為 1-100 字元' };
   }
 
@@ -49,6 +89,26 @@ function validateCardData(cardData: any): { valid: boolean; error?: string } {
     return { valid: false, error: 'email 格式無效' };
   }
 
+  // Validate title if provided (supports bilingual)
+  if (cardData.title !== undefined && !validateBilingualString(cardData.title)) {
+    return { valid: false, error: 'title 格式無效（必須為字串或 {zh, en} 物件）' };
+  }
+
+  // Validate department if provided (supports bilingual)
+  if (cardData.department !== undefined && !validateBilingualString(cardData.department)) {
+    return { valid: false, error: 'department 格式無效（必須為字串或 {zh, en} 物件）' };
+  }
+
+  // Validate organization if provided (supports bilingual)
+  if (cardData.organization !== undefined && !validateBilingualString(cardData.organization)) {
+    return { valid: false, error: 'organization 格式無效（必須為字串或 {zh, en} 物件）' };
+  }
+
+  // Validate greetings if provided (supports bilingual)
+  if (cardData.greetings !== undefined && !validateBilingualStringArray(cardData.greetings)) {
+    return { valid: false, error: 'greetings 格式無效（必須為字串陣列或 {zh: [], en: []} 物件）' };
+  }
+
   return { valid: true };
 }
 
@@ -56,7 +116,7 @@ function validateCardData(cardData: any): { valid: boolean; error?: string } {
  * Validate cardData for update (partial fields allowed)
  *
  * At least one field must be provided:
- * - name: 1-100 characters (optional)
+ * - name: BilingualString (optional)
  * - email: valid email format (optional)
  *
  * Other optional fields:
@@ -74,9 +134,13 @@ function validateUpdateCardData(cardData: any): { valid: boolean; error?: string
     return { valid: false, error: 'cardData 至少包含一個欄位' };
   }
 
-  // Validate name if provided
+  // Validate name if provided (supports bilingual)
   if (cardData.name !== undefined) {
-    if (typeof cardData.name !== 'string' || cardData.name.length < 1 || cardData.name.length > 100) {
+    if (!validateBilingualString(cardData.name)) {
+      return { valid: false, error: 'name 格式無效（必須為字串或 {zh, en} 物件）' };
+    }
+    const nameStr = typeof cardData.name === 'string' ? cardData.name : cardData.name.zh;
+    if (nameStr.length < 1 || nameStr.length > 100) {
       return { valid: false, error: 'name 必須為 1-100 字元' };
     }
   }
@@ -86,6 +150,21 @@ function validateUpdateCardData(cardData: any): { valid: boolean; error?: string
     if (typeof cardData.email !== 'string' || !isValidEmail(cardData.email)) {
       return { valid: false, error: 'Email 格式無效' };
     }
+  }
+
+  // Validate title if provided (supports bilingual)
+  if (cardData.title !== undefined && !validateBilingualString(cardData.title)) {
+    return { valid: false, error: 'title 格式無效（必須為字串或 {zh, en} 物件）' };
+  }
+
+  // Validate department if provided (supports bilingual)
+  if (cardData.department !== undefined && !validateBilingualString(cardData.department)) {
+    return { valid: false, error: 'department 格式無效（必須為字串或 {zh, en} 物件）' };
+  }
+
+  // Validate greetings if provided (supports bilingual)
+  if (cardData.greetings !== undefined && !validateBilingualStringArray(cardData.greetings)) {
+    return { valid: false, error: 'greetings 格式無效（必須為字串陣列或 {zh: [], en: []} 物件）' };
   }
 
   return { valid: true };

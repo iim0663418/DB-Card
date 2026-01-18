@@ -1,33 +1,33 @@
 # DB-Card - NFC 數位名片系統 v4.0
 
-🔐 基於「隱私優先」與「安全至上」理念的企業級 NFC 數位名片系統
+基於「隱私優先」與「安全至上」理念的企業級 NFC 數位名片系統
 
-## 🎯 v4.0 核心特性
+## v4.0 核心特性
 
-### 🔒 企業級安全架構
+### 企業級安全架構
 - **信封加密 (Envelope Encryption)**: 每張名片獨立 DEK，KEK 定期輪換
 - **授權會話機制 (ReadSession)**: 24 小時 TTL，可撤銷、可限制讀取次數
 - **即時撤銷**: NFC 重新觸碰即可撤銷上一個會話
 - **審計日誌**: 完整記錄所有存取行為，IP 匿名化保護隱私
 
-### 🚀 Cloudflare Workers 架構
+### Cloudflare Workers 架構
 - **全球邊緣運算**: 低延遲、高可用性
 - **D1 Database**: SQLite 相容的分散式資料庫
 - **無伺服器**: 自動擴展，按需計費
 
-### 📱 使用者體驗
+### 使用者體驗
 - **一觸即用**: NFC 觸碰自動創建授權會話
 - **雙語支援**: 中英文動態切換
 - **離線 QR 碼**: 無網路環境下生成 vCard QR 碼
 - **智慧 vCard**: 自動生成聯絡人檔案
 
-### 🛡️ 管理後台
+### 管理後台
 - **完整 CRUD**: 創建、讀取、更新、刪除名片
 - **即時監控**: KEK 版本、活躍名片數統計
 - **緊急撤銷**: 全域撤銷機制
 - **HttpOnly Cookies**: XSS 防護
 
-## 📦 專案結構
+## 專案結構
 
 ```
 DB-Card/
@@ -85,7 +85,7 @@ DB-Card/
     └── README.md                   # 封存說明
 ```
 
-## 🚀 快速開始
+## 快速開始
 
 ### 1. 環境準備
 
@@ -125,7 +125,7 @@ npx wrangler d1 execute DB --local --file=./migrations/0001_initial_schema.sql
 npx wrangler d1 execute DB --remote --file=./migrations/0001_initial_schema.sql
 ```
 
-## 📱 使用流程
+## 使用流程
 
 ### 使用者端
 
@@ -143,7 +143,7 @@ npx wrangler d1 execute DB --remote --file=./migrations/0001_initial_schema.sql
 4. **查看名片**: 自動創建會話並開啟預覽
 5. **撤銷會話**: 緊急情況下全域撤銷
 
-## 🔐 安全特性
+## 安全特性
 
 ### 信封加密架構
 
@@ -184,7 +184,7 @@ npx wrangler d1 execute DB --remote --file=./migrations/0001_initial_schema.sql
 - **全域撤銷**: 管理後台 `POST /api/admin/revoke`
 - **緊急響應**: KEK 輪換使所有舊會話失效
 
-## 🛠️ API 端點
+## API 端點
 
 ### 公開 API
 
@@ -206,7 +206,7 @@ npx wrangler d1 execute DB --remote --file=./migrations/0001_initial_schema.sql
 
 詳細 API 文檔請參考 `docs/api/`
 
-## 📊 監控與日誌
+## 監控與日誌
 
 ### 健康檢查
 
@@ -237,7 +237,7 @@ curl https://your-domain/health
 - KEK 輪換
 - IP 地址自動匿名化（保留前 3 段）
 
-## 🔄 從 v3.X 遷移
+## 從 v3.X 遷移
 
 v3.X 純前端架構已封存至 `archive/` 目錄，包含：
 - PWA 離線儲存系統
@@ -257,7 +257,7 @@ v4.0 採用後端 API 架構，提供更強的安全性與管理能力。
 
 詳細遷移指南請參考 `archive/README.md`
 
-## 🧪 測試
+## 測試
 
 ```bash
 # 單元測試
@@ -270,7 +270,7 @@ npm run test:integration
 npm run test:e2e
 ```
 
-## 📝 開發指南
+## 開發指南
 
 ### BDD 規格驅動開發
 
@@ -292,11 +292,11 @@ npm run test:e2e
 - `progress.md` - 當前開發進度
 - `knowledge_graph.mem` - 長期知識歸檔
 
-## 📄 授權條款
+## 授權條款
 
 MIT License - 詳見 [LICENSE](LICENSE)
 
-## 🤝 貢獻指南
+## 貢獻指南
 
 歡迎提交 Issue 和 Pull Request！
 
@@ -308,28 +308,28 @@ MIT License - 詳見 [LICENSE](LICENSE)
 6. 推送分支 (`git push origin feature/amazing-feature`)
 7. 開啟 Pull Request
 
-## 📞 技術支援
+## 技術支援
 
 - **文檔**: `docs/`
-- **Issues**: [GitHub Issues](https://github.com/yourusername/DB-Card/issues)
+- **Issues**: [GitHub Issues](https://github.com/iim0663418/DB-Card/issues)
 - **Email**: support@db-card.example.com
 
-## 🎯 版本歷程
+## 版本歷程
 
 ### v4.0.0 (2026-01-18) - 企業級安全架構
-- ✅ 信封加密機制
-- ✅ 授權會話系統
-- ✅ 管理後台完整 CRUD
-- ✅ HttpOnly Cookies 安全增強
-- ✅ 審計日誌與監控
+- 信封加密機制
+- 授權會話系統
+- 管理後台完整 CRUD
+- HttpOnly Cookies 安全增強
+- 審計日誌與監控
 
 ### v3.2.1 (2025-08-09) - PWA 穩定版
-- ✅ PWA 離線儲存
-- ✅ 雙語翻譯系統
-- ✅ 安全架構模組
-- 📦 已封存至 `archive/v3-pwa/`
+- PWA 離線儲存
+- 雙語翻譯系統
+- 安全架構模組
+- 已封存至 `archive/v3-pwa/`
 
 ---
 
-🔐 **企業級安全，隱私優先設計！**  
-🚀 **Cloudflare Workers 全球邊緣運算！**
+**企業級安全，隱私優先設計**  
+**Cloudflare Workers 全球邊緣運算**

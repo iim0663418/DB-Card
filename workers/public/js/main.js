@@ -491,28 +491,80 @@ function animate() {
 window.addEventListener('resize', handleResize);
 
 function generateVCard(cardData) {
+    // vCard 值跳脫函數
+    const escapeVCardValue = (value) => {
+        if (!value) return '';
+        return value
+            .replace(/\\/g, '\\\\')
+            .replace(/;/g, '\\;')
+            .replace(/,/g, '\\,')
+            .replace(/\n/g, '\\n');
+    };
+    
+    // 取得當前語言的資料（iOS 對 vCard 4.0 支援不完整，改用 3.0 單語言）
     const name = getLocalizedText(cardData.name, currentLanguage);
     const title = getLocalizedText(cardData.title, currentLanguage);
+    const dept = getLocalizedText(cardData.department, currentLanguage);
+    const org = getLocalizedText(cardData.organization, currentLanguage) || '數位發展部';
+    const addr = getLocalizedText(cardData.address, currentLanguage);
     
     let vcard = 'BEGIN:VCARD\n';
     vcard += 'VERSION:3.0\n';
-    vcard += `FN:${name}\n`;
-    vcard += `TITLE:${title || ''}\n`;
+    vcard += 'CHARSET:UTF-8\n';
     
-    if (cardData.email) {
-        vcard += `EMAIL:${cardData.email}\n`;
+    // FN (Formatted Name)
+    if (name) {
+        vcard += `FN:${escapeVCardValue(name)}\n`;
     }
     
+    // N (Structured Name)
+    if (name) {
+        const familyName = name.charAt(0);
+        const givenName = name.substring(1);
+        vcard += `N:${escapeVCardValue(familyName)};${escapeVCardValue(givenName)};;;\n`;
+    }
+    
+    // TITLE
+    if (title) {
+        vcard += `TITLE:${escapeVCardValue(title)}\n`;
+    }
+    
+    // ORG
+    if (org || dept) {
+        const orgEscaped = escapeVCardValue(org);
+        const deptEscaped = dept ? escapeVCardValue(dept) : '';
+        vcard += `ORG:${orgEscaped}${deptEscaped ? ';' + deptEscaped : ''}\n`;
+    }
+    
+    // ADR
+    if (addr) {
+        vcard += `ADR;TYPE=WORK:;;${escapeVCardValue(addr)};;;;\n`;
+    }
+    
+    // EMAIL
+    if (cardData.email) {
+        vcard += `EMAIL;TYPE=WORK:${cardData.email}\n`;
+    }
+    
+    // TEL
     if (cardData.phone) {
         vcard += `TEL;TYPE=WORK:${cardData.phone}\n`;
     }
-    
     if (cardData.mobile) {
         vcard += `TEL;TYPE=CELL:${cardData.mobile}\n`;
     }
     
-    if (cardData.department) {
-        vcard += `ORG:數位發展部;${cardData.department}\n`;
+    // PHOTO - 只支援公開可存取的 URL
+    if (cardData.avatar) {
+        let photoUrl = cardData.avatar;
+        // 轉換 Google Drive 分享連結為直接圖片 URL
+        const driveMatch = photoUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^\/\?&]+)/);
+        if (driveMatch) {
+            const fileId = driveMatch[1];
+            // 使用 uc?export=view 格式，相容性更好
+            photoUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
+        }
+        vcard += `PHOTO;VALUE=URL;TYPE=JPEG:${photoUrl}\n`;
     }
     
     vcard += 'END:VCARD';
@@ -552,18 +604,21 @@ document.getElementById('save-vcard').addEventListener('click', () => {
     
     getCard(uuid).then(cardData => {
         if (cardData) {
+            console.log('Card data for vCard:', cardData);
+            console.log('Avatar URL:', cardData.avatar);
             const vcard = generateVCard(cardData);
-            const blob = new Blob([vcard], { type: 'text/vcard' });
-            const url = URL.createObjectURL(blob);
+            console.log('Generated vCard:', vcard);
+            // Safari iOS 不支援 Blob URL 下載，改用 data URI
+            // 不使用 BOM，直接用 UTF-8
+            const dataUri = 'data:text/vcard;charset=utf-8,' + encodeURIComponent(vcard);
             const a = document.createElement('a');
-            a.href = url;
+            a.href = dataUri;
             // 根據當前語言狀態決定檔名
             const name = typeof cardData.name === 'object' 
                 ? (currentLanguage === 'zh' ? (cardData.name.zh || cardData.name.en) : (cardData.name.en || cardData.name.zh))
                 : cardData.name;
             a.download = `${name || 'contact'}.vcf`;
             a.click();
-            URL.revokeObjectURL(url);
             showNotification('vCard 已下載', 'success');
         }
     });

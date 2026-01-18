@@ -75,9 +75,17 @@ function validateCardData(cardData: any): { valid: boolean; error?: string } {
   }
 
   // Validate name length
-  const nameStr = typeof cardData.name === 'string' ? cardData.name : cardData.name.zh;
-  if (nameStr.length < 1 || nameStr.length > 100) {
-    return { valid: false, error: 'name 必須為 1-100 字元' };
+  if (typeof cardData.name === 'string') {
+    if (cardData.name.length < 1 || cardData.name.length > 100) {
+      return { valid: false, error: 'name 必須為 1-100 字元' };
+    }
+  } else if (typeof cardData.name === 'object') {
+    if (cardData.name.zh.length < 1 || cardData.name.zh.length > 100) {
+      return { valid: false, error: 'name.zh 必須為 1-100 字元' };
+    }
+    if (cardData.name.en.length < 1 || cardData.name.en.length > 100) {
+      return { valid: false, error: 'name.en 必須為 1-100 字元' };
+    }
   }
 
   // Validate email (required)
@@ -139,9 +147,17 @@ function validateUpdateCardData(cardData: any): { valid: boolean; error?: string
     if (!validateBilingualString(cardData.name)) {
       return { valid: false, error: 'name 格式無效（必須為字串或 {zh, en} 物件）' };
     }
-    const nameStr = typeof cardData.name === 'string' ? cardData.name : cardData.name.zh;
-    if (nameStr.length < 1 || nameStr.length > 100) {
-      return { valid: false, error: 'name 必須為 1-100 字元' };
+    if (typeof cardData.name === 'string') {
+      if (cardData.name.length < 1 || cardData.name.length > 100) {
+        return { valid: false, error: 'name 必須為 1-100 字元' };
+      }
+    } else if (typeof cardData.name === 'object') {
+      if (cardData.name.zh.length < 1 || cardData.name.zh.length > 100) {
+        return { valid: false, error: 'name.zh 必須為 1-100 字元' };
+      }
+      if (cardData.name.en.length < 1 || cardData.name.en.length > 100) {
+        return { valid: false, error: 'name.en 必須為 1-100 字元' };
+      }
     }
   }
 

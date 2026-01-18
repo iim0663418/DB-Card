@@ -382,3 +382,217 @@ document.addEventListener('DOMContentLoaded', init);
 ---
 
 **END OF PRD**
+
+
+---
+
+## 11. Avatar（大頭貼）處理指南
+
+### 11.1 支援的圖片托管服務
+
+#### 方案 1: Google Drive（推薦）
+
+**優點**:
+- ✅ 免費 15GB 儲存空間
+- ✅ 整合 Google 帳號
+- ✅ 穩定可靠
+- ✅ 支援大檔案
+
+**使用步驟**:
+1. 上傳圖片到 Google Drive
+2. 右鍵點擊圖片 → 「取得連結」
+3. 設定為「知道連結的任何人」
+4. 複製連結 ID（例如：`1a2b3c4d5e6f7g8h9i0j`）
+5. 轉換為直接連結格式：
+   ```
+   https://drive.google.com/uc?export=view&id={FILE_ID}
+   ```
+
+**範例**:
+```
+原始連結: https://drive.google.com/file/d/1a2b3c4d5e6f7g8h9i0j/view?usp=sharing
+直接連結: https://drive.google.com/uc?export=view&id=1a2b3c4d5e6f7g8h9i0j
+```
+
+---
+
+#### 方案 2: Imgur
+
+**使用步驟**:
+1. 上傳圖片到 https://imgur.com
+2. 右鍵選擇「複製圖片網址」
+3. 取得格式：`https://i.imgur.com/XXXXXX.jpg`
+
+---
+
+#### 方案 3: GitHub Repository
+
+**使用步驟**:
+1. 上傳圖片到 GitHub Repository
+2. 開啟圖片，點擊「Raw」按鈕
+3. 複製 URL：
+   ```
+   https://raw.githubusercontent.com/username/repo/main/assets/photo.jpg
+   ```
+
+---
+
+#### 方案 4: PostImages
+
+**使用步驟**:
+1. 上傳圖片到 https://postimages.org
+2. 複製 "Direct link" 網址
+3. 格式：`https://i.postimg.cc/XXXXXX/image.jpg`
+
+---
+
+### 11.2 圖片規格建議
+
+| 項目 | 建議值 | 說明 |
+|------|--------|------|
+| 尺寸 | 200x200 至 800x800 像素 | 正方形，適合圓形裁切 |
+| 格式 | JPG、PNG | 避免 GIF 動圖 |
+| 大小 | < 1MB | 確保快速載入 |
+| 背景 | 純色或專業背景 | 提升視覺效果 |
+| 長寬比 | 1:1 | 正方形 |
+
+---
+
+### 11.3 前端處理邏輯
+
+#### 渲染大頭貼
+```javascript
+function createAvatar(avatarUrl) {
+  if (!avatarUrl) return null;
+  
+  const container = document.createElement('div');
+  container.className = 'avatar-container';
+  
+  const img = document.createElement('img');
+  img.src = avatarUrl;
+  img.alt = 'Avatar';
+  img.className = 'avatar';
+  
+  // 圖片載入失敗時顯示預設頭像
+  img.onerror = function() {
+    this.src = '/assets/default-avatar.svg';
+  };
+  
+  container.appendChild(img);
+  return container;
+}
+```
+
+#### CSS 樣式
+```css
+.avatar-container {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 20px;
+}
+
+.avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+```
+
+---
+
+### 11.4 管理介面（nfc-generator.html）
+
+#### HTML 表單
+```html
+<div class="form-group">
+  <label for="avatar">大頭貼 URL（選填）</label>
+  <input type="url" 
+         id="avatar" 
+         placeholder="https://drive.google.com/uc?export=view&id=..."
+         class="form-control">
+  
+  <div class="help-text">
+    <p>支援的圖片托管服務：</p>
+    <ul>
+      <li><strong>Google Drive</strong>（推薦）: 
+        <a href="#" onclick="showGoogleDriveGuide()">查看教學</a>
+      </li>
+      <li><strong>Imgur</strong>: https://imgur.com</li>
+      <li><strong>GitHub</strong>: 使用 Raw URL</li>
+    </ul>
+  </div>
+  
+  <div id="avatar-preview" style="display:none">
+    <img id="preview-img" class="avatar-preview">
+  </div>
+</div>
+```
+
+#### JavaScript 預覽
+```javascript
+// 即時預覽大頭貼
+document.getElementById('avatar').addEventListener('input', function(e) {
+  const url = e.target.value;
+  const preview = document.getElementById('avatar-preview');
+  const img = document.getElementById('preview-img');
+  
+  if (url) {
+    img.src = url;
+    preview.style.display = 'block';
+    
+    img.onerror = function() {
+      preview.style.display = 'none';
+      alert('圖片 URL 無效或無法訪問');
+    };
+  } else {
+    preview.style.display = 'none';
+  }
+});
+
+// Google Drive 教學彈窗
+function showGoogleDriveGuide() {
+  alert(`Google Drive 使用步驟：
+  
+1. 上傳圖片到 Google Drive
+2. 右鍵點擊圖片 → 「取得連結」
+3. 設定為「知道連結的任何人」
+4. 複製連結 ID（例如：1a2b3c4d5e6f7g8h9i0j）
+5. 轉換為直接連結格式：
+   https://drive.google.com/uc?export=view&id={FILE_ID}
+
+範例：
+原始: https://drive.google.com/file/d/1a2b3c4d5e6f7g8h9i0j/view
+直接: https://drive.google.com/uc?export=view&id=1a2b3c4d5e6f7g8h9i0j`);
+}
+```
+
+---
+
+### 11.5 注意事項
+
+#### 安全性
+- ⚠️ 確保圖片 URL 使用 HTTPS
+- ⚠️ Google Drive 連結需設定為「知道連結的任何人」
+- ⚠️ 避免使用包含個人資訊的檔名
+
+#### 隱私性
+- ⚠️ 大頭貼為選填欄位，可選擇不提供
+- ⚠️ 建議使用 Q 版頭像或專業照片
+- ⚠️ 避免使用包含敏感資訊的背景
+
+#### 效能
+- ⚠️ 圖片大小建議 < 1MB
+- ⚠️ 使用適當的圖片壓縮
+- ⚠️ 考慮使用 WebP 格式（更小的檔案大小）
+
+#### 相容性
+- ⚠️ 測試圖片在不同裝置上的顯示效果
+- ⚠️ 確保圖片在圓形裁切後仍清晰
+- ⚠️ 提供載入失敗的備用方案
+
+---
+
+**END OF PRD**

@@ -14,8 +14,8 @@
 創建一個管理員介面，用於生成新的數位名片並產生 NFC 寫入 URL。
 
 ### 1.2 核心功能
-- 📝 名片資料表單（支援單語/雙語）
-- 🎨 即時預覽
+- 📝 名片資料表單（**僅雙語模式**）
+- 🎨 即時預覽（支援語言切換）
 - 🔐 SETUP_TOKEN 驗證
 - 📱 NFC URL 生成與 QR Code
 - 💾 歷史記錄管理
@@ -91,33 +91,52 @@
 
 #### 3.2.1 基本資訊
 
+**重要**: v4.0 之後僅提供雙語模式，所有文字欄位必須同時輸入中英文。
+
 | 欄位 | 類型 | 必填 | 說明 |
 |------|------|------|------|
-| 姓名 | 文字 | ✅ | 支援雙語 (zh/en) |
-| 職稱 | 文字 | ❌ | 支援雙語 (zh/en) |
-| 部門 | 文字 | ❌ | 單語（前端翻譯） |
+| 姓名 (中文) | 文字 | ✅ | 中文姓名 |
+| 姓名 (英文) | 文字 | ✅ | 英文姓名 |
+| 職稱 (中文) | 文字 | ❌ | 中文職稱 |
+| 職稱 (英文) | 文字 | ❌ | 英文職稱 |
+| 部門 | 文字 | ❌ | 單語（前端自動翻譯） |
 | Email | Email | ✅ | 單語 |
 | 電話 | 文字 | ❌ | 單語 |
 | 手機 | 文字 | ❌ | 單語 |
 
-#### 3.2.2 雙語輸入模式
+#### 3.2.2 雙語輸入格式
 
-**切換按鈕**: 
-```
-[單語模式] / [雙語模式]
-```
+**所有文字欄位採用並排雙語輸入**:
 
-**單語模式**:
 ```html
-<input type="text" placeholder="姓名">
-```
-
-**雙語模式**:
-```html
-<div class="bilingual-input">
-  <input type="text" placeholder="姓名 (中文)">
-  <input type="text" placeholder="Name (English)">
+<div class="form-group">
+  <label>姓名 *</label>
+  <div class="bilingual-input">
+    <input type="text" placeholder="中文姓名" required>
+    <input type="text" placeholder="English Name" required>
+  </div>
 </div>
+
+<div class="form-group">
+  <label>職稱</label>
+  <div class="bilingual-input">
+    <input type="text" placeholder="中文職稱">
+    <input type="text" placeholder="English Title">
+  </div>
+</div>
+```
+
+**樣式**:
+```css
+.bilingual-input {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.bilingual-input input:first-child {
+  border-right: 2px solid var(--moda-accent);
+}
 ```
 
 #### 3.2.3 大頭貼
@@ -133,23 +152,21 @@
 
 #### 3.2.4 問候語
 
-**輸入方式**: Textarea（支援多行）
+**輸入方式**: Textarea（雙語並排）
 
-**單語模式**:
 ```html
-<textarea placeholder="很高興認識您！&#10;歡迎交流數位政策議題"></textarea>
-```
-
-**雙語模式**:
-```html
-<textarea placeholder="問候語 (中文)"></textarea>
-<textarea placeholder="Greetings (English)"></textarea>
+<div class="form-group">
+  <label>問候語（每行一句）</label>
+  <div class="bilingual-input">
+    <textarea placeholder="很高興認識您！&#10;歡迎交流數位政策議題" rows="3"></textarea>
+    <textarea placeholder="Nice to meet you!&#10;Welcome to discuss digital policy" rows="3"></textarea>
+  </div>
+</div>
 ```
 
 **處理邏輯**: 
 - 按換行符分割為陣列
-- 單語: `["問候語1", "問候語2"]`
-- 雙語: `{zh: ["問候語1"], en: ["Greeting1"]}`
+- 格式: `{zh: ["問候語1", "問候語2"], en: ["Greeting1", "Greeting2"]}`
 
 #### 3.2.5 社群連結
 
@@ -214,6 +231,31 @@ function updatePreview() {
 
 **API 呼叫**:
 ```javascript
+// 收集表單資料（雙語格式）
+const formData = {
+  name: {
+    zh: document.getElementById('name-zh').value,
+    en: document.getElementById('name-en').value
+  },
+  title: {
+    zh: document.getElementById('title-zh').value,
+    en: document.getElementById('title-en').value
+  },
+  department: document.getElementById('department').value,
+  email: document.getElementById('email').value,
+  phone: document.getElementById('phone').value,
+  mobile: document.getElementById('mobile').value,
+  avatar: document.getElementById('avatar').value,
+  greetings: {
+    zh: document.getElementById('greetings-zh').value.split('\n').filter(g => g.trim()),
+    en: document.getElementById('greetings-en').value.split('\n').filter(g => g.trim())
+  },
+  socialLinks: {
+    email: `mailto:${document.getElementById('email').value}`,
+    socialNote: document.getElementById('social-note').value
+  }
+};
+
 const response = await fetch(`${API_BASE}/api/admin/cards`, {
   method: 'POST',
   headers: {
@@ -341,16 +383,29 @@ NFC URL: https://db-card.example.com/card-display?uuid=550e8400-e29b-41d4-a716-4
 function validateForm() {
   const errors = [];
   
-  if (!formData.name) {
-    errors.push('姓名為必填欄位');
+  // 姓名（中英文必填）
+  if (!formData.name.zh || !formData.name.en) {
+    errors.push('姓名（中英文）為必填欄位');
   }
   
+  // Email 必填
   if (!formData.email) {
     errors.push('Email 為必填欄位');
   }
   
   if (formData.email && !isValidEmail(formData.email)) {
     errors.push('Email 格式不正確');
+  }
+  
+  // 職稱雙語一致性（如果填寫其中一個，另一個也必須填寫）
+  if ((formData.title.zh && !formData.title.en) || (!formData.title.zh && formData.title.en)) {
+    errors.push('職稱請同時填寫中英文，或都不填寫');
+  }
+  
+  // 問候語雙語一致性
+  if ((formData.greetings.zh.length > 0 && formData.greetings.en.length === 0) ||
+      (formData.greetings.zh.length === 0 && formData.greetings.en.length > 0)) {
+    errors.push('問候語請同時填寫中英文，或都不填寫');
   }
   
   return errors;
@@ -472,11 +527,11 @@ workers/public/
 ### 8.1 功能測試
 
 - [ ] SETUP_TOKEN 驗證
-- [ ] 單語模式表單提交
-- [ ] 雙語模式表單提交
-- [ ] 必填欄位驗證
+- [ ] 雙語表單提交（中英文必填）
+- [ ] 必填欄位驗證（姓名中英文、Email）
+- [ ] 雙語一致性驗證（職稱、問候語）
 - [ ] Email 格式驗證
-- [ ] 即時預覽更新
+- [ ] 即時預覽更新（支援語言切換）
 - [ ] QR Code 生成
 - [ ] URL 複製功能
 - [ ] 錯誤處理顯示

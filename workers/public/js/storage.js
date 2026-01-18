@@ -150,11 +150,78 @@ export async function cleanupCache() {
         const deleteStore = deleteTransaction.objectStore('exchange_history');
         toDelete.forEach(entry => deleteStore.delete(entry.key));
 
-        deleteTransaction.oncomplete = () => resolve();
+        deleteTransaction.oncomplete = () => {
+          // Save cleanup timestamp
+          localStorage.setItem('last_cleanup', new Date().toISOString());
+          resolve();
+        };
         deleteTransaction.onerror = () => reject(deleteTransaction.error);
       }
     };
 
     request.onerror = () => reject(request.error);
+  });
+}
+
+/**
+ * Get storage statistics
+ * @returns {Promise<{sessions: number, cards: number, estimatedSize: string, lastCleanup: string}>}
+ */
+export async function getStorageStats() {
+  const database = await initDB();
+  
+  const sessionCount = await countRecords(database, 'active_sessions');
+  const cardCount = await countRecords(database, 'exchange_history');
+  
+  // Estimate size (simplified: 1KB per session, 10KB per card)
+  const estimatedKB = sessionCount * 1 + cardCount * 10;
+  const estimatedSize = estimatedKB < 1024 
+    ? `~${estimatedKB}KB` 
+    : `~${(estimatedKB / 1024).toFixed(1)}MB`;
+  
+  return {
+    sessions: sessionCount,
+    cards: cardCount,
+    estimatedSize,
+    lastCleanup: localStorage.getItem('last_cleanup') || 'Never'
+  };
+}
+
+/**
+ * Count records in an object store
+ * @param {IDBDatabase} db - Database instance
+ * @param {string} storeName - Object store name
+ * @returns {Promise<number>}
+ */
+async function countRecords(db, storeName) {
+  return new Promise((resolve) => {
+    const transaction = db.transaction([storeName], 'readonly');
+    const store = transaction.objectStore(storeName);
+    const request = store.count();
+    
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => resolve(0);
+  });
+}
+
+/**
+ * Clear all storage data
+ * @returns {Promise<void>}
+ */
+export async function clearAllStorage() {
+  const database = await initDB();
+  
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(['active_sessions', 'exchange_history'], 'readwrite');
+    
+    transaction.objectStore('active_sessions').clear();
+    transaction.objectStore('exchange_history').clear();
+    
+    transaction.oncomplete = () => {
+      localStorage.removeItem('last_cleanup');
+      console.info('[IndexedDB] All storage cleared');
+      resolve();
+    };
+    transaction.onerror = () => reject(transaction.error);
   });
 }

@@ -1,5 +1,5 @@
 import { tapCard, readCard } from './api.js';
-import { saveSession, getSession, saveCard, getCard, cleanupCache } from './storage.js';
+import { saveSession, getSession, saveCard, getCard, cleanupCache, getStorageStats } from './storage.js';
 import { getLocalizedText, getLocalizedArray } from './utils/bilingual.js';
 import { handleNetworkError, handleSessionExpired, handleMaxReadsExceeded, showError, showNotification } from './error-handler.js';
 
@@ -26,6 +26,20 @@ async function initApp() {
 
     try {
         await cleanupCache();
+        
+        // Display storage stats in console
+        try {
+            const stats = await getStorageStats();
+            console.info('📊 [IndexedDB] 快取統計');
+            console.info(`   - 名片: ${stats.cards} 張`);
+            console.info(`   - Session: ${stats.sessions} 個`);
+            console.info(`   - 預估大小: ${stats.estimatedSize}`);
+            console.info(`   - 上次清理: ${stats.lastCleanup}`);
+            console.info('💡 使用 Chrome DevTools > Application > IndexedDB 查看詳細資料');
+        } catch (error) {
+            console.warn('[IndexedDB] 無法取得統計資訊:', error);
+        }
+        
         await loadCard(uuid);
     } catch (error) {
         console.error('Initialization error:', error);

@@ -507,23 +507,17 @@ export async function handleUserGetCard(
       return errorResponse('forbidden', 'You can only view your own cards', 403, request);
     }
 
-    if (binding.status !== 'bound') {
-      return errorResponse('forbidden', 'You can only view your own cards', 403, request);
-    }
-
-    // Query card data
+    // Query card data (allow both active and deleted status for revoked cards)
     const card = await env.DB.prepare(`
-      SELECT uuid, card_type, encrypted_payload, wrapped_dek,
-             key_version, status, created_at, updated_at
+      SELECT uuid, encrypted_payload, wrapped_dek,
+             key_version, created_at, updated_at
       FROM cards
-      WHERE uuid = ? AND status = 'active'
+      WHERE uuid = ?
     `).bind(uuid).first<{
       uuid: string;
-      card_type: string;
       encrypted_payload: string;
       wrapped_dek: string;
       key_version: number;
-      status: string;
       created_at: number;
       updated_at: number;
     }>();

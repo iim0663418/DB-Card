@@ -1,7 +1,7 @@
 import { tapCard, readCard } from './api.js';
 import { saveSession, getSession, saveCard, getCard, cleanupCache, getStorageStats } from './storage.js';
 import { getLocalizedText, getLocalizedArray } from './utils/bilingual.js';
-import { handleNetworkError, handleSessionExpired, handleMaxReadsExceeded, showError, showNotification } from './error-handler.js';
+import { handleNetworkError, handleSessionExpired, handleMaxReadsExceeded, handleCardRevoked, showError, showNotification } from './error-handler.js';
 
 let scene, camera, renderer, mesh, grid;
 let currentLanguage = 'zh';
@@ -73,10 +73,6 @@ const i18nTexts = {
     'offline-mode': {
         'zh': '離線模式',
         'en': 'Offline Mode'
-    },
-    'privacy-notice': {
-        'zh': '🔒 本應用使用 IndexedDB 在您的瀏覽器本地儲存名片資料，不會上傳到伺服器',
-        'en': '🔒 This app uses IndexedDB to store card data locally in your browser, no data uploaded to server'
     }
 };
 
@@ -179,7 +175,15 @@ async function loadCard(uuid) {
     } catch (error) {
         console.error('Error loading card:', error);
 
-        if (error.message.includes('Network') || error.message.includes('Failed to fetch')) {
+        if (error.message.includes('已撤銷') || error.message.includes('revoked')) {
+            const result = await handleCardRevoked(uuid);
+            if (result.cachedData) {
+                cardData = result.cachedData;
+                isOffline = true;
+            } else {
+                throw error;
+            }
+        } else if (error.message.includes('Network') || error.message.includes('Failed to fetch')) {
             const result = await handleNetworkError(uuid);
             if (result.cachedData) {
                 cardData = result.cachedData;
@@ -229,26 +233,27 @@ function renderCard(cardData, sessionData, isOffline = false) {
     
     // 大頭貼處理 - 支援 Google Drive URL 轉換
     const avatarContainer = document.getElementById('user-avatar').closest('.relative');
-    if (cardData.avatar) {
-        let avatarUrl = cardData.avatar;
+    const avatarUrl = cardData.avatar_url || cardData.avatar;  // 相容舊格式
+    if (avatarUrl) {
+        let processedUrl = avatarUrl;
         
         // 轉換 Google Drive 分享連結為直接圖片 URL
         // 支援多種格式：
         // 1. https://drive.google.com/file/d/FILE_ID/view?usp=sharing
         // 2. https://drive.google.com/open?id=FILE_ID
-        const driveMatch = avatarUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^\/\?&]+)/);
+        const driveMatch = processedUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^\/\?&]+)/);
         if (driveMatch) {
             const fileId = driveMatch[1];
             // 使用 thumbnail API 更穩定
-            avatarUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
+            processedUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
         }
         
         const imgElement = document.getElementById('user-avatar');
-        imgElement.src = avatarUrl;
+        imgElement.src = processedUrl;
         
         // 圖片載入失敗時的處理
         imgElement.onerror = function() {
-            console.warn('Avatar failed to load:', avatarUrl);
+            console.warn('Avatar failed to load:', processedUrl);
             if (avatarContainer) avatarContainer.style.display = 'none';
         };
         

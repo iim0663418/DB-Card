@@ -1,6 +1,24 @@
 import { getCard, deleteSession } from './storage.js';
 
 /**
+ * Handle card revoked error
+ * @param {string} uuid - Card UUID
+ * @returns {Promise<{revoked: boolean, cachedData: object|null}>}
+ */
+export async function handleCardRevoked(uuid) {
+  await deleteSession(uuid);
+  const cachedData = await getCard(uuid);
+
+  if (cachedData) {
+    showNotification('此名片已被撤銷，顯示快取資料', 'warning');
+    return { revoked: true, cachedData };
+  }
+
+  showError('此名片已被撤銷且無快取資料');
+  return { revoked: true, cachedData: null };
+}
+
+/**
  * Handle network errors
  * @param {string} uuid - Card UUID
  * @returns {Promise<{offline: boolean, cachedData: object|null}>}

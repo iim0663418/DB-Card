@@ -162,6 +162,90 @@
 260118|I18N_System|implementation|data_i18n_attributes
 260118|I18N_System|update_mechanism|updateButtonTexts_function
 
+# vCard Optimization (2026-01-18)
+260118|vCard_System|version|3.0
+260118|vCard_System|status|COMPLETE
+260118|vCard_System|encoding|UTF-8
+260118|vCard_System|download_method|data_URI
+260118|vCard_System|ios_compatibility|VERIFIED
+260118|vCard_System|escaping|RFC_6350_Compliant
+260118|vCard_System|photo_support|Google_Drive_uc_export
+
+# vCard Features
+260118|vCard_Feature|bilingual_support|Single_Language_Per_Download
+260118|vCard_Feature|special_char_escape|Semicolon_Comma_Backslash_Newline
+260118|vCard_Feature|photo_format|URL_VALUE_JPEG
+260118|vCard_Feature|google_drive_conversion|uc_export_view_format
+260118|vCard_Feature|safari_ios_fix|data_URI_instead_of_Blob
+
+# User Self-Service Planning (2026-01-18)
+260118|User_Self_Service|status|PLANNING
+260118|User_Self_Service|phase|Requirements_Analysis
+260118|User_Self_Service|core_feature|UUID_Preissue_System
+260118|User_Self_Service|auth_method|Google_OAuth
+260118|User_Self_Service|email_domain|moda_gov_tw
+260118|User_Self_Service|binding_model|One_UUID_One_Account
+
+# User Self-Service Architecture
+260118|Self_Service_Architecture|new_table|uuid_bindings
+260118|Self_Service_Architecture|new_apis|6_Plus_Endpoints
+260118|Self_Service_Architecture|new_frontend|user_portal_html
+260118|Self_Service_Architecture|session_management|JWT_Based
+260118|Self_Service_Architecture|admin_extension|UUID_Management_Tab
+
+# Audit Logging Strategy
+260118|Audit_Strategy|approach|Extend_Existing_Tables
+260118|Audit_Strategy|table_audit_logs|Add_Event_Types_And_Columns
+260118|Audit_Strategy|table_security_events|Add_UUID_Security_Events
+260118|Audit_Strategy|new_columns|actor_type_actor_id_target_uuid
+260118|Audit_Strategy|ip_anonymization|First_3_Octets_Only
+
+# Audit Event Types - UUID Management
+260118|Audit_Event|uuid_generate|Admin_Generate_UUID
+260118|Audit_Event|uuid_revoke|Admin_Revoke_UUID
+260118|Audit_Event|uuid_unbind|Admin_Unbind_UUID
+
+# Audit Event Types - User Authentication
+260118|Audit_Event|user_oauth_start|User_Start_OAuth_Flow
+260118|Audit_Event|user_oauth_success|OAuth_Success
+260118|Audit_Event|user_oauth_failed|OAuth_Failed_Invalid_Email
+260118|Audit_Event|user_bind_uuid|User_Bind_UUID
+260118|Audit_Event|user_login|User_Login
+260118|Audit_Event|user_logout|User_Logout
+
+# Audit Event Types - User Operations
+260118|Audit_Event|user_card_create|User_Create_Card
+260118|Audit_Event|user_card_update|User_Update_Card
+260118|Audit_Event|user_card_view|User_View_Card
+
+# Security Event Types
+260118|Security_Event|uuid_brute_force|UUID_Brute_Force_Attempt
+260118|Security_Event|invalid_email_domain|Non_MODA_Email_Login_Attempt
+260118|Security_Event|duplicate_bind_attempt|Duplicate_Bind_Attempt
+
+# Audit Priority
+260118|Audit_Priority|P0|UUID_Generate_Bind_OAuth_Failed_Card_CRUD
+260118|Audit_Priority|P1|UUID_Revoke_Unbind_Login_Logout_Brute_Force
+260118|Audit_Priority|P2|OAuth_Start_Card_View_Session_Expire
+
+# Requirements Pending Confirmation
+260118|Requirement_Question|Q1|UUID_Lifecycle
+260118|Requirement_Question|Q2|Account_UUID_Binding_Limit
+260118|Requirement_Question|Q3|UUID_Unbind_Policy
+260118|Requirement_Question|Q4|Email_Domain_Validation
+260118|Requirement_Question|Q5|Session_Expiration_Definition
+260118|Requirement_Question|Q6|Card_UUID_Usage_Model
+260118|Requirement_Question|Q7|User_Delete_Permission
+260118|Requirement_Question|Q8|Admin_Edit_User_Card_Permission
+260118|Requirement_Question|Q9|UUID_Distribution_Method
+260118|Requirement_Question|Q10|Security_Mechanism_Rate_Limit_CAPTCHA
+
+# Deployment Status
+260118|Deployment|environment|staging
+260118|Deployment|version|a6d0fbd2_0c10_4c59_aa72_099a92eca420
+260118|Deployment|features|vCard_3_0_Google_Drive_Photo
+260118|Deployment|status|Operational
+
 # I18N Text Keys
 260118|i18n_key|loading|Synchronizing_Secure_Identity
 260118|i18n_key|qr_title|Scan_for_Official_Verification

@@ -118,30 +118,30 @@
             <!-- 資訊晶片網格 -->
             <section class="p-8 lg:p-14 grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10" aria-label="聯絡資訊">
                 <a id="email-link" href="#" class="info-chip p-6 rounded-2xl flex items-center gap-6 group focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-label="Email 聯絡">
-                    <div class="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                    <div class="w-12 h-12 flex-shrink-0 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
                         <i data-lucide="mail" class="w-5 h-5" aria-hidden="true"></i>
                     </div>
-                    <div>
+                    <div class="min-w-0 flex-1">
                         <p class="hud-text text-[8px] opacity-40" aria-hidden="true" data-i18n="communication-node">Communication Node</p>
-                        <p id="user-email" class="font-bold text-slate-700">---</p>
+                        <p id="user-email" class="font-bold text-slate-700 truncate">---</p>
                     </div>
                 </a>
                 <a id="phone-link" href="#" class="info-chip p-6 rounded-2xl flex items-center gap-6 group focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-label="電話聯絡">
-                    <div class="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                    <div class="w-12 h-12 flex-shrink-0 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
                         <i data-lucide="phone" class="w-5 h-5" aria-hidden="true"></i>
                     </div>
-                    <div>
+                    <div class="min-w-0 flex-1">
                         <p class="hud-text text-[8px] opacity-40" aria-hidden="true" data-i18n="voice-access">Voice Access</p>
-                        <p id="user-phone" class="font-bold text-slate-700">---</p>
+                        <p id="user-phone" class="font-bold text-slate-700 truncate">---</p>
                     </div>
                 </a>
                 <a id="web-link" href="#" target="_blank" rel="noopener noreferrer" class="info-chip p-6 rounded-2xl flex items-center gap-6 group md:col-span-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-label="官方網站">
-                    <div class="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                    <div class="w-12 h-12 flex-shrink-0 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
                         <i data-lucide="globe" class="w-5 h-5" aria-hidden="true"></i>
                     </div>
-                    <div>
+                    <div class="min-w-0 flex-1">
                         <p class="hud-text text-[8px] opacity-40" aria-hidden="true" data-i18n="official-portal">Official Portal</p>
-                        <p id="user-web" class="font-bold text-slate-700">---</p>
+                        <p id="user-web" class="font-bold text-slate-700 truncate">---</p>
                     </div>
                 </a>
             </section>

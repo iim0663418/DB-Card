@@ -13,7 +13,10 @@ export async function handleOAuthCallback(
     return new Response(`
       <!DOCTYPE html>
       <html>
-      <head><title>Login Failed</title></head>
+      <head>
+        <meta charset="UTF-8">
+        <title>Login Failed</title>
+      </head>
       <body>
         <script>
           window.opener.postMessage({ type: 'oauth_error', error: '${error}' }, '*');
@@ -22,7 +25,7 @@ export async function handleOAuthCallback(
       </body>
       </html>
     `, {
-      headers: { 'Content-Type': 'text/html' }
+      headers: { 'Content-Type': 'text/html; charset=utf-8' }
     });
   }
 
@@ -80,7 +83,10 @@ export async function handleOAuthCallback(
     return new Response(`
       <!DOCTYPE html>
       <html>
-      <head><title>Login Success</title></head>
+      <head>
+        <meta charset="UTF-8">
+        <title>Login Success</title>
+      </head>
       <body>
         <script>
           window.opener.postMessage({
@@ -95,14 +101,17 @@ export async function handleOAuthCallback(
       </body>
       </html>
     `, {
-      headers: { 'Content-Type': 'text/html' }
+      headers: { 'Content-Type': 'text/html; charset=utf-8' }
     });
   } catch (error) {
     console.error('OAuth callback error:', error);
     return new Response(`
       <!DOCTYPE html>
       <html>
-      <head><title>Login Failed</title></head>
+      <head>
+        <meta charset="UTF-8">
+        <title>Login Failed</title>
+      </head>
       <body>
         <script>
           window.opener.postMessage({ type: 'oauth_error', error: 'authentication_failed' }, '*');
@@ -111,7 +120,7 @@ export async function handleOAuthCallback(
       </body>
       </html>
     `, {
-      headers: { 'Content-Type': 'text/html' }
+      headers: { 'Content-Type': 'text/html; charset=utf-8' }
     });
   }
 }

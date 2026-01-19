@@ -53,3 +53,19 @@ database_id = "d31b5e42-d8bf-4044-9744-4aff5669de4b"
 [[env.staging.kv_namespaces]]
 binding = "KV"
 id = "87221de061f049d3a4c976b7b5092dd9"
+
+# Observability Configuration
+[observability]
+enabled = false
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = false
+persist = true
+head_sampling_rate = 1

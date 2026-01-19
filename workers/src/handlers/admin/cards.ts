@@ -356,7 +356,7 @@ export async function handleCreateCard(request: Request, env: Env): Promise<Resp
 async function revokeAllCardSessions(
   env: Env,
   card_uuid: string,
-  reason: 'card_updated' | 'card_deleted' | 'admin_revoke'
+  reason: 'card_updated' | 'card_deleted' | 'admin_revoke' | 'permanent_delete'
 ): Promise<number> {
   try {
     // Update all non-revoked sessions for this card

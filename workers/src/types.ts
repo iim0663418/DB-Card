@@ -138,6 +138,8 @@ export interface UserCardCreateRequest {
   social_instagram?: string;
   social_twitter?: string;
   social_youtube?: string;
+  social_line?: string;
+  social_signal?: string;
 }
 
 export interface UserCardUpdateRequest {
@@ -160,6 +162,8 @@ export interface UserCardUpdateRequest {
   social_instagram?: string;
   social_twitter?: string;
   social_youtube?: string;
+  social_line?: string;
+  social_signal?: string;
 }
 
 export interface ApiResponse<T = any> {

@@ -1706,37 +1706,49 @@
 
         // Edit card
         async function editCard(uuid) {
+            // 1. 先設定編輯狀態（避免 switchTab 誤判）
+            window.editingCardUuid = uuid;
+            
+            // 2. 立即切換 Tab（使用者立即看到反應）
+            switchTab('create');
+            
+            // 3. 更新 UI 為編輯模式
+            updateEditModeUI(true);
+            
+            // 4. 顯示載入狀態
+            const formElements = document.querySelectorAll('#card-form input, #card-form select, #card-form textarea');
+            formElements.forEach(el => el.disabled = true);
+            showNotification('載入名片資料中...', 'info');
+
             const token = sessionStorage.getItem('setup_token');
 
             try {
                 const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}`, {
-                    credentials: 'include', // Cookie auto-attached
-                    headers: { 'Authorization': `Bearer ${token}` } // Fallback
+                    credentials: 'include',
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 if (!response.ok) {
                     await handleApiError(response, '載入失敗');
+                    cancelEdit(); // 失敗時取消編輯
                     return;
                 }
 
                 const result = await response.json();
                 const card = result.data;
 
-                // 預填表單
+                // 5. 預填表單
                 fillFormWithCardData(card);
-
-                // 切換到創建 Tab（實際上是編輯模式）
-                switchTab('create');
-
-                // 儲存編輯狀態
-                window.editingCardUuid = uuid;
-
-                // 更新 UI 為編輯模式
-                updateEditModeUI(true);
+                
+                // 6. 恢復表單可用
+                formElements.forEach(el => el.disabled = false);
+                showNotification('載入完成', 'success');
 
             } catch (error) {
                 console.error('Edit card error:', error);
                 showNotification('載入名片失敗: ' + error.message, 'error');
+                formElements.forEach(el => el.disabled = false);
+                cancelEdit();
             }
         }
 

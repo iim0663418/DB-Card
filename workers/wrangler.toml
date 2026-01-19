@@ -29,7 +29,7 @@ crons = ["0 2 * * *"]  # Daily at 02:00 UTC
 # Production Environment
 [env.production]
 name = "db-card-api-prod"
-vars = { ENVIRONMENT = "production" }
+vars = { ENVIRONMENT = "production", GOOGLE_CLIENT_ID = "675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com" }
 
 [[env.production.d1_databases]]
 binding = "DB"

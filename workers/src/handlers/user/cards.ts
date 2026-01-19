@@ -1,19 +1,20 @@
 // User Self-Service Card Handlers
 // Implements BDD scenarios for user card management
 
-import type { Env, UserCardCreateRequest, UserCardUpdateRequest, UserCardType } from '../../types';
+import type { Env, UserCardCreateRequest, UserCardUpdateRequest, UserCardType, RevokeCardRequest } from '../../types';
 import { verifyOAuth } from '../../middleware/oauth';
 import { checkUserRateLimit } from '../../middleware/rate-limit';
 import { EnvelopeEncryption } from '../../crypto/envelope';
 import { jsonResponse, errorResponse } from '../../utils/response';
 import { anonymizeIP } from '../../utils/audit';
+import { checkRevocationRateLimit, incrementRevocationCount } from '../../utils/revocation-rate-limit';
 
 /**
  * Log user audit event with actor information
  */
 async function logUserEvent(
   db: D1Database,
-  eventType: 'user_card_create' | 'user_card_update',
+  eventType: 'user_card_create' | 'user_card_update' | 'user_card_revoke' | 'user_card_restore',
   email: string,
   uuid: string,
   request: Request,
@@ -419,15 +420,24 @@ export async function handleUserListCards(request: Request, env: Env): Promise<R
     }
     const { email } = authResult;
 
-    // Query all cards for this email (including revoked)
-    const bindings = await env.DB.prepare(`
-      SELECT uuid, type, status, bound_at
-      FROM uuid_bindings
-      WHERE bound_email = ? AND status IN ('bound', 'revoked')
-      ORDER BY bound_at DESC
+    // Single JOIN query to fetch all data at once
+    const results = await env.DB.prepare(`
+      SELECT
+        b.uuid,
+        b.type,
+        b.status,
+        b.bound_at,
+        b.revoked_at,
+        c.encrypted_payload,
+        c.wrapped_dek,
+        c.updated_at
+      FROM uuid_bindings b
+      LEFT JOIN cards c ON b.uuid = c.uuid
+      WHERE b.bound_email = ? AND b.status IN ('bound', 'revoked')
+      ORDER BY b.bound_at DESC
     `).bind(email).all();
 
-    if (!bindings.results || bindings.results.length === 0) {
+    if (!results.results || results.results.length === 0) {
       return jsonResponse(
         {
           cards: []
@@ -443,40 +453,33 @@ export async function handleUserListCards(request: Request, env: Env): Promise<R
 
     // Decrypt each card to get name fields
     const cards = await Promise.all(
-      bindings.results.map(async (binding: any) => {
-        const card = await env.DB.prepare(`
-          SELECT encrypted_payload, wrapped_dek, updated_at
-          FROM cards WHERE uuid = ?
-        `).bind(binding.uuid).first<{
-          encrypted_payload: string;
-          wrapped_dek: string;
-          updated_at: number;
-        }>();
-
-        if (!card) {
+      results.results.map(async (row: any) => {
+        if (!row.encrypted_payload || !row.wrapped_dek) {
           return {
-            uuid: binding.uuid,
-            type: binding.type,
-            status: binding.status,
+            uuid: row.uuid,
+            type: row.type,
+            status: row.status,
             name_zh: '',
             name_en: '',
-            updated_at: null
+            updated_at: null,
+            revoked_at: row.revoked_at
           };
         }
 
         // Decrypt to get name fields
         const cardData = await encryption.decryptCard(
-          card.encrypted_payload,
-          card.wrapped_dek
+          row.encrypted_payload,
+          row.wrapped_dek
         ) as any;
 
         return {
-          uuid: binding.uuid,
-          type: binding.type,
-          status: binding.status,
+          uuid: row.uuid,
+          type: row.type,
+          status: row.status,
           name_zh: cardData.name?.zh || '',
           name_en: cardData.name?.en || '',
-          updated_at: new Date(card.updated_at).toISOString()
+          updated_at: new Date(row.updated_at).toISOString(),
+          revoked_at: row.revoked_at
         };
       })
     );
@@ -576,5 +579,264 @@ export async function handleUserGetCard(
   } catch (error) {
     console.error('Failed to get user card:', error);
     return errorResponse('server_error', '無法取得名片資料', 500, request);
+  }
+}
+
+/**
+ * Handle POST /api/user/cards/:uuid/revoke
+ * Scenario 1.1-1.5: User self-revoke with rate limiting
+ */
+export async function handleUserRevokeCard(
+  request: Request,
+  env: Env,
+  uuid: string
+): Promise<Response> {
+  try {
+    // OAuth verification
+    const authResult = await verifyOAuth(request, env);
+    if (authResult instanceof Response) {
+      return authResult;
+    }
+    const { email } = authResult;
+
+    // Check rate limit
+    const rateLimitCheck = await checkRevocationRateLimit(env.DB, email);
+
+    if (!rateLimitCheck.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: 'REVOCATION_RATE_LIMITED',
+          message: rateLimitCheck.status.hourly.remaining === 0
+            ? 'Revocation limit exceeded: 3 per hour'
+            : 'Revocation limit exceeded: 10 per day',
+          retry_after: rateLimitCheck.retryAfter,
+          limits: {
+            hourly: {
+              limit: rateLimitCheck.status.hourly.limit,
+              remaining: rateLimitCheck.status.hourly.remaining,
+              reset_at: new Date(rateLimitCheck.status.hourly.reset_at * 1000).toISOString()
+            },
+            daily: {
+              limit: rateLimitCheck.status.daily.limit,
+              remaining: rateLimitCheck.status.daily.remaining,
+              reset_at: new Date(rateLimitCheck.status.daily.reset_at * 1000).toISOString()
+            }
+          }
+        }),
+        {
+          status: 429,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Parse request body
+    let body: RevokeCardRequest = {};
+    try {
+      if (request.headers.get('content-type')?.includes('application/json')) {
+        body = await request.json();
+      }
+    } catch (error) {
+      // Optional body, continue
+    }
+
+    // Check ownership and status
+    const binding = await env.DB.prepare(`
+      SELECT uuid, status, revoked_at FROM uuid_bindings
+      WHERE uuid = ? AND bound_email = ?
+    `).bind(uuid, email).first<{ uuid: string; status: string; revoked_at: number | null }>();
+
+    if (!binding) {
+      return new Response(
+        JSON.stringify({
+          error: 'FORBIDDEN',
+          message: 'You do not have permission to revoke this card'
+        }),
+        {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    if (binding.status === 'revoked') {
+      return new Response(
+        JSON.stringify({
+          error: 'CARD_ALREADY_REVOKED',
+          message: 'Card is already revoked',
+          revoked_at: binding.revoked_at ? new Date(binding.revoked_at * 1000).toISOString() : null
+        }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Count active sessions
+    const sessionsResult = await env.DB.prepare(`
+      SELECT COUNT(*) as count FROM read_sessions
+      WHERE card_uuid = ? AND revoked_at IS NULL AND expires_at > ?
+    `).bind(uuid, Date.now()).first<{ count: number }>();
+
+    const sessionsCount = sessionsResult?.count || 0;
+
+    // Revoke card and sessions
+    const now = Math.floor(Date.now() / 1000);
+    const nowMs = Date.now();
+
+    await env.DB.batch([
+      // Update uuid_bindings
+      env.DB.prepare(`
+        UPDATE uuid_bindings
+        SET status = 'revoked', revoked_at = ?
+        WHERE uuid = ?
+      `).bind(now, uuid),
+      // Revoke all active sessions
+      env.DB.prepare(`
+        UPDATE read_sessions
+        SET revoked_at = ?, revoked_reason = 'admin'
+        WHERE card_uuid = ? AND revoked_at IS NULL
+      `).bind(nowMs, uuid)
+    ]);
+
+    // Clear KV cache
+    await env.KV.delete(`card:data:${uuid}`);
+
+    // Clear session caches (get session tokens first)
+    const sessions = await env.DB.prepare(`
+      SELECT session_id FROM read_sessions WHERE card_uuid = ?
+    `).bind(uuid).all();
+
+    if (sessions.results) {
+      await Promise.all(
+        sessions.results.map((s: any) => env.KV.delete(`card:response:${s.session_id}`))
+      );
+    }
+
+    // Increment rate limit counter
+    await incrementRevocationCount(env.DB, email);
+
+    // Log audit event
+    await logUserEvent(env.DB, 'user_card_revoke', email, uuid, request, {
+      reason: body.reason,
+      sessions_revoked: sessionsCount
+    });
+
+    // Calculate restore deadline (7 days)
+    const restoreDeadline = new Date((now + 7 * 86400) * 1000).toISOString();
+
+    return jsonResponse(
+      {
+        success: true,
+        message: 'Card revoked successfully',
+        revoked_at: new Date(now * 1000).toISOString(),
+        sessions_revoked: sessionsCount,
+        restore_deadline: restoreDeadline
+      },
+      200,
+      request
+    );
+  } catch (error) {
+    console.error('Error revoking card:', error);
+    return errorResponse('internal_error', 'Failed to revoke card', 500, request);
+  }
+}
+
+/**
+ * Handle POST /api/user/cards/:uuid/restore
+ * Scenario 2.1-2.3: Restore revoked card within 7 days
+ */
+export async function handleUserRestoreCard(
+  request: Request,
+  env: Env,
+  uuid: string
+): Promise<Response> {
+  try {
+    // OAuth verification
+    const authResult = await verifyOAuth(request, env);
+    if (authResult instanceof Response) {
+      return authResult;
+    }
+    const { email } = authResult;
+
+    // Check ownership and status
+    const binding = await env.DB.prepare(`
+      SELECT uuid, status, revoked_at FROM uuid_bindings
+      WHERE uuid = ? AND bound_email = ?
+    `).bind(uuid, email).first<{ uuid: string; status: string; revoked_at: number | null }>();
+
+    if (!binding) {
+      return new Response(
+        JSON.stringify({
+          error: 'FORBIDDEN',
+          message: 'You do not have permission to restore this card'
+        }),
+        {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    if (binding.status !== 'revoked') {
+      return new Response(
+        JSON.stringify({
+          error: 'CARD_NOT_REVOKED',
+          message: 'Card is not in revoked state'
+        }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Check 7-day window
+    if (!binding.revoked_at) {
+      return errorResponse('invalid_state', 'Card has no revocation timestamp', 500, request);
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const revokedAt = binding.revoked_at;
+    const restoreDeadline = revokedAt + (7 * 86400);
+
+    if (now > restoreDeadline) {
+      return new Response(
+        JSON.stringify({
+          error: 'RESTORE_WINDOW_EXPIRED',
+          message: 'Self-service restore window expired (7 days). Please contact administrator.',
+          revoked_at: new Date(revokedAt * 1000).toISOString(),
+          restore_deadline: new Date(restoreDeadline * 1000).toISOString()
+        }),
+        {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Restore card
+    await env.DB.prepare(`
+      UPDATE uuid_bindings
+      SET status = 'bound', revoked_at = NULL
+      WHERE uuid = ?
+    `).bind(uuid).run();
+
+    // Log audit event
+    await logUserEvent(env.DB, 'user_card_restore', email, uuid, request);
+
+    return jsonResponse(
+      {
+        success: true,
+        message: 'Card restored successfully',
+        restored_at: new Date(now * 1000).toISOString()
+      },
+      200,
+      request
+    );
+  } catch (error) {
+    console.error('Error restoring card:', error);
+    return errorResponse('internal_error', 'Failed to restore card', 500, request);
   }
 }

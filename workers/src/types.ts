@@ -88,7 +88,7 @@ export const CARD_POLICIES: Record<CardType, CardPolicy> = {
 
 export interface AuditLog {
   id?: number;
-  event_type: 'tap' | 'read' | 'create' | 'card_create' | 'card_update' | 'card_delete' | 'card_revoke' | 'card_restore' | 'card_permanent_delete' | 'update' | 'delete' | 'revoke' | 'admin_revoke' | 'emergency_revoke' | 'kek_rotation' | 'user_card_create' | 'user_card_update';
+  event_type: 'tap' | 'read' | 'create' | 'card_create' | 'card_update' | 'card_delete' | 'card_revoke' | 'card_restore' | 'card_permanent_delete' | 'update' | 'delete' | 'revoke' | 'admin_revoke' | 'emergency_revoke' | 'kek_rotation' | 'user_card_create' | 'user_card_update' | 'user_card_revoke' | 'user_card_restore';
   card_uuid?: string;
   session_id?: string;
   user_agent?: string;
@@ -173,4 +173,50 @@ export interface ApiResponse<T = any> {
     code: string;
     message: string;
   };
+}
+
+// User Self-Revoke Types
+export type RevocationReason = 'lost' | 'suspected_leak' | 'info_update' | 'misdelivery' | 'other';
+
+export interface RevokeCardRequest {
+  reason?: RevocationReason;
+}
+
+export interface RevokeCardResponse {
+  success: boolean;
+  message: string;
+  revoked_at: string;
+  sessions_revoked: number;
+  restore_deadline: string;
+}
+
+export interface RateLimitError {
+  error: string;
+  message: string;
+  retry_after: number;
+  limits: {
+    hourly: { limit: number; remaining: number; reset_at: string };
+    daily: { limit: number; remaining: number; reset_at: string };
+  };
+}
+
+export interface RestoreCardResponse {
+  success: boolean;
+  message: string;
+  restored_at: string;
+}
+
+export interface RevocationHistoryEntry {
+  card_uuid: string;
+  card_name: string;
+  action: 'revoke' | 'restore';
+  reason: RevocationReason | null;
+  timestamp: string;
+  sessions_affected: number;
+}
+
+export interface RevocationHistoryResponse {
+  history: RevocationHistoryEntry[];
+  total: number;
+  limit: number;
 }

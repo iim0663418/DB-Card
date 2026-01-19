@@ -1,0 +1,442 @@
+# DB-Card
+
+> Enterprise-grade NFC digital business card system with envelope encryption, session-based authorization, and audit logging.
+
+## Overview
+
+DB-Card is a privacy-first digital business card system designed for organizations requiring secure identity exchange. Built on Cloudflare Workers edge computing platform, it provides:
+
+- **Envelope Encryption**: Each card has a unique DEK (Data Encryption Key) wrapped by a rotating KEK (Key Encryption Key)
+- **Session-Based Authorization**: 24-hour TTL sessions with configurable read limits and instant revocation
+- **Audit Logging**: Complete access trail with IP anonymization for compliance
+- **NFC Integration**: Physical NFC cards trigger secure session creation
+- **Bilingual Support**: Chinese and English UI with automatic switching
+
+**Target Users**: Organizations needing secure, auditable, and privacy-compliant identity exchange solutions.
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Cloudflare Workers                        │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │   Frontend   │  │   API Layer  │  │  Crypto Layer│      │
+│  │  (Static)    │  │  (Handlers)  │  │  (Envelope)  │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│         │                  │                  │              │
+│         └──────────────────┴──────────────────┘              │
+│                            │                                 │
+│         ┌──────────────────┴──────────────────┐             │
+│         │                                      │             │
+│    ┌────▼────┐                          ┌─────▼─────┐       │
+│    │ D1 DB   │                          │  KV Cache │       │
+│    │(SQLite) │                          │ (Session) │       │
+│    └─────────┘                          └───────────┘       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Components**:
+- **Frontend**: Vanilla JS + Tailwind CSS + Three.js (glassmorphism design)
+- **Backend**: TypeScript handlers on Cloudflare Workers
+- **Database**: D1 (SQLite-compatible distributed database)
+- **Cache**: KV (key-value store for session and card data)
+- **Crypto**: Web Crypto API for envelope encryption
+
+## Key Technologies
+
+- **Runtime**: Cloudflare Workers (V8 isolates)
+- **Language**: TypeScript
+- **Database**: Cloudflare D1 (SQLite)
+- **Cache**: Cloudflare KV
+- **Frontend**: Vanilla JavaScript, Tailwind CSS, Three.js
+- **Crypto**: Web Crypto API (AES-GCM, PBKDF2)
+- **NFC**: NDEF format (URL records)
+- **vCard**: vCard 3.0 standard
+- **Auth**: Google OAuth 2.0, JWT tokens with HttpOnly cookies
+
+## Project Structure
+
+```
+DB-Card/
+├── workers/                    # Main application
+│   ├── src/
+│   │   ├── index.ts            # Main router and middleware
+│   │   ├── types.ts            # TypeScript type definitions
+│   │   ├── handlers/           # API request handlers
+│   │   │   ├── tap.ts          # POST /api/nfc/tap
+│   │   │   ├── read.ts         # GET /api/read
+│   │   │   ├── health.ts       # GET /api/health
+│   │   │   ├── admin/          # Admin APIs
+│   │   │   │   ├── auth.ts     # Login/logout
+│   │   │   │   ├── cards.ts    # CRUD operations
+│   │   │   │   ├── revoke.ts   # Emergency revocation
+│   │   │   │   ├── kek.ts      # KEK rotation
+│   │   │   │   └── security.ts # Security monitoring (7 APIs)
+│   │   │   └── user/           # User APIs
+│   │   │       └── cards.ts    # User card management
+│   │   ├── middleware/
+│   │   │   ├── auth.ts         # Timing-safe token verification
+│   │   │   └── rate-limit.ts   # Rate limiting
+│   │   ├── crypto/
+│   │   │   └── envelope.ts     # Envelope encryption logic
+│   │   └── utils/
+│   │       ├── session.ts      # Session CRUD
+│   │       ├── policy.ts       # Card type policies
+│   │       ├── audit.ts        # Audit logging
+│   │       └── response.ts     # CORS and response helpers
+│   ├── public/                 # Frontend assets
+│   │   ├── index.html          # Landing page
+│   │   ├── user-portal.html    # User portal (OAuth login)
+│   │   ├── admin-dashboard.html # Admin dashboard
+│   │   ├── card-display.html   # Card display page
+│   │   ├── js/
+│   │   │   ├── api.js          # API client
+│   │   │   ├── main.js         # Main logic + i18n
+│   │   │   ├── storage.js      # IndexedDB wrapper
+│   │   │   ├── validation.js   # Form validation
+│   │   │   └── error-handler.js # Error handling
+│   │   └── css/
+│   │       └── v4-design.css   # Design system
+│   ├── migrations/             # Database migrations
+│   │   ├── 0001_initial_schema.sql
+│   │   ├── 0002_security_events.sql
+│   │   ├── 0003_blocked_ips.sql
+│   │   └── 0008_deleted_cards_audit.sql
+│   ├── wrangler.toml           # Cloudflare configuration
+│   └── package.json            # Dependencies
+├── docs/                       # Documentation
+│   ├── adr/                    # Architecture Decision Records
+│   │   ├── 001-privacy-first.md
+│   │   └── 002-security-architecture.md
+│   └── api/                    # API documentation
+├── .specify/                   # Development memory system
+│   ├── specs/                  # BDD specifications
+│   └── memory/                 # Knowledge graph
+└── README.md                   # Project overview
+```
+
+## Getting Started
+
+### Prerequisites
+- Node.js 18+
+- Cloudflare account
+- Wrangler CLI
+
+### Local Development
+```bash
+cd workers
+npm install
+npm run dev
+# Server runs at http://localhost:8787
+```
+
+### Environment Variables
+Create `.dev.vars` file:
+```bash
+SETUP_TOKEN=your_admin_token
+KEK=your_base64_kek
+GOOGLE_CLIENT_ID=your_google_oauth_client_id
+GOOGLE_CLIENT_SECRET=your_google_oauth_secret
+JWT_SECRET=your_jwt_secret_32bytes_base64
+```
+
+### Database Setup
+```bash
+# Local
+npx wrangler d1 execute DB --local --file=./migrations/0001_initial_schema.sql
+
+# Production
+npx wrangler d1 execute DB --remote --file=./migrations/0001_initial_schema.sql
+```
+
+### Deploy
+```bash
+# Staging
+npm run deploy:staging
+
+# Production
+npm run deploy:production
+```
+
+## API Endpoints
+
+### Public APIs
+- `POST /api/nfc/tap` - Create session from NFC tap
+  - Body: `{ card_uuid: string }`
+  - Returns: `{ session_token: string, expires_at: string }`
+
+- `GET /api/read?session={token}` - Read card data with session
+  - Returns: Decrypted card data + session info
+
+- `GET /api/health` - System health check
+  - Returns: `{ status, kek: { version }, database: { active_cards } }`
+
+### Admin APIs (Requires Authentication)
+- `POST /api/admin/login` - Admin login
+  - Body: `{ token: string }`
+  - Sets HttpOnly cookie
+
+- `POST /api/admin/logout` - Admin logout
+
+- `GET /api/admin/cards` - List all cards
+  - Returns: Array of cards with status
+
+- `GET /api/admin/cards/:uuid` - Get single card
+  - Returns: Full card data (decrypted)
+
+- `POST /api/admin/cards` - Create card
+  - Body: CardData (16 fields)
+  - Returns: `{ uuid, encrypted_dek }`
+
+- `PUT /api/admin/cards/:uuid` - Update card
+  - Body: CardData
+  - Revokes all existing sessions
+
+- `DELETE /api/admin/cards/:uuid` - Revoke card
+  - Query: `?permanent=true` for permanent deletion (only revoked cards)
+
+- `POST /api/admin/cards/:uuid/restore` - Restore revoked card
+
+- `POST /api/admin/revoke` - Global revocation
+  - Body: `{ card_uuid?: string, reason: string }`
+
+- `POST /api/admin/kek/rotate` - Rotate KEK
+  - Rewraps all DEKs with new KEK
+
+### User APIs (Requires OAuth)
+- `GET /api/user/cards` - List user's cards
+- `GET /api/user/cards/:uuid` - Get user's card
+- `POST /api/user/cards` - Create card (auto-generates UUID)
+- `PUT /api/user/cards/:uuid` - Update card
+
+### Security Monitoring APIs (Admin)
+- `GET /api/admin/security/stats` - 24h statistics
+- `GET /api/admin/security/events` - Event list with filters
+- `GET /api/admin/security/timeline` - Hourly distribution
+- `POST /api/admin/security/block` - Block IP
+- `DELETE /api/admin/security/block/:ip` - Unblock IP
+- `GET /api/admin/security/ip/:ip` - IP detail analysis
+- `GET /api/admin/security/export` - CSV export
+
+## Security Model
+
+### Envelope Encryption
+```
+┌─────────────────────────────────────────────────────────┐
+│  KEK (Key Encryption Key)                               │
+│  - Stored in environment variable                       │
+│  - Rotates every 90 days or on-demand                   │
+│  - Version tracked in database                          │
+└────────────────────┬────────────────────────────────────┘
+                     │ Wraps/Unwraps
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│  DEK (Data Encryption Key)                              │
+│  - Unique per card                                      │
+│  - 256-bit AES-GCM key                                  │
+│  - Stored encrypted in database                         │
+└────────────────────┬────────────────────────────────────┘
+                     │ Encrypts/Decrypts
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│  Card Data (Plaintext)                                  │
+│  - Name, title, email, phone, etc.                      │
+│  - Only decrypted during authorized read                │
+└─────────────────────────────────────────────────────────┘
+```
+
+### ReadSession Lifecycle
+1. **Creation**: NFC tap triggers `POST /api/nfc/tap`
+2. **Authorization**: Session token with 24h TTL
+3. **Usage**: Each read decrements `reads_remaining`
+4. **Expiration**: Auto-expires after 24h or max reads
+5. **Revocation**: Manual revoke via admin or re-tap NFC
+
+### Card Type Policies
+| Type | TTL | Max Reads | Use Case |
+|------|-----|-----------|----------|
+| personal | 24h | 20 | Personal cards |
+| event_booth | 24h | 50 | Event booths |
+| sensitive | 24h | 5 | Sensitive info |
+
+### Audit Logging
+- All API calls logged to `audit_logs` table
+- IP addresses anonymized (first 3 octets only)
+- Retention: 90 days (configurable)
+- Events: card CRUD, session ops, KEK rotation, security events
+
+## Development Workflow
+
+### BDD Specification-Driven
+All features follow BDD (Behavior-Driven Development):
+1. Write specification in `.specify/specs/`
+2. Implement feature
+3. Test against specification
+4. Update knowledge graph in `.specify/memory/`
+
+### Testing
+```bash
+# Run all tests
+npm test
+
+# Run specific test
+npm test -- handlers/tap.test.ts
+```
+
+### Code Style
+- TypeScript strict mode
+- ESLint + Prettier
+- Functional programming preferred
+- Minimal dependencies
+
+### Git Workflow
+```bash
+# Feature branch
+git checkout -b feature/amazing-feature
+
+# Commit with conventional commits
+git commit -m "feat: add amazing feature"
+
+# Push and create PR
+git push origin feature/amazing-feature
+```
+
+## Important Files
+
+### Backend Core
+- `workers/src/index.ts` - Main router, CORS, middleware chain
+- `workers/src/handlers/tap.ts` - NFC tap handler (session creation)
+- `workers/src/handlers/read.ts` - Card read handler (decryption)
+- `workers/src/crypto/envelope.ts` - Encryption/decryption logic
+- `workers/src/middleware/auth.ts` - Timing-safe authentication
+- `workers/src/utils/session.ts` - Session CRUD operations
+- `workers/src/utils/policy.ts` - Card type policy manager
+
+### Frontend Core
+- `workers/public/admin-dashboard.html` - Admin UI (CRUD + security monitoring)
+- `workers/public/user-portal.html` - User UI (OAuth + card management)
+- `workers/public/card-display.html` - Card display page (NFC landing)
+- `workers/public/js/main.js` - Main logic + i18n system
+- `workers/public/js/api.js` - API client with error handling
+
+### Configuration
+- `workers/wrangler.toml` - Cloudflare Workers config
+- `workers/package.json` - Dependencies and scripts
+- `.dev.vars` - Local environment variables (not committed)
+
+### Documentation
+- `README.md` - Project overview
+- `docs/adr/002-security-architecture.md` - Security design decisions
+- `.specify/specs/` - BDD specifications for all features
+
+## Common Tasks
+
+### Create New Card
+```bash
+# Via Admin Dashboard
+1. Open https://your-domain/admin-dashboard.html
+2. Click "新增名片"
+3. Fill 16 fields
+4. Submit
+
+# Via API
+curl -X POST https://your-domain/api/admin/cards \
+  -H "Cookie: admin_token=..." \
+  -H "Content-Type: application/json" \
+  -d '{"name_zh":"張三","name_en":"San Zhang",...}'
+```
+
+### Revoke Card
+```bash
+# Soft revoke (can restore)
+curl -X DELETE https://your-domain/api/admin/cards/{uuid} \
+  -H "Cookie: admin_token=..."
+
+# Permanent delete (only for revoked cards)
+curl -X DELETE https://your-domain/api/admin/cards/{uuid}?permanent=true \
+  -H "Cookie: admin_token=..."
+```
+
+### Check System Health
+```bash
+curl https://your-domain/api/health
+```
+
+### Rotate KEK
+```bash
+curl -X POST https://your-domain/api/admin/kek/rotate \
+  -H "Cookie: admin_token=..." \
+  -d '{"new_kek":"base64_encoded_key"}'
+```
+
+### View Audit Logs
+```bash
+# Via Admin Dashboard
+1. Open https://your-domain/admin-dashboard.html
+2. Click "安全監控" tab
+3. Filter by event type, date range, IP
+
+# Via API
+curl https://your-domain/api/admin/security/events?event_type=card_read&limit=50 \
+  -H "Cookie: admin_token=..."
+```
+
+### Export Security Events
+```bash
+curl https://your-domain/api/admin/security/export?start_time=2026-01-01 \
+  -H "Cookie: admin_token=..." \
+  > security_events.csv
+```
+
+## Performance Optimization
+
+### Frontend
+- CDN preconnect for Tailwind, Lucide, Three.js
+- Deferred loading of non-critical scripts
+- Three.js initialization delayed by 100ms
+- Expected improvements: FCP -200~500ms, TTI -300~800ms
+
+### Backend
+- KV cache for card data (60s TTL)
+- Complete response caching (includes session_info)
+- D1 query optimization (split JOINs, batch operations)
+- Async audit logging (non-blocking)
+- Current performance: Read API 0.5s (hot), 1.4s (cold)
+
+### Known Limitations
+- Worker base latency: 0.7s (cannot optimize)
+- D1 query latency: 150-200ms (platform limitation)
+- Network latency: varies by geography
+
+## Links
+
+- **GitHub**: https://github.com/iim0663418/DB-Card
+- **Documentation**: `docs/` directory
+- **ADRs**: `docs/adr/` directory
+- **BDD Specs**: `.specify/specs/` directory
+- **Knowledge Graph**: `.specify/memory/knowledge_graph.mem`
+- **Progress Tracking**: `.specify/memory/progress.md`
+
+## Version History
+
+- **v4.0.0** (2026-01-18) - Enterprise security architecture
+  - Envelope encryption
+  - Session-based authorization
+  - Complete bilingual support
+  - Security monitoring dashboard
+  - HttpOnly cookies
+  - Audit logging
+
+- **v3.2.1** (2025-08-09) - PWA stable release (archived)
+  - PWA offline storage
+  - Bilingual translation system
+  - Security architecture modules
+
+## License
+
+MIT License - See LICENSE file for details
+
+---
+
+**Built with privacy-first principles and enterprise-grade security**  
+**Powered by Cloudflare Workers global edge computing**

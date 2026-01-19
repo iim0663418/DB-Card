@@ -1015,17 +1015,8 @@
                 toggleLoading(false);
             } catch (error) {
                 toggleLoading(false);
-                // 修復錯誤訊息顯示
-                let errorMsg = '未知錯誤';
-                if (error?.message) {
-                    errorMsg = error.message;
-                } else if (error?.error) {
-                    errorMsg = error.error;
-                } else if (typeof error === 'string') {
-                    errorMsg = error;
-                } else if (typeof error === 'object') {
-                    errorMsg = JSON.stringify(error);
-                }
+                // 正確處理錯誤訊息
+                const errorMsg = error?.message || error?.error || (typeof error === 'string' ? error : '未知錯誤');
                 showToast('查看失敗: ' + errorMsg);
             }
         }

@@ -425,19 +425,27 @@ function renderCard(cardData, sessionData) {
 
     // LINE 處理
     if (cardData.social_line) {
+        console.log('[DEBUG] LINE input:', cardData.social_line);
         const lineUrl = getLineUrl(cardData.social_line);
+        console.log('[DEBUG] LINE URL:', lineUrl);
         if (lineUrl) {
             socialLinks.push({ url: lineUrl, icon: 'line', color: SOCIAL_COLORS.line });
+            console.log('[DEBUG] LINE added to socialLinks');
         }
     }
 
     // Signal 處理
     if (cardData.social_signal) {
+        console.log('[DEBUG] Signal input:', cardData.social_signal);
         const signalUrl = getSignalUrl(cardData.social_signal);
+        console.log('[DEBUG] Signal URL:', signalUrl);
         if (signalUrl) {
             socialLinks.push({ url: signalUrl, icon: 'signal', color: SOCIAL_COLORS.signal });
+            console.log('[DEBUG] Signal added to socialLinks');
         }
     }
+
+    console.log('[DEBUG] Total socialLinks:', socialLinks.length, socialLinks);
 
     if (socialLinks.length > 0) {
         socialCluster.innerHTML = '';

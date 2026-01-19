@@ -515,3 +515,100 @@
 260119|API_admin_revoke|method|POST
 260119|API_admin_revoke|path|/api/admin/revoke
 260119|API_admin_revoke|feature|Global_Revocation
+
+# User Self-Revoke Feature v1.0.0 (2026-01-20)
+260120|User_Self_Revoke|version|v1.0.0
+260120|User_Self_Revoke|status|COMPLETE
+260120|User_Self_Revoke|commit|a1e9f46
+260120|User_Self_Revoke|deployment|staging_52851b02
+
+# Core APIs
+260120|POST_api_user_cards_revoke|status|Implemented
+260120|POST_api_user_cards_revoke|path|/api/user/cards/:uuid/revoke
+260120|POST_api_user_cards_revoke|features|Rate_Limiting_Session_Revocation_Optional_Reason
+260120|POST_api_user_cards_restore|status|Implemented
+260120|POST_api_user_cards_restore|path|/api/user/cards/:uuid/restore
+260120|POST_api_user_cards_restore|features|7_Day_Window_Self_Service
+260120|GET_api_user_revocation_history|status|Implemented
+260120|GET_api_user_revocation_history|path|/api/user/revocation-history
+260120|GET_api_user_revocation_history|features|30_Day_History_Pagination
+
+# Rate Limiting
+260120|Rate_Limiting|hourly_limit|3_per_hour
+260120|Rate_Limiting|daily_limit|10_per_day
+260120|Rate_Limiting|table|revocation_rate_limits
+260120|Rate_Limiting|error_code|REVOCATION_RATE_LIMITED
+260120|Rate_Limiting|window_type|sliding_hourly_fixed_daily
+
+# Database
+260120|Migration_0009|table|revocation_rate_limits
+260120|Migration_0009|columns|user_id_window_type_window_start_revocation_count
+260120|Migration_0009|indexes|idx_rate_limits_user_window_idx_rate_limits_cleanup
+260120|uuid_bindings|revoked_at|Already_Exists_From_Migration_0004
+260120|uuid_bindings|revoke_reason|Already_Exists_From_Migration_0004
+
+# Frontend
+260120|User_Portal|revoke_modal|Confirmation_Dialog_With_Reason_Select
+260120|User_Portal|rate_limit_banner|Error_Display_With_Retry_Time
+260120|User_Portal|admin_contact_hint|Two_Locations_Modal_And_Banner
+260120|User_Portal|progress_indicator|Validating_Encrypting_Saving
+260120|User_Portal|no_emoji|Clean_Professional_UI
+
+# Security
+260120|Revoke_Security|session_revocation|Immediate_All_Active_Sessions
+260120|Revoke_Security|audit_logging|Complete_Actor_Reason_Sessions_Count
+260120|Revoke_Security|ip_anonymization|First_3_Octets_Only
+260120|Revoke_Security|restore_window|7_Days_Self_Service
+260120|Revoke_Security|admin_override|Permanent_Delete_Available
+
+# Performance Optimizations (2026-01-20)
+260120|Performance_Fix|addSecurityHeaders|response_clone_body
+260120|Performance_Fix|handleUserListCards|JOIN_Query_N_Plus_1_Fixed
+260120|Performance_Fix|database_queries|7_to_4_queries_minus_43_percent
+260120|Performance_Fix|tailwind_cdn|defer_attribute_added
+260120|Performance_Fix|api_response_time|47ms_average
+
+# Testing
+260120|Testing|coverage|80_percent_8_of_10
+260120|Testing|bdd_scenarios|8_scenarios_complete
+260120|Testing|staging_verification|passed
+260120|Testing|rate_limiting|verified_3_hour_10_day
+260120|Testing|session_revocation|verified_immediate
+260120|Testing|audit_logs|verified_complete
+260120|Testing|7_day_window|verified_timestamp
+260120|Testing|tested_by|iim0663418@moda.gov.tw
+
+# Documentation
+260120|Documentation|test_results|reports/USER-REVOKE-TEST-RESULTS.md
+260120|Documentation|user_guide|guides/REVOKE-AND-NEW-CARD-GUIDE.md
+260120|Documentation|performance|reports/CREATE-CARD-PERFORMANCE-TEST.md
+260120|Documentation|staging_report|reports/STAGING-TEST-REPORT.md
+260120|Documentation|bdd_spec|specs/user-self-revoke.md
+260120|Documentation|implementation|specs/user-self-revoke-implementation-summary.md
+260120|Documentation|architecture|specs/BUGFIX-architecture-clarification.md
+
+# Bug Fixes
+260120|Bug_Fix|modal_button_reset|closeRevokeModal_state_reset
+260120|Bug_Fix|empty_response|addSecurityHeaders_clone_body
+260120|Bug_Fix|n_plus_1_query|handleUserListCards_JOIN_optimization
+
+# UI Improvements
+260120|UI_Improvement|emoji_removal|professional_clean_interface
+260120|UI_Improvement|admin_hint|contact_admin_for_immediate_delete
+260120|UI_Improvement|progress_indicator|validating_encrypting_saving_states
+260120|UI_Improvement|rate_limit_error|clear_retry_time_display
+
+# Project Structure Cleanup (2026-01-20)
+260120|Project_Cleanup|reports_directory|created
+260120|Project_Cleanup|guides_directory|created
+260120|Project_Cleanup|deployment_directory|created
+260120|Project_Cleanup|temp_files|removed_test_scripts
+260120|Project_Cleanup|commit|70e152b
+
+# Deployment Status
+260120|Deployment|environment|staging
+260120|Deployment|version|52851b02_a6e7_4327_82c7_208df74b8bee
+260120|Deployment|url|https://db-card-staging.csw30454.workers.dev
+260120|Deployment|database|db-card-staging
+260120|Deployment|active_cards|3
+260120|Deployment|status|operational

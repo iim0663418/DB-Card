@@ -223,7 +223,7 @@
                 </button>
                 <div class="space-y-2">
                     <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Authorized Access Only</p>
-                    <p class="text-[11px] text-slate-400">僅限 @moda.gov.tw 網域使用者訪問</p>
+                    <p class="text-[11px] text-slate-400">僅限 @moda.gov.tw 或 @nics.nat.gov.tw 網域使用者訪問</p>
                 </div>
             </div>
         </section>
@@ -818,9 +818,12 @@
                 if (event.data.type === 'oauth_success') {
                     const { token, email, name, picture } = event.data;
 
-                    // Check domain
-                    if (!email.endsWith('@moda.gov.tw')) {
-                        errorBox.innerText = '您的 Email 網域未授權';
+                    // Check domain whitelist
+                    const allowedDomains = ['@moda.gov.tw', '@nics.nat.gov.tw'];
+                    const isAllowed = allowedDomains.some(domain => email.endsWith(domain));
+                    
+                    if (!isAllowed) {
+                        errorBox.innerText = '您的 Email 網域未授權（僅限 @moda.gov.tw 或 @nics.nat.gov.tw）';
                         errorBox.classList.remove('hidden');
                         return;
                     }

@@ -7,6 +7,32 @@ import { EnvelopeEncryption } from '../crypto/envelope';
 import { logEvent } from '../utils/audit';
 import { errorResponse } from '../utils/response';
 
+async function getCachedCardData(
+  env: Env,
+  uuid: string,
+  encryptedPayload: string,
+  wrappedDek: string
+): Promise<CardData> {
+  const cacheKey = `card:${uuid}`;
+
+  const cached = await env.KV.get(cacheKey, {
+    type: 'json',
+    cacheTtl: 300
+  });
+
+  if (cached) return cached as CardData;
+
+  const crypto = new EnvelopeEncryption();
+  await crypto.initialize(env);
+  const cardData = await crypto.decryptCard(encryptedPayload, wrappedDek) as CardData;
+
+  await env.KV.put(cacheKey, JSON.stringify(cardData), {
+    expirationTtl: 300
+  });
+
+  return cardData;
+}
+
 // CORS allowed origins whitelist
 const ALLOWED_ORIGINS = [
   'http://localhost:8788',
@@ -92,7 +118,7 @@ function validateSession(session: ReadSession | null): SessionValidation {
  * 4. Max reads exceeded -> 403 max_reads_exceeded
  * 5. Session not found -> 404 session_not_found
  */
-export async function handleRead(request: Request, env: Env): Promise<Response> {
+export async function handleRead(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   try {
     // Parse query parameters
     const url = new URL(request.url);
@@ -101,9 +127,9 @@ export async function handleRead(request: Request, env: Env): Promise<Response> 
 
     // Validate required parameters
     if (!card_uuid || !session_id) {
-      await logEvent(env, 'read', request, card_uuid || undefined, session_id || undefined, {
+      ctx.waitUntil(logEvent(env, 'read', request, card_uuid || undefined, session_id || undefined, {
         error: 'missing_parameters'
-      });
+      }));
       return errorResponse('invalid_request', '缺少必要參數 uuid 或 session', 400, request);
     }
 
@@ -116,9 +142,9 @@ export async function handleRead(request: Request, env: Env): Promise<Response> 
     // Validate session
     const validation = validateSession(session);
     if (!validation.valid) {
-      await logEvent(env, 'read', request, card_uuid, session_id, {
+      ctx.waitUntil(logEvent(env, 'read', request, card_uuid, session_id, {
         error: validation.reason
-      });
+      }));
 
       const statusCode = validation.reason === 'session_not_found' ? 404 : 403;
       return errorResponse(validation.reason!, validation.message!, statusCode, request);
@@ -137,27 +163,25 @@ export async function handleRead(request: Request, env: Env): Promise<Response> 
     }>();
 
     if (!card) {
-      await logEvent(env, 'read', request, card_uuid, session_id, {
+      ctx.waitUntil(logEvent(env, 'read', request, card_uuid, session_id, {
         error: 'card_not_found'
-      });
+      }));
       return errorResponse('card_not_found', '名片不存在或已刪除', 404, request);
     }
 
-    // Decrypt card data
-    const crypto = new EnvelopeEncryption();
-    await crypto.initialize(env);
-
     let cardData: CardData;
     try {
-      cardData = await crypto.decryptCard(
+      cardData = await getCachedCardData(
+        env,
+        card_uuid,
         card.encrypted_payload,
         card.wrapped_dek
-      ) as CardData;
+      );
     } catch (error) {
-      await logEvent(env, 'read', request, card_uuid, session_id, {
+      ctx.waitUntil(logEvent(env, 'read', request, card_uuid, session_id, {
         error: 'decryption_failed',
         message: error instanceof Error ? error.message : 'Unknown error'
-      });
+      }));
       return errorResponse('internal_error', '解密失敗', 500, request);
     }
 
@@ -171,11 +195,10 @@ export async function handleRead(request: Request, env: Env): Promise<Response> 
     // Calculate remaining reads
     const reads_remaining = session!.max_reads - (session!.reads_used + 1);
 
-    // Log successful read
-    await logEvent(env, 'read', request, card_uuid, session_id, {
+    ctx.waitUntil(logEvent(env, 'read', request, card_uuid, session_id, {
       reads_used: session!.reads_used + 1,
       reads_remaining
-    });
+    }));
 
     // Return decrypted card data with session info
     return new Response(JSON.stringify({
@@ -195,10 +218,10 @@ export async function handleRead(request: Request, env: Env): Promise<Response> 
 
   } catch (error) {
     console.error('Read handler error:', error);
-    await logEvent(env, 'read', request, undefined, undefined, {
+    ctx.waitUntil(logEvent(env, 'read', request, undefined, undefined, {
       error: 'internal_error',
       message: error instanceof Error ? error.message : 'Unknown error'
-    });
+    }));
     return errorResponse('internal_error', '伺服器錯誤', 500, request);
   }
 }

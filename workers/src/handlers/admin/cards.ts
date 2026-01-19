@@ -551,6 +551,8 @@ export async function handleUpdateCard(
       uuid
     ).run();
 
+    await env.KV.delete(`card:${uuid}`);
+
     // Revoke all associated ReadSessions
     const sessionsRevoked = await revokeAllCardSessions(env, uuid, 'card_updated');
 

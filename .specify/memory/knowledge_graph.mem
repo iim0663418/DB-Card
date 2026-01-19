@@ -240,11 +240,29 @@
 260118|Requirement_Question|Q9|UUID_Distribution_Method
 260118|Requirement_Question|Q10|Security_Mechanism_Rate_Limit_CAPTCHA
 
+# Product Positioning Decision (2026-01-19)
+260119|DB_Card|product_type|Digital_Business_Card_System
+260119|DB_Card|not_product_type|Authorization_System
+260119|SESSION_EXPIRES|purpose|Resource_Management_Not_Access_Control
+260119|SESSION_EXPIRES|meaning|Session_Lifetime_24h
+260119|ATTEMPTS_REMAINING|purpose|Resource_Management_Not_Access_Control
+260119|ATTEMPTS_REMAINING|meaning|Total_Session_Traffic_Limit
+260119|Session_Sharing|allowed|True
+260119|Session_Sharing|reason|Business_Card_Sharing_Nature
+260119|QR_Code|status|Essential_Feature
+260119|QR_Code|purpose|Easy_Sharing_No_Physical_Contact
+260119|URL_Sharing|status|Essential_Feature
+260119|URL_Sharing|purpose|Easy_Propagation
+260119|ADR_005|status|Cancelled
+260119|ADR_005|reason|Conflicts_With_Product_Positioning
+260119|Fingerprint_Verification|status|Not_Needed
+260119|Fingerprint_Verification|reason|Would_Break_QR_Code_And_Sharing
+
 # Deployment Status
-260118|Deployment|environment|staging
-260118|Deployment|version|a6d0fbd2_0c10_4c59_aa72_099a92eca420
-260118|Deployment|features|vCard_3_0_Google_Drive_Photo
-260118|Deployment|status|Operational
+260119|Deployment|environment|staging
+260119|Deployment|version|b671362c_ae22_464f_a117_58d7186f81ee
+260119|Deployment|features|Phase_2_User_Portal_Revoke_Restore_Complete
+260119|Deployment|status|Operational
 
 # I18N Text Keys
 260118|i18n_key|loading|Synchronizing_Secure_Identity

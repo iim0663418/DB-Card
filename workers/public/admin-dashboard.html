@@ -1297,14 +1297,17 @@
                 };
             }
 
-            // 社群連結 - 從獨立輸入框收集
-            const socialData = SocialParser.collectFromInputs();
-            if (socialData.text) {
-                cardData.socialLinks = {
-                    email: `mailto:${formData.email}`,
-                    socialNote: socialData.text
-                };
-            }
+            // 社群連結 - 從獨立輸入框收集（新格式）
+            const socialFields = ['social_github', 'social_linkedin', 'social_facebook', 
+                                 'social_instagram', 'social_twitter', 'social_youtube',
+                                 'social_line', 'social_signal'];
+            
+            socialFields.forEach(field => {
+                const input = document.getElementById(field);
+                if (input && input.value.trim()) {
+                    cardData[field] = input.value.trim();
+                }
+            });
 
             return cardData;
         }

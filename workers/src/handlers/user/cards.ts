@@ -147,21 +147,6 @@ export async function handleUserCreateCard(request: Request, env: Env): Promise<
     const ip = request.headers.get('CF-Connecting-IP') || '0.0.0.0';
     const userAgent = request.headers.get('User-Agent') || 'unknown';
 
-    // Insert into uuid_bindings
-    await env.DB.prepare(`
-      INSERT INTO uuid_bindings (
-        uuid, type, status, bound_email, bound_at,
-        created_ip, created_user_agent
-      ) VALUES (?, ?, 'bound', ?, ?, ?, ?)
-    `).bind(
-      uuid,
-      body.type,
-      email,
-      Math.floor(Date.now() / 1000),
-      anonymizeIP(ip),
-      userAgent
-    ).run();
-
     // Prepare card data for encryption
     const cardData = {
       name: { zh: body.name_zh, en: body.name_en },
@@ -181,7 +166,7 @@ export async function handleUserCreateCard(request: Request, env: Env): Promise<
       social_youtube: body.social_youtube
     };
 
-    // Encrypt card data
+    // Encrypt card data (before DB operations)
     const encryption = new EnvelopeEncryption();
     await encryption.initialize(env);
     const { encrypted_payload, wrapped_dek } = await encryption.encryptCard(cardData);
@@ -191,22 +176,46 @@ export async function handleUserCreateCard(request: Request, env: Env): Promise<
       SELECT version FROM kek_versions WHERE status = 'active' ORDER BY version DESC LIMIT 1
     `).first<{ version: number }>();
 
-    // Insert into cards table
     const timestamp = Date.now();
-    await env.DB.prepare(`
-      INSERT INTO cards (
-        uuid, card_type, encrypted_payload, wrapped_dek,
-        key_version, status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, 'active', ?, ?)
-    `).bind(
-      uuid,
-      body.type,
-      encrypted_payload,
-      wrapped_dek,
-      kekVersion?.version || 1,
-      timestamp,
-      timestamp
-    ).run();
+    const timestampSeconds = Math.floor(timestamp / 1000);
+
+    // Use transaction to ensure atomicity
+    const results = await env.DB.batch([
+      // Insert into uuid_bindings
+      env.DB.prepare(`
+        INSERT INTO uuid_bindings (
+          uuid, type, status, bound_email, bound_at,
+          created_ip, created_user_agent
+        ) VALUES (?, ?, 'bound', ?, ?, ?, ?)
+      `).bind(
+        uuid,
+        body.type,
+        email,
+        timestampSeconds,
+        anonymizeIP(ip),
+        userAgent
+      ),
+      // Insert into cards table
+      env.DB.prepare(`
+        INSERT INTO cards (
+          uuid, card_type, encrypted_payload, wrapped_dek,
+          key_version, status, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, 'active', ?, ?)
+      `).bind(
+        uuid,
+        body.type,
+        encrypted_payload,
+        wrapped_dek,
+        kekVersion?.version || 1,
+        timestamp,
+        timestamp
+      )
+    ]);
+
+    // Check if both inserts succeeded
+    if (!results[0].success || !results[1].success) {
+      throw new Error('Failed to insert card data');
+    }
 
     // Log audit event
     await logUserEvent(env.DB, 'user_card_create', email, uuid, request, {

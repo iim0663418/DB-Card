@@ -426,7 +426,12 @@
 
                     <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-6">
                         <button type="button" onclick="showView('selection')" class="sm:flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-200">Cancel</button>
-                        <button type="submit" class="sm:flex-[2] py-4 bg-moda text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-moda shadow-xl shadow-moda transition-all">Save Changes</button>
+                        <button id="submit-btn" type="submit" class="sm:flex-[2] py-4 bg-moda text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-moda shadow-xl shadow-moda transition-all">
+                            <span id="submit-btn-text">Save Changes</span>
+                            <span id="submit-btn-loading" class="hidden">
+                                <i data-lucide="loader-2" class="w-4 h-4 inline animate-spin"></i> Saving...
+                            </span>
+                        </button>
                     </div>
                 </form>
             </div>
@@ -878,6 +883,17 @@
         // Scenario F4 (POST/PUT): Create/Edit Card
         async function handleFormSubmit(e) {
             e.preventDefault();
+            
+            // 顯示 loading 狀態
+            const submitBtn = document.getElementById('submit-btn');
+            const submitBtnText = document.getElementById('submit-btn-text');
+            const submitBtnLoading = document.getElementById('submit-btn-loading');
+            
+            submitBtn.disabled = true;
+            submitBtnText.classList.add('hidden');
+            submitBtnLoading.classList.remove('hidden');
+            lucide.createIcons();
+            
             const formData = new FormData(e.target);
             const data = {};
 
@@ -955,6 +971,11 @@
                 const errEl = document.getElementById('form-error-msg');
                 errEl.innerText = errorMsg;
                 errEl.classList.remove('hidden');
+            } finally {
+                // 8. 恢復按鈕狀態
+                submitBtn.disabled = false;
+                submitBtnText.classList.remove('hidden');
+                submitBtnLoading.classList.add('hidden');
             }
         }
 

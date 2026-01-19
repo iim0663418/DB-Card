@@ -173,27 +173,33 @@
 
                 <!-- 系統健康 -->
                 <div class="glass-card rounded-3xl p-8">
-                    <div class="feature-icon mb-4" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
-                        <i data-lucide="activity" class="w-6 h-6"></i>
+                    <div class="feature-icon mb-4" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">
+                        <i data-lucide="credit-card" class="w-6 h-6"></i>
                     </div>
-                    <h3 class="text-xl font-black mb-2">系統健康</h3>
+                    <h3 class="text-xl font-black mb-2">NFC 卡片選購</h3>
                     <p class="text-sm text-slate-600 mb-4">
-                        即時系統狀態與 KEK 版本資訊
+                        如何選擇正確規格的 NFC 卡片
                     </p>
                     
-                    <!-- 即時狀態顯示 -->
-                    <div id="health-stats" class="space-y-2 text-xs">
-                        <div class="flex justify-between items-center">
-                            <span class="text-slate-500">KEK 版本</span>
-                            <span class="font-mono font-bold text-slate-700" id="kek-version">--</span>
+                    <div class="space-y-3 text-sm">
+                        <div>
+                            <div class="font-semibold text-slate-700 mb-1">✓ 推薦晶片</div>
+                            <div class="text-xs text-slate-600">NTAG213 / NTAG215 / NTAG216</div>
                         </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-slate-500">活躍名片</span>
-                            <span class="font-mono font-bold text-slate-700" id="active-cards">--</span>
+                        <div>
+                            <div class="font-semibold text-slate-700 mb-1">✓ 記憶體需求</div>
+                            <div class="text-xs text-slate-600">最少 144 bytes（NTAG213 即可）</div>
                         </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-slate-500">資料庫</span>
-                            <span class="font-mono font-bold text-green-600" id="db-status">--</span>
+                        <div>
+                            <div class="font-semibold text-slate-700 mb-1">✓ 購買管道</div>
+                            <div class="text-xs text-slate-600">電商平台搜尋「NTAG213 白卡」</div>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-slate-700 mb-1">✓ 寫入工具</div>
+                            <div class="text-xs text-slate-600">
+                                iOS：內建 NFC 工具<br>
+                                Android：NFC Tools App
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -317,39 +323,10 @@
             });
         }
 
-        // 系統健康查詢
-        async function checkSystemHealth() {
-            try {
-                const response = await fetch('/health');
-                const result = await response.json();
-                
-                if (result.success && result.data) {
-                    const data = result.data;
-                    
-                    // 更新狀態顯示
-                    if (data.status === 'ok') {
-                        document.getElementById('system-status').textContent = '系統運行中';
-                    }
-                    
-                    // 更新詳細資訊
-                    document.getElementById('kek-version').textContent = `v${data.kek_version || '--'}`;
-                    document.getElementById('active-cards').textContent = `${data.active_cards || 0} 張`;
-                    document.getElementById('db-status').textContent = data.database === 'connected' ? '已連線' : '離線';
-                }
-            } catch (error) {
-                console.warn('Health check failed:', error);
-                document.getElementById('system-status').textContent = '查詢失敗';
-                document.getElementById('kek-version').textContent = 'N/A';
-                document.getElementById('active-cards').textContent = 'N/A';
-                document.getElementById('db-status').textContent = 'N/A';
-            }
-        }
-
         // 初始化
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             initThree();
-            checkSystemHealth();
         });
     </script>
 </body>

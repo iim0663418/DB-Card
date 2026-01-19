@@ -642,9 +642,13 @@
                     ['UNAUTHORIZED', '登入已過期，請重新登入'],
                     ['FORBIDDEN', '權限不足'],
                     ['SERVER_ERROR', '伺服器錯誤，請稍後再試'],
+                    ['binding_limit_exceeded', '您已經有此類型的名片，每種類型限制 1 張'],
+                    ['invalid_type', '名片類型錯誤'],
+                    ['invalid_data', '資料格式錯誤'],
                     [401, '登入已過期，請重新登入'],
                     [403, '權限不足'],
                     [404, '資源不存在'],
+                    [409, '名片已存在'],
                     [500, '伺服器錯誤，請稍後再試'],
                     [0, '網路連線失敗']
                 ]);
@@ -772,7 +776,14 @@
                         showToast('登入已過期，請重新登入');
                     }
 
-                    throw { status: res.status, message: error.message || error.error };
+                    // Extract error details (support nested error object)
+                    const errorDetails = error.error || error;
+                    throw { 
+                        status: res.status, 
+                        code: errorDetails.code,
+                        message: errorDetails.message || error.message || 'Request failed',
+                        existing_uuid: errorDetails.existing_uuid
+                    };
                 }
 
                 return res.json();

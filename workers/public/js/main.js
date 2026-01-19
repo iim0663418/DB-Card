@@ -376,20 +376,24 @@ function renderCard(cardData, sessionData) {
     // URL 處理函數
     const getLineUrl = (input) => {
         if (!input) return null;
-        input = input.trim();
+        
+        // 清理輸入
+        const trimmed = input.trim();
+        if (!trimmed) return null;
 
-        // 如果已經是完整 URL，直接返回
-        if (input.startsWith('http://') || input.startsWith('https://')) {
-            return input;
+        // 規則 1：若已是完整 URL，直接返回
+        if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+            return trimmed;
         }
 
-        // 如果是 line.me 路徑格式（如 line.me/ti/p/~username），補上 https://
-        if (input.startsWith('line.me/')) {
-            return `https://${input}`;
-        }
+        // 規則 2：視為 ID，移除空白與前置 @
+        const cleanId = trimmed.replace(/\s+/g, '').replace(/^@+/, '');
+        
+        // 規則 3：若清理後為空，返回 null
+        if (!cleanId) return null;
 
-        // 如果是純 LINE ID，轉換為標準 URL 格式
-        return `https://line.me/ti/p/~${input}`;
+        // 組成標準 URL
+        return `https://line.me/ti/p/~${cleanId}`;
     };
 
     const getSignalUrl = (input) => {
@@ -659,14 +663,24 @@ function generateVCard(cardData) {
     // URL 處理函數（與 renderCard 一致）
     const getLineUrl = (input) => {
         if (!input) return null;
-        input = input.trim();
-        if (input.startsWith('http://') || input.startsWith('https://')) {
-            return input;
+        
+        // 清理輸入
+        const trimmed = input.trim();
+        if (!trimmed) return null;
+
+        // 規則 1：若已是完整 URL，直接返回
+        if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+            return trimmed;
         }
-        if (input.startsWith('line.me/')) {
-            return `https://${input}`;
-        }
-        return `https://line.me/ti/p/~${input}`;
+
+        // 規則 2：視為 ID，移除空白與前置 @
+        const cleanId = trimmed.replace(/\s+/g, '').replace(/^@+/, '');
+        
+        // 規則 3：若清理後為空，返回 null
+        if (!cleanId) return null;
+
+        // 組成標準 URL
+        return `https://line.me/ti/p/~${cleanId}`;
     };
 
     const getSignalUrl = (input) => {

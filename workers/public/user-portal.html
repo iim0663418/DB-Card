@@ -582,14 +582,22 @@
                         return;
                     }
 
+                    // 立即設定登入狀態
                     state.isLoggedIn = true;
-                    state.authToken = token; // Store JWT token
+                    state.authToken = token;
                     state.currentUser = { email, name, picture };
                     document.getElementById('user-email-display').innerText = email;
 
-                    await fetchUserCards();
+                    // 立即切換視圖（使用者看到反應）
                     showView('selection');
-                    showToast('登入成功');
+                    showToast('登入成功，載入名片中...');
+
+                    // 背景載入卡片資料
+                    try {
+                        await fetchUserCards();
+                    } catch (err) {
+                        handleError(err);
+                    }
                 } else if (event.data.type === 'oauth_error') {
                     errorBox.innerText = '登入失敗：' + event.data.error;
                     errorBox.classList.remove('hidden');

@@ -151,11 +151,16 @@ function showNotification(message, type = 'info') {
 }
 
 async function initApp() {
-    initThree();
     lucide.createIcons();
-
-    // 清理過期快取
     clearExpiredCache();
+
+    if (typeof THREE !== 'undefined') {
+        setTimeout(() => initThree(), 100);
+    } else {
+        window.addEventListener('load', () => {
+            if (typeof THREE !== 'undefined') initThree();
+        });
+    }
 
     const params = new URLSearchParams(window.location.search);
     const uuid = params.get('uuid');

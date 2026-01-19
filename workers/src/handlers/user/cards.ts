@@ -101,7 +101,7 @@ export async function handleUserCreateCard(request: Request, env: Env): Promise<
     // Validate card type
     const validTypes: UserCardType[] = ['personal', 'event', 'sensitive'];
     if (!body.type || !validTypes.includes(body.type)) {
-      return errorResponse('invalid_type', 'type must be official, temporary, or event', 400, request);
+      return errorResponse('invalid_type', 'type must be personal, event, or sensitive', 400, request);
     }
 
     // Validate card data

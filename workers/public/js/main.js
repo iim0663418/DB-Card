@@ -225,15 +225,27 @@ async function loadCard(uuid) {
     } catch (error) {
         console.error('Error loading card:', error);
 
-        // 統一錯誤處理（無降級邏輯）
-        if (error.message.includes('403') || error.message.includes('已撤銷') || error.message.includes('revoked')) {
-            showError('此名片已被撤銷，請聯絡名片擁有者');
-        } else if (error.message.includes('expired') || error.message.includes('過期')) {
-            showError('授權已過期，請重新觸碰 NFC 卡片');
-        } else if (error.message.includes('exceeded')) {
-            showError('已達到最大讀取次數，請重新觸碰 NFC 卡片');
-        } else if (error.message.includes('Network') || error.message.includes('Failed to fetch')) {
+        // 根據錯誤類型顯示對應訊息
+        const errorMsg = error.message.toLowerCase();
+        
+        if (errorMsg.includes('session_expired') || errorMsg.includes('expired') || errorMsg.includes('過期')) {
+            showError('授權已過期（24 小時），請重新觸碰 NFC 卡片取得新授權');
+        } else if (errorMsg.includes('session_revoked') || errorMsg.includes('revoked') || errorMsg.includes('已撤銷')) {
+            showError('此授權已被撤銷，請重新觸碰 NFC 卡片或聯絡名片擁有者');
+        } else if (errorMsg.includes('max_reads_exceeded') || errorMsg.includes('exceeded') || errorMsg.includes('次數上限')) {
+            showError('已達讀取次數上限，請重新觸碰 NFC 卡片取得新授權');
+        } else if (errorMsg.includes('session_not_found') || errorMsg.includes('not_found')) {
+            showError('授權不存在或已失效，請重新觸碰 NFC 卡片');
+        } else if (errorMsg.includes('card_not_found') || errorMsg.includes('名片不存在')) {
+            showError('名片不存在或已被刪除，請聯絡名片擁有者');
+        } else if (errorMsg.includes('network') || errorMsg.includes('failed to fetch')) {
             showError('網路連線失敗，請檢查網路後重試');
+        } else if (errorMsg.includes('403')) {
+            showError('授權驗證失敗，請重新觸碰 NFC 卡片');
+        } else if (errorMsg.includes('404')) {
+            showError('資源不存在，請確認連結是否正確');
+        } else if (errorMsg.includes('500')) {
+            showError('伺服器錯誤，請稍後再試或聯絡技術支援');
         } else {
             showError(`載入失敗: ${error.message}`);
         }

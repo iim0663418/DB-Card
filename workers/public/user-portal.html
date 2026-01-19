@@ -1058,8 +1058,9 @@
                         ` : isBound ? `
                             <div class="space-y-3 mt-10">
                                 <button onclick="viewCard('${data.uuid}')"
-                                        class="w-full py-3 bg-moda text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-[1.02] transition-all shadow-moda">
-                                    查看名片
+                                        ${data._optimistic ? 'disabled' : ''}
+                                        class="w-full py-3 ${data._optimistic ? 'bg-slate-300 cursor-not-allowed' : 'bg-moda hover:scale-[1.02] shadow-moda'} text-white rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all">
+                                    ${data._optimistic ? '同步中...' : '查看名片'}
                                 </button>
                                 <div class="flex gap-2">
                                     <button onclick="openEditForm('${config.id}')"

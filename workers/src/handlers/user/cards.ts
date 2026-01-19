@@ -384,6 +384,8 @@ export async function handleUserUpdateCard(
       uuid
     ).run();
 
+    await env.KV.delete(`card:${uuid}`);
+
     // Log audit event
     await logUserEvent(env.DB, 'user_card_update', email, uuid, request, {
       fields_updated: Object.keys(body)

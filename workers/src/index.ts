@@ -53,7 +53,7 @@ const ALLOWED_ORIGINS = [
 ];
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
     // CORS preflight with whitelist
@@ -93,11 +93,11 @@ export default {
     }
 
     if (url.pathname === '/api/nfc/tap' && request.method === 'POST') {
-      return handleTap(request, env);
+      return handleTap(request, env, ctx);
     }
 
     if (url.pathname === '/api/read' && request.method === 'GET') {
-      return handleRead(request, env);
+      return handleRead(request, env, ctx);
     }
 
     // User Self-Service APIs (OAuth required)

@@ -549,7 +549,6 @@
     </div>
 
     <script>
-        // --- 0. 樂觀更新與狀態管理 ---
 
         // CardStateManager: 管理狀態、快照、樂觀更新和回滾
         class CardStateManager {
@@ -710,7 +709,6 @@
         const stateManager = new CardStateManager();
         const errorHandler = new ErrorHandler();
 
-        // --- 1. 核心狀態與數據結構 ---
         const state = {
             isLoggedIn: false,
             currentUser: null,
@@ -766,7 +764,6 @@
             }
         };
 
-        // --- 2. API 整合層 (BDD Scenarios F3, F4, F5) ---
 
         async function apiCall(endpoint, options = {}) {
             try {
@@ -1092,7 +1089,6 @@
             showView('form');
         }
 
-        // --- 3. UI 渲染與控制 ---
 
         function renderSelectionPage() {
             const container = document.getElementById('card-slots-container');
@@ -1161,7 +1157,6 @@
             lucide.createIcons();
         }
 
-        // --- 4. 輔助函數 ---
 
         // 顯示成功 Modal
         function showSuccessModal(uuid, type) {
@@ -1405,7 +1400,6 @@
         window.viewModalCard = viewModalCard;
         window.closeSuccessModal = closeSuccessModal;
 
-        // --- 5. 初始化 ---
         let scene, camera, renderer, mesh, grid;
         function initThree() {
             const canvas = document.getElementById('three-canvas');

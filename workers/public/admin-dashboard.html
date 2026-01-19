@@ -711,12 +711,10 @@
         // Import validation utilities
         import { validateURL, sanitizeText, validateEmail, validatePhone, validateSocialURL, SOCIAL_PLATFORMS } from './js/validation.js';
         
-        // --- 1. API Configuration ---
         const API_BASE = window.location.hostname === 'localhost'
             ? '' // Use same origin for local development
             : ''; // Use same origin for staging/production
 
-        // --- 2. Three.js 背景 ---
         let scene, camera, renderer, mesh;
         function initThree() {
             const canvas = document.getElementById('three-canvas');
@@ -736,7 +734,6 @@
             animate();
         }
 
-        // --- 3. 應用程式狀態 ---
         let isVerified = false;
         let activeTab = 'list';
         let previewLang = 'zh';
@@ -841,7 +838,6 @@
             return null;
         }
 
-        // --- 4. Notification System ---
         function showNotification(message, type = 'success') {
             const toast = document.createElement('div');
             toast.className = `fixed bottom-6 right-6 px-6 py-4 rounded-2xl shadow-2xl z-[200] font-bold text-sm transition-all ${
@@ -867,7 +863,6 @@
             }, duration);
         }
 
-        // --- 5. Token Verification (Phase 2: using login API with HttpOnly Cookie) ---
         async function verifyToken() {
             const token = document.getElementById('setup-token').value;
 
@@ -966,7 +961,6 @@
             }
         }
 
-        // --- 6. UI Logic ---
         function switchTab(tabId) {
             if(!isVerified) return;
             activeTab = tabId;
@@ -1213,7 +1207,6 @@
             }
         }
 
-        // --- 7. View Card with Session (Phase 2: with credentials) ---
         async function viewCard(uuid) {
             try {
                 // 先 tap 獲取 session
@@ -1241,7 +1234,6 @@
             }
         }
 
-        // --- 8. API Integration Functions ---
 
         // 構建名片資料（與 generator-api.js 一致）
         function buildCardData(formData) {
@@ -1592,7 +1584,6 @@
             }
         }
 
-        // --- 8. Confirmation Modal ---
         function confirmAction(type, uuid = null) {
             const modal = document.getElementById('confirm-modal');
             const title = document.getElementById('modal-title');
@@ -1835,7 +1826,6 @@
             lucide.createIcons();
         }
 
-        // --- 10. Real-time Preview ---
         function updatePreview() {
             const isEn = previewLang === 'en';
             const name = isEn ? document.getElementById('name_en').value || "John Smith" : document.getElementById('name_zh').value || "王小明";
@@ -1913,7 +1903,6 @@
             lucide.createIcons();
         }
 
-        // --- 11. Security Dashboard Functions ---
 
         // 初始化安全監控儀表板
         function initSecurityDashboard() {
@@ -2402,7 +2391,6 @@
         window.closeIPDetailModal = closeIPDetailModal;
         window.exportSecurityCSV = exportSecurityEvents;
 
-        // --- 12. Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             initThree();

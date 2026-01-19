@@ -163,7 +163,9 @@ export async function handleUserCreateCard(request: Request, env: Env): Promise<
       social_facebook: body.social_facebook,
       social_instagram: body.social_instagram,
       social_twitter: body.social_twitter,
-      social_youtube: body.social_youtube
+      social_youtube: body.social_youtube,
+      social_line: body.social_line,
+      social_signal: body.social_signal
     };
 
     // Encrypt card data (before DB operations)
@@ -355,7 +357,9 @@ export async function handleUserUpdateCard(
       social_facebook: body.social_facebook !== undefined ? body.social_facebook : existingData.social_facebook,
       social_instagram: body.social_instagram !== undefined ? body.social_instagram : existingData.social_instagram,
       social_twitter: body.social_twitter !== undefined ? body.social_twitter : existingData.social_twitter,
-      social_youtube: body.social_youtube !== undefined ? body.social_youtube : existingData.social_youtube
+      social_youtube: body.social_youtube !== undefined ? body.social_youtube : existingData.social_youtube,
+      social_line: body.social_line !== undefined ? body.social_line : existingData.social_line,
+      social_signal: body.social_signal !== undefined ? body.social_signal : existingData.social_signal
     };
 
     // Re-encrypt with same DEK (actually new DEK for simplicity)

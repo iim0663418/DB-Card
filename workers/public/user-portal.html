@@ -867,7 +867,7 @@
                                 <p class="text-xs ${isBound || isRevoked ? 'text-slate-500' : 'text-slate-400'}">
                                     ${isBound || isRevoked ? (data.name_en || '') : config.desc}
                                 </p>
-                                ${isBound || isRevoked ? `<p class="text-[9px] text-moda font-bold mt-4 uppercase tracking-tighter">Updated: ${data.updated_at}</p>` : ''}
+                                ${isBound || isRevoked ? `<p class="text-[9px] text-moda font-bold mt-4 uppercase tracking-tighter">Updated: ${data.updated_at ? new Date(data.updated_at).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }) : 'N/A'}</p>` : ''}
                                 ${isRevoked ? `<p class="text-[10px] text-red-600 font-black mt-2 uppercase tracking-widest">⚠️ 已被管理員撤銷</p>` : ''}
                             </div>
                         </div>

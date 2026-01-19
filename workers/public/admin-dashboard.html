@@ -1096,7 +1096,7 @@
         let allCards = [];
 
         // Load cards from API (Phase 2: with credentials)
-        async function loadCards() {
+        window.loadCards = async function() {
             const token = sessionStorage.getItem('setup_token');
 
             showLoadingState();

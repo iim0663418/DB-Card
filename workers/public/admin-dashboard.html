@@ -6,8 +6,13 @@
     <title>數位名片 | 管理後台</title>
     <link rel="icon" type="image/png" sizes="192x192" href="favicon.png">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="https://unpkg.com">
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <script>
-        // 隱藏 Tailwind CDN 警告
         const originalWarn = console.warn;
         console.warn = function(...args) {
             if (args[0]?.includes?.('cdn.tailwindcss.com')) return;
@@ -15,11 +20,11 @@
         };
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Noto+Sans+TC:wght@300;500;700;900&display=swap');
         
@@ -2395,13 +2400,18 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
-            initThree();
+            
+            if (typeof THREE !== 'undefined') {
+                setTimeout(() => initThree(), 100);
+            } else {
+                window.addEventListener('load', () => {
+                    if (typeof THREE !== 'undefined') initThree();
+                });
+            }
 
-            // 綁定驗證按鈕
             const verifyBtn = document.getElementById('verify-btn');
             verifyBtn.onclick = verifyToken;
 
-            // 綁定表單提交
             const cardForm = document.getElementById('card-form');
             cardForm.onsubmit = handleCreateCard;
 

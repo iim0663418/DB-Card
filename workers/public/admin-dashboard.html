@@ -1425,6 +1425,12 @@
             if (formData.phone) formData.phone = formData.phone.trim();
             if (formData.mobile) formData.mobile = formData.mobile.trim();
 
+            // 顯示 loading 狀態
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalBtnHTML = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> 處理中...';
+            lucide.createIcons();
 
             // 構建 API 資料格式
             const cardData = buildCardData(formData);
@@ -1451,15 +1457,22 @@
                 });
 
                 if (!response.ok) {
+                    console.error('[DEBUG] API response not ok:', response.status);
                     await handleApiError(response, '操作失敗');
                     return;
                 }
 
                 const result = await response.json();
+                console.log('[DEBUG] API success, result:', result);
+                console.log('[DEBUG] isEditing:', isEditing);
+                console.log('[DEBUG] Calling showNotification...');
+                
                 showNotification(
                     isEditing ? '名片已更新' : '名片已創建',
                     'success'
                 );
+                
+                console.log('[DEBUG] showNotification called');
 
                 // 清除編輯狀態
                 window.editingCardUuid = null;
@@ -1471,12 +1484,22 @@
                 // 更新 UI 為創建模式
                 updateEditModeUI(false);
 
+                // 重新載入名片列表
+                await loadCards();
+
                 // 切換到列表 Tab
                 switchTab('list');
+                
+                console.log('[DEBUG] All done');
 
             } catch (error) {
                 console.error('Create/Update card error:', error);
                 showNotification('操作失敗: ' + error.message, 'error');
+            } finally {
+                // 恢復按鈕狀態
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHTML;
+                lucide.createIcons();
             }
         }
 

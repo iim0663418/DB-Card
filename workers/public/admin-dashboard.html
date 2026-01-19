@@ -401,8 +401,28 @@
                                             </div>
                                             <input type="url" id="social_youtube" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs" placeholder="https://youtube.com/@channel">
                                         </div>
+
+                                        <!-- LINE -->
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <svg class="w-4 h-4 text-slate-600" viewBox="0 0 24 24" fill="currentColor">
+                                                    <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
+                                                </svg>
+                                            </div>
+                                            <input type="text" id="social_line" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs" placeholder="LINE ID 或 https://line.me/ti/p/~username">
+                                        </div>
+
+                                        <!-- Signal -->
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <svg class="w-4 h-4 text-slate-600" viewBox="0 0 24 24" fill="currentColor">
+                                                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 16.707s-1.067 1.341-1.24 1.514c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26l-3.616-3.616-3.616 3.616c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26-.173-.173-1.24-1.514-1.24-1.514-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693l3.616-3.616-3.616-3.616c-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693 0 0 1.067-1.341 1.24-1.514.173-.173.346-.26.519-.26.173 0 .346.087.519.26l3.616 3.616 3.616-3.616c.173-.173.346-.26.519-.26.173 0 .346.087.519.26.173.173 1.24 1.514 1.24 1.514.173.173.26.433.26.693 0 .26-.087.52-.26.693l-3.616 3.616 3.616 3.616c.173.173.26.433.26.693 0 .26-.087.52-.26.693z"/>
+                                                </svg>
+                                            </div>
+                                            <input type="text" id="social_signal" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs" placeholder="Signal username 或 https://signal.me/#eu/...">
+                                        </div>
                                     </div>
-                                    
+
                                     <p class="text-[9px] text-slate-400 italic">直接貼上完整連結，留空表示不顯示該平台</p>
                                 </div>
                             </div>
@@ -751,7 +771,9 @@
                     { id: 'social_facebook', icon: 'facebook' },
                     { id: 'social_instagram', icon: 'instagram' },
                     { id: 'social_twitter', icon: 'twitter' },
-                    { id: 'social_youtube', icon: 'youtube' }
+                    { id: 'social_youtube', icon: 'youtube' },
+                    { id: 'social_line', icon: 'line' },
+                    { id: 'social_signal', icon: 'signal' }
                 ];
                 
                 const results = [];
@@ -1368,7 +1390,9 @@
                 { field: 'social_facebook', platform: 'facebook', name: 'Facebook' },
                 { field: 'social_instagram', platform: 'instagram', name: 'Instagram' },
                 { field: 'social_twitter', platform: 'twitter', name: 'X/Twitter' },
-                { field: 'social_youtube', platform: 'youtube', name: 'YouTube' }
+                { field: 'social_youtube', platform: 'youtube', name: 'YouTube' },
+                { field: 'social_line', platform: 'line', name: 'LINE' },
+                { field: 'social_signal', platform: 'signal', name: 'Signal' }
             ];
             
             for (const { field, platform, name } of socialFields) {
@@ -1682,7 +1706,9 @@
             if (data.social_instagram) document.getElementById('social_instagram').value = data.social_instagram;
             if (data.social_twitter) document.getElementById('social_twitter').value = data.social_twitter;
             if (data.social_youtube) document.getElementById('social_youtube').value = data.social_youtube;
-            
+            if (data.social_line) document.getElementById('social_line').value = data.social_line;
+            if (data.social_signal) document.getElementById('social_signal').value = data.social_signal;
+
             // 向後相容：舊格式 socialLinks.socialNote
             if (data.socialLinks?.socialNote && !data.social_github) {
                 const lines = data.socialLinks.socialNote.split('\n');
@@ -1694,6 +1720,8 @@
                     else if (lower.includes('instagram.com')) document.getElementById('social_instagram').value = line.trim();
                     else if (lower.includes('twitter.com') || lower.includes('x.com')) document.getElementById('social_twitter').value = line.trim();
                     else if (lower.includes('youtube.com') || lower.includes('youtu.be')) document.getElementById('social_youtube').value = line.trim();
+                    else if (lower.includes('line.me')) document.getElementById('social_line').value = line.trim();
+                    else if (lower.includes('signal.me') || lower.includes('signal.group')) document.getElementById('social_signal').value = line.trim();
                 });
             }
 
@@ -2368,7 +2396,7 @@
             }
 
             // 綁定所有輸入事件到實時預覽
-            const inputIds = ['name_zh', 'name_en', 'title_zh', 'title_en', 'email', 'phone', 'mobile', 'avatar_url', 'greetings_zh', 'greetings_en', 'address_zh', 'address_en', 'social_github', 'social_linkedin', 'social_facebook', 'social_instagram', 'social_twitter', 'social_youtube'];
+            const inputIds = ['name_zh', 'name_en', 'title_zh', 'title_en', 'email', 'phone', 'mobile', 'avatar_url', 'greetings_zh', 'greetings_en', 'address_zh', 'address_en', 'social_github', 'social_linkedin', 'social_facebook', 'social_instagram', 'social_twitter', 'social_youtube', 'social_line', 'social_signal'];
             inputIds.forEach(id => {
                 const element = document.getElementById(id);
                 if (element) {

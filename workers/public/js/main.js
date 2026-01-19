@@ -361,14 +361,79 @@ function renderCard(cardData, sessionData) {
     // 社群連結處理 - 支援新舊格式
     const socialCluster = document.getElementById('social-cluster');
 
+    // 品牌顏色對照表
+    const SOCIAL_COLORS = {
+        github: '#181717',
+        linkedin: '#0A66C2',
+        facebook: '#1877F2',
+        instagram: '#E4405F',
+        twitter: '#1DA1F2',
+        youtube: '#FF0000',
+        line: '#00B900',
+        signal: '#3A76F0'
+    };
+
+    // URL 處理函數
+    const getLineUrl = (input) => {
+        if (!input) return null;
+        input = input.trim();
+
+        // 如果已經是完整 URL，直接返回
+        if (input.startsWith('http://') || input.startsWith('https://')) {
+            return input;
+        }
+
+        // 如果是 line.me 路徑格式（如 line.me/ti/p/~username），補上 https://
+        if (input.startsWith('line.me/')) {
+            return `https://${input}`;
+        }
+
+        // 如果是純 LINE ID，轉換為標準 URL 格式
+        return `https://line.me/ti/p/~${input}`;
+    };
+
+    const getSignalUrl = (input) => {
+        if (!input) return null;
+        input = input.trim();
+
+        // 如果已經是完整 URL，直接返回
+        if (input.startsWith('http://') || input.startsWith('https://')) {
+            return input;
+        }
+
+        // 如果是 signal.me 路徑，補上 https://
+        if (input.startsWith('signal.me/') || input.startsWith('signal.group/')) {
+            return `https://${input}`;
+        }
+
+        // 其他情況（純 username），返回原值（無法確定格式）
+        return `https://signal.me/#p/${input}`;
+    };
+
     // 新格式：獨立欄位
     const socialLinks = [];
-    if (cardData.social_github) socialLinks.push({ url: cardData.social_github, icon: 'github' });
-    if (cardData.social_linkedin) socialLinks.push({ url: cardData.social_linkedin, icon: 'linkedin' });
-    if (cardData.social_facebook) socialLinks.push({ url: cardData.social_facebook, icon: 'facebook' });
-    if (cardData.social_instagram) socialLinks.push({ url: cardData.social_instagram, icon: 'instagram' });
-    if (cardData.social_twitter) socialLinks.push({ url: cardData.social_twitter, icon: 'twitter' });
-    if (cardData.social_youtube) socialLinks.push({ url: cardData.social_youtube, icon: 'youtube' });
+    if (cardData.social_github) socialLinks.push({ url: cardData.social_github, icon: 'github', color: SOCIAL_COLORS.github });
+    if (cardData.social_linkedin) socialLinks.push({ url: cardData.social_linkedin, icon: 'linkedin', color: SOCIAL_COLORS.linkedin });
+    if (cardData.social_facebook) socialLinks.push({ url: cardData.social_facebook, icon: 'facebook', color: SOCIAL_COLORS.facebook });
+    if (cardData.social_instagram) socialLinks.push({ url: cardData.social_instagram, icon: 'instagram', color: SOCIAL_COLORS.instagram });
+    if (cardData.social_twitter) socialLinks.push({ url: cardData.social_twitter, icon: 'twitter', color: SOCIAL_COLORS.twitter });
+    if (cardData.social_youtube) socialLinks.push({ url: cardData.social_youtube, icon: 'youtube', color: SOCIAL_COLORS.youtube });
+
+    // LINE 處理
+    if (cardData.social_line) {
+        const lineUrl = getLineUrl(cardData.social_line);
+        if (lineUrl) {
+            socialLinks.push({ url: lineUrl, icon: 'line', color: SOCIAL_COLORS.line });
+        }
+    }
+
+    // Signal 處理
+    if (cardData.social_signal) {
+        const signalUrl = getSignalUrl(cardData.social_signal);
+        if (signalUrl) {
+            socialLinks.push({ url: signalUrl, icon: 'signal', color: SOCIAL_COLORS.signal });
+        }
+    }
 
     if (socialLinks.length > 0) {
         socialCluster.innerHTML = '';
@@ -378,7 +443,18 @@ function renderCard(cardData, sessionData) {
             node.target = '_blank';
             node.rel = 'noopener noreferrer';
             node.className = 'social-node w-12 h-12 flex items-center justify-center rounded-xl';
-            node.innerHTML = `<i data-lucide="${link.icon}" class="w-5 h-5"></i>`;
+            node.style.backgroundColor = link.color;
+            node.style.color = '#FFFFFF';
+
+            // LINE 和 Signal 使用 SVG，其他使用 lucide icon
+            if (link.icon === 'line') {
+                node.innerHTML = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>`;
+            } else if (link.icon === 'signal') {
+                node.innerHTML = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 16.707s-1.067 1.341-1.24 1.514c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26l-3.616-3.616-3.616 3.616c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26-.173-.173-1.24-1.514-1.24-1.514-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693l3.616-3.616-3.616-3.616c-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693 0 0 1.067-1.341 1.24-1.514.173-.173.346-.26.519-.26.173 0 .346.087.519.26l3.616 3.616 3.616-3.616c.173-.173.346-.26.519-.26.173 0 .346.087.519.26.173.173 1.24 1.514 1.24 1.514.173.173.26.433.26.693 0 .26-.087.52-.26.693l-3.616 3.616 3.616 3.616c.173.173.26.433.26.693 0 .26-.087.52-.26.693z"/></svg>`;
+            } else {
+                node.innerHTML = `<i data-lucide="${link.icon}" class="w-5 h-5"></i>`;
+            }
+
             socialCluster.appendChild(node);
         });
         lucide.createIcons();
@@ -580,6 +656,31 @@ function generateVCard(cardData) {
             .replace(/\n/g, '\\n');
     };
 
+    // URL 處理函數（與 renderCard 一致）
+    const getLineUrl = (input) => {
+        if (!input) return null;
+        input = input.trim();
+        if (input.startsWith('http://') || input.startsWith('https://')) {
+            return input;
+        }
+        if (input.startsWith('line.me/')) {
+            return `https://${input}`;
+        }
+        return `https://line.me/ti/p/~${input}`;
+    };
+
+    const getSignalUrl = (input) => {
+        if (!input) return null;
+        input = input.trim();
+        if (input.startsWith('http://') || input.startsWith('https://')) {
+            return input;
+        }
+        if (input.startsWith('signal.me/') || input.startsWith('signal.group/')) {
+            return `https://${input}`;
+        }
+        return `https://signal.me/#p/${input}`;
+    };
+
     // 取得當前語言的資料（iOS 對 vCard 4.0 支援不完整，改用 3.0 單語言）
     const name = getLocalizedText(cardData.name, currentLanguage);
     const title = getLocalizedText(cardData.title, currentLanguage);
@@ -649,6 +750,42 @@ function generateVCard(cardData) {
             photoUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
         }
         vcard += `PHOTO;VALUE=URL;TYPE=JPEG:${photoUrl}\n`;
+    }
+
+    // 社群連結 - 使用 URL;TYPE=PLATFORM 格式
+    if (cardData.social_github) {
+        vcard += `URL;TYPE=GITHUB:${escapeVCardValue(cardData.social_github)}\n`;
+    }
+    if (cardData.social_linkedin) {
+        vcard += `URL;TYPE=LINKEDIN:${escapeVCardValue(cardData.social_linkedin)}\n`;
+    }
+    if (cardData.social_facebook) {
+        vcard += `URL;TYPE=FACEBOOK:${escapeVCardValue(cardData.social_facebook)}\n`;
+    }
+    if (cardData.social_instagram) {
+        vcard += `URL;TYPE=INSTAGRAM:${escapeVCardValue(cardData.social_instagram)}\n`;
+    }
+    if (cardData.social_twitter) {
+        vcard += `URL;TYPE=TWITTER:${escapeVCardValue(cardData.social_twitter)}\n`;
+    }
+    if (cardData.social_youtube) {
+        vcard += `URL;TYPE=YOUTUBE:${escapeVCardValue(cardData.social_youtube)}\n`;
+    }
+
+    // LINE - 使用 URL 處理函數轉換後再寫入
+    if (cardData.social_line) {
+        const lineUrl = getLineUrl(cardData.social_line);
+        if (lineUrl) {
+            vcard += `URL;TYPE=LINE:${escapeVCardValue(lineUrl)}\n`;
+        }
+    }
+
+    // Signal - 使用 URL 處理函數轉換後再寫入
+    if (cardData.social_signal) {
+        const signalUrl = getSignalUrl(cardData.social_signal);
+        if (signalUrl) {
+            vcard += `URL;TYPE=SIGNAL:${escapeVCardValue(signalUrl)}\n`;
+        }
     }
 
     vcard += 'END:VCARD';

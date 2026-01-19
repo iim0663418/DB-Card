@@ -1,17 +1,33 @@
 # DB-Card Project Progress
 ## Current Phase: PERFORMANCE_OPTIMIZATION_COMPLETE ✅
-- Status: 前端與後端性能優化完成
-- Task: card-display.html 載入速度優化 + API 性能優化
-- Last Update: 2026-01-19T21:57:00+08:00
-- Commit: 55c08ad
-- Version: af234979-e993-4aa8-b222-71c6132cb5d2
-- Next Action: 監控實際使用效果，考慮長期架構優化
+- Status: 前端與後端性能優化完成 + 永久刪除功能新增
+- Task: 全面性能優化與管理功能增強
+- Last Update: 2026-01-19T22:12:00+08:00
+- Commit: 751ef17
+- Version: 49df1cf7-d284-48eb-95a6-58f75a64a0bf
+- Next Action: 監控實際使用效果，收集用戶反饋
+
+## 最新功能 (2026-01-19 22:00-22:12)
+
+### 永久刪除功能 ✅
+- [x] 新增 DELETE /api/admin/cards/:uuid?permanent=true
+- [x] 只能刪除 revoked 狀態的卡片
+- [x] 從資料庫永久移除記錄（cards + uuid_bindings）
+- [x] 撤銷所有相關 sessions
+- [x] 清除 KV 快取
+- [x] 記錄 audit log (card_permanent_delete)
+- [x] 前端「永久刪除」按鈕（紅色警告樣式）
+- [x] 二次確認對話框（【警告】標記）
+- [x] 用途：協助使用者重置名片、清除測試資料
 
 ## 性能優化完成項目 ✅ (2026-01-19)
 
-### 前端性能優化 (card-display.html)
+### 前端性能優化（三個頁面全部完成）
+- [x] card-display.html - 阻塞資源 4 → 1
+- [x] user-portal.html - 阻塞資源 3 → 1
+- [x] admin-dashboard.html - 阻塞資源 6 → 1
 - [x] 添加 preconnect 到關鍵 CDN
-- [x] 延遲載入非關鍵資源（Lucide, Three.js, QRCode.js）
+- [x] 延遲載入非關鍵資源（Lucide, Three.js, QRCode.js, DOMPurify, Chart.js）
 - [x] 延遲 Three.js 初始化（100ms）
 - [x] 優化關鍵渲染路徑
 - [x] 預期改善：FCP -200~500ms, TTI -300~800ms
@@ -72,6 +88,12 @@
 - ❌ 不實施樂觀更新（方案 2，準確性 trade-off 過大）
 - 📋 長期考慮：Durable Objects 或外部資料庫
 
+### 永久刪除決策
+- ✅ 只能刪除 revoked 狀態的卡片（安全機制）
+- ✅ 使用查詢參數 ?permanent=true（保持 RESTful）
+- ✅ 二次確認防止誤操作
+- ✅ 記錄 audit log 追蹤
+
 ## Phase 2 完成項目 ✅
 
 ### User Portal 完整功能
@@ -87,8 +109,9 @@
 ### 撤銷/恢復機制重構 ✅
 - [x] DELETE API 改為撤銷邏輯
 - [x] 新增 POST /api/admin/cards/:uuid/restore
+- [x] 新增 DELETE /api/admin/cards/:uuid?permanent=true（永久刪除）
 - [x] Admin Dashboard 顯示 revoked 卡片
-- [x] 根據狀態顯示不同按鈕（查看/編輯/撤銷 vs 查看/恢復）
+- [x] 根據狀態顯示不同按鈕（查看/編輯/撤銷 vs 查看/恢復/永久刪除）
 - [x] 全局撤銷功能實作
 - [x] User Portal 禁用 revoked 卡片操作
 
@@ -125,7 +148,8 @@
 - [x] PUT /api/user/cards/:uuid
 - [x] GET /api/admin/cards
 - [x] POST /api/admin/cards/:uuid/restore
-- [x] DELETE /api/admin/cards/:uuid
+- [x] DELETE /api/admin/cards/:uuid（撤銷）
+- [x] DELETE /api/admin/cards/:uuid?permanent=true（永久刪除）
 - [x] POST /api/admin/revoke
 
 ## 待辦事項
@@ -137,9 +161,10 @@
 ## 部署狀態
 - Environment: staging
 - Backend URL: https://db-card-staging.csw30454.workers.dev
-- Version: af234979-e993-4aa8-b222-71c6132cb5d2
-- Commit: 55c08ad
+- Version: 49df1cf7-d284-48eb-95a6-58f75a64a0bf
+- Commit: 751ef17
 - Cron: 0 2 * * * (每日 02:00 UTC)
 - Database: db-card-staging (0.24 MB)
 - All Tests: ✅ Passing
 - Performance: ✅ Optimized
+- Features: ✅ Complete

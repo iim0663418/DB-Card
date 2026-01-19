@@ -19,7 +19,7 @@
             originalWarn.apply(console, args);
         };
     </script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com" defer></script>
     <script src="https://unpkg.com/lucide@latest" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
     <style>
@@ -552,6 +552,68 @@
         </div>
     </div>
 
+    <!-- Revoke Confirmation Modal -->
+    <div id="revoke-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center">
+        <div class="modal-backdrop absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeRevokeModal()"></div>
+        <div class="modal-content relative bg-white rounded-3xl shadow-2xl max-w-md w-full mx-4 p-8">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="shield-alert" class="w-8 h-8 text-red-600"></i>
+                </div>
+                <h3 class="text-2xl font-black text-slate-900">確認撤銷名片</h3>
+                <p class="text-sm text-slate-600 mt-2">撤銷後，所有分享的連結將立即失效</p>
+                <p class="text-xs text-amber-600 mt-2 font-medium">您可在 7 天內自行恢復此名片</p>
+                <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                    <p class="text-xs text-blue-800">
+                        <span class="font-bold">需要立即刪除並重新註冊？</span><br>
+                        請聯繫管理員協助永久刪除，即可立即創建新卡片
+                    </p>
+                </div>
+            </div>
+
+            <div class="mb-6 space-y-2">
+                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider block">撤銷原因（可選）</label>
+                <select id="revoke-reason" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-moda">
+                    <option value="">不提供原因</option>
+                    <option value="lost">卡片遺失</option>
+                    <option value="suspected_leak">疑似資訊外洩</option>
+                    <option value="info_update">資訊需更新</option>
+                    <option value="misdelivery">誤發</option>
+                    <option value="other">其他</option>
+                </select>
+            </div>
+
+            <div id="rate-limit-warning" class="hidden mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                <p class="text-xs text-amber-800 font-medium"></p>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="closeRevokeModal()" class="flex-1 px-6 py-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors">
+                    取消
+                </button>
+                <button id="confirm-revoke-btn" onclick="confirmRevokeCard()" class="flex-1 px-6 py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors">
+                    確認撤銷
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rate Limit Error Banner -->
+    <div id="rate-limit-banner" class="hidden fixed top-24 left-1/2 transform -translate-x-1/2 z-[250] max-w-md w-full mx-4">
+        <div class="glass-panel p-4 rounded-2xl border-2 border-amber-500 shadow-lg">
+            <div class="flex items-start gap-3">
+                <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5"></i>
+                <div class="flex-1">
+                    <p id="rate-limit-message" class="text-sm font-bold text-slate-900"></p>
+                    <p id="rate-limit-retry" class="text-xs text-slate-600 mt-1"></p>
+                    <p class="text-xs text-blue-600 mt-2 font-medium">
+                        需要立即刪除並重新註冊？請聯繫管理員協助處理
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
 
         // CardStateManager: 管理狀態、快照、樂觀更新和回滾
@@ -668,10 +730,15 @@
                     ['binding_limit_exceeded', '您已經有此類型的名片，每種類型限制 1 張'],
                     ['invalid_type', '名片類型錯誤'],
                     ['invalid_data', '資料格式錯誤'],
+                    ['CARD_ALREADY_REVOKED', '名片已經被撤銷'],
+                    ['CARD_NOT_REVOKED', '名片未處於撤銷狀態'],
+                    ['REVOCATION_RATE_LIMITED', '撤銷次數超過限制'],
+                    ['RESTORE_WINDOW_EXPIRED', '恢復期限已過（7 天），請聯繫管理員'],
                     [401, '登入已過期，請重新登入'],
                     [403, '權限不足'],
                     [404, '資源不存在'],
                     [409, '名片已存在'],
+                    [429, '操作過於頻繁，請稍後再試'],
                     [500, '伺服器錯誤，請稍後再試'],
                     [0, '網路連線失敗']
                 ]);
@@ -723,6 +790,8 @@
 
         let previewLang = 'zh';
         let currentModalUuid = null;
+        let currentRevokeUuid = null;
+        let currentRevokeType = null;
 
         const SocialParser = {
             collectFromInputs() {
@@ -905,11 +974,15 @@
                 const response = await apiCall('/api/user/cards', { method: 'GET' });
                 const cards = response.data?.cards || [];
 
-                // 使用後端返回的 status
+                // 使用後端返回的 status，並保留 revoked_at
                 state.cards = ['personal', 'event', 'sensitive'].map(type => {
                     const card = cards.find(c => c.type === type);
                     if (card) {
-                        return { ...card, status: card.status || 'bound' };
+                        return {
+                            ...card,
+                            status: card.status || 'bound',
+                            revoked_at: card.revoked_at || null
+                        };
                     }
                     return { type, status: 'empty' };
                 });
@@ -957,6 +1030,10 @@
             try {
                 if (uuid) {
                     // 編輯：使用 Toast
+                    submitBtnText.textContent = '更新中...';
+                    submitBtnText.classList.remove('hidden');
+                    submitBtnLoading.classList.add('hidden');
+                    
                     await apiCall(`/api/user/cards/${uuid}`, {
                         method: 'PUT',
                         body: JSON.stringify(data)
@@ -966,6 +1043,9 @@
                     showView('selection');
                 } else {
                     // 創建：使用樂觀更新
+                    submitBtnText.textContent = '驗證中...';
+                    submitBtnText.classList.remove('hidden');
+                    submitBtnLoading.classList.add('hidden');
 
                     // 1. 樂觀更新（立即反應）
                     const tempId = stateManager.optimisticCreate(type, data);
@@ -973,6 +1053,7 @@
                     renderSelectionPage();
 
                     // 2. API 請求
+                    submitBtnText.textContent = '加密中...';
                     const response = await apiCall('/api/user/cards', {
                         method: 'POST',
                         body: JSON.stringify({ ...data, type })
@@ -983,6 +1064,8 @@
                     if (!realUuid) {
                         throw new Error('API 未返回 UUID');
                     }
+
+                    submitBtnText.textContent = '儲存中...';
 
                     // 3. 確認更新
                     stateManager.confirmCreate(tempId, realUuid, {
@@ -1018,6 +1101,7 @@
             } finally {
                 // 8. 恢復按鈕狀態
                 submitBtn.disabled = false;
+                submitBtnText.textContent = uuid ? '儲存變更' : '建立名片';
                 submitBtnText.classList.remove('hidden');
                 submitBtnLoading.classList.add('hidden');
             }
@@ -1120,32 +1204,63 @@
                                     ${isBound || isRevoked ? (data.name_en || '') : config.desc}
                                 </p>
                                 ${isBound || isRevoked ? `<p class="text-[9px] text-moda font-bold mt-4 uppercase tracking-tighter">Updated: ${data.updated_at ? new Date(data.updated_at).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }) : 'N/A'}</p>` : ''}
-                                ${isRevoked ? `<p class="text-[10px] text-red-600 font-black mt-2 uppercase tracking-widest">⚠️ 已被管理員撤銷</p>` : ''}
+                                ${isRevoked ? (data.revoked_at ? (() => {
+                                    const revokedTime = new Date(data.revoked_at * 1000);
+                                    const restoreDeadline = new Date(revokedTime.getTime() + 7 * 86400 * 1000);
+                                    const canRestore = Date.now() < restoreDeadline.getTime();
+                                    return `<p class="text-[10px] text-red-600 font-black mt-2 uppercase tracking-widest">⚠️ 已撤銷${canRestore ? ' (可恢復)' : ' (已過期)'}</p>
+                                            <p class="text-[9px] text-red-500 mt-1">撤銷時間: ${revokedTime.toLocaleString('zh-TW')}</p>`;
+                                })() : `<p class="text-[10px] text-red-600 font-black mt-2 uppercase tracking-widest">⚠️ 已被管理員撤銷</p>`) : ''}
                             </div>
                         </div>
-                        ${isRevoked ? `
+                        ${isRevoked ? (data.revoked_at ? (() => {
+                            const revokedTime = new Date(data.revoked_at * 1000);
+                            const restoreDeadline = new Date(revokedTime.getTime() + 7 * 86400 * 1000);
+                            const canRestore = Date.now() < restoreDeadline.getTime();
+                            return canRestore ? `
+                                <div class="space-y-3 mt-10">
+                                    <p class="text-xs text-amber-600 text-center font-medium">可在 ${restoreDeadline.toLocaleDateString('zh-TW')} 前自行恢復</p>
+                                    <button onclick="handleRestoreCard('${data.uuid}')"
+                                            class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all">
+                                        恢復名片
+                                    </button>
+                                </div>
+                            ` : `
+                                <div class="space-y-3 mt-10">
+                                    <p class="text-xs text-red-600 text-center font-medium">恢復期限已過（7 天），請聯繫管理員</p>
+                                    <button onclick="showToast('請聯繫管理員恢復名片')"
+                                            class="w-full py-3 bg-slate-100 text-slate-400 rounded-2xl font-black uppercase text-[10px] tracking-widest cursor-not-allowed">
+                                        已過期
+                                    </button>
+                                </div>
+                            `;
+                        })() : `
                             <div class="space-y-3 mt-10">
-                                <p class="text-xs text-red-600 text-center font-medium">此名片已被撤銷，無法使用或編輯</p>
+                                <p class="text-xs text-red-600 text-center font-medium">此名片已被管理員撤銷，無法使用或編輯</p>
                                 <button onclick="showToast('請聯繫管理員恢復名片')"
                                         class="w-full py-3 bg-slate-100 text-slate-400 rounded-2xl font-black uppercase text-[10px] tracking-widest cursor-not-allowed">
                                     已撤銷
                                 </button>
                             </div>
-                        ` : isBound ? `
+                        `) : (isBound ? `
                             <div class="space-y-3 mt-10">
                                 <button onclick="viewCard('${data.uuid}')"
                                         ${data._optimistic ? 'disabled' : ''}
                                         class="w-full py-3 ${data._optimistic ? 'bg-slate-300 cursor-not-allowed' : 'bg-moda hover:scale-[1.02] shadow-moda'} text-white rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all">
                                     ${data._optimistic ? '同步中...' : '查看名片'}
                                 </button>
-                                <div class="flex gap-2">
+                                <div class="grid grid-cols-3 gap-2">
                                     <button onclick="openEditForm('${config.id}')"
-                                            class="flex-1 py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all">
+                                            class="py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all">
                                         編輯
                                     </button>
                                     <button onclick="copyCardLink('${data.uuid}')"
-                                            class="flex-1 py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all">
-                                        複製連結
+                                            class="py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all">
+                                        複製
+                                    </button>
+                                    <button onclick="showRevokeModal('${data.uuid}', '${config.id}')"
+                                            class="py-3 bg-white border border-red-200 text-red-600 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-red-50 transition-all">
+                                        撤銷
                                     </button>
                                 </div>
                             </div>
@@ -1154,7 +1269,7 @@
                                     class="w-full py-4 bg-moda text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-[1.02] transition-all mt-10 shadow-moda shadow-lg">
                                 建立名片
                             </button>
-                        `}
+                        `)}
                     </div>
                 `;
             }).join('');
@@ -1397,12 +1512,153 @@
             }
         }
 
+        // User Self-Revoke Functions
+        function showRevokeModal(uuid, type) {
+            currentRevokeUuid = uuid;
+            currentRevokeType = type;
+            document.getElementById('revoke-modal').classList.remove('hidden');
+            document.getElementById('revoke-reason').value = '';
+            document.getElementById('rate-limit-warning').classList.add('hidden');
+            lucide.createIcons();
+        }
+
+        function closeRevokeModal() {
+            document.getElementById('revoke-modal').classList.add('hidden');
+            currentRevokeUuid = null;
+            currentRevokeType = null;
+            
+            // Reset button state
+            const confirmBtn = document.getElementById('confirm-revoke-btn');
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = '確認撤銷';
+            
+            // Reset reason select
+            document.getElementById('revoke-reason').value = '';
+        }
+
+        async function confirmRevokeCard() {
+            if (!currentRevokeUuid) return;
+
+            const reason = document.getElementById('revoke-reason').value || undefined;
+            const confirmBtn = document.getElementById('confirm-revoke-btn');
+
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = '撤銷中...';
+
+            try {
+                const response = await fetch(`/api/user/cards/${currentRevokeUuid}/revoke`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${state.authToken}`
+                    },
+                    body: JSON.stringify(reason ? { reason } : {})
+                });
+
+                const data = await response.json();
+
+                if (response.status === 429) {
+                    // Rate limit exceeded
+                    showRateLimitError(data);
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = '確認撤銷';
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error(data.message || data.error || 'Revoke failed');
+                }
+
+                // Success
+                closeRevokeModal();
+                showToast(`名片已撤銷，可在 ${new Date(data.restore_deadline).toLocaleDateString('zh-TW')} 前恢復`);
+
+                // Reload cards
+                await fetchUserCards();
+                renderSelectionPage();
+            } catch (error) {
+                console.error('Revoke error:', error);
+                showToast(errorHandler.handle(error));
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = '確認撤銷';
+            }
+        }
+
+        async function handleRestoreCard(uuid) {
+            if (!confirm('確定要恢復此名片嗎？恢復後所有分享連結將重新生效。')) {
+                return;
+            }
+
+            document.getElementById('global-loading').classList.remove('hidden');
+
+            try {
+                const response = await fetch(`/api/user/cards/${uuid}/restore`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': `Bearer ${state.authToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    if (data.error === 'RESTORE_WINDOW_EXPIRED') {
+                        showToast('恢復期限已過（7 天），請聯繫管理員');
+                    } else {
+                        throw new Error(data.message || data.error || 'Restore failed');
+                    }
+                    return;
+                }
+
+                // Success
+                showToast('名片已成功恢復');
+                await fetchUserCards();
+                renderSelectionPage();
+            } catch (error) {
+                console.error('Restore error:', error);
+                showToast(errorHandler.handle(error));
+            } finally {
+                document.getElementById('global-loading').classList.add('hidden');
+            }
+        }
+
+        function showRateLimitError(data) {
+            const banner = document.getElementById('rate-limit-banner');
+            const message = document.getElementById('rate-limit-message');
+            const retry = document.getElementById('rate-limit-retry');
+
+            message.textContent = data.message;
+
+            const retryMinutes = Math.ceil(data.retry_after / 60);
+            retry.textContent = `請在 ${retryMinutes} 分鐘後重試`;
+
+            banner.classList.remove('hidden');
+            lucide.createIcons();
+
+            setTimeout(() => banner.classList.add('hidden'), 10000);
+        }
+
+        function formatDuration(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.ceil((seconds % 3600) / 60);
+            if (hours > 0) {
+                return `${hours} 小時 ${minutes} 分鐘`;
+            }
+            return `${minutes} 分鐘`;
+        }
+
         // 暴露函數到全域作用域供 onclick 使用
         window.viewCard = viewCard;
         window.copyCardLink = copyCardLink;
         window.copyModalLink = copyModalLink;
         window.viewModalCard = viewModalCard;
         window.closeSuccessModal = closeSuccessModal;
+        window.showRevokeModal = showRevokeModal;
+        window.closeRevokeModal = closeRevokeModal;
+        window.confirmRevokeCard = confirmRevokeCard;
+        window.handleRestoreCard = handleRestoreCard;
 
         let scene, camera, renderer, mesh, grid;
         function initThree() {

@@ -9,7 +9,8 @@ import { handleRevoke } from './handlers/admin/revoke';
 import { handleKekRotate } from './handlers/admin/kek';
 import { handleAdminLogin, handleAdminLogout } from './handlers/admin/auth';
 import { handleSecurityStats, handleSecurityEvents, handleSecurityTimeline, handleBlockIP, handleUnblockIP, handleIPDetail, handleSecurityExport } from './handlers/admin/security';
-import { handleUserCreateCard, handleUserUpdateCard, handleUserListCards, handleUserGetCard } from './handlers/user/cards';
+import { handleUserCreateCard, handleUserUpdateCard, handleUserListCards, handleUserGetCard, handleUserRevokeCard, handleUserRestoreCard } from './handlers/user/cards';
+import { handleRevocationHistory } from './handlers/user/history';
 import { handleOAuthCallback } from './handlers/oauth';
 import { errorResponse, publicErrorResponse } from './utils/response';
 import { checkRateLimit } from './middleware/rate-limit';
@@ -37,7 +38,7 @@ function addSecurityHeaders(response: Response): Response {
   headers.set('X-XSS-Protection', '1; mode=block');
   headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
-  return new Response(response.body, {
+  return new Response(response.clone().body, {
     status: response.status,
     statusText: response.statusText,
     headers
@@ -121,6 +122,25 @@ export default {
     if (getUserCardMatch && request.method === 'GET') {
       const uuid = getUserCardMatch[1];
       return handleUserGetCard(request, env, uuid);
+    }
+
+    // POST /api/user/cards/:uuid/revoke - User self-revoke card
+    const revokeUserCardMatch = url.pathname.match(/^\/api\/user\/cards\/([a-f0-9-]{36})\/revoke$/);
+    if (revokeUserCardMatch && request.method === 'POST') {
+      const uuid = revokeUserCardMatch[1];
+      return handleUserRevokeCard(request, env, uuid);
+    }
+
+    // POST /api/user/cards/:uuid/restore - User self-restore card
+    const restoreUserCardMatch = url.pathname.match(/^\/api\/user\/cards\/([a-f0-9-]{36})\/restore$/);
+    if (restoreUserCardMatch && request.method === 'POST') {
+      const uuid = restoreUserCardMatch[1];
+      return handleUserRestoreCard(request, env, uuid);
+    }
+
+    // GET /api/user/revocation-history - Query revocation history
+    if (url.pathname === '/api/user/revocation-history' && request.method === 'GET') {
+      return handleRevocationHistory(request, env);
     }
 
     // Admin APIs

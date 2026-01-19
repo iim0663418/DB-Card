@@ -2,10 +2,16 @@
 ## Current Phase: PHASE_2_COMPLETE ✅
 - Status: Phase 2 User Portal 完成 + 撤銷/恢復機制重構完成
 - Task: 使用者自助門戶與完整卡片生命週期管理
-- Last Update: 2026-01-19T03:45:00+08:00
+- Last Update: 2026-01-19T09:43:00+08:00
 - Commit: a5b783f
 - Version: b671362c-ae22-464f-a117-58d7186f81ee
-- Next Action: Phase 3 規劃或系統優化
+- Next Action: 等待用戶指示下一步優化方向
+
+## 重要決策記錄 (2026-01-19)
+- ❌ ADR-005 (Fingerprint Verification) 已取消
+- 原因：產品定位為「名片系統」而非「授權系統」
+- SESSION EXPIRES 和 ATTEMPTS REMAINING 是「資源管理」而非「訪問控制」
+- 當前設計符合名片分享的核心需求（QR Code、URL 分享）
 
 ## Phase 2 完成項目 ✅
 

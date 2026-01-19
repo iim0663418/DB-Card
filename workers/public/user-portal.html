@@ -524,6 +524,163 @@
     </div>
 
     <script>
+        // --- 0. 樂觀更新與狀態管理 ---
+
+        // CardStateManager: 管理狀態、快照、樂觀更新和回滾
+        class CardStateManager {
+            constructor() {
+                this.state = { cards: [] };
+                this.snapshots = [];
+                this.syncQueue = [];
+                this.isSyncing = false;
+            }
+
+            // 初始化狀態
+            initialize(cards) {
+                this.state.cards = cards.map(card => ({ ...card }));
+            }
+
+            // 獲取當前狀態
+            getState() {
+                return this.state;
+            }
+
+            // 快照當前狀態
+            snapshot() {
+                this.snapshots.push(JSON.parse(JSON.stringify(this.state)));
+            }
+
+            // 樂觀創建
+            optimisticCreate(type, cardData) {
+                this.snapshot();
+
+                const tempId = `temp_${Date.now()}`;
+                const timestamp = new Date().toISOString();
+
+                this.state.cards = this.state.cards.map(card =>
+                    card.type === type
+                        ? {
+                            ...card,
+                            uuid: tempId,
+                            status: 'bound',
+                            name_zh: cardData.name_zh,
+                            name_en: cardData.name_en,
+                            updated_at: timestamp,
+                            _optimistic: true
+                        }
+                        : card
+                );
+
+                return tempId;
+            }
+
+            // 確認創建
+            confirmCreate(tempId, realUuid, serverData) {
+                this.state.cards = this.state.cards.map(card =>
+                    card.uuid === tempId
+                        ? {
+                            uuid: realUuid,
+                            type: card.type,
+                            status: 'bound',
+                            name_zh: serverData.name_zh || card.name_zh,
+                            name_en: serverData.name_en || card.name_en,
+                            updated_at: serverData.updated_at || card.updated_at,
+                            _optimistic: false
+                        }
+                        : card
+                );
+
+                this.snapshots = [];
+            }
+
+            // 回滾
+            rollback() {
+                if (this.snapshots.length > 0) {
+                    this.state = this.snapshots.pop();
+                    return true;
+                }
+                return false;
+            }
+
+            // 加入同步隊列
+            queueSync(task) {
+                this.syncQueue.push(task);
+                this.processSyncQueue();
+            }
+
+            // 處理同步隊列
+            async processSyncQueue() {
+                if (this.isSyncing || this.syncQueue.length === 0) return;
+
+                this.isSyncing = true;
+
+                while (this.syncQueue.length > 0) {
+                    const task = this.syncQueue.shift();
+                    try {
+                        await task();
+                    } catch (error) {
+                        console.error('Background sync failed:', error);
+                    }
+                }
+
+                this.isSyncing = false;
+            }
+        }
+
+        // ErrorHandler: 統一錯誤處理
+        class ErrorHandler {
+            constructor() {
+                this.handlers = new Map([
+                    ['CARD_NOT_FOUND', '名片不存在，請重新創建'],
+                    ['NETWORK_ERROR', '網路連線失敗，請檢查網路'],
+                    ['VALIDATION_ERROR', '資料格式錯誤，請檢查輸入'],
+                    ['UNAUTHORIZED', '登入已過期，請重新登入'],
+                    ['FORBIDDEN', '權限不足'],
+                    ['SERVER_ERROR', '伺服器錯誤，請稍後再試'],
+                    [401, '登入已過期，請重新登入'],
+                    [403, '權限不足'],
+                    [404, '資源不存在'],
+                    [500, '伺服器錯誤，請稍後再試'],
+                    [0, '網路連線失敗']
+                ]);
+            }
+
+            handle(error) {
+                // 優先處理 code
+                if (error?.code && this.handlers.has(error.code)) {
+                    return this.handlers.get(error.code);
+                }
+
+                // 其次處理 status
+                if (error?.status && this.handlers.has(error.status)) {
+                    return this.handlers.get(error.status);
+                }
+
+                // 最後處理 message
+                if (error?.message) {
+                    return error.message;
+                }
+
+                if (error?.error) {
+                    return error.error;
+                }
+
+                if (typeof error === 'string') {
+                    return error;
+                }
+
+                return '未知錯誤';
+            }
+
+            register(code, message) {
+                this.handlers.set(code, message);
+            }
+        }
+
+        // 全局實例
+        const stateManager = new CardStateManager();
+        const errorHandler = new ErrorHandler();
+
         // --- 1. 核心狀態與數據結構 ---
         const state = {
             isLoggedIn: false,
@@ -698,6 +855,9 @@
                     return { type, status: 'empty' };
                 });
 
+                // 初始化狀態管理器
+                stateManager.initialize(state.cards);
+
                 renderSelectionPage();
             } catch (err) {
                 handleError(err);
@@ -734,39 +894,55 @@
                     await fetchUserCards();
                     showView('selection');
                 } else {
-                    // 創建：使用 Modal
+                    // 創建：使用樂觀更新
+
+                    // 1. 樂觀更新（立即反應）
+                    const tempId = stateManager.optimisticCreate(type, data);
+                    state.cards = stateManager.getState().cards;
+                    renderSelectionPage();
+
+                    // 2. API 請求
                     const response = await apiCall('/api/user/cards', {
                         method: 'POST',
                         body: JSON.stringify({ ...data, type })
                     });
 
-                    const newUuid = response.data?.uuid;
-                    if (newUuid) {
-                        // 更新 state
-                        const card = state.cards.find(c => c.type === type);
-                        if (card) card.uuid = newUuid;
+                    const realUuid = response.data?.uuid;
 
-                        // 重新載入
-                        await fetchUserCards();
-
-                        // 顯示成功 Modal
-                        showSuccessModal(newUuid, type);
+                    if (!realUuid) {
+                        throw new Error('API 未返回 UUID');
                     }
+
+                    // 3. 確認更新
+                    stateManager.confirmCreate(tempId, realUuid, {
+                        name_zh: data.name_zh,
+                        name_en: data.name_en,
+                        updated_at: new Date().toISOString()
+                    });
+                    state.cards = stateManager.getState().cards;
+
+                    // 4. 顯示 Modal
+                    showSuccessModal(realUuid, type);
+
+                    // 5. 背景同步
+                    stateManager.queueSync(async () => {
+                        await fetchUserCards();
+                    });
                 }
             } catch (err) {
-                const errEl = document.getElementById('form-error-msg');
-
-                // 對應 BDD Scenarios 的錯誤訊息
-                if (err.status === 409) {
-                    errEl.innerText = '您已建立過此類型名片';
-                } else if (err.status === 429) {
-                    errEl.innerText = '操作過於頻繁,請稍後再試';
-                } else if (err.status === 410) {
-                    errEl.innerText = '此名片已被撤銷';
-                } else {
-                    errEl.innerText = err.message || '儲存失敗,請檢查網路連線';
+                // 6. 失敗回滾
+                if (!uuid) {
+                    const rolled = stateManager.rollback();
+                    if (rolled) {
+                        state.cards = stateManager.getState().cards;
+                        renderSelectionPage();
+                    }
                 }
 
+                // 7. 統一錯誤處理
+                const errorMsg = errorHandler.handle(err);
+                const errEl = document.getElementById('form-error-msg');
+                errEl.innerText = errorMsg;
                 errEl.classList.remove('hidden');
             }
         }
@@ -1005,7 +1181,7 @@
                 const sessionId = response.session_id || response.data?.session_id;
 
                 if (!sessionId) {
-                    throw new Error('無法獲取查看授權');
+                    throw { code: 'SESSION_ERROR', message: '無法獲取查看授權' };
                 }
 
                 // 打開名片頁面（帶 session）
@@ -1015,8 +1191,8 @@
                 toggleLoading(false);
             } catch (error) {
                 toggleLoading(false);
-                // 正確處理錯誤訊息
-                const errorMsg = error?.message || error?.error || (typeof error === 'string' ? error : '未知錯誤');
+                // 使用統一錯誤處理
+                const errorMsg = errorHandler.handle(error);
                 showToast('查看失敗: ' + errorMsg);
             }
         }

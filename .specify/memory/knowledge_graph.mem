@@ -162,6 +162,108 @@
 260118|I18N_System|implementation|data_i18n_attributes
 260118|I18N_System|update_mechanism|updateButtonTexts_function
 
+# vCard Optimization (2026-01-18)
+260118|vCard_System|version|3.0
+260118|vCard_System|status|COMPLETE
+260118|vCard_System|encoding|UTF-8
+260118|vCard_System|download_method|data_URI
+260118|vCard_System|ios_compatibility|VERIFIED
+260118|vCard_System|escaping|RFC_6350_Compliant
+260118|vCard_System|photo_support|Google_Drive_uc_export
+
+# vCard Features
+260118|vCard_Feature|bilingual_support|Single_Language_Per_Download
+260118|vCard_Feature|special_char_escape|Semicolon_Comma_Backslash_Newline
+260118|vCard_Feature|photo_format|URL_VALUE_JPEG
+260118|vCard_Feature|google_drive_conversion|uc_export_view_format
+260118|vCard_Feature|safari_ios_fix|data_URI_instead_of_Blob
+
+# User Self-Service Planning (2026-01-18)
+260118|User_Self_Service|status|PLANNING
+260118|User_Self_Service|phase|Requirements_Analysis
+260118|User_Self_Service|core_feature|UUID_Preissue_System
+260118|User_Self_Service|auth_method|Google_OAuth
+260118|User_Self_Service|email_domain|moda_gov_tw
+260118|User_Self_Service|binding_model|One_UUID_One_Account
+
+# User Self-Service Architecture
+260118|Self_Service_Architecture|new_table|uuid_bindings
+260118|Self_Service_Architecture|new_apis|6_Plus_Endpoints
+260118|Self_Service_Architecture|new_frontend|user_portal_html
+260118|Self_Service_Architecture|session_management|JWT_Based
+260118|Self_Service_Architecture|admin_extension|UUID_Management_Tab
+
+# Audit Logging Strategy
+260118|Audit_Strategy|approach|Extend_Existing_Tables
+260118|Audit_Strategy|table_audit_logs|Add_Event_Types_And_Columns
+260118|Audit_Strategy|table_security_events|Add_UUID_Security_Events
+260118|Audit_Strategy|new_columns|actor_type_actor_id_target_uuid
+260118|Audit_Strategy|ip_anonymization|First_3_Octets_Only
+
+# Audit Event Types - UUID Management
+260118|Audit_Event|uuid_generate|Admin_Generate_UUID
+260118|Audit_Event|uuid_revoke|Admin_Revoke_UUID
+260118|Audit_Event|uuid_unbind|Admin_Unbind_UUID
+
+# Audit Event Types - User Authentication
+260118|Audit_Event|user_oauth_start|User_Start_OAuth_Flow
+260118|Audit_Event|user_oauth_success|OAuth_Success
+260118|Audit_Event|user_oauth_failed|OAuth_Failed_Invalid_Email
+260118|Audit_Event|user_bind_uuid|User_Bind_UUID
+260118|Audit_Event|user_login|User_Login
+260118|Audit_Event|user_logout|User_Logout
+
+# Audit Event Types - User Operations
+260118|Audit_Event|user_card_create|User_Create_Card
+260118|Audit_Event|user_card_update|User_Update_Card
+260118|Audit_Event|user_card_view|User_View_Card
+
+# Security Event Types
+260118|Security_Event|uuid_brute_force|UUID_Brute_Force_Attempt
+260118|Security_Event|invalid_email_domain|Non_MODA_Email_Login_Attempt
+260118|Security_Event|duplicate_bind_attempt|Duplicate_Bind_Attempt
+
+# Audit Priority
+260118|Audit_Priority|P0|UUID_Generate_Bind_OAuth_Failed_Card_CRUD
+260118|Audit_Priority|P1|UUID_Revoke_Unbind_Login_Logout_Brute_Force
+260118|Audit_Priority|P2|OAuth_Start_Card_View_Session_Expire
+
+# Requirements Pending Confirmation
+260118|Requirement_Question|Q1|UUID_Lifecycle
+260118|Requirement_Question|Q2|Account_UUID_Binding_Limit
+260118|Requirement_Question|Q3|UUID_Unbind_Policy
+260118|Requirement_Question|Q4|Email_Domain_Validation
+260118|Requirement_Question|Q5|Session_Expiration_Definition
+260118|Requirement_Question|Q6|Card_UUID_Usage_Model
+260118|Requirement_Question|Q7|User_Delete_Permission
+260118|Requirement_Question|Q8|Admin_Edit_User_Card_Permission
+260118|Requirement_Question|Q9|UUID_Distribution_Method
+260118|Requirement_Question|Q10|Security_Mechanism_Rate_Limit_CAPTCHA
+
+# Product Positioning Decision (2026-01-19)
+260119|DB_Card|product_type|Digital_Business_Card_System
+260119|DB_Card|not_product_type|Authorization_System
+260119|SESSION_EXPIRES|purpose|Resource_Management_Not_Access_Control
+260119|SESSION_EXPIRES|meaning|Session_Lifetime_24h
+260119|ATTEMPTS_REMAINING|purpose|Resource_Management_Not_Access_Control
+260119|ATTEMPTS_REMAINING|meaning|Total_Session_Traffic_Limit
+260119|Session_Sharing|allowed|True
+260119|Session_Sharing|reason|Business_Card_Sharing_Nature
+260119|QR_Code|status|Essential_Feature
+260119|QR_Code|purpose|Easy_Sharing_No_Physical_Contact
+260119|URL_Sharing|status|Essential_Feature
+260119|URL_Sharing|purpose|Easy_Propagation
+260119|ADR_005|status|Cancelled
+260119|ADR_005|reason|Conflicts_With_Product_Positioning
+260119|Fingerprint_Verification|status|Not_Needed
+260119|Fingerprint_Verification|reason|Would_Break_QR_Code_And_Sharing
+
+# Deployment Status
+260119|Deployment|environment|staging
+260119|Deployment|version|b671362c_ae22_464f_a117_58d7186f81ee
+260119|Deployment|features|Phase_2_User_Portal_Revoke_Restore_Complete
+260119|Deployment|status|Operational
+
 # I18N Text Keys
 260118|i18n_key|loading|Synchronizing_Secure_Identity
 260118|i18n_key|qr_title|Scan_for_Official_Verification
@@ -196,10 +298,10 @@
 260118|Offline_Mode|ui_indicator|Offline_Badge
 
 # Deployment (2026-01-18)
-260118|Deployment|commit|e6bba35
-260118|Deployment|version|15967bbd_1a04_4347_af2e_1916ac474b8e
-260118|Deployment|features|I18N_Complete_Form_Reset_Fixed
-260118|Deployment|status|Operational
+260119|Deployment|commit|a5b783f
+260119|Deployment|version|b671362c_ae22_464f_a117_58d7186f81ee
+260119|Deployment|features|Phase_2_User_Portal_Revoke_Restore_Complete
+260119|Deployment|status|Operational
 
 # Security Dashboard Planning (2026-01-18)
 260118|Security_Dashboard|status|Planning_Complete
@@ -329,3 +431,87 @@
 260118|Performance_Query|max_range|7_days
 260118|Performance_Query|max_limit|50_records
 260118|Performance_Query|indexes|created_at_event_type_ip_address
+
+# Phase 2 User Portal Complete (2026-01-19)
+260119|Phase_2|status|COMPLETE
+260119|Phase_2|commit|a5b783f
+260119|User_Portal|version|v1.0.0
+260119|User_Portal|features|OAuth_Login_Card_CRUD_Real_Time_Preview
+260119|User_Portal|form_fields|16_Fields_Aligned_With_Admin
+260119|User_Portal|address_presets|Yanping_Shinkong_Buildings
+260119|User_Portal|social_links|6_Fields_Supported
+260119|User_Portal|revoked_handling|Display_Only_No_Edit
+
+# Revoke/Restore Mechanism (2026-01-19)
+260119|Revoke_Mechanism|version|v2.0.0
+260119|Revoke_Mechanism|delete_api|Changed_To_Revoke_Logic
+260119|Revoke_Mechanism|restore_api|POST_api_admin_cards_uuid_restore
+260119|Admin_Dashboard|revoke_button|Amber_Color_Conditional_Display
+260119|Admin_Dashboard|restore_button|Green_Color_For_Revoked_Cards
+260119|Admin_Dashboard|global_revoke|Emergency_Revocation_Implemented
+260119|User_Portal|revoked_cards|Disabled_Operations_Warning_Label
+
+# Database Architecture Optimization (2026-01-19)
+260119|Database_Optimization|version|v2.0.0
+260119|Database_Optimization|removed_columns|cards_card_type_cards_status
+260119|Database_Optimization|single_source_of_truth|uuid_bindings
+260119|Database_Optimization|audit_table|deleted_cards
+260119|Migration_0005|purpose|Update_Type_Constraint
+260119|Migration_0005|mapping|official_to_personal_temporary_to_sensitive
+260119|Migration_0006|purpose|Sync_Card_Types
+260119|Migration_0007|purpose|Remove_Redundant_Columns
+260119|Migration_0008|purpose|Create_Deleted_Cards_Audit_Table
+
+# Scheduled Cleanup (2026-01-19)
+260119|Scheduled_Cleanup|version|v1.0.0
+260119|Scheduled_Cleanup|cron|0_2_asterisk_asterisk_asterisk
+260119|Scheduled_Cleanup|frequency|Daily_02_00_UTC
+260119|Scheduled_Cleanup|retention_period|90_Days
+260119|Scheduled_Cleanup|archive_target|deleted_cards
+260119|Scheduled_Cleanup|data_preservation|Encrypted_Snapshot
+260119|Scheduled_Cleanup|file|scheduled_cleanup_ts
+
+# Design System Unification (2026-01-19)
+260119|Design_System|version|v2.0.0
+260119|Design_System|accent_color|#6868ac_MODA_Purple
+260119|Design_System|font_family|Outfit
+260119|Design_System|wcag_compliance|AAA_7_8_to_1_Contrast
+260119|Design_System|unified_frontends|admin_dashboard_user_portal_card_display
+260119|Design_System|page_title_format|數位名片_pipe_XXX
+
+# Bug Fixes (2026-01-19)
+260119|Bug_Fix|user_portal_edit|Flat_Structure_Prefill
+260119|Bug_Fix|card_display|Address_Social_Links_Display
+260119|Bug_Fix|admin_dashboard|Social_Links_Compatibility
+260119|Bug_Fix|tap_read_api|Remove_Cards_Status_Query
+260119|Bug_Fix|type_mapping|event_to_event_booth
+260119|Bug_Fix|function_exposure|closeModal_confirmAction_restoreCard
+260119|Bug_Fix|security|Remove_Frontend_Debug_Logs
+260119|Bug_Fix|validation|Empty_String_Check_Not_Undefined
+260119|Bug_Fix|preview|Read_Default_Address
+
+# API Completeness (2026-01-19)
+260119|API_user_cards|method|GET
+260119|API_user_cards|path|/api/user/cards
+260119|API_user_cards|returns|bound_plus_revoked
+260119|API_user_card_detail|method|GET
+260119|API_user_card_detail|path|/api/user/cards/:uuid
+260119|API_user_card_detail|returns|16_Fields_Flat_Structure
+260119|API_user_card_create|method|POST
+260119|API_user_card_create|path|/api/user/cards
+260119|API_user_card_create|feature|Auto_Generate_UUID
+260119|API_user_card_update|method|PUT
+260119|API_user_card_update|path|/api/user/cards/:uuid
+260119|API_user_card_update|feature|Full_Update
+260119|API_admin_cards_list|method|GET
+260119|API_admin_cards_list|path|/api/admin/cards
+260119|API_admin_cards_list|feature|JOIN_uuid_bindings_Get_Status
+260119|API_admin_card_restore|method|POST
+260119|API_admin_card_restore|path|/api/admin/cards/:uuid/restore
+260119|API_admin_card_restore|feature|Restore_Revoked_Cards
+260119|API_admin_card_delete|method|DELETE
+260119|API_admin_card_delete|path|/api/admin/cards/:uuid
+260119|API_admin_card_delete|changed_to|Revoke_Logic
+260119|API_admin_revoke|method|POST
+260119|API_admin_revoke|path|/api/admin/revoke
+260119|API_admin_revoke|feature|Global_Revocation

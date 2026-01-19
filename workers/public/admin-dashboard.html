@@ -3,13 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>moda Admin Dashboard | 統一管理主控台</title>
+    <title>數位名片 | 管理後台</title>
+    <link rel="icon" type="image/png" sizes="192x192" href="favicon.png">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="https://unpkg.com">
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <script>
+        const originalWarn = console.warn;
+        console.warn = function(...args) {
+            if (args[0]?.includes?.('cdn.tailwindcss.com')) return;
+            originalWarn.apply(console, args);
+        };
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Noto+Sans+TC:wght@300;500;700;900&display=swap');
         
@@ -123,6 +138,8 @@
         .badge-personal { background: #dbeafe; color: #1e40af; }
         .badge-event { background: #fef3c7; color: #92400e; }
         .badge-sensitive { background: #fee2e2; color: #991b1b; }
+        .badge-bound { background: #d1fae5; color: #065f46; }
+        .badge-revoked { background: #fecaca; color: #991b1b; }
         .badge-active { background: #d1fae5; color: #065f46; }
         .badge-suspended { background: #fed7aa; color: #9a3412; }
 
@@ -131,6 +148,20 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
+
+        /* MODA Accent 顏色覆蓋 Tailwind indigo */
+        .bg-moda { background-color: var(--moda-accent) !important; }
+        .text-moda { color: var(--moda-accent) !important; }
+        .text-moda-dark { color: #4a4a8a !important; }
+        .border-moda { border-color: var(--moda-accent) !important; }
+        .border-moda-light { border-color: rgba(104, 104, 172, 0.1) !important; }
+        .bg-moda-light { background-color: rgba(104, 104, 172, 0.1) !important; }
+        .hover\:bg-moda:hover { background-color: #5858a0 !important; }
+        .hover\:text-moda:hover { color: var(--moda-accent) !important; }
+        .hover\:border-moda:hover { border-color: var(--moda-accent) !important; }
+        .focus\:border-moda:focus { border-color: var(--moda-accent) !important; }
+        .focus\:ring-moda:focus { --tw-ring-color: var(--moda-accent) !important; }
+        .shadow-moda { box-shadow: 0 20px 25px -5px rgba(104, 104, 172, 0.1), 0 8px 10px -6px rgba(104, 104, 172, 0.1) !important; }
     </style>
 </head>
 <body class="p-4 lg:p-8">
@@ -142,7 +173,7 @@
         <!-- 頂部導航與驗證 -->
         <header class="glass-surface p-6 rounded-3xl flex flex-col lg:flex-row justify-between items-center gap-6">
             <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg">
+                <div class="w-12 h-12 bg-moda text-white rounded-2xl flex items-center justify-center shadow-lg">
                     <i data-lucide="layout-dashboard" class="w-6 h-6"></i>
                 </div>
                 <div>
@@ -186,7 +217,7 @@
                 <div class="glass-surface p-6 rounded-3xl flex flex-wrap gap-4 items-center justify-between">
                     <div class="relative flex-1 min-w-[300px]">
                         <i data-lucide="search" class="absolute left-4 top-3.5 w-4 h-4 text-slate-400"></i>
-                        <input type="text" id="search-input" placeholder="搜尋姓名、Email..." class="w-full pl-12 pr-4 py-3 bg-white/50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm">
+                        <input type="text" id="search-input" placeholder="搜尋姓名、Email..." class="w-full pl-12 pr-4 py-3 bg-white/50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm">
                     </div>
                     <div class="flex gap-2">
                         <select id="filter-type" class="px-4 py-3 bg-white/50 border border-slate-200 rounded-xl text-xs font-bold outline-none">
@@ -242,11 +273,11 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">公務 Email</label>
-                                <input type="email" id="email" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm" placeholder="example@moda.gov.tw">
+                                <input type="email" id="email" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" placeholder="example@moda.gov.tw">
                             </div>
                             <div>
                                 <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">所屬部門</label>
-                                <select id="department" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm appearance-none">
+                                <select id="department" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm appearance-none">
                                     <option value="">請選擇部門</option>
                                     <option value="數位策略司">數位策略司</option>
                                     <option value="數位政府司">數位政府司</option>
@@ -274,7 +305,7 @@
                                 公務電話 Office Phone
                             </label>
                             <input type="text" id="phone"
-                                   class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm"
+                                   class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm"
                                    placeholder="(02) 2700-0000 #1234">
                         </div>
 
@@ -283,7 +314,7 @@
                                 地址 Address
                             </label>
 
-                            <select id="address-preset" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm mb-2">
+                            <select id="address-preset" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm mb-2">
                                 <option value="">-- 選擇預設地址或自訂 --</option>
                                 <option value="yanping">延平大樓（數位發展部）</option>
                                 <option value="shinkong">新光大樓（數位發展部）</option>
@@ -292,17 +323,17 @@
 
                             <div id="custom-address-fields" class="hidden space-y-2">
                                 <input type="text" id="address_zh"
-                                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm"
+                                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm"
                                        placeholder="中文地址（例：10058 台北市中正區延平南路143號）">
                                 <input type="text" id="address_en"
-                                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm"
+                                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm"
                                        placeholder="English Address (e.g., No. 143, Yanping S. Rd., Taipei 10058)">
                             </div>
                         </div>
 
                         <!-- 進階資訊（折疊） -->
                         <details class="group border-t border-slate-100 pt-4">
-                            <summary class="list-none cursor-pointer flex items-center justify-between text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors">
+                            <summary class="list-none cursor-pointer flex items-center justify-between text-xs font-bold text-moda hover:text-moda transition-colors">
                                 <span>+ 進階與社群資訊 (手機、頭像、問候語、社群)</span>
                                 <i data-lucide="chevron-down" class="w-4 h-4 group-open:rotate-180 transition-transform"></i>
                             </summary>
@@ -377,8 +408,28 @@
                                             </div>
                                             <input type="url" id="social_youtube" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs" placeholder="https://youtube.com/@channel">
                                         </div>
+
+                                        <!-- LINE -->
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <svg class="w-4 h-4 text-slate-600" viewBox="0 0 24 24" fill="currentColor">
+                                                    <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
+                                                </svg>
+                                            </div>
+                                            <input type="text" id="social_line" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs" placeholder="LINE ID 或 https://line.me/ti/p/~username">
+                                        </div>
+
+                                        <!-- Signal -->
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <svg class="w-4 h-4 text-slate-600" viewBox="0 0 24 24" fill="currentColor">
+                                                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 16.707s-1.067 1.341-1.24 1.514c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26l-3.616-3.616-3.616 3.616c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26-.173-.173-1.24-1.514-1.24-1.514-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693l3.616-3.616-3.616-3.616c-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693 0 0 1.067-1.341 1.24-1.514.173-.173.346-.26.519-.26.173 0 .346.087.519.26l3.616 3.616 3.616-3.616c.173-.173.346-.26.519-.26.173 0 .346.087.519.26.173.173 1.24 1.514 1.24 1.514.173.173.26.433.26.693 0 .26-.087.52-.26.693l-3.616 3.616 3.616 3.616c.173.173.26.433.26.693 0 .26-.087.52-.26.693z"/>
+                                                </svg>
+                                            </div>
+                                            <input type="text" id="social_signal" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs" placeholder="Signal username 或 https://signal.me/#eu/...">
+                                        </div>
                                     </div>
-                                    
+
                                     <p class="text-[9px] text-slate-400 italic">直接貼上完整連結，留空表示不顯示該平台</p>
                                 </div>
                             </div>
@@ -396,7 +447,7 @@
                                     <i data-lucide="x" class="w-5 h-5"></i>
                                     取消編輯
                                 </button>
-                                <button type="submit" class="md:flex-1 bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-indigo-700 shadow-lg transition-all flex items-center justify-center gap-3">
+                                <button type="submit" class="md:flex-1 bg-moda text-white px-8 py-4 rounded-xl font-bold hover:bg-moda shadow-lg transition-all flex items-center justify-center gap-3">
                                     <i data-lucide="zap" class="w-5 h-5"></i>
                                     簽發數位名片
                                 </button>
@@ -417,13 +468,13 @@
                         </div>
 
                         <div class="transform scale-85 origin-top">
-                            <div id="preview-card" class="bg-white rounded-[2.5rem] shadow-2xl border-t-[6px] border-indigo-600 overflow-hidden text-center p-8 space-y-6">
+                            <div id="preview-card" class="bg-white rounded-[2.5rem] shadow-2xl border-t-[6px] border-moda overflow-hidden text-center p-8 space-y-6">
                                 <div class="relative inline-block">
                                     <img id="prev-avatar" src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80" class="w-28 h-28 rounded-[2rem] object-cover shadow-lg border-2 border-slate-50">
                                 </div>
                                 <div>
                                     <h3 id="prev-name" class="text-3xl font-black text-slate-900 italic">王小明</h3>
-                                    <p id="prev-title" class="text-indigo-600 font-bold text-[10px] uppercase tracking-[0.2em] mt-2">部長</p>
+                                    <p id="prev-title" class="text-moda font-bold text-[10px] uppercase tracking-[0.2em] mt-2">部長</p>
                                 </div>
 
                                 <!-- 社群圖標預覽區 -->
@@ -431,20 +482,20 @@
                                     <!-- 動態生成 -->
                                 </div>
 
-                                <div id="prev-greeting-section" class="mt-8 pt-8 border-t border-indigo-50 hidden">
+                                <div id="prev-greeting-section" class="mt-8 pt-8 border-t border-moda-light hidden">
                                     <p class="hud-text mb-4 opacity-40 text-[8px] font-black tracking-widest text-slate-400 uppercase">Dynamic Transmission Feed</p>
                                     <p id="prev-greeting" class="text-slate-600 font-medium italic min-h-[1.5em] text-[10px]"></p>
                                 </div>
                                 <div class="bg-slate-50 p-4 rounded-2xl flex items-center gap-4 text-left mt-2">
-                                    <i data-lucide="mail" class="w-4 h-4 text-indigo-400"></i>
+                                    <i data-lucide="mail" class="w-4 h-4 text-moda opacity-60"></i>
                                     <span id="prev-email" class="text-[10px] font-bold text-slate-600 truncate">---</span>
                                 </div>
                                 <div class="bg-slate-50 p-4 rounded-2xl flex items-center gap-4 text-left mt-2">
-                                    <i data-lucide="phone" class="w-4 h-4 text-indigo-400"></i>
+                                    <i data-lucide="phone" class="w-4 h-4 text-moda opacity-60"></i>
                                     <span id="prev-phone" class="text-[10px] font-bold text-slate-600 truncate">---</span>
                                 </div>
                                 <div class="bg-slate-50 p-4 rounded-2xl flex items-center gap-4 text-left mt-2">
-                                    <i data-lucide="map-pin" class="w-4 h-4 text-indigo-400"></i>
+                                    <i data-lucide="map-pin" class="w-4 h-4 text-moda opacity-60"></i>
                                     <span id="prev-address" class="text-[10px] font-bold text-slate-600 truncate">---</span>
                                 </div>
                             </div>
@@ -472,7 +523,7 @@
                     </div>
                     <div class="glass-surface p-6 rounded-2xl">
                         <p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Rate Limit Hits</p>
-                        <p id="stat-ratelimit" class="text-3xl font-black text-indigo-600">---</p>
+                        <p id="stat-ratelimit" class="text-3xl font-black text-moda">---</p>
                     </div>
                 </div>
 
@@ -524,7 +575,7 @@
                                 <option value="suspicious_activity">Suspicious</option>
                                 <option value="blocked_ip">Blocked IP</option>
                             </select>
-                            <button onclick="exportSecurityEvents()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700">Export CSV</button>
+                            <button onclick="exportSecurityEvents()" class="px-4 py-2 bg-moda text-white rounded-xl text-xs font-bold hover:bg-moda">Export CSV</button>
                         </div>
                     </div>
                     <div class="overflow-x-auto">
@@ -587,11 +638,12 @@
                             </div>
                             <div class="p-4 bg-white rounded-2xl border border-slate-100">
                                 <p class="text-[10px] text-slate-400 mb-1">KEK Version</p>
-                                <p id="health-kek-version" class="font-bold text-indigo-600">Loading...</p>
+                                <p id="health-kek-version" class="font-bold text-moda">Loading...</p>
                             </div>
                             <div class="p-4 bg-white rounded-2xl border border-slate-100">
                                 <p class="text-[10px] text-slate-400 mb-1">Active Cards</p>
                                 <p id="health-active-cards" class="font-bold text-slate-900">Loading...</p>
+                                <p class="text-[8px] text-slate-400 mt-1">Bound + Revoked</p>
                             </div>
                         </div>
                     </div>
@@ -666,12 +718,10 @@
         // Import validation utilities
         import { validateURL, sanitizeText, validateEmail, validatePhone, validateSocialURL, SOCIAL_PLATFORMS } from './js/validation.js';
         
-        // --- 1. API Configuration ---
         const API_BASE = window.location.hostname === 'localhost'
             ? '' // Use same origin for local development
             : ''; // Use same origin for staging/production
 
-        // --- 2. Three.js 背景 ---
         let scene, camera, renderer, mesh;
         function initThree() {
             const canvas = document.getElementById('three-canvas');
@@ -691,7 +741,6 @@
             animate();
         }
 
-        // --- 3. 應用程式狀態 ---
         let isVerified = false;
         let activeTab = 'list';
         let previewLang = 'zh';
@@ -726,7 +775,9 @@
                     { id: 'social_facebook', icon: 'facebook' },
                     { id: 'social_instagram', icon: 'instagram' },
                     { id: 'social_twitter', icon: 'twitter' },
-                    { id: 'social_youtube', icon: 'youtube' }
+                    { id: 'social_youtube', icon: 'youtube' },
+                    { id: 'social_line', icon: 'line' },
+                    { id: 'social_signal', icon: 'signal' }
                 ];
                 
                 const results = [];
@@ -753,7 +804,9 @@
                     { patterns: ['facebook.com', 'fb.com'], icon: 'facebook' },
                     { patterns: ['instagram.com'], icon: 'instagram' },
                     { patterns: ['twitter.com', 'x.com'], icon: 'twitter' },
-                    { patterns: ['youtube.com', 'youtu.be'], icon: 'youtube' }
+                    { patterns: ['youtube.com', 'youtu.be'], icon: 'youtube' },
+                    { patterns: ['line.me'], icon: 'line' },
+                    { patterns: ['signal.me', 'signal.group'], icon: 'signal' }
                 ];
                 
                 const results = [];
@@ -792,7 +845,6 @@
             return null;
         }
 
-        // --- 4. Notification System ---
         function showNotification(message, type = 'success') {
             const toast = document.createElement('div');
             toast.className = `fixed bottom-6 right-6 px-6 py-4 rounded-2xl shadow-2xl z-[200] font-bold text-sm transition-all ${
@@ -818,7 +870,6 @@
             }, duration);
         }
 
-        // --- 5. Token Verification (Phase 2: using login API with HttpOnly Cookie) ---
         async function verifyToken() {
             const token = document.getElementById('setup-token').value;
 
@@ -917,7 +968,6 @@
             }
         }
 
-        // --- 6. UI Logic ---
         function switchTab(tabId) {
             if(!isVerified) return;
             activeTab = tabId;
@@ -976,7 +1026,7 @@
             // 使用 DOM API 安全渲染每張卡片
             cards.forEach(c => {
                 const cardDiv = document.createElement('div');
-                cardDiv.className = 'glass-surface p-6 rounded-2xl flex flex-col lg:flex-row justify-between items-center gap-6 group hover:border-indigo-200 transition-all';
+                cardDiv.className = 'glass-surface p-6 rounded-2xl flex flex-col lg:flex-row justify-between items-center gap-6 group hover:border-moda transition-all';
 
                 // 左側：資訊區
                 const infoSection = document.createElement('div');
@@ -984,7 +1034,7 @@
 
                 // 圖標
                 const iconDiv = document.createElement('div');
-                iconDiv.className = 'w-14 h-14 bg-slate-50 rounded-xl flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all';
+                iconDiv.className = 'w-14 h-14 bg-slate-50 rounded-xl flex items-center justify-center text-moda opacity-60 group-hover:bg-moda group-hover:text-white transition-all';
                 iconDiv.innerHTML = '<i data-lucide="user" class="w-6 h-6"></i>';
                 infoSection.appendChild(iconDiv);
 
@@ -1032,19 +1082,26 @@
                 infoSection.appendChild(textDiv);
                 cardDiv.appendChild(infoSection);
 
-                // 右側：操作按鈕
+                // 右側：操作按鈕（根據狀態顯示）
                 const actionDiv = document.createElement('div');
                 actionDiv.className = 'flex gap-2 w-full lg:w-auto border-t lg:border-none pt-4 lg:pt-0';
 
-                const viewBtn = createActionButton('查看', 'bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white', () => viewCard(c.uuid));
-                const editBtn = createActionButton('編輯', 'bg-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white', () => editCard(c.uuid));
-                const revokeBtn = createActionButton('撤銷', 'bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white', () => confirmAction('revoke', c.uuid));
-                const deleteBtn = createActionButton('刪除', 'bg-red-50 text-red-600 hover:bg-red-500 hover:text-white', () => confirmAction('delete', c.uuid));
-
+                const viewBtn = createActionButton('查看', 'bg-slate-100 text-slate-600 hover:bg-moda hover:text-white', () => viewCard(c.uuid));
                 actionDiv.appendChild(viewBtn);
-                actionDiv.appendChild(editBtn);
-                actionDiv.appendChild(revokeBtn);
-                actionDiv.appendChild(deleteBtn);
+
+                if (c.status === 'revoked') {
+                    // Revoked 卡片：可查看、恢復、永久刪除
+                    const restoreBtn = createActionButton('恢復', 'bg-green-50 text-green-600 hover:bg-green-500 hover:text-white', () => confirmAction('restore', c.uuid));
+                    const permanentDeleteBtn = createActionButton('永久刪除', 'bg-red-50 text-red-600 hover:bg-red-500 hover:text-white', () => confirmAction('permanent_delete', c.uuid));
+                    actionDiv.appendChild(restoreBtn);
+                    actionDiv.appendChild(permanentDeleteBtn);
+                } else {
+                    // Bound 卡片：可編輯和撤銷
+                    const editBtn = createActionButton('編輯', 'bg-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white', () => editCard(c.uuid));
+                    const deleteBtn = createActionButton('撤銷', 'bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white', () => confirmAction('delete', c.uuid));
+                    actionDiv.appendChild(editBtn);
+                    actionDiv.appendChild(deleteBtn);
+                }
 
                 cardDiv.appendChild(actionDiv);
                 grid.appendChild(cardDiv);
@@ -1066,7 +1123,7 @@
         let allCards = [];
 
         // Load cards from API (Phase 2: with credentials)
-        async function loadCards() {
+        window.loadCards = async function() {
             const token = sessionStorage.getItem('setup_token');
 
             showLoadingState();
@@ -1159,7 +1216,6 @@
             }
         }
 
-        // --- 7. View Card with Session (Phase 2: with credentials) ---
         async function viewCard(uuid) {
             try {
                 // 先 tap 獲取 session
@@ -1187,7 +1243,6 @@
             }
         }
 
-        // --- 8. API Integration Functions ---
 
         // 構建名片資料（與 generator-api.js 一致）
         function buildCardData(formData) {
@@ -1243,14 +1298,17 @@
                 };
             }
 
-            // 社群連結 - 從獨立輸入框收集
-            const socialData = SocialParser.collectFromInputs();
-            if (socialData.text) {
-                cardData.socialLinks = {
-                    email: `mailto:${formData.email}`,
-                    socialNote: socialData.text
-                };
-            }
+            // 社群連結 - 從獨立輸入框收集（新格式）
+            const socialFields = ['social_github', 'social_linkedin', 'social_facebook', 
+                                 'social_instagram', 'social_twitter', 'social_youtube',
+                                 'social_line', 'social_signal'];
+            
+            socialFields.forEach(field => {
+                const input = document.getElementById(field);
+                if (input && input.value.trim()) {
+                    cardData[field] = input.value.trim();
+                }
+            });
 
             return cardData;
         }
@@ -1338,7 +1396,9 @@
                 { field: 'social_facebook', platform: 'facebook', name: 'Facebook' },
                 { field: 'social_instagram', platform: 'instagram', name: 'Instagram' },
                 { field: 'social_twitter', platform: 'twitter', name: 'X/Twitter' },
-                { field: 'social_youtube', platform: 'youtube', name: 'YouTube' }
+                { field: 'social_youtube', platform: 'youtube', name: 'YouTube' },
+                { field: 'social_line', platform: 'line', name: 'LINE' },
+                { field: 'social_signal', platform: 'signal', name: 'Signal' }
             ];
             
             for (const { field, platform, name } of socialFields) {
@@ -1366,6 +1426,12 @@
             if (formData.phone) formData.phone = formData.phone.trim();
             if (formData.mobile) formData.mobile = formData.mobile.trim();
 
+            // 顯示 loading 狀態
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalBtnHTML = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> 處理中...';
+            lucide.createIcons();
 
             // 構建 API 資料格式
             const cardData = buildCardData(formData);
@@ -1412,12 +1478,20 @@
                 // 更新 UI 為創建模式
                 updateEditModeUI(false);
 
+                // 重新載入名片列表
+                await loadCards();
+
                 // 切換到列表 Tab
                 switchTab('list');
 
             } catch (error) {
                 console.error('Create/Update card error:', error);
                 showNotification('操作失敗: ' + error.message, 'error');
+            } finally {
+                // 恢復按鈕狀態
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHTML;
+                lucide.createIcons();
             }
         }
 
@@ -1432,27 +1506,87 @@
             try {
                 const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}`, {
                     method: 'DELETE',
-                    credentials: 'include', // Cookie auto-attached
+                    credentials: 'include',
                     headers: {
-                        'Authorization': `Bearer ${token}` // Fallback
+                        'Authorization': `Bearer ${token}`
                     }
                 });
 
                 if (!response.ok) {
-                    await handleApiError(response, '刪除失敗');
+                    await handleApiError(response, '撤銷失敗');
                     return;
                 }
 
-                showNotification('名片已刪除', 'success');
+                showNotification('名片已撤銷', 'success');
                 loadCards();
 
             } catch (error) {
-                console.error('Delete card error:', error);
-                showNotification('刪除失敗: ' + error.message, 'error');
+                console.error('Revoke card error:', error);
+                showNotification('撤銷失敗: ' + error.message, 'error');
             }
         }
 
-        // Revoke Card Sessions
+        // Restore Card
+        async function handleRestoreCard(uuid) {
+            const token = sessionStorage.getItem('setup_token');
+            if (!token) {
+                showNotification('未授權：請重新驗證', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}/restore`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    await handleApiError(response, '恢復失敗');
+                    return;
+                }
+
+                showNotification('名片已恢復', 'success');
+                loadCards();
+
+            } catch (error) {
+                console.error('Restore card error:', error);
+                showNotification('恢復失敗: ' + error.message, 'error');
+            }
+        }
+
+        async function handlePermanentDelete(uuid) {
+            const token = sessionStorage.getItem('setup_token');
+            if (!token) {
+                showNotification('未授權：請重新驗證', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}?permanent=true`, {
+                    method: 'DELETE',
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    await handleApiError(response, '永久刪除失敗');
+                    return;
+                }
+
+                showNotification('名片已永久刪除', 'success');
+                loadCards();
+
+            } catch (error) {
+                console.error('Permanent delete error:', error);
+                showNotification('永久刪除失敗: ' + error.message, 'error');
+            }
+        }
+
         async function handleRevokeCard(uuid) {
             const token = sessionStorage.getItem('setup_token');
             if (!token) {
@@ -1488,7 +1622,6 @@
             }
         }
 
-        // --- 8. Confirmation Modal ---
         function confirmAction(type, uuid = null) {
             const modal = document.getElementById('confirm-modal');
             const title = document.getElementById('modal-title');
@@ -1496,12 +1629,28 @@
             const btn = document.getElementById('modal-confirm-btn');
 
             if(type === 'delete') {
-                title.innerText = "確認刪除名片？";
-                desc.innerText = "刪除後此 UUID 將永久失效，無法再透過任何管道存取。";
-                btn.className = "flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700";
+                title.innerText = "確認撤銷名片？";
+                desc.innerText = "撤銷後使用者將無法編輯或使用此名片，但管理員可以恢復。";
+                btn.className = "flex-1 py-4 bg-amber-500 text-white rounded-2xl font-bold hover:bg-amber-600";
                 btn.onclick = async () => {
                     closeModal();
                     await handleDeleteCard(uuid);
+                };
+            } else if(type === 'permanent_delete') {
+                title.innerText = "【警告】確認永久刪除名片？";
+                desc.innerText = "此操作將從資料庫永久刪除此名片，無法復原！請確認您真的要執行此操作。";
+                btn.className = "flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700";
+                btn.onclick = async () => {
+                    closeModal();
+                    await handlePermanentDelete(uuid);
+                };
+            } else if(type === 'restore') {
+                title.innerText = "確認恢復名片？";
+                desc.innerText = "恢復後使用者將可以正常使用此名片。";
+                btn.className = "flex-1 py-4 bg-green-500 text-white rounded-2xl font-bold hover:bg-green-600";
+                btn.onclick = async () => {
+                    closeModal();
+                    await handleRestoreCard(uuid);
                 };
             } else if(type === 'revoke') {
                 title.innerText = "確認撤銷所有 Session？";
@@ -1513,20 +1662,55 @@
                 };
             } else if(type === 'revoke_all') {
                 title.innerText = "緊急：確認全局撤銷？";
-                desc.innerText = "這將關閉系統內所有名片的所有活動 Session。";
+                desc.innerText = "這將撤銷所有活躍中的 Session，所有使用者需重新 NFC 碰卡驗證。";
                 btn.className = "flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700";
-                btn.onclick = () => {
+                btn.onclick = async () => {
                     closeModal();
-                    showNotification('全局撤銷功能尚未實作', 'warning');
+                    await handleGlobalRevoke();
                 };
             }
 
             modal.classList.remove('hidden');
         }
 
+        // Global Revoke
+        async function handleGlobalRevoke() {
+            const token = sessionStorage.getItem('setup_token');
+            if (!token) {
+                showNotification('未授權：請重新驗證', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/revoke`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ global: true })
+                });
+
+                if (!response.ok) {
+                    await handleApiError(response, '全局撤銷失敗');
+                    return;
+                }
+
+                const result = await response.json();
+                showNotification(`全局撤銷成功！新 Token Version: ${result.new_token_version}`, 'success');
+                loadSystemHealth();
+
+            } catch (error) {
+                console.error('Global revoke error:', error);
+                showNotification('全局撤銷失敗: ' + error.message, 'error');
+            }
+        }
+
         function closeModal() {
             document.getElementById('confirm-modal').classList.add('hidden');
         }
+        window.closeModal = closeModal;
 
         // Fill form with card data
         function fillFormWithCardData(card) {
@@ -1563,7 +1747,7 @@
             document.getElementById('mobile').value = data.mobile || '';
             document.getElementById('avatar_url').value = data.avatar_url || data.avatar || '';
 
-            // 問候語處理（從陣列轉換為多行文字）
+            // 問候語處理
             if (data.greetings) {
                 const greetingsZh = Array.isArray(data.greetings.zh) ? data.greetings.zh.join('\n') : data.greetings.zh || '';
                 const greetingsEn = Array.isArray(data.greetings.en) ? data.greetings.en.join('\n') : data.greetings.en || '';
@@ -1571,8 +1755,18 @@
                 document.getElementById('greetings_en').value = greetingsEn;
             }
 
-            // 社群連結 - 解析並填入獨立輸入框
-            if (data.socialLinks?.socialNote) {
+            // 社群連結 - 支援新舊格式
+            if (data.social_github) document.getElementById('social_github').value = data.social_github;
+            if (data.social_linkedin) document.getElementById('social_linkedin').value = data.social_linkedin;
+            if (data.social_facebook) document.getElementById('social_facebook').value = data.social_facebook;
+            if (data.social_instagram) document.getElementById('social_instagram').value = data.social_instagram;
+            if (data.social_twitter) document.getElementById('social_twitter').value = data.social_twitter;
+            if (data.social_youtube) document.getElementById('social_youtube').value = data.social_youtube;
+            if (data.social_line) document.getElementById('social_line').value = data.social_line;
+            if (data.social_signal) document.getElementById('social_signal').value = data.social_signal;
+
+            // 向後相容：舊格式 socialLinks.socialNote
+            if (data.socialLinks?.socialNote && !data.social_github) {
                 const lines = data.socialLinks.socialNote.split('\n');
                 lines.forEach(line => {
                     const lower = line.toLowerCase();
@@ -1582,6 +1776,8 @@
                     else if (lower.includes('instagram.com')) document.getElementById('social_instagram').value = line.trim();
                     else if (lower.includes('twitter.com') || lower.includes('x.com')) document.getElementById('social_twitter').value = line.trim();
                     else if (lower.includes('youtube.com') || lower.includes('youtu.be')) document.getElementById('social_youtube').value = line.trim();
+                    else if (lower.includes('line.me')) document.getElementById('social_line').value = line.trim();
+                    else if (lower.includes('signal.me') || lower.includes('signal.group')) document.getElementById('social_signal').value = line.trim();
                 });
             }
 
@@ -1594,37 +1790,49 @@
 
         // Edit card
         async function editCard(uuid) {
+            // 1. 先設定編輯狀態（避免 switchTab 誤判）
+            window.editingCardUuid = uuid;
+            
+            // 2. 立即切換 Tab（使用者立即看到反應）
+            switchTab('create');
+            
+            // 3. 更新 UI 為編輯模式
+            updateEditModeUI(true);
+            
+            // 4. 顯示載入狀態
+            const formElements = document.querySelectorAll('#card-form input, #card-form select, #card-form textarea');
+            formElements.forEach(el => el.disabled = true);
+            showNotification('載入名片資料中...', 'info');
+
             const token = sessionStorage.getItem('setup_token');
 
             try {
                 const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}`, {
-                    credentials: 'include', // Cookie auto-attached
-                    headers: { 'Authorization': `Bearer ${token}` } // Fallback
+                    credentials: 'include',
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 if (!response.ok) {
                     await handleApiError(response, '載入失敗');
+                    cancelEdit(); // 失敗時取消編輯
                     return;
                 }
 
                 const result = await response.json();
                 const card = result.data;
 
-                // 預填表單
+                // 5. 預填表單
                 fillFormWithCardData(card);
-
-                // 切換到創建 Tab（實際上是編輯模式）
-                switchTab('create');
-
-                // 儲存編輯狀態
-                window.editingCardUuid = uuid;
-
-                // 更新 UI 為編輯模式
-                updateEditModeUI(true);
+                
+                // 6. 恢復表單可用
+                formElements.forEach(el => el.disabled = false);
+                showNotification('載入完成', 'success');
 
             } catch (error) {
                 console.error('Edit card error:', error);
                 showNotification('載入名片失敗: ' + error.message, 'error');
+                formElements.forEach(el => el.disabled = false);
+                cancelEdit();
             }
         }
 
@@ -1664,7 +1872,6 @@
             lucide.createIcons();
         }
 
-        // --- 10. Real-time Preview ---
         function updatePreview() {
             const isEn = previewLang === 'en';
             const name = isEn ? document.getElementById('name_en').value || "John Smith" : document.getElementById('name_zh').value || "王小明";
@@ -1727,13 +1934,21 @@
             icons.forEach(icon => {
                 const node = document.createElement('div');
                 node.className = "social-chip-prev";
-                node.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4"></i>`;
+                
+                // LINE 和 Signal 使用 SVG，其他使用 Lucide
+                if (icon === 'line') {
+                    node.innerHTML = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>`;
+                } else if (icon === 'signal') {
+                    node.innerHTML = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 16.707s-1.067 1.341-1.24 1.514c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26l-3.616-3.616-3.616 3.616c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26-.173-.173-1.24-1.514-1.24-1.514-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693l3.616-3.616-3.616-3.616c-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693 0 0 1.067-1.341 1.24-1.514.173-.173.346-.26.519-.26.173 0 .346.087.519.26l3.616 3.616 3.616-3.616c.173-.173.346-.26.519-.26.173 0 .346.087.519.26.173.173 1.24 1.514 1.24 1.514.173.173.26.433.26.693 0 .26-.087.52-.26.693l-3.616 3.616 3.616 3.616c.173.173.26.433.26.693 0 .26-.087.52-.26.693z"/></svg>`;
+                } else {
+                    node.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4"></i>`;
+                }
+                
                 cluster.appendChild(node);
             });
             lucide.createIcons();
         }
 
-        // --- 11. Security Dashboard Functions ---
 
         // 初始化安全監控儀表板
         function initSecurityDashboard() {
@@ -1791,7 +2006,7 @@
                         ipSpan.textContent = item.ip;
 
                         const countSpan = document.createElement('span');
-                        countSpan.className = 'text-xs font-bold text-indigo-600';
+                        countSpan.className = 'text-xs font-bold text-moda';
                         countSpan.textContent = item.count;
 
                         div.appendChild(ipSpan);
@@ -1946,7 +2161,7 @@
                                 <span class="badge ${getEventTypeBadgeClass(event.event_type)}">${event.event_type}</span>
                             </td>
                             <td class="px-4 py-3">
-                                <button onclick="loadIPDetail('${event.ip}')" class="text-xs font-bold text-indigo-600 hover:underline">${event.ip}</button>
+                                <button onclick="loadIPDetail('${event.ip}')" class="text-xs font-bold text-moda hover:underline">${event.ip}</button>
                             </td>
                             <td class="px-4 py-3 text-xs text-slate-600">${event.endpoint || details.path || 'N/A'}</td>
                             <td class="px-4 py-3 text-xs text-slate-500 truncate max-w-xs">${event.user_agent || 'unknown'}</td>
@@ -2207,16 +2422,35 @@
             }
         }
 
-        // --- 12. Initialization ---
+        // 暴露函數到全域作用域供 onclick 使用
+        window.switchTab = switchTab;
+        window.editCard = editCard;
+        window.viewCard = viewCard;
+        window.deleteCard = handleDeleteCard;
+        window.restoreCard = handleRestoreCard;
+        window.confirmAction = confirmAction;
+        window.revokeCard = handleRevokeCard;
+        window.cancelEdit = cancelEdit;
+        window.handleBlockIP = handleBlockIP;
+        window.handleUnblockIP = handleUnblockIP;
+        window.showIPDetail = loadIPDetail;
+        window.closeIPDetailModal = closeIPDetailModal;
+        window.exportSecurityCSV = exportSecurityEvents;
+
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
-            initThree();
+            
+            if (typeof THREE !== 'undefined') {
+                setTimeout(() => initThree(), 100);
+            } else {
+                window.addEventListener('load', () => {
+                    if (typeof THREE !== 'undefined') initThree();
+                });
+            }
 
-            // 綁定驗證按鈕
             const verifyBtn = document.getElementById('verify-btn');
             verifyBtn.onclick = verifyToken;
 
-            // 綁定表單提交
             const cardForm = document.getElementById('card-form');
             cardForm.onsubmit = handleCreateCard;
 
@@ -2229,7 +2463,7 @@
             }
 
             // 綁定所有輸入事件到實時預覽
-            const inputIds = ['name_zh', 'name_en', 'title_zh', 'title_en', 'email', 'phone', 'mobile', 'avatar_url', 'greetings_zh', 'greetings_en', 'address_zh', 'address_en', 'social_github', 'social_linkedin', 'social_facebook', 'social_instagram', 'social_twitter', 'social_youtube'];
+            const inputIds = ['name_zh', 'name_en', 'title_zh', 'title_en', 'email', 'phone', 'mobile', 'avatar_url', 'greetings_zh', 'greetings_en', 'address_zh', 'address_en', 'social_github', 'social_linkedin', 'social_facebook', 'social_instagram', 'social_twitter', 'social_youtube', 'social_line', 'social_signal'];
             inputIds.forEach(id => {
                 const element = document.getElementById(id);
                 if (element) {

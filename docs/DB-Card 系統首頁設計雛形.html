@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DB-Card | 企業級 NFC 數位名片系統</title>
+    
+    <!-- 性能優化：CDN Preconnect -->
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    
+    <meta name="description" content="DB-Card 企業級 NFC 數位名片系統 - 信封加密、授權會話、審計日誌">
+    <meta name="keywords" content="NFC, 數位名片, 企業級, 安全, Cloudflare Workers">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- 性能優化：延遲加載 Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+TC:wght@300;500;700;900&display=swap');
+        
+        :root {
+            --moda-purple: #6868ac;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+            background-color: #f4f7f9;
+            color: var(--text-primary);
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        #three-canvas {
+            position: fixed;
+            top: 0; left: 0; z-index: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px) saturate(160%);
+            -webkit-backdrop-filter: blur(20px) saturate(160%);
+            border: 1px solid rgba(104, 104, 172, 0.1);
+            box-shadow: 0 8px 32px rgba(104, 104, 172, 0.05);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .glass-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 12px 48px rgba(104, 104, 172, 0.15);
+            border-color: var(--moda-purple);
+        }
+
+        .hero-gradient {
+            background: linear-gradient(135deg, var(--moda-purple), #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .btn-portal {
+            transition: all 0.3s ease;
+        }
+        .btn-portal:hover {
+            background: linear-gradient(135deg, #6868ac, #8b5cf6);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(104, 104, 172, 0.4);
+        }
+
+        .feature-icon {
+            background: linear-gradient(135deg, rgba(104, 104, 172, 0.1), rgba(104, 104, 172, 0.05));
+        }
+
+        .step-badge {
+            background: var(--moda-purple);
+            color: white;
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 800;
+        }
+
+        .fade-in { animation: fadeIn 1s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="no-scrollbar">
+
+    <canvas id="three-canvas"></canvas>
+
+    <div class="relative z-10 w-full min-h-screen flex flex-col">
+        
+        <!-- Header: 語系切換 -->
+        <header class="fixed top-0 left-0 right-0 z-50 p-6 flex justify-end">
+            <button id="lang-switch" class="px-5 py-2 glass-card rounded-full text-[11px] font-black tracking-widest text-indigo-600 hover:bg-white transition-all shadow-sm">
+                EN / 繁中
+            </button>
+        </header>
+
+        <!-- Hero Section -->
+        <section class="pt-32 pb-16 px-6 flex flex-col items-center text-center fade-in">
+            <div class="mb-6 px-4 py-1.5 bg-indigo-50 border border-indigo-100 rounded-full inline-flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                <span class="text-[10px] font-black text-indigo-600 uppercase tracking-widest" data-i18n="version_badge">System Version v4.0.0</span>
+            </div>
+            <h1 class="text-5xl md:text-7xl font-black tracking-tighter mb-6 hero-gradient" data-i18n="hero_title">DB-Card 數位名片系統</h1>
+            <p class="max-w-2xl text-lg md:text-xl text-slate-500 font-medium leading-relaxed mb-10" data-i18n="hero_desc">
+                企業級安全 | 隱私優先 | 全球邊緣運算<br>
+                為現代組織量身打造的高階身分交換解決方案
+            </p>
+            <div class="flex gap-4">
+                <a href="#gateways" class="px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-black transition-all shadow-xl" data-i18n="btn_start">開始使用</a>
+                <a href="https://github.com/iim0663418/DB-Card" target="_blank" class="px-8 py-4 bg-white border border-slate-200 rounded-2xl font-bold hover:bg-slate-50 transition-all flex items-center gap-2">
+                    <i data-lucide="github" class="w-5 h-5"></i> GitHub
+                </a>
+            </div>
+        </section>
+
+        <!-- 1. 功能入口 (Gateways) -->
+        <section id="gateways" class="max-w-7xl mx-auto w-full px-6 py-20 grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- 使用者門戶 -->
+            <div class="glass-card p-10 rounded-[2.5rem] flex flex-col h-full">
+                <div class="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-8">
+                    <i data-lucide="user" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-2xl font-black mb-4" data-i18n="card1_title">使用者門戶</h3>
+                <p class="text-slate-500 font-medium text-sm leading-relaxed flex-1 mb-10" data-i18n="card1_desc">
+                    支援 Google OAuth 安全登入，讓同仁可以自主管理、更新個人數位名片資料。
+                </p>
+                <a href="/user-portal.html" class="btn-portal w-full py-4 bg-blue-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 text-sm" data-i18n="card1_btn">
+                    前往門戶 <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </a>
+            </div>
+
+            <!-- 管理後台 -->
+            <div class="glass-card p-10 rounded-[2.5rem] flex flex-col h-full">
+                <div class="w-14 h-14 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-8">
+                    <i data-lucide="shield" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-2xl font-black mb-4" data-i18n="card2_title">管理後台</h3>
+                <p class="text-slate-500 font-medium text-sm leading-relaxed flex-1 mb-10" data-i18n="card2_desc">
+                    完整的名片生命週期管理、權限核發與即時安全監控儀表板。
+                </p>
+                <a href="/admin-dashboard.html" class="btn-portal w-full py-4 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 text-sm" data-i18n="card2_btn">
+                    管理系統 <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </a>
+            </div>
+
+            <!-- 系統健康 -->
+            <div class="glass-card p-10 rounded-[2.5rem] flex flex-col h-full">
+                <div class="w-14 h-14 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mb-8">
+                    <i data-lucide="activity" class="w-8 h-8"></i>
+                </div>
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-2xl font-black" data-i18n="card3_title">系統健康</h3>
+                    <span id="health-status-badge" class="bg-green-100 text-green-700 text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">Checking...</span>
+                </div>
+                <p class="text-slate-500 font-medium text-sm leading-relaxed flex-1 mb-10" data-i18n="card3_desc">
+                    透明化的系統指標，即時呈現邊緣節點狀態、資料庫連線與密鑰版本。
+                </p>
+                <div class="space-y-3 mb-10">
+                    <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                        <span>KEK Version</span>
+                        <span id="kek-version" class="text-indigo-600">v0</span>
+                    </div>
+                    <div class="h-1 bg-slate-100 rounded-full overflow-hidden">
+                        <div id="health-progress" class="h-full bg-green-500 w-full transition-all duration-1000"></div>
+                    </div>
+                </div>
+                <button onclick="checkSystemHealth()" class="btn-portal w-full py-4 bg-slate-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 text-sm" data-i18n="card3_btn">
+                    重新整理 <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- 2. 如何使用 (3 Steps) -->
+        <section class="max-w-7xl mx-auto w-full px-6 mb-24">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-black mb-4 tracking-tight" data-i18n="how_title">如何使用</h2>
+                <p class="text-slate-600 font-medium" data-i18n="how_desc">三步驟開始使用數位名片</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="glass-card p-10 rounded-[2rem] relative flex flex-col items-center text-center">
+                    <div class="absolute top-6 left-6 step-badge">1</div>
+                    <div class="w-16 h-16 feature-icon rounded-2xl flex items-center justify-center text-indigo-600 mb-6">
+                        <i data-lucide="smartphone" class="w-8 h-8"></i>
+                    </div>
+                    <h4 class="font-bold text-lg mb-3" data-i18n="step1_title">碰觸 NFC 卡片</h4>
+                    <p class="text-sm text-slate-500 leading-relaxed" data-i18n="step1_desc">手機靠近卡片，自動開啟數位名片</p>
+                </div>
+                <div class="glass-card p-10 rounded-[2rem] relative flex flex-col items-center text-center">
+                    <div class="absolute top-6 left-6 step-badge">2</div>
+                    <div class="w-16 h-16 feature-icon rounded-2xl flex items-center justify-center text-indigo-600 mb-6">
+                        <i data-lucide="qr-code" class="w-8 h-8"></i>
+                    </div>
+                    <h4 class="font-bold text-lg mb-3" data-i18n="step2_title">掃描 QR Code</h4>
+                    <p class="text-sm text-slate-500 leading-relaxed" data-i18n="step2_desc">快速分享聯絡資訊，無需實體接觸</p>
+                </div>
+                <div class="glass-card p-10 rounded-[2rem] relative flex flex-col items-center text-center">
+                    <div class="absolute top-6 left-6 step-badge">3</div>
+                    <div class="w-16 h-16 feature-icon rounded-2xl flex items-center justify-center text-indigo-600 mb-6">
+                        <i data-lucide="download" class="w-8 h-8"></i>
+                    </div>
+                    <h4 class="font-bold text-lg mb-3" data-i18n="step3_title">下載 vCard</h4>
+                    <p class="text-sm text-slate-500 leading-relaxed" data-i18n="step3_desc">一鍵加入手機通訊錄</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. 核心優勢 (Value Propositions - 使用者視角) -->
+        <section class="max-w-7xl mx-auto w-full px-6 py-24 border-t border-slate-200/50">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-black mb-4 tracking-tight" data-i18n="advantage_title">數據主權與物理安全</h2>
+                <p class="text-slate-400 font-medium" data-i18n="advantage_desc">與傳統名片及競爭對手的差異化優點</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="glass-card p-10 rounded-[2.5rem] flex gap-6">
+                    <div class="w-14 h-14 shrink-0 feature-icon rounded-2xl flex items-center justify-center text-indigo-600">
+                        <i data-lucide="shield-check" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-xl mb-4" data-i18n="adv1_title">數據主權與控管</h4>
+                        <ul class="space-y-3 text-sm text-slate-500">
+                            <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-green-500"></i> <span data-i18n="adv1_point1">NFC 硬體授權啟動機制</span></li>
+                            <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-green-500"></i> <span data-i18n="adv1_point2">零足跡邊緣運算解析技術</span></li>
+                            <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-green-500"></i> <span data-i18n="adv1_point3">多維度遠端即時授權撤銷</span></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="glass-card p-10 rounded-[2.5rem] flex gap-6">
+                    <div class="w-14 h-14 shrink-0 feature-icon rounded-2xl flex items-center justify-center text-indigo-600">
+                        <i data-lucide="zap" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-xl mb-4" data-i18n="adv2_title">極致的使用體驗</h4>
+                        <ul class="space-y-3 text-sm text-slate-500">
+                            <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-green-500"></i> <span data-i18n="adv2_point1">無需下載任何手機 App</span></li>
+                            <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-green-500"></i> <span data-i18n="adv2_point2">支援多種社群連結即時導引</span></li>
+                            <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-green-500"></i> <span data-i18n="adv2_point3">離線環境仍可生成分享 QR 碼</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. 技術規格 (Technical Excellence - 技術視角) -->
+        <section class="max-w-7xl mx-auto w-full px-6 py-20 border-t border-slate-200/50">
+            <div class="text-center mb-16">
+                <h2 class="text-2xl font-black tracking-widest uppercase opacity-40 mb-4" data-i18n="tech_title">Technical Specifications</h2>
+                <p class="text-slate-400 font-medium" data-i18n="tech_desc">基於最新的 Web 標準與現代密碼學實作</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
+                <div class="flex flex-col items-center text-center space-y-4">
+                    <div class="w-16 h-16 feature-icon rounded-[1.5rem] flex items-center justify-center text-indigo-600">
+                        <i data-lucide="lock" class="w-7 h-7"></i>
+                    </div>
+                    <h4 class="font-bold text-lg" data-i18n="spec1_title">信封加密</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed" data-i18n="spec1_desc">獨立 DEK 加密，KEK 定期輪換，確保資料於傳輸與靜態存儲皆安全無虞。</p>
+                </div>
+                <div class="flex flex-col items-center text-center space-y-4">
+                    <div class="w-16 h-16 feature-icon rounded-[1.5rem] flex items-center justify-center text-indigo-600">
+                        <i data-lucide="clock" class="w-7 h-7"></i>
+                    </div>
+                    <h4 class="font-bold text-lg" data-i18n="spec2_title">授權會話</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed" data-i18n="spec2_desc">具備 24h 有效期與自訂讀取次數限制，從根源防止身分資料被非法爬取。</p>
+                </div>
+                <div class="flex flex-col items-center text-center space-y-4">
+                    <div class="w-16 h-16 feature-icon rounded-[1.5rem] flex items-center justify-center text-indigo-600">
+                        <i data-lucide="file-text" class="w-7 h-7"></i>
+                    </div>
+                    <h4 class="font-bold text-lg" data-i18n="spec3_title">審計日誌</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed" data-i18n="spec3_desc">完整紀錄存取軌跡，整合 IP 匿名化機制，兼顧安全稽核與法律合規。</p>
+                </div>
+                <div class="flex flex-col items-center text-center space-y-4">
+                    <div class="w-16 h-16 feature-icon rounded-[1.5rem] flex items-center justify-center text-indigo-600">
+                        <i data-lucide="network" class="w-7 h-7"></i>
+                    </div>
+                    <h4 class="font-bold text-lg" data-i18n="spec4_title">邊緣運算</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed" data-i18n="spec4_desc">部署於全球 Cloudflare 邊緣節點，保證毫秒級的解析速度與極高可用性。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="mt-auto bg-white border-t border-slate-100 py-12 px-6">
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-md">
+                        <i data-lucide="component" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-black text-slate-900">DB-Card v4.0.0</p>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Open Source Infrastructure</p>
+                    </div>
+                </div>
+                <div class="flex gap-8 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+                    <a href="https://github.com/iim0663418/DB-Card" target="_blank" class="hover:text-indigo-600 transition-colors">GitHub Repository</a>
+                    <a href="https://github.com/iim0663418/DB-Card/wiki" target="_blank" class="hover:text-indigo-600 transition-colors">Docs</a>
+                    <a href="mailto:support@moda.gov.tw" class="hover:text-indigo-600 transition-colors">Support</a>
+                </div>
+                <div class="text-[10px] font-bold text-slate-300">
+                    POWERED BY CLOUDFLARE WORKERS
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // --- 1. 雙語字典系統 ---
+        const I18N = {
+            zh: {
+                version_badge: "系統版本 v4.0.0",
+                hero_title: "DB-Card 數位名片系統",
+                hero_desc: "企業級安全 | 隱私優先 | 全球邊緣運算<br>為現代組織量身打造的高階身分交換解決方案",
+                btn_start: "開始使用",
+                card1_title: "使用者門戶",
+                card1_desc: "支援 Google OAuth 安全登入，讓同仁可以自主管理、更新個人數位名片資料。",
+                card1_btn: "前往門戶",
+                card2_title: "管理後台",
+                card2_desc: "完整的名片生命週期管理、權限核發與即時安全監控儀表板。",
+                card2_btn: "管理系統",
+                card3_title: "系統健康",
+                card3_desc: "透明化的系統指標，即時呈現邊緣節點狀態、資料庫連線與密鑰版本。",
+                card3_btn: "重新整理",
+                how_title: "如何使用",
+                how_desc: "三步驟開始使用數位名片",
+                step1_title: "碰觸 NFC 卡片",
+                step1_desc: "手機靠近卡片，自動開啟數位名片",
+                step2_title: "掃描 QR Code",
+                step2_desc: "快速分享聯絡資訊，無需實體接觸",
+                step3_title: "下載 vCard",
+                step3_desc: "一鍵加入手機通訊錄",
+                advantage_title: "核心特色與優勢",
+                advantage_desc: "與傳統名片及競爭對手的差異化優點",
+                adv1_title: "數據主權與控管",
+                adv1_point1: "NFC 硬體授權啟動機制",
+                adv1_point2: "零足跡邊緣運算解析技術",
+                adv1_point3: "多維度遠端即時授權撤銷",
+                adv2_title: "極致的使用體驗",
+                adv2_point1: "無需下載任何手機 App",
+                adv2_point2: "支援多種社群連結即時導引",
+                adv2_point3: "離線環境仍可生成分享 QR 碼",
+                tech_title: "Technical Specifications",
+                tech_desc: "基於最新的 Web 標準與現代密碼學實作",
+                spec1_title: "信封加密",
+                spec1_desc: "獨立 DEK 加密，KEK 定期輪換，確保安全。",
+                spec2_title: "授權會話",
+                spec2_desc: "24h 有效期與次數限制，防止惡意爬取。",
+                spec3_title: "審計日誌",
+                spec3_desc: "完整存取軌跡，兼顧安全與合規。",
+                spec4_title: "邊緣運算",
+                spec4_desc: "全球邊緣部署，毫秒級解析速度。"
+            },
+            en: {
+                version_badge: "v4.0.0 Stable",
+                hero_title: "DB-Card Identity System",
+                hero_desc: "Enterprise Security | Privacy First | Global Edge Computing<br>Advanced identity exchange built for modern organizations.",
+                btn_start: "Get Started",
+                card1_title: "User Portal",
+                card1_desc: "Secure Google OAuth login for staff to manage and update their digital credentials.",
+                card1_btn: "Access Portal",
+                card2_title: "Admin Dashboard",
+                card2_desc: "Full CRUD lifecycle management, authorization control, and security monitoring.",
+                card2_btn: "Manage System",
+                card3_title: "System Health",
+                card3_desc: "Transparent metrics showing edge node status, database latency, and KEK versions.",
+                card3_btn: "Refresh Info",
+                how_title: "Simple Workflow",
+                how_desc: "Start using digital cards in 3 steps",
+                step1_title: "Tap NFC Card",
+                step1_desc: "Place phone near card to automatically open the identity dossier.",
+                step2_title: "Scan QR Code",
+                step2_desc: "Share contact info instantly via optical scan.",
+                step3_title: "Download vCard",
+                step3_desc: "Save identity data directly to mobile contacts.",
+                advantage_title: "Key Advantages",
+                advantage_desc: "Competitive edge over traditional cards and apps.",
+                adv1_title: "Sovereignty & Security",
+                adv1_point1: "Hardware-based NFC authorization",
+                adv1_point2: "Zero-trace edge dynamic parsing",
+                adv1_point3: "Multi-dimensional instant revocation",
+                adv2_title: "Superior UX",
+                adv2_point1: "No app installation required",
+                adv2_point2: "Direct social link navigation",
+                adv2_point3: "Offline QR sharing capabilities",
+                tech_title: "Technical Specs",
+                tech_desc: "Built on modern Web standards and cryptography.",
+                spec1_title: "Envelope Encryption",
+                spec1_desc: "Individual DEK with rotating KEK for ultimate safety.",
+                spec2_title: "Auth Sessions",
+                spec2_desc: "24h TTL and read limits to prevent data scraping.",
+                spec3_title: "Audit Logs",
+                spec3_desc: "Anonymized logs for security and compliance.",
+                spec4_title: "Edge Network",
+                spec4_desc: "Deployed globally via Cloudflare Workers."
+            }
+        };
+
+        let currentLang = 'zh';
+
+        function updateLanguage() {
+            const dictionary = I18N[currentLang];
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (dictionary[key]) {
+                    el.innerHTML = dictionary[key];
+                }
+            });
+            document.getElementById('lang-switch').innerText = currentLang === 'zh' ? 'ENGLISH' : '繁體中文';
+            document.documentElement.lang = currentLang === 'zh' ? 'zh-TW' : 'en';
+        }
+
+        document.getElementById('lang-switch').onclick = () => {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            updateLanguage();
+        };
+
+        // --- 2. Three.js 背景場域 (延遲初始化) ---
+        let scene, camera, renderer, mesh, grid;
+
+        function initThree() {
+            const canvas = document.getElementById('three-canvas');
+            if (!canvas) return;
+
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 10;
+
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            // 粒子雲
+            const starCount = 2000;
+            const starGeo = new THREE.BufferGeometry();
+            const starPos = new Float32Array(starCount * 3);
+            for(let i=0; i < starCount * 3; i++) {
+                starPos[i] = (Math.random() - 0.5) * 45;
+            }
+            starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+            const starMat = new THREE.PointsMaterial({ size: 0.05, color: 0x6868ac, transparent: true, opacity: 0.3 });
+            mesh = new THREE.Points(starGeo, starMat);
+            scene.add(mesh);
+
+            // 數據網格
+            const gridGeo = new THREE.PlaneGeometry(150, 150, 40, 40);
+            const gridMat = new THREE.MeshBasicMaterial({ color: 0x6868ac, wireframe: true, transparent: true, opacity: 0.08 });
+            grid = new THREE.Mesh(gridGeo, gridMat);
+            grid.rotation.x = -Math.PI / 2.2;
+            grid.position.y = -6;
+            scene.add(grid);
+
+            animate();
+        }
+
+        let mX = 0, mY = 0;
+        window.addEventListener('mousemove', (e) => {
+            mX = (e.clientX - window.innerWidth / 2) / 3000;
+            mY = (e.clientY - window.innerHeight / 2) / 3000;
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (mesh) mesh.rotation.y += 0.0003;
+            if (grid) {
+                grid.position.z += 0.01;
+                if(grid.position.z > 5) grid.position.z = 0;
+            }
+            camera.position.x += (mX * 5 - camera.position.x) * 0.05;
+            camera.position.y += (-mY * 5 - camera.position.y) * 0.05;
+            camera.lookAt(scene.position);
+            renderer.render(scene, camera);
+        }
+
+        // --- 3. 系統健康即時查詢 ---
+        function checkSystemHealth() {
+            const badge = document.getElementById('health-status-badge');
+            const versionEl = document.getElementById('kek-version');
+            const progress = document.getElementById('health-progress');
+            
+            badge.innerText = "Connecting...";
+            if (progress) progress.style.width = "10%";
+
+            setTimeout(() => {
+                if (badge) {
+                    badge.innerText = "Operational";
+                    badge.classList.replace('bg-green-100', 'bg-green-600');
+                    badge.classList.add('text-white');
+                }
+                if (versionEl) versionEl.innerText = "v4.0.2-edge";
+                if (progress) progress.style.width = "100%";
+            }, 1000);
+        }
+
+        // --- 4. 啟動與效能調度 ---
+        window.addEventListener('resize', () => {
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            updateLanguage();
+            checkSystemHealth();
+            // 效能優化：延遲 100ms 初始化 Three.js，讓主 DOM 先完成渲染
+            setTimeout(initThree, 100);
+        });
+    </script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 // NFC Tap Handler
 // POST /api/nfc/tap - Issue ReadSession on NFC card tap
 
-import type { Env, Card } from '../types';
+import type { Env, Card, CardType } from '../types';
 import { jsonResponse, errorResponse } from '../utils/response';
 import { createSession, getRecentSession, revokeSession, shouldRevoke } from '../utils/session';
 import { logEvent } from '../utils/audit';
@@ -38,7 +38,7 @@ async function checkRateLimit(env: Env, card_uuid: string): Promise<boolean> {
 /**
  * Handle NFC tap request
  */
-export async function handleTap(request: Request, env: Env): Promise<Response> {
+export async function handleTap(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   try {
     // Parse request body
     const body = await request.json() as { card_uuid?: string };
@@ -46,49 +46,77 @@ export async function handleTap(request: Request, env: Env): Promise<Response> {
 
     // Validate card_uuid presence
     if (!card_uuid) {
-      await logEvent(env, 'tap', request, undefined, undefined, {
+      ctx.waitUntil(logEvent(env, 'tap', request, undefined, undefined, {
         error: 'missing_card_uuid'
-      });
+      }));
       return errorResponse('invalid_request', '缺少必要參數 card_uuid', 400, request);
     }
 
     // Validate UUID format
     if (!isValidUUID(card_uuid)) {
-      await logEvent(env, 'tap', request, card_uuid, undefined, {
+      ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, undefined, {
         error: 'invalid_uuid_format'
-      });
+      }));
       return errorResponse('invalid_request', '無效的 UUID 格式', 400, request);
     }
 
     // Check rate limiting
     const rateLimited = await checkRateLimit(env, card_uuid);
     if (rateLimited) {
-      await logEvent(env, 'tap', request, card_uuid, undefined, {
+      ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, undefined, {
         error: 'rate_limit_exceeded'
-      });
+      }));
       return errorResponse('rate_limit_exceeded', '請求過於頻繁,請稍後再試', 429, request);
     }
 
-    // Fetch card from database
-    const card = await env.DB.prepare(`
-      SELECT * FROM cards WHERE uuid = ?
-    `).bind(card_uuid).first<Card>();
+    // Use D1 batch to split queries (avoid JOIN overhead)
+    const [cardResult, bindingResult] = await env.DB.batch([
+      env.DB.prepare(`
+        SELECT uuid, encrypted_payload, wrapped_dek, key_version, created_at, updated_at
+        FROM cards WHERE uuid = ?
+      `).bind(card_uuid),
+
+      env.DB.prepare(`
+        SELECT type, status FROM uuid_bindings WHERE uuid = ?
+      `).bind(card_uuid)
+    ]);
+
+    const card = cardResult.results[0] as {
+      uuid: string;
+      encrypted_payload: string;
+      wrapped_dek: string;
+      key_version: number;
+      created_at: number;
+      updated_at: number;
+    } | undefined;
+
+    const binding = bindingResult.results[0] as {
+      type: string;
+      status: string;
+    } | undefined;
+
+    // Reconstruct result object
+    const result = card ? {
+      ...card,
+      card_type: binding?.type || null,
+      binding_status: binding?.status || null
+    } : null;
 
     // Scenario 4: Card not found
-    if (!card) {
-      await logEvent(env, 'tap', request, card_uuid, undefined, {
+    if (!result) {
+      ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, undefined, {
         error: 'card_not_found'
-      });
+      }));
       return errorResponse('card_not_found', '名片不存在', 404, request);
     }
 
-    // Scenario 5: Card inactive
-    if (card.status !== 'active') {
-      await logEvent(env, 'tap', request, card_uuid, undefined, {
-        error: 'card_inactive',
-        status: card.status
-      });
-      return errorResponse('card_inactive', '名片已停用', 403, request);
+    // Scenario 5: Card revoked
+    if (result.binding_status === 'revoked') {
+      ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, undefined, {
+        error: 'card_revoked',
+        status: result.binding_status
+      }));
+      return errorResponse('card_revoked', '名片已撤銷', 403, request);
     }
 
     // Check for recent session (Scenario 2)
@@ -99,20 +127,27 @@ export async function handleTap(request: Request, env: Env): Promise<Response> {
       await revokeSession(env, recentSession.session_id, 'retap');
       revoked_previous = true;
 
-      await logEvent(env, 'revoke', request, card_uuid, recentSession.session_id, {
+      ctx.waitUntil(logEvent(env, 'revoke', request, card_uuid, recentSession.session_id, {
         reason: 'retap',
         revoked_session: recentSession.session_id
-      });
+      }));
     }
 
     // Create new session (Scenario 1 & 2)
-    const newSession = await createSession(env, card_uuid, card.card_type);
+    // Map user card type to CardType
+    let cardType: CardType = 'personal';
+    if (result.card_type === 'event') {
+      cardType = 'event_booth';
+    } else if (result.card_type === 'sensitive') {
+      cardType = 'sensitive';
+    }
+    
+    const newSession = await createSession(env, card_uuid, cardType);
 
-    // Log tap event
-    await logEvent(env, 'tap', request, card_uuid, newSession.session_id, {
-      card_type: card.card_type,
+    ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, newSession.session_id, {
+      card_type: result.card_type,
       revoked_previous
-    });
+    }));
 
     // Return successful response
     return jsonResponse({
@@ -124,11 +159,10 @@ export async function handleTap(request: Request, env: Env): Promise<Response> {
     }, 200, request);
 
   } catch (error) {
-    // Log error
-    await logEvent(env, 'tap', request, undefined, undefined, {
+    ctx.waitUntil(logEvent(env, 'tap', request, undefined, undefined, {
       error: 'internal_error',
       message: error instanceof Error ? error.message : 'Unknown error'
-    });
+    }));
 
     return errorResponse(
       'internal_error',

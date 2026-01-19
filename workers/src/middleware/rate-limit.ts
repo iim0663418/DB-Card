@@ -1,10 +1,16 @@
-// Rate Limiting Middleware for Error Responses
+// Rate Limiting Middleware for Error Responses and User Operations
 
 import type { Env } from '../types';
 import { anonymizeIP } from '../utils/audit';
 
 const RATE_LIMIT_WINDOW = 60; // seconds
 const MAX_ERRORS_PER_WINDOW = 20;
+
+// User operation rate limits (per email+IP)
+const USER_CREATE_LIMIT = 5;  // 5 attempts/hour
+const USER_CREATE_WINDOW = 3600;  // 1 hour
+const USER_EDIT_LIMIT = 20;  // 20 requests/hour
+const USER_EDIT_WINDOW = 3600;  // 1 hour
 
 /**
  * Log security event directly (simplified)
@@ -25,6 +31,77 @@ async function logEvent(
     `).bind(eventType, anonymizedIP, detailsJson).run();
   } catch (error) {
     console.error('Failed to log security event:', error);
+  }
+}
+
+/**
+ * Check rate limit for user card operations
+ * Scenario 6: Rate limiting for create and edit operations
+ *
+ * @param email - User email for rate limiting key
+ * @param ip - User IP address
+ * @param operation - 'create' or 'edit'
+ * @returns 429 response if limit exceeded, null otherwise
+ */
+export async function checkUserRateLimit(
+  request: Request,
+  env: Env,
+  email: string,
+  operation: 'create' | 'edit'
+): Promise<Response | null> {
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+
+  if (ip === 'unknown') {
+    return null;
+  }
+
+  // Use email+IP as key for rate limiting
+  const key = `rate_limit:user_${operation}:${email}:${ip}`;
+  const limit = operation === 'create' ? USER_CREATE_LIMIT : USER_EDIT_LIMIT;
+  const window = operation === 'create' ? USER_CREATE_WINDOW : USER_EDIT_WINDOW;
+
+  try {
+    // Get current count
+    const countStr = await env.KV?.get(key);
+    const count = countStr ? parseInt(countStr) : 0;
+
+    // Check if limit exceeded
+    if (count >= limit) {
+      // Log security event
+      await logEvent(env.DB, `rate_limit_${operation}`, ip, {
+        email,
+        count,
+        path: new URL(request.url).pathname
+      });
+
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: {
+            code: 'rate_limit_exceeded',
+            message: 'Too many requests',
+            retry_after: window
+          }
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': window.toString()
+          }
+        }
+      );
+    }
+
+    // Increment counter
+    await env.KV?.put(key, (count + 1).toString(), {
+      expirationTtl: window
+    });
+
+    return null; // Not rate limited
+  } catch (error) {
+    console.error('Rate limit check failed:', error);
+    return null; // Fail open
   }
 }
 

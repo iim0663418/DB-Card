@@ -1,6 +1,25 @@
-# DB-Card - NFC 數位名片系統 v4.0
+# DB-Card - NFC 數位名片系統 v4.0.1
 
 基於「隱私優先」與「安全至上」理念的企業級 NFC 數位名片系統
+
+## v4.0.1 更新內容 (2026-01-19)
+
+### 新增功能
+- **首頁產品介紹**：新增「如何使用」3 步驟說明
+- **核心特色優化**：更新為使用者視角的 4 項差異化優勢
+- **LLM 友善文檔**：創建 `llm.txt` 供 AI 系統理解專案結構
+- **永久刪除功能**：管理員可永久刪除已撤銷的名片（協助重置）
+
+### 性能優化
+- **前端優化**：三個頁面阻塞資源大幅減少（4→1, 3→1, 6→1）
+- **API 優化**：Tap API 性能提升 72-79%（7.2s → 1.5-2s）
+- **快取機制**：Read API 熱讀取提升 44%（0.9s → 0.5s）
+
+### 技術改進
+- 添加 CDN preconnect 優化載入速度
+- 延遲 Three.js 初始化（100ms）
+- 實施完整響應快取（60s TTL）
+- 非同步 audit logging
 
 ## v4.0 核心特性
 
@@ -43,9 +62,11 @@ DB-Card/
 │   │   │       ├── cards.ts        # CRUD 操作
 │   │   │       ├── auth.ts         # 登入/登出
 │   │   │       ├── revoke.ts       # 撤銷機制
-│   │   │       └── kek.ts          # KEK 輪換
+│   │   │       ├── kek.ts          # KEK 輪換
+│   │   │       └── security.ts     # 安全監控（7 APIs）
 │   │   ├── middleware/
-│   │   │   └── auth.ts             # 時序安全認證
+│   │   │   ├── auth.ts             # 時序安全認證
+│   │   │   └── rate-limit.ts      # 速率限制
 │   │   ├── crypto/
 │   │   │   └── envelope.ts         # 信封加密實作
 │   │   └── utils/
@@ -54,17 +75,22 @@ DB-Card/
 │   │       ├── audit.ts            # 審計日誌
 │   │       └── response.ts         # CORS 與回應
 │   ├── public/                     # 前端資源
-│   │   ├── admin-dashboard.html    # 管理後台（含名片生成）
+│   │   ├── admin-dashboard.html    # 管理後台（含安全監控）
 │   │   ├── card-display.html       # 名片顯示頁
 │   │   ├── js/
 │   │   │   ├── api.js              # API 客戶端
 │   │   │   ├── storage.js          # IndexedDB
-│   │   │   ├── main.js             # 主邏輯
-│   │   │   └── error-handler.js    # 錯誤處理
+│   │   │   ├── main.js             # 主邏輯（含 i18n）
+│   │   │   ├── validation.js       # 表單驗證
+│   │   │   ├── error-handler.js    # 錯誤處理
+│   │   │   └── utils/
+│   │   │       └── bilingual.js    # 雙語工具
 │   │   └── css/
 │   │       └── v4-design.css       # v4.0 設計系統
 │   ├── migrations/
-│   │   └── 0001_initial_schema.sql # 資料庫結構
+│   │   ├── 0001_initial_schema.sql # 資料庫結構
+│   │   ├── 0002_security_events.sql # 安全事件表
+│   │   └── 0003_blocked_ips.sql    # IP 封鎖表
 │   ├── wrangler.toml               # Cloudflare 配置
 │   └── package.json                # 依賴管理
 ├── docs/                           # 技術文檔
@@ -74,7 +100,8 @@ DB-Card/
 │   └── api/                        # API 文檔
 │       ├── nfc-tap.md
 │       ├── read.md
-│       └── admin-apis.md
+│       ├── admin-apis.md
+│       └── kek-migration.md
 ├── .specify/                       # 開發記憶系統
 │   ├── specs/                      # BDD 規格書
 │   └── memory/                     # 知識圖譜
@@ -95,8 +122,18 @@ npm install
 
 # 設定環境變數
 cp .dev.vars.example .dev.vars
-# 編輯 .dev.vars 設定 SETUP_TOKEN 和 KEK
+# 編輯 .dev.vars 設定以下變數：
+# - SETUP_TOKEN: 管理員認證 token
+# - KEK: 主加密金鑰 (Key Encryption Key)
+# - GOOGLE_CLIENT_ID: Google OAuth Client ID
+# - GOOGLE_CLIENT_SECRET: Google OAuth Client Secret
+# - JWT_SECRET: JWT token 簽名密鑰 (至少 32 bytes)
+
+# 生成 JWT Secret
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
+
+**重要**：請參閱 [JWT Secret 管理指南](docs/JWT_SECRET_MANAGEMENT.md) 了解詳細的安全配置。
 
 ### 2. 本地開發
 
@@ -311,13 +348,16 @@ MIT License - 詳見 [LICENSE](LICENSE)
 
 - **文檔**: `docs/`
 - **Issues**: [GitHub Issues](https://github.com/iim0663418/DB-Card/issues)
-- **Email**: iim0663418@moda.gov.tw
 
 ## 版本歷程
 
 ### v4.0.0 (2026-01-18) - 企業級安全架構
 - 信封加密機制
 - 授權會話系統
+- 完整雙語支援（11 個 i18n keys）
+- 安全監控儀表板（7 個 APIs）
+- 表單驗證與清理
+- KEK 遷移基礎設施
 - 管理後台完整 CRUD
 - HttpOnly Cookies 安全增強
 - 審計日誌與監控

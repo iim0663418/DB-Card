@@ -54,19 +54,31 @@ Value: <your_account_id>
 ## 驗證部署
 
 部署完成後，可訪問：
-- Staging: https://db-card-api-staging.workers.dev/health
-- Production: https://db-card-api-prod.workers.dev/health
+- Staging: `https://your-worker.workers.dev/health`
+- Production: `https://your-worker.workers.dev/health`
 
 預期回應：
 ```json
 {
   "success": true,
   "data": {
-    "status": "ok",
-    "database": "connected",
-    "kek": "configured",
-    "environment": "production",
-    "timestamp": 1737158354092
+    "status": "healthy",
+    "timestamp": "2026-01-18T14:00:00.000Z",
+    "kek": {
+      "version": 1,
+      "status": "active"
+    },
+    "database": {
+      "active_cards": 0
+    }
   }
 }
 ```
+
+## 故障排除
+
+如果部署失敗，檢查：
+1. Secrets 是否正確設定
+2. Cloudflare API Token 權限是否足夠
+3. wrangler.toml 配置是否正確
+4. GitHub Actions 日誌中的詳細錯誤訊息

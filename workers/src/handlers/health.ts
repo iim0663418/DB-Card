@@ -31,12 +31,12 @@ export async function handleHealth(request: Request, env: Env): Promise<Response
       // Continue execution, kekVersion will remain 'N/A'
     }
 
-    // Get active cards count
+    // Get active cards count (bound + revoked)
     let activeCards: number | string = 'N/A';
     try {
       const cardsResult = await env.DB.prepare(
-        'SELECT COUNT(*) as count FROM cards WHERE status = ?'
-      ).bind('active').first<{ count: number }>();
+        'SELECT COUNT(*) as count FROM uuid_bindings WHERE status IN (?, ?)'
+      ).bind('bound', 'revoked').first<{ count: number }>();
 
       if (typeof cardsResult?.count === 'number') {
         activeCards = cardsResult.count;

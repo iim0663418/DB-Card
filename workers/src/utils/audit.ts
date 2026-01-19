@@ -89,3 +89,45 @@ export async function logEvent(
     console.error('Failed to log audit event:', error);
   }
 }
+
+/**
+ * Log user event with actor information (for Phase 1 user self-service)
+ * Extended audit logging with actor_type and actor_id
+ */
+export async function logUserEvent(
+  env: Env,
+  event_type: 'user_card_create' | 'user_card_update',
+  actor_email: string,
+  target_uuid: string,
+  request: Request,
+  details?: Record<string, any>
+): Promise<void> {
+  try {
+    const ip = request.headers.get('CF-Connecting-IP') ||
+               request.headers.get('X-Forwarded-For') ||
+               '0.0.0.0';
+    const user_agent = request.headers.get('User-Agent') || 'unknown';
+
+    const extendedDetails = {
+      ...details,
+      actor_type: 'user',
+      actor_id: actor_email,
+      target_uuid
+    };
+
+    await env.DB.prepare(`
+      INSERT INTO audit_logs (
+        event_type, card_uuid, user_agent, ip_address, timestamp, details
+      ) VALUES (?, ?, ?, ?, ?, ?)
+    `).bind(
+      event_type,
+      target_uuid,
+      user_agent,
+      anonymizeIP(ip),
+      Date.now(),
+      JSON.stringify(extendedDetails)
+    ).run();
+  } catch (error) {
+    console.error('Failed to log user event:', error);
+  }
+}

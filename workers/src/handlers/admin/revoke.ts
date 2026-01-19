@@ -105,6 +105,13 @@ async function handleCardRevocation(
 
     const sessionsRevoked = result.meta.changes || 0;
 
+    // Update uuid_bindings status to 'revoked'
+    await env.DB.prepare(`
+      UPDATE uuid_bindings
+      SET status = 'revoked'
+      WHERE uuid = ?
+    `).bind(card_uuid).run();
+
     // Log audit event (admin_revoke)
     await logEvent(
       env,

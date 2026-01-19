@@ -298,20 +298,17 @@ export async function handleCreateCard(request: Request, env: Env): Promise<Resp
 
     // Insert into cards table
     const timestamp = Date.now();
-    const status = 'active';
 
     await env.DB.prepare(`
       INSERT INTO cards (
-        uuid, card_type, encrypted_payload, wrapped_dek,
-        key_version, status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        uuid, encrypted_payload, wrapped_dek,
+        key_version, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?)
     `).bind(
       uuid,
-      cardType,
       encrypted_payload,
       wrapped_dek,
       keyVersion,
-      status,
       timestamp,
       timestamp
     ).run();
@@ -334,7 +331,6 @@ export async function handleCreateCard(request: Request, env: Env): Promise<Resp
       {
         uuid,
         card_type: cardType,
-        status,
         created_at: timestamp
       },
       201,
@@ -360,7 +356,7 @@ export async function handleCreateCard(request: Request, env: Env): Promise<Resp
 async function revokeAllCardSessions(
   env: Env,
   card_uuid: string,
-  reason: 'card_updated' | 'card_deleted'
+  reason: 'card_updated' | 'card_deleted' | 'admin_revoke'
 ): Promise<number> {
   try {
     // Update all non-revoked sessions for this card
@@ -393,90 +389,103 @@ export async function handleDeleteCard(
   uuid: string
 ): Promise<Response> {
   try {
-    // Scenario 4: Verify authorization
+    // Verify authorization
     const isAuthorized = await verifySetupToken(request, env);
 
     if (!isAuthorized) {
-      // Check if Authorization header exists
       const authHeader = request.headers.get('Authorization');
-
       if (!authHeader) {
-        // Scenario 4: Missing token
         return adminErrorResponse('Authentication required', 401, request);
       } else {
-        // Invalid token
         return adminErrorResponse('Invalid token', 403, request);
       }
     }
 
-    // Scenario 2 & 3: Check if card exists
+    // Check for permanent delete flag
+    const url = new URL(request.url);
+    const permanent = url.searchParams.get('permanent') === 'true';
+
+    // Check if card exists
     const card = await env.DB.prepare(`
-      SELECT uuid, status
-      FROM cards
-      WHERE uuid = ?
-    `).bind(uuid).first<{
-      uuid: string;
-      status: string;
-    }>();
+      SELECT uuid FROM cards WHERE uuid = ?
+    `).bind(uuid).first<{ uuid: string }>();
 
     if (!card) {
-      // Scenario 2: Card not found
       return errorResponse('card_not_found', '名片不存在', 404, request);
     }
 
-    // Scenario 3: Card already deleted (idempotent)
-    if (card.status === 'deleted') {
-      return jsonResponse(
-        {
-          uuid,
-          deleted_at: Date.now(),
-          sessions_revoked: 0,
-          message: '名片已刪除'
-        },
-        200,
-        request
-      );
+    // Check uuid_bindings status
+    const binding = await env.DB.prepare(`
+      SELECT status FROM uuid_bindings WHERE uuid = ?
+    `).bind(uuid).first<{ status: string }>();
+
+    if (!binding) {
+      return errorResponse('binding_not_found', '綁定不存在', 404, request);
     }
 
-    // Scenario 1: Success path - Soft delete the card
-    const timestamp = Date.now();
+    // Permanent delete
+    if (permanent) {
+      // Only allow permanent delete for revoked cards
+      if (binding.status !== 'revoked') {
+        return errorResponse('must_revoke_first', '請先撤銷名片再執行永久刪除', 400, request);
+      }
 
+      // Revoke all sessions first
+      await revokeAllCardSessions(env, uuid, 'permanent_delete');
+
+      // Delete from database
+      await env.DB.batch([
+        env.DB.prepare('DELETE FROM cards WHERE uuid = ?').bind(uuid),
+        env.DB.prepare('DELETE FROM uuid_bindings WHERE uuid = ?').bind(uuid)
+      ]);
+
+      // Clear KV cache
+      await env.KV.delete(`card:${uuid}`);
+
+      // Log audit event
+      await logEvent(env, 'card_permanent_delete', request, uuid, undefined, {
+        action: 'permanent_delete'
+      });
+
+      return jsonResponse({
+        uuid,
+        status: 'deleted',
+        message: '名片已永久刪除'
+      }, 200, request);
+    }
+
+    // Regular revoke (existing logic)
+    // Idempotent: already revoked
+    if (binding.status === 'revoked') {
+      return jsonResponse({
+        uuid,
+        status: 'revoked',
+        message: '名片已撤銷'
+      }, 200, request);
+    }
+
+    // Revoke the card (update uuid_bindings)
     await env.DB.prepare(`
-      UPDATE cards
-      SET status = 'deleted',
-          updated_at = ?
+      UPDATE uuid_bindings
+      SET status = 'revoked'
       WHERE uuid = ?
-    `).bind(timestamp, uuid).run();
+    `).bind(uuid).run();
 
     // Revoke all associated ReadSessions
-    const sessionsRevoked = await revokeAllCardSessions(env, uuid, 'card_deleted');
+    const sessionsRevoked = await revokeAllCardSessions(env, uuid, 'admin_revoke');
 
-    // Log audit event (card_delete)
-    await logEvent(
-      env,
-      'card_delete',
-      request,
+    // Log audit event
+    await logEvent(env, 'card_revoke', request, uuid, undefined, {
+      sessions_revoked: sessionsRevoked
+    });
+
+    return jsonResponse({
       uuid,
-      undefined,
-      {
-        sessions_revoked: sessionsRevoked
-      }
-    );
-
-    // Return success response (200 OK)
-    return jsonResponse(
-      {
-        uuid,
-        deleted_at: timestamp,
-        sessions_revoked: sessionsRevoked
-      },
-      200,
-      request
-    );
+      status: 'revoked',
+      sessions_revoked: sessionsRevoked
+    }, 200, request);
   } catch (error) {
-    console.error('Error deleting card:', error);
-
-    // Return generic error
+    console.error('Error revoking card:', error);
     return errorResponse(
       'internal_error',
       '刪除名片時發生錯誤',
@@ -534,31 +543,22 @@ export async function handleUpdateCard(
       return errorResponse('invalid_request', cardDataValidation.error!, 400, request);
     }
 
-    // Scenario 2 & 3: Check if card exists and is active
+    // Check if card exists
     const card = await env.DB.prepare(`
-      SELECT uuid, status, encrypted_payload, wrapped_dek, card_type, key_version
+      SELECT uuid, encrypted_payload, wrapped_dek, key_version
       FROM cards
       WHERE uuid = ?
     `).bind(uuid).first<{
       uuid: string;
-      status: string;
       encrypted_payload: string;
       wrapped_dek: string;
-      card_type: string;
       key_version: number;
     }>();
 
     if (!card) {
-      // Scenario 2: Card not found
       return errorResponse('card_not_found', '名片不存在', 404, request);
     }
 
-    if (card.status === 'deleted') {
-      // Scenario 3: Card deleted
-      return errorResponse('card_deleted', '無法更新已刪除的名片', 403, request);
-    }
-
-    // Scenario 1: Success path
     // Initialize encryption
     const encryption = new EnvelopeEncryption();
     await encryption.initialize(env);
@@ -586,6 +586,8 @@ export async function handleUpdateCard(
       timestamp,
       uuid
     ).run();
+
+    await env.KV.delete(`card:${uuid}`);
 
     // Revoke all associated ReadSessions
     const sessionsRevoked = await revokeAllCardSessions(env, uuid, 'card_updated');
@@ -649,13 +651,17 @@ export async function handleListCards(request: Request, env: Env): Promise<Respo
       }
     }
 
-    // Query all non-deleted cards, ordered by created_at DESC
+    // Query all cards with binding status
     const cards = await env.DB.prepare(`
-      SELECT uuid, card_type, encrypted_payload, wrapped_dek,
-             key_version, status, created_at, updated_at
-      FROM cards
-      WHERE status != 'deleted'
-      ORDER BY created_at DESC
+      SELECT 
+        c.uuid, c.encrypted_payload, c.wrapped_dek,
+        c.key_version, c.created_at, c.updated_at,
+        b.type as card_type,
+        b.status as card_status
+      FROM cards c
+      INNER JOIN uuid_bindings b ON c.uuid = b.uuid
+      WHERE b.status IN ('bound', 'revoked')
+      ORDER BY c.created_at DESC
     `).all();
 
     if (!cards.results) {
@@ -681,21 +687,29 @@ export async function handleListCards(request: Request, env: Env): Promise<Respo
           return {
             uuid: card.uuid,
             card_type: card.card_type,
-            status: card.status,
+            status: card.card_status,
             data: cardData,
             created_at: new Date(card.created_at).toISOString(),
             updated_at: new Date(card.updated_at).toISOString()
           };
         } catch (error) {
           console.error(`Error decrypting card ${card.uuid}:`, error);
-          // Skip cards that fail to decrypt
-          return null;
+          // Return error card for debugging
+          return {
+            uuid: card.uuid,
+            card_type: card.card_type,
+            status: card.binding_status || card.card_status,
+            data: { name: { zh: '解密失敗', en: 'Decryption Failed' }, email: 'error@example.com' },
+            created_at: new Date(card.created_at).toISOString(),
+            updated_at: new Date(card.updated_at).toISOString(),
+            error: String(error)
+          };
         }
       })
     );
 
-    // Filter out null values (cards that failed to decrypt)
-    const validCards = decryptedCards.filter(card => card !== null);
+    // Return all cards (including errors for debugging)
+    const validCards = decryptedCards;
 
     // Return success response
     return jsonResponse({
@@ -743,24 +757,28 @@ export async function handleGetCard(
       }
     }
 
-    // Query card by UUID (exclude deleted)
-    const card = await env.DB.prepare(`
-      SELECT uuid, card_type, encrypted_payload, wrapped_dek,
-             key_version, status, created_at, updated_at
-      FROM cards
-      WHERE uuid = ? AND status != 'deleted'
+    // Query card with binding info
+    const result = await env.DB.prepare(`
+      SELECT 
+        c.uuid, c.encrypted_payload, c.wrapped_dek,
+        c.key_version, c.created_at, c.updated_at,
+        b.type as card_type,
+        b.status as card_status
+      FROM cards c
+      INNER JOIN uuid_bindings b ON c.uuid = b.uuid
+      WHERE c.uuid = ?
     `).bind(uuid).first<{
       uuid: string;
-      card_type: string;
       encrypted_payload: string;
       wrapped_dek: string;
       key_version: number;
-      status: string;
       created_at: number;
       updated_at: number;
+      card_type: string;
+      card_status: string;
     }>();
 
-    if (!card) {
+    if (!result) {
       return errorResponse('not_found', '名片不存在', 404, request);
     }
 
@@ -770,18 +788,18 @@ export async function handleGetCard(
 
     // Decrypt card data
     const cardData = await encryption.decryptCard(
-      card.encrypted_payload,
-      card.wrapped_dek
+      result.encrypted_payload,
+      result.wrapped_dek
     );
 
     // Return success response
     return jsonResponse({
-      uuid: card.uuid,
-      card_type: card.card_type,
-      status: card.status,
+      uuid: result.uuid,
+      card_type: result.card_type,
+      status: result.card_status,
       data: cardData,
-      created_at: new Date(card.created_at).toISOString(),
-      updated_at: new Date(card.updated_at).toISOString()
+      created_at: new Date(result.created_at).toISOString(),
+      updated_at: new Date(result.updated_at).toISOString()
     }, 200, request);
   } catch (error) {
     console.error('Error getting card:', error);
@@ -792,5 +810,73 @@ export async function handleGetCard(
       500,
       request
     );
+  }
+}
+
+/**
+ * Handle POST /api/admin/cards/:uuid/restore
+ * Restore a revoked card
+ */
+export async function handleRestoreCard(
+  request: Request,
+  env: Env,
+  uuid: string
+): Promise<Response> {
+  try {
+    // Verify authorization
+    const isAuthorized = await verifySetupToken(request, env);
+
+    if (!isAuthorized) {
+      const authHeader = request.headers.get('Authorization');
+      if (!authHeader) {
+        return adminErrorResponse('Authentication required', 401, request);
+      } else {
+        return adminErrorResponse('Invalid token', 403, request);
+      }
+    }
+
+    // Check if card exists
+    const card = await env.DB.prepare(`
+      SELECT uuid FROM cards WHERE uuid = ?
+    `).bind(uuid).first<{ uuid: string }>();
+
+    if (!card) {
+      return errorResponse('card_not_found', '名片不存在', 404, request);
+    }
+
+    // Check uuid_bindings status
+    const binding = await env.DB.prepare(`
+      SELECT status FROM uuid_bindings WHERE uuid = ?
+    `).bind(uuid).first<{ status: string }>();
+
+    if (!binding) {
+      return errorResponse('binding_not_found', '綁定不存在', 404, request);
+    }
+
+    // Can only restore revoked cards
+    if (binding.status !== 'revoked') {
+      return errorResponse('invalid_status', `無法恢復狀態為 ${binding.status} 的名片`, 400, request);
+    }
+
+    // Restore the card
+    await env.DB.prepare(`
+      UPDATE uuid_bindings
+      SET status = 'bound'
+      WHERE uuid = ?
+    `).bind(uuid).run();
+
+    // Log audit event
+    await logEvent(env, 'card_restore', request, uuid, undefined, {
+      previous_status: 'revoked'
+    });
+
+    return jsonResponse({
+      uuid,
+      status: 'bound',
+      message: '名片已恢復'
+    }, 200, request);
+  } catch (error) {
+    console.error('Error restoring card:', error);
+    return errorResponse('internal_error', '恢復名片時發生錯誤', 500, request);
   }
 }

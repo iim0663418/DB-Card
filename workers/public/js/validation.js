@@ -107,7 +107,9 @@ export const SOCIAL_PLATFORMS = {
     facebook: ['facebook.com', 'fb.com', 'fb.me'],
     instagram: ['instagram.com', 'instagr.am'],
     twitter: ['twitter.com', 'x.com', 't.co'],
-    youtube: ['youtube.com', 'youtu.be']
+    youtube: ['youtube.com', 'youtu.be'],
+    line: ['line.me'],
+    signal: ['signal.me', 'signal.group']
 };
 
 /**
@@ -119,6 +121,21 @@ export const SOCIAL_PLATFORMS = {
 export function validateSocialURL(url, platform) {
     const allowedHosts = SOCIAL_PLATFORMS[platform];
     if (!allowedHosts) return null;
+    
+    // LINE 和 Signal 特殊處理：允許純 ID 輸入
+    if (platform === 'line') {
+        // 如果不是 URL 格式，視為 LINE ID（允許）
+        if (!url.includes('://') && !url.includes('.')) {
+            return url; // 純 ID，直接返回
+        }
+    }
+    
+    if (platform === 'signal') {
+        // 如果不是 URL 格式，視為 Signal username（允許）
+        if (!url.includes('://') && !url.includes('.')) {
+            return url; // 純 username，直接返回
+        }
+    }
     
     return validateURL(url, allowedHosts);
 }

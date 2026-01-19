@@ -27,7 +27,7 @@ export async function tapCard(uuid) {
  * Read card data using session ID
  * @param {string} uuid - Card UUID
  * @param {string} sessionId - Session ID from tap
- * @returns {Promise<{card: object, session: object}>}
+ * @returns {Promise<{data: object, session_info: object}>}
  */
 export async function readCard(uuid, sessionId) {
   const response = await fetch(`${API_BASE}/api/read?uuid=${encodeURIComponent(uuid)}&session=${encodeURIComponent(sessionId)}`);
@@ -38,7 +38,8 @@ export async function readCard(uuid, sessionId) {
   }
 
   const result = await response.json();
-  return result.data || result;
+  // Return full result with data and session_info
+  return result;
 }
 
 /**

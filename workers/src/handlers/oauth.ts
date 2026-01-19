@@ -64,6 +64,33 @@ export async function handleOAuthCallback(
 
     const userInfo = await userInfoResponse.json() as any;
 
+    // ⚠️ SECURITY: Validate email domain whitelist
+    const allowedDomains = ['@moda.gov.tw', '@nics.nat.gov.tw'];
+    const isAllowedDomain = allowedDomains.some(domain => userInfo.email?.endsWith(domain));
+
+    if (!isAllowedDomain) {
+      return new Response(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Login Failed</title>
+        </head>
+        <body>
+          <script>
+            window.opener.postMessage({ 
+              type: 'oauth_error', 
+              error: 'unauthorized_domain' 
+            }, '*');
+            window.close();
+          </script>
+        </body>
+        </html>
+      `, {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' }
+      });
+    }
+
     // Generate our JWT token
     const secret = new TextEncoder().encode(env.JWT_SECRET);
 

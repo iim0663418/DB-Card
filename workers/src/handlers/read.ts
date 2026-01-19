@@ -5,7 +5,28 @@
 import type { Env, ReadSession, Card, CardData } from '../types';
 import { EnvelopeEncryption } from '../crypto/envelope';
 import { logEvent } from '../utils/audit';
-import { jsonResponse, errorResponse } from '../utils/response';
+import { errorResponse } from '../utils/response';
+
+// CORS allowed origins whitelist
+const ALLOWED_ORIGINS = [
+  'http://localhost:8788',
+  'http://localhost:8787',
+  'https://db-card-staging.csw30454.workers.dev',
+  'https://db-card.moda.gov.tw'
+];
+
+function getCorsHeaders(request: Request): HeadersInit {
+  const origin = request.headers.get('Origin');
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    return {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Credentials': 'true'
+    };
+  }
+  return {};
+}
 
 /**
  * Session validation result
@@ -157,13 +178,20 @@ export async function handleRead(request: Request, env: Env): Promise<Response> 
     });
 
     // Return decrypted card data with session info
-    return jsonResponse({
+    return new Response(JSON.stringify({
+      success: true,
       data: cardData,
       session_info: {
         reads_remaining,
         expires_at: session!.expires_at
       }
-    }, 200, request);
+    }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(request ? getCorsHeaders(request) : {})
+      }
+    });
 
   } catch (error) {
     console.error('Read handler error:', error);

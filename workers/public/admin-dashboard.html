@@ -1457,22 +1457,15 @@
                 });
 
                 if (!response.ok) {
-                    console.error('[DEBUG] API response not ok:', response.status);
                     await handleApiError(response, '操作失敗');
                     return;
                 }
 
                 const result = await response.json();
-                console.log('[DEBUG] API success, result:', result);
-                console.log('[DEBUG] isEditing:', isEditing);
-                console.log('[DEBUG] Calling showNotification...');
-                
                 showNotification(
                     isEditing ? '名片已更新' : '名片已創建',
                     'success'
                 );
-                
-                console.log('[DEBUG] showNotification called');
 
                 // 清除編輯狀態
                 window.editingCardUuid = null;
@@ -1489,8 +1482,6 @@
 
                 // 切換到列表 Tab
                 switchTab('list');
-                
-                console.log('[DEBUG] All done');
 
             } catch (error) {
                 console.error('Create/Update card error:', error);

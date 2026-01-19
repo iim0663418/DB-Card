@@ -1637,7 +1637,7 @@
                     await handleDeleteCard(uuid);
                 };
             } else if(type === 'permanent_delete') {
-                title.innerText = "⚠️ 確認永久刪除名片？";
+                title.innerText = "【警告】確認永久刪除名片？";
                 desc.innerText = "此操作將從資料庫永久刪除此名片，無法復原！請確認您真的要執行此操作。";
                 btn.className = "flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700";
                 btn.onclick = async () => {

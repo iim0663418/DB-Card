@@ -6,11 +6,13 @@
     <title>數位名片 | 使用者入口</title>
     <link rel="icon" type="image/png" sizes="192x192" href="favicon.png">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="https://unpkg.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&family=Noto+Sans+TC:wght@300;500;900&display=swap" rel="stylesheet">
     <script>
-        // 隱藏 Tailwind CDN 警告
         const originalWarn = console.warn;
         console.warn = function(...args) {
             if (args[0]?.includes?.('cdn.tailwindcss.com')) return;
@@ -18,8 +20,8 @@
         };
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
     <style>
 
         :root {
@@ -1444,10 +1446,17 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             lucide.createIcons();
-            initThree();
+            
+            if (typeof THREE !== 'undefined') {
+                setTimeout(() => initThree(), 100);
+            } else {
+                window.addEventListener('load', () => {
+                    if (typeof THREE !== 'undefined') initThree();
+                });
+            }
+            
             document.getElementById('edit-form').onsubmit = handleFormSubmit;
 
-            // 嘗試從 localStorage 恢復登入狀態
             const token = localStorage.getItem('auth_token');
             const userJson = localStorage.getItem('auth_user');
             const expires = localStorage.getItem('auth_expires');

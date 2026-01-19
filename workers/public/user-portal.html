@@ -138,6 +138,35 @@
             color: var(--moda-accent);
             transition: all 0.2s;
         }
+
+        /* Modal 動畫 */
+        #success-modal {
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        #success-modal .modal-content {
+            animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* MODA hover/90 效果 */
+        .bg-moda\/90 {
+            background-color: rgba(104, 104, 172, 0.9);
+        }
+
+        .hover\:bg-moda\/90:hover {
+            background-color: rgba(104, 104, 172, 0.9);
+        }
     </style>
 </head>
 <body class="flex flex-col items-center min-h-screen p-4 lg:p-8">
@@ -454,6 +483,46 @@
 
     <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[300] px-8 py-4 bg-slate-900 text-white rounded-2xl shadow-2xl text-xs font-bold uppercase tracking-widest hidden fade-in"></div>
 
+    <!-- Success Modal -->
+    <div id="success-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center">
+        <!-- Backdrop -->
+        <div class="modal-backdrop absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+
+        <!-- Modal Content -->
+        <div class="modal-content relative bg-white rounded-3xl shadow-2xl max-w-md w-full mx-4 p-8">
+            <!-- Header -->
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="check-circle" class="w-8 h-8 text-green-600"></i>
+                </div>
+                <h3 class="text-2xl font-black text-slate-900">名片創建成功！</h3>
+                <p id="modal-card-type" class="text-sm text-slate-600 mt-2">您的個人名片已準備就緒</p>
+            </div>
+
+            <!-- Share Link -->
+            <div class="mb-6">
+                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">分享連結</label>
+                <div class="flex gap-2">
+                    <input id="modal-share-link" type="text" readonly class="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono text-slate-700">
+                    <button id="modal-copy-btn" onclick="copyModalLink()" class="px-6 py-3 bg-moda text-white rounded-xl font-bold hover:bg-moda/90 transition-colors">
+                        複製
+                    </button>
+                </div>
+                <p class="text-xs text-slate-500 mt-2">💡 此連結可分享給他人查看您的名片</p>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-3">
+                <button id="modal-view-btn" onclick="viewModalCard()" class="flex-1 px-6 py-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors">
+                    👁 查看名片效果
+                </button>
+                <button onclick="closeSuccessModal()" class="flex-1 px-6 py-4 bg-moda text-white rounded-xl font-bold hover:bg-moda/90 transition-colors">
+                    完成
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // --- 1. 核心狀態與數據結構 ---
         const state = {
@@ -465,6 +534,7 @@
         };
 
         let previewLang = 'zh';
+        let currentModalUuid = null;
 
         const SocialParser = {
             collectFromInputs() {
@@ -655,28 +725,34 @@
 
             try {
                 if (uuid) {
-                    // PUT /api/user/cards/:uuid
+                    // 編輯：使用 Toast
                     await apiCall(`/api/user/cards/${uuid}`, {
                         method: 'PUT',
                         body: JSON.stringify(data)
                     });
+                    showToast('名片更新成功');
+                    await fetchUserCards();
+                    showView('selection');
                 } else {
-                    // POST /api/user/cards
+                    // 創建：使用 Modal
                     const response = await apiCall('/api/user/cards', {
                         method: 'POST',
                         body: JSON.stringify({ ...data, type })
                     });
 
-                    // 儲存新生成的 UUID
-                    const card = state.cards.find(c => c.type === type);
-                    if (card && response.data?.uuid) {
-                        card.uuid = response.data.uuid;
+                    const newUuid = response.data?.uuid;
+                    if (newUuid) {
+                        // 更新 state
+                        const card = state.cards.find(c => c.type === type);
+                        if (card) card.uuid = newUuid;
+
+                        // 重新載入
+                        await fetchUserCards();
+
+                        // 顯示成功 Modal
+                        showSuccessModal(newUuid, type);
                     }
                 }
-
-                showToast('成功儲存名片變更');
-                await fetchUserCards(); // 重新載入
-                showView('selection');
             } catch (err) {
                 const errEl = document.getElementById('form-error-msg');
 
@@ -834,10 +910,92 @@
 
         // --- 4. 輔助函數 ---
 
+        // 顯示成功 Modal
+        function showSuccessModal(uuid, type) {
+            currentModalUuid = uuid;
+
+            // 設定名片類型文字
+            const typeText = {
+                'personal': '個人名片',
+                'event': '活動名片',
+                'sensitive': '敏感名片'
+            }[type] || '名片';
+            document.getElementById('modal-card-type').innerText = `您的${typeText}已準備就緒`;
+
+            // 設定分享連結（不帶 session）
+            const shareLink = `${window.location.origin}/card-display.html?uuid=${uuid}`;
+            document.getElementById('modal-share-link').value = shareLink;
+
+            // 重置複製按鈕
+            const copyBtn = document.getElementById('modal-copy-btn');
+            copyBtn.innerText = '複製';
+            copyBtn.classList.remove('bg-green-600');
+            copyBtn.classList.add('bg-moda');
+
+            // 顯示 Modal
+            document.getElementById('success-modal').classList.remove('hidden');
+
+            // 初始化 lucide icons（確保 check-circle 顯示）
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+
+            // 綁定 ESC 鍵
+            document.addEventListener('keydown', handleModalEscape);
+        }
+
+        // 關閉 Modal
+        function closeSuccessModal() {
+            document.getElementById('success-modal').classList.add('hidden');
+            document.removeEventListener('keydown', handleModalEscape);
+            currentModalUuid = null;
+
+            // 返回選擇頁面
+            showView('selection');
+        }
+
+        // ESC 鍵處理
+        function handleModalEscape(e) {
+            if (e.key === 'Escape') {
+                closeSuccessModal();
+            }
+        }
+
+        // 複製連結
+        async function copyModalLink() {
+            const link = document.getElementById('modal-share-link').value;
+            const btn = document.getElementById('modal-copy-btn');
+
+            try {
+                await navigator.clipboard.writeText(link);
+
+                // 視覺反饋
+                btn.innerText = '已複製';
+                btn.classList.remove('bg-moda');
+                btn.classList.add('bg-green-600');
+
+                // 2 秒後恢復
+                setTimeout(() => {
+                    btn.innerText = '複製';
+                    btn.classList.remove('bg-green-600');
+                    btn.classList.add('bg-moda');
+                }, 2000);
+            } catch (err) {
+                showToast('複製失敗，請手動複製');
+            }
+        }
+
+        // 查看名片（從 Modal）
+        function viewModalCard() {
+            if (currentModalUuid) {
+                window.open(`/card-display.html?uuid=${currentModalUuid}`, '_blank');
+            }
+        }
+
         async function viewCard(uuid) {
             try {
                 toggleLoading(true);
-                
+
                 // 先 tap 獲取 session（與 admin-dashboard 一致）
                 const response = await apiCall('/api/nfc/tap', {
                     method: 'POST',
@@ -845,7 +1003,7 @@
                 });
 
                 const sessionId = response.session_id || response.data?.session_id;
-                
+
                 if (!sessionId) {
                     throw new Error('無法獲取查看授權');
                 }
@@ -853,11 +1011,22 @@
                 // 打開名片頁面（帶 session）
                 const url = `${window.location.origin}/card-display.html?uuid=${uuid}&session=${sessionId}`;
                 window.open(url, '_blank');
-                
+
                 toggleLoading(false);
             } catch (error) {
                 toggleLoading(false);
-                showToast('查看失敗: ' + (error.message || '未知錯誤'));
+                // 修復錯誤訊息顯示
+                let errorMsg = '未知錯誤';
+                if (error?.message) {
+                    errorMsg = error.message;
+                } else if (error?.error) {
+                    errorMsg = error.error;
+                } else if (typeof error === 'string') {
+                    errorMsg = error;
+                } else if (typeof error === 'object') {
+                    errorMsg = JSON.stringify(error);
+                }
+                showToast('查看失敗: ' + errorMsg);
             }
         }
 
@@ -979,6 +1148,9 @@
         // 暴露函數到全域作用域供 onclick 使用
         window.viewCard = viewCard;
         window.copyCardLink = copyCardLink;
+        window.copyModalLink = copyModalLink;
+        window.viewModalCard = viewModalCard;
+        window.closeSuccessModal = closeSuccessModal;
 
         // --- 5. 初始化 ---
         let scene, camera, renderer, mesh, grid;
@@ -1061,6 +1233,13 @@
                     document.getElementById('address_en').value = '';
                 }
                 updatePreview();
+            });
+
+            // Modal 背景點擊關閉
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('modal-backdrop')) {
+                    closeSuccessModal();
+                }
             });
         });
 

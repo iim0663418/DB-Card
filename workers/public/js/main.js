@@ -264,6 +264,16 @@ async function loadCard(uuid) {
 }
 
 function renderCard(cardData, sessionData) {
+    // ===== DEBUG START =====
+    console.log('[DEBUG] ===== renderCard called =====');
+    console.log('[DEBUG] Full cardData:', cardData);
+    console.log('[DEBUG] cardData keys:', Object.keys(cardData));
+    console.log('[DEBUG] social_line:', cardData.social_line);
+    console.log('[DEBUG] social_signal:', cardData.social_signal);
+    console.log('[DEBUG] social_github:', cardData.social_github);
+    console.log('[DEBUG] ===== END DEBUG =====');
+    // ===== DEBUG END =====
+    
     const name = getLocalizedText(cardData.name, currentLanguage);
     const title = getLocalizedText(cardData.title, currentLanguage);
     const greetings = getLocalizedArray(cardData.greetings, currentLanguage);

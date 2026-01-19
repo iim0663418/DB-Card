@@ -815,6 +815,11 @@
                     state.currentUser = { email, name, picture };
                     document.getElementById('user-email-display').innerText = email;
 
+                    // 持久化 JWT（24 小時）
+                    localStorage.setItem('auth_token', token);
+                    localStorage.setItem('auth_user', JSON.stringify({ email, name, picture }));
+                    localStorage.setItem('auth_expires', Date.now() + 24 * 60 * 60 * 1000);
+
                     // 立即切換視圖（使用者看到反應）
                     showView('selection');
                     showToast('登入成功，載入名片中...');
@@ -837,6 +842,12 @@
             state.authToken = null;
             state.currentUser = null;
             state.cards = [];
+            
+            // 清除持久化的 JWT
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('auth_user');
+            localStorage.removeItem('auth_expires');
+            
             showView('login');
         }
 
@@ -1361,10 +1372,47 @@
             animate();
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             lucide.createIcons();
             initThree();
             document.getElementById('edit-form').onsubmit = handleFormSubmit;
+
+            // 嘗試從 localStorage 恢復登入狀態
+            const token = localStorage.getItem('auth_token');
+            const userJson = localStorage.getItem('auth_user');
+            const expires = localStorage.getItem('auth_expires');
+
+            if (token && userJson && expires && Date.now() < parseInt(expires)) {
+                try {
+                    const user = JSON.parse(userJson);
+                    
+                    // 恢復登入狀態
+                    state.isLoggedIn = true;
+                    state.authToken = token;
+                    state.currentUser = user;
+                    document.getElementById('user-email-display').innerText = user.email;
+
+                    // 切換到選擇頁面
+                    showView('selection');
+                    showToast('自動登入成功');
+
+                    // 載入名片資料
+                    await fetchUserCards();
+                } catch (err) {
+                    // Token 無效或過期，清除並顯示登入頁
+                    console.error('Auto-login failed:', err);
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('auth_user');
+                    localStorage.removeItem('auth_expires');
+                    showView('login');
+                }
+            } else {
+                // 沒有有效的 token，清除過期資料
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('auth_user');
+                localStorage.removeItem('auth_expires');
+                showView('login');
+            }
 
             // 綁定預覽聯動
             document.querySelectorAll('input, textarea, select').forEach(el => el.addEventListener('input', updatePreview));

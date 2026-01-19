@@ -838,13 +838,19 @@
 
                     // 立即切換視圖（使用者看到反應）
                     showView('selection');
-                    showToast('登入成功，載入名片中...');
+                    
+                    // 顯示載入中
+                    document.getElementById('global-loading').classList.remove('hidden');
 
                     // 背景載入卡片資料
                     try {
                         await fetchUserCards();
+                        showToast('登入成功');
                     } catch (err) {
                         handleError(err);
+                    } finally {
+                        // 隱藏載入中
+                        document.getElementById('global-loading').classList.add('hidden');
                     }
                 } else if (event.data.type === 'oauth_error') {
                     errorBox.innerText = '登入失敗：' + event.data.error;
@@ -1426,10 +1432,21 @@
 
                     // 切換到選擇頁面
                     showView('selection');
-                    showToast('自動登入成功');
+                    
+                    // 顯示載入中
+                    document.getElementById('global-loading').classList.remove('hidden');
 
                     // 載入名片資料
-                    await fetchUserCards();
+                    try {
+                        await fetchUserCards();
+                        showToast('自動登入成功');
+                    } catch (err) {
+                        console.error('Failed to load cards:', err);
+                        showToast('載入名片失敗');
+                    } finally {
+                        // 隱藏載入中
+                        document.getElementById('global-loading').classList.add('hidden');
+                    }
                 } catch (err) {
                     // Token 無效或過期，清除並顯示登入頁
                     console.error('Auto-login failed:', err);

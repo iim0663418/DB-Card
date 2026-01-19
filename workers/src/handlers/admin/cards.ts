@@ -401,6 +401,10 @@ export async function handleDeleteCard(
       }
     }
 
+    // Check for permanent delete flag
+    const url = new URL(request.url);
+    const permanent = url.searchParams.get('permanent') === 'true';
+
     // Check if card exists
     const card = await env.DB.prepare(`
       SELECT uuid FROM cards WHERE uuid = ?
@@ -419,6 +423,38 @@ export async function handleDeleteCard(
       return errorResponse('binding_not_found', '綁定不存在', 404, request);
     }
 
+    // Permanent delete
+    if (permanent) {
+      // Only allow permanent delete for revoked cards
+      if (binding.status !== 'revoked') {
+        return errorResponse('must_revoke_first', '請先撤銷名片再執行永久刪除', 400, request);
+      }
+
+      // Revoke all sessions first
+      await revokeAllCardSessions(env, uuid, 'permanent_delete');
+
+      // Delete from database
+      await env.DB.batch([
+        env.DB.prepare('DELETE FROM cards WHERE uuid = ?').bind(uuid),
+        env.DB.prepare('DELETE FROM uuid_bindings WHERE uuid = ?').bind(uuid)
+      ]);
+
+      // Clear KV cache
+      await env.KV.delete(`card:${uuid}`);
+
+      // Log audit event
+      await logEvent(env, 'card_permanent_delete', request, uuid, undefined, {
+        action: 'permanent_delete'
+      });
+
+      return jsonResponse({
+        uuid,
+        status: 'deleted',
+        message: '名片已永久刪除'
+      }, 200, request);
+    }
+
+    // Regular revoke (existing logic)
     // Idempotent: already revoked
     if (binding.status === 'revoked') {
       return jsonResponse({

@@ -1090,9 +1090,11 @@
                 actionDiv.appendChild(viewBtn);
 
                 if (c.status === 'revoked') {
-                    // Revoked 卡片：只能查看和恢復
+                    // Revoked 卡片：可查看、恢復、永久刪除
                     const restoreBtn = createActionButton('恢復', 'bg-green-50 text-green-600 hover:bg-green-500 hover:text-white', () => confirmAction('restore', c.uuid));
+                    const permanentDeleteBtn = createActionButton('永久刪除', 'bg-red-50 text-red-600 hover:bg-red-500 hover:text-white', () => confirmAction('permanent_delete', c.uuid));
                     actionDiv.appendChild(restoreBtn);
+                    actionDiv.appendChild(permanentDeleteBtn);
                 } else {
                     // Bound 卡片：可編輯和撤銷
                     const editBtn = createActionButton('編輯', 'bg-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white', () => editCard(c.uuid));
@@ -1555,7 +1557,36 @@
             }
         }
 
-        // Revoke Card Sessions
+        async function handlePermanentDelete(uuid) {
+            const token = sessionStorage.getItem('setup_token');
+            if (!token) {
+                showNotification('未授權：請重新驗證', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}?permanent=true`, {
+                    method: 'DELETE',
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    await handleApiError(response, '永久刪除失敗');
+                    return;
+                }
+
+                showNotification('名片已永久刪除', 'success');
+                loadCards();
+
+            } catch (error) {
+                console.error('Permanent delete error:', error);
+                showNotification('永久刪除失敗: ' + error.message, 'error');
+            }
+        }
+
         async function handleRevokeCard(uuid) {
             const token = sessionStorage.getItem('setup_token');
             if (!token) {
@@ -1604,6 +1635,14 @@
                 btn.onclick = async () => {
                     closeModal();
                     await handleDeleteCard(uuid);
+                };
+            } else if(type === 'permanent_delete') {
+                title.innerText = "⚠️ 確認永久刪除名片？";
+                desc.innerText = "此操作將從資料庫永久刪除此名片，無法復原！請確認您真的要執行此操作。";
+                btn.className = "flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700";
+                btn.onclick = async () => {
+                    closeModal();
+                    await handlePermanentDelete(uuid);
                 };
             } else if(type === 'restore') {
                 title.innerText = "確認恢復名片？";

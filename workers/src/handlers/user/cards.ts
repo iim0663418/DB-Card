@@ -198,12 +198,11 @@ export async function handleUserCreateCard(request: Request, env: Env): Promise<
       // Insert into cards table
       env.DB.prepare(`
         INSERT INTO cards (
-          uuid, card_type, encrypted_payload, wrapped_dek,
-          key_version, status, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, 'active', ?, ?)
+          uuid, encrypted_payload, wrapped_dek,
+          key_version, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?)
       `).bind(
         uuid,
-        body.type,
         encrypted_payload,
         wrapped_dek,
         kekVersion?.version || 1,

@@ -101,3 +101,7 @@ docs/generated/
 test-*.html
 test-*.js
 test-*.json
+
+# Sensitive documentation (if contains actual secrets)
+docs/JWT_SECRET_RECORDS.md
+*_RECORDS.md

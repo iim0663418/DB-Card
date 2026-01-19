@@ -332,6 +332,12 @@ npm run test:e2e
 
 MIT License - 詳見 [LICENSE](LICENSE)
 
+### 第三方元件授權
+
+本專案使用多個開源元件與字體，所有依賴均為開源授權（MIT、ISC、Apache 2.0、SIL OFL 1.1），允許商業使用。
+
+完整的第三方元件清單與授權資訊請參閱：[THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md)
+
 ## 貢獻指南
 
 歡迎提交 Issue 和 Pull Request！

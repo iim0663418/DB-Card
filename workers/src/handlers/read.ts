@@ -120,12 +120,10 @@ function validateSession(session: ReadSession | null): SessionValidation {
  */
 export async function handleRead(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   try {
-    // Parse query parameters
     const url = new URL(request.url);
     const card_uuid = url.searchParams.get('uuid');
     const session_id = url.searchParams.get('session');
 
-    // Validate required parameters
     if (!card_uuid || !session_id) {
       ctx.waitUntil(logEvent(env, 'read', request, card_uuid || undefined, session_id || undefined, {
         error: 'missing_parameters'
@@ -133,24 +131,39 @@ export async function handleRead(request: Request, env: Env, ctx: ExecutionConte
       return errorResponse('invalid_request', '缺少必要參數 uuid 或 session', 400, request);
     }
 
-    // Fetch session from database
+    const responseCacheKey = `read:${card_uuid}:${session_id}`;
+    const cachedResponse = await env.KV.get(responseCacheKey, {
+      type: 'json',
+      cacheTtl: 60
+    });
+
+    if (cachedResponse) {
+      return new Response(JSON.stringify({
+        success: true,
+        ...cachedResponse
+      }), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(request ? getCorsHeaders(request) : {})
+        }
+      });
+    }
+
     const session = await env.DB.prepare(`
       SELECT * FROM read_sessions
       WHERE session_id = ? AND card_uuid = ?
     `).bind(session_id, card_uuid).first<ReadSession>();
 
-    // Validate session
     const validation = validateSession(session);
     if (!validation.valid) {
       ctx.waitUntil(logEvent(env, 'read', request, card_uuid, session_id, {
         error: validation.reason
       }));
-
       const statusCode = validation.reason === 'session_not_found' ? 404 : 403;
       return errorResponse(validation.reason!, validation.message!, statusCode, request);
     }
 
-    // Fetch card data
     const card = await env.DB.prepare(`
       SELECT uuid, encrypted_payload, wrapped_dek, key_version
       FROM cards
@@ -185,14 +198,14 @@ export async function handleRead(request: Request, env: Env, ctx: ExecutionConte
       return errorResponse('internal_error', '解密失敗', 500, request);
     }
 
-    // Update reads_used
-    await env.DB.prepare(`
-      UPDATE read_sessions
-      SET reads_used = reads_used + 1
-      WHERE session_id = ?
-    `).bind(session_id).run();
+    ctx.waitUntil(
+      env.DB.prepare(`
+        UPDATE read_sessions
+        SET reads_used = reads_used + 1
+        WHERE session_id = ?
+      `).bind(session_id).run()
+    );
 
-    // Calculate remaining reads
     const reads_remaining = session!.max_reads - (session!.reads_used + 1);
 
     ctx.waitUntil(logEvent(env, 'read', request, card_uuid, session_id, {
@@ -200,14 +213,23 @@ export async function handleRead(request: Request, env: Env, ctx: ExecutionConte
       reads_remaining
     }));
 
-    // Return decrypted card data with session info
-    return new Response(JSON.stringify({
-      success: true,
+    const responseData = {
       data: cardData,
       session_info: {
         reads_remaining,
         expires_at: session!.expires_at
       }
+    };
+
+    ctx.waitUntil(
+      env.KV.put(responseCacheKey, JSON.stringify(responseData), {
+        expirationTtl: 60
+      })
+    );
+
+    return new Response(JSON.stringify({
+      success: true,
+      ...responseData
     }), {
       status: 200,
       headers: {

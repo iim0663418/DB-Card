@@ -45,15 +45,10 @@ DROP TABLE uuid_bindings;
 ALTER TABLE uuid_bindings_new RENAME TO uuid_bindings;
 
 -- Step 5: Recreate indexes
-CREATE INDEX idx_uuid_bindings_email ON uuid_bindings(bound_email);
-CREATE INDEX idx_uuid_bindings_status ON uuid_bindings(status);
+CREATE INDEX IF NOT EXISTS idx_uuid_bindings_email ON uuid_bindings(bound_email);
+CREATE INDEX IF NOT EXISTS idx_uuid_bindings_status ON uuid_bindings(status);
 
--- Step 6: Sync cards.card_type with uuid_bindings.type
-UPDATE cards
-SET card_type = (
-  SELECT b.type 
-  FROM uuid_bindings b 
-  WHERE b.uuid = cards.uuid
-)
-WHERE uuid IN (SELECT uuid FROM uuid_bindings);
+-- Step 6: Sync cards.card_type with uuid_bindings.type (if column exists)
+-- This step is optional and will be skipped if card_type column doesn't exist
+-- The column will be removed in migration 0007 anyway
 

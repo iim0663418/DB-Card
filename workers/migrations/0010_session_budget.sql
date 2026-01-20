@@ -6,7 +6,7 @@
 ALTER TABLE cards ADD COLUMN total_sessions INTEGER DEFAULT 0;
 
 -- Create index for efficient queries
-CREATE INDEX idx_cards_total_sessions ON cards(total_sessions);
+CREATE INDEX IF NOT EXISTS idx_cards_total_sessions ON cards(total_sessions);
 
 -- Update existing cards to have 0 total_sessions
 UPDATE cards SET total_sessions = 0 WHERE total_sessions IS NULL;

@@ -14,11 +14,10 @@ CREATE TABLE cards_new (
   updated_at INTEGER NOT NULL
 );
 
--- Step 2: Copy data
+-- Step 2: Copy data (no status filter needed as staging doesn't have status column)
 INSERT INTO cards_new (uuid, encrypted_payload, wrapped_dek, key_version, created_at, updated_at)
 SELECT uuid, encrypted_payload, wrapped_dek, key_version, created_at, updated_at
-FROM cards
-WHERE status = 'active';
+FROM cards;
 
 -- Step 3: Drop old table
 DROP TABLE cards;

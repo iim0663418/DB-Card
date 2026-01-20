@@ -10,6 +10,7 @@ export async function handleScheduledCleanup(env: Env): Promise<void> {
 
   try {
     // Step 1: Find revoked cards older than 90 days
+    // Optimized with idx_uuid_bindings_revoked_cleanup (status, revoked_at)
     const revokedCards = await env.DB.prepare(`
       SELECT 
         b.uuid, b.type, b.bound_email, b.bound_at, b.revoked_at,

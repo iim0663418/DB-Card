@@ -2,7 +2,7 @@
 -- Date: 2026-01-19
 -- Purpose: Archive revoked cards before deletion for audit trail
 
-CREATE TABLE deleted_cards (
+CREATE TABLE IF NOT EXISTS deleted_cards (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   uuid TEXT NOT NULL,
   type TEXT NOT NULL,
@@ -15,5 +15,5 @@ CREATE TABLE deleted_cards (
   UNIQUE(uuid, deleted_at)
 );
 
-CREATE INDEX idx_deleted_cards_email ON deleted_cards(bound_email);
-CREATE INDEX idx_deleted_cards_deleted_at ON deleted_cards(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_deleted_cards_email ON deleted_cards(bound_email);
+CREATE INDEX IF NOT EXISTS idx_deleted_cards_deleted_at ON deleted_cards(deleted_at);

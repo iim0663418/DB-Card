@@ -43,19 +43,6 @@ const ORG_DEPT_MAPPING = {
 
 // 更新按鈕文字（根據當前語言）
 function updateButtonTexts() {
-    const desktopText = document.getElementById('save-vcard-text-desktop');
-    const mobileText = document.getElementById('save-vcard-text-mobile');
-
-    if (desktopText && mobileText) {
-        if (currentLanguage === 'zh') {
-            desktopText.textContent = 'Sync Identity';
-            mobileText.textContent = '下載名片';
-        } else {
-            desktopText.textContent = 'Sync Identity';
-            mobileText.textContent = 'Download';
-        }
-    }
-
     // 更新所有 data-i18n 元素
     const i18nElements = document.querySelectorAll('[data-i18n]');
     i18nElements.forEach(el => {
@@ -69,12 +56,24 @@ function updateButtonTexts() {
 // 多語言文字對照表
 const i18nTexts = {
     'loading': {
-        'zh': 'Synchronizing Secure Identity...',
-        'en': 'Synchronizing Secure Identity...'
+        'zh': '載入名片資料...',
+        'en': 'Loading Card...'
     },
     'qr-title': {
-        'zh': 'Scan for Official Verification',
-        'en': 'Scan for Official Verification'
+        'zh': '掃描分享名片',
+        'en': 'Scan to Share'
+    },
+    'session-status': {
+        'zh': '名片已開啟',
+        'en': 'Card Active'
+    },
+    'save-vcard-desktop': {
+        'zh': '加入聯絡人',
+        'en': 'Add Contact'
+    },
+    'save-vcard-mobile': {
+        'zh': '下載名片',
+        'en': 'Download'
     },
     'card-system': {
         'zh': '數位名片系統 Digital Business Card',
@@ -101,8 +100,16 @@ const i18nTexts = {
         'en': 'Security Specification'
     },
     'security-desc': {
-        'zh': 'Serverless Encrypted Node. No trace retained on node. Securely rendered via DB-Card gateway.',
-        'en': 'Serverless Encrypted Node. No trace retained on node. Securely rendered via DB-Card gateway.'
+        'zh': '雲端加密儲存，可隨時撤銷存取',
+        'en': 'Cloud encrypted storage, revocable access'
+    },
+    'valid-until': {
+        'zh': '有效期限',
+        'en': 'Valid Until'
+    },
+    'shares-available': {
+        'zh': '可分享次數',
+        'en': 'Shares Available'
     }
 };
 
@@ -159,6 +166,7 @@ function showNotification(message, type = 'info') {
 }
 
 async function initApp() {
+    initLoadingIcon(); // 隨機選擇載入圖示
     lucide.createIcons();
     clearExpiredCache();
 
@@ -358,8 +366,11 @@ function renderCard(cardData, sessionData) {
 
     if (sessionData) {
         const expiresAt = new Date(sessionData.expires_at);
-        document.getElementById('session-expiry').textContent = `SESSION EXPIRES: ${expiresAt.toLocaleString(currentLanguage === 'zh' ? 'zh-TW' : 'en-US')}`;
-        document.getElementById('session-reads').textContent = `ATTEMPTS REMAINING: ${sessionData.reads_remaining}`;
+        const validUntilText = i18nTexts['valid-until'][currentLanguage];
+        const sharesAvailableText = i18nTexts['shares-available'][currentLanguage];
+        
+        document.getElementById('session-expiry').textContent = `${validUntilText}: ${expiresAt.toLocaleString(currentLanguage === 'zh' ? 'zh-TW' : 'en-US')}`;
+        document.getElementById('session-reads').textContent = `${sharesAvailableText}: ${sessionData.reads_remaining}`;
     }
 
     // 社群連結處理 - 支援新舊格式
@@ -866,5 +877,15 @@ document.getElementById('open-qr').addEventListener('click', () => {
 document.getElementById('close-qr').addEventListener('click', () => {
     document.getElementById('qr-modal').classList.add('hidden');
 });
+
+// 載入動畫圖示隨機選擇
+function initLoadingIcon() {
+    const icons = ['contact', 'user-circle'];
+    const randomIcon = icons[Math.floor(Math.random() * icons.length)];
+    const iconContainer = document.getElementById('loading-icon');
+    if (iconContainer) {
+        iconContainer.innerHTML = `<i data-lucide="${randomIcon}" class="w-10 h-10 animate-pulse" aria-hidden="true"></i>`;
+    }
+}
 
 document.addEventListener('DOMContentLoaded', initApp);

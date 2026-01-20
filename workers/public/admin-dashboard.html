@@ -717,10 +717,18 @@
     <script type="module">
         // Import validation utilities
         import { validateURL, sanitizeText, validateEmail, validatePhone, validateSocialURL, SOCIAL_PLATFORMS } from './js/validation.js';
-        
+
         const API_BASE = window.location.hostname === 'localhost'
             ? '' // Use same origin for local development
             : ''; // Use same origin for staging/production
+
+        // v4.1.0 & v4.2.0: Error message constants
+        const ERROR_MESSAGES = {
+            'rate_limited': '請求過於頻繁，請稍後再試',
+            'session_budget_exceeded': '此名片已達到使用上限，請聯絡管理員',
+            'daily_budget_exceeded': '今日使用次數已達上限，請明天再試',
+            'monthly_budget_exceeded': '本月使用次數已達上限，請下月再試'
+        };
 
         let scene, camera, renderer, mesh;
         function initThree() {
@@ -1089,6 +1097,15 @@
                 const viewBtn = createActionButton('查看', 'bg-slate-100 text-slate-600 hover:bg-moda hover:text-white', () => viewCard(c.uuid));
                 actionDiv.appendChild(viewBtn);
 
+                // v4.2.0: Reset budget button (icon button)
+                const resetBtn = document.createElement('button');
+                resetBtn.className = 'px-3 py-2 rounded-lg font-bold text-xs transition-all text-white';
+                resetBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+                resetBtn.title = '重置使用次數';
+                resetBtn.onclick = () => resetBudget(c.uuid);
+                resetBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4"></i>';
+                actionDiv.appendChild(resetBtn);
+
                 if (c.status === 'revoked') {
                     // Revoked 卡片：可查看、恢復、永久刪除
                     const restoreBtn = createActionButton('恢復', 'bg-green-50 text-green-600 hover:bg-green-500 hover:text-white', () => confirmAction('restore', c.uuid));
@@ -1219,7 +1236,7 @@
         async function viewCard(uuid) {
             try {
                 // 先 tap 獲取 session
-                const response = await fetch(`${API_BASE}/api/nfc/tap`, {
+                const tapResponse = await fetch(`${API_BASE}/api/nfc/tap`, {
                     method: 'POST',
                     credentials: 'include',
                     headers: {
@@ -1228,11 +1245,15 @@
                     body: JSON.stringify({ card_uuid: uuid })
                 });
 
-                if (!response.ok) {
-                    throw new Error('無法獲取查看授權');
+                // v4.1.0 & v4.2.0: Handle rate_limited error
+                if (!tapResponse.ok) {
+                    const error = await tapResponse.json();
+                    const errorMsg = ERROR_MESSAGES[error.error?.code] || error.error?.message || '無法開啟預覽';
+                    showNotification(errorMsg, 'error');
+                    return;
                 }
 
-                const result = await response.json();
+                const result = await tapResponse.json();
                 const sessionId = result.data.session_id;
 
                 // 打開名片頁面（帶 session）
@@ -1554,6 +1575,44 @@
             } catch (error) {
                 console.error('Restore card error:', error);
                 showNotification('恢復失敗: ' + error.message, 'error');
+            }
+        }
+
+        // v4.2.0: Reset Budget Function
+        async function resetBudget(uuid) {
+            if (!confirm('確定要重置此名片的使用次數嗎？\n\n此操作將：\n• 總使用次數歸零\n• 清除今日計數\n• 清除本月計數\n\n此操作無法撤銷。')) {
+                return;
+            }
+
+            const token = sessionStorage.getItem('setup_token');
+            if (!token) {
+                showNotification('未授權：請重新驗證', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}/reset-budget`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    const errorMsg = ERROR_MESSAGES[error.error?.code] || error.error?.message || '重置失敗';
+                    showNotification(errorMsg, 'error');
+                    return;
+                }
+
+                showNotification('使用次數已重置', 'success');
+                await loadCards();
+
+            } catch (error) {
+                console.error('Reset budget error:', error);
+                showNotification(error.message, 'error');
             }
         }
 
@@ -2428,6 +2487,7 @@
         window.viewCard = viewCard;
         window.deleteCard = handleDeleteCard;
         window.restoreCard = handleRestoreCard;
+        window.resetBudget = resetBudget;
         window.confirmAction = confirmAction;
         window.revokeCard = handleRevokeCard;
         window.cancelEdit = cancelEdit;

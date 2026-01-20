@@ -2,6 +2,14 @@ import { tapCard, readCard } from './api.js';
 import { getLocalizedText, getLocalizedArray } from './utils/bilingual.js';
 import { getCachedCard, setCachedCard, clearExpiredCache } from './cache-helper.js';
 
+// Error message constants for v4.1.0 & v4.2.0
+const ERROR_MESSAGES = {
+  'rate_limited': '請求過於頻繁，請稍後再試',
+  'session_budget_exceeded': '此名片已達到使用上限，請聯絡管理員',
+  'daily_budget_exceeded': '今日使用次數已達上限，請明天再試',
+  'monthly_budget_exceeded': '本月使用次數已達上限,請下月再試'
+};
+
 let scene, camera, renderer, mesh, grid;
 let currentLanguage = 'zh';
 let typewriterTimeout = null;
@@ -230,30 +238,9 @@ async function loadCard(uuid) {
     } catch (error) {
         console.error('Error loading card:', error);
 
-        // 根據錯誤類型顯示對應訊息
-        const errorMsg = error.message.toLowerCase();
-        
-        if (errorMsg.includes('session_expired') || errorMsg.includes('expired') || errorMsg.includes('過期')) {
-            showError('授權已過期（24 小時），請重新觸碰 NFC 卡片取得新授權');
-        } else if (errorMsg.includes('session_revoked') || errorMsg.includes('revoked') || errorMsg.includes('已撤銷')) {
-            showError('此授權已被撤銷，請重新觸碰 NFC 卡片或聯絡名片擁有者');
-        } else if (errorMsg.includes('max_reads_exceeded') || errorMsg.includes('exceeded') || errorMsg.includes('次數上限')) {
-            showError('已達同時讀取數上限，請重新觸碰 NFC 卡片取得新授權');
-        } else if (errorMsg.includes('session_not_found') || errorMsg.includes('not_found')) {
-            showError('授權不存在或已失效，請重新觸碰 NFC 卡片');
-        } else if (errorMsg.includes('card_not_found') || errorMsg.includes('名片不存在')) {
-            showError('名片不存在或已被刪除，請聯絡名片擁有者');
-        } else if (errorMsg.includes('network') || errorMsg.includes('failed to fetch')) {
-            showError('網路連線失敗，請檢查網路後重試');
-        } else if (errorMsg.includes('403')) {
-            showError('授權驗證失敗，請重新觸碰 NFC 卡片');
-        } else if (errorMsg.includes('404')) {
-            showError('資源不存在，請確認連結是否正確');
-        } else if (errorMsg.includes('500')) {
-            showError('伺服器錯誤，請稍後再試或聯絡技術支援');
-        } else {
-            showError(`載入失敗: ${error.message}`);
-        }
+        // Use ERROR_MESSAGES for known error codes
+        const errorMessage = ERROR_MESSAGES[error.code] || error.message || '載入失敗';
+        showError(errorMessage);
 
         hideLoading();
         return;
@@ -262,6 +249,15 @@ async function loadCard(uuid) {
     if (cardData) {
         currentCardData = cardData; // 儲存供 vCard 下載使用
         renderCard(cardData, sessionData);
+
+        // Check for warning (budget alerts)
+        if (sessionData && sessionData.warning) {
+            const banner = document.createElement('div');
+            banner.className = 'warning-banner';
+            banner.innerHTML = `<i data-lucide="alert-triangle"></i><span>${sessionData.warning.message} (剩餘 ${sessionData.warning.remaining} 次)</span>`;
+            document.body.insertBefore(banner, document.body.firstChild);
+            lucide.createIcons();
+        }
     } else {
         showError('無法載入名片資料');
         hideLoading();

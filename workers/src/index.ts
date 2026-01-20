@@ -4,7 +4,7 @@ import type { Env } from './types';
 import { handleHealth } from './handlers/health';
 import { handleTap } from './handlers/tap';
 import { handleRead } from './handlers/read';
-import { handleCreateCard, handleUpdateCard, handleDeleteCard, handleRestoreCard, handleListCards, handleGetCard } from './handlers/admin/cards';
+import { handleCreateCard, handleUpdateCard, handleDeleteCard, handleRestoreCard, handleListCards, handleGetCard, handleResetBudget } from './handlers/admin/cards';
 import { handleRevoke } from './handlers/admin/revoke';
 import { handleKekRotate } from './handlers/admin/kek';
 import { handleAdminLogin, handleAdminLogout } from './handlers/admin/auth';
@@ -179,6 +179,13 @@ export default {
     if (restoreCardMatch && request.method === 'POST') {
       const uuid = restoreCardMatch[1];
       return handleRestoreCard(request, env, uuid);
+    }
+
+    // POST /api/admin/cards/:uuid/reset-budget - Reset session budget
+    const resetBudgetMatch = url.pathname.match(/^\/api\/admin\/cards\/([a-f0-9-]{36})\/reset-budget$/);
+    if (resetBudgetMatch && request.method === 'POST') {
+      const uuid = resetBudgetMatch[1];
+      return handleResetBudget(request, env, ctx, uuid);
     }
 
     // POST /api/admin/revoke - Emergency revocation

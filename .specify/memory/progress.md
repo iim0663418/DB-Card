@@ -1,11 +1,18 @@
 # DB-Card Project Progress
-## Current Phase: V4.1.0_STAGING_DEPLOYED ✅
-- Status: v4.1.0 已部署到 Staging 環境
+## Current Phase: V4.2.0_STAGING_DEPLOYED ✅
+- Status: v4.2.0 已部署到 Staging 環境
 - Task: 監控 Staging 環境穩定性
-- Last Update: 2026-01-20T14:45:00+08:00
-- Next Action: 監控 24 小時，收集實際使用數據
+- Last Update: 2026-01-20T15:20:00+08:00
+- Next Action: 監控 24-48 小時，收集實際使用數據
 
 ## 最近完成 (2026-01-20)
+- ✅ **v4.2.0 Session Budget 完整部署**
+  - 本地實作完成 ✅
+  - 本地測試 6/6 通過 ✅
+  - 部署到 Staging ✅
+  - Migration 0010 應用成功 ✅
+  - Staging 測試 5/5 通過 ✅
+  - Git 提交並推送 (commit 714dc9d) ✅
 - ✅ **完整系統架構整理**
   - 創建 COMPLETE-SYSTEM-ARCHITECTURE-v4.md（完整架構文檔）
   - 創建 DECISION-SUMMARY-v4.2.0.md（決策摘要）

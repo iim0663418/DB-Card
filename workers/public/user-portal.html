@@ -734,6 +734,11 @@
                     ['CARD_NOT_REVOKED', '名片未處於撤銷狀態'],
                     ['REVOCATION_RATE_LIMITED', '撤銷次數超過限制'],
                     ['RESTORE_WINDOW_EXPIRED', '恢復期限已過（7 天），請聯繫管理員'],
+                    // v4.1.0 & v4.2.0: Rate limit and budget error codes
+                    ['rate_limited', '請求過於頻繁，請稍後再試'],
+                    ['session_budget_exceeded', '此名片已達到使用上限，請聯絡管理員'],
+                    ['daily_budget_exceeded', '今日使用次數已達上限，請明天再試'],
+                    ['monthly_budget_exceeded', '本月使用次數已達上限，請下月再試'],
                     [401, '登入已過期，請重新登入'],
                     [403, '權限不足'],
                     [404, '資源不存在'],
@@ -1364,11 +1369,25 @@
                 toggleLoading(true);
 
                 // 先 tap 獲取 session（與 admin-dashboard 一致）
-                const response = await apiCall('/api/nfc/tap', {
+                const tapResponse = await fetch(`${API_BASE}/api/nfc/tap`, {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ card_uuid: uuid })
                 });
 
+                // v4.1.0 & v4.2.0: Handle rate_limited error
+                if (!tapResponse.ok) {
+                    const error = await tapResponse.json();
+                    if (error.error?.code === 'rate_limited') {
+                        showToast('名片預覽功能暫時無法使用（請求過於頻繁）', 'warning');
+                        toggleLoading(false);
+                        return;
+                    }
+                    throw error;
+                }
+
+                const response = await tapResponse.json();
                 const sessionId = response.session_id || response.data?.session_id;
 
                 if (!sessionId) {
@@ -1383,8 +1402,8 @@
             } catch (error) {
                 toggleLoading(false);
                 // 使用統一錯誤處理
-                const errorMsg = errorHandler.handle(error);
-                showToast('查看失敗: ' + errorMsg);
+                const errorMsg = errorHandler.handle(error.error || error);
+                showToast(errorMsg, 'error');
             }
         }
 

@@ -266,6 +266,7 @@ async function loadCard(uuid) {
 
 function renderCard(cardData, sessionData) {
     const name = getLocalizedText(cardData.name, currentLanguage);
+    document.title = name ? `數位名片 | ${name}` : '數位名片 | 名片顯示';
     const title = getLocalizedText(cardData.title, currentLanguage);
     const greetings = getLocalizedArray(cardData.greetings, currentLanguage);
 

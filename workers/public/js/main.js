@@ -316,7 +316,27 @@ function renderCard(cardData, sessionData) {
     const greetings = getLocalizedArray(cardData.greetings, currentLanguage);
 
     document.getElementById('user-name').textContent = name || '---';
-    document.getElementById('user-title').textContent = title || '---';
+
+    // Title (conditional display)
+    if (title) {
+        document.getElementById('user-title').style.display = 'block';
+        document.getElementById('user-title').textContent = title;
+    } else {
+        document.getElementById('user-title').style.display = 'none';
+    }
+
+    // Department (conditional display with translation)
+    const dept = cardData.department || '';
+    if (dept) {
+        const deptTranslated = currentLanguage === 'en' && ORG_DEPT_MAPPING.departments[dept]
+            ? ORG_DEPT_MAPPING.departments[dept]
+            : dept;
+
+        document.getElementById('user-department').style.display = 'flex';
+        document.getElementById('user-department-text').textContent = deptTranslated;
+    } else {
+        document.getElementById('user-department').style.display = 'none';
+    }
 
     // 大頭貼處理 - 支援 Google Drive URL 轉換
     const avatarContainer = document.getElementById('user-avatar').closest('.relative');

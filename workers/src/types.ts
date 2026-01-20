@@ -77,18 +77,18 @@ export const CARD_POLICIES: Record<CardType, CardPolicy> = {
     ttl: 24 * 60 * 60 * 1000,  // 24 hours
     max_reads: 20,
     scope: 'public',
-    max_total_sessions: 1000,
-    max_sessions_per_day: 10,
-    max_sessions_per_month: 100,
+    max_total_sessions: 10000,    // 1000 → 10000 (×10)
+    max_sessions_per_day: 100,    // 10 → 100 (×10)
+    max_sessions_per_month: 1000, // 100 → 1000 (×10)
     warning_threshold: 0.9,
   },
   event_booth: {
     ttl: 24 * 60 * 60 * 1000,
     max_reads: 50,
     scope: 'public',
-    max_total_sessions: 5000,
-    max_sessions_per_day: 50,
-    max_sessions_per_month: 500,
+    max_total_sessions: 50000,    // 5000 → 50000 (×10)
+    max_sessions_per_day: 500,    // 50 → 500 (×10)
+    max_sessions_per_month: 5000, // 500 → 5000 (×10)
     warning_threshold: 0.9,
   },
   sensitive: {

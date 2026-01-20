@@ -34,7 +34,7 @@ export async function tapCard(uuid) {
  */
 export async function readCard(uuid, sessionId) {
   const CACHE_TTL = 300000; // 5 minutes in milliseconds
-  const cacheKey = `card:${uuid}:${sessionId}`;
+  const cacheKey = `card:${uuid}`;
 
   // Scenario 1 & 2: Check cache validity
   try {

@@ -140,9 +140,23 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
     // ============================================================
 
     // Map user card type to CardType (preview for budget check)
-    const cardTypePreview = await env.DB.prepare(`
-      SELECT type FROM uuid_bindings WHERE uuid = ?
-    `).bind(card_uuid).first<{ type: string }>();
+    // Use KV cache for performance (TTL: 24 hours)
+    const cardTypeCacheKey = `card_type:${card_uuid}`;
+    let cachedType = await env.KV.get(cardTypeCacheKey);
+
+    let cardTypePreview: { type: string } | null = null;
+    if (cachedType) {
+      cardTypePreview = { type: cachedType };
+    } else {
+      cardTypePreview = await env.DB.prepare(`
+        SELECT type FROM uuid_bindings WHERE uuid = ?
+      `).bind(card_uuid).first<{ type: string }>();
+
+      // Cache the type if found
+      if (cardTypePreview?.type) {
+        await env.KV.put(cardTypeCacheKey, cardTypePreview.type, { expirationTtl: 86400 });
+      }
+    }
 
     let cardTypeBudget: CardType = 'personal';
     if (cardTypePreview?.type === 'event') {
@@ -223,15 +237,16 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
     // ============================================================
 
     // Use D1 batch to split queries (avoid JOIN overhead)
+    // If we have cached type, only fetch status; otherwise fetch both
     const [cardResult, bindingResult] = await env.DB.batch([
       env.DB.prepare(`
         SELECT uuid, encrypted_payload, wrapped_dek, key_version, created_at, updated_at
         FROM cards WHERE uuid = ?
       `).bind(card_uuid),
 
-      env.DB.prepare(`
-        SELECT type, status FROM uuid_bindings WHERE uuid = ?
-      `).bind(card_uuid)
+      cachedType
+        ? env.DB.prepare(`SELECT status FROM uuid_bindings WHERE uuid = ?`).bind(card_uuid)
+        : env.DB.prepare(`SELECT type, status FROM uuid_bindings WHERE uuid = ?`).bind(card_uuid)
     ]);
 
     const card = cardResult.results[0] as {
@@ -243,10 +258,13 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
       updated_at: number;
     } | undefined;
 
-    const binding = bindingResult.results[0] as {
-      type: string;
-      status: string;
-    } | undefined;
+    const bindingData = bindingResult.results[0] as
+      | { type?: string; status: string }
+      | undefined;
+
+    const binding = cachedType
+      ? { type: cachedType, status: bindingData?.status || 'active' }
+      : (bindingData as { type: string; status: string } | undefined);
 
     // Reconstruct result object
     const result = card ? {
@@ -303,7 +321,8 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
       cardType = 'sensitive';
     }
 
-    const newSession = await createSession(env, card_uuid, cardType);
+    // Pass ctx to enable async session insert + cache update
+    const newSession = await createSession(env, card_uuid, cardType, ctx);
 
     // Store dedup entry (TTL: 60s)
     await env.KV.put(dedupKey, newSession.session_id, { expirationTtl: 60 });

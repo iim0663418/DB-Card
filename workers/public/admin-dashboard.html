@@ -308,9 +308,9 @@
                                 <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">公務 Email</label>
                                 <input type="email" id="email" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" placeholder="example@moda.gov.tw">
                             </div>
-                            <div>
+                            <div class="space-y-2">
                                 <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">所屬部門</label>
-                                <select id="department" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm appearance-none">
+                                <select id="department-preset" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm appearance-none">
                                     <option value="">請選擇部門</option>
                                     <option value="數位策略司">數位策略司</option>
                                     <option value="數位政府司">數位政府司</option>
@@ -328,7 +328,12 @@
                                     <option value="政務次長室">政務次長室</option>
                                     <option value="常務次長室">常務次長室</option>
                                     <option value="主任秘書室">主任秘書室</option>
+                                    <option value="custom">自訂部門</option>
                                 </select>
+
+                                <div id="custom-department-field" class="hidden">
+                                    <input type="text" id="department-custom" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" placeholder="請輸入部門名稱">
+                                </div>
                             </div>
                         </div>
 
@@ -1474,6 +1479,12 @@
             const isEditing = !!window.editingCardUuid;
 
             // 收集表單資料（完全對齊 nfc-generator）
+            // 處理部門欄位
+            const departmentPreset = document.getElementById('department-preset').value;
+            const departmentValue = departmentPreset === 'custom'
+                ? document.getElementById('department-custom').value.trim()
+                : departmentPreset;
+
             const formData = {
                 name_zh: document.getElementById('name_zh').value.trim(),
                 name_en: document.getElementById('name_en').value.trim(),
@@ -1481,7 +1492,7 @@
                 title_en: document.getElementById('title_en').value.trim(),
                 email: document.getElementById('email').value.trim(),
                 phone: document.getElementById('phone').value.trim(),
-                department: document.getElementById('department').value,
+                department: departmentValue,
                 mobile: document.getElementById('mobile').value.trim(),
                 avatar_url: document.getElementById('avatar_url').value.trim(),
                 greetings_zh: document.getElementById('greetings_zh').value,
@@ -1908,7 +1919,26 @@
             document.getElementById('title_zh').value = data.title?.zh || '';
             document.getElementById('title_en').value = data.title?.en || '';
             document.getElementById('email').value = data.email || '';
-            document.getElementById('department').value = data.department || '';
+
+            // 處理部門預設選項
+            const PRESET_DEPARTMENTS = [
+                '數位策略司', '數位政府司', '資源管理司', '韌性建設司',
+                '數位國際司', '資料創新司', '秘書處', '人事處',
+                '政風處', '主計處', '資訊處', '法制處',
+                '部長室', '政務次長室', '常務次長室', '主任秘書室'
+            ];
+
+            if (data.department) {
+                if (PRESET_DEPARTMENTS.includes(data.department)) {
+                    document.getElementById('department-preset').value = data.department;
+                    document.getElementById('custom-department-field').classList.add('hidden');
+                } else {
+                    // 自訂部門
+                    document.getElementById('department-preset').value = 'custom';
+                    document.getElementById('department-custom').value = data.department;
+                    document.getElementById('custom-department-field').classList.remove('hidden');
+                }
+            }
 
             // 聯絡資訊
             document.getElementById('phone').value = data.phone || '';
@@ -2667,6 +2697,21 @@
                     customFields.classList.remove('hidden');
                 } else {
                     customFields.classList.add('hidden');
+                }
+                updatePreview();
+            });
+
+            // 部門預設選單事件監聽器
+            document.getElementById('department-preset').addEventListener('change', (e) => {
+                const value = e.target.value;
+                const customField = document.getElementById('custom-department-field');
+
+                if (value === 'custom') {
+                    customField.classList.remove('hidden');
+                    document.getElementById('department-custom').focus();
+                } else {
+                    customField.classList.add('hidden');
+                    document.getElementById('department-custom').value = '';
                 }
                 updatePreview();
             });

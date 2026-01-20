@@ -940,3 +940,52 @@
 260120|Staging_Deployment|worker_version|195a0b11_d76e_4a7a_8b79_dabb662ee5b0
 260120|Staging_Deployment|health_check|Passing
 260120|Staging_Deployment|timestamp|2026_01_20T18_28_00_plus_08_00
+
+# KV Optimization Phase 1 (2026-01-21)
+260121|KV_Optimization|version|Phase_1_Complete
+260121|KV_Optimization|status|DEPLOYED
+260121|KV_Optimization|commit|b17f61a
+260121|KV_Optimization|rationale|Cloudflare_Best_Practices_Industry_Standards
+
+# Deduplication Layer Removal
+260121|Dedup_Layer|status|REMOVED
+260121|Dedup_Layer|reason|Redundant_With_Rate_Limiting
+260121|Dedup_Layer|savings|minus_2_KV_ops_per_tap
+260121|Dedup_Layer|kv_key|tap_dedup_uuid_REMOVED
+
+# Rate Limiting Simplification
+260121|Rate_Limiting|version|v2.0_Hour_Only
+260121|Rate_Limiting|windows|Hour_Only_No_Minute
+260121|Rate_Limiting|card_uuid_limit|50_per_hour
+260121|Rate_Limiting|ip_limit|60_per_hour
+260121|Rate_Limiting|savings|minus_4_KV_ops_per_tap
+260121|Rate_Limiting|industry_standard|GitHub_Stripe_Twitter
+
+# KV Operations Reduction
+260121|KV_Ops_Before|per_tap|10_ops_5_reads_5_writes
+260121|KV_Ops_After|per_tap|4_ops_2_reads_2_writes
+260121|KV_Ops_Savings|per_tap|minus_6_ops_60_percent
+260121|KV_Ops_Daily_Before|100_taps|500_writes_50_percent_limit
+260121|KV_Ops_Daily_After|100_taps|200_writes_20_percent_limit
+260121|KV_Ops_Headroom|increase|4x_capacity
+
+# Security Architecture (Unchanged)
+260121|Security_Layer_1|rate_limiting|50_hour_card_60_hour_ip
+260121|Security_Layer_2|session_budget|daily_monthly_limits
+260121|Security_Layer_3|concurrent_reads|max_reads_per_session
+
+# External Research
+260121|Research_Source_1|cloudflare_community|KV_Not_For_Rate_Limiting
+260121|Research_Source_2|ef_map_blog|93_Percent_KV_Reduction
+260121|Research_Source_3|industry_standard|Hour_Window_Best_Practice
+
+# Files Modified
+260121|Modified_File_1|handlers_tap_ts|Remove_Dedup_Renumber_Steps
+260121|Modified_File_2|utils_rate_limit_ts|Hour_Only_Config
+260121|Modified_File_3|types_ts|RateLimitWindow_Hour_Only
+
+# Documentation
+260121|Documentation|kv_usage_analysis|analysis_kv_usage_analysis_md
+260121|Documentation|optimization_proposal|analysis_kv_optimization_proposal_md
+260121|Documentation|best_practices|analysis_external_best_practices_md
+260121|Documentation|bdd_spec|specs_kv_optimization_phase1_md

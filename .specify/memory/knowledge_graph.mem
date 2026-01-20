@@ -707,3 +707,55 @@
 260120|Terminology_Fix|wrong_terms|最大讀取次數_最大回看次數_讀取次數上限
 260120|Terminology_Fix|correct_terms|同時讀取數上限_最大同時讀取數_併發讀取限制
 260120|Terminology_Fix|consistency|100_Percent_Verified
+
+# Tap API Multi-Layer Defense v1.0.0 (2026-01-20)
+260120|Tap_API_Defense|version|v1.0.0
+260120|Tap_API_Defense|status|COMPLETE
+260120|Tap_API_Defense|commit|a340a3b
+260120|Tap_API_Defense|deployment|staging_10e097d2
+
+# Layer 1: Deduplication
+260120|Layer_1_Dedup|ttl|60_seconds
+260120|Layer_1_Dedup|behavior|Return_Existing_Session
+
+# Layer 2: Rate Limiting
+260120|Layer_2_RateLimit|algorithm|Sliding_Window_Counter
+260120|Layer_2_RateLimit|card_uuid|10_per_min_50_per_hour
+260120|Layer_2_RateLimit|ip|10_per_min_60_per_hour
+
+# Session Budget v4.2.0 (2026-01-20)
+260120|Session_Budget|version|v4.2.0
+260120|Session_Budget|status|COMPLETE
+260120|Session_Budget|commit|714dc9d
+260120|Session_Budget|deployment|staging_5a37218c
+
+# Budget Limits
+260120|Budget_Personal|limits|1000_10_100
+260120|Budget_Event|limits|5000_50_500
+260120|Budget_Sensitive|limits|100_3_30
+
+# Frontend Update (2026-01-20)
+260120|Frontend_Update|version|v4.1_v4.2
+260120|Frontend_Update|commit|e031855_34ade89
+260120|Frontend_Update|deployment|staging_6d2a4af0
+
+# Error Messages
+260120|Error_rate_limited|message|請求過於頻繁，請稍後再試
+260120|Error_session_budget_exceeded|message|此名片已達到使用上限，請聯絡管理員
+260120|Error_daily_budget_exceeded|message|今日使用次數已達上限，請明天再試
+260120|Error_monthly_budget_exceeded|message|本月使用次數已達上限，請下月再試
+
+# Budget Reset
+260120|Budget_Reset|api|POST_/api/admin/cards/:uuid/reset-budget
+260120|Budget_Reset|button|admin-dashboard.html
+260120|Budget_Reset|audit_log|card_budget_reset
+
+# Testing
+260120|Testing|v4.1.0|6_of_6_passed
+260120|Testing|v4.2.0|6_of_6_passed
+260120|Testing|frontend|5_of_5_passed
+
+# Deployment
+260120|Deployment|staging|6d2a4af0-32a7-4080-81d9-d3eb824a591f
+260120|Deployment|url|https://db-card-staging.csw30454.workers.dev
+260120|Deployment|status|operational

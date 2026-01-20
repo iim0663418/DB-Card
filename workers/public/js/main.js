@@ -238,7 +238,7 @@ async function loadCard(uuid) {
         } else if (errorMsg.includes('session_revoked') || errorMsg.includes('revoked') || errorMsg.includes('已撤銷')) {
             showError('此授權已被撤銷，請重新觸碰 NFC 卡片或聯絡名片擁有者');
         } else if (errorMsg.includes('max_reads_exceeded') || errorMsg.includes('exceeded') || errorMsg.includes('次數上限')) {
-            showError('已達讀取次數上限，請重新觸碰 NFC 卡片取得新授權');
+            showError('已達同時讀取數上限，請重新觸碰 NFC 卡片取得新授權');
         } else if (errorMsg.includes('session_not_found') || errorMsg.includes('not_found')) {
             showError('授權不存在或已失效，請重新觸碰 NFC 卡片');
         } else if (errorMsg.includes('card_not_found') || errorMsg.includes('名片不存在')) {

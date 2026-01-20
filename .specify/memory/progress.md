@@ -1,11 +1,41 @@
 # DB-Card Project Progress
-## Current Phase: READY_FOR_NEXT_FEATURE ✅
-- Status: User Self-Revoke Feature 已完成並歸檔
-- Task: 準備開始下一個功能開發
-- Last Update: 2026-01-20T00:44:00+08:00
-- Next Action: 等待新需求
+## Current Phase: SYSTEM_ARCHITECTURE_COMPLETE ✅
+- Status: v4.1.0 實作完成，v4.2.0 規劃完成
+- Task: 完整系統架構整理與決策確認
+- Last Update: 2026-01-20T14:40:00+08:00
+- Next Action: 部署 v4.1.0 到 Staging，準備 v4.2.0 開發
 
 ## 最近完成 (2026-01-20)
+- ✅ **完整系統架構整理**
+  - 創建 COMPLETE-SYSTEM-ARCHITECTURE-v4.md（完整架構文檔）
+  - 創建 DECISION-SUMMARY-v4.2.0.md（決策摘要）
+  - 確認機制完整性和一致性
+  - 基於外部研究確定 v4.2.0 方向
+- ✅ **外部最佳實踐研究**
+  - 研究 Dropbox 推薦計劃（3900% 增長）
+  - 研究 PayPal 病毒式增長機制
+  - 研究 K-Factor 理論和業界基準
+  - 研究推薦計劃欺詐防護
+  - 結論：不實作傳遞深度限制，採用總量限制
+- ✅ **Phase 1 (P0) Multi-Layer Defense 實作完成**
+  - Layer 1: Dedup (60s KV-based)
+  - Layer 2: Rate Limit (card_uuid + IP, minute + hour)
+  - Layer 3: Max Reads (preserved existing logic)
+  - 創建 utils/rate-limit.ts (Sliding Window Counter)
+  - 創建 utils/ip.ts (CF-Connecting-IP priority)
+  - 更新 types.ts (5 個新類型定義)
+  - 重構 handlers/tap.ts (5-step execution order)
+  - BDD 規格：11 scenarios 完整覆蓋
+  - TypeScript 編譯通過 ✅
+  - 本地測試通過 6/6 ✅
+- ✅ Terminology Clarification: max_reads 語意修正
+  - README.md 名片類型策略表格
+  - 前端錯誤訊息 (main.js)
+  - 後端錯誤訊息 (read.ts)
+  - TypeScript 類型註釋 (types.ts)
+  - 文檔描述 (landing-page-prd.md, REVOKE-AND-NEW-CARD-GUIDE.md)
+  - 首頁設計雛形 (DB-Card 系統首頁設計雛形.html)
+  - 知識圖譜更新
 - ✅ User Self-Revoke Feature v1.0.0
 - ✅ 性能優化（N+1 查詢、空響應修復）
 - ✅ UI 優化（進度指示器、管理員提示）
@@ -193,6 +223,9 @@
 - [x] POST /api/admin/revoke
 
 ## 待辦事項
+- [ ] 本地測試 Tap API (dedup + rate limit)
+- [ ] 部署到 staging 環境
+- [ ] 驗證 KV 存儲和 TTL 行為
 - [ ] 監控實際性能指標
 - [ ] 收集用戶反饋
 - [ ] 考慮長期架構優化（Durable Objects）

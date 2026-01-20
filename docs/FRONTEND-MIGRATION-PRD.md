@@ -95,7 +95,7 @@ GET /api/read?uuid=550e8400-e29b-41d4-a716-446655440000&session=sess_a1b2c3d4e5f
 **Error Cases**:
 - 403: session_expired - 請再次碰卡以重新取得授權
 - 403: session_revoked - 此授權已被撤銷
-- 403: max_reads_exceeded - 已達讀取次數上限
+- 403: max_reads_exceeded - 已達同時讀取數上限
 - 404: session_not_found - Session 不存在
 
 ---
@@ -411,7 +411,7 @@ async function handleSessionExpired(uuid) {
 ```javascript
 async function handleMaxReadsExceeded(uuid) {
   // 顯示友善提示
-  showNotification('已達讀取次數上限，請重新碰卡取得新授權', 'warning');
+  showNotification('已達同時讀取數上限，請重新碰卡取得新授權', 'warning');
   
   // 清理 session
   await db.active_sessions.delete(uuid);

@@ -198,7 +198,7 @@ personal (bound): 可以創建 ✅
 ### 4. 類型選擇
 - personal: 日常使用
 - event_booth: 展會活動
-- sensitive: 敏感資訊（限制讀取次數）
+- sensitive: 敏感資訊（限制同時讀取數）
 
 ---
 

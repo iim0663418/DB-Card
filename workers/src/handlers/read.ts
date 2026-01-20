@@ -65,7 +65,7 @@ interface SessionValidation {
 
 /**
  * Validate ReadSession
- * Checks: expires_at, revoked_at, reads_used vs max_reads
+ * Checks: expires_at, revoked_at, reads_used vs max_reads (concurrent limit)
  */
 function validateSession(session: ReadSession | null): SessionValidation {
   if (!session) {
@@ -96,12 +96,12 @@ function validateSession(session: ReadSession | null): SessionValidation {
     };
   }
 
-  // Check max_reads
+  // Check max_reads (concurrent read limit)
   if (session.reads_used >= session.max_reads) {
     return {
       valid: false,
       reason: 'max_reads_exceeded',
-      message: '已達讀取次數上限'
+      message: '已達同時讀取數上限'
     };
   }
 

@@ -530,14 +530,49 @@
 
             <!-- Share Link -->
             <div class="mb-6">
-                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">分享連結</label>
+                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">名片網址</label>
                 <div class="flex gap-2">
                     <input id="modal-share-link" type="text" readonly class="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono text-slate-700">
-                    <button id="modal-copy-btn" onclick="copyModalLink()" class="px-6 py-3 bg-moda text-white rounded-xl font-bold hover:bg-moda/90 transition-colors">
-                        複製
+                    <button id="modal-copy-btn" onclick="copyModalLink()" class="px-6 py-3 bg-moda text-white rounded-xl font-bold hover:bg-moda/90 transition-colors flex items-center gap-2">
+                        <i data-lucide="copy" class="w-4 h-4"></i>
+                        <span id="modal-copy-text">複製</span>
                     </button>
                 </div>
                 <p class="text-xs text-slate-500 mt-2">此連結可分享給他人查看您的名片</p>
+            </div>
+
+            <!-- Next Steps -->
+            <div class="mb-6 p-4 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border border-purple-100">
+                <h4 class="text-xs font-black text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <i data-lucide="lightbulb" class="w-4 h-4 text-moda"></i>
+                    下一步操作建議
+                </h4>
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- NFC Card Writing -->
+                    <div class="bg-white/80 backdrop-blur-sm p-4 rounded-xl border border-white/50 hover:border-moda/30 transition-all cursor-default group">
+                        <div class="flex flex-col items-center text-center gap-2">
+                            <div class="w-10 h-10 bg-moda/10 rounded-lg flex items-center justify-center group-hover:bg-moda/20 transition-colors">
+                                <i data-lucide="credit-card" class="w-5 h-5 text-moda"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-black text-slate-700">寫入 NFC 卡片</p>
+                                <p class="text-[9px] text-slate-500 mt-1">實體卡片快速分享</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- URL Shortening -->
+                    <div class="bg-white/80 backdrop-blur-sm p-4 rounded-xl border border-white/50 hover:border-moda/30 transition-all cursor-default group">
+                        <div class="flex flex-col items-center text-center gap-2">
+                            <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center group-hover:bg-green-100 transition-colors">
+                                <i data-lucide="link-2" class="w-5 h-5 text-green-600"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-black text-slate-700">縮短網址</p>
+                                <p class="text-[9px] text-slate-500 mt-1">方便線上分享</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Actions -->
@@ -829,9 +864,31 @@
         };
 
         const CARD_TYPES = [
-            { id: 'personal', label: 'Personal', icon: 'user', color: 'indigo', desc: '標準個人名片 (100/日, 1000/月, 10000/總計, 20 併發)' },
-            { id: 'event', label: 'Event', icon: 'megaphone', color: 'green', desc: '活動專用名片 (500/日, 5000/月, 50000/總計, 50 併發)' },
-            { id: 'sensitive', label: 'Sensitive', icon: 'shield', color: 'red', desc: '敏感資料保護 (3/日, 30/月, 100/總計, 5 併發)' }
+            {
+                id: 'personal',
+                label: 'Personal',
+                icon: 'user',
+                color: 'indigo',
+                desc: '標準個人名片',
+                features: ['同時讀取限制: 20 人', '適合日常使用', '100/日, 1000/月, 10000/總計']
+            },
+            {
+                id: 'event',
+                label: 'Event',
+                icon: 'megaphone',
+                color: 'green',
+                desc: '活動專用名片',
+                features: ['同時讀取限制: 50 人', '適合展會攤位', '500/日, 5000/月, 50000/總計']
+            },
+            {
+                id: 'sensitive',
+                label: 'Sensitive',
+                icon: 'shield',
+                color: 'red',
+                desc: '最高安全等級',
+                features: ['同時讀取限制: 5 人', '零快取暴露', '適用: 高敏感資訊、機密聯絡方式', '3/日, 30/月, 100/總計'],
+                securityBadge: true
+            }
         ];
 
         // 地址預設選項
@@ -1209,9 +1266,19 @@
                                 <h3 class="text-xl font-black ${isBound || isRevoked ? 'text-slate-900' : 'text-slate-300'}">
                                     ${isBound || isRevoked ? data.name_zh : '尚未建立'}
                                 </h3>
-                                <p class="text-xs ${isBound || isRevoked ? 'text-slate-500' : 'text-slate-400'}">
+                                <p class="text-xs ${isBound || isRevoked ? 'text-slate-500' : 'text-slate-400'} ${config.securityBadge && !isBound && !isRevoked ? 'font-black' : ''}">
                                     ${isBound || isRevoked ? (data.name_en || '') : config.desc}
                                 </p>
+                                ${!isBound && !isRevoked && config.features ? `
+                                    <div class="mt-3 space-y-1.5">
+                                        ${config.features.map(feature => `
+                                            <div class="flex items-start gap-2 text-[10px] text-slate-600">
+                                                <i data-lucide="${config.id === 'sensitive' ? 'shield-check' : 'check'}" class="w-3 h-3 mt-0.5 text-${config.color}-500 flex-shrink-0"></i>
+                                                <span class="${config.id === 'sensitive' && feature.includes('零快取') ? 'font-black text-red-600' : ''}">${feature}</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : ''}
                                 ${isBound || isRevoked ? `<p class="text-[9px] text-moda font-bold mt-4 uppercase tracking-tighter">Updated: ${data.updated_at ? new Date(data.updated_at).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }) : 'N/A'}</p>` : ''}
                                 ${isRevoked ? (data.revoked_at ? (() => {
                                     const revokedTime = new Date(data.revoked_at * 1000);
@@ -1304,9 +1371,16 @@
 
             // 重置複製按鈕
             const copyBtn = document.getElementById('modal-copy-btn');
-            copyBtn.innerText = '複製';
-            copyBtn.classList.remove('bg-green-600');
-            copyBtn.classList.add('bg-moda');
+            const copyBtnText = document.getElementById('modal-copy-text');
+            const copyBtnIcon = copyBtn.querySelector('i[data-lucide]');
+
+            if (copyBtnText) copyBtnText.innerText = '複製';
+            copyBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+            copyBtn.classList.add('bg-moda', 'hover:bg-moda/90');
+
+            if (copyBtnIcon) {
+                copyBtnIcon.setAttribute('data-lucide', 'copy');
+            }
 
             // 顯示 Modal
             document.getElementById('success-modal').classList.remove('hidden');
@@ -1341,20 +1415,34 @@
         async function copyModalLink() {
             const link = document.getElementById('modal-share-link').value;
             const btn = document.getElementById('modal-copy-btn');
+            const btnText = document.getElementById('modal-copy-text');
+            const btnIcon = btn.querySelector('i[data-lucide]');
 
             try {
                 await navigator.clipboard.writeText(link);
 
                 // 視覺反饋
-                btn.innerText = '已複製';
-                btn.classList.remove('bg-moda');
-                btn.classList.add('bg-green-600');
+                btnText.innerText = '已複製';
+                btn.classList.remove('bg-moda', 'hover:bg-moda/90');
+                btn.classList.add('bg-green-600', 'hover:bg-green-700');
+
+                // 更換 icon 為 check
+                if (btnIcon) {
+                    btnIcon.setAttribute('data-lucide', 'check');
+                    lucide.createIcons();
+                }
 
                 // 2 秒後恢復
                 setTimeout(() => {
-                    btn.innerText = '複製';
-                    btn.classList.remove('bg-green-600');
-                    btn.classList.add('bg-moda');
+                    btnText.innerText = '複製';
+                    btn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                    btn.classList.add('bg-moda', 'hover:bg-moda/90');
+
+                    // 恢復原始 icon
+                    if (btnIcon) {
+                        btnIcon.setAttribute('data-lucide', 'copy');
+                        lucide.createIcons();
+                    }
                 }, 2000);
             } catch (err) {
                 showToast('複製失敗，請手動複製');

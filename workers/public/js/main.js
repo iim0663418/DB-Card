@@ -15,6 +15,23 @@ let currentLanguage = 'zh';
 let typewriterTimeout = null;
 let currentCardData = null; // 儲存當前名片資料供 vCard 下載使用
 
+/**
+ * Device detection function for device-aware vCard button
+ * @returns {boolean} true if mobile device (iOS/Android/tablet), false for desktop
+ */
+function isMobileDevice() {
+    // Method 1: User Agent detection
+    const ua = navigator.userAgent.toLowerCase();
+    const isMobileUA = /iphone|ipad|ipod|android|mobile/i.test(ua);
+
+    // Method 2: Touch capability + screen size
+    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const isSmallScreen = window.matchMedia('(max-width: 768px)').matches;
+
+    // Return true if either UA indicates mobile OR (has touch AND small screen)
+    return isMobileUA || (hasTouch && isSmallScreen);
+}
+
 // 組織與部門雙語對照表（來自 v3 bilingual-common.js）
 const ORG_DEPT_MAPPING = {
     organization: {
@@ -41,8 +58,38 @@ const ORG_DEPT_MAPPING = {
     }
 };
 
+/**
+ * Update vCard button text and icon based on device type
+ */
+function updateVCardButton() {
+    const isMobile = isMobileDevice();
+    const i18nKey = isMobile ? 'add_to_contacts' : 'download_vcard';
+    const iconName = isMobile ? 'user-plus' : 'download';
+
+    // Update button text and data-i18n attribute
+    const vCardText = document.getElementById('vcard-text');
+    if (vCardText) {
+        vCardText.setAttribute('data-i18n', i18nKey);
+        vCardText.textContent = i18nTexts[i18nKey][currentLanguage];
+    }
+
+    // Update icon
+    const vCardIcon = document.getElementById('vcard-icon');
+    if (vCardIcon) {
+        vCardIcon.setAttribute('data-lucide', iconName);
+    }
+
+    // Reinitialize lucide icons to apply the new icon
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
 // 更新按鈕文字（根據當前語言）
 function updateButtonTexts() {
+    // Update vCard button first (device-aware)
+    updateVCardButton();
+
     // 更新所有 data-i18n 元素
     const i18nElements = document.querySelectorAll('[data-i18n]');
     i18nElements.forEach(el => {
@@ -67,13 +114,13 @@ const i18nTexts = {
         'zh': '名片已開啟',
         'en': 'Card Active'
     },
-    'save-vcard-desktop': {
+    'add_to_contacts': {
         'zh': '加入聯絡人',
-        'en': 'Add Contact'
+        'en': 'Add to Contacts'
     },
-    'save-vcard-mobile': {
+    'download_vcard': {
         'zh': '下載名片',
-        'en': 'Download'
+        'en': 'Download vCard'
     },
     'card-system': {
         'zh': '數位名片系統 Digital Business Card',

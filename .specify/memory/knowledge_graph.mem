@@ -5,7 +5,7 @@
 260118|DB-Card|type|NFC_Digital_Business_Card_System
 260118|DB-Card|version|v3.2.1
 260118|DB-Card|architecture|Pure_Frontend_PWA
-260118|DB-Card|license|MIT
+260118|DB-Card|license|Apache_2.0
 260118|DB-Card|privacy_model|Privacy_First_Design
 260118|DB-Card|storage|NFC_Card_Local_Storage
 260118|DB-Card|language_support|Bilingual_ZH_EN

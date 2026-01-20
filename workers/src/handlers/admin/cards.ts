@@ -2,6 +2,7 @@
 // POST /api/admin/cards - Create a new business card
 
 import type { Env, CardData, CardType } from '../../types';
+import { CARD_POLICIES } from '../../types';
 import { verifySetupToken } from '../../middleware/auth';
 import { EnvelopeEncryption } from '../../crypto/envelope';
 import { logEvent } from '../../utils/audit';
@@ -653,9 +654,10 @@ export async function handleListCards(request: Request, env: Env): Promise<Respo
 
     // Query all cards with binding status
     const cards = await env.DB.prepare(`
-      SELECT 
+      SELECT
         c.uuid, c.encrypted_payload, c.wrapped_dek,
         c.key_version, c.created_at, c.updated_at,
+        c.total_sessions,
         b.type as card_type,
         b.status as card_status
       FROM cards c
@@ -675,6 +677,28 @@ export async function handleListCards(request: Request, env: Env): Promise<Respo
     const encryption = new EnvelopeEncryption();
     await encryption.initialize(env);
 
+    // Generate date keys for KV queries
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+    const thisMonth = now.toISOString().slice(0, 7).replace(/-/g, ''); // YYYYMM
+
+    // Batch query all KV counters for all cards
+    const kvKeys = cards.results.flatMap((card: any) => [
+      `session:budget:${card.uuid}:daily:${today}`,
+      `session:budget:${card.uuid}:monthly:${thisMonth}`
+    ]);
+
+    const kvResults = await Promise.all(
+      kvKeys.map(key => env.KV.get(key))
+    );
+
+    // Build a map for quick lookup
+    const kvMap = new Map<string, number>();
+    kvKeys.forEach((key, idx) => {
+      const value = kvResults[idx];
+      kvMap.set(key, value ? parseInt(value, 10) : 0);
+    });
+
     // Decrypt each card's data
     const decryptedCards = await Promise.all(
       cards.results.map(async (card: any) => {
@@ -684,11 +708,40 @@ export async function handleListCards(request: Request, env: Env): Promise<Respo
             card.wrapped_dek
           );
 
+          // Get limits for this card type
+          const limits = CARD_POLICIES[card.card_type as CardType];
+
+          // Get usage from all three dimensions
+          const dailyUsed = kvMap.get(`session:budget:${card.uuid}:daily:${today}`) ?? 0;
+          const monthlyUsed = kvMap.get(`session:budget:${card.uuid}:monthly:${thisMonth}`) ?? 0;
+          const totalUsed = card.total_sessions ?? 0;
+
+          // Calculate percentages for all three dimensions
+          const dailyPercentage = Math.round((dailyUsed / limits.max_sessions_per_day) * 100);
+          const monthlyPercentage = Math.round((monthlyUsed / limits.max_sessions_per_month) * 100);
+          const totalPercentage = Math.round((totalUsed / limits.max_total_sessions) * 100);
+
+          // Determine overall status based on highest percentage
+          const maxPercentage = Math.max(dailyPercentage, monthlyPercentage, totalPercentage);
+          let budgetStatus: 'normal' | 'warning' | 'critical' = 'normal';
+          if (maxPercentage >= 95) budgetStatus = 'critical';
+          else if (maxPercentage >= 80) budgetStatus = 'warning';
+
           return {
             uuid: card.uuid,
             card_type: card.card_type,
             status: card.card_status,
             data: cardData,
+            budget: {
+              daily_used: dailyUsed,
+              daily_limit: limits.max_sessions_per_day,
+              monthly_used: monthlyUsed,
+              monthly_limit: limits.max_sessions_per_month,
+              total_used: totalUsed,
+              total_limit: limits.max_total_sessions,
+              status: budgetStatus,
+              percentage: maxPercentage
+            },
             created_at: new Date(card.created_at).toISOString(),
             updated_at: new Date(card.updated_at).toISOString()
           };
@@ -700,6 +753,16 @@ export async function handleListCards(request: Request, env: Env): Promise<Respo
             card_type: card.card_type,
             status: card.binding_status || card.card_status,
             data: { name: { zh: '解密失敗', en: 'Decryption Failed' }, email: 'error@example.com' },
+            budget: {
+              daily_used: 0,
+              daily_limit: 10,
+              monthly_used: 0,
+              monthly_limit: 100,
+              total_used: 0,
+              total_limit: 1000,
+              status: 'normal',
+              percentage: 0
+            },
             created_at: new Date(card.created_at).toISOString(),
             updated_at: new Date(card.updated_at).toISOString(),
             error: String(error)

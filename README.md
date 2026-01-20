@@ -378,7 +378,7 @@ npm run test:e2e
 
 ## 授權條款
 
-MIT License - 詳見 [LICENSE](LICENSE)
+Apache License 2.0 - 詳見 [LICENSE](LICENSE)
 
 ### 第三方元件授權
 

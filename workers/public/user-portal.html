@@ -288,7 +288,7 @@
                     <!-- 部門選擇下拉選單 -->
                     <div class="space-y-2">
                         <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">所屬部門</label>
-                        <select id="department" name="department" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold appearance-none">
+                        <select id="department-preset" name="department" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold appearance-none">
                             <option value="">請選擇部門</option>
                             <option value="數位策略司">數位策略司</option>
                             <option value="數位政府司">數位政府司</option>
@@ -306,7 +306,12 @@
                             <option value="政務次長室">政務次長室</option>
                             <option value="常務次長室">常務次長室</option>
                             <option value="主任秘書室">主任秘書室</option>
+                            <option value="custom">自訂部門</option>
                         </select>
+
+                        <div id="custom-department-field" class="hidden">
+                            <input type="text" id="department-custom" name="department_custom" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="請輸入部門名稱">
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1081,7 +1086,7 @@
 
             // 收集表單資料（允許空字串以支援清空欄位）
             ['type', 'name_zh', 'name_en', 'title_zh', 'title_en',
-             'department', 'email', 'phone', 'address_zh', 'address_en',
+             'email', 'phone', 'address_zh', 'address_en',
              'mobile', 'avatar_url', 'greetings_zh', 'greetings_en',
              'social_github', 'social_linkedin', 'social_facebook',
              'social_instagram', 'social_twitter', 'social_youtube',
@@ -1089,6 +1094,14 @@
                 const val = formData.get(key);
                 if (val !== null && val !== undefined) data[key] = val;
             });
+
+            // 處理部門欄位
+            const departmentPreset = document.getElementById('department-preset').value;
+            if (departmentPreset === 'custom') {
+                data.department = document.getElementById('department-custom').value.trim();
+            } else {
+                data.department = departmentPreset;
+            }
 
             const uuid = formData.get('form-uuid');
             const type = formData.get('form-type');
@@ -1198,7 +1211,7 @@
                     document.getElementById('form-uuid').value = card.uuid;
 
                     // 預填所有欄位（扁平結構）
-                    ['name_zh', 'name_en', 'title_zh', 'title_en', 'department',
+                    ['name_zh', 'name_en', 'title_zh', 'title_en',
                      'email', 'phone', 'mobile', 'avatar_url',
                      'greetings_zh', 'greetings_en',
                      'social_github', 'social_linkedin', 'social_facebook',
@@ -1207,6 +1220,26 @@
                         const el = document.getElementById(key);
                         if (el && fullCard[key] !== undefined) el.value = fullCard[key];
                     });
+
+                    // 處理部門預設選項
+                    const PRESET_DEPARTMENTS = [
+                        '數位策略司', '數位政府司', '資源管理司', '韌性建設司',
+                        '數位國際司', '資料創新司', '秘書處', '人事處',
+                        '政風處', '主計處', '資訊處', '法制處',
+                        '部長室', '政務次長室', '常務次長室', '主任秘書室'
+                    ];
+
+                    if (fullCard.department) {
+                        if (PRESET_DEPARTMENTS.includes(fullCard.department)) {
+                            document.getElementById('department-preset').value = fullCard.department;
+                            document.getElementById('custom-department-field').classList.add('hidden');
+                        } else {
+                            // 自訂部門
+                            document.getElementById('department-preset').value = 'custom';
+                            document.getElementById('department-custom').value = fullCard.department;
+                            document.getElementById('custom-department-field').classList.remove('hidden');
+                        }
+                    }
 
                     // 處理地址預設選項
                     if (fullCard.address_zh || fullCard.address_en) {
@@ -1904,6 +1937,21 @@
                     customFields.classList.add('hidden');
                     document.getElementById('address_zh').value = '';
                     document.getElementById('address_en').value = '';
+                }
+                updatePreview();
+            });
+
+            // 部門預設選擇監聽
+            document.getElementById('department-preset').addEventListener('change', (e) => {
+                const value = e.target.value;
+                const customField = document.getElementById('custom-department-field');
+
+                if (value === 'custom') {
+                    customField.classList.remove('hidden');
+                    document.getElementById('department-custom').focus();
+                } else {
+                    customField.classList.add('hidden');
+                    document.getElementById('department-custom').value = '';
                 }
                 updatePreview();
             });

@@ -1,6 +1,7 @@
 {
-	"name": "broken-field-3621",
-	"version": "0.0.0",
+	"name": "db-card",
+	"version": "4.2.0",
+	"description": "DB-Card NFC Digital Business Card System with Session Budget",
 	"private": true,
 	"scripts": {
 		"deploy": "wrangler deploy",

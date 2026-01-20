@@ -880,3 +880,60 @@ export async function handleRestoreCard(
     return errorResponse('internal_error', '恢復名片時發生錯誤', 500, request);
   }
 }
+
+/**
+ * Reset session budget for a card
+ * POST /api/admin/cards/:uuid/reset-budget
+ */
+export async function handleResetBudget(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+  card_uuid: string
+): Promise<Response> {
+  try {
+    // Verify authorization
+    const isAuthorized = await verifySetupToken(request, env);
+
+    if (!isAuthorized) {
+      const authHeader = request.headers.get('Authorization');
+      if (!authHeader) {
+        return adminErrorResponse('Authentication required', 401, request);
+      } else {
+        return adminErrorResponse('Invalid token', 403, request);
+      }
+    }
+
+    // 1. Verify card exists
+    const card = await env.DB.prepare('SELECT uuid FROM cards WHERE uuid = ?').bind(card_uuid).first();
+    if (!card) {
+      return errorResponse('card_not_found', '名片不存在', 404, request);
+    }
+
+    // 2. Reset total_sessions
+    await env.DB.prepare('UPDATE cards SET total_sessions = 0 WHERE uuid = ?').bind(card_uuid).run();
+
+    // 3. Clear KV counters
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const month = new Date().toISOString().slice(0, 7).replace(/-/g, '');
+    await env.KV.delete(`session:budget:${card_uuid}:daily:${today}`);
+    await env.KV.delete(`session:budget:${card_uuid}:monthly:${month}`);
+
+    // 4. Audit log
+    ctx.waitUntil(
+      env.DB.prepare('INSERT INTO audit_logs (event_type, actor_type, target_uuid, ip_address, details, created_at) VALUES (?, ?, ?, ?, ?, ?)').bind(
+        'card_budget_reset',
+        'admin',
+        card_uuid,
+        request.headers.get('CF-Connecting-IP')?.split('.').slice(0, 3).join('.') || 'unknown',
+        JSON.stringify({ reset_at: Date.now() }),
+        Date.now()
+      ).run()
+    );
+
+    return jsonResponse({ card_uuid, total_sessions: 0, reset_at: new Date().toISOString() }, 200, request);
+  } catch (error) {
+    console.error('Error resetting budget:', error);
+    return errorResponse('internal_error', '重置使用次數時發生錯誤', 500, request);
+  }
+}

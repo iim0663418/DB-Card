@@ -1,170 +1,52 @@
 # DB-Card Project Progress
-## Current Phase: PERFORMANCE_OPTIMIZATION_COMPLETE ✅
-- Status: 前端與後端性能優化完成 + 永久刪除功能新增
-- Task: 全面性能優化與管理功能增強
-- Last Update: 2026-01-19T22:12:00+08:00
-- Commit: 751ef17
-- Version: 49df1cf7-d284-48eb-95a6-58f75a64a0bf
-- Next Action: 監控實際使用效果，收集用戶反饋
+## Current Phase: WORDING_UPDATE_COMPLETE ✅
+- Status: 所有介面文案優化完成，準備提交
+- Commits: Ready to commit
+- Deployment: staging (a1178ec3-68d7-4138-8092-14e7a119783b)
+- Changes Summary:
+  - ✅ card-display.html: 8 處修改（header, loading icon, security, session info）
+  - ✅ index.html: 3 處修改（meta, 核心特色 3, 核心特色 4）
+  - ✅ 載入動畫：隨機圖示（contact/user-circle）
+  - ✅ 移除所有授權系統用語
+- Last Update: 2026-01-20T19:14:00+08:00
+- Next Action: Git commit and push
 
-## 最新功能 (2026-01-19 22:00-22:12)
+## 修改清單
+### card-display.html
+1. Header 標識：IDENTITY_NODE_V4 → DB_CARD_V4
+2. Loading 圖示：shield-check → 隨機（contact/user-circle）
+3. Loading 文字：Synchronizing Secure Identity → 載入名片資料
+4. Header 狀態：Authenticated Session → 名片已開啟
+5. vCard 按鈕：Sync Identity → 加入聯絡人
+6. 安全規範：Serverless Node → 雲端加密儲存，可隨時撤銷存取
+7. Session 過期：SESSION EXPIRES → 有效期限
+8. Session 次數：ATTEMPTS REMAINING → 可分享次數
+9. QR Modal：Scan for Official Verification → 掃描分享名片
 
-### 永久刪除功能 ✅
-- [x] 新增 DELETE /api/admin/cards/:uuid?permanent=true
-- [x] 只能刪除 revoked 狀態的卡片
-- [x] 從資料庫永久移除記錄（cards + uuid_bindings）
-- [x] 撤銷所有相關 sessions
-- [x] 清除 KV 快取
-- [x] 記錄 audit log (card_permanent_delete)
-- [x] 前端「永久刪除」按鈕（紅色警告樣式）
-- [x] 二次確認對話框（【警告】標記）
-- [x] 用途：協助使用者重置名片、清除測試資料
+### index.html
+1. Meta Description：授權會話 → 可撤銷會話
+2. 核心特色 3：授權會話機制 → 可撤銷分享機制
+3. 核心特色 4：可隨時撤銷授權 → 可隨時撤銷存取
 
-## 性能優化完成項目 ✅ (2026-01-19)
+### main.js
+1. i18n 字典：9 個 keys 更新
+2. 載入動畫：隨機圖示選擇（contact/user-circle）
 
-### 前端性能優化（三個頁面全部完成）
-- [x] card-display.html - 阻塞資源 4 → 1
-- [x] user-portal.html - 阻塞資源 3 → 1
-- [x] admin-dashboard.html - 阻塞資源 6 → 1
-- [x] 添加 preconnect 到關鍵 CDN
-- [x] 延遲載入非關鍵資源（Lucide, Three.js, QRCode.js, DOMPurify, Chart.js）
-- [x] 延遲 Three.js 初始化（100ms）
-- [x] 優化關鍵渲染路徑
-- [x] 預期改善：FCP -200~500ms, TTI -300~800ms
+## 已完成功能
+### Wording Update Final (2026-01-20)
+- ✅ 移除所有授權系統用語
+- ✅ 改為名片系統友善用語
+- ✅ 載入動畫優化（隨機圖示）
+- ✅ 強調「可撤銷」核心特色
 
-### API 性能優化 - 階段 1: D1 查詢優化
-- [x] 拆分 JOIN 查詢（tap.ts）
-- [x] 使用 D1 batch() 並行執行
-- [x] 避免笛卡爾積風險
-- [x] 實測：Tap API 7.2s → 1.5-2s（72-79% 改善）
+### Cleanup Query Optimization (efd2860)
+- ✅ Migration 0011: idx_uuid_bindings_revoked_cleanup
 
-### API 性能優化 - 階段 2: KV 快取層
-- [x] 實作 getCachedCardData() 快取 cardData
-- [x] 實作完整響應快取（包含 session_info）
-- [x] 快取 TTL: 60 秒
-- [x] 實測：Read API (熱) 0.9s → 0.5s（44% 改善）
-
-### API 性能優化 - 階段 3: 非同步操作
-- [x] Audit logging 改為 ctx.waitUntil()
-- [x] Session 更新改為非同步
-- [x] 不阻塞主要響應
-- [x] 節省 100-200ms
-
-### 性能分析與診斷
-- [x] 深度性能分析（網路延遲分解）
-- [x] 識別 D1 固有延遲（200-400ms）
-- [x] 識別 Worker 基礎延遲（0.7s）
-- [x] 確認快取機制正確運作
-
-## 性能優化結果總結
-
-### 最終性能指標
-| API | 優化前 | 優化後 | 改善 |
-|-----|--------|--------|------|
-| Tap API | 7.2s | 1.5-2s | 72-79% |
-| Read API (熱) | 0.9s | 0.5s | 44% |
-| Read API (冷) | 0.9s | 1.4s | -55% |
-
-### 技術限制
-- Worker 基礎延遲：0.7s（無法優化）
-- D1 查詢延遲：150-200ms（已知限制）
-- 網路延遲：400ms（地理位置）
-- 當前性能已達 D1 架構極限
-
-### Trade-offs
-- reads_remaining 在 60 秒快取期間可能不準確
-- Cold read 變慢（需填充快取）
-- 對名片使用情境完全可接受
-
-## 重要決策記錄 (2026-01-19)
-- ❌ ADR-005 (Fingerprint Verification) 已取消
-- 原因：產品定位為「名片系統」而非「授權系統」
-- SESSION EXPIRES 和 ATTEMPTS REMAINING 是「資源管理」而非「訪問控制」
-- 當前設計符合名片分享的核心需求（QR Code、URL 分享）
-
-### 性能優化決策
-- ✅ 接受 D1 架構限制（0.5s 為合理極限）
-- ✅ 實施完整響應快取（方案 1）
-- ❌ 不實施樂觀更新（方案 2，準確性 trade-off 過大）
-- 📋 長期考慮：Durable Objects 或外部資料庫
-
-### 永久刪除決策
-- ✅ 只能刪除 revoked 狀態的卡片（安全機制）
-- ✅ 使用查詢參數 ?permanent=true（保持 RESTful）
-- ✅ 二次確認防止誤操作
-- ✅ 記錄 audit log 追蹤
-
-## Phase 2 完成項目 ✅
-
-### User Portal 完整功能
-- [x] Google OAuth 登入整合
-- [x] 卡片選擇頁面（3 種類型）
-- [x] 完整表單（16 欄位對齊 admin-dashboard）
-- [x] Real-time Preview（雙語切換）
-- [x] 地址預設選擇（延平/新光大樓）
-- [x] 6 個社群連結欄位
-- [x] 查看名片 + 複製連結功能
-- [x] Revoked 卡片正確處理
-
-### 撤銷/恢復機制重構 ✅
-- [x] DELETE API 改為撤銷邏輯
-- [x] 新增 POST /api/admin/cards/:uuid/restore
-- [x] 新增 DELETE /api/admin/cards/:uuid?permanent=true（永久刪除）
-- [x] Admin Dashboard 顯示 revoked 卡片
-- [x] 根據狀態顯示不同按鈕（查看/編輯/撤銷 vs 查看/恢復/永久刪除）
-- [x] 全局撤銷功能實作
-- [x] User Portal 禁用 revoked 卡片操作
-
-### 資料庫架構優化 ✅
-- [x] 移除 cards.card_type 冗餘欄位
-- [x] 移除 cards.status 冗餘欄位
-- [x] 統一以 uuid_bindings 為 Single Source of Truth
-- [x] 新增 deleted_cards 審計表
-- [x] Migration 0005-0008 完成
-
-### 定期清除機制 ✅
-- [x] Cron Job 配置（每日 02:00 UTC）
-- [x] 90 天保留期
-- [x] 自動歸檔到 deleted_cards
-- [x] 保留加密資料快照
-
-### 設計系統統一 ✅
-- [x] MODA accent color (#6868ac) 三個前端統一
-- [x] 字體改為 Outfit
-- [x] WCAG AAA 合規（7.8:1 對比度）
-- [x] 頁籤名稱統一：數位名片 | XXX
-
-### Bug 修復 ✅
-- [x] LINE 和 Signal 社群連結支援
-- [x] QR code 掃描錯誤修正
-- [x] Favicon 升級為高解析度
-- [x] Admin-dashboard 表單提交 loading 狀態
-- [x] 清除前端 debug 輸出
-
-### API 完整性 ✅
-- [x] GET /api/user/cards
-- [x] GET /api/user/cards/:uuid
-- [x] POST /api/user/cards
-- [x] PUT /api/user/cards/:uuid
-- [x] GET /api/admin/cards
-- [x] POST /api/admin/cards/:uuid/restore
-- [x] DELETE /api/admin/cards/:uuid（撤銷）
-- [x] DELETE /api/admin/cards/:uuid?permanent=true（永久刪除）
-- [x] POST /api/admin/revoke
+### Log Rotation (2e07962)
+- ✅ Migration 0012: log rotation indexes
+- ✅ Merged cron triggers (02:00 UTC)
 
 ## 待辦事項
-- [ ] 監控實際性能指標
-- [ ] 收集用戶反饋
-- [ ] 考慮長期架構優化（Durable Objects）
-- [ ] 文檔更新
-
-## 部署狀態
-- Environment: staging
-- Backend URL: https://db-card-staging.csw30454.workers.dev
-- Version: 49df1cf7-d284-48eb-95a6-58f75a64a0bf
-- Commit: 751ef17
-- Cron: 0 2 * * * (每日 02:00 UTC)
-- Database: db-card-staging (0.24 MB)
-- All Tests: ✅ Passing
-- Performance: ✅ Optimized
-- Features: ✅ Complete
+- [ ] Git commit
+- [ ] Push to remote
+- [ ] 監控 cron 執行

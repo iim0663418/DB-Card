@@ -67,7 +67,7 @@ DEK --[AES-256-GCM(KEK)]--> wrapped_dek
 | 屬性 | 值 | 說明 |
 |------|-----|------|
 | TTL | 24 小時 | 有效時間 |
-| max_reads | 20 (預設) | 最大回看次數 |
+| max_reads | 20 (預設) | 最大同時讀取數 |
 | revocable | true | 可撤銷 |
 | renewable | false | 不可延展 |
 | transferable | false | 不可跨卡使用 |

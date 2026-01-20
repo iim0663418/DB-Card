@@ -1,12 +1,16 @@
 # DB-Card
 
-> Enterprise-grade NFC digital business card system with envelope encryption, session-based authorization, and audit logging.
+> Enterprise-grade NFC digital business card system with envelope encryption, multi-layer defense, session-based authorization, and audit logging.
 
 ## Overview
 
 DB-Card is a privacy-first digital business card system designed for organizations requiring secure identity exchange. Built on Cloudflare Workers edge computing platform, it provides:
 
 - **Envelope Encryption**: Each card has a unique DEK (Data Encryption Key) wrapped by a rotating KEK (Key Encryption Key)
+- **Multi-Layer Defense (v4.1.0)**: Three-layer protection against crawler abuse and resource attacks
+  - Layer 1: 60-second deduplication (prevents duplicate requests)
+  - Layer 2: Dual-dimension rate limiting (Card UUID + IP: 10/min, 50/hour)
+  - Layer 3: Concurrent read limit (prevents token abuse)
 - **Session-Based Authorization**: 24-hour TTL sessions with configurable read limits and instant revocation
 - **Audit Logging**: Complete access trail with IP anonymization for compliance
 - **NFC Integration**: Physical NFC cards trigger secure session creation
@@ -29,9 +33,10 @@ DB-Card is a privacy-first digital business card system designed for organizatio
 │         ┌──────────────────┴──────────────────┐             │
 │         │                                      │             │
 │    ┌────▼────┐                          ┌─────▼─────┐       │
-│    │ D1 DB   │                          │  KV Cache │       │
-│    │(SQLite) │                          │ (Session) │       │
-│    └─────────┘                          └───────────┘       │
+│    │ D1 DB   │                          │  KV Store │       │
+│    │(SQLite) │                          │ (Dedup +  │       │
+│    └─────────┘                          │  Cache)   │       │
+│                                         └───────────┘       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -39,7 +44,7 @@ DB-Card is a privacy-first digital business card system designed for organizatio
 - **Frontend**: Vanilla JS + Tailwind CSS + Three.js (glassmorphism design)
 - **Backend**: TypeScript handlers on Cloudflare Workers
 - **Database**: D1 (SQLite-compatible distributed database)
-- **Cache**: KV (key-value store for session and card data)
+- **KV Store**: Deduplication, rate limiting, and session caching
 - **Crypto**: Web Crypto API for envelope encryption
 
 ## Key Technologies
@@ -47,7 +52,7 @@ DB-Card is a privacy-first digital business card system designed for organizatio
 - **Runtime**: Cloudflare Workers (V8 isolates)
 - **Language**: TypeScript
 - **Database**: Cloudflare D1 (SQLite)
-- **Cache**: Cloudflare KV
+- **Cache**: Cloudflare KV (dedup + rate limit + session cache)
 - **Frontend**: Vanilla JavaScript, Tailwind CSS, Three.js
 - **Crypto**: Web Crypto API (AES-GCM, PBKDF2)
 - **NFC**: NDEF format (URL records)

@@ -24,7 +24,7 @@ id = "87221de061f049d3a4c976b7b5092dd9"
 
 # Cron Triggers
 [triggers]
-crons = ["0 2 * * *"]  # Daily at 02:00 UTC
+crons = ["0 2 * * *"]  # Daily maintenance: cleanup (02:00) + log rotation (02:05)
 
 # Production Environment
 [env.production]

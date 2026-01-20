@@ -2,6 +2,14 @@ import { tapCard, readCard } from './api.js';
 import { getLocalizedText, getLocalizedArray } from './utils/bilingual.js';
 import { getCachedCard, setCachedCard, clearExpiredCache } from './cache-helper.js';
 
+// Error message constants for v4.1.0 & v4.2.0
+const ERROR_MESSAGES = {
+  'rate_limited': '請求過於頻繁，請稍後再試',
+  'session_budget_exceeded': '此名片已達到使用上限，請聯絡管理員',
+  'daily_budget_exceeded': '今日使用次數已達上限，請明天再試',
+  'monthly_budget_exceeded': '本月使用次數已達上限,請下月再試'
+};
+
 let scene, camera, renderer, mesh, grid;
 let currentLanguage = 'zh';
 let typewriterTimeout = null;
@@ -35,19 +43,6 @@ const ORG_DEPT_MAPPING = {
 
 // 更新按鈕文字（根據當前語言）
 function updateButtonTexts() {
-    const desktopText = document.getElementById('save-vcard-text-desktop');
-    const mobileText = document.getElementById('save-vcard-text-mobile');
-
-    if (desktopText && mobileText) {
-        if (currentLanguage === 'zh') {
-            desktopText.textContent = 'Sync Identity';
-            mobileText.textContent = '下載名片';
-        } else {
-            desktopText.textContent = 'Sync Identity';
-            mobileText.textContent = 'Download';
-        }
-    }
-
     // 更新所有 data-i18n 元素
     const i18nElements = document.querySelectorAll('[data-i18n]');
     i18nElements.forEach(el => {
@@ -61,12 +56,24 @@ function updateButtonTexts() {
 // 多語言文字對照表
 const i18nTexts = {
     'loading': {
-        'zh': 'Synchronizing Secure Identity...',
-        'en': 'Synchronizing Secure Identity...'
+        'zh': '載入名片資料...',
+        'en': 'Loading Card...'
     },
     'qr-title': {
-        'zh': 'Scan for Official Verification',
-        'en': 'Scan for Official Verification'
+        'zh': '掃描分享名片',
+        'en': 'Scan to Share'
+    },
+    'session-status': {
+        'zh': '名片已開啟',
+        'en': 'Card Active'
+    },
+    'save-vcard-desktop': {
+        'zh': '加入聯絡人',
+        'en': 'Add Contact'
+    },
+    'save-vcard-mobile': {
+        'zh': '下載名片',
+        'en': 'Download'
     },
     'card-system': {
         'zh': '數位名片系統 Digital Business Card',
@@ -93,8 +100,16 @@ const i18nTexts = {
         'en': 'Security Specification'
     },
     'security-desc': {
-        'zh': 'Serverless Encrypted Node. No trace retained on node. Securely rendered via DB-Card gateway.',
-        'en': 'Serverless Encrypted Node. No trace retained on node. Securely rendered via DB-Card gateway.'
+        'zh': '雲端加密儲存，可隨時撤銷存取',
+        'en': 'Cloud encrypted storage, revocable access'
+    },
+    'valid-until': {
+        'zh': '有效期限',
+        'en': 'Valid Until'
+    },
+    'shares-available': {
+        'zh': '可分享次數',
+        'en': 'Shares Available'
     }
 };
 
@@ -151,6 +166,7 @@ function showNotification(message, type = 'info') {
 }
 
 async function initApp() {
+    initLoadingIcon(); // 隨機選擇載入圖示
     lucide.createIcons();
     clearExpiredCache();
 
@@ -230,30 +246,9 @@ async function loadCard(uuid) {
     } catch (error) {
         console.error('Error loading card:', error);
 
-        // 根據錯誤類型顯示對應訊息
-        const errorMsg = error.message.toLowerCase();
-        
-        if (errorMsg.includes('session_expired') || errorMsg.includes('expired') || errorMsg.includes('過期')) {
-            showError('授權已過期（24 小時），請重新觸碰 NFC 卡片取得新授權');
-        } else if (errorMsg.includes('session_revoked') || errorMsg.includes('revoked') || errorMsg.includes('已撤銷')) {
-            showError('此授權已被撤銷，請重新觸碰 NFC 卡片或聯絡名片擁有者');
-        } else if (errorMsg.includes('max_reads_exceeded') || errorMsg.includes('exceeded') || errorMsg.includes('次數上限')) {
-            showError('已達讀取次數上限，請重新觸碰 NFC 卡片取得新授權');
-        } else if (errorMsg.includes('session_not_found') || errorMsg.includes('not_found')) {
-            showError('授權不存在或已失效，請重新觸碰 NFC 卡片');
-        } else if (errorMsg.includes('card_not_found') || errorMsg.includes('名片不存在')) {
-            showError('名片不存在或已被刪除，請聯絡名片擁有者');
-        } else if (errorMsg.includes('network') || errorMsg.includes('failed to fetch')) {
-            showError('網路連線失敗，請檢查網路後重試');
-        } else if (errorMsg.includes('403')) {
-            showError('授權驗證失敗，請重新觸碰 NFC 卡片');
-        } else if (errorMsg.includes('404')) {
-            showError('資源不存在，請確認連結是否正確');
-        } else if (errorMsg.includes('500')) {
-            showError('伺服器錯誤，請稍後再試或聯絡技術支援');
-        } else {
-            showError(`載入失敗: ${error.message}`);
-        }
+        // Use ERROR_MESSAGES for known error codes
+        const errorMessage = ERROR_MESSAGES[error.code] || error.message || '載入失敗';
+        showError(errorMessage);
 
         hideLoading();
         return;
@@ -262,6 +257,15 @@ async function loadCard(uuid) {
     if (cardData) {
         currentCardData = cardData; // 儲存供 vCard 下載使用
         renderCard(cardData, sessionData);
+
+        // Check for warning (budget alerts)
+        if (sessionData && sessionData.warning) {
+            const banner = document.createElement('div');
+            banner.className = 'warning-banner';
+            banner.innerHTML = `<i data-lucide="alert-triangle"></i><span>${sessionData.warning.message} (剩餘 ${sessionData.warning.remaining} 次)</span>`;
+            document.body.insertBefore(banner, document.body.firstChild);
+            lucide.createIcons();
+        }
     } else {
         showError('無法載入名片資料');
         hideLoading();
@@ -270,6 +274,9 @@ async function loadCard(uuid) {
 
 function renderCard(cardData, sessionData) {
     const name = getLocalizedText(cardData.name, currentLanguage);
+    const titlePrefix = currentLanguage === 'en' ? 'DB-Card' : '數位名片';
+    const titleFallback = currentLanguage === 'en' ? 'Card Display' : '名片顯示';
+    document.title = name ? `${titlePrefix} | ${name}` : `${titlePrefix} | ${titleFallback}`;
     const title = getLocalizedText(cardData.title, currentLanguage);
     const greetings = getLocalizedArray(cardData.greetings, currentLanguage);
 
@@ -359,8 +366,11 @@ function renderCard(cardData, sessionData) {
 
     if (sessionData) {
         const expiresAt = new Date(sessionData.expires_at);
-        document.getElementById('session-expiry').textContent = `SESSION EXPIRES: ${expiresAt.toLocaleString(currentLanguage === 'zh' ? 'zh-TW' : 'en-US')}`;
-        document.getElementById('session-reads').textContent = `ATTEMPTS REMAINING: ${sessionData.reads_remaining}`;
+        const validUntilText = i18nTexts['valid-until'][currentLanguage];
+        const sharesAvailableText = i18nTexts['shares-available'][currentLanguage];
+        
+        document.getElementById('session-expiry').textContent = `${validUntilText}: ${expiresAt.toLocaleString(currentLanguage === 'zh' ? 'zh-TW' : 'en-US')}`;
+        document.getElementById('session-reads').textContent = `${sharesAvailableText}: ${sessionData.reads_remaining}`;
     }
 
     // 社群連結處理 - 支援新舊格式
@@ -867,5 +877,15 @@ document.getElementById('open-qr').addEventListener('click', () => {
 document.getElementById('close-qr').addEventListener('click', () => {
     document.getElementById('qr-modal').classList.add('hidden');
 });
+
+// 載入動畫圖示隨機選擇
+function initLoadingIcon() {
+    const icons = ['contact', 'user-circle'];
+    const randomIcon = icons[Math.floor(Math.random() * icons.length)];
+    const iconContainer = document.getElementById('loading-icon');
+    if (iconContainer) {
+        iconContainer.innerHTML = `<i data-lucide="${randomIcon}" class="w-10 h-10 animate-pulse" aria-hidden="true"></i>`;
+    }
+}
 
 document.addEventListener('DOMContentLoaded', initApp);

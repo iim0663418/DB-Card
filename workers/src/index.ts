@@ -4,12 +4,13 @@ import type { Env } from './types';
 import { handleHealth } from './handlers/health';
 import { handleTap } from './handlers/tap';
 import { handleRead } from './handlers/read';
-import { handleCreateCard, handleUpdateCard, handleDeleteCard, handleRestoreCard, handleListCards, handleGetCard } from './handlers/admin/cards';
+import { handleCreateCard, handleUpdateCard, handleDeleteCard, handleRestoreCard, handleListCards, handleGetCard, handleResetBudget } from './handlers/admin/cards';
 import { handleRevoke } from './handlers/admin/revoke';
 import { handleKekRotate } from './handlers/admin/kek';
 import { handleAdminLogin, handleAdminLogout } from './handlers/admin/auth';
 import { handleSecurityStats, handleSecurityEvents, handleSecurityTimeline, handleBlockIP, handleUnblockIP, handleIPDetail, handleSecurityExport } from './handlers/admin/security';
-import { handleUserCreateCard, handleUserUpdateCard, handleUserListCards, handleUserGetCard } from './handlers/user/cards';
+import { handleUserCreateCard, handleUserUpdateCard, handleUserListCards, handleUserGetCard, handleUserRevokeCard, handleUserRestoreCard } from './handlers/user/cards';
+import { handleRevocationHistory } from './handlers/user/history';
 import { handleOAuthCallback } from './handlers/oauth';
 import { errorResponse, publicErrorResponse } from './utils/response';
 import { checkRateLimit } from './middleware/rate-limit';
@@ -37,7 +38,7 @@ function addSecurityHeaders(response: Response): Response {
   headers.set('X-XSS-Protection', '1; mode=block');
   headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
-  return new Response(response.body, {
+  return new Response(response.clone().body, {
     status: response.status,
     statusText: response.statusText,
     headers
@@ -123,6 +124,25 @@ export default {
       return handleUserGetCard(request, env, uuid);
     }
 
+    // POST /api/user/cards/:uuid/revoke - User self-revoke card
+    const revokeUserCardMatch = url.pathname.match(/^\/api\/user\/cards\/([a-f0-9-]{36})\/revoke$/);
+    if (revokeUserCardMatch && request.method === 'POST') {
+      const uuid = revokeUserCardMatch[1];
+      return handleUserRevokeCard(request, env, uuid);
+    }
+
+    // POST /api/user/cards/:uuid/restore - User self-restore card
+    const restoreUserCardMatch = url.pathname.match(/^\/api\/user\/cards\/([a-f0-9-]{36})\/restore$/);
+    if (restoreUserCardMatch && request.method === 'POST') {
+      const uuid = restoreUserCardMatch[1];
+      return handleUserRestoreCard(request, env, uuid);
+    }
+
+    // GET /api/user/revocation-history - Query revocation history
+    if (url.pathname === '/api/user/revocation-history' && request.method === 'GET') {
+      return handleRevocationHistory(request, env);
+    }
+
     // Admin APIs
     if (url.pathname === '/api/admin/cards' && request.method === 'POST') {
       return handleCreateCard(request, env);
@@ -159,6 +179,13 @@ export default {
     if (restoreCardMatch && request.method === 'POST') {
       const uuid = restoreCardMatch[1];
       return handleRestoreCard(request, env, uuid);
+    }
+
+    // POST /api/admin/cards/:uuid/reset-budget - Reset session budget
+    const resetBudgetMatch = url.pathname.match(/^\/api\/admin\/cards\/([a-f0-9-]{36})\/reset-budget$/);
+    if (resetBudgetMatch && request.method === 'POST') {
+      const uuid = resetBudgetMatch[1];
+      return handleResetBudget(request, env, ctx, uuid);
     }
 
     // POST /api/admin/revoke - Emergency revocation
@@ -246,7 +273,12 @@ export default {
   },
 
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    // Run both cleanup and log rotation at 02:00 UTC
     const { handleScheduledCleanup } = await import('./scheduled-cleanup');
-    ctx.waitUntil(handleScheduledCleanup(env));
+    const { handleScheduledLogRotation } = await import('./scheduled-log-rotation');
+    
+    // Run sequentially to avoid resource contention
+    await handleScheduledCleanup(env);
+    await handleScheduledLogRotation(env);
   }
 };

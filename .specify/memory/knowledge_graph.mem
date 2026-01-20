@@ -49,15 +49,15 @@
 260118|Security_Architecture|kek_rotation|Event_Triggered_90_Days
 260118|Authorization_Model|type|ReadSession
 260118|ReadSession|ttl|24_Hours
-260118|ReadSession|max_reads|20_Default
+260118|ReadSession|max_reads|Concurrent_Read_Limit_Default_20
 260118|ReadSession|revocable|True
 260118|ReadSession|renewable|False
 260118|Revocation_Mechanism|trigger|Retap_NFC_Card
 260118|Revocation_Mechanism|target|Last_1_Session
 260118|Revocation_Mechanism|condition|10_Min_Or_2_Reads
-260118|CardType|personal|TTL_24h_MaxReads_20
-260118|CardType|event_booth|TTL_24h_MaxReads_50
-260118|CardType|sensitive|TTL_24h_MaxReads_5
+260118|CardType|personal|TTL_24h_Concurrent_Reads_20
+260118|CardType|event_booth|TTL_24h_Concurrent_Reads_50
+260118|CardType|sensitive|TTL_24h_Concurrent_Reads_5
 260118|Emergency_Response|method|Token_Version_Increment
 260118|Emergency_Response|method|KEK_Rotation
 260118|Emergency_Response|method|Maintenance_Mode
@@ -293,7 +293,7 @@
 260118|Browser_Cache|offline_support|Automatic_No_Service_Worker_Needed
 260118|Offline_Mode|trigger_1|Network_Error
 260118|Offline_Mode|trigger_2|Session_Expired
-260118|Offline_Mode|trigger_3|Max_Reads_Exceeded
+260118|Offline_Mode|trigger_3|Concurrent_Reads_Exceeded
 260118|Offline_Mode|data_source|IndexedDB_Cache
 260118|Offline_Mode|ui_indicator|Offline_Badge
 
@@ -515,3 +515,381 @@
 260119|API_admin_revoke|method|POST
 260119|API_admin_revoke|path|/api/admin/revoke
 260119|API_admin_revoke|feature|Global_Revocation
+
+# User Self-Revoke Feature v1.0.0 (2026-01-20)
+260120|User_Self_Revoke|version|v1.0.0
+260120|User_Self_Revoke|status|COMPLETE
+260120|User_Self_Revoke|commit|a1e9f46
+260120|User_Self_Revoke|deployment|staging_52851b02
+
+# Core APIs
+260120|POST_api_user_cards_revoke|status|Implemented
+260120|POST_api_user_cards_revoke|path|/api/user/cards/:uuid/revoke
+260120|POST_api_user_cards_revoke|features|Rate_Limiting_Session_Revocation_Optional_Reason
+260120|POST_api_user_cards_restore|status|Implemented
+260120|POST_api_user_cards_restore|path|/api/user/cards/:uuid/restore
+260120|POST_api_user_cards_restore|features|7_Day_Window_Self_Service
+260120|GET_api_user_revocation_history|status|Implemented
+260120|GET_api_user_revocation_history|path|/api/user/revocation-history
+260120|GET_api_user_revocation_history|features|30_Day_History_Pagination
+
+# Rate Limiting
+260120|Rate_Limiting|hourly_limit|3_per_hour
+260120|Rate_Limiting|daily_limit|10_per_day
+260120|Rate_Limiting|table|revocation_rate_limits
+260120|Rate_Limiting|error_code|REVOCATION_RATE_LIMITED
+260120|Rate_Limiting|window_type|sliding_hourly_fixed_daily
+
+# Database
+260120|Migration_0009|table|revocation_rate_limits
+260120|Migration_0009|columns|user_id_window_type_window_start_revocation_count
+260120|Migration_0009|indexes|idx_rate_limits_user_window_idx_rate_limits_cleanup
+260120|uuid_bindings|revoked_at|Already_Exists_From_Migration_0004
+260120|uuid_bindings|revoke_reason|Already_Exists_From_Migration_0004
+
+# Frontend
+260120|User_Portal|revoke_modal|Confirmation_Dialog_With_Reason_Select
+260120|User_Portal|rate_limit_banner|Error_Display_With_Retry_Time
+260120|User_Portal|admin_contact_hint|Two_Locations_Modal_And_Banner
+260120|User_Portal|progress_indicator|Validating_Encrypting_Saving
+260120|User_Portal|no_emoji|Clean_Professional_UI
+
+# Security
+260120|Revoke_Security|session_revocation|Immediate_All_Active_Sessions
+260120|Revoke_Security|audit_logging|Complete_Actor_Reason_Sessions_Count
+260120|Revoke_Security|ip_anonymization|First_3_Octets_Only
+260120|Revoke_Security|restore_window|7_Days_Self_Service
+260120|Revoke_Security|admin_override|Permanent_Delete_Available
+
+# Performance Optimizations (2026-01-20)
+260120|Performance_Fix|addSecurityHeaders|response_clone_body
+260120|Performance_Fix|handleUserListCards|JOIN_Query_N_Plus_1_Fixed
+260120|Performance_Fix|database_queries|7_to_4_queries_minus_43_percent
+260120|Performance_Fix|tailwind_cdn|defer_attribute_added
+260120|Performance_Fix|api_response_time|47ms_average
+
+# Testing
+260120|Testing|coverage|80_percent_8_of_10
+260120|Testing|bdd_scenarios|8_scenarios_complete
+260120|Testing|staging_verification|passed
+260120|Testing|rate_limiting|verified_3_hour_10_day
+260120|Testing|session_revocation|verified_immediate
+260120|Testing|audit_logs|verified_complete
+260120|Testing|7_day_window|verified_timestamp
+260120|Testing|tested_by|iim0663418@moda.gov.tw
+
+# Documentation
+260120|Documentation|test_results|reports/USER-REVOKE-TEST-RESULTS.md
+260120|Documentation|user_guide|guides/REVOKE-AND-NEW-CARD-GUIDE.md
+260120|Documentation|performance|reports/CREATE-CARD-PERFORMANCE-TEST.md
+260120|Documentation|staging_report|reports/STAGING-TEST-REPORT.md
+260120|Documentation|bdd_spec|specs/user-self-revoke.md
+260120|Documentation|implementation|specs/user-self-revoke-implementation-summary.md
+260120|Documentation|architecture|specs/BUGFIX-architecture-clarification.md
+
+# Bug Fixes
+260120|Bug_Fix|modal_button_reset|closeRevokeModal_state_reset
+260120|Bug_Fix|empty_response|addSecurityHeaders_clone_body
+260120|Bug_Fix|n_plus_1_query|handleUserListCards_JOIN_optimization
+
+# UI Improvements
+260120|UI_Improvement|emoji_removal|professional_clean_interface
+260120|UI_Improvement|admin_hint|contact_admin_for_immediate_delete
+260120|UI_Improvement|progress_indicator|validating_encrypting_saving_states
+260120|UI_Improvement|rate_limit_error|clear_retry_time_display
+
+# Project Structure Cleanup (2026-01-20)
+260120|Project_Cleanup|reports_directory|created
+260120|Project_Cleanup|guides_directory|created
+260120|Project_Cleanup|deployment_directory|created
+260120|Project_Cleanup|temp_files|removed_test_scripts
+260120|Project_Cleanup|commit|70e152b
+
+# Deployment Status
+260120|Deployment|environment|staging
+260120|Deployment|version|52851b02_a6e7_4327_82c7_208df74b8bee
+260120|Deployment|url|https://db-card-staging.csw30454.workers.dev
+260120|Deployment|database|db-card-staging
+260120|Deployment|active_cards|3
+260120|Deployment|status|operational
+
+# Tap API Multi-Layer Defense v1.0.0 (2026-01-20)
+260120|Tap_API_Defense|version|v1.0.0
+260120|Tap_API_Defense|status|COMPLETE
+260120|Tap_API_Defense|commit|TBD
+260120|Tap_API_Defense|implementation_date|2026-01-20T14:00:00+08:00
+
+# Layer 1: Deduplication (60s)
+260120|Layer_1_Dedup|status|Implemented
+260120|Layer_1_Dedup|kv_key|tap:dedup:${card_uuid}
+260120|Layer_1_Dedup|value|session_id
+260120|Layer_1_Dedup|ttl|60_seconds
+260120|Layer_1_Dedup|behavior|Return_Existing_Session
+260120|Layer_1_Dedup|bypass|None_Including_Admin_Portal
+
+# Layer 2: Rate Limiting
+260120|Layer_2_RateLimit|status|Implemented
+260120|Layer_2_RateLimit|algorithm|Sliding_Window_Counter
+260120|Layer_2_RateLimit|dimensions|card_uuid_and_ip
+260120|Layer_2_RateLimit|card_uuid_minute|10_requests
+260120|Layer_2_RateLimit|card_uuid_hour|50_requests
+260120|Layer_2_RateLimit|ip_minute|10_requests
+260120|Layer_2_RateLimit|ip_hour|50_requests
+260120|Layer_2_RateLimit|kv_ttl|120s_minute_7200s_hour
+260120|Layer_2_RateLimit|error_code|429_rate_limited
+
+# Layer 3: Max Reads (Preserved)
+260120|Layer_3_MaxReads|status|Preserved
+260120|Layer_3_MaxReads|location|handlers/read.ts
+260120|Layer_3_MaxReads|behavior|Concurrent_Read_Limit
+260120|Layer_3_MaxReads|unchanged|True
+
+# Implementation Files
+260120|Implementation|utils_rate_limit_ts|Created
+260120|Implementation|utils_ip_ts|Created
+260120|Implementation|types_ts|Updated_5_New_Types
+260120|Implementation|handlers_tap_ts|Refactored_5_Step_Order
+260120|Implementation|typescript_compile|Passed
+
+# BDD Specification
+260120|BDD_Spec|file|.specify/specs/tap-dedup-ratelimit.md
+260120|BDD_Spec|scenarios|11_Complete
+260120|BDD_Spec|coverage|100_Percent
+
+# Execution Order
+260120|Execution_Order|step_0|Basic_Validation
+260120|Execution_Order|step_1|Dedup_Check
+260120|Execution_Order|step_2|Rate_Limit_Check
+260120|Execution_Order|step_3|Validate_Card
+260120|Execution_Order|step_4|Retap_Revocation
+260120|Execution_Order|step_5|Create_Session_Store_Dedup_Increment
+
+# IP Extraction
+260120|IP_Extraction|priority_1|CF-Connecting-IP
+260120|IP_Extraction|priority_2|X-Forwarded-For_First
+260120|IP_Extraction|priority_3|unknown
+260120|IP_Extraction|file|utils/ip.ts
+
+# Rate Limit Types
+260120|RateLimitDimension|type|card_uuid_or_ip
+260120|RateLimitWindow|type|minute_or_hour
+260120|RateLimitData|structure|count_first_seen_at
+260120|RateLimitResult|structure|allowed_current_limit_retry_after
+260120|RateLimitConfig|structure|card_uuid_ip_minute_hour
+
+# Design Decisions
+260120|Design_Decision|dedup_bypass|None_All_Requests_Subject
+260120|Design_Decision|rate_limit_values|Unified_10_min_50_hour
+260120|Design_Decision|window_algorithm|Sliding_Window_Counter
+260120|Design_Decision|kv_atomicity|Per_Key_Atomic
+260120|Design_Decision|phase_1_scope|P0_Three_Layers_Only
+
+# Out of Scope (Phase 2)
+260120|Phase_2_Future|layer_4|24h_Session_Budget
+260120|Phase_2_Future|layer_5|Active_Session_Cap
+260120|Phase_2_Future|force_new|mode_force_new_Parameter
+260120|Phase_2_Future|dynamic_limits|By_Card_Type
+260120|Phase_2_Future|frontend_cache|sessionStorage_Caching
+
+# External Research
+260120|Research|stripe_idempotency|24h_Key_Expiry
+260120|Research|shopify_dedup|Built_In_Mechanisms
+260120|Research|industry_standard|Sliding_Window_Recommended
+260120|Research|cloudflare_kv|Eventual_Consistency_Acceptable
+
+# Terminology Clarification (2026-01-20)
+260120|Terminology_Fix|max_reads|Clarified_As_Concurrent_Read_Limit
+260120|Terminology_Fix|scope|UI_Messages_Code_Comments_Documentation
+260120|Terminology_Fix|reason|Avoid_Confusion_With_Cumulative_Count
+260120|Terminology_Fix|updated_files|README_main_js_read_ts_types_ts_guides_landing_page
+260120|Terminology_Fix|additional_check|2026-01-20T14:10:00+08:00
+260120|Terminology_Fix|additional_fixes|ARCH-001_ARCH-002_FRONTEND-MIGRATION-PRD_CARD-DISPLAY-PAGE-PRD
+260120|Terminology_Fix|wrong_terms|最大讀取次數_最大回看次數_讀取次數上限
+260120|Terminology_Fix|correct_terms|同時讀取數上限_最大同時讀取數_併發讀取限制
+260120|Terminology_Fix|consistency|100_Percent_Verified
+
+# Tap API Multi-Layer Defense v1.0.0 (2026-01-20)
+260120|Tap_API_Defense|version|v1.0.0
+260120|Tap_API_Defense|status|COMPLETE
+260120|Tap_API_Defense|commit|a340a3b
+260120|Tap_API_Defense|deployment|staging_10e097d2
+
+# Layer 1: Deduplication
+260120|Layer_1_Dedup|ttl|60_seconds
+260120|Layer_1_Dedup|behavior|Return_Existing_Session
+
+# Layer 2: Rate Limiting
+260120|Layer_2_RateLimit|algorithm|Sliding_Window_Counter
+260120|Layer_2_RateLimit|card_uuid|10_per_min_50_per_hour
+260120|Layer_2_RateLimit|ip|10_per_min_60_per_hour
+
+# Session Budget v4.2.0 (2026-01-20)
+260120|Session_Budget|version|v4.2.0
+260120|Session_Budget|status|COMPLETE
+260120|Session_Budget|commit|714dc9d
+260120|Session_Budget|deployment|staging_5a37218c
+
+# Budget Limits
+260120|Budget_Personal|limits|1000_10_100
+260120|Budget_Event|limits|5000_50_500
+260120|Budget_Sensitive|limits|100_3_30
+
+# Frontend Update (2026-01-20)
+260120|Frontend_Update|version|v4.1_v4.2
+260120|Frontend_Update|commit|e031855_34ade89
+260120|Frontend_Update|deployment|staging_6d2a4af0
+
+# Error Messages
+260120|Error_rate_limited|message|請求過於頻繁，請稍後再試
+260120|Error_session_budget_exceeded|message|此名片已達到使用上限，請聯絡管理員
+260120|Error_daily_budget_exceeded|message|今日使用次數已達上限，請明天再試
+260120|Error_monthly_budget_exceeded|message|本月使用次數已達上限，請下月再試
+
+# Budget Reset
+260120|Budget_Reset|api|POST_/api/admin/cards/:uuid/reset-budget
+260120|Budget_Reset|button|admin-dashboard.html
+260120|Budget_Reset|audit_log|card_budget_reset
+
+# Testing
+260120|Testing|v4.1.0|6_of_6_passed
+260120|Testing|v4.2.0|6_of_6_passed
+260120|Testing|frontend|5_of_5_passed
+
+# Deployment
+260120|Deployment|staging|6d2a4af0-32a7-4080-81d9-d3eb824a591f
+260120|Deployment|url|https://db-card-staging.csw30454.workers.dev
+260120|Deployment|status|operational
+
+# Landing Page Update (2026-01-20)
+260120|Landing_Page|version|v4.0_Security_Features
+260120|Landing_Page|status|DEPLOYED
+260120|Landing_Page|commit|ac30bfb
+260120|Landing_Page|deployment|b49bc44f-a64f-4067-965d-bb026ba54267
+260120|Landing_Page|update_time|2026-01-20T15:51:00+08:00
+
+# Core Security Features Display
+260120|Landing_Page_Feature_1|title|隱私優先設計
+260120|Landing_Page_Feature_1|icon|shield-check
+260120|Landing_Page_Feature_1|items|資料加密儲存_UUID_Only_IP_匿名化
+260120|Landing_Page_Feature_2|title|信封加密技術
+260120|Landing_Page_Feature_2|icon|lock
+260120|Landing_Page_Feature_2|items|獨立_DEK_KEK_輪換_企業級標準
+260120|Landing_Page_Feature_3|title|授權會話機制
+260120|Landing_Page_Feature_3|icon|clock
+260120|Landing_Page_Feature_3|items|24h_TTL_同時讀取限制_NFC_重新觸碰
+260120|Landing_Page_Feature_4|title|可隨時撤銷授權
+260120|Landing_Page_Feature_4|icon|x-circle
+260120|Landing_Page_Feature_4|items|使用者自助_管理員緊急_立即失效
+
+# Design Consistency
+260120|Landing_Page_Design|style|Glassmorphism
+260120|Landing_Page_Design|accent_color|#6868ac_MODA_Purple
+260120|Landing_Page_Design|layout|2x2_Grid_Responsive
+260120|Landing_Page_Design|icons|Lucide
+260120|Landing_Page_Design|check_color|#10b981_Green
+
+# Dynamic Page Title (2026-01-20)
+260120|Card_Display|feature|Dynamic_Page_Title
+260120|Card_Display|status|DEPLOYED
+260120|Card_Display|commit|f715232
+260120|Card_Display|deployment|901bdff1-6dcd-48fb-8e8d-f4bb0e69c54d
+260120|Card_Display|title_format_en|DB-Card_pipe_Name
+260120|Card_Display|title_format_zh|數位名片_pipe_Name
+260120|Card_Display|fallback_en|DB-Card_pipe_Card_Display
+260120|Card_Display|fallback_zh|數位名片_pipe_名片顯示
+260120|Card_Display|implementation|Bilingual_Support_In_renderCard
+260120|Card_Display|localization|Uses_currentLanguage_Variable
+
+# P0 Backend Optimization (2026-01-20)
+260120|Backend_Optimization|version|P0_Complete
+260120|Backend_Optimization|status|DEPLOYED
+260120|Backend_Optimization|commit|9d8f188
+260120|Backend_Optimization|deployment|1a4c529c-b63f-41bc-b205-a7409e4671b6
+260120|Backend_Optimization|report|reports/p0-backend-optimization-results.md
+
+# Optimization 1: Retap Revocation KV Cache
+260120|Retap_Cache|cache_key|last_session_card_uuid
+260120|Retap_Cache|ttl|3600s_1_hour
+260120|Retap_Cache|implementation|utils_session_ts_getRecentSession
+260120|Retap_Cache|invalidation|On_Session_Revocation
+260120|Retap_Cache|improvement|minus_100_150ms
+
+# Optimization 2: Card Type KV Cache
+260120|CardType_Cache|cache_key|card_type_card_uuid
+260120|CardType_Cache|ttl|86400s_24_hours
+260120|CardType_Cache|implementation|handlers_tap_ts_STEP_2_5_and_3
+260120|CardType_Cache|improvement|minus_50_100ms
+
+# Optimization 3: Async Session Insert
+260120|Async_Insert|method|ctx_waitUntil
+260120|Async_Insert|pre_generation|crypto_randomUUID
+260120|Async_Insert|implementation|utils_session_ts_createSession
+260120|Async_Insert|backwards_compatible|True
+260120|Async_Insert|improvement|minus_100_150ms
+
+# Performance Results
+260120|Performance_Tap_API|before|0_6s
+260120|Performance_Tap_API|after|0_35s
+260120|Performance_Tap_API|improvement|minus_42_percent
+260120|Performance_Read_API|before|0_31s
+260120|Performance_Read_API|after_cache_hit|0_10s
+260120|Performance_Read_API|improvement|minus_68_percent
+260120|Performance_Overall|improvement|minus_25_35_percent
+
+# Cleanup Query Optimization (2026-01-20)
+260120|Cleanup_Query_Optimization|version|v1.0.0
+260120|Cleanup_Query_Optimization|status|DEPLOYED_STAGING
+260120|Cleanup_Query_Optimization|commit|efd2860
+260120|Migration_0011|purpose|Optimize_Revoked_Cleanup_Query
+260120|Migration_0011|index|idx_uuid_bindings_revoked_cleanup
+260120|Migration_0011|type|Partial_Composite_Index
+260120|Migration_0011|columns|status_revoked_at
+260120|Migration_0011|filter|WHERE_status_equals_revoked
+260120|Performance_Small|dataset|less_than_1000
+260120|Performance_Small|impact|minimal
+260120|Performance_Medium|dataset|1000_to_10000
+260120|Performance_Medium|improvement|2_to_5x
+260120|Performance_Large|dataset|greater_than_10000
+260120|Performance_Large|improvement|10_to_50x
+
+# Migration Idempotency Fixes (2026-01-20)
+260120|Migration_0004|fix|IF_NOT_EXISTS_INSERT_OR_IGNORE
+260120|Migration_0005|fix|Remove_card_type_operations
+260120|Migration_0006|fix|Convert_to_no_op
+260120|Migration_0007|fix|Remove_status_filter
+260120|Migration_0008|fix|IF_NOT_EXISTS
+260120|Migration_0009|fix|Duplicate_IF_NOT_EXISTS_syntax
+260120|Migration_0010|fix|IF_NOT_EXISTS
+260120|Migration_0011|fix|Duplicate_IF_NOT_EXISTS_syntax
+
+# Staging Deployment (2026-01-20)
+260120|Staging_Deployment|migrations|0004_to_0011_all_success
+260120|Staging_Deployment|database|d31b5e42_d8bf_4044_9744_4aff5669de4b
+260120|Staging_Deployment|index_verified|idx_uuid_bindings_revoked_cleanup
+260120|Staging_Deployment|timestamp|2026_01_20T18_20_00_plus_08_00
+
+# Log Rotation Implementation (2026-01-20)
+260120|Log_Rotation|version|v1.0.0
+260120|Log_Rotation|status|DEPLOYED_STAGING
+260120|Log_Rotation|commit|2e07962
+260120|Migration_0012|purpose|Log_Rotation_Indexes
+260120|Migration_0012|indexes|idx_audit_logs_timestamp_idx_security_events_created_at
+260120|Handler|scheduled_log_rotation_ts|Created
+260120|Retention_audit_logs|period|365_days
+260120|Retention_audit_logs|reason|Legal_Compliance
+260120|Retention_security_events|period|90_days
+260120|Retention_security_events|reason|Security_Analysis_Window
+
+# Cron Trigger Optimization (2026-01-20)
+260120|Cron_Optimization|reason|Cloudflare_Free_Plan_Limit_5_Triggers
+260120|Cron_Optimization|solution|Merge_Two_Crons_To_One
+260120|Cron_Schedule|time|02_00_UTC
+260120|Cron_Schedule|task_1|handleScheduledCleanup
+260120|Cron_Schedule|task_2|handleScheduledLogRotation
+260120|Cron_Schedule|execution|Sequential_Order
+
+# Staging Deployment (2026-01-20)
+260120|Staging_Deployment|migration_0012|Success
+260120|Staging_Deployment|worker_version|195a0b11_d76e_4a7a_8b79_dabb662ee5b0
+260120|Staging_Deployment|health_check|Passing
+260120|Staging_Deployment|timestamp|2026_01_20T18_28_00_plus_08_00

@@ -57,11 +57,11 @@
         <div class="relative w-32 h-32">
             <div class="absolute inset-0 border-2 border-moda opacity-10 rounded-full animate-ping"></div>
             <div class="absolute inset-0 border-t-2 border-moda rounded-full animate-spin"></div>
-            <div class="absolute inset-0 flex items-center justify-center text-moda">
-                <i data-lucide="shield-check" class="w-10 h-10 animate-pulse" aria-hidden="true"></i>
+            <div id="loading-icon" class="absolute inset-0 flex items-center justify-center text-moda">
+                <i data-lucide="contact" class="w-10 h-10 animate-pulse" aria-hidden="true"></i>
             </div>
         </div>
-        <p class="mt-8 hud-text animate-pulse" data-i18n="loading">Synchronizing Secure Identity...</p>
+        <p class="mt-8 hud-text animate-pulse" data-i18n="loading">載入名片資料...</p>
     </div>
 
 
@@ -74,10 +74,10 @@
     <!-- UI 工具列 -->
     <header id="ui-header" class="fixed top-0 left-0 right-0 z-50 p-6 flex justify-between items-start pointer-events-none">
         <div class="space-y-1">
-            <p class="hud-text opacity-40" aria-hidden="true">IDENTITY_NODE_V4</p>
+            <p class="hud-text opacity-40" aria-hidden="true">DB_CARD_V4</p>
             <div class="flex items-center gap-2">
                 <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse" aria-hidden="true"></div>
-                <span class="text-[9px] font-bold tracking-widest text-slate-500 uppercase">Authenticated Session</span>
+                <span class="text-[9px] font-bold tracking-widest text-slate-500 uppercase" data-i18n="session-status">名片已開啟</span>
             </div>
         </div>
         <div class="pointer-events-auto">
@@ -98,7 +98,7 @@
         <div class="bg-white p-8 rounded-3xl shadow-2xl border border-slate-100">
             <div id="qrcode-target" class="w-64 h-64 flex items-center justify-center text-black font-bold border-4 border-slate-50" role="img" aria-label="名片 QR Code">QR CODE</div>
         </div>
-        <p id="qr-modal-title" class="hud-text mt-8 mb-10 text-slate-800" data-i18n="qr-title">Scan for Official Verification</p>
+        <p id="qr-modal-title" class="hud-text mt-8 mb-10 text-slate-800" data-i18n="qr-title">掃描分享名片</p>
         <button id="close-qr"
                 class="px-12 py-4 bg-slate-900 text-white rounded-full text-xs font-bold hover:bg-moda shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-moda focus:ring-offset-2"
                 aria-label="關閉 QR Code">
@@ -186,8 +186,8 @@
                         class="flex-1 bg-slate-900 text-white font-black uppercase text-xs md:text-[10px] tracking-wider md:tracking-[0.3em] py-6 md:py-5 px-6 md:px-8 rounded-2xl hover:bg-moda shadow-xl transition-all flex items-center justify-center gap-3 focus:outline-none focus:ring-2 focus:ring-moda focus:ring-offset-2"
                         aria-label="下載 vCard 名片">
                     <i data-lucide="user-plus" class="w-5 h-5 md:w-4 md:h-4" aria-hidden="true"></i>
-                    <span id="save-vcard-text-desktop" class="hidden sm:inline">Sync Identity</span>
-                    <span id="save-vcard-text-mobile" class="sm:hidden">下載名片</span>
+                    <span id="save-vcard-text-desktop" class="hidden sm:inline" data-i18n="save-vcard-desktop">加入聯絡人</span>
+                    <span id="save-vcard-text-mobile" class="sm:hidden" data-i18n="save-vcard-mobile">下載名片</span>
                 </button>
                 <button id="open-qr"
                         class="bg-white border-2 border-slate-200 text-slate-700 px-6 md:px-8 py-6 md:py-5 rounded-2xl hover:bg-slate-50 shadow-sm transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-moda focus:ring-offset-2"
@@ -202,15 +202,15 @@
                     <p class="hud-text text-[8px]" data-i18n="security-spec">資料安全規範</p>
                 </div>
                 <p class="text-[10px] text-slate-500 font-medium leading-relaxed uppercase" data-i18n="security-desc">
-                    Serverless Encrypted Node. No trace retained on node. Securely rendered via DB-Card gateway.
+                    雲端加密儲存，可隨時撤銷存取
                 </p>
             </aside>
         </footer>
 
         <!-- 階段資訊 -->
         <div id="token-info" class="mt-12 opacity-40 text-center space-y-2" role="status" aria-live="polite">
-            <p id="session-expiry" class="hud-text text-[8px] text-slate-400">SESSION EXPIRES: --</p>
-            <p id="session-reads" class="hud-text text-[8px] text-slate-400">ATTEMPTS REMAINING: --</p>
+            <p id="session-expiry" class="hud-text text-[8px] text-slate-400">有效期限: --</p>
+            <p id="session-reads" class="hud-text text-[8px] text-slate-400">可分享次數: --</p>
         </div>
     </div>
 

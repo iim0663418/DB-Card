@@ -54,7 +54,7 @@ export interface ReadSession {
   card_uuid: string;
   issued_at: number;
   expires_at: number;
-  max_reads: number;
+  max_reads: number;  // Maximum concurrent reads allowed
   reads_used: number;
   revoked_at?: number;
   revoked_reason?: 'retap' | 'admin' | 'emergency' | 'card_updated' | 'card_deleted';
@@ -64,31 +64,47 @@ export interface ReadSession {
 
 export interface CardPolicy {
   ttl: number;        // milliseconds
-  max_reads: number;
+  max_reads: number;  // Maximum concurrent reads allowed
   scope: 'public' | 'private';
+  max_total_sessions: number;
+  max_sessions_per_day: number;
+  max_sessions_per_month: number;
+  warning_threshold: number;
 }
 
 export const CARD_POLICIES: Record<CardType, CardPolicy> = {
   personal: {
     ttl: 24 * 60 * 60 * 1000,  // 24 hours
     max_reads: 20,
-    scope: 'public'
+    scope: 'public',
+    max_total_sessions: 1000,
+    max_sessions_per_day: 10,
+    max_sessions_per_month: 100,
+    warning_threshold: 0.9,
   },
   event_booth: {
     ttl: 24 * 60 * 60 * 1000,
     max_reads: 50,
-    scope: 'public'
+    scope: 'public',
+    max_total_sessions: 5000,
+    max_sessions_per_day: 50,
+    max_sessions_per_month: 500,
+    warning_threshold: 0.9,
   },
   sensitive: {
     ttl: 24 * 60 * 60 * 1000,
     max_reads: 5,
-    scope: 'public'
+    scope: 'public',
+    max_total_sessions: 100,
+    max_sessions_per_day: 3,
+    max_sessions_per_month: 30,
+    warning_threshold: 0.8,
   }
 };
 
 export interface AuditLog {
   id?: number;
-  event_type: 'tap' | 'read' | 'create' | 'card_create' | 'card_update' | 'card_delete' | 'card_revoke' | 'card_restore' | 'card_permanent_delete' | 'update' | 'delete' | 'revoke' | 'admin_revoke' | 'emergency_revoke' | 'kek_rotation' | 'user_card_create' | 'user_card_update';
+  event_type: 'tap' | 'read' | 'create' | 'card_create' | 'card_update' | 'card_delete' | 'card_revoke' | 'card_restore' | 'card_permanent_delete' | 'update' | 'delete' | 'revoke' | 'admin_revoke' | 'emergency_revoke' | 'kek_rotation' | 'user_card_create' | 'user_card_update' | 'user_card_revoke' | 'user_card_restore';
   card_uuid?: string;
   session_id?: string;
   user_agent?: string;
@@ -172,5 +188,104 @@ export interface ApiResponse<T = any> {
   error?: {
     code: string;
     message: string;
+  };
+}
+
+// User Self-Revoke Types
+export type RevocationReason = 'lost' | 'suspected_leak' | 'info_update' | 'misdelivery' | 'other';
+
+export interface RevokeCardRequest {
+  reason?: RevocationReason;
+}
+
+export interface RevokeCardResponse {
+  success: boolean;
+  message: string;
+  revoked_at: string;
+  sessions_revoked: number;
+  restore_deadline: string;
+}
+
+export interface RateLimitError {
+  error: string;
+  message: string;
+  retry_after: number;
+  limits: {
+    hourly: { limit: number; remaining: number; reset_at: string };
+    daily: { limit: number; remaining: number; reset_at: string };
+  };
+}
+
+export interface RestoreCardResponse {
+  success: boolean;
+  message: string;
+  restored_at: string;
+}
+
+export interface RevocationHistoryEntry {
+  card_uuid: string;
+  card_name: string;
+  action: 'revoke' | 'restore';
+  reason: RevocationReason | null;
+  timestamp: string;
+  sessions_affected: number;
+}
+
+export interface RevocationHistoryResponse {
+  history: RevocationHistoryEntry[];
+  total: number;
+  limit: number;
+}
+
+// Rate Limiting Types (Tap Dedup & Rate Limit - Phase 1)
+export type RateLimitDimension = 'card_uuid' | 'ip';
+export type RateLimitWindow = 'minute' | 'hour';
+
+export interface RateLimitData {
+  count: number;
+  first_seen_at: number;
+}
+
+export interface RateLimitResult {
+  allowed: boolean;
+  current?: number;
+  limit?: number;
+  retry_after?: number;
+  dimension?: RateLimitDimension;
+  window?: RateLimitWindow;
+}
+
+export interface RateLimitConfig {
+  card_uuid: {
+    minute: number;
+    hour: number;
+  };
+  ip: {
+    minute: number;
+    hour: number;
+  };
+}
+
+// Session Budget Types
+export interface SessionBudgetResult {
+  allowed: boolean;
+  reason?: 'total_limit_exceeded' | 'daily_limit_exceeded' | 'monthly_limit_exceeded';
+  warning?: {
+    type: 'approaching_budget_limit';
+    message: string;
+    remaining: number;
+    max_total: number;
+  } | null;
+  remaining?: number;
+  daily_remaining?: number;
+  monthly_remaining?: number;
+  details?: {
+    total_sessions?: number;
+    max_total_sessions?: number;
+    daily_sessions?: number;
+    max_sessions_per_day?: number;
+    monthly_sessions?: number;
+    max_sessions_per_month?: number;
+    retry_after?: string;
   };
 }

@@ -1,10 +1,14 @@
 // NFC Tap Handler
 // POST /api/nfc/tap - Issue ReadSession on NFC card tap
+// Implements BDD Spec: Multi-Layer Defense (Dedup + Rate Limit)
 
 import type { Env, Card, CardType } from '../types';
 import { jsonResponse, errorResponse } from '../utils/response';
 import { createSession, getRecentSession, revokeSession, shouldRevoke } from '../utils/session';
 import { logEvent } from '../utils/audit';
+import { getClientIP } from '../utils/ip';
+import { checkRateLimit, incrementRateLimit } from '../utils/rate-limit';
+import { checkSessionBudget, incrementSessionBudget } from '../utils/session-budget';
 
 /**
  * Validate UUID v4 format
@@ -15,31 +19,22 @@ function isValidUUID(uuid: string): boolean {
 }
 
 /**
- * Check rate limiting using KV
- * Returns true if rate limit exceeded
- */
-async function checkRateLimit(env: Env, card_uuid: string): Promise<boolean> {
-  const now = Date.now();
-  const minute = Math.floor(now / 60000); // Current minute bucket
-  const key = `ratelimit:${card_uuid}:${minute}`;
-
-  const count = await env.KV.get(key);
-  const currentCount = count ? parseInt(count, 10) : 0;
-
-  if (currentCount >= 10) {
-    return true; // Rate limit exceeded
-  }
-
-  // Increment counter with 2 minute TTL
-  await env.KV.put(key, String(currentCount + 1), { expirationTtl: 120 });
-  return false;
-}
-
-/**
  * Handle NFC tap request
+ * Execution order (BDD Spec):
+ * Step 0: Basic validation (method, params, UUID format)
+ * Step 1: Dedup check → if hit, return existing session
+ * Step 2: Rate limit (4 checks: card minute/hour, IP minute/hour)
+ * Step 2.5: Budget check (total/daily/monthly limits)
+ * Step 3: Validate card (existence, revoked status)
+ * Step 4: Retap revocation (existing logic)
+ * Step 5: Create session + store dedup + increment counters + increment budget
  */
 export async function handleTap(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   try {
+    // ============================================================
+    // STEP 0: Basic Validation
+    // ============================================================
+
     // Parse request body
     const body = await request.json() as { card_uuid?: string };
     const { card_uuid } = body;
@@ -60,25 +55,198 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
       return errorResponse('invalid_request', '無效的 UUID 格式', 400, request);
     }
 
-    // Check rate limiting
-    const rateLimited = await checkRateLimit(env, card_uuid);
-    if (rateLimited) {
-      ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, undefined, {
-        error: 'rate_limit_exceeded'
-      }));
-      return errorResponse('rate_limit_exceeded', '請求過於頻繁,請稍後再試', 429, request);
+    // ============================================================
+    // STEP 1: Dedup Check (BDD Scenario 2, 9)
+    // ============================================================
+
+    const dedupKey = `tap:dedup:${card_uuid}`;
+    const existingSessionId = await env.KV.get(dedupKey);
+
+    if (existingSessionId) {
+      // Dedup hit - return existing session without creating new one
+      // This applies to ALL requests (including admin portal - no bypass)
+
+      // Fetch session details to return
+      const sessionResult = await env.DB.prepare(`
+        SELECT session_id, card_uuid, issued_at, expires_at, max_reads, reads_used, revoked_at
+        FROM read_sessions
+        WHERE session_id = ?
+      `).bind(existingSessionId).first();
+
+      if (sessionResult) {
+        ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, existingSessionId, {
+          dedup_hit: true,
+          reused: true
+        }));
+
+        return jsonResponse({
+          session_id: sessionResult.session_id,
+          expires_at: sessionResult.expires_at,
+          max_reads: sessionResult.max_reads,
+          reads_used: sessionResult.reads_used,
+          reused: true  // Scenario 2 requirement
+        }, 200, request);
+      }
+
+      // If session not found (expired/deleted), fall through to create new one
     }
 
+    // ============================================================
+    // STEP 2: Rate Limit Check (BDD Scenario 3, 4, 11)
+    // ============================================================
+
+    const clientIP = getClientIP(request);
+
+    // Check all 4 rate limit dimensions
+    const rateLimitChecks = await Promise.all([
+      checkRateLimit(env.KV, 'card_uuid', card_uuid, 'minute'),
+      checkRateLimit(env.KV, 'card_uuid', card_uuid, 'hour'),
+      checkRateLimit(env.KV, 'ip', clientIP, 'minute'),
+      checkRateLimit(env.KV, 'ip', clientIP, 'hour')
+    ]);
+
+    // Find first failed rate limit check
+    const failedCheck = rateLimitChecks.find(result => !result.allowed);
+
+    if (failedCheck) {
+      // Rate limit exceeded (Scenario 3, 4)
+      ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, undefined, {
+        error: 'rate_limited',
+        limit_scope: failedCheck.dimension,
+        window: failedCheck.window,
+        current: failedCheck.current,
+        limit: failedCheck.limit
+      }));
+
+      return new Response(JSON.stringify({
+        error: 'rate_limited',
+        message: '請求過於頻繁,請稍後再試',
+        retry_after: failedCheck.retry_after,
+        limit_scope: failedCheck.dimension,
+        window: failedCheck.window,
+        limit: failedCheck.limit,
+        current: failedCheck.current
+      }), {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          'Retry-After': String(failedCheck.retry_after)
+        }
+      });
+    }
+
+    // ============================================================
+    // STEP 2.5: Budget Check
+    // ============================================================
+
+    // Map user card type to CardType (preview for budget check)
+    // Use KV cache for performance (TTL: 24 hours)
+    const cardTypeCacheKey = `card_type:${card_uuid}`;
+    let cachedType = await env.KV.get(cardTypeCacheKey);
+
+    let cardTypePreview: { type: string } | null = null;
+    if (cachedType) {
+      cardTypePreview = { type: cachedType };
+    } else {
+      cardTypePreview = await env.DB.prepare(`
+        SELECT type FROM uuid_bindings WHERE uuid = ?
+      `).bind(card_uuid).first<{ type: string }>();
+
+      // Cache the type if found
+      if (cardTypePreview?.type) {
+        await env.KV.put(cardTypeCacheKey, cardTypePreview.type, { expirationTtl: 86400 });
+      }
+    }
+
+    let cardTypeBudget: CardType = 'personal';
+    if (cardTypePreview?.type === 'event') {
+      cardTypeBudget = 'event_booth';
+    } else if (cardTypePreview?.type === 'sensitive') {
+      cardTypeBudget = 'sensitive';
+    }
+
+    const budgetResult = await checkSessionBudget(env, card_uuid, cardTypeBudget);
+
+    if (!budgetResult.allowed) {
+      if (budgetResult.reason === 'total_limit_exceeded') {
+        ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, undefined, {
+          error: 'session_budget_exceeded',
+          details: budgetResult.details
+        }));
+
+        return new Response(JSON.stringify({
+          success: false,
+          error: {
+            code: 'session_budget_exceeded',
+            message: '此名片已達到使用上限，請聯絡管理員',
+            details: budgetResult.details,
+          }
+        }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (budgetResult.reason === 'daily_limit_exceeded') {
+        ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, undefined, {
+          error: 'daily_budget_exceeded',
+          details: budgetResult.details
+        }));
+
+        return new Response(JSON.stringify({
+          success: false,
+          error: {
+            code: 'daily_budget_exceeded',
+            message: '今日使用次數已達上限',
+            details: budgetResult.details,
+          }
+        }), {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': budgetResult.details?.retry_after || ''
+          }
+        });
+      }
+
+      if (budgetResult.reason === 'monthly_limit_exceeded') {
+        ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, undefined, {
+          error: 'monthly_budget_exceeded',
+          details: budgetResult.details
+        }));
+
+        return new Response(JSON.stringify({
+          success: false,
+          error: {
+            code: 'monthly_budget_exceeded',
+            message: '本月使用次數已達上限',
+            details: budgetResult.details,
+          }
+        }), {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': budgetResult.details?.retry_after || ''
+          }
+        });
+      }
+    }
+
+    // ============================================================
+    // STEP 3: Validate Card (BDD Scenario 6, 7)
+    // ============================================================
+
     // Use D1 batch to split queries (avoid JOIN overhead)
+    // If we have cached type, only fetch status; otherwise fetch both
     const [cardResult, bindingResult] = await env.DB.batch([
       env.DB.prepare(`
         SELECT uuid, encrypted_payload, wrapped_dek, key_version, created_at, updated_at
         FROM cards WHERE uuid = ?
       `).bind(card_uuid),
 
-      env.DB.prepare(`
-        SELECT type, status FROM uuid_bindings WHERE uuid = ?
-      `).bind(card_uuid)
+      cachedType
+        ? env.DB.prepare(`SELECT status FROM uuid_bindings WHERE uuid = ?`).bind(card_uuid)
+        : env.DB.prepare(`SELECT type, status FROM uuid_bindings WHERE uuid = ?`).bind(card_uuid)
     ]);
 
     const card = cardResult.results[0] as {
@@ -90,10 +258,13 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
       updated_at: number;
     } | undefined;
 
-    const binding = bindingResult.results[0] as {
-      type: string;
-      status: string;
-    } | undefined;
+    const bindingData = bindingResult.results[0] as
+      | { type?: string; status: string }
+      | undefined;
+
+    const binding = cachedType
+      ? { type: cachedType, status: bindingData?.status || 'active' }
+      : (bindingData as { type: string; status: string } | undefined);
 
     // Reconstruct result object
     const result = card ? {
@@ -102,7 +273,7 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
       binding_status: binding?.status || null
     } : null;
 
-    // Scenario 4: Card not found
+    // Scenario 6: Card not found
     if (!result) {
       ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, undefined, {
         error: 'card_not_found'
@@ -110,7 +281,7 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
       return errorResponse('card_not_found', '名片不存在', 404, request);
     }
 
-    // Scenario 5: Card revoked
+    // Scenario 7: Card revoked
     if (result.binding_status === 'revoked') {
       ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, undefined, {
         error: 'card_revoked',
@@ -119,7 +290,11 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
       return errorResponse('card_revoked', '名片已撤銷', 403, request);
     }
 
-    // Check for recent session (Scenario 2)
+    // ============================================================
+    // STEP 4: Retap Revocation (BDD Scenario 8)
+    // Preserve existing logic
+    // ============================================================
+
     let revoked_previous = false;
     const recentSession = await getRecentSession(env, card_uuid);
 
@@ -133,7 +308,11 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
       }));
     }
 
-    // Create new session (Scenario 1 & 2)
+    // ============================================================
+    // STEP 5: Create Session + Store Dedup + Increment Counters
+    // (BDD Scenario 1, 5, 8)
+    // ============================================================
+
     // Map user card type to CardType
     let cardType: CardType = 'personal';
     if (result.card_type === 'event') {
@@ -141,21 +320,37 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
     } else if (result.card_type === 'sensitive') {
       cardType = 'sensitive';
     }
-    
-    const newSession = await createSession(env, card_uuid, cardType);
+
+    // Pass ctx to enable async session insert + cache update
+    const newSession = await createSession(env, card_uuid, cardType, ctx);
+
+    // Store dedup entry (TTL: 60s)
+    await env.KV.put(dedupKey, newSession.session_id, { expirationTtl: 60 });
+
+    // Increment rate limit counters + session budget (all in parallel)
+    await Promise.all([
+      incrementRateLimit(env.KV, 'card_uuid', card_uuid, 'minute'),
+      incrementRateLimit(env.KV, 'card_uuid', card_uuid, 'hour'),
+      incrementRateLimit(env.KV, 'ip', clientIP, 'minute'),
+      incrementRateLimit(env.KV, 'ip', clientIP, 'hour'),
+      incrementSessionBudget(env, card_uuid)
+    ]);
 
     ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, newSession.session_id, {
       card_type: result.card_type,
-      revoked_previous
+      revoked_previous,
+      reused: false  // Scenario 1 requirement
     }));
 
-    // Return successful response
+    // Return successful response (Scenario 1)
     return jsonResponse({
       session_id: newSession.session_id,
       expires_at: newSession.expires_at,
       max_reads: newSession.max_reads,
       reads_used: newSession.reads_used,
-      revoked_previous
+      revoked_previous,
+      reused: false,  // NEW: explicitly indicate this is a new session
+      ...(budgetResult.warning && { warning: budgetResult.warning })
     }, 200, request);
 
   } catch (error) {

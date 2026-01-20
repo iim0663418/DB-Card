@@ -15,8 +15,11 @@ export async function tapCard(uuid) {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || error.message || 'Failed to tap card');
+    const errorData = await response.json();
+    const error = new Error(errorData.error?.message || errorData.message || 'Failed to tap card');
+    error.code = errorData.error?.code;
+    error.data = errorData;
+    throw error;
   }
 
   const result = await response.json();
@@ -33,8 +36,11 @@ export async function readCard(uuid, sessionId) {
   const response = await fetch(`${API_BASE}/api/read?uuid=${encodeURIComponent(uuid)}&session=${encodeURIComponent(sessionId)}`);
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || error.message || 'Failed to read card');
+    const errorData = await response.json();
+    const error = new Error(errorData.error?.message || errorData.message || 'Failed to read card');
+    error.code = errorData.error?.code;
+    error.data = errorData;
+    throw error;
   }
 
   const result = await response.json();

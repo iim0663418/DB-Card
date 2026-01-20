@@ -273,7 +273,12 @@ export default {
   },
 
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    // Run both cleanup and log rotation at 02:00 UTC
     const { handleScheduledCleanup } = await import('./scheduled-cleanup');
-    ctx.waitUntil(handleScheduledCleanup(env));
+    const { handleScheduledLogRotation } = await import('./scheduled-log-rotation');
+    
+    // Run sequentially to avoid resource contention
+    await handleScheduledCleanup(env);
+    await handleScheduledLogRotation(env);
   }
 };

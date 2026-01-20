@@ -66,23 +66,39 @@ export interface CardPolicy {
   ttl: number;        // milliseconds
   max_reads: number;  // Maximum concurrent reads allowed
   scope: 'public' | 'private';
+  max_total_sessions: number;
+  max_sessions_per_day: number;
+  max_sessions_per_month: number;
+  warning_threshold: number;
 }
 
 export const CARD_POLICIES: Record<CardType, CardPolicy> = {
   personal: {
     ttl: 24 * 60 * 60 * 1000,  // 24 hours
     max_reads: 20,
-    scope: 'public'
+    scope: 'public',
+    max_total_sessions: 1000,
+    max_sessions_per_day: 10,
+    max_sessions_per_month: 100,
+    warning_threshold: 0.9,
   },
   event_booth: {
     ttl: 24 * 60 * 60 * 1000,
     max_reads: 50,
-    scope: 'public'
+    scope: 'public',
+    max_total_sessions: 5000,
+    max_sessions_per_day: 50,
+    max_sessions_per_month: 500,
+    warning_threshold: 0.9,
   },
   sensitive: {
     ttl: 24 * 60 * 60 * 1000,
     max_reads: 5,
-    scope: 'public'
+    scope: 'public',
+    max_total_sessions: 100,
+    max_sessions_per_day: 3,
+    max_sessions_per_month: 30,
+    warning_threshold: 0.8,
   }
 };
 
@@ -247,5 +263,29 @@ export interface RateLimitConfig {
   ip: {
     minute: number;
     hour: number;
+  };
+}
+
+// Session Budget Types
+export interface SessionBudgetResult {
+  allowed: boolean;
+  reason?: 'total_limit_exceeded' | 'daily_limit_exceeded' | 'monthly_limit_exceeded';
+  warning?: {
+    type: 'approaching_budget_limit';
+    message: string;
+    remaining: number;
+    max_total: number;
+  } | null;
+  remaining?: number;
+  daily_remaining?: number;
+  monthly_remaining?: number;
+  details?: {
+    total_sessions?: number;
+    max_total_sessions?: number;
+    daily_sessions?: number;
+    max_sessions_per_day?: number;
+    monthly_sessions?: number;
+    max_sessions_per_month?: number;
+    retry_after?: string;
   };
 }

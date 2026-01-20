@@ -8,6 +8,7 @@ import { createSession, getRecentSession, revokeSession, shouldRevoke } from '..
 import { logEvent } from '../utils/audit';
 import { getClientIP } from '../utils/ip';
 import { checkRateLimit, incrementRateLimit } from '../utils/rate-limit';
+import { checkSessionBudget, incrementSessionBudget } from '../utils/session-budget';
 
 /**
  * Validate UUID v4 format
@@ -23,9 +24,10 @@ function isValidUUID(uuid: string): boolean {
  * Step 0: Basic validation (method, params, UUID format)
  * Step 1: Dedup check → if hit, return existing session
  * Step 2: Rate limit (4 checks: card minute/hour, IP minute/hour)
+ * Step 2.5: Budget check (total/daily/monthly limits)
  * Step 3: Validate card (existence, revoked status)
  * Step 4: Retap revocation (existing logic)
- * Step 5: Create session + store dedup + increment counters
+ * Step 5: Create session + store dedup + increment counters + increment budget
  */
 export async function handleTap(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   try {
@@ -134,6 +136,89 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
     }
 
     // ============================================================
+    // STEP 2.5: Budget Check
+    // ============================================================
+
+    // Map user card type to CardType (preview for budget check)
+    const cardTypePreview = await env.DB.prepare(`
+      SELECT type FROM uuid_bindings WHERE uuid = ?
+    `).bind(card_uuid).first<{ type: string }>();
+
+    let cardTypeBudget: CardType = 'personal';
+    if (cardTypePreview?.type === 'event') {
+      cardTypeBudget = 'event_booth';
+    } else if (cardTypePreview?.type === 'sensitive') {
+      cardTypeBudget = 'sensitive';
+    }
+
+    const budgetResult = await checkSessionBudget(env, card_uuid, cardTypeBudget);
+
+    if (!budgetResult.allowed) {
+      if (budgetResult.reason === 'total_limit_exceeded') {
+        ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, undefined, {
+          error: 'session_budget_exceeded',
+          details: budgetResult.details
+        }));
+
+        return new Response(JSON.stringify({
+          success: false,
+          error: {
+            code: 'session_budget_exceeded',
+            message: '此名片已達到使用上限，請聯絡管理員',
+            details: budgetResult.details,
+          }
+        }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (budgetResult.reason === 'daily_limit_exceeded') {
+        ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, undefined, {
+          error: 'daily_budget_exceeded',
+          details: budgetResult.details
+        }));
+
+        return new Response(JSON.stringify({
+          success: false,
+          error: {
+            code: 'daily_budget_exceeded',
+            message: '今日使用次數已達上限',
+            details: budgetResult.details,
+          }
+        }), {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': budgetResult.details?.retry_after || ''
+          }
+        });
+      }
+
+      if (budgetResult.reason === 'monthly_limit_exceeded') {
+        ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, undefined, {
+          error: 'monthly_budget_exceeded',
+          details: budgetResult.details
+        }));
+
+        return new Response(JSON.stringify({
+          success: false,
+          error: {
+            code: 'monthly_budget_exceeded',
+            message: '本月使用次數已達上限',
+            details: budgetResult.details,
+          }
+        }), {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': budgetResult.details?.retry_after || ''
+          }
+        });
+      }
+    }
+
+    // ============================================================
     // STEP 3: Validate Card (BDD Scenario 6, 7)
     // ============================================================
 
@@ -223,12 +308,13 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
     // Store dedup entry (TTL: 60s)
     await env.KV.put(dedupKey, newSession.session_id, { expirationTtl: 60 });
 
-    // Increment rate limit counters (all 4 dimensions)
+    // Increment rate limit counters + session budget (all in parallel)
     await Promise.all([
       incrementRateLimit(env.KV, 'card_uuid', card_uuid, 'minute'),
       incrementRateLimit(env.KV, 'card_uuid', card_uuid, 'hour'),
       incrementRateLimit(env.KV, 'ip', clientIP, 'minute'),
-      incrementRateLimit(env.KV, 'ip', clientIP, 'hour')
+      incrementRateLimit(env.KV, 'ip', clientIP, 'hour'),
+      incrementSessionBudget(env, card_uuid)
     ]);
 
     ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, newSession.session_id, {
@@ -244,7 +330,8 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
       max_reads: newSession.max_reads,
       reads_used: newSession.reads_used,
       revoked_previous,
-      reused: false  // NEW: explicitly indicate this is a new session
+      reused: false,  // NEW: explicitly indicate this is a new session
+      ...(budgetResult.warning && { warning: budgetResult.warning })
     }, 200, request);
 
   } catch (error) {

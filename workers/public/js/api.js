@@ -33,9 +33,31 @@ export async function tapCard(uuid) {
  * @returns {Promise<{data: object, session_info: object}>}
  */
 export async function readCard(uuid, sessionId) {
+  const CACHE_TTL = 300000; // 5 minutes in milliseconds
+  const cacheKey = `card:${uuid}:${sessionId}`;
+
+  // Scenario 1 & 2: Check cache validity
+  try {
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      const { data, timestamp } = JSON.parse(cached);
+      const now = Date.now();
+
+      // Scenario 1: Cache hit - return cached data
+      if (now - timestamp < CACHE_TTL) {
+        return data;
+      }
+      // Scenario 2: Cache expired - continue to fetch
+    }
+  } catch (e) {
+    // Invalid cache data, continue to fetch
+  }
+
+  // Scenario 3: No cache or expired - fetch from API
   const response = await fetch(`${API_BASE}/api/read?uuid=${encodeURIComponent(uuid)}&session=${encodeURIComponent(sessionId)}`);
 
   if (!response.ok) {
+    // Scenario 4: API error - don't cache error responses
     const errorData = await response.json();
     const error = new Error(errorData.error?.message || errorData.message || 'Failed to read card');
     error.code = errorData.error?.code;
@@ -44,6 +66,17 @@ export async function readCard(uuid, sessionId) {
   }
 
   const result = await response.json();
+
+  // Cache successful response with timestamp
+  try {
+    sessionStorage.setItem(cacheKey, JSON.stringify({
+      data: result,
+      timestamp: Date.now()
+    }));
+  } catch (e) {
+    // sessionStorage full or unavailable, continue without caching
+  }
+
   // Return full result with data and session_info
   return result;
 }

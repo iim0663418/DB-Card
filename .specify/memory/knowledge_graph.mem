@@ -34,7 +34,54 @@
 260118|Recent_Fixes|v3.2.1|ES6_Module_Loading_Compatibility
 260118|Recent_Fixes|v3.2.1|PWA_Initialization_Success_Rate_100_Percent
 
-# Project Scope Update (2026-01-18)
+# Dual-Layer Cache Optimization v4.2.1 (2026-01-20)
+260120|Dual_Layer_Cache|version|v4.2.1
+260120|Dual_Layer_Cache|status|COMPLETE
+260120|Dual_Layer_Cache|commit|fa53425
+260120|Dual_Layer_Cache|deployment|staging_pending
+
+# Frontend sessionStorage Cache
+260120|Frontend_Cache|implementation|api_js_readCard
+260120|Frontend_Cache|ttl|300_seconds_5_minutes
+260120|Frontend_Cache|cache_key|card_uuid_sessionId
+260120|Frontend_Cache|performance|minus_95_percent_200ms_to_10ms
+260120|Frontend_Cache|storage|sessionStorage
+260120|Frontend_Cache|error_handling|graceful_degradation
+260120|Frontend_Cache|bdd_scenarios|4_complete
+
+# Backend Mixed Cache Strategy
+260120|Backend_Mixed_Cache|implementation|handlers_read_ts
+260120|Backend_Mixed_Cache|strategy|by_card_type
+260120|Backend_Mixed_Cache|sensitive|no_kv_cache_ttl_0
+260120|Backend_Mixed_Cache|personal|kv_cache_60s
+260120|Backend_Mixed_Cache|event|kv_cache_60s
+260120|Backend_Mixed_Cache|function|getCardType
+260120|Backend_Mixed_Cache|function|getCachedCardData_with_ttl
+260120|Backend_Mixed_Cache|bdd_scenarios|5_complete
+
+# Performance Impact
+260120|Performance|frontend_cache_hit|minus_95_percent
+260120|Performance|backend_kv_ttl|minus_80_percent_300s_to_60s
+260120|Performance|sensitive_cards|zero_kv_exposure
+260120|Performance|page_refresh|200ms_to_10ms
+
+# Security Enhancement
+260120|Security|sensitive_cards|no_backend_kv_cache
+260120|Security|personal_event_cards|reduced_kv_exposure_60s
+260120|Security|multi_layer_protection|frontend_backend_envelope
+
+# Documentation
+260120|Documentation|bdd_spec_frontend|frontend_cache_optimization_md
+260120|Documentation|bdd_spec_backend|mixed_cache_strategy_md
+260120|Documentation|acceptance_frontend|frontend_cache_acceptance_md
+260120|Documentation|acceptance_backend|mixed_cache_acceptance_md
+260120|Documentation|performance_analysis|card_display_performance_analysis_md
+
+# Version Update
+260120|Version|number|v4.2.1
+260120|Version|readme|updated
+260120|Version|package_json|updated
+260120|Version|index_html|updated
 260118|DB-Card|project_type|Personal_Private_Project
 260118|DB-Card|previous_scope|Government_Open_Source_Project
 260118|DB-Card|data_controller|DB-Card_Project_Team

@@ -1,6 +1,6 @@
 // NFC Tap Handler
 // POST /api/nfc/tap - Issue ReadSession on NFC card tap
-// Implements BDD Spec: Multi-Layer Defense (Dedup + Rate Limit)
+// Implements BDD Spec: Multi-Layer Defense (Rate Limit + Budget)
 
 import type { Env, Card, CardType } from '../types';
 import { jsonResponse, errorResponse } from '../utils/response';
@@ -22,12 +22,11 @@ function isValidUUID(uuid: string): boolean {
  * Handle NFC tap request
  * Execution order (BDD Spec):
  * Step 0: Basic validation (method, params, UUID format)
- * Step 1: Dedup check → if hit, return existing session
- * Step 2: Rate limit (4 checks: card minute/hour, IP minute/hour)
- * Step 2.5: Budget check (total/daily/monthly limits)
- * Step 3: Validate card (existence, revoked status)
- * Step 4: Retap revocation (existing logic)
- * Step 5: Create session + store dedup + increment counters + increment budget
+ * Step 1: Rate limit (2 checks: card hour, IP hour)
+ * Step 1.5: Budget check (total/daily/monthly limits)
+ * Step 2: Validate card (existence, revoked status)
+ * Step 3: Retap revocation (existing logic)
+ * Step 4: Create session + increment counters + increment budget
  */
 export async function handleTap(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   try {
@@ -56,52 +55,14 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
     }
 
     // ============================================================
-    // STEP 1: Dedup Check (BDD Scenario 2, 9)
-    // ============================================================
-
-    const dedupKey = `tap:dedup:${card_uuid}`;
-    const existingSessionId = await env.KV.get(dedupKey);
-
-    if (existingSessionId) {
-      // Dedup hit - return existing session without creating new one
-      // This applies to ALL requests (including admin portal - no bypass)
-
-      // Fetch session details to return
-      const sessionResult = await env.DB.prepare(`
-        SELECT session_id, card_uuid, issued_at, expires_at, max_reads, reads_used, revoked_at
-        FROM read_sessions
-        WHERE session_id = ?
-      `).bind(existingSessionId).first();
-
-      if (sessionResult) {
-        ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, existingSessionId, {
-          dedup_hit: true,
-          reused: true
-        }));
-
-        return jsonResponse({
-          session_id: sessionResult.session_id,
-          expires_at: sessionResult.expires_at,
-          max_reads: sessionResult.max_reads,
-          reads_used: sessionResult.reads_used,
-          reused: true  // Scenario 2 requirement
-        }, 200, request);
-      }
-
-      // If session not found (expired/deleted), fall through to create new one
-    }
-
-    // ============================================================
-    // STEP 2: Rate Limit Check (BDD Scenario 3, 4, 11)
+    // STEP 1: Rate Limit Check (Hour-Only Window)
     // ============================================================
 
     const clientIP = getClientIP(request);
 
-    // Check all 4 rate limit dimensions
+    // Check 2 rate limit dimensions (hour-only window)
     const rateLimitChecks = await Promise.all([
-      checkRateLimit(env.KV, 'card_uuid', card_uuid, 'minute'),
       checkRateLimit(env.KV, 'card_uuid', card_uuid, 'hour'),
-      checkRateLimit(env.KV, 'ip', clientIP, 'minute'),
       checkRateLimit(env.KV, 'ip', clientIP, 'hour')
     ]);
 
@@ -136,7 +97,7 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
     }
 
     // ============================================================
-    // STEP 2.5: Budget Check
+    // STEP 1.5: Budget Check
     // ============================================================
 
     // Map user card type to CardType (preview for budget check)
@@ -233,7 +194,7 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
     }
 
     // ============================================================
-    // STEP 3: Validate Card (BDD Scenario 6, 7)
+    // STEP 2: Validate Card (BDD Scenario 6, 7)
     // ============================================================
 
     // Use D1 batch to split queries (avoid JOIN overhead)
@@ -291,7 +252,7 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
     }
 
     // ============================================================
-    // STEP 4: Retap Revocation (BDD Scenario 8)
+    // STEP 3: Retap Revocation (BDD Scenario 8)
     // Preserve existing logic
     // ============================================================
 
@@ -309,7 +270,7 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
     }
 
     // ============================================================
-    // STEP 5: Create Session + Store Dedup + Increment Counters
+    // STEP 4: Create Session + Increment Counters
     // (BDD Scenario 1, 5, 8)
     // ============================================================
 
@@ -324,22 +285,16 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
     // Pass ctx to enable async session insert + cache update
     const newSession = await createSession(env, card_uuid, cardType, ctx);
 
-    // Store dedup entry (TTL: 60s)
-    await env.KV.put(dedupKey, newSession.session_id, { expirationTtl: 60 });
-
     // Increment rate limit counters + session budget (all in parallel)
     await Promise.all([
-      incrementRateLimit(env.KV, 'card_uuid', card_uuid, 'minute'),
       incrementRateLimit(env.KV, 'card_uuid', card_uuid, 'hour'),
-      incrementRateLimit(env.KV, 'ip', clientIP, 'minute'),
       incrementRateLimit(env.KV, 'ip', clientIP, 'hour'),
       incrementSessionBudget(env, card_uuid)
     ]);
 
     ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, newSession.session_id, {
       card_type: result.card_type,
-      revoked_previous,
-      reused: false  // Scenario 1 requirement
+      revoked_previous
     }));
 
     // Return successful response (Scenario 1)
@@ -349,7 +304,6 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
       max_reads: newSession.max_reads,
       reads_used: newSession.reads_used,
       revoked_previous,
-      reused: false,  // NEW: explicitly indicate this is a new session
       ...(budgetResult.warning && { warning: budgetResult.warning })
     }, 200, request);
 

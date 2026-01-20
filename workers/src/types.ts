@@ -237,9 +237,9 @@ export interface RevocationHistoryResponse {
   limit: number;
 }
 
-// Rate Limiting Types (Tap Dedup & Rate Limit - Phase 1)
+// Rate Limiting Types (Hour-Only Window - Phase 1)
 export type RateLimitDimension = 'card_uuid' | 'ip';
-export type RateLimitWindow = 'minute' | 'hour';
+export type RateLimitWindow = 'hour';
 
 export interface RateLimitData {
   count: number;
@@ -257,11 +257,9 @@ export interface RateLimitResult {
 
 export interface RateLimitConfig {
   card_uuid: {
-    minute: number;
     hour: number;
   };
   ip: {
-    minute: number;
     hour: number;
   };
 }

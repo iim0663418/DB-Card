@@ -759,3 +759,79 @@
 260120|Deployment|staging|6d2a4af0-32a7-4080-81d9-d3eb824a591f
 260120|Deployment|url|https://db-card-staging.csw30454.workers.dev
 260120|Deployment|status|operational
+
+# Landing Page Update (2026-01-20)
+260120|Landing_Page|version|v4.0_Security_Features
+260120|Landing_Page|status|DEPLOYED
+260120|Landing_Page|commit|ac30bfb
+260120|Landing_Page|deployment|b49bc44f-a64f-4067-965d-bb026ba54267
+260120|Landing_Page|update_time|2026-01-20T15:51:00+08:00
+
+# Core Security Features Display
+260120|Landing_Page_Feature_1|title|隱私優先設計
+260120|Landing_Page_Feature_1|icon|shield-check
+260120|Landing_Page_Feature_1|items|資料加密儲存_UUID_Only_IP_匿名化
+260120|Landing_Page_Feature_2|title|信封加密技術
+260120|Landing_Page_Feature_2|icon|lock
+260120|Landing_Page_Feature_2|items|獨立_DEK_KEK_輪換_企業級標準
+260120|Landing_Page_Feature_3|title|授權會話機制
+260120|Landing_Page_Feature_3|icon|clock
+260120|Landing_Page_Feature_3|items|24h_TTL_同時讀取限制_NFC_重新觸碰
+260120|Landing_Page_Feature_4|title|可隨時撤銷授權
+260120|Landing_Page_Feature_4|icon|x-circle
+260120|Landing_Page_Feature_4|items|使用者自助_管理員緊急_立即失效
+
+# Design Consistency
+260120|Landing_Page_Design|style|Glassmorphism
+260120|Landing_Page_Design|accent_color|#6868ac_MODA_Purple
+260120|Landing_Page_Design|layout|2x2_Grid_Responsive
+260120|Landing_Page_Design|icons|Lucide
+260120|Landing_Page_Design|check_color|#10b981_Green
+
+# Dynamic Page Title (2026-01-20)
+260120|Card_Display|feature|Dynamic_Page_Title
+260120|Card_Display|status|DEPLOYED
+260120|Card_Display|commit|f715232
+260120|Card_Display|deployment|901bdff1-6dcd-48fb-8e8d-f4bb0e69c54d
+260120|Card_Display|title_format_en|DB-Card_pipe_Name
+260120|Card_Display|title_format_zh|數位名片_pipe_Name
+260120|Card_Display|fallback_en|DB-Card_pipe_Card_Display
+260120|Card_Display|fallback_zh|數位名片_pipe_名片顯示
+260120|Card_Display|implementation|Bilingual_Support_In_renderCard
+260120|Card_Display|localization|Uses_currentLanguage_Variable
+
+# P0 Backend Optimization (2026-01-20)
+260120|Backend_Optimization|version|P0_Complete
+260120|Backend_Optimization|status|DEPLOYED
+260120|Backend_Optimization|commit|9d8f188
+260120|Backend_Optimization|deployment|1a4c529c-b63f-41bc-b205-a7409e4671b6
+260120|Backend_Optimization|report|reports/p0-backend-optimization-results.md
+
+# Optimization 1: Retap Revocation KV Cache
+260120|Retap_Cache|cache_key|last_session_card_uuid
+260120|Retap_Cache|ttl|3600s_1_hour
+260120|Retap_Cache|implementation|utils_session_ts_getRecentSession
+260120|Retap_Cache|invalidation|On_Session_Revocation
+260120|Retap_Cache|improvement|minus_100_150ms
+
+# Optimization 2: Card Type KV Cache
+260120|CardType_Cache|cache_key|card_type_card_uuid
+260120|CardType_Cache|ttl|86400s_24_hours
+260120|CardType_Cache|implementation|handlers_tap_ts_STEP_2_5_and_3
+260120|CardType_Cache|improvement|minus_50_100ms
+
+# Optimization 3: Async Session Insert
+260120|Async_Insert|method|ctx_waitUntil
+260120|Async_Insert|pre_generation|crypto_randomUUID
+260120|Async_Insert|implementation|utils_session_ts_createSession
+260120|Async_Insert|backwards_compatible|True
+260120|Async_Insert|improvement|minus_100_150ms
+
+# Performance Results
+260120|Performance_Tap_API|before|0_6s
+260120|Performance_Tap_API|after|0_35s
+260120|Performance_Tap_API|improvement|minus_42_percent
+260120|Performance_Read_API|before|0_31s
+260120|Performance_Read_API|after_cache_hit|0_10s
+260120|Performance_Read_API|improvement|minus_68_percent
+260120|Performance_Overall|improvement|minus_25_35_percent

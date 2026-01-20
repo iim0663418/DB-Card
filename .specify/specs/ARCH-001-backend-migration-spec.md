@@ -87,7 +87,7 @@ CREATE TABLE read_sessions (
   card_uuid TEXT NOT NULL,                  -- 關聯的名片 UUID
   issued_at INTEGER NOT NULL,               -- 發行時間
   expires_at INTEGER NOT NULL,              -- 過期時間 (issued_at + 24h)
-  max_reads INTEGER NOT NULL,               -- 最大回看次數 (Policy 快照)
+  max_reads INTEGER NOT NULL,               -- 最大同時讀取數 (Policy 快照)
   reads_used INTEGER DEFAULT 0,             -- 已使用次數
   revoked_at INTEGER,                       -- 撤銷時間
   revoked_reason TEXT,                      -- 'retap' | 'admin' | 'emergency'

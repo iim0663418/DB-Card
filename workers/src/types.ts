@@ -54,7 +54,7 @@ export interface ReadSession {
   card_uuid: string;
   issued_at: number;
   expires_at: number;
-  max_reads: number;
+  max_reads: number;  // Maximum concurrent reads allowed
   reads_used: number;
   revoked_at?: number;
   revoked_reason?: 'retap' | 'admin' | 'emergency' | 'card_updated' | 'card_deleted';
@@ -64,7 +64,7 @@ export interface ReadSession {
 
 export interface CardPolicy {
   ttl: number;        // milliseconds
-  max_reads: number;
+  max_reads: number;  // Maximum concurrent reads allowed
   scope: 'public' | 'private';
 }
 
@@ -219,4 +219,33 @@ export interface RevocationHistoryResponse {
   history: RevocationHistoryEntry[];
   total: number;
   limit: number;
+}
+
+// Rate Limiting Types (Tap Dedup & Rate Limit - Phase 1)
+export type RateLimitDimension = 'card_uuid' | 'ip';
+export type RateLimitWindow = 'minute' | 'hour';
+
+export interface RateLimitData {
+  count: number;
+  first_seen_at: number;
+}
+
+export interface RateLimitResult {
+  allowed: boolean;
+  current?: number;
+  limit?: number;
+  retry_after?: number;
+  dimension?: RateLimitDimension;
+  window?: RateLimitWindow;
+}
+
+export interface RateLimitConfig {
+  card_uuid: {
+    minute: number;
+    hour: number;
+  };
+  ip: {
+    minute: number;
+    hour: number;
+  };
 }

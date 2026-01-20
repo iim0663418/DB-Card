@@ -49,15 +49,15 @@
 260118|Security_Architecture|kek_rotation|Event_Triggered_90_Days
 260118|Authorization_Model|type|ReadSession
 260118|ReadSession|ttl|24_Hours
-260118|ReadSession|max_reads|20_Default
+260118|ReadSession|max_reads|Concurrent_Read_Limit_Default_20
 260118|ReadSession|revocable|True
 260118|ReadSession|renewable|False
 260118|Revocation_Mechanism|trigger|Retap_NFC_Card
 260118|Revocation_Mechanism|target|Last_1_Session
 260118|Revocation_Mechanism|condition|10_Min_Or_2_Reads
-260118|CardType|personal|TTL_24h_MaxReads_20
-260118|CardType|event_booth|TTL_24h_MaxReads_50
-260118|CardType|sensitive|TTL_24h_MaxReads_5
+260118|CardType|personal|TTL_24h_Concurrent_Reads_20
+260118|CardType|event_booth|TTL_24h_Concurrent_Reads_50
+260118|CardType|sensitive|TTL_24h_Concurrent_Reads_5
 260118|Emergency_Response|method|Token_Version_Increment
 260118|Emergency_Response|method|KEK_Rotation
 260118|Emergency_Response|method|Maintenance_Mode
@@ -293,7 +293,7 @@
 260118|Browser_Cache|offline_support|Automatic_No_Service_Worker_Needed
 260118|Offline_Mode|trigger_1|Network_Error
 260118|Offline_Mode|trigger_2|Session_Expired
-260118|Offline_Mode|trigger_3|Max_Reads_Exceeded
+260118|Offline_Mode|trigger_3|Concurrent_Reads_Exceeded
 260118|Offline_Mode|data_source|IndexedDB_Cache
 260118|Offline_Mode|ui_indicator|Offline_Badge
 
@@ -612,3 +612,98 @@
 260120|Deployment|database|db-card-staging
 260120|Deployment|active_cards|3
 260120|Deployment|status|operational
+
+# Tap API Multi-Layer Defense v1.0.0 (2026-01-20)
+260120|Tap_API_Defense|version|v1.0.0
+260120|Tap_API_Defense|status|COMPLETE
+260120|Tap_API_Defense|commit|TBD
+260120|Tap_API_Defense|implementation_date|2026-01-20T14:00:00+08:00
+
+# Layer 1: Deduplication (60s)
+260120|Layer_1_Dedup|status|Implemented
+260120|Layer_1_Dedup|kv_key|tap:dedup:${card_uuid}
+260120|Layer_1_Dedup|value|session_id
+260120|Layer_1_Dedup|ttl|60_seconds
+260120|Layer_1_Dedup|behavior|Return_Existing_Session
+260120|Layer_1_Dedup|bypass|None_Including_Admin_Portal
+
+# Layer 2: Rate Limiting
+260120|Layer_2_RateLimit|status|Implemented
+260120|Layer_2_RateLimit|algorithm|Sliding_Window_Counter
+260120|Layer_2_RateLimit|dimensions|card_uuid_and_ip
+260120|Layer_2_RateLimit|card_uuid_minute|10_requests
+260120|Layer_2_RateLimit|card_uuid_hour|50_requests
+260120|Layer_2_RateLimit|ip_minute|10_requests
+260120|Layer_2_RateLimit|ip_hour|50_requests
+260120|Layer_2_RateLimit|kv_ttl|120s_minute_7200s_hour
+260120|Layer_2_RateLimit|error_code|429_rate_limited
+
+# Layer 3: Max Reads (Preserved)
+260120|Layer_3_MaxReads|status|Preserved
+260120|Layer_3_MaxReads|location|handlers/read.ts
+260120|Layer_3_MaxReads|behavior|Concurrent_Read_Limit
+260120|Layer_3_MaxReads|unchanged|True
+
+# Implementation Files
+260120|Implementation|utils_rate_limit_ts|Created
+260120|Implementation|utils_ip_ts|Created
+260120|Implementation|types_ts|Updated_5_New_Types
+260120|Implementation|handlers_tap_ts|Refactored_5_Step_Order
+260120|Implementation|typescript_compile|Passed
+
+# BDD Specification
+260120|BDD_Spec|file|.specify/specs/tap-dedup-ratelimit.md
+260120|BDD_Spec|scenarios|11_Complete
+260120|BDD_Spec|coverage|100_Percent
+
+# Execution Order
+260120|Execution_Order|step_0|Basic_Validation
+260120|Execution_Order|step_1|Dedup_Check
+260120|Execution_Order|step_2|Rate_Limit_Check
+260120|Execution_Order|step_3|Validate_Card
+260120|Execution_Order|step_4|Retap_Revocation
+260120|Execution_Order|step_5|Create_Session_Store_Dedup_Increment
+
+# IP Extraction
+260120|IP_Extraction|priority_1|CF-Connecting-IP
+260120|IP_Extraction|priority_2|X-Forwarded-For_First
+260120|IP_Extraction|priority_3|unknown
+260120|IP_Extraction|file|utils/ip.ts
+
+# Rate Limit Types
+260120|RateLimitDimension|type|card_uuid_or_ip
+260120|RateLimitWindow|type|minute_or_hour
+260120|RateLimitData|structure|count_first_seen_at
+260120|RateLimitResult|structure|allowed_current_limit_retry_after
+260120|RateLimitConfig|structure|card_uuid_ip_minute_hour
+
+# Design Decisions
+260120|Design_Decision|dedup_bypass|None_All_Requests_Subject
+260120|Design_Decision|rate_limit_values|Unified_10_min_50_hour
+260120|Design_Decision|window_algorithm|Sliding_Window_Counter
+260120|Design_Decision|kv_atomicity|Per_Key_Atomic
+260120|Design_Decision|phase_1_scope|P0_Three_Layers_Only
+
+# Out of Scope (Phase 2)
+260120|Phase_2_Future|layer_4|24h_Session_Budget
+260120|Phase_2_Future|layer_5|Active_Session_Cap
+260120|Phase_2_Future|force_new|mode_force_new_Parameter
+260120|Phase_2_Future|dynamic_limits|By_Card_Type
+260120|Phase_2_Future|frontend_cache|sessionStorage_Caching
+
+# External Research
+260120|Research|stripe_idempotency|24h_Key_Expiry
+260120|Research|shopify_dedup|Built_In_Mechanisms
+260120|Research|industry_standard|Sliding_Window_Recommended
+260120|Research|cloudflare_kv|Eventual_Consistency_Acceptable
+
+# Terminology Clarification (2026-01-20)
+260120|Terminology_Fix|max_reads|Clarified_As_Concurrent_Read_Limit
+260120|Terminology_Fix|scope|UI_Messages_Code_Comments_Documentation
+260120|Terminology_Fix|reason|Avoid_Confusion_With_Cumulative_Count
+260120|Terminology_Fix|updated_files|README_main_js_read_ts_types_ts_guides_landing_page
+260120|Terminology_Fix|additional_check|2026-01-20T14:10:00+08:00
+260120|Terminology_Fix|additional_fixes|ARCH-001_ARCH-002_FRONTEND-MIGRATION-PRD_CARD-DISPLAY-PAGE-PRD
+260120|Terminology_Fix|wrong_terms|最大讀取次數_最大回看次數_讀取次數上限
+260120|Terminology_Fix|correct_terms|同時讀取數上限_最大同時讀取數_併發讀取限制
+260120|Terminology_Fix|consistency|100_Percent_Verified

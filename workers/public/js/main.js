@@ -1,6 +1,5 @@
 import { tapCard, readCard } from './api.js';
 import { getLocalizedText, getLocalizedArray } from './utils/bilingual.js';
-import { getCachedCard, setCachedCard, clearExpiredCache } from './cache-helper.js';
 
 // Error message constants for v4.1.0 & v4.2.0
 const ERROR_MESSAGES = {
@@ -215,7 +214,6 @@ function showNotification(message, type = 'info') {
 async function initApp() {
     initLoadingIcon(); // 隨機選擇載入圖示
     lucide.createIcons();
-    clearExpiredCache();
 
     if (typeof THREE !== 'undefined') {
         setTimeout(() => initThree(), 100);
@@ -271,24 +269,14 @@ async function loadCard(uuid) {
             sessionId = tapResult.session_id;
         }
 
-        // 檢查快取
-        const cached = getCachedCard(uuid, sessionId);
-        if (cached) {
-            cardData = cached.data;
-            sessionData = cached.sessionData;
-        } else {
-            // 讀取名片資料
-            const readResult = await readCard(uuid, sessionId);
-            cardData = readResult.data;
-            sessionData = {
-                session_id: sessionId,
-                expires_at: readResult.session_info.expires_at,
-                reads_remaining: readResult.session_info.reads_remaining
-            };
-
-            // 儲存快取
-            setCachedCard(uuid, sessionId, { data: cardData, sessionData });
-        }
+        // 讀取名片資料 (readCard 內部處理快取)
+        const readResult = await readCard(uuid, sessionId);
+        cardData = readResult.data;
+        sessionData = {
+            session_id: sessionId,
+            expires_at: readResult.session_info.expires_at,
+            reads_remaining: readResult.session_info.reads_remaining
+        };
 
     } catch (error) {
         console.error('Error loading card:', error);

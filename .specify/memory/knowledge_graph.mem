@@ -835,3 +835,35 @@
 260120|Performance_Read_API|after_cache_hit|0_10s
 260120|Performance_Read_API|improvement|minus_68_percent
 260120|Performance_Overall|improvement|minus_25_35_percent
+
+# Cleanup Query Optimization (2026-01-20)
+260120|Cleanup_Query_Optimization|version|v1.0.0
+260120|Cleanup_Query_Optimization|status|DEPLOYED_STAGING
+260120|Cleanup_Query_Optimization|commit|efd2860
+260120|Migration_0011|purpose|Optimize_Revoked_Cleanup_Query
+260120|Migration_0011|index|idx_uuid_bindings_revoked_cleanup
+260120|Migration_0011|type|Partial_Composite_Index
+260120|Migration_0011|columns|status_revoked_at
+260120|Migration_0011|filter|WHERE_status_equals_revoked
+260120|Performance_Small|dataset|less_than_1000
+260120|Performance_Small|impact|minimal
+260120|Performance_Medium|dataset|1000_to_10000
+260120|Performance_Medium|improvement|2_to_5x
+260120|Performance_Large|dataset|greater_than_10000
+260120|Performance_Large|improvement|10_to_50x
+
+# Migration Idempotency Fixes (2026-01-20)
+260120|Migration_0004|fix|IF_NOT_EXISTS_INSERT_OR_IGNORE
+260120|Migration_0005|fix|Remove_card_type_operations
+260120|Migration_0006|fix|Convert_to_no_op
+260120|Migration_0007|fix|Remove_status_filter
+260120|Migration_0008|fix|IF_NOT_EXISTS
+260120|Migration_0009|fix|Duplicate_IF_NOT_EXISTS_syntax
+260120|Migration_0010|fix|IF_NOT_EXISTS
+260120|Migration_0011|fix|Duplicate_IF_NOT_EXISTS_syntax
+
+# Staging Deployment (2026-01-20)
+260120|Staging_Deployment|migrations|0004_to_0011_all_success
+260120|Staging_Deployment|database|d31b5e42_d8bf_4044_9744_4aff5669de4b
+260120|Staging_Deployment|index_verified|idx_uuid_bindings_revoked_cleanup
+260120|Staging_Deployment|timestamp|2026_01_20T18_20_00_plus_08_00

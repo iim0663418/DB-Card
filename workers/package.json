@@ -1,7 +1,7 @@
 {
 	"name": "db-card",
-	"version": "4.1.0",
-	"description": "DB-Card NFC Digital Business Card System with Multi-Layer Defense",
+	"version": "4.2.0",
+	"description": "DB-Card NFC Digital Business Card System with Session Budget",
 	"private": true,
 	"scripts": {
 		"deploy": "wrangler deploy",

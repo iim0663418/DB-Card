@@ -5,6 +5,32 @@ All notable changes to DB-Card project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.0] - 2026-01-20
+
+### Added
+- **Session Budget (總量限制)**: Industry best practice based total quantity limits
+  - Total limit (max_total_sessions): personal 1000, event_booth 5000, sensitive 100
+  - Daily limit (max_sessions_per_day): personal 10, event_booth 50, sensitive 3
+  - Monthly limit (max_sessions_per_month): personal 100, event_booth 500, sensitive 30
+  - Soft warning mechanism: 90% threshold (personal/event), 80% threshold (sensitive)
+- **Database Migration 0010**: Added `total_sessions` column and index
+- **KV-based Tracking**: Daily/monthly counters (TTL: 24h/31d)
+- **Step 2.5 Budget Check**: Integrated into Tap API execution order
+- **Error Codes**: `session_budget_exceeded` (403), `daily_budget_exceeded` (429), `monthly_budget_exceeded` (429)
+- **Warning Response**: Returns warning message when approaching limit
+- New utility file: `workers/src/utils/session-budget.ts`
+
+### Changed
+- **Tap API Execution Order**: Added Step 2.5 (Budget Check) between Rate Limit and Card Validation
+- **CardPolicy Interface**: Added 4 new properties (max_total_sessions, max_sessions_per_day, max_sessions_per_month, warning_threshold)
+- **Session Creation**: Parallel budget counter updates in Step 5
+
+### Technical
+- Updated `workers/src/types.ts` - Added SessionBudgetResult interface
+- Updated `workers/src/handlers/tap.ts` - Integrated Budget Check logic
+- Local testing: 6/6 passed (100%)
+- Based on external research: Dropbox, PayPal, K-Factor theory
+
 ## [4.1.0] - 2026-01-20
 
 ### Added

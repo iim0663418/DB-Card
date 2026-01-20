@@ -1,12 +1,8 @@
 -- Migration: Sync cards.card_type with uuid_bindings.type
 -- Date: 2026-01-19
 -- Purpose: Ensure cards.card_type matches uuid_bindings.type after type migration
+-- Status: SKIPPED - card_type column doesn't exist in staging (will be removed in 0007)
 
--- Update cards.card_type to match uuid_bindings.type
-UPDATE cards
-SET card_type = (
-  SELECT b.type 
-  FROM uuid_bindings b 
-  WHERE b.uuid = cards.uuid
-)
-WHERE uuid IN (SELECT uuid FROM uuid_bindings);
+-- This migration is only needed if cards table has card_type column
+-- Since staging was deployed without this column, we skip this migration
+SELECT 1; -- No-op migration

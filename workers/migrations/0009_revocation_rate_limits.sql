@@ -14,9 +14,9 @@ CREATE TABLE IF NOT EXISTS revocation_rate_limits (
   UNIQUE(user_id, window_type, window_start)
 );
 
-CREATE INDEX idx_rate_limits_user_window
+CREATE INDEX IF NOT EXISTS idx_rate_limits_user_window
 ON revocation_rate_limits(user_id, window_type, window_start);
 
 -- Cleanup old records (keep 48 hours)
-CREATE INDEX idx_rate_limits_cleanup
+CREATE INDEX IF NOT EXISTS idx_rate_limits_cleanup
 ON revocation_rate_limits(window_start);

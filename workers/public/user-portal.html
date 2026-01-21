@@ -1394,7 +1394,7 @@
                                     ${data._optimistic ? '同步中...' : '查看名片'}
                                 </button>
                                 <div class="grid grid-cols-3 gap-2">
-                                    <button onclick="openEditForm('${config.id}')"
+                                    <button data-action="edit" data-type="${config.id}"
                                             class="py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all">
                                         編輯
                                     </button>
@@ -1409,7 +1409,7 @@
                                 </div>
                             </div>
                         ` : `
-                            <button onclick="openEditForm('${config.id}')"
+                            <button data-action="edit" data-type="${config.id}"
                                     class="w-full py-4 bg-moda text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-[1.02] transition-all mt-10 shadow-moda shadow-lg">
                                 建立名片
                             </button>
@@ -1418,6 +1418,15 @@
                 `;
             }).join(''));
             lucide.createIcons();
+
+            // Event delegation for edit buttons
+            container.addEventListener('click', (e) => {
+                const button = e.target.closest('[data-action="edit"]');
+                if (button) {
+                    const type = button.dataset.type;
+                    openEditForm(type);
+                }
+            });
         }
 
 

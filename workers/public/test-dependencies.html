@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dependencies Test Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto space-y-8">
+        <h1 class="text-3xl font-bold mb-8">Dependencies Version Test</h1>
+
+        <!-- DOMPurify Test -->
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-bold mb-4">1. DOMPurify Test</h2>
+            <div class="space-y-4">
+                <div>
+                    <p class="font-semibold">Current: 3.0.6</p>
+                    <div id="dompurify-old-result" class="mt-2 p-3 bg-gray-50 rounded"></div>
+                </div>
+                <div>
+                    <p class="font-semibold">New: 3.2.7</p>
+                    <div id="dompurify-new-result" class="mt-2 p-3 bg-gray-50 rounded"></div>
+                </div>
+                <button onclick="testDOMPurify()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    Test DOMPurify
+                </button>
+            </div>
+        </div>
+
+        <!-- Three.js Test -->
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-bold mb-4">2. Three.js Test</h2>
+            <div class="space-y-4">
+                <div>
+                    <p class="font-semibold">Current: r128</p>
+                    <canvas id="three-old" width="300" height="200" class="border"></canvas>
+                </div>
+                <div>
+                    <p class="font-semibold">New: 0.180.0</p>
+                    <canvas id="three-new" width="300" height="200" class="border"></canvas>
+                </div>
+                <button onclick="testThreeJS()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    Test Three.js
+                </button>
+            </div>
+        </div>
+
+        <!-- Lucide Test -->
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-bold mb-4">3. Lucide Icons Test</h2>
+            <div class="space-y-4">
+                <div>
+                    <p class="font-semibold">Current: 0.263.0</p>
+                    <div id="lucide-old" class="flex gap-2 mt-2"></div>
+                </div>
+                <div>
+                    <p class="font-semibold">New: 0.562.0</p>
+                    <div id="lucide-new" class="flex gap-2 mt-2"></div>
+                </div>
+                <button onclick="testLucide()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    Test Lucide
+                </button>
+            </div>
+        </div>
+
+        <!-- Chart.js Test -->
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-bold mb-4">4. Chart.js Test</h2>
+            <div class="space-y-4">
+                <div>
+                    <p class="font-semibold">Current: 4.4.0</p>
+                    <canvas id="chart-old" width="300" height="200"></canvas>
+                </div>
+                <div>
+                    <p class="font-semibold">New: 4.5.1</p>
+                    <canvas id="chart-new" width="300" height="200"></canvas>
+                </div>
+                <button onclick="testChartJS()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    Test Chart.js
+                </button>
+            </div>
+        </div>
+
+        <!-- Test Results Summary -->
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-bold mb-4">Test Results</h2>
+            <div id="test-results" class="space-y-2"></div>
+        </div>
+    </div>
+
+    <!-- Load OLD versions -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <script>
+        const results = [];
+
+        function addResult(test, status, message) {
+            results.push({ test, status, message });
+            const resultsDiv = document.getElementById('test-results');
+            const statusColor = status === 'pass' ? 'text-green-600' : 'text-red-600';
+            resultsDiv.innerHTML += `
+                <div class="flex items-center gap-2">
+                    <span class="${statusColor} font-bold">${status === 'pass' ? '✅' : '❌'}</span>
+                    <span><strong>${test}:</strong> ${message}</span>
+                </div>
+            `;
+        }
+
+        function testDOMPurify() {
+            try {
+                const dirty = '<img src=x onerror=alert(1)><p>Safe content</p>';
+                const clean = DOMPurify.sanitize(dirty);
+                document.getElementById('dompurify-old-result').innerHTML = clean;
+                
+                if (clean.includes('onerror')) {
+                    addResult('DOMPurify 3.0.6', 'fail', 'XSS not blocked!');
+                } else {
+                    addResult('DOMPurify 3.0.6', 'pass', 'XSS blocked correctly');
+                }
+
+                // Test new version (load dynamically)
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.7/purify.min.js';
+                script.onload = () => {
+                    const cleanNew = DOMPurify.sanitize(dirty);
+                    document.getElementById('dompurify-new-result').innerHTML = cleanNew;
+                    
+                    if (cleanNew.includes('onerror')) {
+                        addResult('DOMPurify 3.2.7', 'fail', 'XSS not blocked!');
+                    } else {
+                        addResult('DOMPurify 3.2.7', 'pass', 'XSS blocked correctly');
+                    }
+                };
+                document.head.appendChild(script);
+            } catch (e) {
+                addResult('DOMPurify', 'fail', e.message);
+            }
+        }
+
+        function testThreeJS() {
+            try {
+                // Test old version
+                const canvas1 = document.getElementById('three-old');
+                const scene1 = new THREE.Scene();
+                const camera1 = new THREE.PerspectiveCamera(75, 300/200, 0.1, 1000);
+                const renderer1 = new THREE.WebGLRenderer({ canvas: canvas1 });
+                renderer1.setSize(300, 200);
+                
+                const geometry1 = new THREE.BoxGeometry();
+                const material1 = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+                const cube1 = new THREE.Mesh(geometry1, material1);
+                scene1.add(cube1);
+                camera1.position.z = 5;
+                renderer1.render(scene1, camera1);
+                
+                addResult('Three.js r128', 'pass', 'Rendered successfully');
+
+                // Test new version (load dynamically)
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.min.js';
+                script.onload = () => {
+                    try {
+                        const canvas2 = document.getElementById('three-new');
+                        const scene2 = new THREE.Scene();
+                        const camera2 = new THREE.PerspectiveCamera(75, 300/200, 0.1, 1000);
+                        const renderer2 = new THREE.WebGLRenderer({ canvas: canvas2 });
+                        renderer2.setSize(300, 200);
+                        
+                        const geometry2 = new THREE.BoxGeometry();
+                        const material2 = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+                        const cube2 = new THREE.Mesh(geometry2, material2);
+                        scene2.add(cube2);
+                        camera2.position.z = 5;
+                        renderer2.render(scene2, camera2);
+                        
+                        addResult('Three.js 0.180.0', 'pass', 'Rendered successfully');
+                    } catch (e) {
+                        addResult('Three.js 0.180.0', 'fail', e.message);
+                    }
+                };
+                script.onerror = () => {
+                    addResult('Three.js 0.180.0', 'fail', 'Failed to load');
+                };
+                document.head.appendChild(script);
+            } catch (e) {
+                addResult('Three.js r128', 'fail', e.message);
+            }
+        }
+
+        function testLucide() {
+            try {
+                // Test old version
+                const oldDiv = document.getElementById('lucide-old');
+                oldDiv.innerHTML = '<i data-lucide="user"></i><i data-lucide="mail"></i><i data-lucide="phone"></i>';
+                lucide.createIcons();
+                addResult('Lucide 0.263.0', 'pass', 'Icons rendered');
+
+                // Test new version
+                const script = document.createElement('script');
+                script.src = 'https://unpkg.com/lucide@0.562.0/dist/umd/lucide.min.js';
+                script.onload = () => {
+                    const newDiv = document.getElementById('lucide-new');
+                    newDiv.innerHTML = '<i data-lucide="user"></i><i data-lucide="mail"></i><i data-lucide="phone"></i>';
+                    lucide.createIcons();
+                    addResult('Lucide 0.562.0', 'pass', 'Icons rendered');
+                };
+                script.onerror = () => {
+                    addResult('Lucide 0.562.0', 'fail', 'Failed to load');
+                };
+                document.head.appendChild(script);
+            } catch (e) {
+                addResult('Lucide', 'fail', e.message);
+            }
+        }
+
+        function testChartJS() {
+            try {
+                // Test old version
+                const ctx1 = document.getElementById('chart-old').getContext('2d');
+                new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: ['A', 'B', 'C'],
+                        datasets: [{
+                            label: 'Test',
+                            data: [12, 19, 3],
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)'
+                        }]
+                    }
+                });
+                addResult('Chart.js 4.4.0', 'pass', 'Chart rendered');
+
+                // Test new version
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js';
+                script.onload = () => {
+                    try {
+                        const ctx2 = document.getElementById('chart-new').getContext('2d');
+                        new Chart(ctx2, {
+                            type: 'bar',
+                            data: {
+                                labels: ['A', 'B', 'C'],
+                                datasets: [{
+                                    label: 'Test',
+                                    data: [12, 19, 3],
+                                    backgroundColor: 'rgba(255, 99, 132, 0.2)'
+                                }]
+                            }
+                        });
+                        addResult('Chart.js 4.5.1', 'pass', 'Chart rendered');
+                    } catch (e) {
+                        addResult('Chart.js 4.5.1', 'fail', e.message);
+                    }
+                };
+                script.onerror = () => {
+                    addResult('Chart.js 4.5.1', 'fail', 'Failed to load');
+                };
+                document.head.appendChild(script);
+            } catch (e) {
+                addResult('Chart.js 4.4.0', 'fail', e.message);
+            }
+        }
+    </script>
+</body>
+</html>

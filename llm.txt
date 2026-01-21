@@ -1,10 +1,20 @@
 # DB-Card
 
-> Enterprise-grade NFC digital business card system with envelope encryption, multi-layer defense, session-based authorization, and audit logging.
+> Enterprise-grade NFC digital business card system with envelope encryption, multi-layer defense, session-based authorization, and comprehensive security hardening (OWASP Top 10 2021 compliant).
 
 ## Overview
 
-DB-Card is a privacy-first digital business card system designed for organizations requiring secure identity exchange. Built on Cloudflare Workers edge computing platform, it provides:
+DB-Card is a privacy-first digital business card system designed for organizations requiring secure identity exchange. Built on Cloudflare Workers edge computing platform with comprehensive security hardening completed in v4.2.1.
+
+### Core Security Features (v4.2.1)
+
+- **Subresource Integrity (SRI)**: 75% CDN resource protection with cryptographic hash verification
+- **HttpOnly Cookies**: Secure authentication tokens inaccessible to JavaScript (XSS protection)
+- **DOMPurify XSS Protection**: All user-generated content sanitized before rendering
+- **Nonce-based CSP**: Content Security Policy without 'unsafe-inline', unique nonce per request
+- **Modern Dependencies**: All libraries updated to actively maintained versions
+
+### Core Architecture Features
 
 - **Envelope Encryption**: Each card has a unique DEK (Data Encryption Key) wrapped by a rotating KEK (Key Encryption Key)
 - **Multi-Layer Defense (v4.1.0)**: Three-layer protection against crawler abuse and resource attacks
@@ -15,6 +25,8 @@ DB-Card is a privacy-first digital business card system designed for organizatio
 - **Audit Logging**: Complete access trail with IP anonymization for compliance
 - **NFC Integration**: Physical NFC cards trigger secure session creation
 - **Bilingual Support**: Chinese and English UI with automatic switching
+
+**Security Rating**: 🟢 High (OWASP Top 10 2021: 4/4 compliant)
 
 **Target Users**: Organizations needing secure, auditable, and privacy-compliant identity exchange solutions.
 

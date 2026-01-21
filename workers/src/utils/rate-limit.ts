@@ -1,6 +1,6 @@
 // Rate Limiting Utility
 // Based on BDD Spec: Multi-Layer Defense for NFC Tap API
-// Implements Sliding Window Counter algorithm using KV
+// Implements Sliding Window Counter algorithm using KV (Hour-Only Window)
 
 import type {
   RateLimitDimension,
@@ -11,31 +11,29 @@ import type {
 } from '../types';
 
 /**
- * Rate limit configuration (Phase 1 - P0)
+ * Rate limit configuration (Phase 1 - Hour-Only Window)
  */
 export const RATE_LIMITS: RateLimitConfig = {
   card_uuid: {
-    minute: 10,
     hour: 50
   },
   ip: {
-    minute: 10,
-    hour: 50
+    hour: 60
   }
 };
 
 /**
- * Get window duration in seconds
+ * Get window duration in seconds (hour-only)
  */
 function getWindowDuration(window: RateLimitWindow): number {
-  return window === 'minute' ? 60 : 3600;
+  return 3600;  // 1 hour
 }
 
 /**
  * Get TTL for KV storage (2x window for safety)
  */
 function getKVTTL(window: RateLimitWindow): number {
-  return window === 'minute' ? 120 : 7200;
+  return 7200;  // 2 hours
 }
 
 /**

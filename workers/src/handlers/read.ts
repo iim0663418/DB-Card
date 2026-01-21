@@ -7,28 +7,76 @@ import { EnvelopeEncryption } from '../crypto/envelope';
 import { logEvent } from '../utils/audit';
 import { errorResponse } from '../utils/response';
 
+/**
+ * Get card type from uuid_bindings table
+ * @returns 'personal' | 'event' | 'sensitive'
+ * @default 'personal' if query fails (conservative fallback)
+ */
+async function getCardType(
+  env: Env,
+  cardUuid: string
+): Promise<'personal' | 'event' | 'sensitive'> {
+  try {
+    const result = await env.DB.prepare(`
+      SELECT ub.card_type
+      FROM uuid_bindings ub
+      WHERE ub.uuid = ?
+        AND ub.status = 'bound'
+      LIMIT 1
+    `).bind(cardUuid).first<{ card_type: string }>();
+
+    if (!result || !result.card_type) {
+      console.warn(`[getCardType] No card_type found for ${cardUuid}, defaulting to 'personal'`);
+      return 'personal';
+    }
+
+    const cardType = result.card_type as 'personal' | 'event' | 'sensitive';
+    if (!['personal', 'event', 'sensitive'].includes(cardType)) {
+      console.warn(`[getCardType] Invalid card_type '${cardType}', defaulting to 'personal'`);
+      return 'personal';
+    }
+
+    return cardType;
+  } catch (error) {
+    console.error('[getCardType] Query failed:', error);
+    return 'personal'; // Conservative fallback
+  }
+}
+
+/**
+ * Get cached card data with optional TTL
+ * @param ttl - Cache expiration time in seconds (default: 300)
+ * @param ttl=0 - No caching (returns decrypted data immediately)
+ */
 async function getCachedCardData(
   env: Env,
   uuid: string,
   encryptedPayload: string,
-  wrappedDek: string
+  wrappedDek: string,
+  ttl: number = 300
 ): Promise<CardData> {
   const cacheKey = `card:${uuid}`;
 
-  const cached = await env.KV.get(cacheKey, {
-    type: 'json',
-    cacheTtl: 300
-  });
+  // If ttl is 0, skip cache entirely (for sensitive cards)
+  if (ttl > 0) {
+    const cached = await env.KV.get(cacheKey, {
+      type: 'json',
+      cacheTtl: ttl
+    });
 
-  if (cached) return cached as CardData;
+    if (cached) return cached as CardData;
+  }
 
   const crypto = new EnvelopeEncryption();
   await crypto.initialize(env);
   const cardData = await crypto.decryptCard(encryptedPayload, wrappedDek) as CardData;
 
-  await env.KV.put(cacheKey, JSON.stringify(cardData), {
-    expirationTtl: 300
-  });
+  // Only cache if ttl > 0
+  if (ttl > 0) {
+    await env.KV.put(cacheKey, JSON.stringify(cardData), {
+      expirationTtl: ttl
+    });
+  }
 
   return cardData;
 }
@@ -182,14 +230,32 @@ export async function handleRead(request: Request, env: Env, ctx: ExecutionConte
       return errorResponse('card_not_found', '名片不存在或已刪除', 404, request);
     }
 
+    // BDD: Mixed Cache Strategy by Card Type
+    // Get card type to determine caching strategy
+    const cardType = await getCardType(env, card_uuid);
+
     let cardData: CardData;
     try {
-      cardData = await getCachedCardData(
-        env,
-        card_uuid,
-        card.encrypted_payload,
-        card.wrapped_dek
-      );
+      if (cardType === 'sensitive') {
+        // Scenario 1: sensitive cards - no caching (ttl=0)
+        // Decrypt every time, do not write to KV cache
+        cardData = await getCachedCardData(
+          env,
+          card_uuid,
+          card.encrypted_payload,
+          card.wrapped_dek,
+          0 // ttl=0 disables caching
+        );
+      } else {
+        // Scenario 2-4: personal/event cards - cache 60s
+        cardData = await getCachedCardData(
+          env,
+          card_uuid,
+          card.encrypted_payload,
+          card.wrapped_dek,
+          60 // Cache for 60 seconds
+        );
+      }
     } catch (error) {
       ctx.waitUntil(logEvent(env, 'read', request, card_uuid, session_id, {
         error: 'decryption_failed',

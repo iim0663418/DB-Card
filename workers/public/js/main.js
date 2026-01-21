@@ -1,6 +1,5 @@
 import { tapCard, readCard } from './api.js';
 import { getLocalizedText, getLocalizedArray } from './utils/bilingual.js';
-import { getCachedCard, setCachedCard, clearExpiredCache } from './cache-helper.js';
 
 // Error message constants for v4.1.0 & v4.2.0
 const ERROR_MESSAGES = {
@@ -14,6 +13,23 @@ let scene, camera, renderer, mesh, grid;
 let currentLanguage = 'zh';
 let typewriterTimeout = null;
 let currentCardData = null; // 儲存當前名片資料供 vCard 下載使用
+
+/**
+ * Device detection function for device-aware vCard button
+ * @returns {boolean} true if mobile device (iOS/Android/tablet), false for desktop
+ */
+function isMobileDevice() {
+    // Method 1: User Agent detection
+    const ua = navigator.userAgent.toLowerCase();
+    const isMobileUA = /iphone|ipad|ipod|android|mobile/i.test(ua);
+
+    // Method 2: Touch capability + screen size
+    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const isSmallScreen = window.matchMedia('(max-width: 768px)').matches;
+
+    // Return true if either UA indicates mobile OR (has touch AND small screen)
+    return isMobileUA || (hasTouch && isSmallScreen);
+}
 
 // 組織與部門雙語對照表（來自 v3 bilingual-common.js）
 const ORG_DEPT_MAPPING = {
@@ -41,8 +57,38 @@ const ORG_DEPT_MAPPING = {
     }
 };
 
+/**
+ * Update vCard button text and icon based on device type
+ */
+function updateVCardButton() {
+    const isMobile = isMobileDevice();
+    const i18nKey = isMobile ? 'add_to_contacts' : 'download_vcard';
+    const iconName = isMobile ? 'user-plus' : 'download';
+
+    // Update button text and data-i18n attribute
+    const vCardText = document.getElementById('vcard-text');
+    if (vCardText) {
+        vCardText.setAttribute('data-i18n', i18nKey);
+        vCardText.textContent = i18nTexts[i18nKey][currentLanguage];
+    }
+
+    // Update icon
+    const vCardIcon = document.getElementById('vcard-icon');
+    if (vCardIcon) {
+        vCardIcon.setAttribute('data-lucide', iconName);
+    }
+
+    // Reinitialize lucide icons to apply the new icon
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
 // 更新按鈕文字（根據當前語言）
 function updateButtonTexts() {
+    // Update vCard button first (device-aware)
+    updateVCardButton();
+
     // 更新所有 data-i18n 元素
     const i18nElements = document.querySelectorAll('[data-i18n]');
     i18nElements.forEach(el => {
@@ -67,13 +113,13 @@ const i18nTexts = {
         'zh': '名片已開啟',
         'en': 'Card Active'
     },
-    'save-vcard-desktop': {
+    'add_to_contacts': {
         'zh': '加入聯絡人',
-        'en': 'Add Contact'
+        'en': 'Add to Contacts'
     },
-    'save-vcard-mobile': {
+    'download_vcard': {
         'zh': '下載名片',
-        'en': 'Download'
+        'en': 'Download vCard'
     },
     'card-system': {
         'zh': '數位名片系統 Digital Business Card',
@@ -119,12 +165,12 @@ const i18nTexts = {
 function showError(message) {
     const errorContainer = document.getElementById('error-container');
     if (errorContainer) {
-        errorContainer.innerHTML = `
+        errorContainer.innerHTML = DOMPurify.sanitize(`
             <div class="error-message">
                 <i data-lucide="alert-circle"></i>
                 <span>${message}</span>
             </div>
-        `;
+        `, { ADD_ATTR: ['onclick'] });
         errorContainer.style.display = 'block';
         lucide.createIcons();
     } else {
@@ -148,10 +194,10 @@ function showNotification(message, type = 'info') {
             error: 'alert-circle'
         };
 
-        notification.innerHTML = `
+        notification.innerHTML = DOMPurify.sanitize(`
             <i data-lucide="${icons[type] || 'info'}"></i>
             <span>${message}</span>
-        `;
+        `, { ADD_ATTR: ['onclick'] });
 
         notificationContainer.appendChild(notification);
         lucide.createIcons();
@@ -166,9 +212,20 @@ function showNotification(message, type = 'info') {
 }
 
 async function initApp() {
+    // 等待 Lucide 載入完成
+    if (typeof lucide === 'undefined') {
+        await new Promise(resolve => {
+            const checkLucide = setInterval(() => {
+                if (typeof lucide !== 'undefined') {
+                    clearInterval(checkLucide);
+                    resolve();
+                }
+            }, 50);
+        });
+    }
+
     initLoadingIcon(); // 隨機選擇載入圖示
     lucide.createIcons();
-    clearExpiredCache();
 
     if (typeof THREE !== 'undefined') {
         setTimeout(() => initThree(), 100);
@@ -224,24 +281,14 @@ async function loadCard(uuid) {
             sessionId = tapResult.session_id;
         }
 
-        // 檢查快取
-        const cached = getCachedCard(uuid, sessionId);
-        if (cached) {
-            cardData = cached.data;
-            sessionData = cached.sessionData;
-        } else {
-            // 讀取名片資料
-            const readResult = await readCard(uuid, sessionId);
-            cardData = readResult.data;
-            sessionData = {
-                session_id: sessionId,
-                expires_at: readResult.session_info.expires_at,
-                reads_remaining: readResult.session_info.reads_remaining
-            };
-
-            // 儲存快取
-            setCachedCard(uuid, sessionId, { data: cardData, sessionData });
-        }
+        // 讀取名片資料 (readCard 內部處理快取)
+        const readResult = await readCard(uuid, sessionId);
+        cardData = readResult.data;
+        sessionData = {
+            session_id: sessionId,
+            expires_at: readResult.session_info.expires_at,
+            reads_remaining: readResult.session_info.reads_remaining
+        };
 
     } catch (error) {
         console.error('Error loading card:', error);
@@ -262,7 +309,7 @@ async function loadCard(uuid) {
         if (sessionData && sessionData.warning) {
             const banner = document.createElement('div');
             banner.className = 'warning-banner';
-            banner.innerHTML = `<i data-lucide="alert-triangle"></i><span>${sessionData.warning.message} (剩餘 ${sessionData.warning.remaining} 次)</span>`;
+            banner.innerHTML = DOMPurify.sanitize(`<i data-lucide="alert-triangle"></i><span>${sessionData.warning.message} (剩餘 ${sessionData.warning.remaining} 次)</span>`, { ADD_ATTR: ['onclick'] });
             document.body.insertBefore(banner, document.body.firstChild);
             lucide.createIcons();
         }
@@ -281,7 +328,39 @@ function renderCard(cardData, sessionData) {
     const greetings = getLocalizedArray(cardData.greetings, currentLanguage);
 
     document.getElementById('user-name').textContent = name || '---';
-    document.getElementById('user-title').textContent = title || '---';
+
+    // Title (conditional display)
+    if (title) {
+        document.getElementById('user-title').style.display = 'block';
+        document.getElementById('user-title').textContent = title;
+    } else {
+        document.getElementById('user-title').style.display = 'none';
+    }
+
+    // Department (conditional display with translation)
+    const dept = cardData.department || '';
+    if (dept) {
+        let deptText;
+
+        if (typeof dept === 'object' && dept !== null) {
+            deptText = currentLanguage === 'en' ? (dept.en || dept.zh || '') : (dept.zh || dept.en || '');
+        } else if (typeof dept === 'string') {
+            deptText = currentLanguage === 'en' && ORG_DEPT_MAPPING.departments[dept]
+                ? ORG_DEPT_MAPPING.departments[dept]
+                : dept;
+        } else {
+            deptText = '';
+        }
+
+        if (deptText) {
+            document.getElementById('user-department').style.display = 'flex';
+            document.getElementById('user-department-text').textContent = deptText;
+        } else {
+            document.getElementById('user-department').style.display = 'none';
+        }
+    } else {
+        document.getElementById('user-department').style.display = 'none';
+    }
 
     // 大頭貼處理 - 支援 Google Drive URL 轉換
     const avatarContainer = document.getElementById('user-avatar').closest('.relative');
@@ -467,11 +546,11 @@ function renderCard(cardData, sessionData) {
 
             // LINE 和 Signal 使用 SVG，其他使用 lucide icon
             if (link.icon === 'line') {
-                node.innerHTML = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>`;
+                node.innerHTML = DOMPurify.sanitize(`<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>`, { ADD_ATTR: ['onclick'] });
             } else if (link.icon === 'signal') {
-                node.innerHTML = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 16.707s-1.067 1.341-1.24 1.514c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26l-3.616-3.616-3.616 3.616c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26-.173-.173-1.24-1.514-1.24-1.514-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693l3.616-3.616-3.616-3.616c-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693 0 0 1.067-1.341 1.24-1.514.173-.173.346-.26.519-.26.173 0 .346.087.519.26l3.616 3.616 3.616-3.616c.173-.173.346-.26.519-.26.173 0 .346.087.519.26.173.173 1.24 1.514 1.24 1.514.173.173.26.433.26.693 0 .26-.087.52-.26.693l-3.616 3.616 3.616 3.616c.173.173.26.433.26.693 0 .26-.087.52-.26.693z"/></svg>`;
+                node.innerHTML = DOMPurify.sanitize(`<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 16.707s-1.067 1.341-1.24 1.514c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26l-3.616-3.616-3.616 3.616c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26-.173-.173-1.24-1.514-1.24-1.514-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693l3.616-3.616-3.616-3.616c-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693 0 0 1.067-1.341 1.24-1.514.173-.173.346-.26.519-.26.173 0 .346.087.519.26l3.616 3.616 3.616-3.616c.173-.173.346-.26.519-.26.173 0 .346.087.519.26.173.173 1.24 1.514 1.24 1.514.173.173.26.433.26.693 0 .26-.087.52-.26.693l-3.616 3.616 3.616 3.616c.173.173.26.433.26.693 0 .26-.087.52-.26.693z"/></svg>`, { ADD_ATTR: ['onclick'] });
             } else {
-                node.innerHTML = `<i data-lucide="${link.icon}" class="w-5 h-5"></i>`;
+                node.innerHTML = DOMPurify.sanitize(`<i data-lucide="${link.icon}" class="w-5 h-5"></i>`, { ADD_ATTR: ['onclick'] });
             }
 
             socialCluster.appendChild(node);
@@ -539,7 +618,7 @@ function parseSocialLinks(socialText) {
                     node.target = '_blank';
                     node.rel = 'noopener noreferrer';
                     node.className = 'social-node w-12 h-12 flex items-center justify-center rounded-xl';
-                    node.innerHTML = `<i data-lucide="${platform.icon}" class="w-5 h-5"></i>`;
+                    node.innerHTML = DOMPurify.sanitize(`<i data-lucide="${platform.icon}" class="w-5 h-5"></i>`, { ADD_ATTR: ['onclick'] });
                     cluster.appendChild(node);
                     break; // 每行只匹配一個平台
                 }
@@ -865,10 +944,19 @@ document.getElementById('open-qr').addEventListener('click', () => {
 
     // 使用名片 URL 而不是 vCard（避免資料過長）
     const cardUrl = `${window.location.origin}/card-display?uuid=${uuid}`;
-    new QRCode(qrContainer, {
-        text: cardUrl,
-        width: 240,
-        height: 240
+    
+    // Create canvas for QRious
+    const canvas = document.createElement('canvas');
+    qrContainer.appendChild(canvas);
+    
+    // Use QRious (modern QR code library)
+    new QRious({
+        element: canvas,
+        value: cardUrl,
+        size: 240,
+        background: 'white',
+        foreground: 'black',
+        level: 'H'
     });
 
     document.getElementById('qr-modal').classList.remove('hidden');
@@ -884,7 +972,7 @@ function initLoadingIcon() {
     const randomIcon = icons[Math.floor(Math.random() * icons.length)];
     const iconContainer = document.getElementById('loading-icon');
     if (iconContainer) {
-        iconContainer.innerHTML = `<i data-lucide="${randomIcon}" class="w-10 h-10 animate-pulse" aria-hidden="true"></i>`;
+        iconContainer.innerHTML = DOMPurify.sanitize(`<i data-lucide="${randomIcon}" class="w-10 h-10 animate-pulse" aria-hidden="true"></i>`, { ADD_ATTR: ['onclick'] });
     }
 }
 

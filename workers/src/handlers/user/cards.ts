@@ -6,6 +6,7 @@ import { verifyOAuth } from '../../middleware/oauth';
 import { checkUserRateLimit } from '../../middleware/rate-limit';
 import { EnvelopeEncryption } from '../../crypto/envelope';
 import { jsonResponse, errorResponse } from '../../utils/response';
+import { validateSocialLink } from "../../utils/social-link-validation";
 import { anonymizeIP } from '../../utils/audit';
 import { checkRevocationRateLimit, incrementRevocationCount } from '../../utils/revocation-rate-limit';
 
@@ -65,6 +66,17 @@ function validateUserCardData(data: any, isCreate: boolean): { valid: boolean; e
     // Validate email if provided
     if (data.email && (!data.email.includes('@'))) {
       return { valid: false, error: 'Invalid email format' };
+    }
+  }
+
+
+  // Validate social links if provided
+  const socialFields = ["social_github", "social_linkedin", "social_facebook", "social_instagram", "social_twitter", "social_youtube"];
+  for (const field of socialFields) {
+    if (data[field] !== undefined && data[field] !== null && data[field] !== "") {
+      if (!validateSocialLink(data[field])) {
+        return { valid: false, error: `${field} URL 格式無效或包含不安全內容` };
+      }
     }
   }
 

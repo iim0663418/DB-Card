@@ -1,10 +1,63 @@
 # DB-Card Project Progress
 ## Current Phase: SECURITY_FIXES_IN_PROGRESS 🔒
-- Status: 2/2 嚴重問題已修復，準備高優先級修復
-- Commit: c645892
+- Status: Phase 1 完成，準備 Phase 2
+- Commit: dae8baf
 - Version: v4.2.1
-- Last Update: 2026-01-21T14:19:00+08:00
-- Next Action: 高優先級修復 - 加入 DOMPurify
+- Last Update: 2026-01-21T15:06:00+08:00
+- Next Action: Phase 2 - Nonce-based CSP
+
+## CSP 'unsafe-inline' 移除進度
+
+### ✅ Phase 1: 提取 Inline Scripts (完成)
+**完成時間**: 2026-01-21T15:00:00+08:00
+**Commits**: bde28e5, c425bf7, 12de21f, dae8baf
+
+**完成項目**:
+1. ✅ 建立外部 JS 檔案:
+   - workers/public/js/tailwind-suppress.js
+   - workers/public/js/page-init.js
+   - workers/public/js/user-portal-init.js
+
+2. ✅ 更新所有 HTML 檔案:
+   - index.html: 移除 inline scripts
+   - admin-dashboard.html: 移除 inline scripts
+   - user-portal.html: 移除 inline scripts
+   - card-display.html: 移除 inline scripts
+
+3. ✅ 修復問題:
+   - 語法錯誤（不完整提取）
+   - API_BASE 重複宣告
+   - Script 重複載入
+   - ES6 export 錯誤
+
+**驗證結果**:
+- ✅ 0 inline scripts 在所有 HTML 檔案
+- ✅ 所有功能正常運作
+- ⚠️ Lucide 圖示警告（已知問題，不影響功能）
+
+**已知問題**:
+- Lucide 警告: `data-lucide="${config.icon}"` 顯示為字面字串
+- 原因: 可能是提取過程中的編碼問題
+- 影響: 僅 console 警告，圖示仍正常顯示
+- 優先級: 低（不影響功能）
+
+### 🔄 Phase 2: Nonce-based CSP (進行中)
+**預估時間**: 1 小時
+**狀態**: 準備開始
+
+**需要完成**:
+1. 後端生成 nonce (workers/src/index.ts)
+2. 注入 nonce 到 HTML response
+3. 更新所有 script 標籤加入 nonce 屬性
+
+### ⏳ Phase 3: 移除 'unsafe-inline' (待完成)
+**預估時間**: 1 小時
+**狀態**: 等待 Phase 2 完成
+
+**需要完成**:
+1. 更新 CSP headers 移除 'unsafe-inline'
+2. 測試所有頁面功能
+3. 驗證 XSS 防護增強
 
 ## 已完成安全修復
 

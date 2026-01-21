@@ -1,7 +1,4 @@
-        // API Base URL
-        const API_BASE = window.location.hostname === 'localhost'
-            ? '' // Use same origin for local development
-            : ''; // Use same origin for staging/production
+        // API Base URL (defined in config.js)
 
         // CardStateManager: 管理狀態、快照、樂觀更新和回滾
         class CardStateManager {

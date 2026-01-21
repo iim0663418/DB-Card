@@ -1,10 +1,10 @@
 // API Configuration
-export const API_BASE = '';
+const API_BASE = '';
 
 // IndexedDB Configuration
-export const DB_NAME = 'DBCardStorage';
-export const DB_VERSION = 1;
+const DB_NAME = 'DBCardStorage';
+const DB_VERSION = 1;
 
 // Cache Configuration
-export const CACHE_MAX_RECORDS = 200;
-export const CACHE_MAX_DAYS = 7;
+const CACHE_MAX_RECORDS = 200;
+const CACHE_MAX_DAYS = 7;

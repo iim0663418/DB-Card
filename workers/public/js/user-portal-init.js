@@ -1,3 +1,285 @@
+        // API Base URL
+        const API_BASE = window.location.hostname === 'localhost'
+            ? '' // Use same origin for local development
+            : ''; // Use same origin for staging/production
+
+        // CardStateManager: 管理狀態、快照、樂觀更新和回滾
+        class CardStateManager {
+            constructor() {
+                this.state = { cards: [] };
+                this.snapshots = [];
+                this.syncQueue = [];
+                this.isSyncing = false;
+            }
+
+            // 初始化狀態
+            initialize(cards) {
+                this.state.cards = cards.map(card => ({ ...card }));
+            }
+
+            // 獲取當前狀態
+            getState() {
+                return this.state;
+            }
+
+            // 快照當前狀態
+            snapshot() {
+                this.snapshots.push(JSON.parse(JSON.stringify(this.state)));
+            }
+
+            // 樂觀創建
+            optimisticCreate(type, cardData) {
+                this.snapshot();
+
+                const tempId = `temp_${Date.now()}`;
+                const timestamp = new Date().toISOString();
+
+                this.state.cards = this.state.cards.map(card =>
+                    card.type === type
+                        ? {
+                            ...card,
+                            uuid: tempId,
+                            status: 'bound',
+                            name_zh: cardData.name_zh,
+                            name_en: cardData.name_en,
+                            updated_at: timestamp,
+                            _optimistic: true
+                        }
+                        : card
+                );
+
+                return tempId;
+            }
+
+            // 確認創建
+            confirmCreate(tempId, realUuid, serverData) {
+                this.state.cards = this.state.cards.map(card =>
+                    card.uuid === tempId
+                        ? {
+                            uuid: realUuid,
+                            type: card.type,
+                            status: 'bound',
+                            name_zh: serverData.name_zh || card.name_zh,
+                            name_en: serverData.name_en || card.name_en,
+                            updated_at: serverData.updated_at || card.updated_at,
+                            _optimistic: false
+                        }
+                        : card
+                );
+
+                this.snapshots = [];
+            }
+
+            // 回滾
+            rollback() {
+                if (this.snapshots.length > 0) {
+                    this.state = this.snapshots.pop();
+                    return true;
+                }
+                return false;
+            }
+
+            // 加入同步隊列
+            queueSync(task) {
+                this.syncQueue.push(task);
+                this.processSyncQueue();
+            }
+
+            // 處理同步隊列
+            async processSyncQueue() {
+                if (this.isSyncing || this.syncQueue.length === 0) return;
+
+                this.isSyncing = true;
+
+                while (this.syncQueue.length > 0) {
+                    const task = this.syncQueue.shift();
+                    try {
+                        await task();
+                    } catch (error) {
+                        console.error('Background sync failed:', error);
+                    }
+                }
+
+                this.isSyncing = false;
+            }
+        }
+
+        // ErrorHandler: 統一錯誤處理
+        class ErrorHandler {
+            constructor() {
+                this.handlers = new Map([
+                    ['CARD_NOT_FOUND', '名片不存在，請重新創建'],
+                    ['NETWORK_ERROR', '網路連線失敗，請檢查網路'],
+                    ['VALIDATION_ERROR', '資料格式錯誤，請檢查輸入'],
+                    ['UNAUTHORIZED', '登入已過期，請重新登入'],
+                    ['FORBIDDEN', '權限不足'],
+                    ['SERVER_ERROR', '伺服器錯誤，請稍後再試'],
+                    ['binding_limit_exceeded', '您已經有此類型的名片，每種類型限制 1 張'],
+                    ['invalid_type', '名片類型錯誤'],
+                    ['invalid_data', '資料格式錯誤'],
+                    ['CARD_ALREADY_REVOKED', '名片已經被撤銷'],
+                    ['CARD_NOT_REVOKED', '名片未處於撤銷狀態'],
+                    ['REVOCATION_RATE_LIMITED', '撤銷次數超過限制'],
+                    ['RESTORE_WINDOW_EXPIRED', '恢復期限已過（7 天），請聯繫管理員'],
+                    // v4.1.0 & v4.2.0: Rate limit and budget error codes
+                    ['rate_limited', '請求過於頻繁，請稍後再試'],
+                    ['session_budget_exceeded', '此名片已達到使用上限，請聯絡管理員'],
+                    ['daily_budget_exceeded', '今日使用次數已達上限，請明天再試'],
+                    ['monthly_budget_exceeded', '本月使用次數已達上限，請下月再試'],
+                    [401, '登入已過期，請重新登入'],
+                    [403, '權限不足'],
+                    [404, '資源不存在'],
+                    [409, '名片已存在'],
+                    [429, '操作過於頻繁，請稍後再試'],
+                    [500, '伺服器錯誤，請稍後再試'],
+                    [0, '網路連線失敗']
+                ]);
+            }
+
+            handle(error) {
+                // 優先處理 code
+                if (error?.code && this.handlers.has(error.code)) {
+                    return this.handlers.get(error.code);
+                }
+
+                // 其次處理 status
+                if (error?.status && this.handlers.has(error.status)) {
+                    return this.handlers.get(error.status);
+                }
+
+                // 最後處理 message
+                if (error?.message) {
+                    return error.message;
+                }
+
+                if (error?.error) {
+                    return error.error;
+                }
+
+                if (typeof error === 'string') {
+                    return error;
+                }
+
+                return '未知錯誤';
+            }
+
+            register(code, message) {
+                this.handlers.set(code, message);
+            }
+        }
+
+        // 全局實例
+        const stateManager = new CardStateManager();
+        const errorHandler = new ErrorHandler();
+
+        const state = {
+            isLoggedIn: false,
+            currentUser: null,
+            authToken: null, // JWT token
+            cards: [], // 格式: { uuid, type, status, name_zh, name_en, updated_at }
+            loading: false
+        };
+
+        let previewLang = 'zh';
+        let currentModalUuid = null;
+        let currentRevokeUuid = null;
+        let currentRevokeType = null;
+
+        const SocialParser = {
+            collectFromInputs() {
+                const platforms = [
+                    { id: 'social_github', icon: 'github' },
+                    { id: 'social_linkedin', icon: 'linkedin' },
+                    { id: 'social_facebook', icon: 'facebook' },
+                    { id: 'social_instagram', icon: 'instagram' },
+                    { id: 'social_twitter', icon: 'twitter' },
+                    { id: 'social_youtube', icon: 'youtube' },
+                    { id: 'social_line', icon: 'line' },
+                    { id: 'social_signal', icon: 'signal' }
+                ];
+
+                const results = [];
+
+                for (const platform of platforms) {
+                    const input = document.getElementById(platform.id);
+                    if (input && input.value.trim()) {
+                        results.push(platform.icon);
+                    }
+                }
+
+                return results;
+            }
+        };
+
+        const CARD_TYPES = [
+            {
+                id: 'personal',
+                label: 'Personal',
+                icon: 'user',
+                color: 'indigo',
+                desc: '標準個人名片',
+                features: ['同時讀取限制: 20 人', '適合日常使用', '100/日, 1000/月, 10000/總計']
+            },
+            {
+                id: 'event',
+                label: 'Event',
+                icon: 'megaphone',
+                color: 'green',
+                desc: '活動專用名片',
+                features: ['同時讀取限制: 50 人', '適合展會攤位', '500/日, 5000/月, 50000/總計']
+            },
+            {
+                id: 'sensitive',
+                label: 'Sensitive',
+                icon: 'shield',
+                color: 'red',
+                desc: '最高安全等級',
+                features: ['同時讀取限制: 5 人', '零快取暴露', '適用: 高敏感資訊、機密聯絡方式', '3/日, 30/月, 100/總計'],
+                securityBadge: true
+            }
+        ];
+
+        // 地址預設選項
+        const ADDRESS_PRESETS = {
+            yanping: {
+                zh: '10058 台北市中正區延平南路143號',
+                en: 'No. 143, Yanping S. Rd., Zhongzheng Dist., Taipei City 10058, Taiwan (R.O.C.)'
+            },
+            shinkong: {
+                zh: '臺北市中正區忠孝西路一段66號（17、19樓）',
+                en: '66 Zhongxiao W. Rd. Sec. 1, Zhongzheng Dist., Taipei City, Taiwan (17F, 19F)'
+            }
+        };
+
+
+        async function apiCall(endpoint, options = {}) {
+            try {
+                const headers = {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                };
+
+                // Token is automatically sent via HttpOnly cookie
+                // No need for Authorization header
+
+                const res = await fetch(endpoint, {
+                    ...options,
+                    credentials: 'include',
+                    headers
+                });
+
+                if (!res.ok) {
+                    const error = await res.json().catch(() => ({ message: 'Request failed' }));
+
+                    // Handle token expiration
+                    if (res.status === 401) {
+                        state.isLoggedIn = false;
+                        state.authToken = null;
+                        state.currentUser = null;
+                        showView('login');
+                        showToast('登入已過期，請重新登入');
+                    }
+
                     // Extract error details (support nested error object)
                     const errorDetails = error.error || error;
                     throw { 
@@ -528,3 +810,618 @@
 
             // 返回選擇頁面
             showView('selection');
+        }
+
+        // ESC 鍵處理
+        function handleModalEscape(e) {
+            if (e.key === 'Escape') {
+                closeSuccessModal();
+            }
+        }
+
+        // 複製連結
+        async function copyModalLink() {
+            const link = document.getElementById('modal-share-link').value;
+            const btn = document.getElementById('modal-copy-btn');
+            const btnText = document.getElementById('modal-copy-text');
+            const btnIcon = btn.querySelector('i[data-lucide]');
+
+            try {
+                await navigator.clipboard.writeText(link);
+
+                // 視覺反饋
+                btnText.innerText = '已複製';
+                btn.classList.remove('bg-moda', 'hover:bg-moda/90');
+                btn.classList.add('bg-green-600', 'hover:bg-green-700');
+
+                // 更換 icon 為 check
+                if (btnIcon) {
+                    btnIcon.setAttribute('data-lucide', 'check');
+                    lucide.createIcons();
+                }
+
+                // 2 秒後恢復
+                setTimeout(() => {
+                    btnText.innerText = '複製';
+                    btn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                    btn.classList.add('bg-moda', 'hover:bg-moda/90');
+
+                    // 恢復原始 icon
+                    if (btnIcon) {
+                        btnIcon.setAttribute('data-lucide', 'copy');
+                        lucide.createIcons();
+                    }
+                }, 2000);
+            } catch (err) {
+                showToast('複製失敗，請手動複製');
+            }
+        }
+
+        // 查看名片（從 Modal）
+        function viewModalCard() {
+            if (currentModalUuid) {
+                window.open(`/card-display.html?uuid=${currentModalUuid}`, '_blank');
+            }
+        }
+
+        async function viewCard(uuid) {
+            try {
+                toggleLoading(true);
+
+                // 先 tap 獲取 session（與 admin-dashboard 一致）
+                const tapResponse = await fetch(`${API_BASE}/api/nfc/tap`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ card_uuid: uuid })
+                });
+
+                // v4.1.0 & v4.2.0: Handle rate_limited error
+                if (!tapResponse.ok) {
+                    const error = await tapResponse.json();
+                    if (error.error?.code === 'rate_limited') {
+                        showToast('名片預覽功能暫時無法使用（請求過於頻繁）', 'warning');
+                        toggleLoading(false);
+                        return;
+                    }
+                    throw error;
+                }
+
+                const response = await tapResponse.json();
+                const sessionId = response.session_id || response.data?.session_id;
+
+                if (!sessionId) {
+                    throw { code: 'SESSION_ERROR', message: '無法獲取查看授權' };
+                }
+
+                // 打開名片頁面（帶 session）
+                const url = `${window.location.origin}/card-display.html?uuid=${uuid}&session=${sessionId}`;
+                window.open(url, '_blank');
+
+                toggleLoading(false);
+            } catch (error) {
+                toggleLoading(false);
+                // 使用統一錯誤處理
+                const errorMsg = errorHandler.handle(error.error || error);
+                showToast(errorMsg, 'error');
+            }
+        }
+
+        function copyCardLink(uuid) {
+            const url = `${window.location.origin}/card-display.html?uuid=${uuid}`;
+            navigator.clipboard.writeText(url).then(() => {
+                showToast('連結已複製到剪貼簿');
+            }).catch(() => {
+                showToast('複製失敗，請手動複製');
+            });
+        }
+
+        function toggleLoading(show) {
+            state.loading = show;
+            document.getElementById('global-loading').classList.toggle('hidden', !show);
+        }
+
+        function showView(viewId) {
+            document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`view-${viewId}`).classList.remove('hidden');
+            if (state.isLoggedIn) document.getElementById('app-header').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Department mapping for preview (same as main.js)
+        const ORG_DEPT_MAPPING = {
+            departments: {
+                '數位策略司': 'Department of Digital Strategy',
+                '數位政府司': 'Department of Digital Service',
+                '資源管理司': 'Department of Resource Management',
+                '韌性建設司': 'Department of Communications and Cyber Resilience',
+                '數位國際司': 'Department of International Cooperation',
+                '資料創新司': 'Department of Data Innovation',
+                '秘書處': 'Secretariat',
+                '人事處': 'Department of Personnel',
+                '政風處': 'Department of Civil Service Ethics',
+                '主計處': 'Department of Budget, Accounting and Statistics',
+                '資訊處': 'Department of Information Management',
+                '法制處': 'Department of Legal Affairs',
+                '部長室': "Minister's Office",
+                '政務次長室': "Deputy Minister's Office",
+                '常務次長室': "Administrative Deputy Minister's Office",
+                '主任秘書室': "Secretary-General's Office"
+            }
+        };
+
+        function updatePreview() {
+            const isEn = previewLang === 'en';
+            const name = isEn ? document.getElementById('name_en').value || '---' : document.getElementById('name_zh').value || '---';
+            const title = isEn ? document.getElementById('title_en').value || '---' : document.getElementById('title_zh').value || '---';
+
+            // 問候語
+            const greetingInput = isEn ? document.getElementById('greetings_en').value : document.getElementById('greetings_zh').value;
+            const greet = greetingInput ? greetingInput.split('\n').filter(g => g.trim())[0] || '' : '';
+
+            const email = document.getElementById('email').value || '---';
+            const phone = document.getElementById('phone').value || '---';
+            const avatar = document.getElementById('avatar_url').value || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80";
+
+            // 地址
+            const preset = document.getElementById('address-preset').value;
+            let addressZh = '', addressEn = '';
+            if (preset === 'yanping') {
+                addressZh = ADDRESS_PRESETS.yanping.zh;
+                addressEn = ADDRESS_PRESETS.yanping.en;
+            } else if (preset === 'shinkong') {
+                addressZh = ADDRESS_PRESETS.shinkong.zh;
+                addressEn = ADDRESS_PRESETS.shinkong.en;
+            } else {
+                addressZh = document.getElementById('address_zh').value || '';
+                addressEn = document.getElementById('address_en').value || '';
+            }
+            const addressText = isEn ? (addressEn || '---') : (addressZh || '---');
+
+            // 更新預覽
+            document.getElementById('prev-name').innerText = name;
+
+            // Title (conditional display - align with card-display)
+            const titleElement = document.getElementById('prev-title');
+            const titleZh = document.getElementById('title_zh').value;
+            const titleEn = document.getElementById('title_en').value;
+            if (title && title !== '---') {
+                titleElement.style.display = 'block';
+                titleElement.innerText = title;
+            } else if (!titleZh && !titleEn) {
+                titleElement.style.display = 'none';
+            } else {
+                titleElement.style.display = 'block';
+                titleElement.innerText = title;
+            }
+
+            // Department (conditional display with bilingual support)
+            const departmentPreset = document.getElementById('department-preset').value;
+            let deptValue;
+
+            if (departmentPreset === 'custom') {
+                const zh = document.getElementById('department-custom-zh').value.trim();
+                const en = document.getElementById('department-custom-en').value.trim();
+
+                if (zh && en) {
+                    deptValue = { zh, en };
+                } else if (zh) {
+                    deptValue = zh;
+                } else if (en) {
+                    deptValue = en;
+                }
+            } else if (departmentPreset) {
+                deptValue = departmentPreset;
+            }
+
+            const deptElement = document.getElementById('prev-department');
+            if (deptValue) {
+                let deptText;
+
+                // Handle bilingual object
+                if (typeof deptValue === 'object' && deptValue !== null) {
+                    deptText = isEn ? (deptValue.en || deptValue.zh || '') : (deptValue.zh || deptValue.en || '');
+                }
+                // Handle string (preset or single language)
+                else if (typeof deptValue === 'string') {
+                    // Use ORG_DEPT_MAPPING for preset departments
+                    if (isEn && ORG_DEPT_MAPPING.departments[deptValue]) {
+                        deptText = ORG_DEPT_MAPPING.departments[deptValue];
+                    } else {
+                        deptText = deptValue;
+                    }
+                }
+
+                if (deptText) {
+                    deptElement.style.display = 'flex';
+                    document.getElementById('prev-department-text').innerText = deptText;
+                } else {
+                    deptElement.style.display = 'none';
+                }
+            } else {
+                deptElement.style.display = 'none';
+            }
+
+            document.getElementById('prev-email').innerText = email;
+            document.getElementById('prev-phone').innerText = phone;
+            document.getElementById('prev-address').innerText = addressText;
+
+            // 問候語條件顯示
+            const greetingSection = document.getElementById('prev-greeting-section');
+            if (greet) {
+                greetingSection.classList.remove('hidden');
+                document.getElementById('prev-greeting').innerText = greet;
+            } else {
+                greetingSection.classList.add('hidden');
+            }
+
+            // 大頭貼條件顯示
+            const prevAvatar = document.getElementById('prev-avatar');
+            const avatarUrl = document.getElementById('avatar_url').value;
+            if (avatarUrl && avatarUrl.trim()) {
+                prevAvatar.classList.remove('hidden');
+                prevAvatar.src = avatarUrl;
+            } else {
+                prevAvatar.classList.add('hidden');
+            }
+            prevAvatar.onerror = function() {
+                this.src = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80';
+            };
+
+            // 社群連結預覽
+            const icons = SocialParser.collectFromInputs();
+            const cluster = document.getElementById('prev-social-cluster');
+            cluster.innerHTML = '';
+            icons.forEach(icon => {
+                const node = document.createElement('div');
+                node.className = 'social-chip-prev';
+
+                // LINE 和 Signal 使用 SVG，其他使用 Lucide
+                if (icon === 'line') {
+                    node.innerHTML = DOMPurify.sanitize(`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>`, { ADD_ATTR: ['onclick'] });
+                } else if (icon === 'signal') {
+                    node.innerHTML = DOMPurify.sanitize(`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 16.707s-1.067 1.341-1.24 1.514c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26l-3.616-3.616-3.616 3.616c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26-.173-.173-1.24-1.514-1.24-1.514-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693l3.616-3.616-3.616-3.616c-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693 0 0 1.067-1.341 1.24-1.514.173-.173.346-.26.519-.26.173 0 .346.087.519.26l3.616 3.616 3.616-3.616c.173-.173.346-.26.519-.26.173 0 .346.087.519.26.173.173 1.24 1.514 1.24 1.514.173.173.26.433.26.693 0 .26-.087.52-.26.693l-3.616 3.616 3.616 3.616c.173.173.26.433.26.693 0 .26-.087.52-.26.693z"/></svg>`, { ADD_ATTR: ['onclick'] });
+                } else {
+                    node.innerHTML = DOMPurify.sanitize(`<i data-lucide="${icon}" class="w-4 h-4"></i>`, { ADD_ATTR: ['onclick'] });
+                }
+
+                cluster.appendChild(node);
+            });
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.classList.remove('hidden');
+            setTimeout(() => t.classList.add('hidden'), 3000);
+        }
+
+        function handleError(err) {
+            console.error('[API Error]', err);
+
+            if (err.status === 401 || err.status === 403) {
+                // Token 過期或無權限,返回登入頁
+                state.isLoggedIn = false;
+                showView('login');
+                showToast('登入已過期,請重新登入');
+            } else if (err.status === 429) {
+                showToast('操作過於頻繁,請稍後再試');
+            } else {
+                showToast(err.message || '操作失敗');
+            }
+        }
+
+        // User Self-Revoke Functions
+        function showRevokeModal(uuid, type) {
+            currentRevokeUuid = uuid;
+            currentRevokeType = type;
+            document.getElementById('revoke-modal').classList.remove('hidden');
+            document.getElementById('revoke-reason').value = '';
+            document.getElementById('rate-limit-warning').classList.add('hidden');
+            lucide.createIcons();
+        }
+
+        function closeRevokeModal() {
+            document.getElementById('revoke-modal').classList.add('hidden');
+            currentRevokeUuid = null;
+            currentRevokeType = null;
+            
+            // Reset button state
+            const confirmBtn = document.getElementById('confirm-revoke-btn');
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = '確認撤銷';
+            
+            // Reset reason select
+            document.getElementById('revoke-reason').value = '';
+        }
+
+        async function confirmRevokeCard() {
+            if (!currentRevokeUuid) return;
+
+            const reason = document.getElementById('revoke-reason').value || undefined;
+            const confirmBtn = document.getElementById('confirm-revoke-btn');
+
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = '撤銷中...';
+
+            try {
+                const response = await fetch(`/api/user/cards/${currentRevokeUuid}/revoke`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(reason ? { reason } : {})
+                });
+
+                const data = await response.json();
+
+                if (response.status === 429) {
+                    // Rate limit exceeded
+                    showRateLimitError(data);
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = '確認撤銷';
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error(data.message || data.error || 'Revoke failed');
+                }
+
+                // Success
+                closeRevokeModal();
+                showToast(`名片已撤銷，可在 ${new Date(data.restore_deadline).toLocaleDateString('zh-TW')} 前恢復`);
+
+                // Reload cards
+                await fetchUserCards();
+                renderSelectionPage();
+            } catch (error) {
+                console.error('Revoke error:', error);
+                showToast(errorHandler.handle(error));
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = '確認撤銷';
+            }
+        }
+
+        async function handleRestoreCard(uuid) {
+            if (!confirm('確定要恢復此名片嗎？恢復後所有分享連結將重新生效。')) {
+                return;
+            }
+
+            document.getElementById('global-loading').classList.remove('hidden');
+
+            try {
+                const response = await fetch(`/api/user/cards/${uuid}/restore`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    if (data.error === 'RESTORE_WINDOW_EXPIRED') {
+                        showToast('恢復期限已過（7 天），請聯繫管理員');
+                    } else {
+                        throw new Error(data.message || data.error || 'Restore failed');
+                    }
+                    return;
+                }
+
+                // Success
+                showToast('名片已成功恢復');
+                await fetchUserCards();
+                renderSelectionPage();
+            } catch (error) {
+                console.error('Restore error:', error);
+                showToast(errorHandler.handle(error));
+            } finally {
+                document.getElementById('global-loading').classList.add('hidden');
+            }
+        }
+
+        function showRateLimitError(data) {
+            const banner = document.getElementById('rate-limit-banner');
+            const message = document.getElementById('rate-limit-message');
+            const retry = document.getElementById('rate-limit-retry');
+
+            message.textContent = data.message;
+
+            const retryMinutes = Math.ceil(data.retry_after / 60);
+            retry.textContent = `請在 ${retryMinutes} 分鐘後重試`;
+
+            banner.classList.remove('hidden');
+            lucide.createIcons();
+
+            setTimeout(() => banner.classList.add('hidden'), 10000);
+        }
+
+        function formatDuration(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.ceil((seconds % 3600) / 60);
+            if (hours > 0) {
+                return `${hours} 小時 ${minutes} 分鐘`;
+            }
+            return `${minutes} 分鐘`;
+        }
+
+        // 暴露函數到全域作用域供 onclick 使用
+        window.viewCard = viewCard;
+        window.copyCardLink = copyCardLink;
+        window.copyModalLink = copyModalLink;
+        window.viewModalCard = viewModalCard;
+        window.closeSuccessModal = closeSuccessModal;
+        window.showRevokeModal = showRevokeModal;
+        window.closeRevokeModal = closeRevokeModal;
+        window.confirmRevokeCard = confirmRevokeCard;
+        window.handleRestoreCard = handleRestoreCard;
+
+        let scene, camera, renderer, mesh, grid;
+        function initThree() {
+            const canvas = document.getElementById('three-canvas');
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 10);
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            
+            // 網格效果
+            const gridGeo = new THREE.PlaneGeometry(150, 150, 45, 45);
+            const gridMat = new THREE.MeshBasicMaterial({
+                color: 0x6868ac,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.08
+            });
+            grid = new THREE.Mesh(gridGeo, gridMat);
+            grid.rotation.x = -Math.PI / 2.2;
+            grid.position.y = -6;
+            scene.add(grid);
+            
+            // 星空效果
+            const starGeo = new THREE.BufferGeometry();
+            const pos = new Float32Array(2000 * 3);
+            for(let i=0; i<2000*3; i++) pos[i] = (Math.random() - 0.5) * 50;
+            starGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            mesh = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.05, color: 0x6868ac, transparent: true, opacity: 0.3 }));
+            scene.add(mesh);
+            
+            camera.position.z = 10;
+            function animate() { 
+                requestAnimationFrame(animate); 
+                if(mesh) mesh.rotation.y += 0.0002;
+                if(grid) grid.rotation.z += 0.0001;
+                renderer.render(scene, camera); 
+            }
+            animate();
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            lucide.createIcons();
+            
+            if (typeof THREE !== 'undefined') {
+                setTimeout(() => initThree(), 100);
+            } else {
+                window.addEventListener('load', () => {
+                    if (typeof THREE !== 'undefined') initThree();
+                });
+            }
+            
+            document.getElementById('edit-form').onsubmit = handleFormSubmit;
+
+            // 檢查是否有存儲的使用者資訊（token 在 HttpOnly cookie 中）
+            const userJson = sessionStorage.getItem('auth_user');
+
+            if (userJson) {
+                try {
+                    const user = JSON.parse(userJson);
+
+                    // 恢復登入狀態
+                    state.isLoggedIn = true;
+                    state.authToken = null; // No longer needed
+                    state.currentUser = user;
+                    document.getElementById('user-email-display').innerText = user.email;
+
+                    // 切換到選擇頁面
+                    showView('selection');
+
+                    // 顯示載入中
+                    document.getElementById('global-loading').classList.remove('hidden');
+
+                    // 驗證 session 並載入名片資料
+                    try {
+                        await fetchUserCards();
+                        showToast('自動登入成功');
+                    } catch (err) {
+                        console.error('Failed to load cards:', err);
+                        // Session 無效或過期，清除並顯示登入頁
+                        sessionStorage.removeItem('auth_user');
+                        state.isLoggedIn = false;
+                        state.currentUser = null;
+                        showView('login');
+                        showToast('登入已過期，請重新登入');
+                    } finally {
+                        // 隱藏載入中
+                        document.getElementById('global-loading').classList.add('hidden');
+                    }
+                } catch (err) {
+                    // 解析失敗，清除並顯示登入頁
+                    console.error('Auto-login failed:', err);
+                    sessionStorage.removeItem('auth_user');
+                    showView('login');
+                }
+            } else {
+                // 沒有使用者資訊，顯示登入頁
+                showView('login');
+            }
+
+            // 綁定預覽聯動
+            document.querySelectorAll('input, textarea, select').forEach(el => el.addEventListener('input', updatePreview));
+            document.querySelectorAll('input, textarea, select').forEach(el => el.addEventListener('change', updatePreview));
+
+            // 預覽語言切換
+            document.querySelectorAll('#preview-lang-switch button').forEach(btn => {
+                btn.onclick = () => {
+                    previewLang = btn.dataset.lang;
+                    document.querySelectorAll('#preview-lang-switch button').forEach(b => {
+                        b.classList.remove('bg-white', 'shadow-sm', 'text-slate-900');
+                        b.classList.add('text-slate-500');
+                    });
+                    btn.classList.add('bg-white', 'shadow-sm', 'text-slate-900');
+                    btn.classList.remove('text-slate-500');
+                    updatePreview();
+                };
+            });
+
+            // 地址預設選擇監聽
+            document.getElementById('address-preset').addEventListener('change', (e) => {
+                const value = e.target.value;
+                const customFields = document.getElementById('custom-address-fields');
+
+                if (value === 'custom') {
+                    customFields.classList.remove('hidden');
+                } else if (value && ADDRESS_PRESETS[value]) {
+                    customFields.classList.add('hidden');
+                    document.getElementById('address_zh').value = ADDRESS_PRESETS[value].zh;
+                    document.getElementById('address_en').value = ADDRESS_PRESETS[value].en;
+                } else {
+                    customFields.classList.add('hidden');
+                    document.getElementById('address_zh').value = '';
+                    document.getElementById('address_en').value = '';
+                }
+                updatePreview();
+            });
+
+            // 部門預設選擇監聽
+            document.getElementById('department-preset').addEventListener('change', (e) => {
+                const value = e.target.value;
+                const customField = document.getElementById('custom-department-field');
+
+                if (value === 'custom') {
+                    customField.classList.remove('hidden');
+                    document.getElementById('department-custom-zh').focus();
+                } else {
+                    customField.classList.add('hidden');
+                    document.getElementById('department-custom-zh').value = '';
+                    document.getElementById('department-custom-en').value = '';
+                }
+                updatePreview();
+            });
+
+            // Modal 背景點擊關閉
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('modal-backdrop')) {
+                    closeSuccessModal();
+                }
+            });
+        });
+
+        window.onresize = () => {
+            if(camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        };

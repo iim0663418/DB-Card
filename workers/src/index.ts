@@ -11,6 +11,7 @@ import { handleAdminLogin, handleAdminLogout } from './handlers/admin/auth';
 import { handleSecurityStats, handleSecurityEvents, handleSecurityTimeline, handleBlockIP, handleUnblockIP, handleIPDetail, handleSecurityExport } from './handlers/admin/security';
 import { handleUserCreateCard, handleUserUpdateCard, handleUserListCards, handleUserGetCard, handleUserRevokeCard, handleUserRestoreCard } from './handlers/user/cards';
 import { handleRevocationHistory } from './handlers/user/history';
+import { handleUserLogout } from './handlers/user/logout';
 import { handleOAuthCallback } from './handlers/oauth';
 import { errorResponse, publicErrorResponse } from './utils/response';
 import { checkRateLimit } from './middleware/rate-limit';
@@ -86,6 +87,11 @@ export default {
     // OAuth callback
     if (url.pathname === '/oauth/callback' && request.method === 'GET') {
       return handleOAuthCallback(request, env);
+    }
+
+    // User logout
+    if (url.pathname === '/api/user/logout' && request.method === 'POST') {
+      return handleUserLogout(request, env);
     }
 
     // Health check

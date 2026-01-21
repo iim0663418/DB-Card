@@ -924,10 +924,8 @@
                     ...options.headers
                 };
 
-                // Use JWT token instead of email
-                if (state.authToken) {
-                    headers['Authorization'] = `Bearer ${state.authToken}`;
-                }
+                // Token is automatically sent via HttpOnly cookie
+                // No need for Authorization header
 
                 const res = await fetch(endpoint, {
                     ...options,
@@ -987,28 +985,26 @@
             // Listen for message from popup
             window.addEventListener('message', async (event) => {
                 if (event.data.type === 'oauth_success') {
-                    const { token, email, name, picture } = event.data;
+                    const { email, name, picture } = event.data;
 
                     // Check domain whitelist
                     const allowedDomains = ['@moda.gov.tw', '@nics.nat.gov.tw'];
                     const isAllowed = allowedDomains.some(domain => email.endsWith(domain));
-                    
+
                     if (!isAllowed) {
                         errorBox.innerText = '您的 Email 網域未授權（僅限 @moda.gov.tw 或 @nics.nat.gov.tw）';
                         errorBox.classList.remove('hidden');
                         return;
                     }
 
-                    // 立即設定登入狀態
+                    // 立即設定登入狀態（token 已存在 HttpOnly cookie）
                     state.isLoggedIn = true;
-                    state.authToken = token;
+                    state.authToken = null; // No longer needed in memory
                     state.currentUser = { email, name, picture };
                     document.getElementById('user-email-display').innerText = email;
 
-                    // 持久化 JWT（24 小時）
-                    localStorage.setItem('auth_token', token);
-                    localStorage.setItem('auth_user', JSON.stringify({ email, name, picture }));
-                    localStorage.setItem('auth_expires', Date.now() + 24 * 60 * 60 * 1000);
+                    // 只存儲使用者資訊（不存儲 token）
+                    sessionStorage.setItem('auth_user', JSON.stringify({ email, name, picture }));
 
                     // 立即切換視圖（使用者看到反應）
                     showView('selection');
@@ -1033,17 +1029,26 @@
             }, { once: true });
         }
 
-        function handleLogout() {
+        async function handleLogout() {
+            try {
+                // 呼叫後端清除 HttpOnly cookie
+                await fetch('/api/user/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+            } catch (err) {
+                console.error('Logout API call failed:', err);
+                // Continue with frontend cleanup even if API call fails
+            }
+
             state.isLoggedIn = false;
             state.authToken = null;
             state.currentUser = null;
             state.cards = [];
-            
-            // 清除持久化的 JWT
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('auth_user');
-            localStorage.removeItem('auth_expires');
-            
+
+            // 清除使用者資訊
+            sessionStorage.removeItem('auth_user');
+
             showView('login');
         }
 
@@ -1803,8 +1808,7 @@
                     method: 'POST',
                     credentials: 'include',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${state.authToken}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(reason ? { reason } : {})
                 });
@@ -1848,10 +1852,7 @@
             try {
                 const response = await fetch(`/api/user/cards/${uuid}/restore`, {
                     method: 'POST',
-                    credentials: 'include',
-                    headers: {
-                        'Authorization': `Bearer ${state.authToken}`
-                    }
+                    credentials: 'include'
                 });
 
                 const data = await response.json();
@@ -1966,50 +1967,49 @@
             
             document.getElementById('edit-form').onsubmit = handleFormSubmit;
 
-            const token = localStorage.getItem('auth_token');
-            const userJson = localStorage.getItem('auth_user');
-            const expires = localStorage.getItem('auth_expires');
+            // 檢查是否有存儲的使用者資訊（token 在 HttpOnly cookie 中）
+            const userJson = sessionStorage.getItem('auth_user');
 
-            if (token && userJson && expires && Date.now() < parseInt(expires)) {
+            if (userJson) {
                 try {
                     const user = JSON.parse(userJson);
-                    
+
                     // 恢復登入狀態
                     state.isLoggedIn = true;
-                    state.authToken = token;
+                    state.authToken = null; // No longer needed
                     state.currentUser = user;
                     document.getElementById('user-email-display').innerText = user.email;
 
                     // 切換到選擇頁面
                     showView('selection');
-                    
+
                     // 顯示載入中
                     document.getElementById('global-loading').classList.remove('hidden');
 
-                    // 載入名片資料
+                    // 驗證 session 並載入名片資料
                     try {
                         await fetchUserCards();
                         showToast('自動登入成功');
                     } catch (err) {
                         console.error('Failed to load cards:', err);
-                        showToast('載入名片失敗');
+                        // Session 無效或過期，清除並顯示登入頁
+                        sessionStorage.removeItem('auth_user');
+                        state.isLoggedIn = false;
+                        state.currentUser = null;
+                        showView('login');
+                        showToast('登入已過期，請重新登入');
                     } finally {
                         // 隱藏載入中
                         document.getElementById('global-loading').classList.add('hidden');
                     }
                 } catch (err) {
-                    // Token 無效或過期，清除並顯示登入頁
+                    // 解析失敗，清除並顯示登入頁
                     console.error('Auto-login failed:', err);
-                    localStorage.removeItem('auth_token');
-                    localStorage.removeItem('auth_user');
-                    localStorage.removeItem('auth_expires');
+                    sessionStorage.removeItem('auth_user');
                     showView('login');
                 }
             } else {
-                // 沒有有效的 token，清除過期資料
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('auth_user');
-                localStorage.removeItem('auth_expires');
+                // 沒有使用者資訊，顯示登入頁
                 showView('login');
             }
 

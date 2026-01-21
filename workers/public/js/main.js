@@ -944,10 +944,19 @@ document.getElementById('open-qr').addEventListener('click', () => {
 
     // 使用名片 URL 而不是 vCard（避免資料過長）
     const cardUrl = `${window.location.origin}/card-display?uuid=${uuid}`;
-    new QRCode(qrContainer, {
-        text: cardUrl,
-        width: 240,
-        height: 240
+    
+    // Create canvas for QRious
+    const canvas = document.createElement('canvas');
+    qrContainer.appendChild(canvas);
+    
+    // Use QRious (modern QR code library)
+    new QRious({
+        element: canvas,
+        value: cardUrl,
+        size: 240,
+        background: 'white',
+        foreground: 'black',
+        level: 'H'
     });
 
     document.getElementById('qr-modal').classList.remove('hidden');

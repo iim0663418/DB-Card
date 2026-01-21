@@ -32,15 +32,15 @@ This project implements **Subresource Integrity (SRI)** for CDN resources to pro
         defer></script>
 ```
 
-#### 2. QRCode.js 1.0.0
+#### 2. QRious 4.0.2
 - **CDN**: cdnjs.cloudflare.com
-- **SRI Hash**: `sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==`
+- **SRI Hash**: `sha512-pUhApVQtLbnpLtJn6DuzDD5o2xtmLJnJ7oBoMsBnzOkVkpqofGLGPaBJ6ayD2zQe3lCgCibhJBi4cj5wAxwVKA==`
 - **CORS Support**: ✅ Yes
 - **Status**: Fully Protected
 
 ```html
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" 
-        integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==" 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js" 
+        integrity="sha512-pUhApVQtLbnpLtJn6DuzDD5o2xtmLJnJ7oBoMsBnzOkVkpqofGLGPaBJ6ayD2zQe3lCgCibhJBi4cj5wAxwVKA==" 
         crossorigin="anonymous" 
         defer></script>
 ```
@@ -110,14 +110,14 @@ DOMPurify.sanitize(html, { ADD_ATTR: ['onclick'] })
 
 **CDN Compatibility Matrix**:
 
-| CDN | Three.js | QRCode.js | DOMPurify | Lucide | CORS Support |
-|-----|----------|-----------|-----------|--------|--------------|
+| CDN | Three.js | QRious | DOMPurify | Lucide | CORS Support |
+|-----|----------|--------|-----------|--------|--------------|
 | cdnjs.cloudflare.com | ✅ | ✅ | ✅ | ❌ Not Available | ✅ Yes |
-| unpkg.com | ✅ | ❌ Not Available | ✅ | ✅ | ❌ No |
+| unpkg.com | ✅ | ✅ | ✅ | ✅ | ❌ No |
 | jsdelivr.net | ✅ | ✅ | ✅ | ❌ 404 Error | ✅ Yes |
 
 **Conclusion**: 
-- Three.js, QRCode.js, DOMPurify: Use cdnjs.com with SRI
+- Three.js, QRious, DOMPurify: Use cdnjs.com with SRI
 - Lucide: Use unpkg.com without SRI (only option)
 
 ---
@@ -130,7 +130,7 @@ DOMPurify.sanitize(html, { ADD_ATTR: ['onclick'] })
 
 #### Protected Attack Vectors (75%)
 - ✅ Three.js CDN compromise → Blocked by SRI
-- ✅ QRCode.js CDN compromise → Blocked by SRI
+- ✅ QRious CDN compromise → Blocked by SRI
 - ✅ DOMPurify CDN compromise → Blocked by SRI
 - ✅ Man-in-the-middle attacks on cdnjs.com → Blocked by SRI
 
@@ -153,7 +153,7 @@ DOMPurify.sanitize(html, { ADD_ATTR: ['onclick'] })
 **A08:2021 - Software and Data Integrity Failures**
 
 - **Status**: Partially Compliant (75%)
-- **Compliant**: Three.js, QRCode.js, DOMPurify (SRI implemented)
+- **Compliant**: Three.js, QRious, DOMPurify (SRI implemented)
 - **Non-Compliant**: Lucide (SRI not technically feasible)
 - **Justification**: Technical limitation, not security negligence
 
@@ -247,7 +247,7 @@ grep -r "integrity=" workers/public/*.html
 
 ### Update Procedure
 
-#### For Protected Resources (Three.js, QRCode.js, DOMPurify)
+#### For Protected Resources (Three.js, QRious, DOMPurify)
 
 1. **Check for Updates**:
    ```bash
@@ -309,6 +309,7 @@ For questions or concerns about this SRI implementation:
 | 2026-01-21 | 1.0 | Initial SRI implementation (67% coverage) | Security Team |
 | 2026-01-21 | 1.1 | Removed Lucide SRI due to CORS limitation | Security Team |
 | 2026-01-21 | 1.2 | Added DOMPurify 3.0.6 with SRI (75% coverage) | Security Team |
+| 2026-01-21 | 1.3 | Replaced QRCode.js with QRious 4.0.2 (modern, maintained) | Security Team |
 
 ---
 
@@ -333,10 +334,10 @@ curl -s https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js | \
   openssl dgst -sha512 -binary | openssl base64 -A
 # Expected: dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==
 
-# QRCode.js 1.0.0
-curl -s https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js | \
+# QRious 4.0.2
+curl -s https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js | \
   openssl dgst -sha512 -binary | openssl base64 -A
-# Expected: CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==
+# Expected: pUhApVQtLbnpLtJn6DuzDD5o2xtmLJnJ7oBoMsBnzOkVkpqofGLGPaBJ6ayD2zQe3lCgCibhJBi4cj5wAxwVKA==
 
 # DOMPurify 3.0.6
 curl -s https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js | \

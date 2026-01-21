@@ -45,15 +45,15 @@ This project implements **Subresource Integrity (SRI)** for CDN resources to pro
         defer></script>
 ```
 
-#### 3. DOMPurify 3.0.6
+#### 3. DOMPurify 3.2.7
 - **CDN**: cdnjs.cloudflare.com
-- **SRI Hash**: `sha512-UGAj7fz/0r3raNG6/p8TaXzl7On+UYKnDc1FJde96pVL5LgX7DVFJh/JI/wGJpUkjdsRyZS7t7YdvXR23mvXpg==`
+- **SRI Hash**: `sha512-78KH17QLT5e55GJqP76vutp1D2iAoy06WcYBXB6iBCsmO6wWzx0Qdg8EDpm8mKXv68BcvHOyeeP4wxAL0twJGQ==`
 - **CORS Support**: ✅ Yes
 - **Status**: Fully Protected
 
 ```html
-<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js" 
-        integrity="sha512-UGAj7fz/0r3raNG6/p8TaXzl7On+UYKnDc1FJde96pVL5LgX7DVFJh/JI/wGJpUkjdsRyZS7t7YdvXR23mvXpg==" 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.7/purify.min.js" 
+        integrity="sha512-78KH17QLT5e55GJqP76vutp1D2iAoy06WcYBXB6iBCsmO6wWzx0Qdg8EDpm8mKXv68BcvHOyeeP4wxAL0twJGQ==" 
         crossorigin="anonymous" 
         defer></script>
 ```
@@ -310,6 +310,7 @@ For questions or concerns about this SRI implementation:
 | 2026-01-21 | 1.1 | Removed Lucide SRI due to CORS limitation | Security Team |
 | 2026-01-21 | 1.2 | Added DOMPurify 3.0.6 with SRI (75% coverage) | Security Team |
 | 2026-01-21 | 1.3 | Replaced QRCode.js with QRious 4.0.2 (modern, maintained) | Security Team |
+| 2026-01-21 | 1.4 | Updated DOMPurify to 3.2.7 (security fixes) | Security Team |
 
 ---
 
@@ -339,10 +340,10 @@ curl -s https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js | \
   openssl dgst -sha512 -binary | openssl base64 -A
 # Expected: pUhApVQtLbnpLtJn6DuzDD5o2xtmLJnJ7oBoMsBnzOkVkpqofGLGPaBJ6ayD2zQe3lCgCibhJBi4cj5wAxwVKA==
 
-# DOMPurify 3.0.6
-curl -s https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js | \
+# DOMPurify 3.2.7
+curl -s https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.7/purify.min.js | \
   openssl dgst -sha512 -binary | openssl base64 -A
-# Expected: UGAj7fz/0r3raNG6/p8TaXzl7On+UYKnDc1FJde96pVL5LgX7DVFJh/JI/wGJpUkjdsRyZS7t7YdvXR23mvXpg==
+# Expected: 78KH17QLT5e55GJqP76vutp1D2iAoy06WcYBXB6iBCsmO6wWzx0Qdg8EDpm8mKXv68BcvHOyeeP4wxAL0twJGQ==
 
 # Lucide 0.263.1 (for reference, not used in SRI)
 curl -s https://unpkg.com/lucide@0.263.1/dist/umd/lucide.min.js | \

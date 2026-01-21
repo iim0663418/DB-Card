@@ -73,8 +73,8 @@ function validateUserCardData(data: any, isCreate: boolean): { valid: boolean; e
   // Validate social links if provided
   const socialFields = ["social_github", "social_linkedin", "social_facebook", "social_instagram", "social_twitter", "social_youtube"];
   for (const field of socialFields) {
-    if (cardData[field] !== undefined && cardData[field] !== null && cardData[field] !== "") {
-      if (!validateSocialLink(cardData[field])) {
+    if (data[field] !== undefined && data[field] !== null && data[field] !== "") {
+      if (!validateSocialLink(data[field])) {
         return { valid: false, error: `${field} URL 格式無效或包含不安全內容` };
       }
     }

@@ -12,17 +12,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&family=Noto+Sans+TC:wght@300;500;900&display=swap" rel="stylesheet">
-    <script>
-        // 隱藏 Tailwind CDN 警告
-        const originalWarn = console.warn;
-        console.warn = function(...args) {
-            if (args[0]?.includes?.('cdn.tailwindcss.com')) return;
-            originalWarn.apply(console, args);
-        };
-    </script>
+    <script src="/js/tailwind-suppress.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/lucide@0.562.0/dist/umd/lucide.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+            integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ=="
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.7/purify.min.js"
+            integrity="sha512-78KH17QLT5e55GJqP76vutp1D2iAoy06WcYBXB6iBCsmO6wWzx0Qdg8EDpm8mKXv68BcvHOyeeP4wxAL0twJGQ=="
+            crossorigin="anonymous"
+            defer></script>
+    <script src="/js/config.js"></script>
     <style>
         :root {
             --moda-accent: #6868ac;
@@ -138,7 +138,7 @@
                 企業級安全 | 隱私優先 | 全球邊緣運算
             </p>
             <div class="mt-6 text-xs text-slate-400 font-mono">
-                v4.0.0
+                v4.2.1
             </div>
         </header>
 
@@ -357,7 +357,7 @@
         <!-- Footer -->
         <footer class="container mx-auto px-6 py-8 text-center text-xs text-slate-500">
             <p class="mb-2">
-                DB-Card v4.0.0 | MIT License
+                DB-Card v4.2.1 | Apache License 2.0
             </p>
             <p>
                 <a href="https://github.com/iim0663418/DB-Card" target="_blank" class="hover:text-purple-600 transition-colors">
@@ -369,63 +369,6 @@
         </footer>
     </div>
 
-    <script>
-        // Three.js 背景初始化
-        let scene, camera, renderer, mesh, grid;
-        function initThree() {
-            const canvas = document.getElementById('three-canvas');
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 0, 10);
-            renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            
-            // 網格效果
-            const gridGeo = new THREE.PlaneGeometry(150, 150, 45, 45);
-            const gridMat = new THREE.MeshBasicMaterial({
-                color: 0x6868ac,
-                wireframe: true,
-                transparent: true,
-                opacity: 0.08
-            });
-            grid = new THREE.Mesh(gridGeo, gridMat);
-            grid.rotation.x = -Math.PI / 2.2;
-            grid.position.y = -6;
-            scene.add(grid);
-            
-            // 星空效果
-            const starGeo = new THREE.BufferGeometry();
-            const pos = new Float32Array(2000 * 3);
-            for(let i=0; i<2000*3; i++) pos[i] = (Math.random() - 0.5) * 50;
-            starGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-            mesh = new THREE.Points(starGeo, new THREE.PointsMaterial({ 
-                size: 0.05, 
-                color: 0x6868ac, 
-                transparent: true, 
-                opacity: 0.3 
-            }));
-            scene.add(mesh);
-            
-            function animate() { 
-                requestAnimationFrame(animate); 
-                if(mesh) mesh.rotation.y += 0.0002;
-                if(grid) grid.rotation.z += 0.0001;
-                renderer.render(scene, camera); 
-            }
-            animate();
-
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            });
-        }
-
-        // 初始化
-        document.addEventListener('DOMContentLoaded', () => {
-            lucide.createIcons();
-            initThree();
-        });
-    </script>
+    <script src="/js/page-init.js" defer></script>
 </body>
 </html>

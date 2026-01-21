@@ -12,19 +12,25 @@
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <script>
-        const originalWarn = console.warn;
-        console.warn = function(...args) {
-            if (args[0]?.includes?.('cdn.tailwindcss.com')) return;
-            originalWarn.apply(console, args);
-        };
-    </script>
+    <script src="/js/tailwind-suppress.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+    <script src="https://unpkg.com/lucide@0.562.0/dist/umd/lucide.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+            integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ=="
+            crossorigin="anonymous"
+            defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"
+            integrity="sha512-pUhApVQtLbnpLtJn6DuzDD5o2xtmLJnJ7oBoMsBnzOkVkpqofGLGPaBJ6ayD2zQe3lCgCibhJBi4cj5wAxwVKA=="
+            crossorigin="anonymous"
+            defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.7/purify.min.js"
+            integrity="sha512-78KH17QLT5e55GJqP76vutp1D2iAoy06WcYBXB6iBCsmO6wWzx0Qdg8EDpm8mKXv68BcvHOyeeP4wxAL0twJGQ=="
+            crossorigin="anonymous"
+            defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" defer></script>
+    <script src="/js/config.js"></script>
+    <script src="/js/social-link-validation.js"></script>
+    <script src="/js/social-link-integration.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Noto+Sans+TC:wght@300;500;700;900&display=swap');
         
@@ -142,6 +148,39 @@
         .badge-revoked { background: #fecaca; color: #991b1b; }
         .badge-active { background: #d1fae5; color: #065f46; }
         .badge-suspended { background: #fed7aa; color: #9a3412; }
+
+        /* Budget Badge */
+        .badge-budget-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .badge-budget-critical {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        /* Skeleton Loading */
+        .skeleton {
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s ease-in-out infinite;
+            border-radius: 8px;
+        }
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .skeleton-text {
+            height: 12px;
+            margin: 4px 0;
+        }
+        .skeleton-badge {
+            width: 60px;
+            height: 20px;
+            display: inline-block;
+        }
 
         /* 動畫 */
         .fade-in { animation: fadeIn 0.4s ease-out forwards; }
@@ -275,9 +314,9 @@
                                 <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">公務 Email</label>
                                 <input type="email" id="email" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" placeholder="example@moda.gov.tw">
                             </div>
-                            <div>
+                            <div class="space-y-2">
                                 <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">所屬部門</label>
-                                <select id="department" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm appearance-none">
+                                <select id="department-preset" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm appearance-none">
                                     <option value="">請選擇部門</option>
                                     <option value="數位策略司">數位策略司</option>
                                     <option value="數位政府司">數位政府司</option>
@@ -295,7 +334,13 @@
                                     <option value="政務次長室">政務次長室</option>
                                     <option value="常務次長室">常務次長室</option>
                                     <option value="主任秘書室">主任秘書室</option>
+                                    <option value="custom">自訂部門</option>
                                 </select>
+
+                                <div id="custom-department-field" class="hidden space-y-2">
+                                    <input type="text" id="department-custom-zh" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" placeholder="請輸入部門名稱（中文）">
+                                    <input type="text" id="department-custom-en" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" placeholder="Department Name (English)">
+                                </div>
                             </div>
                         </div>
 
@@ -475,6 +520,10 @@
                                 <div>
                                     <h3 id="prev-name" class="text-3xl font-black text-slate-900 italic">王小明</h3>
                                     <p id="prev-title" class="text-moda font-bold text-[10px] uppercase tracking-[0.2em] mt-2">部長</p>
+                                    <p id="prev-department" class="text-sm text-slate-500 mt-1 flex items-center gap-1 justify-center" style="display:none;">
+                                        <i data-lucide="briefcase" class="w-3 h-3 flex-shrink-0"></i>
+                                        <span id="prev-department-text" class="truncate max-w-[200px]">---</span>
+                                    </p>
                                 </div>
 
                                 <!-- 社群圖標預覽區 -->
@@ -995,27 +1044,40 @@
             }
         }
 
-        // Show loading state
+        // Show loading state with skeleton
         function showLoadingState() {
             const grid = document.getElementById('cards-grid');
-            grid.innerHTML = `
-                <div class="col-span-full text-center py-12">
-                    <i data-lucide="loader-2" class="w-12 h-12 text-slate-300 mx-auto mb-4 animate-spin"></i>
-                    <p class="text-slate-400">載入中...</p>
-                </div>
-            `;
-            lucide.createIcons();
+            grid.innerHTML = '';
+
+            // Create 3 skeleton cards
+            for (let i = 0; i < 3; i++) {
+                const skeletonCard = document.createElement('div');
+                skeletonCard.className = 'glass-surface p-6 rounded-2xl flex items-center gap-6';
+                skeletonCard.innerHTML = DOMPurify.sanitize(`
+                    <div class="skeleton" style="width: 56px; height: 56px; border-radius: 12px;"></div>
+                    <div class="flex-1 space-y-2">
+                        <div class="skeleton skeleton-text" style="width: 200px;"></div>
+                        <div class="skeleton skeleton-text" style="width: 300px;"></div>
+                        <div class="skeleton skeleton-text" style="width: 150px;"></div>
+                    </div>
+                    <div class="flex gap-2">
+                        <div class="skeleton skeleton-badge"></div>
+                        <div class="skeleton skeleton-badge"></div>
+                    </div>
+                `, { ADD_ATTR: ['onclick'] });
+                grid.appendChild(skeletonCard);
+            }
         }
 
         // Show empty state
         function showEmptyState() {
             const grid = document.getElementById('cards-grid');
-            grid.innerHTML = `
+            grid.innerHTML = DOMPurify.sanitize(`
                 <div class="col-span-full text-center py-12">
                     <i data-lucide="inbox" class="w-12 h-12 text-slate-300 mx-auto mb-4"></i>
                     <p class="text-slate-400">尚無名片</p>
                 </div>
-            `;
+            `, { ADD_ATTR: ['onclick'] });
             lucide.createIcons();
         }
 
@@ -1043,7 +1105,7 @@
                 // 圖標
                 const iconDiv = document.createElement('div');
                 iconDiv.className = 'w-14 h-14 bg-slate-50 rounded-xl flex items-center justify-center text-moda opacity-60 group-hover:bg-moda group-hover:text-white transition-all';
-                iconDiv.innerHTML = '<i data-lucide="user" class="w-6 h-6"></i>';
+                iconDiv.innerHTML = DOMPurify.sanitize('<i data-lucide="user" class="w-6 h-6"></i>', { ADD_ATTR: ['onclick'] });
                 infoSection.appendChild(iconDiv);
 
                 // 文字資訊
@@ -1073,6 +1135,16 @@
                 nameRow.appendChild(nameH3);
                 nameRow.appendChild(typeBadge);
                 nameRow.appendChild(statusBadge);
+
+                // Budget badge (only show if >=80%)
+                if (c.budget && c.budget.status !== 'normal') {
+                    const budgetBadge = document.createElement('span');
+                    budgetBadge.className = `badge badge-budget-${c.budget.status}`;
+                    budgetBadge.textContent = `${c.budget.percentage}%`;
+                    budgetBadge.title = `使用率 ${c.budget.percentage}%`;
+                    nameRow.appendChild(budgetBadge);
+                }
+
                 textDiv.appendChild(nameRow);
 
                 // 職稱與 Email
@@ -1080,6 +1152,61 @@
                 titleP.className = 'text-xs text-slate-500 font-bold uppercase tracking-tight';
                 titleP.textContent = `${c.data.title?.zh || ''} • ${c.data.email}`;
                 textDiv.appendChild(titleP);
+
+                // Budget usage (three dimensions)
+                if (c.budget) {
+                    const budgetP = document.createElement('p');
+                    budgetP.className = 'text-[10px] mt-1 flex items-center gap-2';
+
+                    // Calculate individual percentages
+                    const dailyPct = Math.round((c.budget.daily_used / c.budget.daily_limit) * 100);
+                    const monthlyPct = Math.round((c.budget.monthly_used / c.budget.monthly_limit) * 100);
+                    const totalPct = Math.round((c.budget.total_used / c.budget.total_limit) * 100);
+
+                    // Determine which dimension has the highest percentage (matches status)
+                    const maxPct = Math.max(dailyPct, monthlyPct, totalPct);
+
+                    // Helper function to get color class
+                    const getColorClass = (pct) => {
+                        if (pct >= 95) return 'text-red-600 font-bold';
+                        if (pct >= 80) return 'text-amber-600 font-bold';
+                        return 'text-slate-500';
+                    };
+
+                    // Daily
+                    const dailySpan = document.createElement('span');
+                    dailySpan.className = getColorClass(dailyPct);
+                    dailySpan.textContent = `今日 ${c.budget.daily_used}/${c.budget.daily_limit}`;
+
+                    // Monthly
+                    const monthlySpan = document.createElement('span');
+                    monthlySpan.className = getColorClass(monthlyPct);
+                    monthlySpan.textContent = `本月 ${c.budget.monthly_used}/${c.budget.monthly_limit}`;
+
+                    // Total
+                    const totalSpan = document.createElement('span');
+                    totalSpan.className = getColorClass(totalPct);
+                    totalSpan.textContent = `總計 ${c.budget.total_used}/${c.budget.total_limit}`;
+
+                    // Assemble with bullets
+                    budgetP.appendChild(dailySpan);
+
+                    const bullet1 = document.createElement('span');
+                    bullet1.className = 'text-slate-300';
+                    bullet1.textContent = '•';
+                    budgetP.appendChild(bullet1);
+
+                    budgetP.appendChild(monthlySpan);
+
+                    const bullet2 = document.createElement('span');
+                    bullet2.className = 'text-slate-300';
+                    bullet2.textContent = '•';
+                    budgetP.appendChild(bullet2);
+
+                    budgetP.appendChild(totalSpan);
+
+                    textDiv.appendChild(budgetP);
+                }
 
                 // UUID
                 const uuidP = document.createElement('p');
@@ -1103,7 +1230,7 @@
                 resetBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
                 resetBtn.title = '重置使用次數';
                 resetBtn.onclick = () => resetBudget(c.uuid);
-                resetBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4"></i>';
+                resetBtn.innerHTML = DOMPurify.sanitize('<i data-lucide="refresh-cw" class="w-4 h-4"></i>', { ADD_ATTR: ['onclick'] });
                 actionDiv.appendChild(resetBtn);
 
                 if (c.status === 'revoked') {
@@ -1234,6 +1361,9 @@
         }
 
         async function viewCard(uuid) {
+            // Show loading notification
+            const loadingNotif = showNotification('正在開啟名片預覽...', 'info');
+            
             try {
                 // 先 tap 獲取 session
                 const tapResponse = await fetch(`${API_BASE}/api/nfc/tap`, {
@@ -1249,6 +1379,10 @@
                 if (!tapResponse.ok) {
                     const error = await tapResponse.json();
                     const errorMsg = ERROR_MESSAGES[error.error?.code] || error.error?.message || '無法開啟預覽';
+                    // Remove loading notification
+                    if (loadingNotif && loadingNotif.parentNode) {
+                        loadingNotif.parentNode.removeChild(loadingNotif);
+                    }
                     showNotification(errorMsg, 'error');
                     return;
                 }
@@ -1256,10 +1390,19 @@
                 const result = await tapResponse.json();
                 const sessionId = result.data.session_id;
 
+                // Remove loading notification
+                if (loadingNotif && loadingNotif.parentNode) {
+                    loadingNotif.parentNode.removeChild(loadingNotif);
+                }
+
                 // 打開名片頁面（帶 session）
                 window.open(`./card-display?uuid=${uuid}&session=${sessionId}`, '_blank');
 
             } catch (error) {
+                // Remove loading notification
+                if (loadingNotif && loadingNotif.parentNode) {
+                    loadingNotif.parentNode.removeChild(loadingNotif);
+                }
                 showNotification('查看失敗: ' + error.message, 'error');
             }
         }
@@ -1347,6 +1490,27 @@
             const isEditing = !!window.editingCardUuid;
 
             // 收集表單資料（完全對齊 nfc-generator）
+            // 處理部門欄位
+            const departmentPreset = document.getElementById('department-preset').value;
+            let departmentValue;
+
+            if (departmentPreset === 'custom') {
+                const zh = document.getElementById('department-custom-zh').value.trim();
+                const en = document.getElementById('department-custom-en').value.trim();
+
+                if (zh && en) {
+                    departmentValue = { zh, en };
+                } else if (zh) {
+                    departmentValue = zh;
+                } else if (en) {
+                    departmentValue = en;
+                } else {
+                    departmentValue = '';
+                }
+            } else {
+                departmentValue = departmentPreset;
+            }
+
             const formData = {
                 name_zh: document.getElementById('name_zh').value.trim(),
                 name_en: document.getElementById('name_en').value.trim(),
@@ -1354,7 +1518,7 @@
                 title_en: document.getElementById('title_en').value.trim(),
                 email: document.getElementById('email').value.trim(),
                 phone: document.getElementById('phone').value.trim(),
-                department: document.getElementById('department').value,
+                department: departmentValue,
                 mobile: document.getElementById('mobile').value.trim(),
                 avatar_url: document.getElementById('avatar_url').value.trim(),
                 greetings_zh: document.getElementById('greetings_zh').value,
@@ -1451,7 +1615,7 @@
             const submitBtn = e.target.querySelector('button[type="submit"]');
             const originalBtnHTML = submitBtn.innerHTML;
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> 處理中...';
+            submitBtn.innerHTML = DOMPurify.sanitize('<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> 處理中...', { ADD_ATTR: ['onclick'] });
             lucide.createIcons();
 
             // 構建 API 資料格式
@@ -1511,7 +1675,7 @@
             } finally {
                 // 恢復按鈕狀態
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = originalBtnHTML;
+                submitBtn.innerHTML = DOMPurify.sanitize(originalBtnHTML, { ADD_ATTR: ['onclick'] });
                 lucide.createIcons();
             }
         }
@@ -1781,7 +1945,33 @@
             document.getElementById('title_zh').value = data.title?.zh || '';
             document.getElementById('title_en').value = data.title?.en || '';
             document.getElementById('email').value = data.email || '';
-            document.getElementById('department').value = data.department || '';
+
+            // 處理部門預設選項
+            const PRESET_DEPARTMENTS = [
+                '數位策略司', '數位政府司', '資源管理司', '韌性建設司',
+                '數位國際司', '資料創新司', '秘書處', '人事處',
+                '政風處', '主計處', '資訊處', '法制處',
+                '部長室', '政務次長室', '常務次長室', '主任秘書室'
+            ];
+
+            if (data.department) {
+                if (PRESET_DEPARTMENTS.includes(data.department)) {
+                    document.getElementById('department-preset').value = data.department;
+                    document.getElementById('custom-department-field').classList.add('hidden');
+                } else {
+                    // 自訂部門
+                    document.getElementById('department-preset').value = 'custom';
+                    document.getElementById('custom-department-field').classList.remove('hidden');
+
+                    if (typeof data.department === 'string') {
+                        document.getElementById('department-custom-zh').value = data.department;
+                        document.getElementById('department-custom-en').value = '';
+                    } else if (data.department && typeof data.department === 'object') {
+                        document.getElementById('department-custom-zh').value = data.department.zh || '';
+                        document.getElementById('department-custom-en').value = data.department.en || '';
+                    }
+                }
+            }
 
             // 聯絡資訊
             document.getElementById('phone').value = data.phone || '';
@@ -1917,12 +2107,12 @@
             const cancelBtn = document.getElementById('cancel-edit-btn');
 
             if (isEditing) {
-                submitBtn.innerHTML = '<i data-lucide="save" class="w-5 h-5"></i> 更新名片';
+                submitBtn.innerHTML = DOMPurify.sanitize('<i data-lucide="save" class="w-5 h-5"></i> 更新名片', { ADD_ATTR: ['onclick'] });
                 if (cancelBtn) {
                     cancelBtn.classList.remove('hidden');
                 }
             } else {
-                submitBtn.innerHTML = '<i data-lucide="zap" class="w-5 h-5"></i> 簽發數位名片';
+                submitBtn.innerHTML = DOMPurify.sanitize('<i data-lucide="zap" class="w-5 h-5"></i> 簽發數位名片', { ADD_ATTR: ['onclick'] });
                 if (cancelBtn) {
                     cancelBtn.classList.add('hidden');
                 }
@@ -1930,6 +2120,28 @@
 
             lucide.createIcons();
         }
+
+        // Department mapping for preview (same as main.js)
+        const ORG_DEPT_MAPPING = {
+            departments: {
+                '數位策略司': 'Department of Digital Strategy',
+                '數位政府司': 'Department of Digital Service',
+                '資源管理司': 'Department of Resource Management',
+                '韌性建設司': 'Department of Communications and Cyber Resilience',
+                '數位國際司': 'Department of International Cooperation',
+                '資料創新司': 'Department of Data Innovation',
+                '秘書處': 'Secretariat',
+                '人事處': 'Department of Personnel',
+                '政風處': 'Department of Civil Service Ethics',
+                '主計處': 'Department of Budget, Accounting and Statistics',
+                '資訊處': 'Department of Information Management',
+                '法制處': 'Department of Legal Affairs',
+                '部長室': "Minister's Office",
+                '政務次長室': "Deputy Minister's Office",
+                '常務次長室': "Administrative Deputy Minister's Office",
+                '主任秘書室': "Secretary-General's Office"
+            }
+        };
 
         function updatePreview() {
             const isEn = previewLang === 'en';
@@ -1949,7 +2161,67 @@
             const socialText = socialData.text;
 
             document.getElementById('prev-name').innerText = name;
-            document.getElementById('prev-title').innerText = title;
+
+            // Title (conditional display - align with card-display)
+            const titleElement = document.getElementById('prev-title');
+            const titleZh = document.getElementById('title_zh').value;
+            const titleEn = document.getElementById('title_en').value;
+            if (title && title !== "部長" && title !== "Minister") {
+                titleElement.style.display = 'block';
+                titleElement.innerText = title;
+            } else if (!titleZh && !titleEn) {
+                titleElement.style.display = 'none';
+            } else {
+                titleElement.style.display = 'block';
+                titleElement.innerText = title;
+            }
+
+            // Department (conditional display with bilingual support)
+            const departmentPreset = document.getElementById('department-preset').value;
+            let deptValue;
+
+            if (departmentPreset === 'custom') {
+                const zh = document.getElementById('department-custom-zh').value.trim();
+                const en = document.getElementById('department-custom-en').value.trim();
+
+                if (zh && en) {
+                    deptValue = { zh, en };
+                } else if (zh) {
+                    deptValue = zh;
+                } else if (en) {
+                    deptValue = en;
+                }
+            } else if (departmentPreset) {
+                deptValue = departmentPreset;
+            }
+
+            const deptElement = document.getElementById('prev-department');
+            if (deptValue) {
+                let deptText;
+
+                // Handle bilingual object
+                if (typeof deptValue === 'object' && deptValue !== null) {
+                    deptText = isEn ? (deptValue.en || deptValue.zh || '') : (deptValue.zh || deptValue.en || '');
+                }
+                // Handle string (preset or single language)
+                else if (typeof deptValue === 'string') {
+                    // Use ORG_DEPT_MAPPING for preset departments
+                    if (isEn && ORG_DEPT_MAPPING.departments[deptValue]) {
+                        deptText = ORG_DEPT_MAPPING.departments[deptValue];
+                    } else {
+                        deptText = deptValue;
+                    }
+                }
+
+                if (deptText) {
+                    deptElement.style.display = 'flex';
+                    document.getElementById('prev-department-text').innerText = deptText;
+                } else {
+                    deptElement.style.display = 'none';
+                }
+            } else {
+                deptElement.style.display = 'none';
+            }
 
             // 問候語區塊條件顯示
             const greetingSection = document.getElementById('prev-greeting-section');
@@ -1993,16 +2265,16 @@
             icons.forEach(icon => {
                 const node = document.createElement('div');
                 node.className = "social-chip-prev";
-                
+
                 // LINE 和 Signal 使用 SVG，其他使用 Lucide
                 if (icon === 'line') {
-                    node.innerHTML = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>`;
+                    node.innerHTML = DOMPurify.sanitize(`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>`, { ADD_ATTR: ['onclick'] });
                 } else if (icon === 'signal') {
-                    node.innerHTML = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 16.707s-1.067 1.341-1.24 1.514c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26l-3.616-3.616-3.616 3.616c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26-.173-.173-1.24-1.514-1.24-1.514-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693l3.616-3.616-3.616-3.616c-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693 0 0 1.067-1.341 1.24-1.514.173-.173.346-.26.519-.26.173 0 .346.087.519.26l3.616 3.616 3.616-3.616c.173-.173.346-.26.519-.26.173 0 .346.087.519.26.173.173 1.24 1.514 1.24 1.514.173.173.26.433.26.693 0 .26-.087.52-.26.693l-3.616 3.616 3.616 3.616c.173.173.26.433.26.693 0 .26-.087.52-.26.693z"/></svg>`;
+                    node.innerHTML = DOMPurify.sanitize(`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 16.707s-1.067 1.341-1.24 1.514c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26l-3.616-3.616-3.616 3.616c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26-.173-.173-1.24-1.514-1.24-1.514-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693l3.616-3.616-3.616-3.616c-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693 0 0 1.067-1.341 1.24-1.514.173-.173.346-.26.519-.26.173 0 .346.087.519.26l3.616 3.616 3.616-3.616c.173-.173.346-.26.519-.26.173 0 .346.087.519.26.173.173 1.24 1.514 1.24 1.514.173.173.26.433.26.693 0 .26-.087.52-.26.693l-3.616 3.616 3.616 3.616c.173.173.26.433.26.693 0 .26-.087.52-.26.693z"/></svg>`, { ADD_ATTR: ['onclick'] });
                 } else {
-                    node.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4"></i>`;
+                    node.innerHTML = DOMPurify.sanitize(`<i data-lucide="${icon}" class="w-4 h-4"></i>`, { ADD_ATTR: ['onclick'] });
                 }
-                
+
                 cluster.appendChild(node);
             });
             lucide.createIcons();
@@ -2073,7 +2345,7 @@
                         topIPsList.appendChild(div);
                     });
                 } else {
-                    topIPsList.innerHTML = '<p class="text-xs text-slate-400">No data</p>';
+                    topIPsList.innerHTML = DOMPurify.sanitize('<p class="text-xs text-slate-400">No data</p>', { ADD_ATTR: ['onclick'] });
                 }
 
             } catch (error) {
@@ -2214,7 +2486,7 @@
                             details = {};
                         }
 
-                        tr.innerHTML = `
+                        tr.innerHTML = DOMPurify.sanitize(`
                             <td class="px-4 py-3 text-xs font-mono text-slate-500">#${event.id}</td>
                             <td class="px-4 py-3">
                                 <span class="badge ${getEventTypeBadgeClass(event.event_type)}">${event.event_type}</span>
@@ -2225,12 +2497,12 @@
                             <td class="px-4 py-3 text-xs text-slate-600">${event.endpoint || details.path || 'N/A'}</td>
                             <td class="px-4 py-3 text-xs text-slate-500 truncate max-w-xs">${event.user_agent || 'unknown'}</td>
                             <td class="px-4 py-3 text-xs text-slate-500">${timeStr}</td>
-                        `;
+                        `, { ADD_ATTR: ['onclick'] });
 
                         tbody.appendChild(tr);
                     });
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">No events found</td></tr>';
+                    tbody.innerHTML = DOMPurify.sanitize('<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">No events found</td></tr>', { ADD_ATTR: ['onclick'] });
                 }
 
                 // 更新分頁按鈕
@@ -2540,6 +2812,22 @@
                     customFields.classList.remove('hidden');
                 } else {
                     customFields.classList.add('hidden');
+                }
+                updatePreview();
+            });
+
+            // 部門預設選單事件監聽器
+            document.getElementById('department-preset').addEventListener('change', (e) => {
+                const value = e.target.value;
+                const customField = document.getElementById('custom-department-field');
+
+                if (value === 'custom') {
+                    customField.classList.remove('hidden');
+                    document.getElementById('department-custom-zh').focus();
+                } else {
+                    customField.classList.add('hidden');
+                    document.getElementById('department-custom-zh').value = '';
+                    document.getElementById('department-custom-en').value = '';
                 }
                 updatePreview();
             });

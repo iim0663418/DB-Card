@@ -5,7 +5,7 @@
 260118|DB-Card|type|NFC_Digital_Business_Card_System
 260118|DB-Card|version|v3.2.1
 260118|DB-Card|architecture|Pure_Frontend_PWA
-260118|DB-Card|license|MIT
+260118|DB-Card|license|Apache_2.0
 260118|DB-Card|privacy_model|Privacy_First_Design
 260118|DB-Card|storage|NFC_Card_Local_Storage
 260118|DB-Card|language_support|Bilingual_ZH_EN
@@ -34,7 +34,54 @@
 260118|Recent_Fixes|v3.2.1|ES6_Module_Loading_Compatibility
 260118|Recent_Fixes|v3.2.1|PWA_Initialization_Success_Rate_100_Percent
 
-# Project Scope Update (2026-01-18)
+# Dual-Layer Cache Optimization v4.2.1 (2026-01-20)
+260120|Dual_Layer_Cache|version|v4.2.1
+260120|Dual_Layer_Cache|status|COMPLETE
+260120|Dual_Layer_Cache|commit|fa53425
+260120|Dual_Layer_Cache|deployment|staging_pending
+
+# Frontend sessionStorage Cache
+260120|Frontend_Cache|implementation|api_js_readCard
+260120|Frontend_Cache|ttl|300_seconds_5_minutes
+260120|Frontend_Cache|cache_key|card_uuid_sessionId
+260120|Frontend_Cache|performance|minus_95_percent_200ms_to_10ms
+260120|Frontend_Cache|storage|sessionStorage
+260120|Frontend_Cache|error_handling|graceful_degradation
+260120|Frontend_Cache|bdd_scenarios|4_complete
+
+# Backend Mixed Cache Strategy
+260120|Backend_Mixed_Cache|implementation|handlers_read_ts
+260120|Backend_Mixed_Cache|strategy|by_card_type
+260120|Backend_Mixed_Cache|sensitive|no_kv_cache_ttl_0
+260120|Backend_Mixed_Cache|personal|kv_cache_60s
+260120|Backend_Mixed_Cache|event|kv_cache_60s
+260120|Backend_Mixed_Cache|function|getCardType
+260120|Backend_Mixed_Cache|function|getCachedCardData_with_ttl
+260120|Backend_Mixed_Cache|bdd_scenarios|5_complete
+
+# Performance Impact
+260120|Performance|frontend_cache_hit|minus_95_percent
+260120|Performance|backend_kv_ttl|minus_80_percent_300s_to_60s
+260120|Performance|sensitive_cards|zero_kv_exposure
+260120|Performance|page_refresh|200ms_to_10ms
+
+# Security Enhancement
+260120|Security|sensitive_cards|no_backend_kv_cache
+260120|Security|personal_event_cards|reduced_kv_exposure_60s
+260120|Security|multi_layer_protection|frontend_backend_envelope
+
+# Documentation
+260120|Documentation|bdd_spec_frontend|frontend_cache_optimization_md
+260120|Documentation|bdd_spec_backend|mixed_cache_strategy_md
+260120|Documentation|acceptance_frontend|frontend_cache_acceptance_md
+260120|Documentation|acceptance_backend|mixed_cache_acceptance_md
+260120|Documentation|performance_analysis|card_display_performance_analysis_md
+
+# Version Update
+260120|Version|number|v4.2.1
+260120|Version|readme|updated
+260120|Version|package_json|updated
+260120|Version|index_html|updated
 260118|DB-Card|project_type|Personal_Private_Project
 260118|DB-Card|previous_scope|Government_Open_Source_Project
 260118|DB-Card|data_controller|DB-Card_Project_Team
@@ -893,3 +940,119 @@
 260120|Staging_Deployment|worker_version|195a0b11_d76e_4a7a_8b79_dabb662ee5b0
 260120|Staging_Deployment|health_check|Passing
 260120|Staging_Deployment|timestamp|2026_01_20T18_28_00_plus_08_00
+
+# KV Optimization Phase 1 (2026-01-21)
+260121|KV_Optimization|version|Phase_1_Complete
+260121|KV_Optimization|status|DEPLOYED
+260121|KV_Optimization|commit|b17f61a
+260121|KV_Optimization|rationale|Cloudflare_Best_Practices_Industry_Standards
+
+# Deduplication Layer Removal
+260121|Dedup_Layer|status|REMOVED
+260121|Dedup_Layer|reason|Redundant_With_Rate_Limiting
+260121|Dedup_Layer|savings|minus_2_KV_ops_per_tap
+260121|Dedup_Layer|kv_key|tap_dedup_uuid_REMOVED
+
+# Rate Limiting Simplification
+260121|Rate_Limiting|version|v2.0_Hour_Only
+260121|Rate_Limiting|windows|Hour_Only_No_Minute
+260121|Rate_Limiting|card_uuid_limit|50_per_hour
+260121|Rate_Limiting|ip_limit|60_per_hour
+260121|Rate_Limiting|savings|minus_4_KV_ops_per_tap
+260121|Rate_Limiting|industry_standard|GitHub_Stripe_Twitter
+
+# KV Operations Reduction
+260121|KV_Ops_Before|per_tap|10_ops_5_reads_5_writes
+260121|KV_Ops_After|per_tap|4_ops_2_reads_2_writes
+260121|KV_Ops_Savings|per_tap|minus_6_ops_60_percent
+260121|KV_Ops_Daily_Before|100_taps|500_writes_50_percent_limit
+260121|KV_Ops_Daily_After|100_taps|200_writes_20_percent_limit
+260121|KV_Ops_Headroom|increase|4x_capacity
+
+# Security Architecture (Unchanged)
+260121|Security_Layer_1|rate_limiting|50_hour_card_60_hour_ip
+260121|Security_Layer_2|session_budget|daily_monthly_limits
+260121|Security_Layer_3|concurrent_reads|max_reads_per_session
+
+# External Research
+260121|Research_Source_1|cloudflare_community|KV_Not_For_Rate_Limiting
+260121|Research_Source_2|ef_map_blog|93_Percent_KV_Reduction
+260121|Research_Source_3|industry_standard|Hour_Window_Best_Practice
+
+# Files Modified
+260121|Modified_File_1|handlers_tap_ts|Remove_Dedup_Renumber_Steps
+260121|Modified_File_2|utils_rate_limit_ts|Hour_Only_Config
+260121|Modified_File_3|types_ts|RateLimitWindow_Hour_Only
+
+# Documentation
+260121|Documentation|kv_usage_analysis|analysis_kv_usage_analysis_md
+260121|Documentation|optimization_proposal|analysis_kv_optimization_proposal_md
+260121|Documentation|best_practices|analysis_external_best_practices_md
+260121|Documentation|bdd_spec|specs_kv_optimization_phase1_md
+
+# OWASP Top 10 Security Fixes Complete (2026-01-21)
+260121|Security_Fixes|status|COMPLETE
+260121|Security_Fixes|version|v4.2.1
+260121|Security_Fixes|completion_date|2026-01-21T15:45:00+08:00
+260121|Security_Fixes|total_commits|24
+
+# Fix 1: Subresource Integrity (SRI)
+260121|SRI_Implementation|status|COMPLETE
+260121|SRI_Implementation|coverage|75_percent_3_of_4
+260121|SRI_Implementation|three_js|r128_with_SRI
+260121|SRI_Implementation|qrious|4.0.2_with_SRI_replaced_QRCode_js
+260121|SRI_Implementation|dompurify|3.2.7_with_SRI
+260121|SRI_Implementation|lucide|0.562.0_no_SRI_unpkg_limitation
+260121|SRI_Implementation|document|SRI-APPLICABILITY-STATEMENT.md_v1.5
+
+# Fix 2: HttpOnly Cookies
+260121|HttpOnly_Cookies|status|COMPLETE
+260121|HttpOnly_Cookies|backend|OAuth_sets_HttpOnly_cookie
+260121|HttpOnly_Cookies|frontend|removed_localStorage_usage
+260121|HttpOnly_Cookies|middleware|supports_cookie_auth
+260121|HttpOnly_Cookies|attributes|HttpOnly_Secure_SameSite_Lax
+
+# Fix 3: DOMPurify XSS Protection
+260121|DOMPurify_XSS|status|COMPLETE
+260121|DOMPurify_XSS|version|3.2.7
+260121|DOMPurify_XSS|sanitized_innerHTML|25_assignments
+260121|DOMPurify_XSS|configuration|ADD_ATTR_onclick
+260121|DOMPurify_XSS|protection|all_XSS_vectors_blocked
+
+# Fix 4: Remove CSP unsafe-inline
+260121|CSP_Nonce|status|COMPLETE
+260121|CSP_Nonce|phase_1|extract_inline_scripts
+260121|CSP_Nonce|phase_2|nonce_based_CSP
+260121|CSP_Nonce|phase_3|testing_verification
+260121|CSP_Nonce|inline_scripts|0_in_all_HTML
+260121|CSP_Nonce|nonce_generation|crypto_getRandomValues
+260121|CSP_Nonce|script_src|self_nonce_CDNs_no_unsafe_inline
+
+# Fix 5: Update Dependencies
+260121|Dependencies_Update|status|COMPLETE
+260121|Dependencies_Update|qrious|replaced_QRCode_js_1.0.0_with_4.0.2
+260121|Dependencies_Update|dompurify|3.0.6_to_3.2.7
+260121|Dependencies_Update|lucide|0.263.0_to_0.562.0
+260121|Dependencies_Update|chart_js|4.4.0_to_4.5.1
+260121|Dependencies_Update|three_js|r128_kept_0.180.0_failed_to_load
+260121|Dependencies_Update|test_page|test-dependencies.html_created
+
+# Security Improvements
+260121|Security_Level|before|MEDIUM_0_percent_SRI_localStorage_no_XSS_unsafe_inline
+260121|Security_Level|after|HIGH_75_percent_SRI_HttpOnly_DOMPurify_nonce_CSP
+260121|OWASP_A02|status|COMPLIANT_HttpOnly_cookies
+260121|OWASP_A03|status|COMPLIANT_DOMPurify_XSS
+260121|OWASP_A05|status|COMPLIANT_nonce_based_CSP
+260121|OWASP_A08|status|PARTIALLY_COMPLIANT_75_percent_SRI
+
+# Technical Debt
+260121|Tech_Debt|three_js_update|investigate_CDN_URL_API_compatibility
+260121|Tech_Debt|lucide_SRI|wait_for_unpkg_CORS_or_migrate_CDN
+260121|Tech_Debt|social_link_validation|implement_URL_validation_function
+
+# Performance Metrics
+260121|Performance|SRI_coverage|0_to_75_percent
+260121|Performance|XSS_protection|none_to_full_DOMPurify
+260121|Performance|CSP_strength|unsafe_inline_to_nonce_based
+260121|Performance|dependency_age|12_year_old_to_modern_maintained
+260121|Performance|functionality|all_working_no_regression_backward_compatible

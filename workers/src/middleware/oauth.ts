@@ -34,13 +34,29 @@ export async function verifyOAuth(
   request: Request,
   env: Env
 ): Promise<{ email: string } | Response> {
-  const authHeader = request.headers.get('Authorization');
+  // Priority 1: Check HttpOnly Cookie
+  const cookieHeader = request.headers.get('Cookie');
+  let token: string | null = null;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (cookieHeader) {
+    const match = cookieHeader.match(/auth_token=([^;]+)/);
+    if (match) {
+      token = match[1];
+    }
+  }
+
+  // Priority 2: Fallback to Authorization header (backward compatibility)
+  if (!token) {
+    const authHeader = request.headers.get('Authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+  }
+
+  if (!token) {
     return errorResponse('unauthorized', 'Missing or invalid authorization', 401, request);
   }
 
-  const token = authHeader.substring(7);
   const email = await verifyOAuthToken(token, env);
 
   if (!email) {

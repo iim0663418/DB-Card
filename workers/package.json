@@ -1,7 +1,8 @@
 {
 	"name": "db-card",
-	"version": "4.2.0",
-	"description": "DB-Card NFC Digital Business Card System with Session Budget",
+	"version": "4.2.1",
+	"description": "DB-Card NFC Digital Business Card System with Dual-Layer Cache",
+	"license": "Apache-2.0",
 	"private": true,
 	"scripts": {
 		"deploy": "wrangler deploy",

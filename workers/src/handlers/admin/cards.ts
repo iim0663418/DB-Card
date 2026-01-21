@@ -7,6 +7,7 @@ import { verifySetupToken } from '../../middleware/auth';
 import { EnvelopeEncryption } from '../../crypto/envelope';
 import { logEvent } from '../../utils/audit';
 import { jsonResponse, errorResponse, adminErrorResponse } from '../../utils/response';
+import { validateSocialLink } from '../../utils/social-link-validation';
 
 /**
  * Validate email format using RFC 5322 simplified regex
@@ -118,6 +119,17 @@ function validateCardData(cardData: any): { valid: boolean; error?: string } {
     return { valid: false, error: 'greetings 格式無效（必須為字串陣列或 {zh: [], en: []} 物件）' };
   }
 
+
+  // Validate social links if provided
+  const socialFields = ["social_github", "social_linkedin", "social_facebook", "social_instagram", "social_twitter", "social_youtube"];
+  for (const field of socialFields) {
+    if (cardData[field] !== undefined && cardData[field] !== null && cardData[field] !== "") {
+      if (!validateSocialLink(cardData[field])) {
+        return { valid: false, error: `${field} URL 格式無效或包含不安全內容` };
+      }
+    }
+  }
+
   return { valid: true };
 }
 
@@ -182,6 +194,17 @@ function validateUpdateCardData(cardData: any): { valid: boolean; error?: string
   // Validate greetings if provided (supports bilingual)
   if (cardData.greetings !== undefined && !validateBilingualStringArray(cardData.greetings)) {
     return { valid: false, error: 'greetings 格式無效（必須為字串陣列或 {zh: [], en: []} 物件）' };
+  }
+
+
+  // Validate social links if provided
+  const socialFields = ["social_github", "social_linkedin", "social_facebook", "social_instagram", "social_twitter", "social_youtube"];
+  for (const field of socialFields) {
+    if (cardData[field] !== undefined && cardData[field] !== null && cardData[field] !== "") {
+      if (!validateSocialLink(cardData[field])) {
+        return { valid: false, error: `${field} URL 格式無效或包含不安全內容` };
+      }
+    }
   }
 
   return { valid: true };

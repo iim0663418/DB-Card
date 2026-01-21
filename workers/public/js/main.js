@@ -84,7 +84,6 @@ function updateVCardButton() {
     }
 }
 
-// 更新按鈕文字（根據當前語言）
 function updateButtonTexts() {
     // Update vCard button first (device-aware)
     updateVCardButton();
@@ -900,7 +899,6 @@ function generateVCard(cardData) {
     return vcard;
 }
 
-// 語系切換 - 改為 URL 參數 + 頁面重新載入
 document.getElementById('lang-switch').addEventListener('click', () => {
     const params = new URLSearchParams(window.location.search);
     const newLang = currentLanguage === 'zh' ? 'en' : 'zh';
@@ -966,7 +964,6 @@ document.getElementById('close-qr').addEventListener('click', () => {
     document.getElementById('qr-modal').classList.add('hidden');
 });
 
-// 載入動畫圖示隨機選擇
 function initLoadingIcon() {
     const icons = ['contact', 'user-circle'];
     const randomIcon = icons[Math.floor(Math.random() * icons.length)];

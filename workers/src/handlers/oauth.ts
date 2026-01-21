@@ -106,8 +106,8 @@ export async function handleOAuthCallback(
       .setExpirationTime('1h')
       .sign(secret);
 
-    // Return JWT token to frontend
-    return new Response(`
+    // Set HttpOnly cookie and return user info (no token in response body)
+    const response = new Response(`
       <!DOCTYPE html>
       <html>
       <head>
@@ -118,7 +118,6 @@ export async function handleOAuthCallback(
         <script>
           window.opener.postMessage({
             type: 'oauth_success',
-            token: '${jwtToken}',
             email: '${userInfo.email}',
             name: '${userInfo.name}',
             picture: '${userInfo.picture}'
@@ -130,6 +129,13 @@ export async function handleOAuthCallback(
     `, {
       headers: { 'Content-Type': 'text/html; charset=utf-8' }
     });
+
+    // Set HttpOnly cookie with security flags
+    response.headers.set('Set-Cookie',
+      `auth_token=${jwtToken}; HttpOnly; Secure; SameSite=Strict; Max-Age=3600; Path=/`
+    );
+
+    return response;
   } catch (error) {
     console.error('OAuth callback error:', error);
     return new Response(`

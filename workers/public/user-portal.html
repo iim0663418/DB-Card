@@ -309,8 +309,9 @@
                             <option value="custom">自訂部門</option>
                         </select>
 
-                        <div id="custom-department-field" class="hidden">
-                            <input type="text" id="department-custom" name="department_custom" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="請輸入部門名稱">
+                        <div id="custom-department-field" class="hidden space-y-2">
+                            <input type="text" id="department-custom-zh" name="department_custom_zh" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="請輸入部門名稱（中文）">
+                            <input type="text" id="department-custom-en" name="department_custom_en" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="Department Name (English)">
                         </div>
                     </div>
 
@@ -1098,7 +1099,18 @@
             // 處理部門欄位
             const departmentPreset = document.getElementById('department-preset').value;
             if (departmentPreset === 'custom') {
-                data.department = document.getElementById('department-custom').value.trim();
+                const zh = document.getElementById('department-custom-zh').value.trim();
+                const en = document.getElementById('department-custom-en').value.trim();
+
+                if (zh && en) {
+                    data.department = { zh, en };
+                } else if (zh) {
+                    data.department = zh;
+                } else if (en) {
+                    data.department = en;
+                } else {
+                    data.department = '';
+                }
             } else {
                 data.department = departmentPreset;
             }
@@ -1236,8 +1248,15 @@
                         } else {
                             // 自訂部門
                             document.getElementById('department-preset').value = 'custom';
-                            document.getElementById('department-custom').value = fullCard.department;
                             document.getElementById('custom-department-field').classList.remove('hidden');
+
+                            if (typeof fullCard.department === 'string') {
+                                document.getElementById('department-custom-zh').value = fullCard.department;
+                                document.getElementById('department-custom-en').value = '';
+                            } else if (fullCard.department && typeof fullCard.department === 'object') {
+                                document.getElementById('department-custom-zh').value = fullCard.department.zh || '';
+                                document.getElementById('department-custom-en').value = fullCard.department.en || '';
+                            }
                         }
                     }
 
@@ -1948,10 +1967,11 @@
 
                 if (value === 'custom') {
                     customField.classList.remove('hidden');
-                    document.getElementById('department-custom').focus();
+                    document.getElementById('department-custom-zh').focus();
                 } else {
                     customField.classList.add('hidden');
-                    document.getElementById('department-custom').value = '';
+                    document.getElementById('department-custom-zh').value = '';
+                    document.getElementById('department-custom-en').value = '';
                 }
                 updatePreview();
             });

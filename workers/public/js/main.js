@@ -328,12 +328,24 @@ function renderCard(cardData, sessionData) {
     // Department (conditional display with translation)
     const dept = cardData.department || '';
     if (dept) {
-        const deptTranslated = currentLanguage === 'en' && ORG_DEPT_MAPPING.departments[dept]
-            ? ORG_DEPT_MAPPING.departments[dept]
-            : dept;
+        let deptText;
 
-        document.getElementById('user-department').style.display = 'flex';
-        document.getElementById('user-department-text').textContent = deptTranslated;
+        if (typeof dept === 'object' && dept !== null) {
+            deptText = currentLanguage === 'en' ? (dept.en || dept.zh || '') : (dept.zh || dept.en || '');
+        } else if (typeof dept === 'string') {
+            deptText = currentLanguage === 'en' && ORG_DEPT_MAPPING.departments[dept]
+                ? ORG_DEPT_MAPPING.departments[dept]
+                : dept;
+        } else {
+            deptText = '';
+        }
+
+        if (deptText) {
+            document.getElementById('user-department').style.display = 'flex';
+            document.getElementById('user-department-text').textContent = deptText;
+        } else {
+            document.getElementById('user-department').style.display = 'none';
+        }
     } else {
         document.getElementById('user-department').style.display = 'none';
     }

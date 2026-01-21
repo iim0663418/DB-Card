@@ -331,8 +331,9 @@
                                     <option value="custom">自訂部門</option>
                                 </select>
 
-                                <div id="custom-department-field" class="hidden">
-                                    <input type="text" id="department-custom" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" placeholder="請輸入部門名稱">
+                                <div id="custom-department-field" class="hidden space-y-2">
+                                    <input type="text" id="department-custom-zh" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" placeholder="請輸入部門名稱（中文）">
+                                    <input type="text" id="department-custom-en" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" placeholder="Department Name (English)">
                                 </div>
                             </div>
                         </div>
@@ -1481,9 +1482,24 @@
             // 收集表單資料（完全對齊 nfc-generator）
             // 處理部門欄位
             const departmentPreset = document.getElementById('department-preset').value;
-            const departmentValue = departmentPreset === 'custom'
-                ? document.getElementById('department-custom').value.trim()
-                : departmentPreset;
+            let departmentValue;
+
+            if (departmentPreset === 'custom') {
+                const zh = document.getElementById('department-custom-zh').value.trim();
+                const en = document.getElementById('department-custom-en').value.trim();
+
+                if (zh && en) {
+                    departmentValue = { zh, en };
+                } else if (zh) {
+                    departmentValue = zh;
+                } else if (en) {
+                    departmentValue = en;
+                } else {
+                    departmentValue = '';
+                }
+            } else {
+                departmentValue = departmentPreset;
+            }
 
             const formData = {
                 name_zh: document.getElementById('name_zh').value.trim(),
@@ -1935,8 +1951,15 @@
                 } else {
                     // 自訂部門
                     document.getElementById('department-preset').value = 'custom';
-                    document.getElementById('department-custom').value = data.department;
                     document.getElementById('custom-department-field').classList.remove('hidden');
+
+                    if (typeof data.department === 'string') {
+                        document.getElementById('department-custom-zh').value = data.department;
+                        document.getElementById('department-custom-en').value = '';
+                    } else if (data.department && typeof data.department === 'object') {
+                        document.getElementById('department-custom-zh').value = data.department.zh || '';
+                        document.getElementById('department-custom-en').value = data.department.en || '';
+                    }
                 }
             }
 
@@ -2708,10 +2731,11 @@
 
                 if (value === 'custom') {
                     customField.classList.remove('hidden');
-                    document.getElementById('department-custom').focus();
+                    document.getElementById('department-custom-zh').focus();
                 } else {
                     customField.classList.add('hidden');
-                    document.getElementById('department-custom').value = '';
+                    document.getElementById('department-custom-zh').value = '';
+                    document.getElementById('department-custom-en').value = '';
                 }
                 updatePreview();
             });

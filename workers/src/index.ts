@@ -17,16 +17,25 @@ import { errorResponse, publicErrorResponse } from './utils/response';
 import { checkRateLimit } from './middleware/rate-limit';
 
 /**
+ * Generate cryptographic nonce for CSP
+ */
+function generateNonce(): string {
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  return btoa(String.fromCharCode(...array));
+}
+
+/**
  * Add security headers to HTML responses
  * Includes CSP, X-Content-Type-Options, X-Frame-Options, etc.
  */
-function addSecurityHeaders(response: Response): Response {
+function addSecurityHeaders(response: Response, nonce: string): Response {
   const headers = new Headers(response.headers);
 
-  // Content Security Policy
+  // Content Security Policy (with nonce, no unsafe-inline for scripts)
   headers.set('Content-Security-Policy',
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' cdn.tailwindcss.com unpkg.com cdnjs.cloudflare.com cdn.jsdelivr.net; " +
+    `script-src 'self' 'nonce-${nonce}' cdn.tailwindcss.com unpkg.com cdnjs.cloudflare.com cdn.jsdelivr.net; ` +
     "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.tailwindcss.com; " +
     "font-src 'self' fonts.gstatic.com; " +
     "img-src 'self' data: https:; " +
@@ -57,6 +66,9 @@ const ALLOWED_ORIGINS = [
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    
+    // Generate nonce for this request
+    const nonce = generateNonce();
 
     // CORS preflight with whitelist
     if (request.method === 'OPTIONS') {
@@ -247,11 +259,20 @@ export default {
     // This handles requests for static files before falling through to 404
     if (env.ASSETS) {
       try {
-        const asset = await env.ASSETS.fetch(request);
+        let asset = await env.ASSETS.fetch(request);
         if (asset.status !== 404) {
-          // Apply security headers to HTML responses
-          if (asset.headers.get('content-type')?.includes('text/html')) {
-            return addSecurityHeaders(asset);
+          // Inject nonce into HTML responses
+          const contentType = asset.headers.get('content-type');
+          if (contentType?.includes('text/html')) {
+            let html = await asset.text();
+            // Add nonce to all script tags
+            html = html.replace(/<script/g, `<script nonce="${nonce}"`);
+            asset = new Response(html, {
+              status: asset.status,
+              statusText: asset.statusText,
+              headers: asset.headers
+            });
+            return addSecurityHeaders(asset, nonce);
           }
           return asset;
         }
@@ -272,7 +293,7 @@ export default {
 
     // Apply security headers to HTML responses
     if (response.headers.get('content-type')?.includes('text/html')) {
-      response = await addSecurityHeaders(response);
+      response = await addSecurityHeaders(response, nonce);
     }
 
     return response;

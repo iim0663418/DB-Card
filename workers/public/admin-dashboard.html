@@ -514,6 +514,10 @@
                                 <div>
                                     <h3 id="prev-name" class="text-3xl font-black text-slate-900 italic">王小明</h3>
                                     <p id="prev-title" class="text-moda font-bold text-[10px] uppercase tracking-[0.2em] mt-2">部長</p>
+                                    <p id="prev-department" class="text-sm text-slate-500 mt-1 flex items-center gap-1 justify-center" style="display:none;">
+                                        <i data-lucide="briefcase" class="w-3 h-3 flex-shrink-0"></i>
+                                        <span id="prev-department-text" class="truncate max-w-[200px]">---</span>
+                                    </p>
                                 </div>
 
                                 <!-- 社群圖標預覽區 -->
@@ -2111,6 +2115,28 @@
             lucide.createIcons();
         }
 
+        // Department mapping for preview (same as main.js)
+        const ORG_DEPT_MAPPING = {
+            departments: {
+                '數位策略司': 'Department of Digital Strategy',
+                '數位政府司': 'Department of Digital Service',
+                '資源管理司': 'Department of Resource Management',
+                '韌性建設司': 'Department of Communications and Cyber Resilience',
+                '數位國際司': 'Department of International Cooperation',
+                '資料創新司': 'Department of Data Innovation',
+                '秘書處': 'Secretariat',
+                '人事處': 'Department of Personnel',
+                '政風處': 'Department of Civil Service Ethics',
+                '主計處': 'Department of Budget, Accounting and Statistics',
+                '資訊處': 'Department of Information Management',
+                '法制處': 'Department of Legal Affairs',
+                '部長室': "Minister's Office",
+                '政務次長室': "Deputy Minister's Office",
+                '常務次長室': "Administrative Deputy Minister's Office",
+                '主任秘書室': "Secretary-General's Office"
+            }
+        };
+
         function updatePreview() {
             const isEn = previewLang === 'en';
             const name = isEn ? document.getElementById('name_en').value || "John Smith" : document.getElementById('name_zh').value || "王小明";
@@ -2129,7 +2155,67 @@
             const socialText = socialData.text;
 
             document.getElementById('prev-name').innerText = name;
-            document.getElementById('prev-title').innerText = title;
+
+            // Title (conditional display - align with card-display)
+            const titleElement = document.getElementById('prev-title');
+            const titleZh = document.getElementById('title_zh').value;
+            const titleEn = document.getElementById('title_en').value;
+            if (title && title !== "部長" && title !== "Minister") {
+                titleElement.style.display = 'block';
+                titleElement.innerText = title;
+            } else if (!titleZh && !titleEn) {
+                titleElement.style.display = 'none';
+            } else {
+                titleElement.style.display = 'block';
+                titleElement.innerText = title;
+            }
+
+            // Department (conditional display with bilingual support)
+            const departmentPreset = document.getElementById('department-preset').value;
+            let deptValue;
+
+            if (departmentPreset === 'custom') {
+                const zh = document.getElementById('department-custom-zh').value.trim();
+                const en = document.getElementById('department-custom-en').value.trim();
+
+                if (zh && en) {
+                    deptValue = { zh, en };
+                } else if (zh) {
+                    deptValue = zh;
+                } else if (en) {
+                    deptValue = en;
+                }
+            } else if (departmentPreset) {
+                deptValue = departmentPreset;
+            }
+
+            const deptElement = document.getElementById('prev-department');
+            if (deptValue) {
+                let deptText;
+
+                // Handle bilingual object
+                if (typeof deptValue === 'object' && deptValue !== null) {
+                    deptText = isEn ? (deptValue.en || deptValue.zh || '') : (deptValue.zh || deptValue.en || '');
+                }
+                // Handle string (preset or single language)
+                else if (typeof deptValue === 'string') {
+                    // Use ORG_DEPT_MAPPING for preset departments
+                    if (isEn && ORG_DEPT_MAPPING.departments[deptValue]) {
+                        deptText = ORG_DEPT_MAPPING.departments[deptValue];
+                    } else {
+                        deptText = deptValue;
+                    }
+                }
+
+                if (deptText) {
+                    deptElement.style.display = 'flex';
+                    document.getElementById('prev-department-text').innerText = deptText;
+                } else {
+                    deptElement.style.display = 'none';
+                }
+            } else {
+                deptElement.style.display = 'none';
+            }
 
             // 問候語區塊條件顯示
             const greetingSection = document.getElementById('prev-greeting-section');

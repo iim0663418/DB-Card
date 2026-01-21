@@ -74,14 +74,14 @@ DOMPurify.sanitize(html, { ADD_ATTR: ['onclick'] })
 
 ### ⚠️ Unprotected Resources (SRI Not Applicable)
 
-#### 4. Lucide Icons 0.263.1
+#### 4. Lucide Icons 0.562.0
 - **CDN**: unpkg.com
 - **SRI Hash**: N/A (Not Implemented)
 - **CORS Support**: ❌ No
 - **Status**: Version Pinned, No SRI
 
 ```html
-<script src="https://unpkg.com/lucide@0.263.1/dist/umd/lucide.min.js" defer></script>
+<script src="https://unpkg.com/lucide@0.562.0/dist/umd/lucide.min.js"></script>
 ```
 
 **Reason for Exclusion**:
@@ -92,7 +92,7 @@ DOMPurify.sanitize(html, { ADD_ATTR: ['onclick'] })
 - Alternative CDNs (jsdelivr.net, cdnjs.com) do not host Lucide
 
 **Risk Mitigation**:
-- ✅ Version pinned to 0.263.1 (not `@latest`)
+- ✅ Version pinned to 0.562.0 (not `@latest`)
 - ✅ Official npm CDN (unpkg.com)
 - ✅ Predictable, no automatic updates
 - ⚠️ No integrity verification (accepted risk)
@@ -311,6 +311,7 @@ For questions or concerns about this SRI implementation:
 | 2026-01-21 | 1.2 | Added DOMPurify 3.0.6 with SRI (75% coverage) | Security Team |
 | 2026-01-21 | 1.3 | Replaced QRCode.js with QRious 4.0.2 (modern, maintained) | Security Team |
 | 2026-01-21 | 1.4 | Updated DOMPurify to 3.2.7 (security fixes) | Security Team |
+| 2026-01-21 | 1.5 | Updated Lucide to 0.562.0 (299 versions newer) | Security Team |
 
 ---
 

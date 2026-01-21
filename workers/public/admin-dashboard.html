@@ -1056,7 +1056,7 @@
             for (let i = 0; i < 3; i++) {
                 const skeletonCard = document.createElement('div');
                 skeletonCard.className = 'glass-surface p-6 rounded-2xl flex items-center gap-6';
-                skeletonCard.innerHTML = `
+                skeletonCard.innerHTML = DOMPurify.sanitize(`
                     <div class="skeleton" style="width: 56px; height: 56px; border-radius: 12px;"></div>
                     <div class="flex-1 space-y-2">
                         <div class="skeleton skeleton-text" style="width: 200px;"></div>
@@ -1067,7 +1067,7 @@
                         <div class="skeleton skeleton-badge"></div>
                         <div class="skeleton skeleton-badge"></div>
                     </div>
-                `;
+                `);
                 grid.appendChild(skeletonCard);
             }
         }
@@ -1075,12 +1075,12 @@
         // Show empty state
         function showEmptyState() {
             const grid = document.getElementById('cards-grid');
-            grid.innerHTML = `
+            grid.innerHTML = DOMPurify.sanitize(`
                 <div class="col-span-full text-center py-12">
                     <i data-lucide="inbox" class="w-12 h-12 text-slate-300 mx-auto mb-4"></i>
                     <p class="text-slate-400">尚無名片</p>
                 </div>
-            `;
+            `);
             lucide.createIcons();
         }
 
@@ -1108,7 +1108,7 @@
                 // 圖標
                 const iconDiv = document.createElement('div');
                 iconDiv.className = 'w-14 h-14 bg-slate-50 rounded-xl flex items-center justify-center text-moda opacity-60 group-hover:bg-moda group-hover:text-white transition-all';
-                iconDiv.innerHTML = '<i data-lucide="user" class="w-6 h-6"></i>';
+                iconDiv.innerHTML = DOMPurify.sanitize('<i data-lucide="user" class="w-6 h-6"></i>');
                 infoSection.appendChild(iconDiv);
 
                 // 文字資訊
@@ -1233,7 +1233,7 @@
                 resetBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
                 resetBtn.title = '重置使用次數';
                 resetBtn.onclick = () => resetBudget(c.uuid);
-                resetBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4"></i>';
+                resetBtn.innerHTML = DOMPurify.sanitize('<i data-lucide="refresh-cw" class="w-4 h-4"></i>');
                 actionDiv.appendChild(resetBtn);
 
                 if (c.status === 'revoked') {
@@ -1618,7 +1618,7 @@
             const submitBtn = e.target.querySelector('button[type="submit"]');
             const originalBtnHTML = submitBtn.innerHTML;
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> 處理中...';
+            submitBtn.innerHTML = DOMPurify.sanitize('<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> 處理中...');
             lucide.createIcons();
 
             // 構建 API 資料格式
@@ -1678,7 +1678,7 @@
             } finally {
                 // 恢復按鈕狀態
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = originalBtnHTML;
+                submitBtn.innerHTML = DOMPurify.sanitize(originalBtnHTML);
                 lucide.createIcons();
             }
         }
@@ -2110,12 +2110,12 @@
             const cancelBtn = document.getElementById('cancel-edit-btn');
 
             if (isEditing) {
-                submitBtn.innerHTML = '<i data-lucide="save" class="w-5 h-5"></i> 更新名片';
+                submitBtn.innerHTML = DOMPurify.sanitize('<i data-lucide="save" class="w-5 h-5"></i> 更新名片');
                 if (cancelBtn) {
                     cancelBtn.classList.remove('hidden');
                 }
             } else {
-                submitBtn.innerHTML = '<i data-lucide="zap" class="w-5 h-5"></i> 簽發數位名片';
+                submitBtn.innerHTML = DOMPurify.sanitize('<i data-lucide="zap" class="w-5 h-5"></i> 簽發數位名片');
                 if (cancelBtn) {
                     cancelBtn.classList.add('hidden');
                 }
@@ -2268,16 +2268,16 @@
             icons.forEach(icon => {
                 const node = document.createElement('div');
                 node.className = "social-chip-prev";
-                
+
                 // LINE 和 Signal 使用 SVG，其他使用 Lucide
                 if (icon === 'line') {
-                    node.innerHTML = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>`;
+                    node.innerHTML = DOMPurify.sanitize(`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>`);
                 } else if (icon === 'signal') {
-                    node.innerHTML = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 16.707s-1.067 1.341-1.24 1.514c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26l-3.616-3.616-3.616 3.616c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26-.173-.173-1.24-1.514-1.24-1.514-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693l3.616-3.616-3.616-3.616c-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693 0 0 1.067-1.341 1.24-1.514.173-.173.346-.26.519-.26.173 0 .346.087.519.26l3.616 3.616 3.616-3.616c.173-.173.346-.26.519-.26.173 0 .346.087.519.26.173.173 1.24 1.514 1.24 1.514.173.173.26.433.26.693 0 .26-.087.52-.26.693l-3.616 3.616 3.616 3.616c.173.173.26.433.26.693 0 .26-.087.52-.26.693z"/></svg>`;
+                    node.innerHTML = DOMPurify.sanitize(`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 16.707s-1.067 1.341-1.24 1.514c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26l-3.616-3.616-3.616 3.616c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26-.173-.173-1.24-1.514-1.24-1.514-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693l3.616-3.616-3.616-3.616c-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693 0 0 1.067-1.341 1.24-1.514.173-.173.346-.26.519-.26.173 0 .346.087.519.26l3.616 3.616 3.616-3.616c.173-.173.346-.26.519-.26.173 0 .346.087.519.26.173.173 1.24 1.514 1.24 1.514.173.173.26.433.26.693 0 .26-.087.52-.26.693l-3.616 3.616 3.616 3.616c.173.173.26.433.26.693 0 .26-.087.52-.26.693z"/></svg>`);
                 } else {
-                    node.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4"></i>`;
+                    node.innerHTML = DOMPurify.sanitize(`<i data-lucide="${icon}" class="w-4 h-4"></i>`);
                 }
-                
+
                 cluster.appendChild(node);
             });
             lucide.createIcons();
@@ -2348,7 +2348,7 @@
                         topIPsList.appendChild(div);
                     });
                 } else {
-                    topIPsList.innerHTML = '<p class="text-xs text-slate-400">No data</p>';
+                    topIPsList.innerHTML = DOMPurify.sanitize('<p class="text-xs text-slate-400">No data</p>');
                 }
 
             } catch (error) {
@@ -2489,7 +2489,7 @@
                             details = {};
                         }
 
-                        tr.innerHTML = `
+                        tr.innerHTML = DOMPurify.sanitize(`
                             <td class="px-4 py-3 text-xs font-mono text-slate-500">#${event.id}</td>
                             <td class="px-4 py-3">
                                 <span class="badge ${getEventTypeBadgeClass(event.event_type)}">${event.event_type}</span>
@@ -2500,12 +2500,12 @@
                             <td class="px-4 py-3 text-xs text-slate-600">${event.endpoint || details.path || 'N/A'}</td>
                             <td class="px-4 py-3 text-xs text-slate-500 truncate max-w-xs">${event.user_agent || 'unknown'}</td>
                             <td class="px-4 py-3 text-xs text-slate-500">${timeStr}</td>
-                        `;
+                        `);
 
                         tbody.appendChild(tr);
                     });
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">No events found</td></tr>';
+                    tbody.innerHTML = DOMPurify.sanitize('<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">No events found</td></tr>');
                 }
 
                 // 更新分頁按鈕

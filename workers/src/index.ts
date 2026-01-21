@@ -8,7 +8,7 @@ import { handleCreateCard, handleUpdateCard, handleDeleteCard, handleRestoreCard
 import { handleRevoke } from './handlers/admin/revoke';
 import { handleKekRotate } from './handlers/admin/kek';
 import { handleAdminLogin, handleAdminLogout } from './handlers/admin/auth';
-import { handleSecurityStats, handleSecurityEvents, handleSecurityTimeline, handleBlockIP, handleUnblockIP, handleIPDetail, handleSecurityExport } from './handlers/admin/security';
+import { handleSecurityStats, handleSecurityEvents, handleSecurityTimeline, handleBlockIP, handleUnblockIP, handleIPDetail, handleSecurityExport, handleCDNHealth } from './handlers/admin/security';
 import { handleUserCreateCard, handleUserUpdateCard, handleUserListCards, handleUserGetCard, handleUserRevokeCard, handleUserRestoreCard } from './handlers/user/cards';
 import { handleRevocationHistory } from './handlers/user/history';
 import { handleUserLogout } from './handlers/user/logout';
@@ -253,6 +253,11 @@ export default {
     // GET /api/admin/security/export - Export security events as CSV
     if (url.pathname === '/api/admin/security/export' && request.method === 'GET') {
       return handleSecurityExport(request, env);
+    }
+
+    // GET /api/admin/cdn-health - Check CDN health
+    if (url.pathname === '/api/admin/cdn-health' && request.method === 'GET') {
+      return handleCDNHealth(request, env);
     }
 
     // Serve static assets (admin-dashboard.html, etc.)

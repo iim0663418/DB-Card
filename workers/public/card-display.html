@@ -11,14 +11,7 @@
     <link rel="preconnect" href="https://cdn.tailwindcss.com">
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
     <link rel="dns-prefetch" href="https://unpkg.com">
-    <script>
-        // 隱藏 Tailwind CDN 警告
-        const originalWarn = console.warn;
-        console.warn = function(...args) {
-            if (args[0]?.includes?.('cdn.tailwindcss.com')) return;
-            originalWarn.apply(console, args);
-        };
-    </script>
+    <script src="/js/tailwind-suppress.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@0.263.0/dist/umd/lucide.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"

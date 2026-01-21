@@ -1,10 +1,10 @@
 # DB-Card Project Progress
 ## Current Phase: SECURITY_FIXES_IN_PROGRESS 🔒
-- Status: SRI 實作完成，準備下一個修復
-- Commit: 740ccaf
+- Status: 2/2 嚴重問題已修復，準備高優先級修復
+- Commit: c645892
 - Version: v4.2.1
-- Last Update: 2026-01-21T14:02:00+08:00
-- Next Action: 修復第二個嚴重問題（localStorage → HttpOnly cookies）
+- Last Update: 2026-01-21T14:19:00+08:00
+- Next Action: 高優先級修復 - 加入 DOMPurify
 
 ## 已完成安全修復
 
@@ -14,106 +14,118 @@
 - ⚠️ Lucide: 無 SRI（unpkg.com 無 CORS 支援）
 - ✅ 版本固定：Lucide 0.263.0
 - ✅ SRI 覆蓋率：67% (2/3 scripts)
-- ✅ 適用性聲明：已建立 SRI-APPLICABILITY-STATEMENT.md
-- ✅ Lucide 載入問題：已修復（版本號錯誤）
+- ✅ 適用性聲明：SRI-APPLICABILITY-STATEMENT.md
 
-**Commits**:
-- 2bfeecc: 初始 SRI 實作
-- eb6045c: 修復 CORS 錯誤（切換到 jsdelivr）
-- 46fa2a7: 移除 Lucide SRI（務實方案）
-- 9e259ce: 移除 defer 屬性
-- e5fe054: 加入 Lucide 等待邏輯
-- 740ccaf: 修正版本號 0.263.1 → 0.263.0
-- 84615f4: 建立 SRI 適用性聲明
+**Commits**: 2bfeecc, eb6045c, 46fa2a7, 9e259ce, e5fe054, 740ccaf, 84615f4
+
+### 🔴 Critical Fix 2: localStorage → HttpOnly Cookies ✅ COMPLETE
+- ✅ 後端：OAuth 設定 HttpOnly cookie
+- ✅ 後端：建立 logout 端點清除 cookie
+- ✅ 前端：移除所有 localStorage 使用
+- ✅ 前端：使用 credentials: 'include'
+- ✅ Middleware：支援 Cookie 認證
+- ✅ Cookie 屬性：HttpOnly; Secure (非 localhost); SameSite=Lax
+- ✅ 測試成功：user-portal 正常運作
+
+**Commits**: 3428314, 9a57680, 9d071a1, 5d20095, c645892
+
+**修復問題**:
+- Cookie Secure flag 環境感知（localhost vs staging/production）
+- OAuth middleware 加入 Cookie 支援
+- SameSite 從 Strict 改為 Lax（支援 OAuth 流程）
 
 ## 待修復問題
 
-### 🔴 Critical Fix 2: User Tokens in localStorage (NEXT)
-**優先級**: 🔴 CRITICAL
+### 🟡 High Priority Fix 3: Add DOMPurify for XSS Protection (NEXT)
+**優先級**: 🟡 HIGH
 **工時**: 2 小時
-**影響**: 使用者 token 可被 XSS 竊取
+**影響**: 防止 XSS 攻擊
 
 **問題**:
-- user-portal.html 使用 localStorage 儲存 auth_token
-- localStorage 可被 JavaScript 存取（XSS 風險）
-- 應使用 HttpOnly cookies（後端已支援）
+- innerHTML 使用未消毒（21 處 admin-dashboard, 5 處 user-portal, 2 處 main.js）
+- 潛在 XSS 風險（如果使用者輸入進入 innerHTML）
+- 無輸入消毒函式庫
 
 **需要變更**:
-1. **後端** (OAuth handler):
-   - 在 OAuth callback 設定 HttpOnly cookie
-   - 移除回傳 token 到前端
+1. **加入 DOMPurify CDN**:
+   - 在所有 HTML 檔案加入 DOMPurify script
+   - 使用 cdnjs.com（有 CORS 支援）
+   - 加入 SRI hash
 
-2. **前端** (user-portal.html):
-   - 移除 localStorage.setItem('auth_token')
-   - 移除 localStorage.getItem('auth_token')
-   - 使用 credentials: 'include' 自動送出 cookie
+2. **消毒所有 innerHTML**:
+   - 包裝所有 innerHTML 呼叫
+   - 使用 DOMPurify.sanitize()
+   - 優先使用 DOM API (textContent)
+
+3. **驗證社群連結 URL**:
+   - 阻擋 javascript: URI
+   - 驗證 URL 格式
+   - 確保 https:// 或 http://
 
 **檔案**:
-- workers/src/handlers/oauth.ts
+- workers/public/admin-dashboard.html
 - workers/public/user-portal.html
+- workers/public/card-display.html
+- workers/public/index.html
+- workers/public/js/main.js
 
-### 🟡 High Priority Fixes (After Critical)
+### 🟡 High Priority Fix 4: Remove 'unsafe-inline' from CSP
+**優先級**: 🟡 HIGH
+**工時**: 4 小時
+**影響**: 強化 XSS 防護
 
-#### 3. Add DOMPurify for XSS Protection
-- 工時: 2 小時
-- 加入 DOMPurify 函式庫
-- 消毒所有 innerHTML 呼叫
+**問題**:
+- CSP 允許 'unsafe-inline'
+- 削弱 XSS 保護
+- 違反 CSP 最佳實踐
 
-#### 4. Remove 'unsafe-inline' from CSP
-- 工時: 4 小時
-- 提取 inline scripts 到外部檔案
-- 實作 nonce-based CSP
+**需要變更**:
+1. 提取所有 inline scripts 到外部檔案
+2. 實作 nonce-based CSP
+3. 更新 CSP headers
 
-#### 5. Validate Social Link URLs
-- 工時: 1 小時
-- 阻擋 javascript: URI
-- 驗證 URL 格式
+### 🟡 High Priority Fix 5: Validate Social Link URLs
+**優先級**: 🟡 HIGH
+**工時**: 1 小時
+**影響**: 防止 URL 注入
 
-### 🟢 Medium Priority Fixes
+**問題**:
+- 社群連結未驗證
+- 可能接受 javascript: URI
+- 潛在 XSS 風險
 
-#### 6. Update Outdated Dependencies
-- 工時: 2 小時
-- 更新 Three.js 到最新版
-- 替換 QRCode.js 為現代函式庫
+**需要變更**:
+1. 加入 URL 驗證函數
+2. 阻擋危險協定
+3. 確保 https:// 或 http://
 
-## 部門欄位功能（已完成）
+### 🟢 Medium Priority Fix 6: Update Outdated Dependencies
+**優先級**: 🟢 MEDIUM
+**工時**: 2 小時
+**影響**: 減少漏洞風險
 
-### Department Field Bilingual Support (2026-01-21) ✅
-- ✅ 新增第二個輸入框（英文部門名稱）
-- ✅ 智慧儲存邏輯（兩者都填 → object，單一 → string）
-- ✅ 編輯預填處理（string 和 object 兩種格式）
-- ✅ 顯示邏輯更新（支援雙語物件和字串）
-- ✅ 向下相容（舊資料繼續運作）
+**問題**:
+- Three.js r128 (2021 年)
+- QRCode.js 1.0.0 (2012 年)
+- Lucide 0.263.0 (可能有更新)
 
-### Preview Display Alignment (2026-01-21) ✅
-- ✅ 新增 prev-department HTML 元素
-- ✅ 新增 ORG_DEPT_MAPPING 常數
-- ✅ 更新 updatePreview() 函數
-- ✅ 對齊 card-display.html 顯示邏輯
-
-### Department Field RWD Fix (2026-01-21) ✅
-- ✅ 修復 Mobile 對齊問題
-- ✅ 新增文字截斷
-- ✅ 圖示穩定性
-
-### KV Optimization Phase 1 (2026-01-21) ✅
-- ✅ 移除 Deduplication Layer
-- ✅ 簡化 Rate Limiting 為 Hour-Only
-- ✅ KV 用量降至 20%
+**需要變更**:
+1. 更新 Three.js 到最新穩定版
+2. 替換 QRCode.js 為現代函式庫
+3. 評估 Lucide 更新
 
 ## 安全評級
 
 **修復前**: 🟡 中等 (0% SRI, tokens in localStorage)
-**修復後 (SRI)**: 🟢 良好 (67% SRI)
+**修復後 (Critical Fixes)**: 🟢 良好 (67% SRI, HttpOnly cookies)
 **目標 (完成所有修復)**: 🟢 高 (9/10)
 
 ## 下一步
 
-1. **立即**: 修復 localStorage → HttpOnly cookies (2 小時)
-2. **本週**: 加入 DOMPurify (2 小時)
-3. **本週**: 驗證社群連結 URL (1 小時)
-4. **下週**: 移除 CSP 'unsafe-inline' (4 小時)
-5. **下週**: 更新依賴套件 (2 小時)
+1. **立即**: 加入 DOMPurify (2 小時)
+2. **本週**: 驗證社群連結 URL (1 小時)
+3. **下週**: 移除 CSP 'unsafe-inline' (4 小時)
+4. **下週**: 更新依賴套件 (2 小時)
 
-**總預估工時**: 11 小時
+**總剩餘工時**: 9 小時
 **預計完成**: 2 週內

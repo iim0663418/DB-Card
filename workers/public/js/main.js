@@ -212,6 +212,18 @@ function showNotification(message, type = 'info') {
 }
 
 async function initApp() {
+    // 等待 Lucide 載入完成
+    if (typeof lucide === 'undefined') {
+        await new Promise(resolve => {
+            const checkLucide = setInterval(() => {
+                if (typeof lucide !== 'undefined') {
+                    clearInterval(checkLucide);
+                    resolve();
+                }
+            }, 50);
+        });
+    }
+
     initLoadingIcon(); // 隨機選擇載入圖示
     lucide.createIcons();
 

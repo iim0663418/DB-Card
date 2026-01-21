@@ -696,6 +696,19 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="md:col-span-2 glass-surface p-8 rounded-3xl">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400">CDN Health Status</h2>
+                            <button onclick="checkCDNHealth()" class="text-xs text-moda hover:underline flex items-center gap-1">
+                                <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                                <span>Refresh</span>
+                            </button>
+                        </div>
+                        <div id="cdn-health-container" class="space-y-3">
+                            <p class="text-sm text-slate-400">Loading...</p>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -964,6 +977,7 @@
 
                 // Load system health status
                 await loadSystemHealth();
+                await checkCDNHealth();
 
                 switchTab('list');
 
@@ -1025,6 +1039,41 @@
             }
         }
 
+        async function checkCDNHealth() {
+            const container = document.getElementById('cdn-health-container');
+            if (!container) return;
+
+            container.innerHTML = '<p class="text-sm text-slate-400">Checking...</p>';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/cdn-health`, {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) throw new Error('CDN health check failed');
+
+                const result = await response.json();
+                const cdns = result.data.cdns;
+
+                container.innerHTML = cdns.map(cdn => `
+                    <div class="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100">
+                        <div class="flex items-center gap-3">
+                            <div class="w-2 h-2 rounded-full ${cdn.status === 'healthy' ? 'bg-green-500' : 'bg-red-500'}"></div>
+                            <div>
+                                <p class="text-xs font-medium text-slate-900">${cdn.name}</p>
+                                <p class="text-[10px] text-slate-400">${cdn.status === 'healthy' ? 'Operational' : 'Failed'}</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-500">${cdn.responseTime}ms</p>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('Failed to check CDN health:', error);
+                container.innerHTML = '<p class="text-sm text-red-600">Failed to load CDN status</p>';
+            }
+        }
+
         function switchTab(tabId) {
             if(!isVerified) return;
             activeTab = tabId;
@@ -1036,7 +1085,10 @@
 
             if(tabId === 'list') loadCards();
             if(tabId === 'security') initSecurityDashboard();
-            if(tabId === 'tools') loadSystemHealth();
+            if(tabId === 'tools') {
+                loadSystemHealth();
+                checkCDNHealth();
+            }
             
             // 切換到創建 Tab 時，如果不是編輯模式，清空表單
             if(tabId === 'create' && !window.editingCardUuid) {

@@ -15,7 +15,7 @@ export async function handleUserLogout(
 
   // Clear the HttpOnly cookie by setting Max-Age=0
   response.headers.set('Set-Cookie',
-    'auth_token=; HttpOnly; Secure; SameSite=Strict; Max-Age=0; Path=/'
+    `auth_token=; HttpOnly; ${request.url.startsWith('https://') ? 'Secure; ' : ''}SameSite=Strict; Max-Age=0; Path=/`
   );
 
   return response;

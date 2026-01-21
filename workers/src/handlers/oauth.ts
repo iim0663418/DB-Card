@@ -132,7 +132,7 @@ export async function handleOAuthCallback(
 
     // Set HttpOnly cookie with security flags
     response.headers.set('Set-Cookie',
-      `auth_token=${jwtToken}; HttpOnly; Secure; SameSite=Strict; Max-Age=3600; Path=/`
+      `auth_token=${jwtToken}; HttpOnly; ${request.url.startsWith('https://') ? 'Secure; ' : ''}SameSite=Strict; Max-Age=3600; Path=/`
     );
 
     return response;

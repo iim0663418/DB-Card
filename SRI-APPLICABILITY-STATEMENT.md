@@ -3,7 +3,7 @@
 **Project**: DB-Card NFC Digital Business Card System  
 **Version**: v4.2.1  
 **Date**: 2026-01-21  
-**Status**: Partial Implementation (67% Coverage)
+**Status**: Partial Implementation (75% Coverage)
 
 ---
 
@@ -11,7 +11,7 @@
 
 This project implements **Subresource Integrity (SRI)** for CDN resources to protect against supply chain attacks. Due to technical limitations with certain CDN providers, we have adopted a **pragmatic partial implementation** approach.
 
-**SRI Coverage**: 2 out of 3 external scripts (67%)
+**SRI Coverage**: 3 out of 4 external scripts (75%)
 
 ---
 
@@ -45,11 +45,36 @@ This project implements **Subresource Integrity (SRI)** for CDN resources to pro
         defer></script>
 ```
 
+#### 3. DOMPurify 3.0.6
+- **CDN**: cdnjs.cloudflare.com
+- **SRI Hash**: `sha512-UGAj7fz/0r3raNG6/p8TaXzl7On+UYKnDc1FJde96pVL5LgX7DVFJh/JI/wGJpUkjdsRyZS7t7YdvXR23mvXpg==`
+- **CORS Support**: ✅ Yes
+- **Status**: Fully Protected
+
+```html
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js" 
+        integrity="sha512-UGAj7fz/0r3raNG6/p8TaXzl7On+UYKnDc1FJde96pVL5LgX7DVFJh/JI/wGJpUkjdsRyZS7t7YdvXR23mvXpg==" 
+        crossorigin="anonymous" 
+        defer></script>
+```
+
+**Configuration**:
+```javascript
+// Allow onclick for internal function calls (safe usage)
+DOMPurify.sanitize(html, { ADD_ATTR: ['onclick'] })
+```
+
+**Security Justification**:
+- ✅ onclick values are hardcoded function calls (no user input)
+- ✅ Functions defined in same scope (not external)
+- ✅ Still blocks: onerror, onload, other dangerous handlers
+- ✅ Still sanitizes: scripts, dangerous URIs, malicious content
+
 ---
 
 ### ⚠️ Unprotected Resources (SRI Not Applicable)
 
-#### 3. Lucide Icons 0.263.1
+#### 4. Lucide Icons 0.263.1
 - **CDN**: unpkg.com
 - **SRI Hash**: N/A (Not Implemented)
 - **CORS Support**: ❌ No
@@ -85,14 +110,14 @@ This project implements **Subresource Integrity (SRI)** for CDN resources to pro
 
 **CDN Compatibility Matrix**:
 
-| CDN | Three.js | QRCode.js | Lucide | CORS Support |
-|-----|----------|-----------|--------|--------------|
-| cdnjs.cloudflare.com | ✅ | ✅ | ❌ Not Available | ✅ Yes |
-| unpkg.com | ✅ | ❌ Not Available | ✅ | ❌ No |
-| jsdelivr.net | ✅ | ✅ | ❌ 404 Error | ✅ Yes |
+| CDN | Three.js | QRCode.js | DOMPurify | Lucide | CORS Support |
+|-----|----------|-----------|-----------|--------|--------------|
+| cdnjs.cloudflare.com | ✅ | ✅ | ✅ | ❌ Not Available | ✅ Yes |
+| unpkg.com | ✅ | ❌ Not Available | ✅ | ✅ | ❌ No |
+| jsdelivr.net | ✅ | ✅ | ✅ | ❌ 404 Error | ✅ Yes |
 
 **Conclusion**: 
-- Three.js and QRCode.js: Use cdnjs.com with SRI
+- Three.js, QRCode.js, DOMPurify: Use cdnjs.com with SRI
 - Lucide: Use unpkg.com without SRI (only option)
 
 ---
@@ -101,14 +126,15 @@ This project implements **Subresource Integrity (SRI)** for CDN resources to pro
 
 ### Risk Assessment
 
-**Overall Security Level**: 🟢 Good (67% SRI Coverage)
+**Overall Security Level**: 🟢 Good (75% SRI Coverage)
 
-#### Protected Attack Vectors (67%)
+#### Protected Attack Vectors (75%)
 - ✅ Three.js CDN compromise → Blocked by SRI
 - ✅ QRCode.js CDN compromise → Blocked by SRI
+- ✅ DOMPurify CDN compromise → Blocked by SRI
 - ✅ Man-in-the-middle attacks on cdnjs.com → Blocked by SRI
 
-#### Unprotected Attack Vectors (33%)
+#### Unprotected Attack Vectors (25%)
 - ⚠️ Lucide CDN compromise → Not protected by SRI
 - ⚠️ Man-in-the-middle attacks on unpkg.com → Not protected by SRI
 
@@ -126,8 +152,8 @@ This project implements **Subresource Integrity (SRI)** for CDN resources to pro
 
 **A08:2021 - Software and Data Integrity Failures**
 
-- **Status**: Partially Compliant (67%)
-- **Compliant**: Three.js, QRCode.js (SRI implemented)
+- **Status**: Partially Compliant (75%)
+- **Compliant**: Three.js, QRCode.js, DOMPurify (SRI implemented)
 - **Non-Compliant**: Lucide (SRI not technically feasible)
 - **Justification**: Technical limitation, not security negligence
 
@@ -186,6 +212,7 @@ This project implements **Subresource Integrity (SRI)** for CDN resources to pro
 4. Check "Integrity" column:
    - Three.js: Shows SHA-512 hash ✅
    - QRCode.js: Shows SHA-512 hash ✅
+   - DOMPurify: Shows SHA-512 hash ✅
    - Lucide: Empty (no SRI) ⚠️
 ```
 
@@ -193,6 +220,11 @@ This project implements **Subresource Integrity (SRI)** for CDN resources to pro
 ```html
 <!-- Three.js: Has integrity attribute ✅ -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" 
+        integrity="sha512-..." 
+        crossorigin="anonymous"></script>
+
+<!-- DOMPurify: Has integrity attribute ✅ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js" 
         integrity="sha512-..." 
         crossorigin="anonymous"></script>
 
@@ -205,7 +237,7 @@ This project implements **Subresource Integrity (SRI)** for CDN resources to pro
 # Check for SRI attributes
 grep -r "integrity=" workers/public/*.html
 
-# Expected: 2 matches per file (Three.js + QRCode.js)
+# Expected: 3 matches per file (Three.js + QRCode.js + DOMPurify)
 # Lucide should NOT have integrity attribute
 ```
 
@@ -215,7 +247,7 @@ grep -r "integrity=" workers/public/*.html
 
 ### Update Procedure
 
-#### For Protected Resources (Three.js, QRCode.js)
+#### For Protected Resources (Three.js, QRCode.js, DOMPurify)
 
 1. **Check for Updates**:
    ```bash
@@ -276,6 +308,7 @@ For questions or concerns about this SRI implementation:
 |------|---------|---------|--------|
 | 2026-01-21 | 1.0 | Initial SRI implementation (67% coverage) | Security Team |
 | 2026-01-21 | 1.1 | Removed Lucide SRI due to CORS limitation | Security Team |
+| 2026-01-21 | 1.2 | Added DOMPurify 3.0.6 with SRI (75% coverage) | Security Team |
 
 ---
 
@@ -304,6 +337,11 @@ curl -s https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js | \
 curl -s https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js | \
   openssl dgst -sha512 -binary | openssl base64 -A
 # Expected: CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==
+
+# DOMPurify 3.0.6
+curl -s https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js | \
+  openssl dgst -sha512 -binary | openssl base64 -A
+# Expected: UGAj7fz/0r3raNG6/p8TaXzl7On+UYKnDc1FJde96pVL5LgX7DVFJh/JI/wGJpUkjdsRyZS7t7YdvXR23mvXpg==
 
 # Lucide 0.263.1 (for reference, not used in SRI)
 curl -s https://unpkg.com/lucide@0.263.1/dist/umd/lucide.min.js | \

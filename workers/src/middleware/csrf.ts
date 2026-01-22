@@ -41,7 +41,7 @@ export async function csrfMiddleware(request: Request, env: Env): Promise<Respon
     return acc;
   }, {} as Record<string, string>);
 
-  const sessionToken = cookies['admin_token'];
+  const sessionToken = cookies['admin_token'] || cookies['auth_token']; // Support both admin and user tokens
   if (!sessionToken) {
     // No session token, let auth middleware handle it
     return null;

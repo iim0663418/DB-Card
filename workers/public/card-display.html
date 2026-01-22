@@ -226,5 +226,23 @@
     </div>
 
     <script type="module" src="js/main.js"></script>
+    <script>
+    // 載入動畫文字變化
+    let loadingTimeouts = [];
+    const loadingText = document.querySelector('#loading p');
+    if (loadingText) {
+        loadingTimeouts.push(setTimeout(() => {
+            loadingText.textContent = '雲端資料解密中...';
+        }, 2000));
+        loadingTimeouts.push(setTimeout(() => {
+            loadingText.textContent = '請稍候,即將完成...';
+        }, 4000));
+    }
+    // 清除 timeout 的函數供 hideLoading 使用
+    window.clearLoadingTimeouts = () => {
+        loadingTimeouts.forEach(t => clearTimeout(t));
+        loadingTimeouts = [];
+    };
+    </script>
 </body>
 </html>

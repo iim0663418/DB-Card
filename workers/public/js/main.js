@@ -663,6 +663,10 @@ function startTypewriter(phrases) {
 }
 
 function hideLoading() {
+    // 清除載入文字變化的 timeouts
+    if (window.clearLoadingTimeouts) {
+        window.clearLoadingTimeouts();
+    }
     const loading = document.getElementById('loading');
     loading.style.opacity = '0';
     setTimeout(() => {

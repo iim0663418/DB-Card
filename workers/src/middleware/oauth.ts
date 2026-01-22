@@ -36,17 +36,24 @@ export async function verifyOAuth(
 ): Promise<{ email: string } | Response> {
   // Priority 1: Check HttpOnly Cookie
   const cookieHeader = request.headers.get('Cookie');
-  let token: string | null = null;
+  let sessionId: string | null = null;
 
   if (cookieHeader) {
     const match = cookieHeader.match(/auth_token=([^;]+)/);
     if (match) {
-      token = match[1];
+      sessionId = match[1];
     } else {
       console.warn('[OAuth] auth_token not found in cookie:', cookieHeader.substring(0, 100));
     }
   } else {
     console.warn('[OAuth] No Cookie header found');
+  }
+
+  let token: string | null = null;
+
+  // If we have a session ID, retrieve JWT from KV
+  if (sessionId) {
+    token = await env.KV.get(`oauth_session:${sessionId}`);
   }
 
   // Priority 2: Fallback to Authorization header (backward compatibility)

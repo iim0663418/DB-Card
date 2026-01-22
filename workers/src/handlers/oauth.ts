@@ -1,5 +1,6 @@
 import type { Env } from '../types';
 import { SignJWT } from 'jose';
+import { generateCsrfToken, storeCsrfToken } from '../utils/csrf';
 
 export async function handleOAuthCallback(
   request: Request,
@@ -106,6 +107,10 @@ export async function handleOAuthCallback(
       .setExpirationTime('1h')
       .sign(secret);
 
+    // Generate CSRF token for user session
+    const csrfToken = generateCsrfToken();
+    await storeCsrfToken(jwtToken, csrfToken, env);
+
     // Set HttpOnly cookie and return user info (no token in response body)
     const response = new Response(`
       <!DOCTYPE html>
@@ -120,7 +125,8 @@ export async function handleOAuthCallback(
             type: 'oauth_success',
             email: '${userInfo.email}',
             name: '${userInfo.name}',
-            picture: '${userInfo.picture}'
+            picture: '${userInfo.picture}',
+            csrfToken: '${csrfToken}'
           }, '*');
           window.close();
         </script>

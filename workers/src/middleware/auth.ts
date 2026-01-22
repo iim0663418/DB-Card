@@ -32,11 +32,19 @@ export async function verifySetupToken(request: Request, env: Env): Promise<bool
     const tokenFromCookie = cookies['admin_token'];
 
     if (tokenFromCookie) {
+      // Check if it's a Passkey session
       const isPasskeySession = await env.KV.get(`passkey_session:${tokenFromCookie}`);
       if (isPasskeySession) {
         return true;
       }
 
+      // Check if it's a SETUP_TOKEN session (new session fixation fix)
+      const isSetupTokenSession = await env.KV.get(`setup_token_session:${tokenFromCookie}`);
+      if (isSetupTokenSession) {
+        return true;
+      }
+
+      // Fallback: Check if cookie value equals SETUP_TOKEN (backward compatibility)
       const isValid = timingSafeEqual(tokenFromCookie, expectedToken);
       if (isValid) {
         return true;

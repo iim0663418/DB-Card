@@ -8,9 +8,53 @@
 
 ## 最新完成功能
 
+### 🎨 UI Enhancement: Glassmorphism Border-Radius Optimization ✅ COMPLETE
+**完成時間**: 2026-01-22T19:04:00+08:00
+**Commit**: 26ed39b
+
+**需求**:
+- 用戶反映想要「更有玻璃感」的介面
+- 不要太極端（保持適度圓角）
+- 增強 glassmorphism 視覺效果
+
+**外部最佳實踐研究**:
+- **Glassmorphism 標準**: 15-20px 圓角最佳
+- **業界共識**: 16px (rounded-2xl) 是最常見的標準值
+- **設計原則**: 太圓會像氣球，太方會失去玻璃質感
+
+**解決方案**:
+- 將大型容器圓角從 48px 減少到 16px
+- rounded-3xl → rounded-2xl（25 處）
+- 保持其他圓角不變（xl, lg, full）
+
+**變更統計**:
+- admin-dashboard.html: 11 處
+- user-portal.html: 2 處
+- card-display.html: 2 處
+- index.html: 10 處
+- 總計: 25 處
+
+**效果**:
+- ✅ 增強玻璃質感（符合業界標準）
+- ✅ 保持適度圓角（不極端）
+- ✅ 視覺更精緻、專業
+- ✅ 減少「氣球感」
+
+**成本**:
+- 執行時間: 5 分鐘
+- 風險等級: 極低
+- 易於回滾
+
+**外部研究來源**:
+1. Glassmorphism CSS 生成器標準
+2. 多個設計系統推薦 15-20px 範圍
+3. 16px 是最常見的玻璃效果圓角值
+
+---
+
 ### 🎨 UX Enhancement: Loading Animation Timing Optimization ✅ COMPLETE
 **完成時間**: 2026-01-22T17:45:00+08:00
-**Commit**: Pending
+**Commit**: 100ed95
 
 **問題**:
 - 實測未快取時載入需要 10-15 秒

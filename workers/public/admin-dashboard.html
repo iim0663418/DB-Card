@@ -211,7 +211,7 @@
     <div class="relative z-10 max-w-7xl mx-auto space-y-6">
         
         <!-- 頂部導航與驗證 -->
-        <header class="glass-surface p-6 rounded-3xl flex flex-col lg:flex-row justify-between items-center gap-6">
+        <header class="glass-surface p-6 rounded-2xl flex flex-col lg:flex-row justify-between items-center gap-6">
             <div class="flex items-center gap-4">
                 <div class="w-12 h-12 bg-moda text-white rounded-2xl flex items-center justify-center shadow-lg">
                     <i data-lucide="layout-dashboard" class="w-6 h-6"></i>
@@ -275,7 +275,7 @@
             
             <!-- Tab 1: 名片列表 -->
             <section id="section-list" class="space-y-6 fade-in">
-                <div class="glass-surface p-6 rounded-3xl flex flex-wrap gap-4 items-center justify-between">
+                <div class="glass-surface p-6 rounded-2xl flex flex-wrap gap-4 items-center justify-between">
                     <div class="relative flex-1 min-w-[300px]">
                         <i data-lucide="search" class="absolute left-4 top-3.5 w-4 h-4 text-slate-400"></i>
                         <input type="text" id="search-input" placeholder="搜尋姓名、Email..." class="w-full pl-12 pr-4 py-3 bg-white/50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm">
@@ -293,7 +293,7 @@
 
                 <div id="cards-grid" class="grid grid-cols-1 gap-4">
                     <!-- 卡片列表由 JS 注入 -->
-                    <div class="text-center py-20 bg-white/40 rounded-3xl border border-dashed border-slate-200">
+                    <div class="text-center py-20 bg-white/40 rounded-2xl border border-dashed border-slate-200">
                         <i data-lucide="inbox" class="w-12 h-12 text-slate-300 mx-auto mb-4"></i>
                         <p class="text-slate-400 font-medium">尚無名片資料</p>
                     </div>
@@ -309,7 +309,7 @@
 
             <!-- Tab 2: 創建名片 (完全對齊 nfc-generator) -->
             <section id="section-create" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-8 fade-in">
-                <div class="lg:col-span-7 glass-surface p-8 rounded-3xl space-y-8">
+                <div class="lg:col-span-7 glass-surface p-8 rounded-2xl space-y-8">
                     <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
                         <i data-lucide="user-plus" class="w-4 h-4"></i> 基本身分資訊 (雙語必填)
                     </h2>
@@ -525,7 +525,7 @@
                 
                 <!-- 預覽區 -->
                 <div class="lg:col-span-5 space-y-6">
-                    <div class="glass-surface p-6 rounded-3xl sticky top-8">
+                    <div class="glass-surface p-6 rounded-2xl sticky top-8">
                         <div class="flex justify-between items-center mb-6">
                             <span class="text-[10px] font-black tracking-widest text-slate-400">REAL-TIME CONTEXT</span>
                             <div id="preview-lang-switch" class="flex bg-slate-100 p-1 rounded-lg">
@@ -680,7 +680,7 @@
             <!-- Tab 3: 系統工具 -->
             <section id="section-tools" class="hidden space-y-6 fade-in">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="glass-surface p-8 rounded-3xl space-y-4">
+                    <div class="glass-surface p-8 rounded-2xl space-y-4">
                         <h2 class="text-lg font-black text-slate-900 flex items-center gap-3">
                             <i data-lucide="zap-off" class="text-amber-500"></i> 緊急撤銷
                         </h2>
@@ -688,7 +688,7 @@
                         <button onclick="confirmAction('revoke_all')" class="w-full py-4 bg-amber-100 text-amber-700 rounded-xl font-bold hover:bg-amber-200 transition-all">執行全局撤銷</button>
                     </div>
 
-                    <div class="glass-surface p-8 rounded-3xl space-y-4">
+                    <div class="glass-surface p-8 rounded-2xl space-y-4">
                         <h2 class="text-lg font-black text-slate-900 flex items-center gap-3">
                             <i data-lucide="shield-alert" class="text-red-500"></i> KEK 密鑰輪替
                         </h2>
@@ -696,7 +696,7 @@
                         <button onclick="confirmAction('kek_rotate')" class="w-full py-4 bg-red-100 text-red-700 rounded-xl font-bold hover:bg-red-200 transition-all">啟動 KEK 輪替</button>
                     </div>
 
-                    <div class="md:col-span-2 glass-surface p-8 rounded-3xl">
+                    <div class="md:col-span-2 glass-surface p-8 rounded-2xl">
                         <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400 mb-6">System Health Status</h2>
                         <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
                             <div class="p-4 bg-white rounded-2xl border border-slate-100">
@@ -719,7 +719,7 @@
                         </div>
                     </div>
 
-                    <div class="md:col-span-2 glass-surface p-8 rounded-3xl">
+                    <div class="md:col-span-2 glass-surface p-8 rounded-2xl">
                         <div class="flex justify-between items-center mb-6">
                             <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400">CDN Health Status</h2>
                             <button onclick="checkCDNHealth()" class="text-xs text-moda hover:underline flex items-center gap-1">
@@ -740,7 +740,7 @@
 
     <!-- 戰略性摩擦：確認 Modal (Good Friction) -->
     <div id="confirm-modal" class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md hidden flex items-center justify-center p-6">
-        <div class="glass-surface max-w-md w-full p-8 rounded-3xl space-y-6">
+        <div class="glass-surface max-w-md w-full p-8 rounded-2xl space-y-6">
             <div class="text-center">
                 <div id="modal-icon-container" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-100 text-red-600">
                     <i data-lucide="alert-triangle" class="w-8 h-8"></i>
@@ -757,7 +757,7 @@
 
     <!-- IP 詳情 Modal -->
     <div id="ip-detail-modal" class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md hidden flex items-center justify-center p-6">
-        <div class="glass-surface max-w-2xl w-full p-8 rounded-3xl space-y-6 max-h-[90vh] overflow-y-auto">
+        <div class="glass-surface max-w-2xl w-full p-8 rounded-2xl space-y-6 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center">
                 <h2 class="text-xl font-black text-slate-900">IP Details</h2>
                 <button onclick="closeIPDetailModal()" class="p-2 hover:bg-slate-100 rounded-lg"><i data-lucide="x" class="w-5 h-5"></i></button>

@@ -8,6 +8,56 @@
 
 ## 最新完成功能
 
+### 🎨 UI Enhancement: Landing Page Glassmorphism Optimization ✅ COMPLETE
+**完成時間**: 2026-01-22T19:19:00+08:00
+**Commit**: 1e545c7
+
+**需求**:
+- 用戶反映卡片底色不透明，看起來死板
+- 想要增加設計感，展現 Three.js 背景動畫
+- 需要真正的玻璃質感
+
+**外部最佳實踐研究**:
+- **Nielsen Norman Group**: 淺色背景不透明度應為 10-25%
+- **NN/g 原則**: 更多背景模糊更好（尤其是複雜背景）
+- **業界標準**: 使用雙層陰影增加深度
+
+**解決方案**:
+- 降低不透明度：70% → 20%（符合 NN/g 10-25% 標準）
+- 增強背景模糊：40px → 80px（更強玻璃效果）
+- 增加飽和度：150% → 180%（色彩更鮮豔）
+- 增強邊框：0.3 → 0.4（更明顯的邊界）
+- 雙層陰影：增加深度感
+- Hover 背景過渡：20% → 25%
+
+**變更內容**:
+```css
+/* 變更前 */
+background: rgba(255, 255, 255, 0.7);
+backdrop-filter: blur(40px) saturate(150%);
+
+/* 變更後 */
+background: rgba(255, 255, 255, 0.2);
+backdrop-filter: blur(80px) saturate(180%);
+```
+
+**效果**:
+- ✅ Three.js 背景動畫清晰可見
+- ✅ 真正的 frosted-glass 質感
+- ✅ 豐富的視覺層次和深度
+- ✅ 保持文字可讀性（深色文字 + 模糊背景）
+- ✅ 符合 WCAG 對比度標準
+
+**檔案**:
+- workers/public/index.html
+
+**外部研究來源**:
+1. Nielsen Norman Group: Glassmorphism 最佳實踐
+2. 不透明度標準：淺色背景 10-25%
+3. 背景模糊原則：更多更好（60-100px）
+
+---
+
 ### 🎨 UI Enhancement: Glassmorphism Border-Radius Optimization ✅ COMPLETE
 **完成時間**: 2026-01-22T19:04:00+08:00
 **Commit**: 26ed39b

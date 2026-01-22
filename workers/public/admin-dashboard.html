@@ -837,6 +837,18 @@
         let activeTab = 'list';
         let previewLang = 'zh';
 
+        // Helper function to get headers with CSRF token
+        function getHeadersWithCSRF(baseHeaders = {}) {
+            const csrfToken = sessionStorage.getItem('csrfToken');
+            if (csrfToken) {
+                return {
+                    ...baseHeaders,
+                    'X-CSRF-Token': csrfToken
+                };
+            }
+            return baseHeaders;
+        }
+
         // 安全監控狀態
         let currentEventPage = 1;
         let currentEventType = '';
@@ -983,11 +995,15 @@
             try {
                 await fetch(`${API_BASE}/api/admin/logout`, {
                     method: 'POST',
-                    credentials: 'include'
+                    credentials: 'include',
+                    headers: getHeadersWithCSRF()
                 });
             } catch (e) {
                 console.error('Logout error:', e);
             }
+
+            // Clear CSRF token from sessionStorage
+            sessionStorage.removeItem('csrfToken');
 
             // 清除狀態並顯示登入頁面
             isVerified = false;
@@ -1102,6 +1118,12 @@
 
                 if (!finishResp.ok) throw new Error('Passkey 登入失敗');
 
+                // Store CSRF token from response
+                const data = await finishResp.json();
+                if (data.data && data.data.csrfToken) {
+                    sessionStorage.setItem('csrfToken', data.data.csrfToken);
+                }
+
                 isVerified = true;
                 document.getElementById('token-section').classList.add('hidden');
                 document.getElementById('auth-status').classList.remove('hidden');
@@ -1109,7 +1131,7 @@
                 document.getElementById('content-area').classList.remove('hidden');
 
                 showNotification('Passkey 登入成功', 'success');
-                
+
                 loadSystemHealth().catch(e => console.error(e));
                 checkCDNHealth().catch(e => console.error(e));
                 checkPasskeyAvailable().catch(e => console.error(e));
@@ -1141,6 +1163,12 @@
                 if (!response.ok) {
                     const error = await response.json();
                     throw new Error(error.error || error.message || '驗證失敗');
+                }
+
+                // Store CSRF token from response
+                const data = await response.json();
+                if (data.data && data.data.csrfToken) {
+                    sessionStorage.setItem('csrfToken', data.data.csrfToken);
                 }
 
                 // Session token is now stored in HttpOnly cookie
@@ -1606,9 +1634,9 @@
                 const tapResponse = await fetch(`${API_BASE}/api/nfc/tap`, {
                     method: 'POST',
                     credentials: 'include',
-                    headers: {
+                    headers: getHeadersWithCSRF({
                         'Content-Type': 'application/json'
-                    },
+                    }),
                     body: JSON.stringify({ card_uuid: uuid })
                 });
 
@@ -1929,9 +1957,9 @@
                 const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}`, {
                     method: 'DELETE',
                     credentials: 'include',
-                    headers: {
+                    headers: getHeadersWithCSRF({
                         'Authorization': `Bearer ${token}`
-                    }
+                    })
                 });
 
                 if (!response.ok) {
@@ -1960,9 +1988,9 @@
                 const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}/restore`, {
                     method: 'POST',
                     credentials: 'include',
-                    headers: {
+                    headers: getHeadersWithCSRF({
                         'Authorization': `Bearer ${token}`
-                    }
+                    })
                 });
 
                 if (!response.ok) {
@@ -1995,10 +2023,10 @@
                 const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}/reset-budget`, {
                     method: 'POST',
                     credentials: 'include',
-                    headers: {
+                    headers: getHeadersWithCSRF({
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
-                    }
+                    })
                 });
 
                 if (!response.ok) {
@@ -2028,9 +2056,9 @@
                 const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}?permanent=true`, {
                     method: 'DELETE',
                     credentials: 'include',
-                    headers: {
+                    headers: getHeadersWithCSRF({
                         'Authorization': `Bearer ${token}`
-                    }
+                    })
                 });
 
                 if (!response.ok) {
@@ -2058,10 +2086,10 @@
                 const response = await fetch(`${API_BASE}/api/admin/revoke`, {
                     method: 'POST',
                     credentials: 'include', // Cookie auto-attached
-                    headers: {
+                    headers: getHeadersWithCSRF({
                         'Authorization': `Bearer ${token}`, // Fallback
                         'Content-Type': 'application/json'
-                    },
+                    }),
                     body: JSON.stringify({
                         card_uuid: uuid
                     })
@@ -2145,10 +2173,10 @@
                 const response = await fetch(`${API_BASE}/api/admin/revoke`, {
                     method: 'POST',
                     credentials: 'include',
-                    headers: {
+                    headers: getHeadersWithCSRF({
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
-                    },
+                    }),
                     body: JSON.stringify({ global: true })
                 });
 
@@ -2790,10 +2818,10 @@
                 const response = await fetch(`${API_BASE}/api/admin/security/block`, {
                     method: 'POST',
                     credentials: 'include',
-                    headers: {
+                    headers: getHeadersWithCSRF({
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
-                    },
+                    }),
                     body: JSON.stringify({
                         ip: ip,
                         duration: duration,
@@ -2835,7 +2863,7 @@
                 const response = await fetch(`${API_BASE}/api/admin/security/block/${encodeURIComponent(ip)}`, {
                     method: 'DELETE',
                     credentials: 'include',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: getHeadersWithCSRF({ 'Authorization': `Bearer ${token}` })
                 });
 
                 if (!response.ok) {

@@ -17,6 +17,7 @@ import { handleOAuthCallback } from './handlers/oauth';
 import { errorResponse, publicErrorResponse } from './utils/response';
 import { checkRateLimit } from './middleware/rate-limit';
 import { verifySetupToken } from './middleware/auth';
+import { csrfMiddleware } from './middleware/csrf';
 
 /**
  * Generate cryptographic nonce for CSP
@@ -200,6 +201,23 @@ export default {
 
     if (url.pathname === '/api/read' && request.method === 'GET') {
       return handleRead(request, env, ctx);
+    }
+
+    // CSRF Protection for Admin/User APIs
+    // Skip CSRF check for login endpoints and public endpoints
+    const isLoginEndpoint = url.pathname === '/api/admin/login' ||
+                           url.pathname.startsWith('/api/admin/passkey/');
+    const isPublicEndpoint = url.pathname === '/api/nfc/tap' ||
+                            url.pathname === '/api/read' ||
+                            url.pathname === '/oauth/callback' ||
+                            url.pathname === '/health';
+
+    if (!isLoginEndpoint && !isPublicEndpoint &&
+        (request.method === 'POST' || request.method === 'PUT' || request.method === 'DELETE')) {
+      const csrfCheck = await csrfMiddleware(request, env);
+      if (csrfCheck) {
+        return csrfCheck;
+      }
     }
 
     // User Self-Service APIs (OAuth required)

@@ -5,6 +5,8 @@ import type { Env, AdminLoginRequest } from '../../types';
 import { jsonResponse, errorResponse, adminErrorResponse } from '../../utils/response';
 import { validateEmail } from '../../utils/validation';
 import { checkLoginRateLimit, incrementLoginAttempts, resetLoginAttempts } from '../../utils/login-rate-limit';
+import { generateCsrfToken, storeCsrfToken } from '../../utils/csrf';
+import { addSession, removeSession, enforceSessionLimit } from '../../utils/session-limit';
 
 /**
  * Handle admin login - sets HttpOnly cookie
@@ -80,7 +82,19 @@ export async function handleAdminLogin(request: Request, env: Env): Promise<Resp
     // 6. Reset login attempts on successful login
     await resetLoginAttempts(email, env);
 
-    // 7. Set HttpOnly Cookie and store email in KV
+    // 7. Generate new session token (prevent session fixation)
+    const sessionToken = crypto.randomUUID();
+
+    // 8. Store session and enforce session limits
+    await env.KV.put(`setup_token_session:${sessionToken}`, email, { expirationTtl: 3600 });
+    await addSession(email, sessionToken, env);
+    await enforceSessionLimit(email, env, 3);
+
+    // 9. Generate CSRF token
+    const csrfToken = generateCsrfToken();
+    await storeCsrfToken(sessionToken, csrfToken, env);
+
+    // 10. Set HttpOnly Cookie
     const isLocalhost = new URL(request.url).hostname === 'localhost';
     const cookieFlags = [
       'HttpOnly',
@@ -90,12 +104,9 @@ export async function handleAdminLogin(request: Request, env: Env): Promise<Resp
       ...(isLocalhost ? [] : ['Secure'])
     ];
 
-    // Store email in KV for session identification (same as Passkey)
-    await env.KV.put(`setup_token_session:${token}`, email, { expirationTtl: 3600 });
-
     const headers = new Headers({
       'Content-Type': 'application/json',
-      'Set-Cookie': `admin_token=${token}; ${cookieFlags.join('; ')}`
+      'Set-Cookie': `admin_token=${sessionToken}; ${cookieFlags.join('; ')}`
     });
 
     // Add CORS headers
@@ -113,7 +124,7 @@ export async function handleAdminLogin(request: Request, env: Env): Promise<Resp
     }
 
     return new Response(
-      JSON.stringify({ success: true, data: { authenticated: true } }),
+      JSON.stringify({ success: true, data: { authenticated: true, csrfToken } }),
       { headers }
     );
   } catch (error) {
@@ -130,6 +141,35 @@ export async function handleAdminLogin(request: Request, env: Env): Promise<Resp
  */
 export async function handleAdminLogout(request: Request, env: Env): Promise<Response> {
   try {
+    // Extract session token from cookie
+    const cookieHeader = request.headers.get('Cookie');
+    if (cookieHeader) {
+      const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+        const trimmed = cookie.trim();
+        const [key, ...valueParts] = trimmed.split('=');
+        const value = valueParts.join('=');
+        if (key) acc[key] = value || '';
+        return acc;
+      }, {} as Record<string, string>);
+
+      const sessionToken = cookies['admin_token'];
+      if (sessionToken) {
+        // Get email from session
+        const email = await env.KV.get(`setup_token_session:${sessionToken}`) ||
+                      await env.KV.get(`passkey_session:${sessionToken}`);
+
+        if (email) {
+          // Remove from active sessions list
+          await removeSession(email, sessionToken, env);
+        }
+
+        // Delete session and CSRF token from KV
+        await env.KV.delete(`setup_token_session:${sessionToken}`);
+        await env.KV.delete(`passkey_session:${sessionToken}`);
+        await env.KV.delete(`csrf_token:${sessionToken}`);
+      }
+    }
+
     // Clear cookie by setting Max-Age=0
     const isLocalhost = new URL(request.url).hostname === 'localhost';
     const cookieOptions = [

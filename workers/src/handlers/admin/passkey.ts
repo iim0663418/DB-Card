@@ -2,6 +2,8 @@ import type { Env } from '../../types';
 import { jsonResponse, errorResponse, getCorsHeaders } from '../../utils/response';
 import { validateEmail } from '../../utils/validation';
 import { checkLoginRateLimit, incrementLoginAttempts, resetLoginAttempts } from '../../utils/login-rate-limit';
+import { generateCsrfToken, storeCsrfToken } from '../../utils/csrf';
+import { addSession, enforceSessionLimit } from '../../utils/session-limit';
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -289,8 +291,17 @@ export async function handlePasskeyLoginFinish(request: Request, env: Env): Prom
 
     await env.KV.delete(`passkey_auth_challenge:${rpID}`);
 
+    // Generate new session token
     const sessionToken = crypto.randomUUID();
     await env.KV.put(`passkey_session:${sessionToken}`, user.username, { expirationTtl: 3600 });
+
+    // Add session and enforce session limits
+    await addSession(user.username, sessionToken, env);
+    await enforceSessionLimit(user.username, env, 3);
+
+    // Generate CSRF token
+    const csrfToken = generateCsrfToken();
+    await storeCsrfToken(sessionToken, csrfToken, env);
 
     const isLocalhost = new URL(request.url).hostname === 'localhost';
     const cookieOptions = [
@@ -321,7 +332,7 @@ export async function handlePasskeyLoginFinish(request: Request, env: Env): Prom
     }
 
     return new Response(
-      JSON.stringify({ success: true, data: { authenticated: true } }),
+      JSON.stringify({ success: true, data: { authenticated: true, csrfToken } }),
       { headers }
     );
   } catch (error) {

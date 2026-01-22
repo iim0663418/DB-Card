@@ -6,6 +6,37 @@
 - Last Update: 2026-01-22T01:27:00+08:00
 - Next Action: 提交代碼並更新文檔
 
+## 最新完成功能
+
+### 🎨 UX Enhancement: Progressive Loading Messages ✅ COMPLETE
+**完成時間**: 2026-01-22T13:54:00+08:00
+**Commit**: 2ac0365
+
+**問題**:
+- 載入動畫顯示單一訊息
+- 長時間載入時使用者缺乏回饋
+- 無解密過程提示
+
+**解決方案**:
+- 階段式載入訊息（3 階段）:
+  * 0-2s: "載入名片資料..." / "Loading card data..."
+  * 2-4s: "雲端資料解密中..." / "Decrypting cloud data..."
+  * 4s+: "請稍候,即將完成..." / "Please wait, almost done..."
+- 雙語支援（中英文）
+- Timeout 清理防止記憶體洩漏
+
+**實作內容**:
+- ✅ 雙語文字定義（loadingMessages）
+- ✅ 使用 localStorage 偵測語言
+- ✅ setTimeout 控制文字變化
+- ✅ hideLoading() 清除 timeout
+
+**檔案**:
+- workers/public/card-display.html
+- workers/public/js/main.js
+
+---
+
 ## 已完成安全修復
 
 ### 🔴 Critical Fix 1: Subresource Integrity (SRI) ✅ COMPLETE

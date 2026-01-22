@@ -227,15 +227,23 @@
 
     <script type="module" src="js/main.js"></script>
     <script>
-    // 載入動畫文字變化
+    // 載入動畫文字變化雙語支援
+    const loadingMessages = {
+        stage1: { zh: '載入名片資料...', en: 'Loading card data...' },
+        stage2: { zh: '雲端資料解密中...', en: 'Decrypting cloud data...' },
+        stage3: { zh: '請稍候,即將完成...', en: 'Please wait, almost done...' }
+    };
+
     let loadingTimeouts = [];
     const loadingText = document.querySelector('#loading p');
+    const getCurrentLang = () => localStorage.getItem('language') || 'zh';
+
     if (loadingText) {
         loadingTimeouts.push(setTimeout(() => {
-            loadingText.textContent = '雲端資料解密中...';
+            loadingText.textContent = loadingMessages.stage2[getCurrentLang()] || loadingMessages.stage2.zh;
         }, 2000));
         loadingTimeouts.push(setTimeout(() => {
-            loadingText.textContent = '請稍候,即將完成...';
+            loadingText.textContent = loadingMessages.stage3[getCurrentLang()] || loadingMessages.stage3.zh;
         }, 4000));
     }
     // 清除 timeout 的函數供 hideLoading 使用

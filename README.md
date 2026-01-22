@@ -1,6 +1,61 @@
-# DB-Card - NFC 數位名片系統 v4.3.0
+# DB-Card - NFC 數位名片系統 v4.3.2
 
 基於「隱私優先」與「安全至上」理念的企業級 NFC 數位名片系統
+
+## v4.3.2 更新內容 (2026-01-22)
+
+### 🔒 P1 安全修復完成
+**完成 3 項中風險安全修復**
+
+#### 1. CSRF Token 防護
+- ✅ 生成 32 bytes 隨機 token
+- ✅ 儲存到 KV (TTL: 1小時)
+- ✅ Timing-safe 比較驗證
+- ✅ Middleware 在認證之前執行（符合業界標準）
+- ✅ 驗證 POST/PUT/DELETE 請求
+- ✅ GET/HEAD/OPTIONS 跳過檢查
+
+#### 2. 會話固定攻擊防護
+- ✅ 使用 `crypto.randomUUID()` 生成新 session token
+- ✅ 不再使用 SETUP_TOKEN 作為 cookie 值
+- ✅ 每次登入生成不可預測的 token
+- ✅ Auth middleware 支援新的 session 機制
+
+#### 3. 並發會話限制
+- ✅ 最多 3 個並發會話
+- ✅ 自動刪除最舊的會話
+- ✅ 清理相關 KV entries (passkey_session, setup_token_session, csrf_token)
+- ✅ 登出時移除會話
+
+#### 測試結果
+- ✅ 7/7 測試通過 (100%)
+- ✅ 符合業界標準（Spring Security, ASP.NET Core, Laravel）
+- ✅ 外部研究驗證
+
+---
+
+## v4.3.1 更新內容 (2026-01-22)
+
+### 🔴 P0 安全修復完成
+**完成 3 項高風險安全修復**
+
+#### 1. 登入速率限制
+- ✅ 5 次失敗 / 15 分鐘
+- ✅ KV 追蹤機制
+- ✅ 返回 429 with Retry-After header
+- ✅ 整合到 SETUP_TOKEN 和 Passkey 登入
+
+#### 2. Email 格式驗證
+- ✅ 正則驗證：`/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/`
+- ✅ 阻擋 SQL 注入
+- ✅ 返回 400 for invalid format
+
+#### 3. 條件式 Console Logging
+- ✅ DEBUG flag: `window.location.hostname === 'localhost'`
+- ✅ 生產環境無 console.log
+- ✅ console.error 永遠啟用
+
+---
 
 ## v4.3.0 更新內容 (2026-01-22)
 

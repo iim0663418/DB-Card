@@ -32,6 +32,11 @@ export async function verifySetupToken(request: Request, env: Env): Promise<bool
     const tokenFromCookie = cookies['admin_token'];
 
     if (tokenFromCookie) {
+      const isPasskeySession = await env.KV.get(`passkey_session:${tokenFromCookie}`);
+      if (isPasskeySession) {
+        return true;
+      }
+
       const isValid = timingSafeEqual(tokenFromCookie, expectedToken);
       if (isValid) {
         return true;
@@ -45,7 +50,10 @@ export async function verifySetupToken(request: Request, env: Env): Promise<bool
     const parts = authHeader.split(' ');
     if (parts.length === 2 && parts[0] === 'Bearer') {
       const providedToken = parts[1];
-      return timingSafeEqual(providedToken, expectedToken);
+      const isValid = timingSafeEqual(providedToken, expectedToken);
+      if (isValid) {
+        return true;
+      }
     }
   }
 

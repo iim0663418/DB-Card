@@ -1,7 +1,7 @@
 // Admin Authentication Handlers
 // Provides login/logout endpoints with HttpOnly cookie support
 
-import type { Env } from '../../types';
+import type { Env, AdminLoginRequest } from '../../types';
 import { jsonResponse, errorResponse, adminErrorResponse } from '../../utils/response';
 
 /**
@@ -13,39 +13,54 @@ import { jsonResponse, errorResponse, adminErrorResponse } from '../../utils/res
  */
 export async function handleAdminLogin(request: Request, env: Env): Promise<Response> {
   try {
-    const body = await request.json() as { token: string };
-    const { token } = body;
-
-    if (!token) {
-      return errorResponse('invalid_request', '缺少 token 參數', 400, request);
+    // 1. Validate request body
+    const { email, token } = await request.json() as AdminLoginRequest;
+    if (!email || !token) {
+      return adminErrorResponse('Email and token are required', 400, request);
     }
 
-    // Verify token using timing-safe comparison
+    // 2. Timing-safe comparison
     const expectedToken = env.SETUP_TOKEN;
     if (!expectedToken) {
-      console.error('SETUP_TOKEN not configured in environment');
-      return errorResponse('server_error', '伺服器設定錯誤', 500, request);
+      return adminErrorResponse('Server configuration error', 500, request);
     }
 
-    // Timing-safe comparison
     const isValid = await timingSafeEqual(token, expectedToken);
     if (!isValid) {
       return adminErrorResponse('Invalid token', 403, request);
     }
 
-    // Set HttpOnly Cookie
-    const cookieOptions = [
-      `admin_token=${token}`,
+    // 3. Check if THIS admin has Passkey enabled
+    const admin = await env.DB.prepare(
+      'SELECT passkey_enabled FROM admin_users WHERE username = ? AND is_active = 1'
+    ).bind(email).first<{ passkey_enabled: number }>();
+
+    if (!admin) {
+      // Don't leak email existence
+      return adminErrorResponse('Invalid token', 403, request);
+    }
+
+    if (admin.passkey_enabled === 1) {
+      console.warn(`SETUP_TOKEN rejected: passkey_enabled=1 for ${email}`);
+      return adminErrorResponse('此管理員已啟用 Passkey，請使用 Passkey 登入', 403, request);
+    }
+
+    // 4. Set HttpOnly Cookie and store email in KV
+    const isLocalhost = new URL(request.url).hostname === 'localhost';
+    const cookieFlags = [
       'HttpOnly',
-      'Secure',
-      'SameSite=Strict',
-      'Max-Age=3600', // 1 hour
-      'Path=/'
-    ].join('; ');
+      'SameSite=Lax',
+      'Max-Age=3600',
+      'Path=/',
+      ...(isLocalhost ? [] : ['Secure'])
+    ];
+
+    // Store email in KV for session identification (same as Passkey)
+    await env.KV.put(`setup_token_session:${token}`, email, { expirationTtl: 3600 });
 
     const headers = new Headers({
       'Content-Type': 'application/json',
-      'Set-Cookie': cookieOptions
+      'Set-Cookie': `admin_token=${token}; ${cookieFlags.join('; ')}`
     });
 
     // Add CORS headers
@@ -66,10 +81,9 @@ export async function handleAdminLogin(request: Request, env: Env): Promise<Resp
       JSON.stringify({ success: true, data: { authenticated: true } }),
       { headers }
     );
-
   } catch (error) {
     console.error('Login error:', error);
-    return errorResponse('server_error', '登入失敗', 500, request);
+    return adminErrorResponse('Internal server error', 500, request);
   }
 }
 
@@ -82,11 +96,12 @@ export async function handleAdminLogin(request: Request, env: Env): Promise<Resp
 export async function handleAdminLogout(request: Request, env: Env): Promise<Response> {
   try {
     // Clear cookie by setting Max-Age=0
+    const isLocalhost = new URL(request.url).hostname === 'localhost';
     const cookieOptions = [
       'admin_token=',
       'HttpOnly',
-      'Secure',
-      'SameSite=Strict',
+      ...(isLocalhost ? [] : ['Secure']),
+      'SameSite=Lax',
       'Max-Age=0',
       'Path=/'
     ].join('; ');

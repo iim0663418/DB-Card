@@ -1,7 +1,7 @@
 # DB-Card 第三方元件授權清單
 
-**最後更新**: 2026-01-19  
-**專案版本**: v4.0.1
+**最後更新**: 2026-01-22  
+**專案版本**: v4.3.0
 
 ---
 
@@ -30,35 +30,43 @@
 - **合規性**: ✅ 可商用、可修改、可分發
 
 ### 3. Lucide Icons
-- **版本**: Latest
-- **來源**: https://unpkg.com/lucide@latest
+- **版本**: 0.562.0
+- **來源**: https://unpkg.com/lucide@0.562.0
 - **授權**: ISC License
 - **用途**: 圖示庫（UI 圖標）
 - **授權連結**: https://github.com/lucide-icons/lucide/blob/main/LICENSE
 - **合規性**: ✅ 可商用、可修改、可分發
 
-### 4. QRCode.js
-- **版本**: 1.0.0
-- **來源**: https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js
+### 4. QRious
+- **版本**: 4.0.2
+- **來源**: https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js
 - **授權**: MIT License
-- **用途**: 離線 QR Code 生成
-- **授權連結**: https://github.com/davidshimjs/qrcodejs/blob/master/LICENSE
+- **用途**: 離線 QR Code 生成（替換 QRCode.js）
+- **授權連結**: https://github.com/neocotic/qrious/blob/master/LICENSE.md
 - **合規性**: ✅ 可商用、可修改、可分發
 
 ### 5. DOMPurify
-- **版本**: 3.0.8
-- **來源**: https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js
+- **版本**: 3.2.7
+- **來源**: https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.7/purify.min.js
 - **授權**: Apache License 2.0 / MPL 2.0 (雙授權)
 - **用途**: XSS 防護，清理 HTML 輸入
 - **授權連結**: https://github.com/cure53/DOMPurify/blob/main/LICENSE
 - **合規性**: ✅ 可商用、可修改、可分發
 
 ### 6. Chart.js
-- **版本**: 4.4.0
-- **來源**: https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js
+- **版本**: 4.5.1
+- **來源**: https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js
 - **授權**: MIT License
 - **用途**: 安全監控儀表板圖表
 - **授權連結**: https://github.com/chartjs/Chart.js/blob/master/LICENSE.md
+- **合規性**: ✅ 可商用、可修改、可分發
+
+### 7. SimpleWebAuthn
+- **版本**: 13.0.0
+- **來源**: https://unpkg.com/@simplewebauthn/browser@13.0.0/dist/bundle/index.umd.min.js
+- **授權**: MIT License
+- **用途**: Passkey (WebAuthn/FIDO2) 認證
+- **授權連結**: https://github.com/MasterKale/SimpleWebAuthn/blob/master/LICENSE.md
 - **合規性**: ✅ 可商用、可修改、可分發
 
 ---

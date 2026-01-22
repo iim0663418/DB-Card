@@ -15,6 +15,7 @@
     <script src="/js/tailwind-suppress.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@0.562.0/dist/umd/lucide.min.js"></script>
+    <script src="https://unpkg.com/@simplewebauthn/browser@13.0.0/dist/bundle/index.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
             integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ=="
             crossorigin="anonymous"
@@ -222,13 +223,28 @@
             </div>
 
             <!-- Setup Token 驗證區 (Don't Make Me Think: 驗證後隱藏或縮小) -->
-            <div id="token-section" class="flex items-center gap-3 bg-white/50 p-2 rounded-2xl border border-white">
-                <input type="password" id="setup-token" placeholder="輸入 SETUP_TOKEN" class="w-48 px-4 py-2 bg-transparent outline-none text-sm">
-                <button id="verify-btn" class="bg-slate-900 text-white px-6 py-2 rounded-xl text-xs font-bold hover:bg-black transition-all">驗證權限</button>
-                <div id="auth-status" class="hidden flex items-center gap-2 px-3 border-l border-slate-200">
-                    <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                    <span class="text-[10px] font-black text-green-600">已授權</span>
+            <div id="token-section" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <!-- SETUP_TOKEN 登入 -->
+                <div id="token-login" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white/50 px-3 py-2 rounded-xl border border-white/50">
+                    <input type="email" id="admin-email" placeholder="Email" class="w-full sm:w-28 bg-transparent outline-none text-xs placeholder:text-slate-400">
+                    <div class="hidden sm:block w-px h-4 bg-slate-300"></div>
+                    <input type="password" id="setup-token" placeholder="Token" class="w-full sm:w-28 bg-transparent outline-none text-xs placeholder:text-slate-400">
+                    <button id="verify-btn" class="bg-slate-900 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-black transition-all whitespace-nowrap">驗證</button>
                 </div>
+
+                <!-- Passkey 登入 -->
+                <div id="passkey-login" class="hidden">
+                    <button onclick="loginWithPasskey()" class="w-full flex items-center justify-center gap-2 bg-white/50 px-3 py-2 rounded-xl border border-white/50 hover:bg-white/70 transition-all">
+                        <i data-lucide="fingerprint" class="w-4 h-4 text-slate-700"></i>
+                        <span class="text-xs font-bold text-slate-700">Passkey</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 已授權狀態 -->
+            <div id="auth-status" class="hidden flex items-center justify-center gap-2 bg-white/50 px-3 py-2 rounded-xl border border-white/50">
+                <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span class="text-xs font-bold text-green-700">已授權</span>
             </div>
         </header>
 
@@ -245,6 +261,12 @@
             </button>
             <button onclick="switchTab('tools')" id="tab-tools" class="tab-btn flex items-center gap-2">
                 <i data-lucide="settings" class="w-4 h-4"></i> 系統工具
+            </button>
+            <button id="register-passkey-btn" onclick="registerPasskey()" class="hidden tab-btn flex items-center gap-2 text-slate-600 hover:text-slate-900">
+                <i data-lucide="fingerprint" class="w-4 h-4"></i> 註冊 Passkey
+            </button>
+            <button onclick="handleLogout()" class="tab-btn flex items-center gap-2 text-red-600 hover:text-red-700 ml-auto">
+                <i data-lucide="log-out" class="w-4 h-4"></i> 登出
             </button>
         </nav>
 
@@ -940,11 +962,170 @@
             }, duration);
         }
 
-        async function verifyToken() {
-            const token = document.getElementById('setup-token').value;
+        async function checkAndPromptPasskey() {
+            try {
+                const resp = await fetch(`${API_BASE}/api/admin/passkey/status`, { credentials: 'include' });
+                if (!resp.ok) return; // 如果 API 失敗，不顯示提示
+                
+                const result = await resp.json();
+                const hasPasskey = result.data?.hasPasskey || result.hasPasskey; // 支援兩種格式
+                
+                if (!hasPasskey) {
+                    showNotification('💡 提示：可註冊 Passkey 提升安全性', 'info');
+                    document.getElementById('register-passkey-btn').classList.remove('hidden');
+                }
+            } catch (e) {
+                console.error('Passkey status check error:', e);
+            }
+        }
 
-            if (!token) {
-                showNotification('請輸入 SETUP_TOKEN', 'error');
+        async function handleLogout() {
+            try {
+                await fetch(`${API_BASE}/api/admin/logout`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+            } catch (e) {
+                console.error('Logout error:', e);
+            }
+
+            // 清除狀態並顯示登入頁面
+            isVerified = false;
+            document.getElementById('token-section').classList.remove('hidden');
+            document.getElementById('auth-status').classList.add('hidden');
+            document.getElementById('admin-nav').classList.add('hidden');
+            document.getElementById('content-area').classList.add('hidden');
+            
+            // 重新檢查 Passkey 可用性
+            checkPasskeyAvailable().catch(e => console.error(e));
+            
+            showNotification('已登出', 'success');
+        }
+
+        async function checkAuthStatus() {
+            try {
+                const resp = await fetch(`${API_BASE}/api/admin/cards`, {
+                    credentials: 'include'
+                });
+
+                if (resp.ok) {
+                    // 已登入，顯示 UI
+                    isVerified = true;
+                    document.getElementById('token-section').classList.add('hidden');
+                    document.getElementById('auth-status').classList.remove('hidden');
+                    document.getElementById('admin-nav').classList.remove('hidden');
+                    document.getElementById('content-area').classList.remove('hidden');
+                    
+                    switchTab('list');
+                    loadSystemHealth().catch(e => console.error(e));
+                    checkCDNHealth().catch(e => console.error(e));
+                    
+                    // 檢查 Passkey 狀態並顯示提示
+                    setTimeout(() => checkAndPromptPasskey(), 2000);
+                }
+            } catch (error) {
+                console.error('Check auth status error:', error);
+            }
+        }
+
+        async function checkPasskeyAvailable() {
+            try {
+                const resp = await fetch(`${API_BASE}/api/admin/passkey/available`, {
+                    method: 'GET'
+                });
+
+                if (resp.ok) {
+                    const data = await resp.json();
+                    if (data.hasPasskey) {
+                        document.getElementById('passkey-login').classList.remove('hidden');
+                    }
+                }
+            } catch (error) {
+                console.error('Check passkey available error:', error);
+            }
+        }
+
+        async function registerPasskey() {
+            try {
+                const email = prompt('請輸入管理員 Email：');
+                if (!email) return;
+
+                const startResp = await fetch(`${API_BASE}/api/admin/passkey/register/start`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ email })
+                });
+
+                if (!startResp.ok) throw new Error('無法啟動 Passkey 註冊');
+
+                const options = await startResp.json();
+                const credential = await SimpleWebAuthnBrowser.startRegistration({ optionsJSON: options });
+
+                const finishResp = await fetch(`${API_BASE}/api/admin/passkey/register/finish`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ email, credential })
+                });
+
+                if (!finishResp.ok) throw new Error('Passkey 註冊失敗');
+
+                showNotification('Passkey 註冊成功！', 'success');
+                await checkPasskeyAvailable();
+            } catch (error) {
+                console.error('Passkey registration error:', error);
+                if (error.name !== 'NotAllowedError') {
+                    showNotification('Passkey 註冊失敗: ' + error.message, 'error');
+                }
+            }
+        }
+
+        async function loginWithPasskey() {
+            try {
+                const startResp = await fetch(`${API_BASE}/api/admin/passkey/login/start`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                if (!startResp.ok) throw new Error('無法啟動 Passkey 登入');
+
+                const options = await startResp.json();
+                const credential = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: options });
+
+                const finishResp = await fetch(`${API_BASE}/api/admin/passkey/login/finish`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ credential })
+                });
+
+                if (!finishResp.ok) throw new Error('Passkey 登入失敗');
+
+                isVerified = true;
+                document.getElementById('token-section').classList.add('hidden');
+                document.getElementById('auth-status').classList.remove('hidden');
+                document.getElementById('admin-nav').classList.remove('hidden');
+                document.getElementById('content-area').classList.remove('hidden');
+
+                showNotification('Passkey 登入成功', 'success');
+                
+                loadSystemHealth().catch(e => console.error(e));
+                checkCDNHealth().catch(e => console.error(e));
+                checkPasskeyAvailable().catch(e => console.error(e));
+                switchTab('list');
+            } catch (error) {
+                console.error('Passkey login error:', error);
+                showNotification('Passkey 登入失敗: ' + error.message, 'error');
+            }
+        }
+
+        async function verifyToken() {
+            const email = document.getElementById('admin-email').value.trim();
+            const token = document.getElementById('setup-token').value.trim();
+
+            if (!email || !token) {
+                showNotification('請輸入 Email 和 SETUP_TOKEN', 'error');
                 return;
             }
 
@@ -954,17 +1135,15 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include', // Important: allows cookie
-                    body: JSON.stringify({ token })
+                    body: JSON.stringify({ email, token })
                 });
 
                 if (!response.ok) {
                     const error = await response.json();
-                    throw new Error(error.error?.message || '驗證失敗');
+                    throw new Error(error.error || error.message || '驗證失敗');
                 }
 
                 // Session token is now stored in HttpOnly cookie
-                // Also keep in sessionStorage for backward compatibility
-                sessionStorage.setItem('setup_token', token);
                 isVerified = true;
 
                 // 更新 UI
@@ -975,11 +1154,14 @@
 
                 showNotification('授權驗證成功', 'success');
 
-                // Load system health status
-                await loadSystemHealth();
-                await checkCDNHealth();
-
                 switchTab('list');
+                
+                loadSystemHealth().catch(e => console.error(e));
+                checkCDNHealth().catch(e => console.error(e));
+                checkPasskeyAvailable().catch(e => console.error(e));
+
+                // 非阻塞提示
+                setTimeout(() => checkAndPromptPasskey(), 2000);
 
             } catch (error) {
                 console.error('Token verification error:', error);
@@ -1401,6 +1583,9 @@
                 document.getElementById('auth-status').classList.add('hidden');
                 document.getElementById('admin-nav').classList.add('hidden');
                 document.getElementById('content-area').classList.add('hidden');
+                
+                // 重新檢查 Passkey 可用性
+                checkPasskeyAvailable().catch(e => console.error(e));
 
                 return true; // Handled
             } else if (response.status === 404) {
@@ -2820,10 +3005,17 @@
         window.showIPDetail = loadIPDetail;
         window.closeIPDetailModal = closeIPDetailModal;
         window.exportSecurityCSV = exportSecurityEvents;
+        window.loginWithPasskey = loginWithPasskey;
+        window.registerPasskey = registerPasskey;
+        window.handleLogout = handleLogout;
 
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
+            checkPasskeyAvailable();
             
+            // 檢查是否已經登入（透過 Cookie）
+            checkAuthStatus();
+
             if (typeof THREE !== 'undefined') {
                 setTimeout(() => initThree(), 100);
             } else {

@@ -83,17 +83,16 @@ export async function readCard(uuid, sessionId) {
 
 /**
  * Create a new card (admin)
- * @param {string} token - Admin token
  * @param {string} cardType - Card type (BASIC, PREMIUM, ELITE)
  * @param {object} data - Card data
  * @returns {Promise<object>}
  */
-export async function createCard(token, cardType, data) {
+export async function createCard(cardType, data) {
   const response = await fetch(`${API_BASE}/api/admin/cards`, {
     method: 'POST',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify({ card_type: cardType, ...data }),
   });
@@ -108,17 +107,16 @@ export async function createCard(token, cardType, data) {
 
 /**
  * Update a card (admin)
- * @param {string} token - Admin token
  * @param {string} uuid - Card UUID
  * @param {object} data - Card data to update
  * @returns {Promise<object>}
  */
-export async function updateCard(token, uuid, data) {
+export async function updateCard(uuid, data) {
   const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}`, {
     method: 'PUT',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify(data),
   });
@@ -133,16 +131,13 @@ export async function updateCard(token, uuid, data) {
 
 /**
  * Delete a card (admin)
- * @param {string} token - Admin token
  * @param {string} uuid - Card UUID
  * @returns {Promise<object>}
  */
-export async function deleteCard(token, uuid) {
+export async function deleteCard(uuid) {
   const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}`, {
     method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
+    credentials: 'include',
   });
 
   if (!response.ok) {

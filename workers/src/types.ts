@@ -7,6 +7,9 @@ export interface Env {
   KEK: string;
   OLD_KEK?: string;
   SETUP_TOKEN?: string;
+  EMERGENCY_BYPASS?: string;
+  RP_ID?: string;
+  ORIGIN?: string;
   ENVIRONMENT: 'production' | 'staging';
   ASSETS: Fetcher;
   GOOGLE_CLIENT_ID: string;
@@ -286,4 +289,10 @@ export interface SessionBudgetResult {
     max_sessions_per_month?: number;
     retry_after?: string;
   };
+}
+
+// Admin Authentication Types
+export interface AdminLoginRequest {
+  email: string;
+  token: string;
 }

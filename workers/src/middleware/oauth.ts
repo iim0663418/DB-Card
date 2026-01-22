@@ -42,7 +42,11 @@ export async function verifyOAuth(
     const match = cookieHeader.match(/auth_token=([^;]+)/);
     if (match) {
       token = match[1];
+    } else {
+      console.warn('[OAuth] auth_token not found in cookie:', cookieHeader.substring(0, 100));
     }
+  } else {
+    console.warn('[OAuth] No Cookie header found');
   }
 
   // Priority 2: Fallback to Authorization header (backward compatibility)

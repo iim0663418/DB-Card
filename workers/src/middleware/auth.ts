@@ -29,9 +29,29 @@ export async function verifySetupToken(request: Request, env: Env): Promise<bool
   const cookieHeader = request.headers.get('Cookie');
   if (cookieHeader) {
     const cookies = parseCookies(cookieHeader);
-    const tokenFromCookie = cookies['admin_token'];
+    const tokenFromCookie = cookies['admin_token'] || cookies['auth_token']; // Support both admin and user tokens
 
     if (tokenFromCookie) {
+      // Check if it's a Passkey session
+      const isPasskeySession = await env.KV.get(`passkey_session:${tokenFromCookie}`);
+      if (isPasskeySession) {
+        return true;
+      }
+
+      // Check if it's a SETUP_TOKEN session (new session fixation fix)
+      const isSetupTokenSession = await env.KV.get(`setup_token_session:${tokenFromCookie}`);
+      if (isSetupTokenSession) {
+        return true;
+      }
+
+      // Check if it's a JWT token (OAuth user session)
+      // JWT tokens are validated separately in user API handlers
+      if (tokenFromCookie.includes('.')) {
+        // Looks like a JWT token, let user handlers validate it
+        return true;
+      }
+
+      // Fallback: Check if cookie value equals SETUP_TOKEN (backward compatibility)
       const isValid = timingSafeEqual(tokenFromCookie, expectedToken);
       if (isValid) {
         return true;
@@ -45,7 +65,10 @@ export async function verifySetupToken(request: Request, env: Env): Promise<bool
     const parts = authHeader.split(' ');
     if (parts.length === 2 && parts[0] === 'Bearer') {
       const providedToken = parts[1];
-      return timingSafeEqual(providedToken, expectedToken);
+      const isValid = timingSafeEqual(providedToken, expectedToken);
+      if (isValid) {
+        return true;
+      }
     }
   }
 

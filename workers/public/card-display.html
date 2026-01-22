@@ -231,7 +231,8 @@
     const loadingMessages = {
         stage1: { zh: '載入名片資料...', en: 'Loading card data...' },
         stage2: { zh: '雲端資料解密中...', en: 'Decrypting cloud data...' },
-        stage3: { zh: '請稍候,即將完成...', en: 'Please wait, almost done...' }
+        stage3: { zh: '處理中，請稍候...', en: 'Processing, please wait...' },
+        stage4: { zh: '即將完成...', en: 'Almost done...' }
     };
 
     let loadingTimeouts = [];
@@ -241,10 +242,13 @@
     if (loadingText) {
         loadingTimeouts.push(setTimeout(() => {
             loadingText.textContent = loadingMessages.stage2[getCurrentLang()] || loadingMessages.stage2.zh;
-        }, 2000));
+        }, 4000));
         loadingTimeouts.push(setTimeout(() => {
             loadingText.textContent = loadingMessages.stage3[getCurrentLang()] || loadingMessages.stage3.zh;
-        }, 4000));
+        }, 8000));
+        loadingTimeouts.push(setTimeout(() => {
+            loadingText.textContent = loadingMessages.stage4[getCurrentLang()] || loadingMessages.stage4.zh;
+        }, 12000));
     }
     // 清除 timeout 的函數供 hideLoading 使用
     window.clearLoadingTimeouts = () => {

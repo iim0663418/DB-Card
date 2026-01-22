@@ -8,32 +8,46 @@
 
 ## 最新完成功能
 
-### 🎨 UX Enhancement: Progressive Loading Messages ✅ COMPLETE
-**完成時間**: 2026-01-22T13:54:00+08:00
-**Commit**: 2ac0365
+### 🎨 UX Enhancement: Loading Animation Timing Optimization ✅ COMPLETE
+**完成時間**: 2026-01-22T17:45:00+08:00
+**Commit**: Pending
 
 **問題**:
-- 載入動畫顯示單一訊息
-- 長時間載入時使用者缺乏回饋
-- 無解密過程提示
+- 實測未快取時載入需要 10-15 秒
+- 舊設計在第 4 秒就顯示"即將完成"
+- 用戶還要等 6-11 秒，體驗很差
+- 違反"即將完成"的語義承諾
+
+**外部最佳實踐研究**:
+- **Usersnap**: 10+ 秒必須使用 stage-based indicators
+- **Particula Tech**: 每個階段重置用戶耐心時鐘
+- **業界標準**: 避免過早說"即將完成"
 
 **解決方案**:
-- 階段式載入訊息（3 階段）:
-  * 0-2s: "載入名片資料..." / "Loading card data..."
-  * 2-4s: "雲端資料解密中..." / "Decrypting cloud data..."
-  * 4s+: "請稍候,即將完成..." / "Please wait, almost done..."
-- 雙語支援（中英文）
-- Timeout 清理防止記憶體洩漏
+- 優化為 4 階段載入訊息（符合 10-15 秒實際載入時間）:
+  * 0-4s: "載入名片資料..." / "Loading card data..."
+  * 4-8s: "雲端資料解密中..." / "Decrypting cloud data..."
+  * 8-12s: "處理中，請稍候..." / "Processing, please wait..." [NEW]
+  * 12s+: "即將完成..." / "Almost done..."
+- 4 秒間隔符合業界標準
+- 最後階段才說"即將完成"
 
 **實作內容**:
-- ✅ 雙語文字定義（loadingMessages）
-- ✅ 使用 localStorage 偵測語言
-- ✅ setTimeout 控制文字變化
-- ✅ hideLoading() 清除 timeout
+- ✅ 新增 Stage 3: "處理中，請稍候..."
+- ✅ 調整時間間隔: 4s, 8s, 12s（原 2s, 4s）
+- ✅ 雙語支援維持正常
+- ✅ Timeout 清理機制不變
+- ✅ 符合 Usersnap 和 Particula Tech 最佳實踐
 
 **檔案**:
 - workers/public/card-display.html
-- workers/public/js/main.js
+- .specify/specs/loading-animation-timing-optimization.md
+
+**外部研究來源**:
+1. Usersnap: https://usersnap.com/blog/progress-indicators/
+2. Particula Tech: https://particula.tech/blog/long-running-ai-tasks-user-interface-patterns
+
+**待驗證**: 請用戶實測 10-15 秒載入場景，確認體驗改善
 
 ---
 

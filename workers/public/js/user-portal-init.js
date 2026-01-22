@@ -402,6 +402,9 @@
             // 清除使用者資訊
             sessionStorage.removeItem('auth_user');
 
+            // 隱藏導航欄
+            document.getElementById('app-header').classList.add('hidden');
+
             showView('login');
         }
 

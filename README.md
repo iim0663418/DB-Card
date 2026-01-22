@@ -210,12 +210,6 @@ Apache License 2.0 - 詳見 [LICENSE](LICENSE)
 
 **企業級安全，隱私優先設計**  
 **Cloudflare Workers 全球邊緣運算**
-  },
-  "database": {
-    "active_cards": 42
-  }
-}
-```
 
 ### 審計日誌
 

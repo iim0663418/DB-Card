@@ -1,6 +1,8 @@
 import { tapCard, readCard } from './api.js';
 import { getLocalizedText, getLocalizedArray } from './utils/bilingual.js';
 
+const DEBUG = window.location.hostname === 'localhost';
+
 // Error message constants for v4.1.0 & v4.2.0
 const ERROR_MESSAGES = {
   'rate_limited': '請求過於頻繁，請稍後再試',
@@ -206,7 +208,7 @@ function showNotification(message, type = 'info') {
             notification.remove();
         }, 5000);
     } else {
-        console.log(`[${type}] ${message}`);
+        if (DEBUG) console.log(`[${type}] ${message}`);
     }
 }
 

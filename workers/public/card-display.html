@@ -119,15 +119,15 @@
             <div class="watermark bottom-10 -right-20" aria-hidden="true">MODA</div>
 
             <!-- 身分首部 -->
-            <article class="p-10 lg:p-20 border-b border-moda-light flex flex-col lg:flex-row gap-12 items-center lg:items-start relative z-10">
+            <article class="p-8 lg:p-12 border-b border-moda-light flex flex-col lg:flex-row gap-12 items-center lg:items-start relative z-10">
                 <div class="relative">
                     <div class="absolute -inset-4 border border-moda-light pointer-events-none" aria-hidden="true"></div>
-                    <img id="user-avatar" src="" alt="名片大頭貼" class="w-48 h-48 lg:w-60 lg:h-60 object-cover border-4 border-white shadow-xl transition-all duration-700">
+                    <img id="user-avatar" src="" alt="名片大頭貼" class="w-32 h-32 lg:w-48 lg:h-48 object-cover border-4 border-white shadow-xl transition-all duration-700">
                 </div>
 
                 <div class="flex-1 text-center lg:text-left">
                     <p class="hud-text mb-4 opacity-40" aria-hidden="true" data-i18n="card-system">數位名片系統 Digital Business Card</p>
-                    <h1 id="user-name" class="text-5xl lg:text-7xl font-black tracking-tighter text-slate-900 mb-2 italic">---</h1>
+                    <h1 id="user-name" class="text-4xl lg:text-5xl font-black tracking-tighter text-slate-900 mb-2 italic">---</h1>
                     <p id="user-title" class="text-moda-dark font-bold tracking-widest text-sm uppercase">---</p>
                     <p id="user-department" class="text-sm text-slate-500 mt-1 flex items-center gap-1 justify-center lg:justify-start" style="display:none;">
                         <i data-lucide="briefcase" class="w-3 h-3 flex-shrink-0"></i>
@@ -142,9 +142,9 @@
             </article>
 
             <!-- 資訊晶片網格 -->
-            <section class="p-8 lg:p-14 grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10" aria-label="聯絡資訊">
-                <a id="email-link" href="#" class="info-chip p-6 rounded-2xl flex items-center gap-6 group focus:outline-none focus:ring-2 focus:ring-moda" aria-label="Email 聯絡">
-                    <div class="w-12 h-12 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+            <section class="p-6 lg:p-10 grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10" aria-label="聯絡資訊">
+                <a id="email-link" href="#" class="info-chip p-4 rounded-2xl flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-moda" aria-label="Email 聯絡">
+                    <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
                         <i data-lucide="mail" class="w-5 h-5" aria-hidden="true"></i>
                     </div>
                     <div class="min-w-0 flex-1">
@@ -152,8 +152,8 @@
                         <p id="user-email" class="font-bold text-slate-700 truncate">---</p>
                     </div>
                 </a>
-                <a id="phone-link" href="#" class="info-chip p-6 rounded-2xl flex items-center gap-6 group focus:outline-none focus:ring-2 focus:ring-moda" aria-label="電話聯絡">
-                    <div class="w-12 h-12 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                <a id="phone-link" href="#" class="info-chip p-4 rounded-2xl flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-moda" aria-label="電話聯絡">
+                    <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
                         <i data-lucide="phone" class="w-5 h-5" aria-hidden="true"></i>
                     </div>
                     <div class="min-w-0 flex-1">
@@ -161,8 +161,8 @@
                         <p id="user-phone" class="font-bold text-slate-700 truncate">---</p>
                     </div>
                 </a>
-                <a id="web-link" href="#" target="_blank" rel="noopener noreferrer" class="info-chip p-6 rounded-2xl flex items-center gap-6 group md:col-span-2 focus:outline-none focus:ring-2 focus:ring-moda" aria-label="官方網站">
-                    <div class="w-12 h-12 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                <a id="web-link" href="#" target="_blank" rel="noopener noreferrer" class="info-chip p-4 rounded-2xl flex items-center gap-3 group md:col-span-2 focus:outline-none focus:ring-2 focus:ring-moda" aria-label="官方網站">
+                    <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
                         <i data-lucide="globe" class="w-5 h-5" aria-hidden="true"></i>
                     </div>
                     <div class="min-w-0 flex-1">
@@ -170,8 +170,8 @@
                         <p id="user-web" class="font-bold text-slate-700 truncate">---</p>
                     </div>
                 </a>
-                <a id="address-link" href="#" target="_blank" rel="noopener noreferrer" class="info-chip p-6 rounded-2xl flex items-center gap-6 group md:col-span-2 focus:outline-none focus:ring-2 focus:ring-moda" aria-label="地址" style="display:none;">
-                    <div class="w-12 h-12 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                <a id="address-link" href="#" target="_blank" rel="noopener noreferrer" class="info-chip p-4 rounded-2xl flex items-center gap-3 group md:col-span-2 focus:outline-none focus:ring-2 focus:ring-moda" aria-label="地址" style="display:none;">
+                    <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
                         <i data-lucide="map-pin" class="w-5 h-5" aria-hidden="true"></i>
                     </div>
                     <div class="min-w-0 flex-1">
@@ -182,7 +182,7 @@
             </section>
 
             <!-- 社群連結聚落 -->
-            <nav id="social-cluster" class="px-10 lg:px-14 pb-14 flex flex-wrap gap-4 justify-center lg:justify-start relative z-10" aria-label="社群媒體連結">
+            <nav id="social-cluster" class="px-6 lg:px-10 pb-10 flex flex-wrap gap-4 justify-center lg:justify-start relative z-10" aria-label="社群媒體連結">
                 <!-- 由 JS 動態注入 -->
             </nav>
         </main>
@@ -191,24 +191,24 @@
         <footer class="mt-10 w-full flex flex-col md:flex-row gap-6 items-stretch">
             <div class="flex-1 flex gap-4">
                 <button id="save-vcard"
-                        class="flex-1 bg-slate-900 text-white font-black uppercase text-xs md:text-[10px] tracking-wider md:tracking-[0.3em] py-6 md:py-5 px-6 md:px-8 rounded-2xl hover:bg-moda shadow-xl transition-all flex items-center justify-center gap-3 focus:outline-none focus:ring-2 focus:ring-moda focus:ring-offset-2"
+                        class="flex-1 bg-slate-900 text-white font-black uppercase text-xs md:text-[10px] tracking-wider md:tracking-[0.3em] py-4 px-8 rounded-2xl hover:bg-moda shadow-xl transition-all flex items-center justify-center gap-3 focus:outline-none focus:ring-2 focus:ring-moda focus:ring-offset-2"
                         aria-label="下載 vCard 名片">
                     <i id="vcard-icon" data-lucide="user-plus" class="w-5 h-5 md:w-4 md:h-4" aria-hidden="true"></i>
                     <span id="vcard-text" data-i18n="add_to_contacts">加入聯絡人</span>
                 </button>
                 <button id="open-qr"
-                        class="bg-white border-2 border-slate-200 text-slate-700 px-6 md:px-8 py-6 md:py-5 rounded-2xl hover:bg-slate-50 shadow-sm transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-moda focus:ring-offset-2"
+                        class="bg-white border-2 border-slate-200 text-slate-700 px-8 py-4 rounded-2xl hover:bg-slate-50 shadow-sm transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-moda focus:ring-offset-2"
                         aria-label="顯示 QR Code">
                     <i data-lucide="qr-code" class="w-6 h-6" aria-hidden="true"></i>
                     <span class="text-xs font-bold md:hidden">QR</span>
                 </button>
             </div>
-            <aside class="md:w-72 p-6 border border-moda-light bg-white/80 rounded-2xl shadow-sm">
+            <aside class="md:w-80 p-6 border border-moda-light bg-white/80 rounded-2xl shadow-sm">
                 <div class="flex items-center gap-3 mb-2 text-moda-dark">
                     <i data-lucide="shield-check" class="w-4 h-4" aria-hidden="true"></i>
-                    <p class="hud-text text-[8px]" data-i18n="security-spec">資料安全規範</p>
+                    <p class="hud-text text-[10px]" data-i18n="security-spec">資料安全規範</p>
                 </div>
-                <p class="text-[10px] text-slate-500 font-medium leading-relaxed uppercase mb-3" data-i18n="security-desc">
+                <p class="text-xs text-slate-500 font-medium leading-relaxed uppercase mb-3" data-i18n="security-desc">
                     雲端加密儲存，可隨時撤銷存取
                 </p>
                 <a href="/" class="inline-flex items-center gap-1 text-[10px] font-medium text-moda hover:underline">

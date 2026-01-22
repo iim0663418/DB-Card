@@ -1,6 +1,32 @@
-# DB-Card - NFC 數位名片系統 v4.2.1
+# DB-Card - NFC 數位名片系統 v4.3.0
 
 基於「隱私優先」與「安全至上」理念的企業級 NFC 數位名片系統
+
+## v4.3.0 更新內容 (2026-01-22)
+
+### 🔐 Passkey 個別管理員策略
+**符合業界最佳實踐的 Passkey 認證實作**
+
+#### 核心改進
+- ✅ **個別管理員策略**: 每個管理員可獨立決定是否啟用 Passkey
+- ✅ **附加而非替換**: Passkey 是額外的登入方式，不是唯一方式
+- ✅ **並列顯示**: SETUP_TOKEN 和 Passkey 登入方式同時可見
+- ✅ **緊急恢復路徑**: 保留至少一個非 Passkey 的登入方式
+
+#### 實作細節
+- SETUP_TOKEN 登入需要輸入 email
+- 檢查該 email 的 `passkey_enabled` 狀態
+- 只拒絕已啟用 Passkey 的管理員使用 SETUP_TOKEN
+- 設計系統統一：純色風格，主色 #6868ac
+
+#### 最佳實踐來源
+- **SupportDevs**: "Passkeys as additive, not replacement"
+- **Tailscale**: "Admin with passkey for emergency recovery"
+- **Corbado**: "Keep fallback visible and non-punitive"
+
+📄 詳見 [Passkey Implementation Summary](./.specify/specs/passkey-implementation-summary.md)
+
+---
 
 ## v4.2.1 更新內容 (2026-01-21)
 
@@ -473,6 +499,28 @@ Apache License 2.0 - 詳見 [LICENSE](LICENSE)
 - **Issues**: [GitHub Issues](https://github.com/iim0663418/DB-Card/issues)
 
 ## 版本歷程
+
+### v4.3.0 (2026-01-22) - Passkey 個別管理員策略
+- 實作個別管理員 Passkey 策略（符合業界最佳實踐）
+- SETUP_TOKEN 登入需要 email（個別檢查 passkey_enabled）
+- 兩種登入方式並列顯示（附加而非替換）
+- 設計系統統一（純色風格，主色 #6868ac）
+- 完整 BDD 規格（5 scenarios）
+- 引用最佳實踐：SupportDevs, Tailscale, Corbado
+
+### v4.2.1 (2026-01-21) - OWASP Top 10 安全修復
+- Subresource Integrity (SRI) - 75% 覆蓋率
+- HttpOnly Cookies 認證（移除 localStorage）
+- DOMPurify XSS 防護（消毒 25 個 innerHTML）
+- CSP Nonce-based（移除 unsafe-inline）
+- 依賴更新（QRious, DOMPurify, Lucide, Chart.js）
+- 安全評級提升至「高」
+
+### v4.2.0 (2026-01-20) - 雙層快取優化
+- 前端 sessionStorage 快取（性能提升 95%）
+- 後端混合快取策略（依名片類型差異化）
+- sensitive 名片不快取解密資料（最高安全）
+- personal/event 名片快取 60s（從 300s 縮短）
 
 ### v4.1.0 (2026-01-20) - 多層防護機制
 - NFC Tap API 三層防護（Dedup + Rate Limit + Max Reads）

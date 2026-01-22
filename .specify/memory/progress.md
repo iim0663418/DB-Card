@@ -1,14 +1,157 @@
 # DB-Card Project Progress
-## Current Phase: SECURITY_FIXES_COMPLETE 🎉
-- Status: Phase 1-4 完成，依賴更新完成
-- Commit: 33a53db
-- Version: v4.2.1
-- Last Update: 2026-01-21T15:45:00+08:00
-- Next Action: 部署測試或繼續其他修復
+## Current Phase: PASSKEY_INDIVIDUAL_ADMIN_COMPLETE ✅
+- Status: 個別管理員 Passkey 策略實作完成
+- Commit: Pending
+- Version: v4.3.0 (Individual Admin Passkey Strategy)
+- Last Update: 2026-01-22T01:27:00+08:00
+- Next Action: 提交代碼並更新文檔
 
 ## 已完成安全修復
 
 ### 🔴 Critical Fix 1: Subresource Integrity (SRI) ✅ COMPLETE
+**完成時間**: 2026-01-21
+**Commits**: 2bfeecc, eb6045c, 46fa2a7, 9e259ce, e5fe054, 740ccaf, 84615f4
+
+- ✅ Three.js r128: SRI hash 加入
+- ✅ QRious 4.0.2: 替換 QRCode.js，加入 SRI
+- ✅ DOMPurify 3.2.7: 更新並加入 SRI
+- ⚠️ Lucide 0.562.0: 無 SRI（unpkg.com 無 CORS）
+- ✅ SRI 覆蓋率：75% (3/4 scripts)
+- ✅ 適用性聲明：SRI-APPLICABILITY-STATEMENT.md v1.5
+
+### 🔴 Critical Fix 2: localStorage → HttpOnly Cookies ✅ COMPLETE
+**完成時間**: 2026-01-21
+**Commits**: 3428314, 9a57680, 9d071a1, 5d20095, c645892
+
+- ✅ 後端：OAuth 設定 HttpOnly cookie
+- ✅ 後端：建立 logout 端點清除 cookie
+- ✅ 前端：移除所有 localStorage 使用
+- ✅ 前端：使用 credentials: 'include'
+- ✅ Middleware：支援 Cookie 認證
+- ✅ Cookie 屬性：HttpOnly; Secure (非 localhost); SameSite=Lax
+
+### 🟡 High Priority Fix 3: DOMPurify XSS Protection ✅ COMPLETE
+**完成時間**: 2026-01-21
+**Commits**: fd961ed, c0dbc2c, 9b3549d, ce9f462
+
+- ✅ Phase 1: 加入 DOMPurify 3.0.6 CDN (後更新到 3.2.7)
+- ✅ Phase 2: 消毒 25 個 innerHTML 賦值
+- ✅ Phase 3: 配置允許 onclick 屬性
+- ✅ 所有 XSS 向量已防護
+- ✅ 功能正常運作
+
+### 🟡 High Priority Fix 4: Remove CSP 'unsafe-inline' ✅ COMPLETE
+**完成時間**: 2026-01-21T15:10:00+08:00
+**Commits**: bde28e5, c425bf7, 12de21f, dae8baf, 385f9a7, ad72bbc, 329638e, 27b90dc
+
+**Phase 1: 提取 Inline Scripts** ✅
+- 建立外部 JS 檔案：tailwind-suppress.js, page-init.js, user-portal-init.js
+- 更新所有 HTML 檔案移除 inline scripts
+- 修復語法錯誤、重複宣告、ES6 export 問題
+- 0 inline scripts 在所有 HTML 檔案
+
+**Phase 2: Nonce-based CSP** ✅
+- 實作 generateNonce() 函數（crypto.getRandomValues）
+- 更新 addSecurityHeaders() 使用 nonce
+- 注入 nonce 到所有 script 標籤
+- 移除 script-src 的 'unsafe-inline'
+
+**Phase 3: 測試與驗證** ✅
+- 所有頁面正常載入
+- Scripts 正常執行
+- CSP header 包含 nonce
+- 無 'unsafe-inline'
+
+### 🟢 Medium Priority Fix 5: Update Outdated Dependencies ✅ COMPLETE
+**完成時間**: 2026-01-21T15:44:00+08:00
+**Commits**: 04ca896, 4c052ca, 9a31e91, fa6c735, 33a53db
+
+**測試階段**:
+- 建立 test-dependencies.html 測試頁面
+- 測試所有新版本相容性
+- 確認無 breaking changes
+
+**更新完成**:
+1. ✅ QRious 4.0.2 (替換 QRCode.js 1.0.0)
+   - 12 年未更新 → 現代活躍維護
+   - 加入 SRI hash
+   - API 更新完成
+
+2. ✅ DOMPurify 3.2.7 (從 3.0.6)
+   - 安全修復和 CVE 補丁
+   - 改進的消毒規則
+   - 更新 SRI hash
+
+3. ✅ Lucide 0.562.0 (從 0.263.0)
+   - 299 個版本更新
+   - Bug 修復和改進
+   - 無 SRI（unpkg.com 限制）
+
+4. ✅ Chart.js 4.5.1 (從 4.4.0)
+   - Bug 修復和效能改進
+   - 僅用於 admin dashboard
+
+5. ❌ Three.js r128 (保持不變)
+   - 新版本 0.180.0 載入失敗
+   - 需要更多調查
+   - 未來單獨處理
+
+### 🔴 Critical Fix 6: Passkey Individual Admin Strategy ✅ COMPLETE
+**完成時間**: 2026-01-22T01:27:00+08:00
+**Commits**: Pending
+
+**問題**:
+- 舊實作：任何管理員啟用 Passkey → 全域禁用 SETUP_TOKEN
+- 不符合最佳實踐（SupportDevs, Tailscale, Corbado）
+- 影響其他未啟用 Passkey 的管理員
+
+**解決方案**:
+- 實作個別管理員策略
+- SETUP_TOKEN 登入需要 email
+- 檢查該 email 的 passkey_enabled
+- 兩種登入方式並列顯示
+
+**實作內容**:
+1. ✅ 後端 API 修改
+   - types.ts: AdminLoginRequest 加入 email 欄位
+   - handlers/admin/auth.ts: 個別管理員檢查
+   - TypeScript 編譯通過
+
+2. ✅ 前端 UI 修改
+   - admin-dashboard.html: 加入 email 輸入框
+   - verifyToken 函數: 加入 email 參數
+   - checkPasskeyAvailable: 移除自動隱藏邏輯
+
+3. ✅ 設計統一
+   - 輸入框: bg-slate-50（與表單一致）
+   - 主按鈕: bg-moda（品牌主色 #6868ac）
+   - 次要按鈕: bg-slate-100（灰階）
+   - 移除漸層，使用純色設計
+
+4. ✅ BDD 規格
+   - 5 個測試場景完成
+   - Scenario 1: Admin 啟用 Passkey → 拒絕 SETUP_TOKEN ✅
+   - Scenario 2: Admin 未啟用 Passkey → 允許 SETUP_TOKEN ✅
+   - Scenario 3: 不存在的 email → 拒絕（不洩漏） ✅
+   - Scenario 4: 缺少 email → 返回 400 ✅
+   - Scenario 5: 無效 token → 拒絕 ✅
+
+5. ✅ 測試驗證
+   - 本地測試通過
+   - Passkey 註冊流程正常
+   - Passkey 登入流程正常
+   - SETUP_TOKEN 拒絕機制正常
+
+**最佳實踐來源**:
+- SupportDevs.com: "Passkeys as additive, not replacement"
+- Tailscale: "Admin with passkey for emergency recovery"
+- Corbado: "Keep fallback visible and non-punitive"
+
+**設計原則**:
+- ✅ Passkey 是「附加」而非「替換」
+- ✅ 保留至少一個非 Passkey 登入路徑
+- ✅ 兩種方式並列，使用者自由選擇
+- ✅ 個別管理員獨立決定是否啟用 Passkey
 **完成時間**: 2026-01-21
 **Commits**: 2bfeecc, eb6045c, 46fa2a7, 9e259ce, e5fe054, 740ccaf, 84615f4
 

@@ -8,6 +8,7 @@ import { handleCreateCard, handleUpdateCard, handleDeleteCard, handleRestoreCard
 import { handleRevoke } from './handlers/admin/revoke';
 import { handleKekRotate } from './handlers/admin/kek';
 import { handleAdminLogin, handleAdminLogout } from './handlers/admin/auth';
+import { handlePasskeyRegisterStart, handlePasskeyRegisterFinish, handlePasskeyLoginStart, handlePasskeyLoginFinish, handlePasskeyStatus, handlePasskeyAvailable } from './handlers/admin/passkey';
 import { handleSecurityStats, handleSecurityEvents, handleSecurityTimeline, handleBlockIP, handleUnblockIP, handleIPDetail, handleSecurityExport, handleCDNHealth } from './handlers/admin/security';
 import { handleUserCreateCard, handleUserUpdateCard, handleUserListCards, handleUserGetCard, handleUserRevokeCard, handleUserRestoreCard } from './handlers/user/cards';
 import { handleRevocationHistory } from './handlers/user/history';
@@ -15,6 +16,7 @@ import { handleUserLogout } from './handlers/user/logout';
 import { handleOAuthCallback } from './handlers/oauth';
 import { errorResponse, publicErrorResponse } from './utils/response';
 import { checkRateLimit } from './middleware/rate-limit';
+import { verifySetupToken } from './middleware/auth';
 
 /**
  * Generate cryptographic nonce for CSP
@@ -94,6 +96,87 @@ export default {
 
     if (url.pathname === '/api/admin/logout' && request.method === 'POST') {
       return handleAdminLogout(request, env);
+    }
+
+    // Passkey authentication endpoints
+    if (url.pathname === '/api/admin/passkey/register/start' && request.method === 'POST') {
+      return handlePasskeyRegisterStart(request, env);
+    }
+
+    if (url.pathname === '/api/admin/passkey/register/finish' && request.method === 'POST') {
+      return handlePasskeyRegisterFinish(request, env);
+    }
+
+    if (url.pathname === '/api/admin/passkey/login/start' && request.method === 'POST') {
+      console.log('[DEBUG] Passkey login/start route matched');
+      return handlePasskeyLoginStart(request, env);
+    }
+
+    if (url.pathname === '/api/admin/passkey/login/finish' && request.method === 'POST') {
+      console.log('[DEBUG] Passkey login/finish route matched');
+      return handlePasskeyLoginFinish(request, env);
+    }
+
+    if (url.pathname === '/api/admin/passkey/available' && request.method === 'GET') {
+      return handlePasskeyAvailable(request, env);
+    }
+
+    if (url.pathname === '/api/admin/passkey/status' && request.method === 'GET') {
+      const cookieHeader = request.headers.get('Cookie');
+      if (!cookieHeader) {
+        return new Response(JSON.stringify({ error: 'unauthorized' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+        const trimmed = cookie.trim();
+        const [key, ...valueParts] = trimmed.split('=');
+        const value = valueParts.join('=');
+        if (key) acc[key] = value || '';
+        return acc;
+      }, {} as Record<string, string>);
+
+      const tokenFromCookie = cookies['admin_token'];
+      if (!tokenFromCookie) {
+        return new Response(JSON.stringify({ error: 'unauthorized' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // 嘗試 1: Passkey session
+      let adminEmail = await env.KV.get(`passkey_session:${tokenFromCookie}`);
+
+      // 嘗試 2: SETUP_TOKEN session
+      if (!adminEmail) {
+        adminEmail = await env.KV.get(`setup_token_session:${tokenFromCookie}`);
+      }
+
+      // 嘗試 3: SETUP_TOKEN 驗證（向後相容）
+      if (!adminEmail) {
+        const isValid = await verifySetupToken(request, env);
+        if (isValid) {
+          // SETUP_TOKEN 有效，但沒有 session，查詢第一個管理員
+          const result = await env.DB.prepare(
+            'SELECT username FROM admin_users WHERE role = ? LIMIT 1'
+          ).bind('admin').first<{ username: string }>();
+
+          if (result) {
+            adminEmail = result.username;
+          }
+        }
+      }
+
+      if (!adminEmail) {
+        return new Response(JSON.stringify({ error: 'unauthorized' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      return handlePasskeyStatus(request, env, adminEmail);
     }
 
     // OAuth callback

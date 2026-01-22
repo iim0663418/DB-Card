@@ -14,7 +14,7 @@ const ALLOWED_ORIGINS = [
  * Get CORS headers based on request origin
  * Only allows whitelisted origins
  */
-function getCorsHeaders(request: Request): HeadersInit {
+export function getCorsHeaders(request: Request): HeadersInit {
   const origin = request.headers.get('Origin');
 
   if (origin && ALLOWED_ORIGINS.includes(origin)) {

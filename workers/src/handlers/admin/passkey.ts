@@ -1,5 +1,7 @@
 import type { Env } from '../../types';
 import { jsonResponse, errorResponse, getCorsHeaders } from '../../utils/response';
+import { validateEmail } from '../../utils/validation';
+import { checkLoginRateLimit, incrementLoginAttempts, resetLoginAttempts } from '../../utils/login-rate-limit';
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -211,6 +213,33 @@ export async function handlePasskeyLoginFinish(request: Request, env: Env): Prom
       return errorResponse('not_found', 'Passkey not configured', 404, request);
     }
 
+    // Validate email format
+    const email = user.username;
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      return errorResponse('invalid_email', emailValidation.error || 'Invalid email format', 400, request);
+    }
+
+    // Check rate limit
+    const rateLimit = await checkLoginRateLimit(email, env);
+    if (!rateLimit.allowed) {
+      const headers = new Headers({ 'Content-Type': 'application/json' });
+      if (rateLimit.retryAfter) {
+        headers.set('Retry-After', rateLimit.retryAfter.toString());
+      }
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: {
+            code: 'rate_limit_exceeded',
+            message: 'Too many login attempts. Please try again later.',
+            retryAfter: rateLimit.retryAfter
+          }
+        }),
+        { status: 429, headers }
+      );
+    }
+
     const expectedChallenge = await env.KV.get(`passkey_auth_challenge:${rpID}`);
     if (!expectedChallenge) {
       return errorResponse('invalid_challenge', 'Challenge expired or not found', 400, request);
@@ -234,6 +263,7 @@ export async function handlePasskeyLoginFinish(request: Request, env: Env): Prom
     const verification = await verifyAuthenticationResponse(opts);
 
     if (!verification.verified) {
+      await incrementLoginAttempts(email, env);
       return errorResponse('verification_failed', 'Authentication failed', 400, request);
     }
 
@@ -243,8 +273,12 @@ export async function handlePasskeyLoginFinish(request: Request, env: Env): Prom
     // 只有當 counter 不是 0 時才檢查是否遞增
     if (authenticationInfo.newCounter !== 0 && authenticationInfo.newCounter <= user.passkey_counter) {
       console.error('Counter did not increment, possible replay attack');
+      await incrementLoginAttempts(email, env);
       return errorResponse('replay_detected', 'Invalid counter', 400, request);
     }
+
+    // Reset login attempts on successful authentication
+    await resetLoginAttempts(email, env);
 
     const now = Date.now();
     await env.DB.prepare(`

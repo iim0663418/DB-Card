@@ -3,6 +3,8 @@
 
 import type { Env, AdminLoginRequest } from '../../types';
 import { jsonResponse, errorResponse, adminErrorResponse } from '../../utils/response';
+import { validateEmail } from '../../utils/validation';
+import { checkLoginRateLimit, incrementLoginAttempts, resetLoginAttempts } from '../../utils/login-rate-limit';
 
 /**
  * Handle admin login - sets HttpOnly cookie
@@ -19,33 +21,66 @@ export async function handleAdminLogin(request: Request, env: Env): Promise<Resp
       return adminErrorResponse('Email and token are required', 400, request);
     }
 
-    // 2. Timing-safe comparison
+    // 2. Validate email format
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      return adminErrorResponse(emailValidation.error || 'Invalid email format', 400, request);
+    }
+
+    // 3. Check rate limit
+    const rateLimit = await checkLoginRateLimit(email, env);
+    if (!rateLimit.allowed) {
+      const headers = new Headers({ 'Content-Type': 'application/json' });
+      if (rateLimit.retryAfter) {
+        headers.set('Retry-After', rateLimit.retryAfter.toString());
+      }
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: {
+            code: 'rate_limit_exceeded',
+            message: 'Too many login attempts. Please try again later.',
+            retryAfter: rateLimit.retryAfter
+          }
+        }),
+        { status: 429, headers }
+      );
+    }
+
+    // 4. Timing-safe comparison
     const expectedToken = env.SETUP_TOKEN;
     if (!expectedToken) {
+      await incrementLoginAttempts(email, env);
       return adminErrorResponse('Server configuration error', 500, request);
     }
 
     const isValid = await timingSafeEqual(token, expectedToken);
     if (!isValid) {
+      await incrementLoginAttempts(email, env);
       return adminErrorResponse('Invalid token', 403, request);
     }
 
-    // 3. Check if THIS admin has Passkey enabled
+    // 5. Check if THIS admin has Passkey enabled
     const admin = await env.DB.prepare(
       'SELECT passkey_enabled FROM admin_users WHERE username = ? AND is_active = 1'
     ).bind(email).first<{ passkey_enabled: number }>();
 
     if (!admin) {
       // Don't leak email existence
+      await incrementLoginAttempts(email, env);
       return adminErrorResponse('Invalid token', 403, request);
     }
 
     if (admin.passkey_enabled === 1) {
       console.warn(`SETUP_TOKEN rejected: passkey_enabled=1 for ${email}`);
+      await incrementLoginAttempts(email, env);
       return adminErrorResponse('此管理員已啟用 Passkey，請使用 Passkey 登入', 403, request);
     }
 
-    // 4. Set HttpOnly Cookie and store email in KV
+    // 6. Reset login attempts on successful login
+    await resetLoginAttempts(email, env);
+
+    // 7. Set HttpOnly Cookie and store email in KV
     const isLocalhost = new URL(request.url).hostname === 'localhost';
     const cookieFlags = [
       'HttpOnly',

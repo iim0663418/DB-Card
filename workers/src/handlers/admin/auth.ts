@@ -1,8 +1,12 @@
 // Admin Authentication Handlers
 // Provides login/logout endpoints with HttpOnly cookie support
 
-import type { Env } from '../../types';
+import type { Env, AdminLoginRequest } from '../../types';
 import { jsonResponse, errorResponse, adminErrorResponse } from '../../utils/response';
+import { validateEmail } from '../../utils/validation';
+import { checkLoginRateLimit, incrementLoginAttempts, resetLoginAttempts } from '../../utils/login-rate-limit';
+import { generateCsrfToken, storeCsrfToken } from '../../utils/csrf';
+import { addSession, removeSession, enforceSessionLimit } from '../../utils/session-limit';
 
 /**
  * Handle admin login - sets HttpOnly cookie
@@ -13,39 +17,96 @@ import { jsonResponse, errorResponse, adminErrorResponse } from '../../utils/res
  */
 export async function handleAdminLogin(request: Request, env: Env): Promise<Response> {
   try {
-    const body = await request.json() as { token: string };
-    const { token } = body;
-
-    if (!token) {
-      return errorResponse('invalid_request', '缺少 token 參數', 400, request);
+    // 1. Validate request body
+    const { email, token } = await request.json() as AdminLoginRequest;
+    if (!email || !token) {
+      return adminErrorResponse('Email and token are required', 400, request);
     }
 
-    // Verify token using timing-safe comparison
+    // 2. Validate email format
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      return adminErrorResponse(emailValidation.error || 'Invalid email format', 400, request);
+    }
+
+    // 3. Check rate limit
+    const rateLimit = await checkLoginRateLimit(email, env);
+    if (!rateLimit.allowed) {
+      const headers = new Headers({ 'Content-Type': 'application/json' });
+      if (rateLimit.retryAfter) {
+        headers.set('Retry-After', rateLimit.retryAfter.toString());
+      }
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: {
+            code: 'rate_limit_exceeded',
+            message: 'Too many login attempts. Please try again later.',
+            retryAfter: rateLimit.retryAfter
+          }
+        }),
+        { status: 429, headers }
+      );
+    }
+
+    // 4. Timing-safe comparison
     const expectedToken = env.SETUP_TOKEN;
     if (!expectedToken) {
-      console.error('SETUP_TOKEN not configured in environment');
-      return errorResponse('server_error', '伺服器設定錯誤', 500, request);
+      await incrementLoginAttempts(email, env);
+      return adminErrorResponse('Server configuration error', 500, request);
     }
 
-    // Timing-safe comparison
     const isValid = await timingSafeEqual(token, expectedToken);
     if (!isValid) {
+      await incrementLoginAttempts(email, env);
       return adminErrorResponse('Invalid token', 403, request);
     }
 
-    // Set HttpOnly Cookie
-    const cookieOptions = [
-      `admin_token=${token}`,
+    // 5. Check if THIS admin has Passkey enabled
+    const admin = await env.DB.prepare(
+      'SELECT passkey_enabled FROM admin_users WHERE username = ? AND is_active = 1'
+    ).bind(email).first<{ passkey_enabled: number }>();
+
+    if (!admin) {
+      // Don't leak email existence
+      await incrementLoginAttempts(email, env);
+      return adminErrorResponse('Invalid token', 403, request);
+    }
+
+    if (admin.passkey_enabled === 1) {
+      console.warn(`SETUP_TOKEN rejected: passkey_enabled=1 for ${email}`);
+      await incrementLoginAttempts(email, env);
+      return adminErrorResponse('此管理員已啟用 Passkey，請使用 Passkey 登入', 403, request);
+    }
+
+    // 6. Reset login attempts on successful login
+    await resetLoginAttempts(email, env);
+
+    // 7. Generate new session token (prevent session fixation)
+    const sessionToken = crypto.randomUUID();
+
+    // 8. Store session and enforce session limits
+    await env.KV.put(`setup_token_session:${sessionToken}`, email, { expirationTtl: 3600 });
+    await addSession(email, sessionToken, env);
+    await enforceSessionLimit(email, env, 3);
+
+    // 9. Generate CSRF token
+    const csrfToken = generateCsrfToken();
+    await storeCsrfToken(sessionToken, csrfToken, env);
+
+    // 10. Set HttpOnly Cookie
+    const isLocalhost = new URL(request.url).hostname === 'localhost';
+    const cookieFlags = [
       'HttpOnly',
-      'Secure',
-      'SameSite=Strict',
-      'Max-Age=3600', // 1 hour
-      'Path=/'
-    ].join('; ');
+      'SameSite=Lax',
+      'Max-Age=3600',
+      'Path=/',
+      ...(isLocalhost ? [] : ['Secure'])
+    ];
 
     const headers = new Headers({
       'Content-Type': 'application/json',
-      'Set-Cookie': cookieOptions
+      'Set-Cookie': `admin_token=${sessionToken}; ${cookieFlags.join('; ')}`
     });
 
     // Add CORS headers
@@ -63,13 +124,12 @@ export async function handleAdminLogin(request: Request, env: Env): Promise<Resp
     }
 
     return new Response(
-      JSON.stringify({ success: true, data: { authenticated: true } }),
+      JSON.stringify({ success: true, data: { authenticated: true, csrfToken } }),
       { headers }
     );
-
   } catch (error) {
     console.error('Login error:', error);
-    return errorResponse('server_error', '登入失敗', 500, request);
+    return adminErrorResponse('Internal server error', 500, request);
   }
 }
 
@@ -81,12 +141,42 @@ export async function handleAdminLogin(request: Request, env: Env): Promise<Resp
  */
 export async function handleAdminLogout(request: Request, env: Env): Promise<Response> {
   try {
+    // Extract session token from cookie
+    const cookieHeader = request.headers.get('Cookie');
+    if (cookieHeader) {
+      const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+        const trimmed = cookie.trim();
+        const [key, ...valueParts] = trimmed.split('=');
+        const value = valueParts.join('=');
+        if (key) acc[key] = value || '';
+        return acc;
+      }, {} as Record<string, string>);
+
+      const sessionToken = cookies['admin_token'];
+      if (sessionToken) {
+        // Get email from session
+        const email = await env.KV.get(`setup_token_session:${sessionToken}`) ||
+                      await env.KV.get(`passkey_session:${sessionToken}`);
+
+        if (email) {
+          // Remove from active sessions list
+          await removeSession(email, sessionToken, env);
+        }
+
+        // Delete session and CSRF token from KV
+        await env.KV.delete(`setup_token_session:${sessionToken}`);
+        await env.KV.delete(`passkey_session:${sessionToken}`);
+        await env.KV.delete(`csrf_token:${sessionToken}`);
+      }
+    }
+
     // Clear cookie by setting Max-Age=0
+    const isLocalhost = new URL(request.url).hostname === 'localhost';
     const cookieOptions = [
       'admin_token=',
       'HttpOnly',
-      'Secure',
-      'SameSite=Strict',
+      ...(isLocalhost ? [] : ['Secure']),
+      'SameSite=Lax',
       'Max-Age=0',
       'Path=/'
     ].join('; ');

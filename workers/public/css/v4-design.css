@@ -73,11 +73,12 @@ body {
 }
 
 .crystal-container {
-    background: var(--crystal-bg);
-    backdrop-filter: blur(40px) saturate(160%);
-    -webkit-backdrop-filter: blur(40px) saturate(160%);
-    border: 1px solid rgba(104, 104, 172, 0.1);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
     border-top: 5px solid var(--moda-accent);
+    box-shadow: 0 8px 32px rgba(104, 104, 172, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04);
     position: relative;
 }
 
@@ -102,16 +103,21 @@ body {
 }
 
 .info-chip {
-    background: rgba(255, 255, 255, 0.4);
-    border: 1px solid rgba(104, 104, 172, 0.05);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 4px 16px rgba(104, 104, 172, 0.08);
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .info-chip:hover {
-    background: #ffffff;
-    border-color: var(--moda-accent);
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(16px) saturate(200%);
+    -webkit-backdrop-filter: blur(16px) saturate(200%);
+    border-color: rgba(104, 104, 172, 0.3);
     transform: translateY(-4px);
-    box-shadow: 0 15px 30px -10px rgba(104, 104, 172, 0.15);
+    box-shadow: 0 12px 32px rgba(104, 104, 172, 0.15), 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .social-node {
@@ -124,7 +130,7 @@ body {
 .social-node:hover {
     background: var(--moda-accent);
     color: #ffffff;
-    transform: scale(1.15) rotate(5deg);
+    transform: scale(1.1) rotate(3deg);
 }
 
 .reveal {

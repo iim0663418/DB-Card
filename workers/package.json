@@ -1,6 +1,6 @@
 {
 	"name": "db-card",
-	"version": "4.2.1",
+	"version": "4.3.2",
 	"description": "DB-Card NFC Digital Business Card System with Dual-Layer Cache",
 	"license": "Apache-2.0",
 	"private": true,
@@ -10,7 +10,8 @@
 		"start": "wrangler dev",
 		"test": "vitest",
 		"cf-typegen": "wrangler types",
-		"build:css": "tailwindcss -i ./public/css/tailwind-input.css -o ./public/css/tailwind.css --minify"
+		"build:css": "tailwindcss -i ./public/css/tailwind-input.css -o ./public/css/tailwind.css --minify",
+		"typecheck": "tsc --noEmit"
 	},
 	"devDependencies": {
 		"@cloudflare/vitest-pool-workers": "^0.8.19",
@@ -22,6 +23,7 @@
 		"wrangler": "^4.59.2"
 	},
 	"dependencies": {
+		"@simplewebauthn/server": "^13.2.2",
 		"jose": "^6.1.3"
 	}
 }

@@ -648,3 +648,47 @@ export async function handleSecurityExport(request: Request, env: Env): Promise<
     return adminErrorResponse('Internal server error', 500, request);
   }
 }
+
+/**
+ * Handle GET /api/admin/cdn-health
+ * Check health of critical CDN resources
+ */
+export async function handleCDNHealth(request: Request, env: Env): Promise<Response> {
+  const isAuthorized = await verifySetupToken(request, env);
+  if (!isAuthorized) {
+    return adminErrorResponse('Authentication required', 401, request);
+  }
+
+  const cdns = [
+    { name: 'Three.js r128', url: 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js' },
+    { name: 'QRious 4.0.2', url: 'https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js' },
+    { name: 'DOMPurify 3.2.7', url: 'https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.7/purify.min.js' },
+    { name: 'Lucide 0.562.0', url: 'https://unpkg.com/lucide@0.562.0/dist/umd/lucide.min.js' }
+  ];
+
+  const results = await Promise.all(cdns.map(async (cdn) => {
+    const start = Date.now();
+    try {
+      const response = await fetch(cdn.url, { method: 'HEAD', signal: AbortSignal.timeout(5000) });
+      const responseTime = Date.now() - start;
+      return {
+        name: cdn.name,
+        url: cdn.url,
+        status: response.ok ? 'healthy' : 'failed',
+        statusCode: response.status,
+        responseTime
+      };
+    } catch (error) {
+      return {
+        name: cdn.name,
+        url: cdn.url,
+        status: 'failed',
+        statusCode: 0,
+        responseTime: Date.now() - start,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }));
+
+  return jsonResponse({ cdns: results, timestamp: Date.now() }, 200, request);
+}

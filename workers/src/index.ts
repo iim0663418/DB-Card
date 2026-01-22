@@ -8,13 +8,16 @@ import { handleCreateCard, handleUpdateCard, handleDeleteCard, handleRestoreCard
 import { handleRevoke } from './handlers/admin/revoke';
 import { handleKekRotate } from './handlers/admin/kek';
 import { handleAdminLogin, handleAdminLogout } from './handlers/admin/auth';
-import { handleSecurityStats, handleSecurityEvents, handleSecurityTimeline, handleBlockIP, handleUnblockIP, handleIPDetail, handleSecurityExport } from './handlers/admin/security';
+import { handlePasskeyRegisterStart, handlePasskeyRegisterFinish, handlePasskeyLoginStart, handlePasskeyLoginFinish, handlePasskeyStatus, handlePasskeyAvailable } from './handlers/admin/passkey';
+import { handleSecurityStats, handleSecurityEvents, handleSecurityTimeline, handleBlockIP, handleUnblockIP, handleIPDetail, handleSecurityExport, handleCDNHealth } from './handlers/admin/security';
 import { handleUserCreateCard, handleUserUpdateCard, handleUserListCards, handleUserGetCard, handleUserRevokeCard, handleUserRestoreCard } from './handlers/user/cards';
 import { handleRevocationHistory } from './handlers/user/history';
 import { handleUserLogout } from './handlers/user/logout';
 import { handleOAuthCallback } from './handlers/oauth';
 import { errorResponse, publicErrorResponse } from './utils/response';
 import { checkRateLimit } from './middleware/rate-limit';
+import { verifySetupToken } from './middleware/auth';
+import { csrfMiddleware } from './middleware/csrf';
 
 /**
  * Generate cryptographic nonce for CSP
@@ -96,6 +99,87 @@ export default {
       return handleAdminLogout(request, env);
     }
 
+    // Passkey authentication endpoints
+    if (url.pathname === '/api/admin/passkey/register/start' && request.method === 'POST') {
+      return handlePasskeyRegisterStart(request, env);
+    }
+
+    if (url.pathname === '/api/admin/passkey/register/finish' && request.method === 'POST') {
+      return handlePasskeyRegisterFinish(request, env);
+    }
+
+    if (url.pathname === '/api/admin/passkey/login/start' && request.method === 'POST') {
+      console.log('[DEBUG] Passkey login/start route matched');
+      return handlePasskeyLoginStart(request, env);
+    }
+
+    if (url.pathname === '/api/admin/passkey/login/finish' && request.method === 'POST') {
+      console.log('[DEBUG] Passkey login/finish route matched');
+      return handlePasskeyLoginFinish(request, env);
+    }
+
+    if (url.pathname === '/api/admin/passkey/available' && request.method === 'GET') {
+      return handlePasskeyAvailable(request, env);
+    }
+
+    if (url.pathname === '/api/admin/passkey/status' && request.method === 'GET') {
+      const cookieHeader = request.headers.get('Cookie');
+      if (!cookieHeader) {
+        return new Response(JSON.stringify({ error: 'unauthorized' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+        const trimmed = cookie.trim();
+        const [key, ...valueParts] = trimmed.split('=');
+        const value = valueParts.join('=');
+        if (key) acc[key] = value || '';
+        return acc;
+      }, {} as Record<string, string>);
+
+      const tokenFromCookie = cookies['admin_token'];
+      if (!tokenFromCookie) {
+        return new Response(JSON.stringify({ error: 'unauthorized' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // 嘗試 1: Passkey session
+      let adminEmail = await env.KV.get(`passkey_session:${tokenFromCookie}`);
+
+      // 嘗試 2: SETUP_TOKEN session
+      if (!adminEmail) {
+        adminEmail = await env.KV.get(`setup_token_session:${tokenFromCookie}`);
+      }
+
+      // 嘗試 3: SETUP_TOKEN 驗證（向後相容）
+      if (!adminEmail) {
+        const isValid = await verifySetupToken(request, env);
+        if (isValid) {
+          // SETUP_TOKEN 有效，但沒有 session，查詢第一個管理員
+          const result = await env.DB.prepare(
+            'SELECT username FROM admin_users WHERE role = ? LIMIT 1'
+          ).bind('admin').first<{ username: string }>();
+
+          if (result) {
+            adminEmail = result.username;
+          }
+        }
+      }
+
+      if (!adminEmail) {
+        return new Response(JSON.stringify({ error: 'unauthorized' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      return handlePasskeyStatus(request, env, adminEmail);
+    }
+
     // OAuth callback
     if (url.pathname === '/oauth/callback' && request.method === 'GET') {
       return handleOAuthCallback(request, env);
@@ -117,6 +201,23 @@ export default {
 
     if (url.pathname === '/api/read' && request.method === 'GET') {
       return handleRead(request, env, ctx);
+    }
+
+    // CSRF Protection for Admin/User APIs
+    // Skip CSRF check for login endpoints and public endpoints
+    const isLoginEndpoint = url.pathname === '/api/admin/login' ||
+                           url.pathname.startsWith('/api/admin/passkey/');
+    const isPublicEndpoint = url.pathname === '/api/nfc/tap' ||
+                            url.pathname === '/api/read' ||
+                            url.pathname === '/oauth/callback' ||
+                            url.pathname === '/health';
+
+    if (!isLoginEndpoint && !isPublicEndpoint &&
+        (request.method === 'POST' || request.method === 'PUT' || request.method === 'DELETE')) {
+      const csrfCheck = await csrfMiddleware(request, env);
+      if (csrfCheck) {
+        return csrfCheck;
+      }
     }
 
     // User Self-Service APIs (OAuth required)
@@ -253,6 +354,11 @@ export default {
     // GET /api/admin/security/export - Export security events as CSV
     if (url.pathname === '/api/admin/security/export' && request.method === 'GET') {
       return handleSecurityExport(request, env);
+    }
+
+    // GET /api/admin/cdn-health - Check CDN health
+    if (url.pathname === '/api/admin/cdn-health' && request.method === 'GET') {
+      return handleCDNHealth(request, env);
     }
 
     // Serve static assets (admin-dashboard.html, etc.)

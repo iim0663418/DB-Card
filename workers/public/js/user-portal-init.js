@@ -169,6 +169,18 @@
         const stateManager = new CardStateManager();
         const errorHandler = new ErrorHandler();
 
+        // Helper function to get headers with CSRF token
+        function getHeadersWithCSRF(baseHeaders = {}) {
+            const csrfToken = sessionStorage.getItem('csrfToken');
+            if (csrfToken) {
+                return {
+                    ...baseHeaders,
+                    'X-CSRF-Token': csrfToken
+                };
+            }
+            return baseHeaders;
+        }
+
         const state = {
             isLoggedIn: false,
             currentUser: null,
@@ -251,10 +263,10 @@
 
         async function apiCall(endpoint, options = {}) {
             try {
-                const headers = {
+                const headers = getHeadersWithCSRF({
                     'Content-Type': 'application/json',
                     ...options.headers
-                };
+                });
 
                 // Token is automatically sent via HttpOnly cookie
                 // No need for Authorization header
@@ -317,7 +329,7 @@
             // Listen for message from popup
             window.addEventListener('message', async (event) => {
                 if (event.data.type === 'oauth_success') {
-                    const { email, name, picture } = event.data;
+                    const { email, name, picture, csrfToken } = event.data;
 
                     // Check domain whitelist
                     const allowedDomains = ['@moda.gov.tw', '@nics.nat.gov.tw'];
@@ -327,6 +339,11 @@
                         errorBox.innerText = '您的 Email 網域未授權（僅限 @moda.gov.tw 或 @nics.nat.gov.tw）';
                         errorBox.classList.remove('hidden');
                         return;
+                    }
+
+                    // Store CSRF token from OAuth callback
+                    if (csrfToken) {
+                        sessionStorage.setItem('csrfToken', csrfToken);
                     }
 
                     // 立即設定登入狀態（token 已存在 HttpOnly cookie）
@@ -366,12 +383,16 @@
                 // 呼叫後端清除 HttpOnly cookie
                 await fetch('/api/user/logout', {
                     method: 'POST',
-                    credentials: 'include'
+                    credentials: 'include',
+                    headers: getHeadersWithCSRF()
                 });
             } catch (err) {
                 console.error('Logout API call failed:', err);
                 // Continue with frontend cleanup even if API call fails
             }
+
+            // Clear CSRF token from sessionStorage
+            sessionStorage.removeItem('csrfToken');
 
             state.isLoggedIn = false;
             state.authToken = null;
@@ -868,7 +889,7 @@
                 // 先 tap 獲取 session（與 admin-dashboard 一致）
                 const tapResponse = await fetch(`${API_BASE}/api/nfc/tap`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getHeadersWithCSRF({ 'Content-Type': 'application/json' }),
                     credentials: 'include',
                     body: JSON.stringify({ card_uuid: uuid })
                 });
@@ -1148,9 +1169,9 @@
                 const response = await fetch(`/api/user/cards/${currentRevokeUuid}/revoke`, {
                     method: 'POST',
                     credentials: 'include',
-                    headers: {
+                    headers: getHeadersWithCSRF({
                         'Content-Type': 'application/json'
-                    },
+                    }),
                     body: JSON.stringify(reason ? { reason } : {})
                 });
 
@@ -1193,7 +1214,8 @@
             try {
                 const response = await fetch(`/api/user/cards/${uuid}/restore`, {
                     method: 'POST',
-                    credentials: 'include'
+                    credentials: 'include',
+                    headers: getHeadersWithCSRF()
                 });
 
                 const data = await response.json();

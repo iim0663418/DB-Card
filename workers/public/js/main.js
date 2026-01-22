@@ -1,6 +1,8 @@
 import { tapCard, readCard } from './api.js';
 import { getLocalizedText, getLocalizedArray } from './utils/bilingual.js';
 
+const DEBUG = window.location.hostname === 'localhost';
+
 // Error message constants for v4.1.0 & v4.2.0
 const ERROR_MESSAGES = {
   'rate_limited': '請求過於頻繁，請稍後再試',
@@ -84,7 +86,6 @@ function updateVCardButton() {
     }
 }
 
-// 更新按鈕文字（根據當前語言）
 function updateButtonTexts() {
     // Update vCard button first (device-aware)
     updateVCardButton();
@@ -207,7 +208,7 @@ function showNotification(message, type = 'info') {
             notification.remove();
         }, 5000);
     } else {
-        console.log(`[${type}] ${message}`);
+        if (DEBUG) console.log(`[${type}] ${message}`);
     }
 }
 
@@ -662,6 +663,10 @@ function startTypewriter(phrases) {
 }
 
 function hideLoading() {
+    // 清除載入文字變化的 timeouts
+    if (window.clearLoadingTimeouts) {
+        window.clearLoadingTimeouts();
+    }
     const loading = document.getElementById('loading');
     loading.style.opacity = '0';
     setTimeout(() => {
@@ -900,7 +905,6 @@ function generateVCard(cardData) {
     return vcard;
 }
 
-// 語系切換 - 改為 URL 參數 + 頁面重新載入
 document.getElementById('lang-switch').addEventListener('click', () => {
     const params = new URLSearchParams(window.location.search);
     const newLang = currentLanguage === 'zh' ? 'en' : 'zh';
@@ -966,7 +970,6 @@ document.getElementById('close-qr').addEventListener('click', () => {
     document.getElementById('qr-modal').classList.add('hidden');
 });
 
-// 載入動畫圖示隨機選擇
 function initLoadingIcon() {
     const icons = ['contact', 'user-circle'];
     const randomIcon = icons[Math.floor(Math.random() * icons.length)];

@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數位名片 | 翻面驗證（最佳實踐版）</title>
+    
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;700&family=Noto+Sans+TC:wght@300;500;900&display=swap');
+        
+        :root {
+            --moda-accent: #6868ac;
+            --moda-glow: rgba(104, 104, 172, 0.2);
+            --crystal-bg: rgba(255, 255, 255, 0.1);
+            --ui-text: #1e1e3f;
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+            background-color: #f4f7f9;
+            color: var(--ui-text);
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-text-size-adjust: 100%;
+            -moz-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+
+        #three-canvas {
+            position: fixed;
+            top: 0; left: 0; z-index: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            display: block;
+        }
+
+        /* ✅ 3D 翻轉核心架構（最佳實踐版） */
+        .card-perspective {
+            perspective: 2000px;
+            width: 100%;
+            max-width: 56rem; /* ✅ 改為 896px */
+            padding: 0 1rem;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            min-height: 600px; /* ✅ 改為 min-height */
+            /* height 由 JS 動態設定 */
+            
+            /* ✅ Safari 必須 */
+            transform-style: preserve-3d;
+            -webkit-transform-style: preserve-3d;
+            
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            will-change: transform; /* ✅ 性能優化 */
+            cursor: pointer;
+        }
+
+        .card-inner.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        /* ✅ 卡片正反面（最佳實踐版 + 現有設計語言） */
+        .card-face {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            min-height: 100%;
+            
+            overflow-y: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-gutter: stable both-edges;
+            
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            transform-style: preserve-3d;
+            
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: var(--crystal-bg);
+            backdrop-filter: blur(10px) saturate(180%);
+            -webkit-backdrop-filter: blur(10px) saturate(180%);
+            box-shadow: 0 8px 32px rgba(104, 104, 172, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04);
+            border-top: 5px solid var(--moda-accent);
+            
+            pointer-events: none;
+            
+            display: flex;
+            flex-direction: column;
+            padding: 2.5rem;
+        }
+        
+        .card-face > * {
+            pointer-events: auto;
+        }
+        
+        .card-face::-webkit-scrollbar {
+        }
+
+        /* ✅ 隱藏 Webkit 滾動條 */
+        .card-face::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* ✅ 焦點指示器（WCAG - 優化版） */
+        .card-inner:focus {
+            outline: none; /* 移除預設 */
+        }
+        
+        .card-inner:focus-visible {
+            outline: 2px solid var(--moda-accent);
+            outline-offset: 4px;
+            border-radius: 1rem;
+        }
+
+        .card-front {
+            z-index: 2;
+        }
+
+        .card-back {
+            z-index: 1;
+            transform: rotateY(180deg) translateZ(0); /* ✅ 改為 0 */
+        }
+
+        .hud-label {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--moda-accent);
+            opacity: 0.6;
+        }
+
+        /* ✅ 現有設計系統按鈕樣式 */
+        .btn-action {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px) saturate(180%);
+            -webkit-backdrop-filter: blur(10px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 4px 16px rgba(104, 104, 172, 0.08);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 1rem;
+            text-decoration: none;
+            width: 100%;
+        }
+        .btn-action:hover {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(16px) saturate(200%);
+            -webkit-backdrop-filter: blur(16px) saturate(200%);
+            border-color: rgba(104, 104, 172, 0.3);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(104, 104, 172, 0.15), 0 4px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .hint-badge button {
+            border: none;
+            background: none;
+            cursor: pointer;
+            padding: 0;
+        }
+        
+        /* ✅ 浮動動畫（優化版） */
+        #hint-badge {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float { 
+            0%, 100% { transform: translateY(0); } 
+            50% { transform: translateY(-8px); } 
+        }
+
+        /* ✅ 響應式調整 */
+        @media (max-width: 1024px) {
+            .card-perspective {
+                max-width: 48rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .card-perspective {
+                max-width: 100%;
+            }
+            
+            .card-inner {
+                min-height: 500px;
+            }
+        }
+    </style>
+</head>
+<body class="no-scrollbar">
+
+    <canvas id="three-canvas"></canvas>
+
+    <!-- ✅ 浮動提示（最終優化版 - 首次訪問後自動隱藏） -->
+    <div id="hint-badge" class="fixed top-8 left-0 right-0 z-50 flex justify-center pointer-events-none px-6 transition-opacity duration-300">
+        <button class="pointer-events-auto group" onclick="toggleFlip()" aria-label="點擊翻面切換語言">
+            <div class="flex items-center gap-3 px-6 py-3 rounded-full bg-white/90 backdrop-blur-lg border border-slate-200 shadow-lg hover:shadow-xl hover:bg-white transition-all duration-300">
+                <i data-lucide="languages" class="w-5 h-5 text-moda-accent group-hover:rotate-180 transition-transform duration-500"></i>
+                <div class="flex flex-col items-start">
+                    <span class="text-xs font-bold text-slate-800">中文 ⇄ English</span>
+                    <span class="text-[10px] text-slate-500 font-medium">點擊翻面</span>
+                </div>
+            </div>
+        </button>
+    </div>
+
+    <!-- ✅ 3D 卡片主體（加入 WCAG 屬性） -->
+    <div class="card-perspective px-4">
+        <div class="card-inner" 
+             id="card" 
+             tabindex="0"
+             role="region"
+             aria-label="點擊翻面切換語言"
+             aria-live="polite"
+             onclick="toggleFlip()">
+            
+            <!-- 正面 (ZH)：中文身分資訊 -->
+            <div class="card-face card-front">
+                <div class="flex flex-col h-full items-center text-center">
+                    <div class="hud-label mb-8">Official Identity Node (ZH)</div>
+                    
+                    <div class="relative mb-8">
+                        <div class="absolute -inset-2 border border-indigo-100 rounded-[2.5rem] animate-pulse"></div>
+                        <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80" 
+                             class="w-32 h-32 rounded-[2.2rem] object-cover border-4 border-white shadow-xl">
+                        <div class="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-2 rounded-xl">
+                            <i data-lucide="verified" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+
+                    <div class="space-y-1 mb-6">
+                        <h1 class="text-4xl font-black tracking-tighter text-slate-900 italic">唐鳳</h1>
+                        <p class="text-indigo-600 font-bold text-xs uppercase tracking-[0.2em]">數位發展部 部長</p>
+                    </div>
+
+                    <div class="w-full h-px bg-indigo-50 mb-6"></div>
+
+                    <!-- ✅ 靜態文字（移除打字機） -->
+                    <div class="min-h-[4em] flex items-start justify-center px-4">
+                        <p class="text-slate-500 text-sm font-medium italic">Hello, 數位連結未來</p>
+                    </div>
+
+                    <div class="mt-auto w-full space-y-3">
+                        <div class="btn-action">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500">
+                                <i data-lucide="mail" class="w-4 h-4"></i>
+                            </div>
+                            <span class="text-xs font-black text-slate-600">電子郵件聯絡</span>
+                        </div>
+                        <div class="btn-action">
+                            <div class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
+                                <i data-lucide="phone" class="w-4 h-4"></i>
+                            </div>
+                            <span class="text-xs font-black text-slate-600">撥打公務電話</span>
+                        </div>
+                    </div>
+
+                    <div id="social-cluster" class="mt-6 flex flex-wrap gap-3 justify-center">
+                        <a href="https://github.com/test" target="_blank" rel="noopener noreferrer" 
+                           class="w-10 h-10 flex items-center justify-center rounded-xl bg-[#181717] text-white hover:scale-110 transition-transform">
+                            <i data-lucide="github" class="w-5 h-5"></i>
+                        </a>
+                        <a href="https://linkedin.com/in/test" target="_blank" rel="noopener noreferrer" 
+                           class="w-10 h-10 flex items-center justify-center rounded-xl bg-[#0A66C2] text-white hover:scale-110 transition-transform">
+                            <i data-lucide="linkedin" class="w-5 h-5"></i>
+                        </a>
+                        <a href="https://twitter.com/test" target="_blank" rel="noopener noreferrer" 
+                           class="w-10 h-10 flex items-center justify-center rounded-xl bg-[#1DA1F2] text-white hover:scale-110 transition-transform">
+                            <i data-lucide="twitter" class="w-5 h-5"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 背面 (EN)：英文身分資訊 -->
+            <div class="card-face card-back">
+                <div class="flex flex-col h-full items-center text-center">
+                    <div class="hud-label mb-8">Official Identity Node (EN)</div>
+                    
+                    <div class="relative mb-8">
+                        <div class="absolute -inset-2 border border-indigo-100 rounded-[2.5rem] animate-pulse"></div>
+                        <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80" 
+                             class="w-32 h-32 rounded-[2.2rem] object-cover border-4 border-white shadow-xl">
+                        <div class="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-2 rounded-xl">
+                            <i data-lucide="verified" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+
+                    <div class="space-y-1 mb-6">
+                        <h1 class="text-4xl font-black tracking-tight text-slate-900">Audrey Tang</h1>
+                        <p class="text-indigo-600 font-bold text-[10px] uppercase tracking-[0.3em]">Minister of Digital Affairs</p>
+                    </div>
+
+                    <div class="w-full h-px bg-indigo-50 mb-6"></div>
+
+                    <!-- ✅ 靜態文字（移除打字機） -->
+                    <div class="min-h-[4em] flex items-start justify-center px-4">
+                        <p class="text-slate-500 text-sm font-medium italic">Connecting the Future</p>
+                    </div>
+
+                    <div class="mt-auto w-full space-y-3">
+                        <div class="btn-action">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500">
+                                <i data-lucide="mail" class="w-4 h-4"></i>
+                            </div>
+                            <span class="text-xs font-black text-slate-600">Contact via Email</span>
+                        </div>
+                        <div class="btn-action">
+                            <div class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
+                                <i data-lucide="phone" class="w-4 h-4"></i>
+                            </div>
+                            <span class="text-xs font-black text-slate-600">Call Official Line</span>
+                        </div>
+                    </div>
+
+                    <!-- ✅ 社群連結測試（背面） -->
+                    <div id="social-cluster-en" class="mt-6 flex flex-wrap gap-3 justify-center">
+                        <!-- 由 JS 複製正面內容 -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 頁尾安全提示 -->
+    <footer class="fixed bottom-10 z-50 opacity-20 pointer-events-none">
+        <p class="hud-label text-[8px]">Secure Hardware Authorization Layer • Cloudflare Edge Verified</p>
+    </footer>
+
+    <script>
+        // --- 1. Three.js 背景場域 ---
+        let scene, camera, renderer, mesh;
+        function initThree() {
+            const canvas = document.getElementById('three-canvas');
+            if(!window.THREE) return;
+            
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            const starGeo = new THREE.BufferGeometry();
+            const starPos = new Float32Array(1000 * 3);
+            for(let i=0; i < 3000; i++) starPos[i] = (Math.random() - 0.5) * 45;
+            starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+            
+            mesh = new THREE.Points(starGeo, new THREE.PointsMaterial({ 
+                size: 0.05, color: 0x6868ac, transparent: true, opacity: 0.3 
+            }));
+            scene.add(mesh);
+            camera.position.z = 12;
+
+            function animate() {
+                requestAnimationFrame(animate);
+                if(mesh) mesh.rotation.y += 0.0002;
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
+
+        // ✅ 2. 動態高度匹配（防止翻轉跳動）
+        function matchCardHeight() {
+            const front = document.querySelector('.card-front');
+            const back = document.querySelector('.card-back');
+            
+            if (!front || !back) return;
+            
+            const frontHeight = front.scrollHeight;
+            const backHeight = back.scrollHeight;
+            const maxHeight = Math.max(frontHeight, backHeight, 600);
+            
+            const cardInner = document.getElementById('card');
+            if (cardInner) {
+                cardInner.style.height = `${maxHeight}px`;
+            }
+        }
+
+        // ✅ 3. 翻轉控制（防抖 + 狀態同步）
+        let isFlipping = false;
+        
+        window.toggleFlip = function() {
+            if (isFlipping) return;
+            
+            const cardInner = document.getElementById('card');
+            isFlipping = true;
+            
+            cardInner.classList.toggle('is-flipped');
+            
+            setTimeout(() => {
+                isFlipping = false;
+            }, 800);
+        };
+
+        // ✅ 4. 鍵盤支援（WCAG）
+        document.addEventListener('DOMContentLoaded', () => {
+            const card = document.getElementById('card');
+            if (card) {
+                card.addEventListener('keydown', (e) => {
+                    if (e.key === ' ' || e.key === 'Enter') {
+                        e.preventDefault();
+                        toggleFlip();
+                    }
+                });
+            }
+        });
+
+        // ✅ 5. 初始化
+        window.addEventListener('resize', () => {
+            if(camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+            matchCardHeight(); // ✅ resize 時重新計算
+        });
+
+        // ✅ 6. 首次訪問提示自動隱藏
+        function initHintBadge() {
+            const hintBadge = document.getElementById('hint-badge');
+            const hintSeen = sessionStorage.getItem('hint-seen');
+            
+            if (!hintSeen && hintBadge) {
+                // 3 秒後淡出
+                setTimeout(() => {
+                    hintBadge.style.opacity = '0';
+                    setTimeout(() => {
+                        hintBadge.style.display = 'none';
+                        sessionStorage.setItem('hint-seen', 'true');
+                    }, 300);
+                }, 3000);
+            } else if (hintSeen && hintBadge) {
+                // 已看過，直接隱藏
+                hintBadge.style.display = 'none';
+            }
+        }
+
+        // ✅ 7. 社群連結複製（背面複製正面）
+        function copySocialLinks() {
+            const frontSocial = document.getElementById('social-cluster');
+            const backSocial = document.getElementById('social-cluster-en');
+            
+            if (frontSocial && backSocial) {
+                backSocial.innerHTML = frontSocial.innerHTML;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            setTimeout(initThree, 200);
+            
+            // ✅ 等待 DOM 渲染完成後匹配高度
+            setTimeout(matchCardHeight, 100);
+            
+            // ✅ 初始化提示自動隱藏
+            initHintBadge();
+            
+            // ✅ 複製社群連結到背面
+            copySocialLinks();
+        });
+    </script>
+</body>
+</html>

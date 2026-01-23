@@ -704,9 +704,9 @@
                                     const revokedTime = new Date(data.revoked_at * 1000);
                                     const restoreDeadline = new Date(revokedTime.getTime() + 7 * 86400 * 1000);
                                     const canRestore = Date.now() < restoreDeadline.getTime();
-                                    return `<p class="text-[10px] text-red-600 font-black mt-2 uppercase tracking-widest">⚠️ 已撤銷${canRestore ? ' (可恢復)' : ' (已過期)'}</p>
+                                    return `<p class="text-[10px] text-red-600 font-black mt-2 uppercase tracking-widest">已撤銷${canRestore ? ' (可恢復)' : ' (已過期)'}</p>
                                             <p class="text-[9px] text-red-500 mt-1">撤銷時間: ${revokedTime.toLocaleString('zh-TW')}</p>`;
-                                })() : `<p class="text-[10px] text-red-600 font-black mt-2 uppercase tracking-widest">⚠️ 已被管理員撤銷</p>`) : ''}
+                                })() : `<p class="text-[10px] text-red-600 font-black mt-2 uppercase tracking-widest">已被管理員撤銷</p>`) : ''}
                             </div>
                         </div>
                         ${isRevoked ? (data.revoked_at ? (() => {

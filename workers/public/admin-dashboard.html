@@ -984,7 +984,7 @@
                 const hasPasskey = result.data?.hasPasskey || result.hasPasskey; // 支援兩種格式
                 
                 if (!hasPasskey) {
-                    showNotification('💡 提示：可註冊 Passkey 提升安全性', 'info');
+                    showNotification('提示：可註冊 Passkey 提升安全性', 'info');
                     document.getElementById('register-passkey-btn').classList.remove('hidden');
                 }
             } catch (e) {

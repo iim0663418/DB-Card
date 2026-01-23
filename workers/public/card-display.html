@@ -48,6 +48,18 @@
 </head>
 <body class="no-scrollbar flex flex-col items-center">
 
+    <div id="hint-badge" class="fixed top-8 left-0 right-0 z-50 flex justify-center pointer-events-none px-6 transition-opacity duration-300">
+        <button class="pointer-events-auto group" onclick="toggleFlip()" aria-label="點擊翻面切換語言">
+            <div class="flex items-center gap-3 px-6 py-3 rounded-full bg-white/90 backdrop-blur-lg border border-slate-200 shadow-lg hover:shadow-xl hover:bg-white transition-all duration-300">
+                <i data-lucide="languages" class="w-5 h-5 text-moda group-hover:rotate-180 transition-transform duration-500"></i>
+                <div class="flex flex-col items-start">
+                    <span class="text-xs font-bold text-slate-800">中文 ⇄ English</span>
+                    <span class="text-[10px] text-slate-500 font-medium">點擊翻面</span>
+                </div>
+            </div>
+        </button>
+    </div>
+
     <!-- Skip to main content link (A11y) -->
     <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[200] focus:px-6 focus:py-3 focus:bg-moda focus:text-white focus:rounded-lg focus:shadow-lg">
         跳到主要內容
@@ -110,10 +122,13 @@
         </button>
     </div>
 
-    <!-- 主容器 -->
     <div id="main-container" class="relative z-10 w-full max-w-4xl px-4 py-24 hidden reveal">
 
-        <main id="main-content" class="crystal-container rounded-2xl overflow-hidden shadow-2xl">
+        <div class="card-perspective">
+            <div id="card" class="card-inner" tabindex="0" role="button" aria-label="點擊翻面切換語言" onclick="toggleFlip()">
+                
+                <div class="card-face card-front">
+                    <main id="main-content" class="crystal-container rounded-2xl overflow-hidden shadow-2xl">
             <!-- 背景浮水印 -->
             <div class="watermark -top-5 -left-10" aria-hidden="true">數位發展部</div>
             <div class="watermark bottom-10 -right-20" aria-hidden="true">MODA</div>
@@ -186,6 +201,86 @@
                 <!-- 由 JS 動態注入 -->
             </nav>
         </main>
+                </div>
+
+                <div class="card-face card-back">
+                    <main class="crystal-container rounded-2xl overflow-hidden shadow-2xl">
+            <!-- 背景浮水印 -->
+            <div class="watermark -top-5 -left-10" aria-hidden="true">Ministry of Digital Affairs</div>
+            <div class="watermark bottom-10 -right-20" aria-hidden="true">MODA</div>
+
+            <!-- 身分首部 -->
+            <article class="p-8 lg:p-12 border-b border-moda-light flex flex-col lg:flex-row gap-12 items-center lg:items-start relative z-10">
+                <div class="relative">
+                    <div class="absolute -inset-4 border border-moda-light pointer-events-none" aria-hidden="true"></div>
+                    <img id="user-avatar-en" src="" alt="Profile Photo" class="w-32 h-32 lg:w-48 lg:h-48 object-cover border-4 border-white shadow-xl transition-all duration-700">
+                </div>
+
+                <div class="flex-1 text-center lg:text-left">
+                    <p class="hud-text mb-4 opacity-40" aria-hidden="true">Digital Business Card System</p>
+                    <h1 id="user-name-en" class="text-4xl lg:text-5xl font-black tracking-tighter text-slate-900 mb-2 italic">---</h1>
+                    <p id="user-title-en" class="text-moda-dark font-bold tracking-widest text-sm uppercase">---</p>
+                    <p id="user-department-en" class="text-sm text-slate-500 mt-1 flex items-center gap-1 justify-center lg:justify-start" style="display:none;">
+                        <i data-lucide="briefcase" class="w-3 h-3 flex-shrink-0"></i>
+                        <span id="user-department-text-en" class="truncate max-w-[250px] lg:max-w-none">---</span>
+                    </p>
+
+                    <div id="greeting-section-en" class="mt-8 pt-8 border-t border-moda-light hidden">
+                        <p class="hud-text mb-4 opacity-40" aria-hidden="true">Dynamic Transmission Feed</p>
+                        <p id="typewriter-en" class="text-slate-600 font-medium italic min-h-[1.5em] text-lg cursor" aria-live="polite"></p>
+                    </div>
+                </div>
+            </article>
+
+            <!-- 資訊晶片網格 -->
+            <section class="p-6 lg:p-10 grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10" aria-label="Contact Information">
+                <a id="email-link-en" href="#" class="info-chip p-4 rounded-2xl flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-moda" aria-label="Email Contact">
+                    <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                        <i data-lucide="mail" class="w-5 h-5" aria-hidden="true"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p class="hud-text text-[8px] opacity-40" aria-hidden="true">Communication Node</p>
+                        <p id="user-email-en" class="font-bold text-slate-700 truncate">---</p>
+                    </div>
+                </a>
+                <a id="phone-link-en" href="#" class="info-chip p-4 rounded-2xl flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-moda" aria-label="Phone Contact">
+                    <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                        <i data-lucide="phone" class="w-5 h-5" aria-hidden="true"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p class="hud-text text-[8px] opacity-40" aria-hidden="true">Voice Access</p>
+                        <p id="user-phone-en" class="font-bold text-slate-700 truncate">---</p>
+                    </div>
+                </a>
+                <a id="web-link-en" href="#" target="_blank" rel="noopener noreferrer" class="info-chip p-4 rounded-2xl flex items-center gap-3 group md:col-span-2 focus:outline-none focus:ring-2 focus:ring-moda" aria-label="Official Website">
+                    <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                        <i data-lucide="globe" class="w-5 h-5" aria-hidden="true"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p class="hud-text text-[8px] opacity-40" aria-hidden="true">Official Portal</p>
+                        <p id="user-web-en" class="font-bold text-slate-700 truncate">---</p>
+                    </div>
+                </a>
+                <a id="address-link-en" href="#" target="_blank" rel="noopener noreferrer" class="info-chip p-4 rounded-2xl flex items-center gap-3 group md:col-span-2 focus:outline-none focus:ring-2 focus:ring-moda" aria-label="Address" style="display:none;">
+                    <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                        <i data-lucide="map-pin" class="w-5 h-5" aria-hidden="true"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p class="hud-text text-[8px] opacity-40" aria-hidden="true">Address</p>
+                        <p id="user-address-en" class="font-bold text-slate-700">---</p>
+                    </div>
+                </a>
+            </section>
+
+            <!-- 社群連結聚落 -->
+            <nav id="social-cluster-en" class="px-6 lg:px-10 pb-10 flex flex-wrap gap-4 justify-center lg:justify-start relative z-10" aria-label="Social Media Links">
+                <!-- 由 JS 動態注入 -->
+            </nav>
+        </main>
+                </div>
+
+            </div>
+        </div>
 
         <!-- 頁尾控制與安全規範 -->
         <footer class="mt-10 w-full flex flex-col md:flex-row gap-6 items-stretch">

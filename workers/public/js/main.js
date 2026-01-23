@@ -424,8 +424,6 @@ function renderCardFace(cardData, sessionData, lang, suffix) {
         phoneEl.textContent = cardData.phone;
         phoneLink.href = `tel:${cardData.phone.replace(/\s/g, '')}`;
         phoneLink.style.display = 'flex';
-    } else {
-        phoneLink.style.display = 'flex';
     } else if (phoneLink) {
         phoneLink.style.display = 'none';
     }

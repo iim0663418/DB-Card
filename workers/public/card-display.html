@@ -322,6 +322,19 @@
 
     <script type="module" src="js/main.js"></script>
     <script>
+    // 自動偵測使用者語系
+    function detectUserLanguage() {
+        const params = new URLSearchParams(window.location.search);
+        const urlLang = params.get('lang');
+        
+        if (urlLang) {
+            return urlLang;
+        }
+        
+        const browserLang = navigator.language || navigator.userLanguage;
+        return browserLang.startsWith('zh') ? 'zh' : 'en';
+    }
+
     // 載入動畫文字變化雙語支援
     const loadingMessages = {
         stage1: { zh: '載入名片資料...', en: 'Loading card data...' },
@@ -332,20 +345,22 @@
 
     let loadingTimeouts = [];
     const loadingText = document.querySelector('#loading p');
-    const getCurrentLang = () => localStorage.getItem('language') || 'zh';
+    const currentLang = detectUserLanguage();
 
     if (loadingText) {
+        loadingText.textContent = loadingMessages.stage1[currentLang];
+        
         loadingTimeouts.push(setTimeout(() => {
-            loadingText.textContent = loadingMessages.stage2[getCurrentLang()] || loadingMessages.stage2.zh;
+            loadingText.textContent = loadingMessages.stage2[currentLang];
         }, 4000));
         loadingTimeouts.push(setTimeout(() => {
-            loadingText.textContent = loadingMessages.stage3[getCurrentLang()] || loadingMessages.stage3.zh;
+            loadingText.textContent = loadingMessages.stage3[currentLang];
         }, 8000));
         loadingTimeouts.push(setTimeout(() => {
-            loadingText.textContent = loadingMessages.stage4[getCurrentLang()] || loadingMessages.stage4.zh;
+            loadingText.textContent = loadingMessages.stage4[currentLang];
         }, 12000));
     }
-    // 清除 timeout 的函數供 hideLoading 使用
+    
     window.clearLoadingTimeouts = () => {
         loadingTimeouts.forEach(t => clearTimeout(t));
         loadingTimeouts = [];

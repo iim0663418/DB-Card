@@ -238,7 +238,14 @@ async function initApp() {
 
     const params = new URLSearchParams(window.location.search);
     const uuid = params.get('uuid');
-    currentLanguage = params.get('lang') || 'zh';
+    
+    // 自動偵測語系：URL > 瀏覽器語言 > 預設中文
+    if (!params.get('lang')) {
+        const browserLang = navigator.language || navigator.userLanguage;
+        currentLanguage = browserLang.startsWith('zh') ? 'zh' : 'en';
+    } else {
+        currentLanguage = params.get('lang');
+    }
 
     // 設定 HTML lang 屬性（無障礙）
     document.documentElement.lang = currentLanguage === 'zh' ? 'zh-TW' : 'en';

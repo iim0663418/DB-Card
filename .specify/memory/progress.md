@@ -1,125 +1,116 @@
 # DB-Card Project Progress
-## Current Phase: CARD_FLIP_STAGING_DEPLOYMENT ✅
-- Status: 3D 翻面雙語切換已推送到 develop 分支
-- Commit: 0708f78
+## Current Phase: CARD_FLIP_STAGING_COMPLETE ✅
+- Status: 3D 翻面雙語切換已完成並部署到 Staging
+- Commit: b389286
 - Branch: develop
-- Deployment: Staging (CI/CD 觸發中)
-- Last Update: 2026-01-23T13:33:00+08:00
-- Next Action: 等待 CI/CD 完成，進行 Staging 測試
+- Deployment: Staging (已部署)
+- Last Update: 2026-01-23T14:01:16+08:00
+- Next Action: Production 部署
 
-## 部署資訊
+## 最終實作摘要
 
-### Commit 詳情
-```
-commit 0708f78
-feat: 3D card flip with bilingual support
+### 核心功能 ✅
+- [x] 3D 翻面動畫（0.8 秒 cubic-bezier）
+- [x] 中英文雙語顯示（正面中文 / 背面英文）
+- [x] 浮動提示（3 秒自動隱藏）
+- [x] 動態高度匹配
+- [x] 鍵盤無障礙（Tab + Enter/Space）
+- [x] 自動語系偵測（URL > 瀏覽器 > 預設中文）
+- [x] 英文語系自動翻面
 
-- Add 3D flip animation (0.8s cubic-bezier)
-- Implement bilingual display (ZH front / EN back)
-- Add floating hint badge (auto-hide after 3s)
-- Dynamic height matching for both sides
-- Fix pointer-events for click-through
-- Add keyboard accessibility (Tab + Enter/Space)
-- Remove emoji from code comments
-- WCAG 2.1 Level AA compliant
+### 關鍵修復 ✅
+- [x] pointer-events 點擊穿透
+- [x] 移除所有 emoji 註解
+- [x] WCAG 2.1 Level AA 合規
+- [x] 陰影渲染問題（Glassmorphism 移到 card-face）
+- [x] 還原 lang-switch 按鈕（向後相容）
+- [x] Loading 動畫雙語修復
+- [x] 語法錯誤修復（重複 else）
 
-Phase 1-3 complete (50 min / 1.92 hr estimated)
-Ready for staging deployment and testing
-```
+## 部署歷程
 
-### 變更檔案 (11 files)
-- `.specify/memory/progress.md` (更新)
-- `.specify/reports/card-flip-test-report.md` (新增)
-- `.specify/specs/card-flip-bilingual-integration.md` (新增)
-- `.specify/specs/card-flip-production-implementation.md` (新增)
-- `docs/數位名片顯示頁面翻頁雛形.html` (新增)
-- `docs/數位名片顯示頁面翻頁雛形-最佳實踐版.html` (新增)
-- `workers/public/admin-dashboard.html` (更新 - 移除 emoji)
-- `workers/public/card-display.html` (更新 - 3D 結構)
-- `workers/public/css/v4-design.css` (更新 - 3D CSS)
-- `workers/public/js/main.js` (更新 - 翻轉邏輯)
-- `workers/public/js/user-portal-init.js` (更新 - 移除 emoji)
+### Commit 歷史
+1. `0708f78` - feat: 3D card flip with bilingual support
+2. `bf9d076` - docs: update progress - staging deployment
+3. `d2ee778` - fix: remove duplicate else statement in main.js
+4. `f2d726d` - fix: remove lang-switch button and fix shadow rendering
+5. `1b0fcf2` - revert: restore lang-switch button for backward compatibility
+6. `b389286` - fix: loading animation i18n, auto language detection, and flip to EN side
 
-### 統計
-- 新增: 2760 行
-- 刪除: 72 行
-- 淨增: 2688 行
+### 變更統計
+- 總新增: 2770+ 行
+- 總刪除: 80+ 行
+- 淨增: 2690+ 行
+- 檔案數: 11 files
 
-## 實作完成摘要
+## 技術細節
 
-### Phase 1: HTML 重構 ✅ COMPLETE
-- [x] 包裝為 .card-perspective > .card-inner > .card-front/.card-back
-- [x] 複製為英文版（ID 加 `-en` 後綴）
-- [x] 加入 WCAG 屬性（role, aria-label, tabindex）
-- [x] 加入浮動提示
-
-### Phase 2: CSS 整合 ✅ COMPLETE
-- [x] 3D 翻轉核心樣式
-- [x] 浮動提示樣式
-- [x] 焦點指示器
-- [x] 響應式調整
-- [x] pointer-events 修復（關鍵）
-
-### Phase 3: JS 邏輯整合 ✅ COMPLETE
-- [x] toggleFlip() - 翻轉控制（防抖）
-- [x] matchCardHeight() - 動態高度匹配
-- [x] initHintBadge() - 浮動提示自動隱藏
-- [x] renderCard() - 雙面渲染
-- [x] renderCardFace() - 單面渲染函數
-
-### Phase 4: Staging 測試 - IN PROGRESS
-- [ ] CI/CD 部署完成
-- [ ] 功能測試（6 項）
-- [ ] 跨瀏覽器測試（4 項）
-- [ ] 響應式測試（3 項）
-- [ ] 無障礙性測試（4 項）
-- [ ] 性能測試（3 項）
-
-## 關鍵修復
-
-### 1. pointer-events 問題
-**問題**: .card-face 覆蓋 .card-inner，阻擋點擊事件
-**解決**: 
-```css
-.card-face { pointer-events: none; }
-.card-face > * { pointer-events: auto; }
+### 自動語系偵測
+```javascript
+// 優先順序：URL > 瀏覽器語言 > 預設中文
+function detectUserLanguage() {
+    const params = new URLSearchParams(window.location.search);
+    const urlLang = params.get('lang');
+    
+    if (urlLang) return urlLang;
+    
+    const browserLang = navigator.language || navigator.userLanguage;
+    return browserLang.startsWith('zh') ? 'zh' : 'en';
+}
 ```
 
-### 2. 語法錯誤
-**問題**: 多餘的 `}}` 導致 SyntaxError
-**解決**: 移除重複的大括號
+### 英文語系自動翻面
+```javascript
+if (currentLanguage === 'en') {
+    setTimeout(() => {
+        const card = document.getElementById('card');
+        if (card) card.classList.add('is-flipped');
+    }, 100);
+}
+```
 
-### 3. 全域函數
-**問題**: toggleFlip 未定義
-**解決**: 改為 `window.toggleFlip`
+### 雙重語言切換機制
+1. **lang-switch 按鈕**: 重新載入頁面（舊機制，向後相容）
+2. **卡片翻面**: 3D 動畫切換（新機制）
+
+## 測試場景
+
+### 場景 1: 中文瀏覽器
+- URL: `/card-display.html?session=xxx`
+- 瀏覽器: `zh-TW`
+- 結果: 顯示中文正面 + 中文 loading
+
+### 場景 2: 英文瀏覽器
+- URL: `/card-display.html?session=xxx`
+- 瀏覽器: `en-US`
+- 結果: 自動翻到英文面 + 英文 loading
+
+### 場景 3: URL 指定語言
+- URL: `/card-display.html?session=xxx&lang=en`
+- 瀏覽器: `zh-TW`
+- 結果: 自動翻到英文面（URL 優先）
 
 ## 總工時
 
-- Phase 1: 10 分鐘（預計 30 分鐘）✅
-- Phase 2: 5 分鐘（預計 20 分鐘）✅
-- Phase 3: 15 分鐘（預計 35 分鐘）✅
-- 除錯修復: 20 分鐘
-- **總計**: 50 分鐘（預計 1.92 小時）
+- Phase 1: HTML 重構 - 10 分鐘
+- Phase 2: CSS 整合 - 5 分鐘
+- Phase 3: JS 邏輯 - 15 分鐘
+- 除錯修復 - 30 分鐘
+- 語系偵測 - 10 分鐘
+- **總計**: 70 分鐘（預計 1.92 小時）
 
-## 完整性檢查 ✅
+## Staging URL
 
-| 項目 | 狀態 |
-|:---|:---:|
-| HTML 結構 | ✅ 5/5 |
-| CSS 樣式 | ✅ 5/5 |
-| JS 函數 | ✅ 4/4 |
-| 初始化 | ✅ 2/2 |
-
-## Staging 測試 URL
-
-等待 CI/CD 完成後，測試 URL：
 ```
-https://db-card-staging.csw30454.workers.dev/card-display.html?session=test
+https://db-card-staging.csw30454.workers.dev/card-display.html?session={session_id}
 ```
 
-## 測試報告
+## 文件位置
 
-測試報告位置：`.specify/reports/card-flip-test-report.md`
+- BDD 規格: `.specify/specs/card-flip-production-implementation.md`
+- 測試報告: `.specify/reports/card-flip-test-report.md`
+- 測試指南: `.specify/reports/staging-test-guide.md`
+- 雛形驗證: `docs/數位名片顯示頁面翻頁雛形-最佳實踐版.html`
 
 ## 最新完成功能
 

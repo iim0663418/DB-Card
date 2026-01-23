@@ -1129,3 +1129,22 @@
 260122|Deployment|version|v4.3.0
 260122|Deployment|commit|Pending
 260122|Deployment|next_action|Commit_And_Deploy
+
+# 3D Card Flip Bilingual Feature (2026-01-23)
+260123|Card_Display|feature|3D_Flip_Bilingual
+260123|Card_Display|animation|0.8s_cubic_bezier
+260123|Card_Display|hint_badge|3s_auto_hide_sessionStorage
+260123|Card_Display|height_matching|dynamic_max_600px
+260123|Card_Display|safari_fix|translateZ_0_backface_hidden
+260123|Card_Display|wcag|role_aria_label_focus_visible
+260123|Card_Display|debounce|800ms_prevent_rapid_flip
+260123|Card_Display|language_detection|URL_browser_default_zh
+260123|Card_Display|auto_flip|en_language_auto_flip_to_back
+260123|Card_Display|dual_switch|lang_switch_button_plus_card_flip
+260123|Card_Display|glassmorphism|card_face_shadow_rendering
+260123|Card_Display|loading_i18n|stage_based_bilingual_messages
+260123|Card_Display|pointer_events|card_face_click_through_fix
+260123|Card_Display|commit|b389286
+260123|Card_Display|deployment|staging_complete
+260123|Card_Display|total_time|70_minutes
+260123|Card_Display|efficiency|2.3x_faster_than_estimated

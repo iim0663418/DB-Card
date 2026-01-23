@@ -253,6 +253,16 @@ async function initApp() {
     // 設定語言切換按鈕文字
     document.getElementById('lang-switch').textContent = currentLanguage === 'zh' ? 'EN' : '繁中';
 
+    // 英文語系時自動翻面到英文面
+    if (currentLanguage === 'en') {
+        setTimeout(() => {
+            const card = document.getElementById('card');
+            if (card) {
+                card.classList.add('is-flipped');
+            }
+        }, 100);
+    }
+
     // 設定按鈕文字（根據語言）
     updateButtonTexts();
 

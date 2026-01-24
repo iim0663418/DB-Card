@@ -14,6 +14,7 @@ import { handleUserCreateCard, handleUserUpdateCard, handleUserListCards, handle
 import { handleRevocationHistory } from './handlers/user/history';
 import { handleUserLogout } from './handlers/user/logout';
 import { handleOAuthCallback } from './handlers/oauth';
+import { handleOAuthInit } from './handlers/oauth-init';
 import { errorResponse, publicErrorResponse } from './utils/response';
 import { checkRateLimit } from './middleware/rate-limit';
 import { verifySetupToken } from './middleware/auth';
@@ -178,6 +179,11 @@ export default {
       }
 
       return handlePasskeyStatus(request, env, adminEmail);
+    }
+
+    // OAuth init - Generate state parameter
+    if (url.pathname === '/api/oauth/init' && request.method === 'POST') {
+      return handleOAuthInit(request, env);
     }
 
     // OAuth callback

@@ -5,8 +5,7 @@ import { handleHealth } from './handlers/health';
 import { handleTap } from './handlers/tap';
 import { handleRead } from './handlers/read';
 import { handleCreateCard, handleUpdateCard, handleDeleteCard, handleRestoreCard, handleListCards, handleGetCard, handleResetBudget } from './handlers/admin/cards';
-import { handleRevoke } from './handlers/admin/revoke';
-import { handleKekRotate } from './handlers/admin/kek';
+import { handleKekStatus } from './handlers/admin/kek-status';
 import { handleAdminLogin, handleAdminLogout } from './handlers/admin/auth';
 import { handlePasskeyRegisterStart, handlePasskeyRegisterFinish, handlePasskeyLoginStart, handlePasskeyLoginFinish, handlePasskeyStatus, handlePasskeyAvailable } from './handlers/admin/passkey';
 import { handleSecurityStats, handleSecurityEvents, handleSecurityTimeline, handleBlockIP, handleUnblockIP, handleIPDetail, handleSecurityExport, handleCDNHealth } from './handlers/admin/security';
@@ -14,6 +13,7 @@ import { handleUserCreateCard, handleUserUpdateCard, handleUserListCards, handle
 import { handleRevocationHistory } from './handlers/user/history';
 import { handleUserLogout } from './handlers/user/logout';
 import { handleOAuthCallback } from './handlers/oauth';
+import { handleOAuthInit } from './handlers/oauth-init';
 import { errorResponse, publicErrorResponse } from './utils/response';
 import { checkRateLimit } from './middleware/rate-limit';
 import { verifySetupToken } from './middleware/auth';
@@ -50,6 +50,14 @@ function addSecurityHeaders(response: Response, nonce: string): Response {
   headers.set('X-Frame-Options', 'DENY');
   headers.set('X-XSS-Protection', '1; mode=block');
   headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // HSTS (Strict-Transport-Security) - Force HTTPS for 1 year
+  headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  
+  // Spectre vulnerability mitigation
+  headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
+  headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+  headers.set('Cross-Origin-Resource-Policy', 'same-origin');
 
   return new Response(response.clone().body, {
     status: response.status,
@@ -180,6 +188,11 @@ export default {
       return handlePasskeyStatus(request, env, adminEmail);
     }
 
+    // OAuth init - Generate state parameter
+    if (url.pathname === '/api/oauth/init' && request.method === 'POST') {
+      return handleOAuthInit(request, env);
+    }
+
     // OAuth callback
     if (url.pathname === '/oauth/callback' && request.method === 'GET') {
       return handleOAuthCallback(request, env);
@@ -307,14 +320,9 @@ export default {
       return handleResetBudget(request, env, ctx, uuid);
     }
 
-    // POST /api/admin/revoke - Emergency revocation
-    if (url.pathname === '/api/admin/revoke' && request.method === 'POST') {
-      return handleRevoke(request, env);
-    }
-
-    // POST /api/admin/kek/rotate - KEK rotation
-    if (url.pathname === '/api/admin/kek/rotate' && request.method === 'POST') {
-      return handleKekRotate(request, env);
+    // GET /api/admin/kek/status - KEK status monitoring
+    if (url.pathname === '/api/admin/kek/status' && request.method === 'GET') {
+      return handleKekStatus(request, env);
     }
 
     // GET /api/admin/security/stats - Security statistics
@@ -380,7 +388,18 @@ export default {
             });
             return addSecurityHeaders(asset, nonce);
           }
-          return asset;
+          
+          // Add security headers to all static assets
+          const headers = new Headers(asset.headers);
+          headers.set('X-Content-Type-Options', 'nosniff');
+          headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+          headers.set('Cross-Origin-Resource-Policy', 'same-origin');
+          
+          return new Response(asset.body, {
+            status: asset.status,
+            statusText: asset.statusText,
+            headers
+          });
         }
       } catch (e) {
         // If ASSETS fetch fails, continue to 404 handling

@@ -238,13 +238,30 @@ async function initApp() {
 
     const params = new URLSearchParams(window.location.search);
     const uuid = params.get('uuid');
-    currentLanguage = params.get('lang') || 'zh';
+    
+    // 自動偵測語系：URL > 瀏覽器語言 > 預設中文
+    if (!params.get('lang')) {
+        const browserLang = navigator.language || navigator.userLanguage;
+        currentLanguage = browserLang.startsWith('zh') ? 'zh' : 'en';
+    } else {
+        currentLanguage = params.get('lang');
+    }
 
     // 設定 HTML lang 屬性（無障礙）
     document.documentElement.lang = currentLanguage === 'zh' ? 'zh-TW' : 'en';
 
     // 設定語言切換按鈕文字
     document.getElementById('lang-switch').textContent = currentLanguage === 'zh' ? 'EN' : '繁中';
+
+    // 英文語系時自動翻面到英文面
+    if (currentLanguage === 'en') {
+        setTimeout(() => {
+            const card = document.getElementById('card');
+            if (card) {
+                card.classList.add('is-flipped');
+            }
+        }, 100);
+    }
 
     // 設定按鈕文字（根據語言）
     updateButtonTexts();
@@ -321,21 +338,32 @@ async function loadCard(uuid) {
 }
 
 function renderCard(cardData, sessionData) {
-    const name = getLocalizedText(cardData.name, currentLanguage);
-    const titlePrefix = currentLanguage === 'en' ? 'DB-Card' : '數位名片';
-    const titleFallback = currentLanguage === 'en' ? 'Card Display' : '名片顯示';
-    document.title = name ? `${titlePrefix} | ${name}` : `${titlePrefix} | ${titleFallback}`;
-    const title = getLocalizedText(cardData.title, currentLanguage);
-    const greetings = getLocalizedArray(cardData.greetings, currentLanguage);
+    renderCardFace(cardData, sessionData, 'zh', '');
+    renderCardFace(cardData, sessionData, 'en', '-en');
+    
+    setTimeout(matchCardHeight, 100);
+}
 
-    document.getElementById('user-name').textContent = name || '---';
+function renderCardFace(cardData, sessionData, lang, suffix) {
+    const name = getLocalizedText(cardData.name, lang);
+    const title = getLocalizedText(cardData.title, lang);
+    const greetings = getLocalizedArray(cardData.greetings, lang);
+
+    // 更新頁面標題（僅正面）
+    if (suffix === '') {
+        const titlePrefix = lang === 'en' ? 'DB-Card' : '數位名片';
+        const titleFallback = lang === 'en' ? 'Card Display' : '名片顯示';
+        document.title = name ? `${titlePrefix} | ${name}` : `${titlePrefix} | ${titleFallback}`;
+    }
+
+    document.getElementById(`user-name${suffix}`).textContent = name || '---';
 
     // Title (conditional display)
     if (title) {
-        document.getElementById('user-title').style.display = 'block';
-        document.getElementById('user-title').textContent = title;
+        document.getElementById(`user-title${suffix}`).style.display = 'block';
+        document.getElementById(`user-title${suffix}`).textContent = title;
     } else {
-        document.getElementById('user-title').style.display = 'none';
+        document.getElementById(`user-title${suffix}`).style.display = 'none';
     }
 
     // Department (conditional display with translation)
@@ -344,9 +372,9 @@ function renderCard(cardData, sessionData) {
         let deptText;
 
         if (typeof dept === 'object' && dept !== null) {
-            deptText = currentLanguage === 'en' ? (dept.en || dept.zh || '') : (dept.zh || dept.en || '');
+            deptText = lang === 'en' ? (dept.en || dept.zh || '') : (dept.zh || dept.en || '');
         } else if (typeof dept === 'string') {
-            deptText = currentLanguage === 'en' && ORG_DEPT_MAPPING.departments[dept]
+            deptText = lang === 'en' && ORG_DEPT_MAPPING.departments[dept]
                 ? ORG_DEPT_MAPPING.departments[dept]
                 : dept;
         } else {
@@ -354,87 +382,87 @@ function renderCard(cardData, sessionData) {
         }
 
         if (deptText) {
-            document.getElementById('user-department').style.display = 'flex';
-            document.getElementById('user-department-text').textContent = deptText;
+            const deptEl = document.getElementById(`user-department${suffix}`);
+            const deptTextEl = document.getElementById(`user-department-text${suffix}`);
+            if (deptEl && deptTextEl) {
+                deptEl.style.display = 'flex';
+                deptTextEl.textContent = deptText;
+            }
         } else {
-            document.getElementById('user-department').style.display = 'none';
+            const deptEl = document.getElementById(`user-department${suffix}`);
+            if (deptEl) deptEl.style.display = 'none';
         }
     } else {
-        document.getElementById('user-department').style.display = 'none';
+        const deptEl = document.getElementById(`user-department${suffix}`);
+        if (deptEl) deptEl.style.display = 'none';
     }
 
     // 大頭貼處理 - 支援 Google Drive URL 轉換
-    const avatarContainer = document.getElementById('user-avatar').closest('.relative');
-    const avatarUrl = cardData.avatar_url || cardData.avatar;  // 相容舊格式
-    if (avatarUrl) {
+    const avatarEl = document.getElementById(`user-avatar${suffix}`);
+    const avatarUrl = cardData.avatar_url || cardData.avatar;
+    if (avatarUrl && avatarEl) {
         let processedUrl = avatarUrl;
 
-        // 轉換 Google Drive 分享連結為直接圖片 URL
         const driveMatch = processedUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^\/\?&]+)/);
         if (driveMatch) {
             const fileId = driveMatch[1];
             processedUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
         }
 
-        const imgElement = document.getElementById('user-avatar');
-        imgElement.src = processedUrl;
-
-        imgElement.onerror = function() {
+        avatarEl.src = processedUrl;
+        avatarEl.onerror = function() {
             console.warn('Avatar failed to load:', processedUrl);
-            if (avatarContainer) avatarContainer.style.display = 'none';
+            const container = avatarEl.closest('.relative');
+            if (container) container.style.display = 'none';
         };
 
-        if (avatarContainer) avatarContainer.style.display = 'block';
-    } else {
-        if (avatarContainer) avatarContainer.style.display = 'none';
+        const container = avatarEl.closest('.relative');
+        if (container) container.style.display = 'block';
+    } else if (avatarEl) {
+        const container = avatarEl.closest('.relative');
+        if (container) container.style.display = 'none';
     }
 
-    // Email 處理 - 無資料時隱藏
-    const emailLink = document.getElementById('email-link');
-    if (cardData.email) {
-        document.getElementById('user-email').textContent = cardData.email;
+    // Email 處理
+    const emailLink = document.getElementById(`email-link${suffix}`);
+    const emailEl = document.getElementById(`user-email${suffix}`);
+    if (cardData.email && emailLink && emailEl) {
+        emailEl.textContent = cardData.email;
         emailLink.href = `mailto:${cardData.email}`;
         emailLink.style.display = 'flex';
-    } else {
+    } else if (emailLink) {
         emailLink.style.display = 'none';
     }
 
-    // 電話處理 - 無資料時隱藏
-    const phoneLink = document.getElementById('phone-link');
-    if (cardData.phone) {
-        document.getElementById('user-phone').textContent = cardData.phone;
+    // 電話處理
+    const phoneLink = document.getElementById(`phone-link${suffix}`);
+    const phoneEl = document.getElementById(`user-phone${suffix}`);
+    if (cardData.phone && phoneLink && phoneEl) {
+        phoneEl.textContent = cardData.phone;
         phoneLink.href = `tel:${cardData.phone.replace(/\s/g, '')}`;
         phoneLink.style.display = 'flex';
-    } else {
+    } else if (phoneLink) {
         phoneLink.style.display = 'none';
     }
 
-    // 手機處理 - 無資料時隱藏
-    const mobileLink = document.getElementById('mobile-link');
-    if (mobileLink && cardData.mobile) {
-        document.getElementById('user-mobile').textContent = cardData.mobile;
-        mobileLink.href = `tel:${cardData.mobile.replace(/\s/g, '')}`;
-        mobileLink.style.display = 'flex';
-    } else if (mobileLink) {
-        mobileLink.style.display = 'none';
-    }
-
-    // 網站處理 - 無資料時隱藏
-    const webLink = document.getElementById('web-link');
-    if (webLink && cardData.website) {
-        document.getElementById('user-web').textContent = cardData.website.replace('https://', '').replace('http://', '');
+    // 網站處理
+    const webLink = document.getElementById(`web-link${suffix}`);
+    const webEl = document.getElementById(`user-web${suffix}`);
+    if (cardData.website && webLink && webEl) {
+        webEl.textContent = cardData.website.replace('https://', '').replace('http://', '');
         webLink.href = cardData.website;
         webLink.style.display = 'flex';
     } else if (webLink) {
         webLink.style.display = 'none';
     }
 
-    // 地址處理 - 無資料時隱藏
-    const addressLink = document.getElementById('address-link');
-    if (addressLink && cardData.address) {
-        const addr = getLocalizedText(cardData.address, currentLanguage);
+    // 地址處理
+    const addressLink = document.getElementById(`address-link${suffix}`);
+    const addressEl = document.getElementById(`user-address${suffix}`);
+    if (cardData.address && addressLink && addressEl) {
+        const addr = getLocalizedText(cardData.address, lang);
         if (addr) {
-            document.getElementById('user-address').textContent = addr;
+            addressEl.textContent = addr;
             addressLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
             addressLink.style.display = 'flex';
         } else {
@@ -444,16 +472,29 @@ function renderCard(cardData, sessionData) {
         addressLink.style.display = 'none';
     }
 
-    if (sessionData) {
+    // Session 資訊（僅正面顯示）
+    if (suffix === '' && sessionData) {
         const expiresAt = new Date(sessionData.expires_at);
-        const validUntilText = i18nTexts['valid-until'][currentLanguage];
-        const sharesAvailableText = i18nTexts['shares-available'][currentLanguage];
+        const validUntilText = i18nTexts['valid-until'][lang];
+        const sharesAvailableText = i18nTexts['shares-available'][lang];
         
-        document.getElementById('session-expiry').textContent = `${validUntilText}: ${expiresAt.toLocaleString(currentLanguage === 'zh' ? 'zh-TW' : 'en-US')}`;
+        document.getElementById('session-expiry').textContent = `${validUntilText}: ${expiresAt.toLocaleString(lang === 'zh' ? 'zh-TW' : 'en-US')}`;
         document.getElementById('session-reads').textContent = `${sharesAvailableText}: ${sessionData.reads_remaining}`;
     }
 
-    // 社群連結處理 - 支援新舊格式
+    // 社群連結處理（僅正面完整處理，背面複製）
+    if (suffix === '-en') {
+        // 背面：複製正面的社群連結
+        const frontSocial = document.getElementById('social-cluster');
+        const backSocial = document.getElementById('social-cluster-en');
+        if (frontSocial && backSocial) {
+            backSocial.innerHTML = frontSocial.innerHTML;
+            backSocial.style.display = frontSocial.style.display;
+        }
+        return; // 背面到此結束
+    }
+
+    // 以下是正面的社群連結處理（保留原邏輯）
     const socialCluster = document.getElementById('social-cluster');
 
     // 品牌顏色對照表
@@ -980,3 +1021,56 @@ function initLoadingIcon() {
 }
 
 document.addEventListener('DOMContentLoaded', initApp);
+
+// ========================================
+// 3D Card Flip - Bilingual Support
+// ========================================
+
+// 翻轉控制（防抖）
+let isFlipping = false;
+window.toggleFlip = function() {
+    if (isFlipping) return;
+    isFlipping = true;
+    const card = document.getElementById('card');
+    if (card) {
+        card.classList.toggle('is-flipped');
+        setTimeout(() => { isFlipping = false; }, 800);
+    }
+};
+
+// 動態高度匹配
+function matchCardHeight() {
+    const front = document.querySelector('.card-front');
+    const back = document.querySelector('.card-back');
+    const card = document.getElementById('card');
+    
+    if (!front || !back || !card) return;
+    
+    const maxHeight = Math.max(front.scrollHeight, back.scrollHeight, 600);
+    card.style.height = `${maxHeight}px`;
+}
+
+// 浮動提示自動隱藏
+function initHintBadge() {
+    const hintBadge = document.getElementById('hint-badge');
+    const hintSeen = sessionStorage.getItem('hint-seen');
+    
+    if (!hintSeen && hintBadge) {
+        setTimeout(() => {
+            hintBadge.style.opacity = '0';
+            setTimeout(() => {
+                hintBadge.style.display = 'none';
+                sessionStorage.setItem('hint-seen', 'true');
+            }, 300);
+        }, 3000);
+    } else if (hintSeen && hintBadge) {
+        hintBadge.style.display = 'none';
+    }
+}
+
+// 初始化
+window.addEventListener('resize', matchCardHeight);
+setTimeout(() => {
+    matchCardHeight();
+    initHintBadge();
+}, 100);

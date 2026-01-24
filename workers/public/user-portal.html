@@ -198,9 +198,13 @@
             <span class="text-sm font-black tracking-tight uppercase">User Portal</span>
         </div>
         <div class="flex items-center gap-4 pointer-events-auto">
-            <div class="hidden md:flex flex-col items-end">
-                <span id="user-email-display" class="text-[10px] font-black text-slate-400 uppercase tracking-widest">---</span>
-                <span class="text-[9px] font-bold text-green-600 uppercase">Secure Link</span>
+            <!-- BDD Scenario 5-6: 個人化歡迎訊息 -->
+            <div class="hidden md:flex items-center gap-3">
+                <img id="user-avatar-display" src="" alt="" class="w-9 h-9 rounded-full border-2 border-white shadow-sm hidden">
+                <div class="flex flex-col items-end">
+                    <span id="user-name-display" class="text-sm font-black text-slate-700">---</span>
+                    <span id="user-email-display" class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">---</span>
+                </div>
             </div>
             <button onclick="handleLogout()" class="px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:text-red-600 transition-all uppercase tracking-widest shadow-sm">
                 Logout
@@ -231,7 +235,7 @@
                 </button>
                 <div class="space-y-2">
                     <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Authorized Access Only</p>
-                    <p class="text-[11px] text-slate-400">僅限 @moda.gov.tw 或 @nics.nat.gov.tw 網域使用者訪問</p>
+                    <p class="text-[11px] text-slate-400">僅限 @moda.gov.tw 網域使用者訪問</p>
                 </div>
             </div>
         </section>

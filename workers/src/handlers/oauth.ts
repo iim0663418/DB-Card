@@ -1,6 +1,18 @@
 import type { Env } from '../types';
 import { SignJWT } from 'jose';
 import { generateCsrfToken, storeCsrfToken } from '../utils/csrf';
+import { validateAndConsumeOAuthState } from '../utils/oauth-state';
+import { validateIDToken } from '../utils/oidc-validator';
+
+/**
+ * Allowed Redirect URIs for OAuth Callback
+ * RFC 6749 Section 10.6 - Open Redirector Prevention
+ */
+const ALLOWED_REDIRECT_URIS = [
+  'https://db-card.moda.gov.tw/oauth/callback',
+  'https://db-card-staging.csw30454.workers.dev/oauth/callback',
+  'http://localhost:8787/oauth/callback' // Development only
+];
 
 export async function handleOAuthCallback(
   request: Request,
@@ -9,6 +21,25 @@ export async function handleOAuthCallback(
   const url = new URL(request.url);
   const code = url.searchParams.get('code');
   const error = url.searchParams.get('error');
+  const state = url.searchParams.get('state');
+
+  // ✅ BDD Scenario 5, 6: OAuth State Parameter Validation (CSRF Protection)
+  // RFC 6749 Section 10.12
+  if (!state) {
+    return new Response('Missing state parameter', { status: 403 });
+  }
+
+  const isStateValid = await validateAndConsumeOAuthState(state, env);
+  if (!isStateValid) {
+    return new Response('Invalid or expired state parameter', { status: 403 });
+  }
+
+  // ✅ BDD Scenario 1, 2, 3: Redirect URI Validation (Open Redirector Prevention)
+  // RFC 6749 Section 10.6
+  const redirectUri = `${url.origin}/oauth/callback`;
+  if (!ALLOWED_REDIRECT_URIS.includes(redirectUri)) {
+    return new Response('Invalid redirect_uri', { status: 400 });
+  }
 
   if (error) {
     return new Response(`
@@ -54,20 +85,47 @@ export async function handleOAuthCallback(
 
     const tokens = await tokenResponse.json() as any;
 
-    // Get user info
-    const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: { Authorization: `Bearer ${tokens.access_token}` }
-    });
+    // ✅ BDD Scenario 10, 11: ID Token Validation with UserInfo API Fallback
+    let userInfo: any;
 
-    if (!userInfoResponse.ok) {
-      throw new Error('Failed to get user info');
+    if (tokens.id_token) {
+      // ✅ Scenario 10: Priority path - Use ID Token validation
+      try {
+        const idTokenPayload = await validateIDToken(tokens.id_token, env);
+        userInfo = {
+          email: idTokenPayload.email,
+          name: idTokenPayload.name,
+          picture: idTokenPayload.picture
+        };
+        console.log('ID Token validation successful');
+      } catch (error) {
+        console.error('ID Token validation failed, falling back to UserInfo API:', error);
+        // Fall through to UserInfo API
+        userInfo = null;
+      }
+    } else {
+      // ⚠️ Scenario 11: Backward compatibility - ID Token not found
+      console.warn('ID Token not found, falling back to UserInfo API');
     }
 
-    const userInfo = await userInfoResponse.json() as any;
+    // Fallback to UserInfo API if ID Token validation failed or not present
+    if (!userInfo) {
+      const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { Authorization: `Bearer ${tokens.access_token}` }
+      });
+
+      if (!userInfoResponse.ok) {
+        throw new Error('Failed to get user info');
+      }
+
+      userInfo = await userInfoResponse.json() as any;
+    }
 
     // ⚠️ SECURITY: Validate email domain whitelist
-    const allowedDomains = ['@moda.gov.tw', '@nics.nat.gov.tw'];
-    const isAllowedDomain = allowedDomains.some(domain => userInfo.email?.endsWith(domain));
+    const allowedDomains = ['@moda.gov.tw'];
+    const allowedEmails = ['chingw@acs.gov.tw'];
+    const isAllowedDomain = allowedDomains.some(domain => userInfo.email?.endsWith(domain)) ||
+                           allowedEmails.includes(userInfo.email);
 
     if (!isAllowedDomain) {
       return new Response(`
@@ -131,7 +189,7 @@ export async function handleOAuthCallback(
             type: 'oauth_success',
             email: '${userInfo.email}',
             name: '${userInfo.name}',
-            picture: '${userInfo.picture}',
+            picture: '${userInfo.picture || ''}',
             csrfToken: '${csrfToken}'
           }, '*');
           window.close();

@@ -9,9 +9,10 @@
     <link rel="preconnect" href="https://cdn.tailwindcss.com">
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
     <link rel="dns-prefetch" href="https://unpkg.com">
-    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="/css/v4-design.css">
     <script src="/js/tailwind-suppress.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@0.562.0/dist/umd/lucide.min.js"></script>
@@ -190,6 +191,29 @@
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
 
+        /* 按鈕 Loading 狀態 */
+        .btn-loading {
+            position: relative;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+        .btn-loading::after {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: translateY(-50%) rotate(360deg); }
+        }
+
         /* MODA Accent 顏色覆蓋 Tailwind indigo */
         .bg-moda { background-color: var(--moda-accent) !important; }
         .text-moda { color: var(--moda-accent) !important; }
@@ -208,6 +232,28 @@
 <body class="p-4 lg:p-8">
 
     <canvas id="three-canvas"></canvas>
+
+    <!-- 全屏 Loading Overlay -->
+    <div id="loading-overlay" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div class="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4 max-w-md mx-4">
+            <div class="w-16 h-16 border-4 border-slate-200 border-t-moda rounded-full animate-spin"></div>
+            <div class="text-center">
+                <p id="loading-message" class="text-lg font-bold text-slate-900 mb-2">正在載入...</p>
+                <p id="loading-submessage" class="text-sm text-slate-500">請稍候</p>
+            </div>
+            <!-- 錯誤狀態 (初始隱藏) -->
+            <div id="loading-error" class="hidden w-full text-center">
+                <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+                    <i data-lucide="alert-circle" class="w-6 h-6 text-red-600 mx-auto mb-2"></i>
+                    <p id="loading-error-message" class="text-sm font-bold text-red-700 mb-1">載入失敗</p>
+                    <p class="text-xs text-red-600">無法載入名片列表，請重試</p>
+                </div>
+                <button onclick="retryLoadCards()" class="w-full bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-black transition-all">
+                    重試
+                </button>
+            </div>
+        </div>
+    </div>
 
     <div class="relative z-10 max-w-7xl mx-auto space-y-6">
         
@@ -680,26 +726,43 @@
 
             <!-- Tab 3: 系統工具 -->
             <section id="section-tools" class="hidden space-y-6 fade-in">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- KEK 密鑰監控 -->
                     <div class="glass-surface p-8 rounded-2xl space-y-4">
                         <h2 class="text-lg font-black text-slate-900 flex items-center gap-3">
-                            <i data-lucide="zap-off" class="text-amber-500"></i> 緊急撤銷
+                            <i data-lucide="shield-check" class="text-moda"></i> KEK 密鑰監控
                         </h2>
-                        <p class="text-sm text-slate-500 leading-relaxed">撤銷目前所有活躍中的 Session。這將迫使所有使用者重新進行 NFC 碰卡驗證。僅在發生安全性疑慮時執行。</p>
-                        <button onclick="confirmAction('revoke_all')" class="w-full py-4 bg-amber-100 text-amber-700 rounded-xl font-bold hover:bg-amber-200 transition-all">執行全局撤銷</button>
+                        <div id="kek-monitor" class="space-y-3">
+                            <div class="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100">
+                                <div class="flex items-center gap-2">
+                                    <span id="kek-status-badge" class="px-2 py-1 text-xs font-bold rounded-lg bg-green-100 text-green-700">正常</span>
+                                    <span id="kek-status-text" class="text-sm text-slate-600">已使用 -- 天 / 建議 90 天</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3 text-xs">
+                                <div class="p-3 bg-slate-50 rounded-xl">
+                                    <p class="text-slate-400 mb-1">當前版本</p>
+                                    <p id="kek-version" class="font-bold text-slate-900">v--</p>
+                                </div>
+                                <div class="p-3 bg-slate-50 rounded-xl">
+                                    <p class="text-slate-400 mb-1">啟用時間</p>
+                                    <p id="kek-activated-at" class="font-bold text-slate-900">--</p>
+                                </div>
+                            </div>
+                            <div class="p-3 bg-blue-50 rounded-xl">
+                                <p class="text-xs text-blue-700">
+                                    <i data-lucide="info" class="w-3 h-3 inline"></i>
+                                    距離建議輪替：<span id="kek-days-until" class="font-bold">-- 天</span>
+                                </p>
+                            </div>
+                        </div>
+                        <button onclick="showRotationGuide()" class="w-full py-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-all">查看輪替指引</button>
                     </div>
 
-                    <div class="glass-surface p-8 rounded-2xl space-y-4">
-                        <h2 class="text-lg font-black text-slate-900 flex items-center gap-3">
-                            <i data-lucide="shield-alert" class="text-red-500"></i> KEK 密鑰輪替
-                        </h2>
-                        <p class="text-sm text-slate-500 leading-relaxed">輪替系統主密鑰 (Key Encryption Key)。執行此操作後，舊有的加密資料將進行重新封裝。建議每季執行一次。</p>
-                        <button onclick="confirmAction('kek_rotate')" class="w-full py-4 bg-red-100 text-red-700 rounded-xl font-bold hover:bg-red-200 transition-all">啟動 KEK 輪替</button>
-                    </div>
-
-                    <div class="md:col-span-2 glass-surface p-8 rounded-2xl">
+                    <!-- System Health Status -->
+                    <div class="glass-surface p-8 rounded-2xl">
                         <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400 mb-6">System Health Status</h2>
-                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="grid grid-cols-2 gap-4">
                             <div class="p-4 bg-white rounded-2xl border border-slate-100">
                                 <p class="text-[10px] text-slate-400 mb-1">API Node</p>
                                 <p id="health-api" class="font-bold text-green-600">Operational</p>
@@ -720,7 +783,8 @@
                         </div>
                     </div>
 
-                    <div class="md:col-span-2 glass-surface p-8 rounded-2xl">
+                    <!-- CDN Health Status -->
+                    <div class="glass-surface p-8 rounded-2xl">
                         <div class="flex justify-between items-center mb-6">
                             <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400">CDN Health Status</h2>
                             <button onclick="checkCDNHealth()" class="text-xs text-moda hover:underline flex items-center gap-1">
@@ -739,19 +803,154 @@
 
     </div>
 
-    <!-- 戰略性摩擦：確認 Modal (Good Friction) -->
-    <div id="confirm-modal" class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md hidden flex items-center justify-center p-6">
-        <div class="glass-surface max-w-md w-full p-8 rounded-2xl space-y-6">
-            <div class="text-center">
-                <div id="modal-icon-container" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-100 text-red-600">
+    <!-- 確認操作 Modal -->
+    <div id="confirm-modal" class="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm hidden flex items-center justify-center p-6">
+        <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-8">
+            <div class="text-center mb-6">
+                <div id="modal-icon-container" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i data-lucide="alert-triangle" class="w-8 h-8"></i>
                 </div>
-                <h2 id="modal-title" class="text-xl font-black text-slate-900">確定執行此操作？</h2>
-                <p id="modal-desc" class="text-sm text-slate-500 mt-2">此操作具有高度破壞性，且無法輕易復原。</p>
+                <h3 id="modal-title" class="text-2xl font-black text-slate-900">確定執行此操作？</h3>
+                <p id="modal-desc" class="text-sm text-slate-600 mt-2">此操作具有高度破壞性，且無法輕易復原。</p>
             </div>
+            <div class="flex gap-3">
+                <button onclick="closeModal()" class="flex-1 px-6 py-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors">
+                    取消
+                </button>
+                <button id="modal-confirm-btn" class="flex-1 px-6 py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors">
+                    確認執行
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- KEK 輪替指引 Modal -->
+    <div id="rotation-guide-modal" class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md hidden flex items-center justify-center p-6">
+        <div class="bg-white max-w-2xl w-full p-8 rounded-2xl space-y-6 max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-black text-slate-900 flex items-center gap-3">
+                    <i data-lucide="shield-alert" class="text-red-500 animate-pulse"></i>
+                    KEK 輪替標準作業程序 (SOP)
+                </h2>
+                <button onclick="closeRotationGuide()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <div class="p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
+                <div class="flex items-start gap-3">
+                    <i data-lucide="alert-triangle" class="text-red-500 flex-shrink-0"></i>
+                    <div>
+                        <p class="text-sm font-bold text-red-700">警告：KEK 輪替需要系統管理員權限</p>
+                        <p class="text-xs text-red-600 mt-1">此操作需要存取環境變數與 Cloudflare Workers 部署權限</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div class="p-5 bg-white rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
+                    <div class="flex items-start gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-[#6868ac] text-white rounded-full flex items-center justify-center font-bold">1</div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-slate-900 mb-2">生成新 KEK</h3>
+                            <div class="relative group">
+                                <pre class="bg-slate-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto whitespace-nowrap"><code>
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+</code></pre>
+                                <button onclick="navigator.clipboard.writeText(`node -e &quot;console.log(require('crypto').randomBytes(32).toString('base64'))&quot;`)" class="absolute top-2 right-2 p-2 bg-slate-800 hover:bg-slate-700 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <i data-lucide="copy" class="w-4 h-4 text-slate-400"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-5 bg-white rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
+                    <div class="flex items-start gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-[#6868ac] text-white rounded-full flex items-center justify-center font-bold">2</div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-slate-900 mb-2">更新環境變數</h3>
+                            <p class="text-sm text-slate-600 mb-3">將當前 KEK 移至 OLD_KEK，新 KEK 設為 KEK</p>
+                            <div class="relative group">
+                                <pre class="bg-slate-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto whitespace-nowrap"><code>
+wrangler secret put KEK
+wrangler secret put OLD_KEK
+</code></pre>
+                                <button onclick="navigator.clipboard.writeText('wrangler secret put KEK\nwrangler secret put OLD_KEK')" class="absolute top-2 right-2 p-2 bg-slate-800 hover:bg-slate-700 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <i data-lucide="copy" class="w-4 h-4 text-slate-400"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-5 bg-white rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
+                    <div class="flex items-start gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-[#6868ac] text-white rounded-full flex items-center justify-center font-bold">3</div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-slate-900 mb-2">重新部署</h3>
+                            <div class="relative group">
+                                <pre class="bg-slate-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto whitespace-nowrap"><code>
+wrangler deploy
+</code></pre>
+                                <button onclick="navigator.clipboard.writeText('wrangler deploy')" class="absolute top-2 right-2 p-2 bg-slate-800 hover:bg-slate-700 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <i data-lucide="copy" class="w-4 h-4 text-slate-400"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-5 bg-white rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
+                    <div class="flex items-start gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-[#6868ac] text-white rounded-full flex items-center justify-center font-bold">4</div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-slate-900 mb-2">執行 DEK 重新包裝腳本</h3>
+                            <p class="text-sm text-slate-600 mb-3">在本地執行腳本進行重新包裝</p>
+                            <div class="relative group">
+                                <pre class="bg-slate-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto whitespace-nowrap"><code>
+cd workers
+npm run kek:rewrap
+</code></pre>
+                                <button onclick="navigator.clipboard.writeText('cd workers\nnpm run kek:rewrap')" class="absolute top-2 right-2 p-2 bg-slate-800 hover:bg-slate-700 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <i data-lucide="copy" class="w-4 h-4 text-slate-400"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-5 bg-white rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
+                    <div class="flex items-start gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-[#6868ac] text-white rounded-full flex items-center justify-center font-bold">5</div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-slate-900 mb-2">清理舊密鑰</h3>
+                            <p class="text-sm text-slate-600 mb-3">確認輪替成功後刪除 OLD_KEK</p>
+                            <div class="relative group">
+                                <pre class="bg-slate-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto whitespace-nowrap"><code>
+wrangler secret delete OLD_KEK
+</code></pre>
+                                <button onclick="navigator.clipboard.writeText('wrangler secret delete OLD_KEK')" class="absolute top-2 right-2 p-2 bg-slate-800 hover:bg-slate-700 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <i data-lucide="copy" class="w-4 h-4 text-slate-400"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                <div class="flex items-start gap-3">
+                    <i data-lucide="info" class="text-blue-600 flex-shrink-0"></i>
+                    <div>
+                        <p class="text-sm font-bold text-blue-700 mb-1">需要協助？</p>
+                        <p class="text-xs text-blue-600">請聯絡系統管理員或參考運維文檔</p>
+                    </div>
+                </div>
+            </div>
+
             <div class="flex gap-4">
-                <button onclick="closeModal()" class="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200">取消</button>
-                <button id="modal-confirm-btn" class="flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 shadow-lg">確認執行</button>
+                <button onclick="closeRotationGuide()" class="flex-1 py-4 bg-slate-100 text-slate-700 rounded-2xl font-bold hover:bg-slate-200 transition-colors">關閉</button>
             </div>
         </div>
     </div>
@@ -975,6 +1174,69 @@
             }, duration);
         }
 
+        // 全屏 Loading Overlay 控制函數
+        function showLoadingOverlay(message = '載入中...', submessage = '請稍候') {
+            const overlay = document.getElementById('loading-overlay');
+            const messageEl = document.getElementById('loading-message');
+            const submessageEl = document.getElementById('loading-submessage');
+            const errorEl = document.getElementById('loading-error');
+
+            messageEl.textContent = message;
+            submessageEl.textContent = submessage;
+            errorEl.classList.add('hidden');
+
+            overlay.classList.remove('hidden');
+        }
+
+        function hideLoadingOverlay() {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.classList.add('hidden');
+        }
+
+        function showLoadingError(errorMessage = '載入失敗') {
+            const overlay = document.getElementById('loading-overlay');
+            const spinner = overlay.querySelector('.animate-spin');
+            const messageContainer = overlay.querySelector('.text-center');
+            const errorEl = document.getElementById('loading-error');
+            const errorMessageEl = document.getElementById('loading-error-message');
+
+            // 隱藏 loading 動畫和訊息
+            spinner.classList.add('hidden');
+            messageContainer.classList.add('hidden');
+
+            // 顯示錯誤
+            errorMessageEl.textContent = errorMessage;
+            errorEl.classList.remove('hidden');
+
+            // 初始化 Lucide 圖示
+            lucide.createIcons();
+        }
+
+        function retryLoadCards() {
+            // 重置 Loading Overlay 狀態
+            const overlay = document.getElementById('loading-overlay');
+            const spinner = overlay.querySelector('.animate-spin');
+            const messageContainer = overlay.querySelector('.text-center');
+            const errorEl = document.getElementById('loading-error');
+
+            spinner.classList.remove('hidden');
+            messageContainer.classList.remove('hidden');
+            errorEl.classList.add('hidden');
+
+            showLoadingOverlay('正在重試載入...', '請稍候');
+
+            // 重試載入
+            loadCards()
+                .then(() => {
+                    document.getElementById('content-area').classList.remove('hidden');
+                    hideLoadingOverlay();
+                    showNotification('載入成功', 'success');
+                })
+                .catch(error => {
+                    showLoadingError(error.message || '載入失敗，請重試');
+                });
+        }
+
         async function checkAndPromptPasskey() {
             try {
                 const resp = await fetch(`${API_BASE}/api/admin/passkey/status`, { credentials: 'include' });
@@ -984,7 +1246,7 @@
                 const hasPasskey = result.data?.hasPasskey || result.hasPasskey; // 支援兩種格式
                 
                 if (!hasPasskey) {
-                    showNotification('💡 提示：可註冊 Passkey 提升安全性', 'info');
+                    showNotification('提示：可註冊 Passkey 提升安全性', 'info');
                     document.getElementById('register-passkey-btn').classList.remove('hidden');
                 }
             } catch (e) {
@@ -1019,6 +1281,17 @@
             showNotification('已登出', 'success');
         }
 
+        // 統一處理授權過期
+        function handleAuthExpired() {
+            isVerified = false;
+            document.getElementById('token-section').classList.remove('hidden');
+            document.getElementById('auth-status').classList.add('hidden');
+            document.getElementById('admin-nav').classList.add('hidden');
+            document.getElementById('content-area').classList.add('hidden');
+            hideLoadingOverlay();
+            showNotification('授權已過期，請重新登入', 'error');
+        }
+
         async function checkAuthStatus() {
             try {
                 const resp = await fetch(`${API_BASE}/api/admin/cards`, {
@@ -1036,6 +1309,7 @@
                     switchTab('list');
                     loadSystemHealth().catch(e => console.error(e));
                     checkCDNHealth().catch(e => console.error(e));
+                    loadKekStatus().catch(e => console.error(e));
                     
                     // 檢查 Passkey 狀態並顯示提示
                     setTimeout(() => checkAndPromptPasskey(), 2000);
@@ -1135,6 +1409,7 @@
 
                 loadSystemHealth().catch(e => console.error(e));
                 checkCDNHealth().catch(e => console.error(e));
+                loadKekStatus().catch(e => console.error(e));
                 checkPasskeyAvailable().catch(e => console.error(e));
                 switchTab('list');
             } catch (error) {
@@ -1151,6 +1426,14 @@
                 showNotification('請輸入 Email 和 SETUP_TOKEN', 'error');
                 return;
             }
+
+            // 1. 按鈕 Loading 狀態
+            const verifyBtn = document.getElementById('verify-btn');
+            const originalText = verifyBtn.textContent;
+            verifyBtn.classList.add('btn-loading');
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = '驗證中...';
+            verifyBtn.style.paddingLeft = '32px'; // 為 spinner 留空間
 
             try {
                 // Call login API to set HttpOnly cookie
@@ -1175,26 +1458,57 @@
                 // Session token is now stored in HttpOnly cookie
                 isVerified = true;
 
-                // 更新 UI
-                document.getElementById('token-section').classList.add('hidden');
-                document.getElementById('auth-status').classList.remove('hidden');
-                document.getElementById('admin-nav').classList.remove('hidden');
-                document.getElementById('content-area').classList.remove('hidden');
-
                 showNotification('授權驗證成功', 'success');
 
-                switchTab('list');
-                
-                loadSystemHealth().catch(e => console.error(e));
-                checkCDNHealth().catch(e => console.error(e));
-                checkPasskeyAvailable().catch(e => console.error(e));
+                // 2. 淡出登入表單
+                const tokenSection = document.getElementById('token-section');
+                tokenSection.style.transition = 'opacity 0.3s ease';
+                tokenSection.style.opacity = '0';
 
-                // 非阻塞提示
-                setTimeout(() => checkAndPromptPasskey(), 2000);
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                // 3. 顯示全屏 Loading
+                showLoadingOverlay('正在載入名片列表...', '驗證成功，正在準備您的工作區');
+
+                // 隱藏登入表單，顯示已授權狀態
+                tokenSection.classList.add('hidden');
+                tokenSection.style.opacity = '1'; // 重置 opacity
+                document.getElementById('auth-status').classList.remove('hidden');
+                document.getElementById('admin-nav').classList.remove('hidden');
+
+                // 4. 載入名片列表（阻塞）
+                try {
+                    await loadCards();
+
+                    // 5. 成功 → 顯示內容
+                    document.getElementById('content-area').classList.remove('hidden');
+                    hideLoadingOverlay();
+
+                    switchTab('list');
+
+                    // 6. 背景載入次要資料（不阻塞）
+                    loadSystemHealth().catch(e => console.error(e));
+                    checkCDNHealth().catch(e => console.error(e));
+                    loadKekStatus().catch(e => console.error(e));
+                    checkPasskeyAvailable().catch(e => console.error(e));
+
+                    // 非阻塞提示
+                    setTimeout(() => checkAndPromptPasskey(), 2000);
+
+                } catch (loadError) {
+                    // 7. 失敗 → 顯示錯誤 + 重試按鈕（阻塞）
+                    showLoadingError(loadError.message || '載入名片列表失敗');
+                }
 
             } catch (error) {
                 console.error('Token verification error:', error);
                 showNotification('驗證失敗: ' + error.message, 'error');
+
+                // 恢復按鈕狀態
+                verifyBtn.classList.remove('btn-loading');
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = originalText;
+                verifyBtn.style.paddingLeft = '';
             }
         }
 
@@ -1250,6 +1564,76 @@
             }
         }
 
+        // Load KEK status monitoring
+        async function loadKekStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/kek/status`, {
+                    credentials: 'include'
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
+
+                if (!response.ok) throw new Error('Failed to load KEK status');
+
+                const result = await response.json();
+                const data = result.data;
+
+                // Update status badge
+                const statusBadge = document.getElementById('kek-status-badge');
+                const statusText = document.getElementById('kek-status-text');
+                const statusColors = {
+                    normal: { bg: 'bg-green-100', text: 'text-green-700', label: '正常' },
+                    reminder: { bg: 'bg-blue-100', text: 'text-blue-700', label: '提醒' },
+                    warning: { bg: 'bg-amber-100', text: 'text-amber-700', label: '警告' },
+                    urgent: { bg: 'bg-red-100', text: 'text-red-700', label: '緊急' }
+                };
+
+                const statusColor = statusColors[data.status];
+                if (statusBadge && statusColor) {
+                    statusBadge.className = `px-2 py-1 text-xs font-bold rounded-lg ${statusColor.bg} ${statusColor.text}`;
+                    statusBadge.textContent = statusColor.label;
+                }
+
+                if (statusText) {
+                    statusText.textContent = `已使用 ${data.days_active} 天 / 建議 ${data.recommendation.rotation_cycle_days} 天`;
+                }
+
+                // Update KEK info
+                const versionEl = document.getElementById('kek-version');
+                if (versionEl) {
+                    versionEl.textContent = `v${data.current_version}`;
+                }
+
+                const activatedEl = document.getElementById('kek-activated-at');
+                if (activatedEl) {
+                    const date = new Date(data.activated_at);
+                    activatedEl.textContent = date.toLocaleDateString('zh-TW');
+                }
+
+                const daysUntilEl = document.getElementById('kek-days-until');
+                if (daysUntilEl) {
+                    const days = data.recommendation.days_until_recommended;
+                    daysUntilEl.textContent = days >= 0 ? `${days} 天` : `已逾期 ${Math.abs(days)} 天`;
+                }
+
+                // Show warning toast if needed
+                if (data.status === 'reminder' || data.status === 'warning' || data.status === 'urgent') {
+                    const messages = {
+                        reminder: 'KEK 已使用超過 60 天，建議規劃輪替作業',
+                        warning: 'KEK 已使用超過 90 天，建議儘速輪替',
+                        urgent: 'KEK 已使用超過 120 天，請立即輪替'
+                    };
+                    showNotification(messages[data.status], data.status === 'urgent' ? 'error' : 'warning');
+                }
+
+            } catch (error) {
+                console.error('Failed to load KEK status:', error);
+            }
+        }
+
         async function checkCDNHealth() {
             const container = document.getElementById('cdn-health-container');
             if (!container) return;
@@ -1299,6 +1683,7 @@
             if(tabId === 'tools') {
                 loadSystemHealth();
                 checkCDNHealth();
+                loadKekStatus();
             }
             
             // 切換到創建 Tab 時，如果不是編輯模式，清空表單
@@ -1531,20 +1916,23 @@
 
         // Load cards from API (Phase 2: with credentials)
         window.loadCards = async function() {
-            const token = sessionStorage.getItem('setup_token');
-
             showLoadingState();
 
             try {
                 const response = await fetch(`${API_BASE}/api/admin/cards`, {
-                    credentials: 'include', // Cookie auto-attached
-                    headers: { 'Authorization': `Bearer ${token}` } // Fallback
+                    credentials: 'include'
                 });
 
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    throw new Error('授權已過期，請重新登入');
+                }
+
                 if (!response.ok) {
-                    await handleApiError(response, '載入失敗');
+                    const errorData = await response.json().catch(() => ({}));
+                    const errorMsg = errorData.error || errorData.message || '載入失敗';
                     showEmptyState();
-                    return;
+                    throw new Error(errorMsg);
                 }
 
                 const result = await response.json();
@@ -1556,6 +1944,8 @@
                 console.error('Load cards error:', error);
                 showNotification('載入名片失敗: ' + error.message, 'error');
                 showEmptyState();
+                // 在初始載入時拋出錯誤以觸發阻塞 UI
+                throw error;
             }
         }
 
@@ -1591,11 +1981,10 @@
         // Handle API errors (Phase 2: unified error handling with auto logout)
         async function handleApiError(response, defaultMessage = '操作失敗') {
             if (response.status === 401 || response.status === 403) {
-                showNotification('授權已過期，請重新登入', 'error');
+                handleAuthExpired();
 
                 // Clear verification state
                 isVerified = false;
-                sessionStorage.removeItem('setup_token');
 
                 // Call logout API to clear cookie
                 try {
@@ -1608,10 +1997,7 @@
                 }
 
                 // Show login section
-                document.getElementById('token-section').classList.remove('hidden');
                 document.getElementById('auth-status').classList.add('hidden');
-                document.getElementById('admin-nav').classList.add('hidden');
-                document.getElementById('content-area').classList.add('hidden');
                 
                 // 重新檢查 Passkey 可用性
                 checkPasskeyAvailable().catch(e => console.error(e));
@@ -1746,12 +2132,6 @@
         // Create or Update Card
         async function handleCreateCard(e) {
             e.preventDefault();
-
-            const token = sessionStorage.getItem('setup_token');
-            if (!token) {
-                showNotification('未授權：請重新驗證', 'error');
-                return;
-            }
 
             const isEditing = !!window.editingCardUuid;
 
@@ -1897,9 +2277,8 @@
 
                 const response = await fetch(url, {
                     method: method,
-                    credentials: 'include', // Cookie auto-attached
+                    credentials: 'include',
                     headers: {
-                        'Authorization': `Bearer ${token}`, // Fallback
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
@@ -1907,6 +2286,11 @@
                         cardData: cardData
                     })
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '操作失敗');
@@ -1948,20 +2332,17 @@
 
         // Delete Card
         async function handleDeleteCard(uuid) {
-            const token = sessionStorage.getItem('setup_token');
-            if (!token) {
-                showNotification('未授權：請重新驗證', 'error');
-                return;
-            }
-
             try {
                 const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}`, {
                     method: 'DELETE',
                     credentials: 'include',
-                    headers: getHeadersWithCSRF({
-                        'Authorization': `Bearer ${token}`
-                    })
+                    headers: getHeadersWithCSRF()
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '撤銷失敗');
@@ -1979,20 +2360,17 @@
 
         // Restore Card
         async function handleRestoreCard(uuid) {
-            const token = sessionStorage.getItem('setup_token');
-            if (!token) {
-                showNotification('未授權：請重新驗證', 'error');
-                return;
-            }
-
             try {
                 const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}/restore`, {
                     method: 'POST',
                     credentials: 'include',
-                    headers: getHeadersWithCSRF({
-                        'Authorization': `Bearer ${token}`
-                    })
+                    headers: getHeadersWithCSRF()
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '恢復失敗');
@@ -2014,21 +2392,19 @@
                 return;
             }
 
-            const token = sessionStorage.getItem('setup_token');
-            if (!token) {
-                showNotification('未授權：請重新驗證', 'error');
-                return;
-            }
-
             try {
                 const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}/reset-budget`, {
                     method: 'POST',
                     credentials: 'include',
                     headers: getHeadersWithCSRF({
-                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     })
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
 
                 if (!response.ok) {
                     const error = await response.json();
@@ -2047,20 +2423,17 @@
         }
 
         async function handlePermanentDelete(uuid) {
-            const token = sessionStorage.getItem('setup_token');
-            if (!token) {
-                showNotification('未授權：請重新驗證', 'error');
-                return;
-            }
-
             try {
                 const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}?permanent=true`, {
                     method: 'DELETE',
                     credentials: 'include',
-                    headers: getHeadersWithCSRF({
-                        'Authorization': `Bearer ${token}`
-                    })
+                    headers: getHeadersWithCSRF()
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '永久刪除失敗');
@@ -2076,130 +2449,69 @@
             }
         }
 
-        async function handleRevokeCard(uuid) {
-            const token = sessionStorage.getItem('setup_token');
-            if (!token) {
-                showNotification('未授權：請重新驗證', 'error');
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_BASE}/api/admin/revoke`, {
-                    method: 'POST',
-                    credentials: 'include', // Cookie auto-attached
-                    headers: getHeadersWithCSRF({
-                        'Authorization': `Bearer ${token}`, // Fallback
-                        'Content-Type': 'application/json'
-                    }),
-                    body: JSON.stringify({
-                        card_uuid: uuid
-                    })
-                });
-
-                if (!response.ok) {
-                    await handleApiError(response, '撤銷失敗');
-                    return;
-                }
-
-                const result = await response.json();
-                const count = result.sessions_revoked || result.data?.sessions_revoked || 0;
-                showNotification(`已撤銷 ${count} 個 Session`, 'success');
-
-            } catch (error) {
-                console.error('Revoke card error:', error);
-                showNotification('撤銷失敗: ' + error.message, 'error');
-            }
-        }
-
         function confirmAction(type, uuid = null) {
             const modal = document.getElementById('confirm-modal');
             const title = document.getElementById('modal-title');
             const desc = document.getElementById('modal-desc');
             const btn = document.getElementById('modal-confirm-btn');
+            const iconContainer = document.getElementById('modal-icon-container');
 
             if(type === 'delete') {
-                title.innerText = "確認撤銷名片？";
+                title.innerText = "確認撤銷名片";
                 desc.innerText = "撤銷後使用者將無法編輯或使用此名片，但管理員可以恢復。";
-                btn.className = "flex-1 py-4 bg-amber-500 text-white rounded-2xl font-bold hover:bg-amber-600";
+                iconContainer.className = "w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4";
+                iconContainer.innerHTML = '<i data-lucide="shield-alert" class="w-8 h-8 text-amber-600"></i>';
+                btn.className = "flex-1 px-6 py-4 bg-amber-600 text-white rounded-xl font-bold hover:bg-amber-700 transition-colors";
                 btn.onclick = async () => {
                     closeModal();
                     await handleDeleteCard(uuid);
                 };
             } else if(type === 'permanent_delete') {
-                title.innerText = "【警告】確認永久刪除名片？";
+                title.innerText = "【警告】確認永久刪除名片";
                 desc.innerText = "此操作將從資料庫永久刪除此名片，無法復原！請確認您真的要執行此操作。";
-                btn.className = "flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700";
+                iconContainer.className = "w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4";
+                iconContainer.innerHTML = '<i data-lucide="alert-triangle" class="w-8 h-8 text-red-600"></i>';
+                btn.className = "flex-1 px-6 py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors";
                 btn.onclick = async () => {
                     closeModal();
                     await handlePermanentDelete(uuid);
                 };
             } else if(type === 'restore') {
-                title.innerText = "確認恢復名片？";
+                title.innerText = "確認恢復名片";
                 desc.innerText = "恢復後使用者將可以正常使用此名片。";
-                btn.className = "flex-1 py-4 bg-green-500 text-white rounded-2xl font-bold hover:bg-green-600";
+                iconContainer.className = "w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4";
+                iconContainer.innerHTML = '<i data-lucide="check-circle" class="w-8 h-8 text-green-600"></i>';
+                btn.className = "flex-1 px-6 py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors";
                 btn.onclick = async () => {
                     closeModal();
                     await handleRestoreCard(uuid);
                 };
-            } else if(type === 'revoke') {
-                title.innerText = "確認撤銷所有 Session？";
-                desc.innerText = "此名片目前已簽發的讀取授權將全數作廢，使用者須重新碰卡。";
-                btn.className = "flex-1 py-4 bg-amber-500 text-white rounded-2xl font-bold hover:bg-amber-600";
-                btn.onclick = async () => {
-                    closeModal();
-                    await handleRevokeCard(uuid);
-                };
-            } else if(type === 'revoke_all') {
-                title.innerText = "緊急：確認全局撤銷？";
-                desc.innerText = "這將撤銷所有活躍中的 Session，所有使用者需重新 NFC 碰卡驗證。";
-                btn.className = "flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700";
-                btn.onclick = async () => {
-                    closeModal();
-                    await handleGlobalRevoke();
-                };
+            }
+
+            // Re-initialize Lucide icons
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
             }
 
             modal.classList.remove('hidden');
-        }
-
-        // Global Revoke
-        async function handleGlobalRevoke() {
-            const token = sessionStorage.getItem('setup_token');
-            if (!token) {
-                showNotification('未授權：請重新驗證', 'error');
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_BASE}/api/admin/revoke`, {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: getHeadersWithCSRF({
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }),
-                    body: JSON.stringify({ global: true })
-                });
-
-                if (!response.ok) {
-                    await handleApiError(response, '全局撤銷失敗');
-                    return;
-                }
-
-                const result = await response.json();
-                showNotification(`全局撤銷成功！新 Token Version: ${result.new_token_version}`, 'success');
-                loadSystemHealth();
-
-            } catch (error) {
-                console.error('Global revoke error:', error);
-                showNotification('全局撤銷失敗: ' + error.message, 'error');
-            }
         }
 
         function closeModal() {
             document.getElementById('confirm-modal').classList.add('hidden');
         }
         window.closeModal = closeModal;
+
+        function showRotationGuide() {
+            const modal = document.getElementById('rotation-guide-modal');
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+        window.showRotationGuide = showRotationGuide;
+
+        function closeRotationGuide() {
+            document.getElementById('rotation-guide-modal').classList.add('hidden');
+        }
+        window.closeRotationGuide = closeRotationGuide;
 
         // Fill form with card data
         function fillFormWithCardData(card) {
@@ -2319,13 +2631,15 @@
             formElements.forEach(el => el.disabled = true);
             showNotification('載入名片資料中...', 'info');
 
-            const token = sessionStorage.getItem('setup_token');
-
             try {
                 const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}`, {
-                    credentials: 'include',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'include'
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '載入失敗');
@@ -2566,13 +2880,15 @@
 
         // 載入安全統計
         async function loadSecurityStats() {
-            const token = sessionStorage.getItem('setup_token');
-
             try {
                 const response = await fetch(`${API_BASE}/api/admin/security/stats`, {
-                    credentials: 'include',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'include'
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '載入統計失敗');
@@ -2622,13 +2938,15 @@
 
         // 載入安全時間軸
         async function loadSecurityTimeline(hours) {
-            const token = sessionStorage.getItem('setup_token');
-
             try {
                 const response = await fetch(`${API_BASE}/api/admin/security/timeline?hours=${hours}`, {
-                    credentials: 'include',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'include'
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '載入時間軸失敗');
@@ -2708,7 +3026,6 @@
 
         // 載入安全事件列表
         async function loadSecurityEvents(page = 1, eventType = '') {
-            const token = sessionStorage.getItem('setup_token');
             currentEventPage = page;
             currentEventType = eventType;
 
@@ -2719,9 +3036,13 @@
                 }
 
                 const response = await fetch(url, {
-                    credentials: 'include',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'include'
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '載入事件失敗');
@@ -2805,7 +3126,6 @@
         async function handleBlockIP(e) {
             e.preventDefault();
 
-            const token = sessionStorage.getItem('setup_token');
             const ip = document.getElementById('block-ip').value.trim();
             const duration = parseInt(document.getElementById('block-duration').value);
             const reason = document.getElementById('block-reason').value.trim();
@@ -2820,7 +3140,6 @@
                     method: 'POST',
                     credentials: 'include',
                     headers: getHeadersWithCSRF({
-                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     }),
                     body: JSON.stringify({
@@ -2829,6 +3148,11 @@
                         reason: reason || 'Manual block'
                     })
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '封鎖失敗');
@@ -2852,7 +3176,6 @@
 
         // 解除封鎖 IP
         async function handleUnblockIP() {
-            const token = sessionStorage.getItem('setup_token');
             const ip = currentIPAddress;
 
             if (!ip) {
@@ -2864,8 +3187,13 @@
                 const response = await fetch(`${API_BASE}/api/admin/security/block/${encodeURIComponent(ip)}`, {
                     method: 'DELETE',
                     credentials: 'include',
-                    headers: getHeadersWithCSRF({ 'Authorization': `Bearer ${token}` })
+                    headers: getHeadersWithCSRF()
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '解除封鎖失敗');
@@ -2887,14 +3215,17 @@
 
         // 載入 IP 詳情
         async function loadIPDetail(ip) {
-            const token = sessionStorage.getItem('setup_token');
             currentIPAddress = ip;
 
             try {
                 const response = await fetch(`${API_BASE}/api/admin/security/ip/${encodeURIComponent(ip)}`, {
-                    credentials: 'include',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'include'
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '載入 IP 詳情失敗');
@@ -2980,8 +3311,6 @@
 
         // 匯出 CSV
         async function exportSecurityEvents() {
-            const token = sessionStorage.getItem('setup_token');
-
             try {
                 let url = `${API_BASE}/api/admin/security/export`;
                 if (currentEventType) {
@@ -2989,9 +3318,13 @@
                 }
 
                 const response = await fetch(url, {
-                    credentials: 'include',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'include'
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '匯出失敗');
@@ -3027,7 +3360,6 @@
         window.restoreCard = handleRestoreCard;
         window.resetBudget = resetBudget;
         window.confirmAction = confirmAction;
-        window.revokeCard = handleRevokeCard;
         window.cancelEdit = cancelEdit;
         window.handleBlockIP = handleBlockIP;
         window.handleUnblockIP = handleUnblockIP;
@@ -3118,12 +3450,6 @@
                     updatePreview();
                 };
             });
-
-            // 檢查是否已有保存的 token（自動填入）
-            const savedToken = sessionStorage.getItem('setup_token');
-            if (savedToken) {
-                document.getElementById('setup-token').value = savedToken;
-            }
 
             // 綁定安全監控事件
             const blockIPForm = document.getElementById('block-ip-form');

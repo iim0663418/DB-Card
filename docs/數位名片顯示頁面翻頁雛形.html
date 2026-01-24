@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數位名片 | 身分驗證門戶</title>
+    
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+TC:wght@300;500;700;900&display=swap');
+        
+        :root {
+            --moda-accent: #6868ac;
+            --crystal-bg: rgba(255, 255, 255, 0.7);
+            --ui-text: #1e1e3f;
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+            background-color: #f4f7f9;
+            color: var(--ui-text);
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #three-canvas {
+            position: fixed;
+            top: 0; left: 0; z-index: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        /* 3D 翻轉核心架構 */
+        .card-perspective {
+            perspective: 2000px;
+            width: 100%;
+            max-width: 400px;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 600px;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+        }
+
+        /* 翻轉狀態 */
+        .card-inner.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        /* 卡片正反面共通基礎 */
+        .card-face {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            /* 關鍵：修正 disappearing 問題 */
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            transform-style: preserve-3d;
+            
+            border-radius: 2.5rem;
+            border: 1px solid rgba(104, 104, 172, 0.15);
+            background: var(--crystal-bg);
+            backdrop-filter: blur(40px) saturate(160%);
+            -webkit-backdrop-filter: blur(40px) saturate(160%);
+            box-shadow: 0 30px 60px -12px rgba(104, 104, 172, 0.15);
+            display: flex;
+            flex-direction: column;
+            padding: 2.5rem;
+            border-top: 6px solid var(--moda-accent);
+        }
+
+        /* 正面：強制 translateZ 確保優先級 */
+        .card-front {
+            z-index: 2;
+            transform: translateZ(1px);
+        }
+
+        /* 背面：旋轉 180 度並維持 translateZ */
+        .card-back {
+            z-index: 1;
+            transform: rotateY(180deg) translateZ(1px);
+        }
+
+        .hud-label {
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--moda-accent);
+            opacity: 0.6;
+        }
+
+        /* 掃描線效果 */
+        .scan-line {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--moda-accent), transparent);
+            opacity: 0.2;
+            animation: scan 4s linear infinite;
+            pointer-events: none;
+            z-index: 10;
+        }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+
+        .cursor::after {
+            content: '_';
+            animation: blink 1s infinite;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .btn-action {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(104, 104, 172, 0.1);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 1.25rem;
+            text-decoration: none;
+            width: 100%;
+        }
+        .btn-action:hover {
+            border-color: var(--moda-accent);
+            background: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px -5px rgba(104, 104, 172, 0.2);
+        }
+
+        .hint-badge {
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    </style>
+</head>
+<body class="no-scrollbar">
+
+    <canvas id="three-canvas"></canvas>
+
+    <!-- 浮動提示 -->
+    <div class="fixed top-8 left-0 right-0 z-50 flex justify-center pointer-events-none px-6 text-center">
+        <div class="hint-badge px-6 py-2 glass-card rounded-full flex items-center gap-3 bg-white/60 border border-white/50 shadow-sm pointer-events-auto cursor-pointer" onclick="toggleFlip()">
+            <i data-lucide="refresh-cw" class="w-4 h-4 text-indigo-500"></i>
+            <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">點擊卡片翻面 / Click to Flip</span>
+        </div>
+    </div>
+
+    <!-- 3D 卡片主體 -->
+    <div class="card-perspective px-4">
+        <div class="card-inner" id="card" onclick="toggleFlip()">
+            
+            <!-- 正面 (ZH)：中文身分資訊 -->
+            <div class="card-face card-front">
+                <div class="scan-line"></div>
+                <div class="flex flex-col h-full items-center text-center">
+                    <div class="hud-label mb-8">Official Identity Node (ZH)</div>
+                    
+                    <div class="relative mb-8">
+                        <div class="absolute -inset-2 border border-indigo-100 rounded-[2.5rem] animate-pulse"></div>
+                        <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80" 
+                             class="w-32 h-32 rounded-[2.2rem] object-cover border-4 border-white shadow-xl">
+                        <div class="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-2 rounded-xl">
+                            <i data-lucide="verified" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+
+                    <div class="space-y-1 mb-6">
+                        <h1 class="text-4xl font-black tracking-tighter text-slate-900 italic">唐鳳</h1>
+                        <p class="text-indigo-600 font-bold text-xs uppercase tracking-[0.2em]">數位發展部 部長</p>
+                    </div>
+
+                    <div class="w-full h-px bg-indigo-50 mb-6"></div>
+
+                    <!-- 打字機容器 -->
+                    <div class="min-h-[4em] flex items-start justify-center px-4">
+                        <p id="typewriter-zh" class="text-slate-500 text-sm font-medium italic cursor"></p>
+                    </div>
+
+                    <div class="mt-auto w-full space-y-3">
+                        <div class="btn-action">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500">
+                                <i data-lucide="mail" class="w-4 h-4"></i>
+                            </div>
+                            <span class="text-xs font-black text-slate-600">電子郵件聯絡</span>
+                        </div>
+                        <div class="btn-action">
+                            <div class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
+                                <i data-lucide="phone" class="w-4 h-4"></i>
+                            </div>
+                            <span class="text-xs font-black text-slate-600">撥打公務電話</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 背面 (EN)：英文身分資訊 -->
+            <div class="card-face card-back">
+                <div class="scan-line"></div>
+                <div class="flex flex-col h-full items-center text-center">
+                    <div class="hud-label mb-8">Official Identity Node (EN)</div>
+                    
+                    <div class="relative mb-8">
+                        <div class="absolute -inset-2 border border-indigo-100 rounded-[2.5rem] animate-pulse"></div>
+                        <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80" 
+                             class="w-32 h-32 rounded-[2.2rem] object-cover border-4 border-white shadow-xl">
+                        <div class="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-2 rounded-xl">
+                            <i data-lucide="verified" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+
+                    <div class="space-y-1 mb-6">
+                        <h1 class="text-4xl font-black tracking-tight text-slate-900">Audrey Tang</h1>
+                        <p class="text-indigo-600 font-bold text-[10px] uppercase tracking-[0.3em]">Minister of Digital Affairs</p>
+                    </div>
+
+                    <div class="w-full h-px bg-indigo-50 mb-6"></div>
+
+                    <!-- 打字機容器 -->
+                    <div class="min-h-[4em] flex items-start justify-center px-4">
+                        <p id="typewriter-en" class="text-slate-500 text-sm font-medium italic cursor"></p>
+                    </div>
+
+                    <div class="mt-auto w-full space-y-3">
+                        <div class="btn-action">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500">
+                                <i data-lucide="mail" class="w-4 h-4"></i>
+                            </div>
+                            <span class="text-xs font-black text-slate-600">Contact via Email</span>
+                        </div>
+                        <div class="btn-action">
+                            <div class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
+                                <i data-lucide="phone" class="w-4 h-4"></i>
+                            </div>
+                            <span class="text-xs font-black text-slate-600">Call Official Line</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 頁尾安全提示 -->
+    <footer class="fixed bottom-10 z-50 opacity-20 pointer-events-none">
+        <p class="hud-label text-[8px]">Secure Hardware Authorization Layer • Cloudflare Edge Verified</p>
+    </footer>
+
+    <script>
+        // --- 1. Three.js 背景場域 (延遲加載優化) ---
+        let scene, camera, renderer, mesh;
+        function initThree() {
+            const canvas = document.getElementById('three-canvas');
+            if(!window.THREE) return;
+            
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            const starGeo = new THREE.BufferGeometry();
+            const starPos = new Float32Array(1000 * 3);
+            for(let i=0; i < 3000; i++) starPos[i] = (Math.random() - 0.5) * 45;
+            starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+            
+            mesh = new THREE.Points(starGeo, new THREE.PointsMaterial({ 
+                size: 0.05, color: 0x6868ac, transparent: true, opacity: 0.3 
+            }));
+            scene.add(mesh);
+            camera.position.z = 12;
+
+            function animate() {
+                requestAnimationFrame(animate);
+                if(mesh) mesh.rotation.y += 0.0002;
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
+
+        // --- 2. 翻轉與狀態控制 ---
+        let isFlipped = false;
+        function toggleFlip() {
+            const cardInner = document.getElementById('card');
+            isFlipped = !isFlipped;
+            cardInner.classList.toggle('is-flipped');
+            
+            // 翻轉時切換打字機
+            if (isFlipped) {
+                resetAndStart('en');
+            } else {
+                resetAndStart('zh');
+            }
+        }
+
+        // --- 3. 雙語打字機系統 ---
+        const dictionary = {
+            zh: ["Hello, 數位連結未來", "引領臺灣數位轉型", "資料安全，數據自主"],
+            en: ["Connecting the Future", "Leading Digital Transformation", "Secure Identity & Data"]
+        };
+
+        let currentTimer = null;
+
+        function resetAndStart(lang) {
+            // 清除所有正在運行的打字機
+            if(currentTimer) clearTimeout(currentTimer);
+            document.getElementById('typewriter-zh').innerText = "";
+            document.getElementById('typewriter-en').innerText = "";
+            
+            startTypewriter(lang);
+        }
+
+        function startTypewriter(lang) {
+            const el = document.getElementById(`typewriter-${lang}`);
+            const phrases = dictionary[lang];
+            let phraseIdx = 0;
+            let charIdx = 0;
+            let isDeleting = false;
+
+            function type() {
+                const currentPhrase = phrases[phraseIdx];
+                el.innerText = isDeleting 
+                    ? currentPhrase.substring(0, charIdx--) 
+                    : currentPhrase.substring(0, charIdx++);
+                
+                let delay = isDeleting ? 40 : 80;
+
+                if (!isDeleting && charIdx > currentPhrase.length) {
+                    isDeleting = true;
+                    delay = 2000; // 停留
+                } else if (isDeleting && charIdx === 0) {
+                    isDeleting = false;
+                    phraseIdx = (phraseIdx + 1) % phrases.length;
+                    delay = 500;
+                }
+
+                currentTimer = setTimeout(type, delay);
+            }
+            type();
+        }
+
+        // --- 4. 初始化 ---
+        window.addEventListener('resize', () => {
+            if(camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            startTypewriter('zh');
+            setTimeout(initThree, 200);
+        });
+    </script>
+</body>
+</html>

@@ -291,3 +291,132 @@ body {
         padding: 0.75rem 1rem;
     }
 }
+
+/* ========================================
+   3D Card Flip - Bilingual Support
+   ======================================== */
+
+/* 3D 翻轉容器 */
+.card-perspective {
+    perspective: 2000px;
+    width: 100%;
+    max-width: 56rem; /* 896px */
+    padding: 0 1rem;
+    margin: 0 auto;
+}
+
+/* 卡片內層（可翻轉） */
+.card-inner {
+    position: relative;
+    width: 100%;
+    min-height: 600px;
+    
+    /* 3D 變換 */
+    transform-style: preserve-3d;
+    -webkit-transform-style: preserve-3d;
+    
+    /* 翻轉動畫 */
+    transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    will-change: transform;
+    cursor: pointer;
+}
+
+/* 翻轉狀態 */
+.card-inner.is-flipped {
+    transform: rotateY(180deg);
+}
+
+/* 卡片正反面 */
+.card-face {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    min-height: 100%;
+    
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable both-edges;
+    
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    
+    transform-style: preserve-3d;
+    
+    pointer-events: none;
+    
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
+    box-shadow: 0 8px 32px rgba(104, 104, 172, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04);
+    border-top: 5px solid var(--moda-accent);
+}
+
+.card-face > * {
+    pointer-events: auto;
+}
+
+/* 隱藏 Webkit 滾動條 */
+.card-face::-webkit-scrollbar {
+    display: none;
+}
+
+/* 正面 */
+.card-front {
+    z-index: 2;
+}
+
+/* 背面 */
+.card-back {
+    z-index: 1;
+    transform: rotateY(180deg) translateZ(0);
+}
+
+/* 焦點指示器（WCAG 合規） */
+.card-inner:focus {
+    outline: none;
+}
+
+.card-inner:focus-visible {
+    outline: 2px solid var(--moda-accent);
+    outline-offset: 4px;
+    border-radius: 1rem;
+}
+
+/* 浮動提示 */
+#hint-badge {
+    animation: float 3s ease-in-out infinite;
+}
+
+#hint-badge button {
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+/* 響應式調整 */
+@media (max-width: 640px) {
+    .card-perspective {
+        max-width: 100%;
+        padding: 0 0.5rem;
+    }
+    
+    .card-inner {
+        min-height: 500px;
+    }
+}

@@ -6,16 +6,20 @@
 	"private": true,
 	"scripts": {
 		"deploy": "wrangler deploy",
+		"deploy:staging": "npm run build:css && wrangler deploy",
+		"deploy:production": "npm run build:css && wrangler deploy --env production",
 		"dev": "wrangler dev",
 		"start": "wrangler dev",
 		"test": "vitest",
 		"cf-typegen": "wrangler types",
-		"build:css": "tailwindcss -i ./public/css/tailwind-input.css -o ./public/css/tailwind.css --minify",
+		"build:css": "npx @tailwindcss/cli -i ./public/css/tailwind-input.css -o ./public/css/tailwind.css --minify",
+		"watch:css": "npx @tailwindcss/cli -i ./public/css/tailwind-input.css -o ./public/css/tailwind.css --watch",
 		"typecheck": "tsc --noEmit",
 		"kek:rewrap": "tsx scripts/rewrap-deks.ts"
 	},
 	"devDependencies": {
 		"@cloudflare/vitest-pool-workers": "^0.12.6",
+		"@tailwindcss/cli": "^4.1.18",
 		"autoprefixer": "^10.4.23",
 		"postcss": "^8.5.6",
 		"tailwindcss": "^4.1.18",

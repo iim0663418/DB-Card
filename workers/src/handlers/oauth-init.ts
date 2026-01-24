@@ -1,24 +1,30 @@
 /**
  * OAuth Initialization Handler
  *
- * Generates and stores state parameter for OAuth flow
+ * Generates and stores state parameter and nonce for OAuth flow
+ * BDD Scenario 1: Generate and store nonce
  */
 
 import type { Env } from '../types';
 import { generateOAuthState, storeOAuthState } from '../utils/oauth-state';
+import { generateOAuthNonce, storeOAuthNonce } from '../utils/oauth-nonce';
 
 export async function handleOAuthInit(
   request: Request,
   env: Env
 ): Promise<Response> {
   try {
-    // Generate state parameter
+    // Generate state and nonce parameters
     const state = generateOAuthState();
+    const nonce = generateOAuthNonce();
 
-    // Store state in KV with 10-minute TTL
-    await storeOAuthState(state, env);
+    // Store state and nonce in KV with 10-minute TTL
+    await Promise.all([
+      storeOAuthState(state, env),
+      storeOAuthNonce(nonce, env)
+    ]);
 
-    return new Response(JSON.stringify({ state }), {
+    return new Response(JSON.stringify({ state, nonce }), {
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {

@@ -1266,10 +1266,19 @@ wrangler secret delete OLD_KEK
 
             // 清除狀態並顯示登入頁面
             isVerified = false;
+            
+            // 重置所有登入相關元素
             document.getElementById('token-section').classList.remove('hidden');
             document.getElementById('auth-status').classList.add('hidden');
             document.getElementById('admin-nav').classList.add('hidden');
             document.getElementById('content-area').classList.add('hidden');
+            
+            // 清空輸入框
+            document.getElementById('admin-email').value = '';
+            document.getElementById('setup-token').value = '';
+            
+            // 重置 Passkey 按鈕狀態
+            document.getElementById('passkey-login').classList.add('hidden');
             
             // 重新檢查 Passkey 可用性
             checkPasskeyAvailable().catch(e => console.error(e));

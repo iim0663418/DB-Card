@@ -793,9 +793,9 @@
                 </button>
             </div>
 
-            <div class="p-4 bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500 rounded-xl shadow-sm">
+            <div class="p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
                 <div class="flex items-start gap-3">
-                    <i data-lucide="alert-triangle" class="text-red-500 flex-shrink-0 animate-pulse"></i>
+                    <i data-lucide="alert-triangle" class="text-red-500 flex-shrink-0"></i>
                     <div>
                         <p class="text-sm font-bold text-red-700">警告：KEK 輪替需要系統管理員權限</p>
                         <p class="text-xs text-red-600 mt-1">此操作需要存取環境變數與 Cloudflare Workers 部署權限</p>
@@ -804,9 +804,9 @@
             </div>
 
             <div class="space-y-4">
-                <div class="p-5 bg-gradient-to-br from-white to-purple-50 rounded-xl border border-purple-100 shadow-md hover:shadow-lg transition-shadow">
+                <div class="p-5 bg-white rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
                     <div class="flex items-start gap-4">
-                        <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-[#6868ac] to-purple-700 text-white rounded-full flex items-center justify-center font-bold shadow-lg">1</div>
+                        <div class="flex-shrink-0 w-10 h-10 bg-[#6868ac] text-white rounded-full flex items-center justify-center font-bold">1</div>
                         <div class="flex-1">
                             <h3 class="font-bold text-slate-900 mb-2">生成新 KEK</h3>
                             <div class="relative group">
@@ -819,9 +819,9 @@
                     </div>
                 </div>
 
-                <div class="p-5 bg-gradient-to-br from-white to-indigo-50 rounded-xl border border-indigo-100 shadow-md hover:shadow-lg transition-shadow">
+                <div class="p-5 bg-white rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
                     <div class="flex items-start gap-4">
-                        <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-[#6868ac] to-indigo-700 text-white rounded-full flex items-center justify-center font-bold shadow-lg">2</div>
+                        <div class="flex-shrink-0 w-10 h-10 bg-[#6868ac] text-white rounded-full flex items-center justify-center font-bold">2</div>
                         <div class="flex-1">
                             <h3 class="font-bold text-slate-900 mb-2">更新環境變數</h3>
                             <p class="text-sm text-slate-600 mb-3">將當前 KEK 移至 OLD_KEK，新 KEK 設為 KEK</p>
@@ -836,9 +836,9 @@ wrangler secret put OLD_KEK</code></pre>
                     </div>
                 </div>
 
-                <div class="p-5 bg-gradient-to-br from-white to-blue-50 rounded-xl border border-blue-100 shadow-md hover:shadow-lg transition-shadow">
+                <div class="p-5 bg-white rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
                     <div class="flex items-start gap-4">
-                        <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-[#6868ac] to-blue-700 text-white rounded-full flex items-center justify-center font-bold shadow-lg">3</div>
+                        <div class="flex-shrink-0 w-10 h-10 bg-[#6868ac] text-white rounded-full flex items-center justify-center font-bold">3</div>
                         <div class="flex-1">
                             <h3 class="font-bold text-slate-900 mb-2">重新部署</h3>
                             <div class="relative group">
@@ -851,9 +851,9 @@ wrangler secret put OLD_KEK</code></pre>
                     </div>
                 </div>
 
-                <div class="p-5 bg-gradient-to-br from-white to-cyan-50 rounded-xl border border-cyan-100 shadow-md hover:shadow-lg transition-shadow">
+                <div class="p-5 bg-white rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
                     <div class="flex items-start gap-4">
-                        <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-[#6868ac] to-cyan-700 text-white rounded-full flex items-center justify-center font-bold shadow-lg">4</div>
+                        <div class="flex-shrink-0 w-10 h-10 bg-[#6868ac] text-white rounded-full flex items-center justify-center font-bold">4</div>
                         <div class="flex-1">
                             <h3 class="font-bold text-slate-900 mb-2">執行 DEK 重新包裝腳本</h3>
                             <p class="text-sm text-slate-600 mb-3">在本地執行腳本進行重新包裝</p>
@@ -868,9 +868,9 @@ npm run kek:rewrap</code></pre>
                     </div>
                 </div>
 
-                <div class="p-5 bg-gradient-to-br from-white to-teal-50 rounded-xl border border-teal-100 shadow-md hover:shadow-lg transition-shadow">
+                <div class="p-5 bg-white rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
                     <div class="flex items-start gap-4">
-                        <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-[#6868ac] to-teal-700 text-white rounded-full flex items-center justify-center font-bold shadow-lg">5</div>
+                        <div class="flex-shrink-0 w-10 h-10 bg-[#6868ac] text-white rounded-full flex items-center justify-center font-bold">5</div>
                         <div class="flex-1">
                             <h3 class="font-bold text-slate-900 mb-2">清理舊密鑰</h3>
                             <p class="text-sm text-slate-600 mb-3">確認輪替成功後刪除 OLD_KEK</p>
@@ -885,7 +885,7 @@ npm run kek:rewrap</code></pre>
                 </div>
             </div>
 
-            <div class="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-100 shadow-sm">
+            <div class="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
                 <div class="flex items-start gap-3">
                     <i data-lucide="info" class="text-blue-600 flex-shrink-0"></i>
                     <div>
@@ -896,7 +896,7 @@ npm run kek:rewrap</code></pre>
             </div>
 
             <div class="flex gap-4">
-                <button onclick="closeRotationGuide()" class="flex-1 py-4 bg-gradient-to-r from-slate-100 to-slate-200 text-slate-700 rounded-2xl font-bold hover:from-slate-200 hover:to-slate-300 transition-all shadow-sm hover:shadow">關閉</button>
+                <button onclick="closeRotationGuide()" class="flex-1 py-4 bg-slate-100 text-slate-700 rounded-2xl font-bold hover:bg-slate-200 transition-colors">關閉</button>
             </div>
         </div>
     </div>

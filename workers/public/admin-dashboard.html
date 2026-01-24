@@ -1402,16 +1402,19 @@ wrangler secret delete OLD_KEK
 
         // Load KEK status monitoring
         async function loadKekStatus() {
-            const token = sessionStorage.getItem('setup_token');
-            if (!token) return;
-
             try {
                 const response = await fetch(`${API_BASE}/api/admin/kek/status`, {
-                    credentials: 'include',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    credentials: 'include'
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    showNotification('授權已過期，請重新登入', 'error');
+                    // 顯示登入表單
+                    document.getElementById('token-section').classList.remove('hidden');
+                    document.getElementById('admin-nav').classList.add('hidden');
+                    document.getElementById('content-area').classList.add('hidden');
+                    return;
+                }
 
                 if (!response.ok) throw new Error('Failed to load KEK status');
 
@@ -1753,15 +1756,21 @@ wrangler secret delete OLD_KEK
 
         // Load cards from API (Phase 2: with credentials)
         window.loadCards = async function() {
-            const token = sessionStorage.getItem('setup_token');
-
             showLoadingState();
 
             try {
                 const response = await fetch(`${API_BASE}/api/admin/cards`, {
-                    credentials: 'include', // Cookie auto-attached
-                    headers: { 'Authorization': `Bearer ${token}` } // Fallback
+                    credentials: 'include'
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    showNotification('授權已過期，請重新登入', 'error');
+                    // 顯示登入表單
+                    document.getElementById('token-section').classList.remove('hidden');
+                    document.getElementById('admin-nav').classList.add('hidden');
+                    document.getElementById('content-area').classList.add('hidden');
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '載入失敗');
@@ -1817,7 +1826,6 @@ wrangler secret delete OLD_KEK
 
                 // Clear verification state
                 isVerified = false;
-                sessionStorage.removeItem('setup_token');
 
                 // Call logout API to clear cookie
                 try {
@@ -1969,12 +1977,6 @@ wrangler secret delete OLD_KEK
         async function handleCreateCard(e) {
             e.preventDefault();
 
-            const token = sessionStorage.getItem('setup_token');
-            if (!token) {
-                showNotification('未授權：請重新驗證', 'error');
-                return;
-            }
-
             const isEditing = !!window.editingCardUuid;
 
             // 收集表單資料（完全對齊 nfc-generator）
@@ -2119,9 +2121,8 @@ wrangler secret delete OLD_KEK
 
                 const response = await fetch(url, {
                     method: method,
-                    credentials: 'include', // Cookie auto-attached
+                    credentials: 'include',
                     headers: {
-                        'Authorization': `Bearer ${token}`, // Fallback
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
@@ -2129,6 +2130,15 @@ wrangler secret delete OLD_KEK
                         cardData: cardData
                     })
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    showNotification('授權已過期，請重新登入', 'error');
+                    // 顯示登入表單
+                    document.getElementById('token-section').classList.remove('hidden');
+                    document.getElementById('admin-nav').classList.add('hidden');
+                    document.getElementById('content-area').classList.add('hidden');
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '操作失敗');
@@ -2170,20 +2180,21 @@ wrangler secret delete OLD_KEK
 
         // Delete Card
         async function handleDeleteCard(uuid) {
-            const token = sessionStorage.getItem('setup_token');
-            if (!token) {
-                showNotification('未授權：請重新驗證', 'error');
-                return;
-            }
-
             try {
                 const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}`, {
                     method: 'DELETE',
                     credentials: 'include',
-                    headers: getHeadersWithCSRF({
-                        'Authorization': `Bearer ${token}`
-                    })
+                    headers: getHeadersWithCSRF()
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    showNotification('授權已過期，請重新登入', 'error');
+                    // 顯示登入表單
+                    document.getElementById('token-section').classList.remove('hidden');
+                    document.getElementById('admin-nav').classList.add('hidden');
+                    document.getElementById('content-area').classList.add('hidden');
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '撤銷失敗');
@@ -2201,20 +2212,21 @@ wrangler secret delete OLD_KEK
 
         // Restore Card
         async function handleRestoreCard(uuid) {
-            const token = sessionStorage.getItem('setup_token');
-            if (!token) {
-                showNotification('未授權：請重新驗證', 'error');
-                return;
-            }
-
             try {
                 const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}/restore`, {
                     method: 'POST',
                     credentials: 'include',
-                    headers: getHeadersWithCSRF({
-                        'Authorization': `Bearer ${token}`
-                    })
+                    headers: getHeadersWithCSRF()
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    showNotification('授權已過期，請重新登入', 'error');
+                    // 顯示登入表單
+                    document.getElementById('token-section').classList.remove('hidden');
+                    document.getElementById('admin-nav').classList.add('hidden');
+                    document.getElementById('content-area').classList.add('hidden');
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '恢復失敗');
@@ -2236,21 +2248,23 @@ wrangler secret delete OLD_KEK
                 return;
             }
 
-            const token = sessionStorage.getItem('setup_token');
-            if (!token) {
-                showNotification('未授權：請重新驗證', 'error');
-                return;
-            }
-
             try {
                 const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}/reset-budget`, {
                     method: 'POST',
                     credentials: 'include',
                     headers: getHeadersWithCSRF({
-                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     })
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    showNotification('授權已過期，請重新登入', 'error');
+                    // 顯示登入表單
+                    document.getElementById('token-section').classList.remove('hidden');
+                    document.getElementById('admin-nav').classList.add('hidden');
+                    document.getElementById('content-area').classList.add('hidden');
+                    return;
+                }
 
                 if (!response.ok) {
                     const error = await response.json();
@@ -2269,20 +2283,21 @@ wrangler secret delete OLD_KEK
         }
 
         async function handlePermanentDelete(uuid) {
-            const token = sessionStorage.getItem('setup_token');
-            if (!token) {
-                showNotification('未授權：請重新驗證', 'error');
-                return;
-            }
-
             try {
                 const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}?permanent=true`, {
                     method: 'DELETE',
                     credentials: 'include',
-                    headers: getHeadersWithCSRF({
-                        'Authorization': `Bearer ${token}`
-                    })
+                    headers: getHeadersWithCSRF()
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    showNotification('授權已過期，請重新登入', 'error');
+                    // 顯示登入表單
+                    document.getElementById('token-section').classList.remove('hidden');
+                    document.getElementById('admin-nav').classList.add('hidden');
+                    document.getElementById('content-area').classList.add('hidden');
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '永久刪除失敗');
@@ -2299,24 +2314,26 @@ wrangler secret delete OLD_KEK
         }
 
         async function handleRevokeCard(uuid) {
-            const token = sessionStorage.getItem('setup_token');
-            if (!token) {
-                showNotification('未授權：請重新驗證', 'error');
-                return;
-            }
-
             try {
                 const response = await fetch(`${API_BASE}/api/admin/revoke`, {
                     method: 'POST',
-                    credentials: 'include', // Cookie auto-attached
+                    credentials: 'include',
                     headers: getHeadersWithCSRF({
-                        'Authorization': `Bearer ${token}`, // Fallback
                         'Content-Type': 'application/json'
                     }),
                     body: JSON.stringify({
                         card_uuid: uuid
                     })
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    showNotification('授權已過期，請重新登入', 'error');
+                    // 顯示登入表單
+                    document.getElementById('token-section').classList.remove('hidden');
+                    document.getElementById('admin-nav').classList.add('hidden');
+                    document.getElementById('content-area').classList.add('hidden');
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '撤銷失敗');
@@ -2511,13 +2528,19 @@ wrangler secret delete OLD_KEK
             formElements.forEach(el => el.disabled = true);
             showNotification('載入名片資料中...', 'info');
 
-            const token = sessionStorage.getItem('setup_token');
-
             try {
                 const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}`, {
-                    credentials: 'include',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'include'
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    showNotification('授權已過期，請重新登入', 'error');
+                    // 顯示登入表單
+                    document.getElementById('token-section').classList.remove('hidden');
+                    document.getElementById('admin-nav').classList.add('hidden');
+                    document.getElementById('content-area').classList.add('hidden');
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '載入失敗');
@@ -2758,13 +2781,19 @@ wrangler secret delete OLD_KEK
 
         // 載入安全統計
         async function loadSecurityStats() {
-            const token = sessionStorage.getItem('setup_token');
-
             try {
                 const response = await fetch(`${API_BASE}/api/admin/security/stats`, {
-                    credentials: 'include',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'include'
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    showNotification('授權已過期，請重新登入', 'error');
+                    // 顯示登入表單
+                    document.getElementById('token-section').classList.remove('hidden');
+                    document.getElementById('admin-nav').classList.add('hidden');
+                    document.getElementById('content-area').classList.add('hidden');
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '載入統計失敗');
@@ -2814,13 +2843,19 @@ wrangler secret delete OLD_KEK
 
         // 載入安全時間軸
         async function loadSecurityTimeline(hours) {
-            const token = sessionStorage.getItem('setup_token');
-
             try {
                 const response = await fetch(`${API_BASE}/api/admin/security/timeline?hours=${hours}`, {
-                    credentials: 'include',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'include'
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    showNotification('授權已過期，請重新登入', 'error');
+                    // 顯示登入表單
+                    document.getElementById('token-section').classList.remove('hidden');
+                    document.getElementById('admin-nav').classList.add('hidden');
+                    document.getElementById('content-area').classList.add('hidden');
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '載入時間軸失敗');
@@ -2900,7 +2935,6 @@ wrangler secret delete OLD_KEK
 
         // 載入安全事件列表
         async function loadSecurityEvents(page = 1, eventType = '') {
-            const token = sessionStorage.getItem('setup_token');
             currentEventPage = page;
             currentEventType = eventType;
 
@@ -2911,9 +2945,17 @@ wrangler secret delete OLD_KEK
                 }
 
                 const response = await fetch(url, {
-                    credentials: 'include',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'include'
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    showNotification('授權已過期，請重新登入', 'error');
+                    // 顯示登入表單
+                    document.getElementById('token-section').classList.remove('hidden');
+                    document.getElementById('admin-nav').classList.add('hidden');
+                    document.getElementById('content-area').classList.add('hidden');
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '載入事件失敗');
@@ -2997,7 +3039,6 @@ wrangler secret delete OLD_KEK
         async function handleBlockIP(e) {
             e.preventDefault();
 
-            const token = sessionStorage.getItem('setup_token');
             const ip = document.getElementById('block-ip').value.trim();
             const duration = parseInt(document.getElementById('block-duration').value);
             const reason = document.getElementById('block-reason').value.trim();
@@ -3012,7 +3053,6 @@ wrangler secret delete OLD_KEK
                     method: 'POST',
                     credentials: 'include',
                     headers: getHeadersWithCSRF({
-                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     }),
                     body: JSON.stringify({
@@ -3021,6 +3061,15 @@ wrangler secret delete OLD_KEK
                         reason: reason || 'Manual block'
                     })
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    showNotification('授權已過期，請重新登入', 'error');
+                    // 顯示登入表單
+                    document.getElementById('token-section').classList.remove('hidden');
+                    document.getElementById('admin-nav').classList.add('hidden');
+                    document.getElementById('content-area').classList.add('hidden');
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '封鎖失敗');
@@ -3044,7 +3093,6 @@ wrangler secret delete OLD_KEK
 
         // 解除封鎖 IP
         async function handleUnblockIP() {
-            const token = sessionStorage.getItem('setup_token');
             const ip = currentIPAddress;
 
             if (!ip) {
@@ -3056,8 +3104,17 @@ wrangler secret delete OLD_KEK
                 const response = await fetch(`${API_BASE}/api/admin/security/block/${encodeURIComponent(ip)}`, {
                     method: 'DELETE',
                     credentials: 'include',
-                    headers: getHeadersWithCSRF({ 'Authorization': `Bearer ${token}` })
+                    headers: getHeadersWithCSRF()
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    showNotification('授權已過期，請重新登入', 'error');
+                    // 顯示登入表單
+                    document.getElementById('token-section').classList.remove('hidden');
+                    document.getElementById('admin-nav').classList.add('hidden');
+                    document.getElementById('content-area').classList.add('hidden');
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '解除封鎖失敗');
@@ -3079,14 +3136,21 @@ wrangler secret delete OLD_KEK
 
         // 載入 IP 詳情
         async function loadIPDetail(ip) {
-            const token = sessionStorage.getItem('setup_token');
             currentIPAddress = ip;
 
             try {
                 const response = await fetch(`${API_BASE}/api/admin/security/ip/${encodeURIComponent(ip)}`, {
-                    credentials: 'include',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'include'
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    showNotification('授權已過期，請重新登入', 'error');
+                    // 顯示登入表單
+                    document.getElementById('token-section').classList.remove('hidden');
+                    document.getElementById('admin-nav').classList.add('hidden');
+                    document.getElementById('content-area').classList.add('hidden');
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '載入 IP 詳情失敗');
@@ -3172,8 +3236,6 @@ wrangler secret delete OLD_KEK
 
         // 匯出 CSV
         async function exportSecurityEvents() {
-            const token = sessionStorage.getItem('setup_token');
-
             try {
                 let url = `${API_BASE}/api/admin/security/export`;
                 if (currentEventType) {
@@ -3181,9 +3243,17 @@ wrangler secret delete OLD_KEK
                 }
 
                 const response = await fetch(url, {
-                    credentials: 'include',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'include'
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    showNotification('授權已過期，請重新登入', 'error');
+                    // 顯示登入表單
+                    document.getElementById('token-section').classList.remove('hidden');
+                    document.getElementById('admin-nav').classList.add('hidden');
+                    document.getElementById('content-area').classList.add('hidden');
+                    return;
+                }
 
                 if (!response.ok) {
                     await handleApiError(response, '匯出失敗');
@@ -3310,12 +3380,6 @@ wrangler secret delete OLD_KEK
                     updatePreview();
                 };
             });
-
-            // 檢查是否已有保存的 token（自動填入）
-            const savedToken = sessionStorage.getItem('setup_token');
-            if (savedToken) {
-                document.getElementById('setup-token').value = savedToken;
-            }
 
             // 綁定安全監控事件
             const blockIPForm = document.getElementById('block-ip-form');

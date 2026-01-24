@@ -311,7 +311,7 @@
             errorBox.classList.add('hidden');
 
             try {
-                // ✅ BDD Scenario 4: Generate OAuth state parameter (CSRF Protection)
+                // ✅ BDD Scenario 1: Generate OAuth state and nonce (CSRF + Replay Protection)
                 const stateResponse = await fetch('/api/oauth/init', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
@@ -321,7 +321,7 @@
                     throw new Error('Failed to initialize OAuth');
                 }
 
-                const { state } = await stateResponse.json();
+                const { state, nonce } = await stateResponse.json();
 
                 const clientId = '675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com';
                 const redirectUri = window.location.origin + '/oauth/callback';
@@ -334,7 +334,8 @@
                     scope: scope,
                     access_type: 'online',
                     prompt: 'select_account',
-                    state: state // Add state parameter for CSRF protection
+                    state: state, // CSRF protection
+                    nonce: nonce  // Replay protection (Phase 2)
                 });
 
                 // Open popup

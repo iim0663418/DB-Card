@@ -1,9 +1,10 @@
-// OIDC ID Token Validator - Phase 1 Day 2
-// Validates Google ID Tokens using JWKS public keys
+// OIDC ID Token Validator - Phase 1 Day 2 + Phase 2 Nonce
+// Validates Google ID Tokens using JWKS public keys and nonce
 
 import { jwtVerify, createLocalJWKSet } from 'jose';
 import type { Env } from '../types';
 import { getJWKS } from './jwks-manager';
+import { validateAndConsumeOAuthNonce } from './oauth-nonce';
 
 const GOOGLE_ISSUER = 'https://accounts.google.com';
 const CLOCK_SKEW_SECONDS = 60; // ±60 seconds tolerance
@@ -22,17 +23,23 @@ export interface GoogleIDTokenPayload {
   picture: string;          // User avatar URL
   iat: number;              // Issued at (Unix timestamp)
   exp: number;              // Expiration time (Unix timestamp)
+  nonce?: string;           // Optional nonce (Phase 2)
 }
 
 /**
  * Scenario 1-5: Validate Google ID Token
  *
- * BDD Scenarios:
+ * BDD Scenarios (Phase 1):
  * - Scenario 1: ✅ Verify issuer, audience, exp, iat, signature
  * - Scenario 2: ❌ Reject invalid issuer
  * - Scenario 3: ❌ Reject invalid audience
  * - Scenario 4: ❌ Reject expired token
  * - Scenario 5: ❌ Reject invalid signature
+ *
+ * BDD Scenarios (Phase 2 - Nonce):
+ * - Scenario 2: ✅ Validate valid nonce and consume
+ * - Scenario 3: ❌ Reject invalid nonce
+ * - Scenario 4: ⚠️ Warn if nonce missing (backward compatible)
  *
  * @param idToken - JWT ID Token from Google OAuth
  * @param env - Cloudflare Workers environment
@@ -78,6 +85,16 @@ export async function validateIDToken(
       throw new Error('Invalid issued at time');
     }
 
+    // Phase 2: Validate nonce (anti-replay protection)
+    const nonce = payload.nonce as string | undefined;
+    if (nonce) {
+      // Scenario 2 & 3: Validate and consume nonce (one-time use)
+      await validateAndConsumeOAuthNonce(nonce, env);
+    } else {
+      // Scenario 4: Backward compatible - warn if nonce missing
+      console.warn('ID Token missing nonce claim (backward compatible mode)');
+    }
+
     // Extract and return claims
     return {
       iss: payload.iss as string,
@@ -88,7 +105,8 @@ export async function validateIDToken(
       name: payload.name as string,
       picture: payload.picture as string,
       iat: payload.iat as number,
-      exp: payload.exp as number
+      exp: payload.exp as number,
+      nonce
     };
   } catch (error) {
     // Scenario 5: Invalid signature (caught by jwtVerify)

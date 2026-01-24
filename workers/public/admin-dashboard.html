@@ -2469,43 +2469,6 @@ wrangler secret delete OLD_KEK
             }
         }
 
-        async function handleRevokeCard(uuid) {
-            try {
-                const response = await fetch(`${API_BASE}/api/admin/revoke`, {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: getHeadersWithCSRF({
-                        'Content-Type': 'application/json'
-                    }),
-                    body: JSON.stringify({
-                        card_uuid: uuid
-                    })
-                });
-
-                if (response.status === 401 || response.status === 403) {
-                    showNotification('授權已過期，請重新登入', 'error');
-                    // 顯示登入表單
-                    document.getElementById('token-section').classList.remove('hidden');
-                    document.getElementById('admin-nav').classList.add('hidden');
-                    document.getElementById('content-area').classList.add('hidden');
-                    return;
-                }
-
-                if (!response.ok) {
-                    await handleApiError(response, '撤銷失敗');
-                    return;
-                }
-
-                const result = await response.json();
-                const count = result.sessions_revoked || result.data?.sessions_revoked || 0;
-                showNotification(`已撤銷 ${count} 個 Session`, 'success');
-
-            } catch (error) {
-                console.error('Revoke card error:', error);
-                showNotification('撤銷失敗: ' + error.message, 'error');
-            }
-        }
-
         function confirmAction(type, uuid = null) {
             const modal = document.getElementById('confirm-modal');
             const title = document.getElementById('modal-title');
@@ -2542,16 +2505,6 @@ wrangler secret delete OLD_KEK
                 btn.onclick = async () => {
                     closeModal();
                     await handleRestoreCard(uuid);
-                };
-            } else if(type === 'revoke') {
-                title.innerText = "確認撤銷所有 Session";
-                desc.innerText = "此名片目前已簽發的讀取授權將全數作廢，使用者須重新碰卡。";
-                iconContainer.className = "w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4";
-                iconContainer.innerHTML = '<i data-lucide="shield-alert" class="w-8 h-8 text-amber-600"></i>';
-                btn.className = "flex-1 px-6 py-4 bg-amber-600 text-white rounded-xl font-bold hover:bg-amber-700 transition-colors";
-                btn.onclick = async () => {
-                    closeModal();
-                    await handleRevokeCard(uuid);
                 };
             }
 
@@ -3459,7 +3412,6 @@ wrangler secret delete OLD_KEK
         window.restoreCard = handleRestoreCard;
         window.resetBudget = resetBudget;
         window.confirmAction = confirmAction;
-        window.revokeCard = handleRevokeCard;
         window.cancelEdit = cancelEdit;
         window.handleBlockIP = handleBlockIP;
         window.handleUnblockIP = handleUnblockIP;

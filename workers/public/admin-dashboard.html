@@ -834,10 +834,10 @@ wrangler secret put OLD_KEK</code></pre>
                     <div class="flex items-start gap-3">
                         <div class="flex-shrink-0 w-8 h-8 bg-moda text-white rounded-full flex items-center justify-center font-bold">4</div>
                         <div class="flex-1">
-                            <h3 class="font-bold text-slate-900 mb-2">觸發 DEK 重新包裝</h3>
-                            <p class="text-sm text-slate-600 mb-2">使用系統管理員 API 進行重新包裝</p>
-                            <pre class="bg-slate-900 text-green-400 p-3 rounded-lg text-xs overflow-x-auto"><code>curl -X POST https://your-domain/api/admin/kek/rotate \
-  -H "Authorization: Bearer $SETUP_TOKEN"</code></pre>
+                            <h3 class="font-bold text-slate-900 mb-2">執行 DEK 重新包裝腳本</h3>
+                            <p class="text-sm text-slate-600 mb-2">在本地執行腳本進行重新包裝</p>
+                            <pre class="bg-slate-900 text-green-400 p-3 rounded-lg text-xs overflow-x-auto"><code>cd workers
+npm run kek:rewrap</code></pre>
                         </div>
                     </div>
                 </div>

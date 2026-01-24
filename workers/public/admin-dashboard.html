@@ -810,7 +810,7 @@
                         <div class="flex-1">
                             <h3 class="font-bold text-slate-900 mb-2">生成新 KEK</h3>
                             <div class="relative group">
-                                <pre class="bg-slate-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto"><code>
+                                <pre class="bg-slate-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto whitespace-nowrap"><code>
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 </code></pre>
                                 <button onclick="navigator.clipboard.writeText(`node -e &quot;console.log(require('crypto').randomBytes(32).toString('base64'))&quot;`)" class="absolute top-2 right-2 p-2 bg-slate-800 hover:bg-slate-700 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
@@ -828,7 +828,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
                             <h3 class="font-bold text-slate-900 mb-2">更新環境變數</h3>
                             <p class="text-sm text-slate-600 mb-3">將當前 KEK 移至 OLD_KEK，新 KEK 設為 KEK</p>
                             <div class="relative group">
-                                <pre class="bg-slate-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto"><code>
+                                <pre class="bg-slate-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto whitespace-nowrap"><code>
 wrangler secret put KEK
 wrangler secret put OLD_KEK
 </code></pre>
@@ -846,7 +846,7 @@ wrangler secret put OLD_KEK
                         <div class="flex-1">
                             <h3 class="font-bold text-slate-900 mb-2">重新部署</h3>
                             <div class="relative group">
-                                <pre class="bg-slate-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto"><code>
+                                <pre class="bg-slate-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto whitespace-nowrap"><code>
 wrangler deploy
 </code></pre>
                                 <button onclick="navigator.clipboard.writeText('wrangler deploy')" class="absolute top-2 right-2 p-2 bg-slate-800 hover:bg-slate-700 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
@@ -864,7 +864,7 @@ wrangler deploy
                             <h3 class="font-bold text-slate-900 mb-2">執行 DEK 重新包裝腳本</h3>
                             <p class="text-sm text-slate-600 mb-3">在本地執行腳本進行重新包裝</p>
                             <div class="relative group">
-                                <pre class="bg-slate-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto"><code>
+                                <pre class="bg-slate-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto whitespace-nowrap"><code>
 cd workers
 npm run kek:rewrap
 </code></pre>
@@ -883,7 +883,7 @@ npm run kek:rewrap
                             <h3 class="font-bold text-slate-900 mb-2">清理舊密鑰</h3>
                             <p class="text-sm text-slate-600 mb-3">確認輪替成功後刪除 OLD_KEK</p>
                             <div class="relative group">
-                                <pre class="bg-slate-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto"><code>
+                                <pre class="bg-slate-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto whitespace-nowrap"><code>
 wrangler secret delete OLD_KEK
 </code></pre>
                                 <button onclick="navigator.clipboard.writeText('wrangler secret delete OLD_KEK')" class="absolute top-2 right-2 p-2 bg-slate-800 hover:bg-slate-700 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">

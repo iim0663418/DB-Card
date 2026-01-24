@@ -803,19 +803,23 @@
 
     </div>
 
-    <!-- 戰略性摩擦：確認 Modal (Good Friction) -->
-    <div id="confirm-modal" class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md hidden flex items-center justify-center p-6">
-        <div class="glass-surface max-w-md w-full p-8 rounded-2xl space-y-6">
-            <div class="text-center">
-                <div id="modal-icon-container" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-100 text-red-600">
+    <!-- 確認操作 Modal -->
+    <div id="confirm-modal" class="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm hidden flex items-center justify-center p-6">
+        <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-8">
+            <div class="text-center mb-6">
+                <div id="modal-icon-container" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i data-lucide="alert-triangle" class="w-8 h-8"></i>
                 </div>
-                <h2 id="modal-title" class="text-xl font-black text-slate-900">確定執行此操作？</h2>
-                <p id="modal-desc" class="text-sm text-slate-500 mt-2">此操作具有高度破壞性，且無法輕易復原。</p>
+                <h3 id="modal-title" class="text-2xl font-black text-slate-900">確定執行此操作？</h3>
+                <p id="modal-desc" class="text-sm text-slate-600 mt-2">此操作具有高度破壞性，且無法輕易復原。</p>
             </div>
-            <div class="flex gap-4">
-                <button onclick="closeModal()" class="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200">取消</button>
-                <button id="modal-confirm-btn" class="flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 shadow-lg">確認執行</button>
+            <div class="flex gap-3">
+                <button onclick="closeModal()" class="flex-1 px-6 py-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors">
+                    取消
+                </button>
+                <button id="modal-confirm-btn" class="flex-1 px-6 py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors">
+                    確認執行
+                </button>
             </div>
         </div>
     </div>
@@ -2507,39 +2511,53 @@ wrangler secret delete OLD_KEK
             const title = document.getElementById('modal-title');
             const desc = document.getElementById('modal-desc');
             const btn = document.getElementById('modal-confirm-btn');
+            const iconContainer = document.getElementById('modal-icon-container');
 
             if(type === 'delete') {
-                title.innerText = "確認撤銷名片？";
+                title.innerText = "確認撤銷名片";
                 desc.innerText = "撤銷後使用者將無法編輯或使用此名片，但管理員可以恢復。";
-                btn.className = "flex-1 py-4 bg-amber-500 text-white rounded-2xl font-bold hover:bg-amber-600";
+                iconContainer.className = "w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4";
+                iconContainer.innerHTML = '<i data-lucide="shield-alert" class="w-8 h-8 text-amber-600"></i>';
+                btn.className = "flex-1 px-6 py-4 bg-amber-600 text-white rounded-xl font-bold hover:bg-amber-700 transition-colors";
                 btn.onclick = async () => {
                     closeModal();
                     await handleDeleteCard(uuid);
                 };
             } else if(type === 'permanent_delete') {
-                title.innerText = "【警告】確認永久刪除名片？";
+                title.innerText = "【警告】確認永久刪除名片";
                 desc.innerText = "此操作將從資料庫永久刪除此名片，無法復原！請確認您真的要執行此操作。";
-                btn.className = "flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700";
+                iconContainer.className = "w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4";
+                iconContainer.innerHTML = '<i data-lucide="alert-triangle" class="w-8 h-8 text-red-600"></i>';
+                btn.className = "flex-1 px-6 py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors";
                 btn.onclick = async () => {
                     closeModal();
                     await handlePermanentDelete(uuid);
                 };
             } else if(type === 'restore') {
-                title.innerText = "確認恢復名片？";
+                title.innerText = "確認恢復名片";
                 desc.innerText = "恢復後使用者將可以正常使用此名片。";
-                btn.className = "flex-1 py-4 bg-green-500 text-white rounded-2xl font-bold hover:bg-green-600";
+                iconContainer.className = "w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4";
+                iconContainer.innerHTML = '<i data-lucide="check-circle" class="w-8 h-8 text-green-600"></i>';
+                btn.className = "flex-1 px-6 py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors";
                 btn.onclick = async () => {
                     closeModal();
                     await handleRestoreCard(uuid);
                 };
             } else if(type === 'revoke') {
-                title.innerText = "確認撤銷所有 Session？";
+                title.innerText = "確認撤銷所有 Session";
                 desc.innerText = "此名片目前已簽發的讀取授權將全數作廢，使用者須重新碰卡。";
-                btn.className = "flex-1 py-4 bg-amber-500 text-white rounded-2xl font-bold hover:bg-amber-600";
+                iconContainer.className = "w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4";
+                iconContainer.innerHTML = '<i data-lucide="shield-alert" class="w-8 h-8 text-amber-600"></i>';
+                btn.className = "flex-1 px-6 py-4 bg-amber-600 text-white rounded-xl font-bold hover:bg-amber-700 transition-colors";
                 btn.onclick = async () => {
                     closeModal();
                     await handleRevokeCard(uuid);
                 };
+            }
+
+            // Re-initialize Lucide icons
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
             }
 
             modal.classList.remove('hidden');

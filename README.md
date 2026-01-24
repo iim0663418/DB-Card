@@ -25,7 +25,7 @@
 
 ## 核心特性
 
-### 🔐 OpenID Connect (OIDC) 認證
+### OpenID Connect (OIDC) 認證
 - **ID Token 驗證**: iss/aud/exp/iat/sub 完整驗證
 - **JWKS 公鑰驗證**: 自動快取與輪替
 - **Nonce 防重放**: 一次性使用，600 秒 TTL

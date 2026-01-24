@@ -11,13 +11,15 @@
 		"test": "vitest",
 		"cf-typegen": "wrangler types",
 		"build:css": "tailwindcss -i ./public/css/tailwind-input.css -o ./public/css/tailwind.css --minify",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsc --noEmit",
+		"kek:rewrap": "tsx scripts/rewrap-deks.ts"
 	},
 	"devDependencies": {
 		"@cloudflare/vitest-pool-workers": "^0.8.19",
 		"autoprefixer": "^10.4.23",
 		"postcss": "^8.5.6",
 		"tailwindcss": "^4.1.18",
+		"tsx": "^4.19.2",
 		"typescript": "^5.5.2",
 		"vitest": "~3.2.0",
 		"wrangler": "^4.59.2"

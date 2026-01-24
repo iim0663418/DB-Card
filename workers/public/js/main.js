@@ -112,6 +112,16 @@ function updateButtonTexts() {
             el.textContent = i18nTexts[key][currentLanguage];
         }
     });
+    
+    // 更新 session 資訊的預設文字（在資料載入前）
+    const sessionExpiry = document.getElementById('session-expiry');
+    const sessionReads = document.getElementById('session-reads');
+    if (sessionExpiry && sessionExpiry.textContent.includes('--')) {
+        sessionExpiry.textContent = `${i18nTexts['valid-until'][currentLanguage]}: --`;
+    }
+    if (sessionReads && sessionReads.textContent.includes('--')) {
+        sessionReads.textContent = `${i18nTexts['shares-available'][currentLanguage]}: --`;
+    }
 }
 
 // 多語言文字對照表

@@ -1,5 +1,6 @@
 // Admin KEK Handler
 // POST /api/admin/kek/rotate - Rotate KEK and rewrap all DEKs
+// ⚠️ SYSTEM ADMINISTRATOR ONLY - Do not call from frontend UI
 
 import type { Env } from '../../types';
 import { verifySetupToken } from '../../middleware/auth';
@@ -24,6 +25,10 @@ async function importKek(kekBase64: string): Promise<CryptoKey> {
 
 /**
  * Handle POST /api/admin/kek/rotate
+ *
+ * ⚠️ SYSTEM ADMINISTRATOR ONLY
+ * This API should only be called by system administrators after updating environment variables.
+ * Do not expose this in the frontend UI.
  *
  * Request Body (optional):
  * {

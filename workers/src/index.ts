@@ -7,6 +7,7 @@ import { handleRead } from './handlers/read';
 import { handleCreateCard, handleUpdateCard, handleDeleteCard, handleRestoreCard, handleListCards, handleGetCard, handleResetBudget } from './handlers/admin/cards';
 import { handleRevoke } from './handlers/admin/revoke';
 import { handleKekRotate } from './handlers/admin/kek';
+import { handleKekStatus } from './handlers/admin/kek-status';
 import { handleAdminLogin, handleAdminLogout } from './handlers/admin/auth';
 import { handlePasskeyRegisterStart, handlePasskeyRegisterFinish, handlePasskeyLoginStart, handlePasskeyLoginFinish, handlePasskeyStatus, handlePasskeyAvailable } from './handlers/admin/passkey';
 import { handleSecurityStats, handleSecurityEvents, handleSecurityTimeline, handleBlockIP, handleUnblockIP, handleIPDetail, handleSecurityExport, handleCDNHealth } from './handlers/admin/security';
@@ -318,9 +319,14 @@ export default {
       return handleRevoke(request, env);
     }
 
-    // POST /api/admin/kek/rotate - KEK rotation
+    // POST /api/admin/kek/rotate - KEK rotation (System Administrator Only)
     if (url.pathname === '/api/admin/kek/rotate' && request.method === 'POST') {
       return handleKekRotate(request, env);
+    }
+
+    // GET /api/admin/kek/status - KEK status monitoring
+    if (url.pathname === '/api/admin/kek/status' && request.method === 'GET') {
+      return handleKekStatus(request, env);
     }
 
     // GET /api/admin/security/stats - Security statistics

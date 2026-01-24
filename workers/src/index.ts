@@ -50,6 +50,14 @@ function addSecurityHeaders(response: Response, nonce: string): Response {
   headers.set('X-Frame-Options', 'DENY');
   headers.set('X-XSS-Protection', '1; mode=block');
   headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // HSTS (Strict-Transport-Security) - Force HTTPS for 1 year
+  headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  
+  // Spectre vulnerability mitigation
+  headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
+  headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+  headers.set('Cross-Origin-Resource-Policy', 'same-origin');
 
   return new Response(response.clone().body, {
     status: response.status,

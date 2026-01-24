@@ -66,8 +66,10 @@ export async function handleOAuthCallback(
     const userInfo = await userInfoResponse.json() as any;
 
     // ⚠️ SECURITY: Validate email domain whitelist
-    const allowedDomains = ['@moda.gov.tw', '@nics.nat.gov.tw'];
-    const isAllowedDomain = allowedDomains.some(domain => userInfo.email?.endsWith(domain));
+    const allowedDomains = ['@moda.gov.tw'];
+    const allowedEmails = ['chingw@acs.gov.tw'];
+    const isAllowedDomain = allowedDomains.some(domain => userInfo.email?.endsWith(domain)) ||
+                           allowedEmails.includes(userInfo.email);
 
     if (!isAllowedDomain) {
       return new Response(`

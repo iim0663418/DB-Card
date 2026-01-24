@@ -5,7 +5,6 @@ import { handleHealth } from './handlers/health';
 import { handleTap } from './handlers/tap';
 import { handleRead } from './handlers/read';
 import { handleCreateCard, handleUpdateCard, handleDeleteCard, handleRestoreCard, handleListCards, handleGetCard, handleResetBudget } from './handlers/admin/cards';
-import { handleRevoke } from './handlers/admin/revoke';
 import { handleKekStatus } from './handlers/admin/kek-status';
 import { handleAdminLogin, handleAdminLogout } from './handlers/admin/auth';
 import { handlePasskeyRegisterStart, handlePasskeyRegisterFinish, handlePasskeyLoginStart, handlePasskeyLoginFinish, handlePasskeyStatus, handlePasskeyAvailable } from './handlers/admin/passkey';
@@ -311,11 +310,6 @@ export default {
     if (resetBudgetMatch && request.method === 'POST') {
       const uuid = resetBudgetMatch[1];
       return handleResetBudget(request, env, ctx, uuid);
-    }
-
-    // POST /api/admin/revoke - Emergency revocation
-    if (url.pathname === '/api/admin/revoke' && request.method === 'POST') {
-      return handleRevoke(request, env);
     }
 
     // GET /api/admin/kek/status - KEK status monitoring

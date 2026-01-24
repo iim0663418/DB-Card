@@ -684,14 +684,6 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="glass-surface p-8 rounded-2xl space-y-4">
                         <h2 class="text-lg font-black text-slate-900 flex items-center gap-3">
-                            <i data-lucide="zap-off" class="text-amber-500"></i> 緊急撤銷
-                        </h2>
-                        <p class="text-sm text-slate-500 leading-relaxed">撤銷目前所有活躍中的 Session。這將迫使所有使用者重新進行 NFC 碰卡驗證。僅在發生安全性疑慮時執行。</p>
-                        <button onclick="confirmAction('revoke_all')" class="w-full py-4 bg-amber-100 text-amber-700 rounded-xl font-bold hover:bg-amber-200 transition-all">執行全局撤銷</button>
-                    </div>
-
-                    <div class="glass-surface p-8 rounded-2xl space-y-4">
-                        <h2 class="text-lg font-black text-slate-900 flex items-center gap-3">
                             <i data-lucide="shield-check" class="text-moda"></i> KEK 密鑰監控
                         </h2>
                         <div id="kek-monitor" class="space-y-3">
@@ -2379,51 +2371,9 @@ wrangler secret delete OLD_KEK
                     closeModal();
                     await handleRevokeCard(uuid);
                 };
-            } else if(type === 'revoke_all') {
-                title.innerText = "緊急：確認全局撤銷？";
-                desc.innerText = "這將撤銷所有活躍中的 Session，所有使用者需重新 NFC 碰卡驗證。";
-                btn.className = "flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700";
-                btn.onclick = async () => {
-                    closeModal();
-                    await handleGlobalRevoke();
-                };
             }
 
             modal.classList.remove('hidden');
-        }
-
-        // Global Revoke
-        async function handleGlobalRevoke() {
-            const token = sessionStorage.getItem('setup_token');
-            if (!token) {
-                showNotification('未授權：請重新驗證', 'error');
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_BASE}/api/admin/revoke`, {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: getHeadersWithCSRF({
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }),
-                    body: JSON.stringify({ global: true })
-                });
-
-                if (!response.ok) {
-                    await handleApiError(response, '全局撤銷失敗');
-                    return;
-                }
-
-                const result = await response.json();
-                showNotification(`全局撤銷成功！新 Token Version: ${result.new_token_version}`, 'success');
-                loadSystemHealth();
-
-            } catch (error) {
-                console.error('Global revoke error:', error);
-                showNotification('全局撤銷失敗: ' + error.message, 'error');
-            }
         }
 
         function closeModal() {

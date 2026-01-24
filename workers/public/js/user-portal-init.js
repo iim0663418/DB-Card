@@ -331,16 +331,6 @@
                 if (event.data.type === 'oauth_success') {
                     const { email, name, picture, csrfToken } = event.data;
 
-                    // Check domain whitelist
-                    const allowedDomains = ['@moda.gov.tw', '@nics.nat.gov.tw'];
-                    const isAllowed = allowedDomains.some(domain => email.endsWith(domain));
-
-                    if (!isAllowed) {
-                        errorBox.innerText = '您的 Email 網域未授權（僅限 @moda.gov.tw 或 @nics.nat.gov.tw）';
-                        errorBox.classList.remove('hidden');
-                        return;
-                    }
-
                     // Store CSRF token from OAuth callback
                     if (csrfToken) {
                         sessionStorage.setItem('csrfToken', csrfToken);
@@ -372,7 +362,7 @@
                         document.getElementById('global-loading').classList.add('hidden');
                     }
                 } else if (event.data.type === 'oauth_error') {
-                    errorBox.innerText = '登入失敗：' + event.data.error;
+                    errorBox.innerText = '登入失敗：您的 Email 尚未授權';
                     errorBox.classList.remove('hidden');
                 }
             }, { once: true });

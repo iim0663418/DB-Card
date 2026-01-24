@@ -388,7 +388,18 @@ export default {
             });
             return addSecurityHeaders(asset, nonce);
           }
-          return asset;
+          
+          // Add security headers to all static assets
+          const headers = new Headers(asset.headers);
+          headers.set('X-Content-Type-Options', 'nosniff');
+          headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+          headers.set('Cross-Origin-Resource-Policy', 'same-origin');
+          
+          return new Response(asset.body, {
+            status: asset.status,
+            statusText: asset.statusText,
+            headers
+          });
         }
       } catch (e) {
         // If ASSETS fetch fails, continue to 404 handling

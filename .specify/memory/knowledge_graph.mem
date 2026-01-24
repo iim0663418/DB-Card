@@ -1148,3 +1148,14 @@
 260123|Card_Display|deployment|staging_complete
 260123|Card_Display|total_time|70_minutes
 260123|Card_Display|efficiency|2.3x_faster_than_estimated
+
+# User Portal Whitelist Update (2026-01-24)
+260124|User_Portal|whitelist_domain|moda_gov_tw
+260124|User_Portal|whitelist_removed|nics_nat_gov_tw
+260124|User_Portal|whitelist_individual|chingw_acs_gov_tw_backend_only
+260124|User_Portal|frontend_display|moda_gov_tw_only
+260124|User_Portal|security_policy|domain_public_individual_hidden
+260124|OAuth_Handler|file|handlers_oauth_ts
+260124|OAuth_Handler|logic|domain_suffix_OR_exact_email
+260124|Frontend_Display|file|user_portal_html
+260124|Frontend_Display|text|僅限_moda_gov_tw_網域使用者訪問

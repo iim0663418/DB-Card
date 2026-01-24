@@ -515,10 +515,10 @@ function renderCardFace(cardData, sessionData, lang, suffix) {
     // Session 資訊（僅正面顯示）
     if (suffix === '' && sessionData) {
         const expiresAt = new Date(sessionData.expires_at);
-        const validUntilText = i18nTexts['valid-until'][lang];
-        const sharesAvailableText = i18nTexts['shares-available'][lang];
+        const validUntilText = i18nTexts['valid-until'][currentLanguage];
+        const sharesAvailableText = i18nTexts['shares-available'][currentLanguage];
         
-        document.getElementById('session-expiry').textContent = `${validUntilText}: ${expiresAt.toLocaleString(lang === 'zh' ? 'zh-TW' : 'en-US')}`;
+        document.getElementById('session-expiry').textContent = `${validUntilText}: ${expiresAt.toLocaleString(currentLanguage === 'zh' ? 'zh-TW' : 'en-US')}`;
         document.getElementById('session-reads').textContent = `${sharesAvailableText}: ${sessionData.reads_remaining}`;
     }
 

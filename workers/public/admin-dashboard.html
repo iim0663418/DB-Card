@@ -1509,6 +1509,9 @@ wrangler secret delete OLD_KEK
                 console.error('Token verification error:', error);
                 showNotification('驗證失敗: ' + error.message, 'error');
 
+                // 隱藏 loading overlay（如果已顯示）
+                hideLoadingOverlay();
+
                 // 恢復按鈕狀態
                 verifyBtn.classList.remove('btn-loading');
                 verifyBtn.disabled = false;

@@ -83,6 +83,13 @@
             bottom: -1px; left: 0; right: 0;
             height: 3px;
             background: var(--moda-accent);
+        }
+        .tab-btn.logout-btn {
+            color: #dc2626 !important; /* text-red-600 */
+        }
+        .tab-btn.logout-btn:hover {
+            color: #b91c1c !important; /* text-red-700 */
+        }
             border-radius: 3px 3px 0 0;
         }
 
@@ -308,7 +315,7 @@
             <button id="register-passkey-btn" onclick="registerPasskey()" class="hidden tab-btn flex items-center gap-2 text-slate-600 hover:text-slate-900">
                 <i data-lucide="fingerprint" class="w-4 h-4"></i> 註冊 Passkey
             </button>
-            <button onclick="handleLogout()" class="tab-btn flex items-center gap-2 !text-red-600 hover:!text-red-700 ml-auto">
+            <button onclick="handleLogout()" class="tab-btn logout-btn flex items-center gap-2 ml-auto">
                 <i data-lucide="log-out" class="w-4 h-4"></i> 登出
             </button>
         </nav>

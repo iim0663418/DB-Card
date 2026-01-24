@@ -661,7 +661,7 @@ export async function handleCDNHealth(request: Request, env: Env): Promise<Respo
 
   const cdns = [
     { name: 'Three.js r128', url: 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js' },
-    { name: 'QRious 4.0.2', url: 'https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js' },
+    { name: 'qr-creator 1.0.0', url: 'https://unpkg.com/qr-creator@1.0.0/dist/qr-creator.min.js' },
     { name: 'DOMPurify 3.2.7', url: 'https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.7/purify.min.js' },
     { name: 'Lucide 0.562.0', url: 'https://unpkg.com/lucide@0.562.0/dist/umd/lucide.min.js' }
   ];

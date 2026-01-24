@@ -6,6 +6,24 @@
 
 ## Recent Completions (2026-01-24)
 
+### QRious → qr-creator 遷移完成 ✅ (23:31)
+1. **Phase 1**: CDN 更新（2 個 HTML 文件）
+2. **Phase 2**: API 遷移（QRious → QrCreator.render）
+3. **Phase 3**: 輸入驗證（防止空字串/超長文字）
+4. **Phase 4**: 文檔更新（THIRD_PARTY_LICENSES.md）
+5. **Phase 5**: 測試驗證（自動化測試通過）
+6. **Phase 6**: CDN 監控更新（admin-dashboard）
+7. **授權風險消除**：GPL-3.0 → MIT License
+8. **安全掃描**：0 個漏洞（253 個套件）
+9. **提交**: commit 4e62b8a
+
+### Card Display I18N 完整性修復 ✅ (23:06)
+1. **Hint Badge** - 添加 `hint-flip` 雙語支援
+2. **Skip to Content** - 添加 `skip-to-content` 無障礙文字雙語化
+3. **QR Modal Close** - 添加 `close-qr` 按鈕雙語支援
+4. **Footer Link** - 添加 `view-security` 連結雙語支援
+5. **所有文字物件** - 100% 雙語覆蓋率
+
 ### 安全掃描完成 ✅
 1. **OWASP ZAP 掃描** - A 級（52 PASS, 15 WARN, 0 FAIL）
 2. **npm audit 掃描** - 0 個漏洞

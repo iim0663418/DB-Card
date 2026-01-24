@@ -310,21 +310,41 @@
             const errorBox = document.getElementById('login-error-box');
             errorBox.classList.add('hidden');
 
-            const clientId = '675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com';
-            const redirectUri = window.location.origin + '/oauth/callback';
-            const scope = 'openid email profile';
+            try {
+                // ✅ BDD Scenario 4: Generate OAuth state parameter (CSRF Protection)
+                const stateResponse = await fetch('/api/oauth/init', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
 
-            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` + new URLSearchParams({
-                client_id: clientId,
-                redirect_uri: redirectUri,
-                response_type: 'code',
-                scope: scope,
-                access_type: 'online',
-                prompt: 'select_account'
-            });
+                if (!stateResponse.ok) {
+                    throw new Error('Failed to initialize OAuth');
+                }
 
-            // Open popup
-            const popup = window.open(authUrl, 'Google Login', 'width=500,height=600');
+                const { state } = await stateResponse.json();
+
+                const clientId = '675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com';
+                const redirectUri = window.location.origin + '/oauth/callback';
+                const scope = 'openid email profile';
+
+                const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` + new URLSearchParams({
+                    client_id: clientId,
+                    redirect_uri: redirectUri,
+                    response_type: 'code',
+                    scope: scope,
+                    access_type: 'online',
+                    prompt: 'select_account',
+                    state: state // Add state parameter for CSRF protection
+                });
+
+                // Open popup
+                const popup = window.open(authUrl, 'Google Login', 'width=500,height=600');
+            } catch (error) {
+                console.error('OAuth init error:', error);
+                errorBox.innerText = '登入初始化失敗，請重試';
+                errorBox.classList.remove('hidden');
+                return;
+            }
 
             // Listen for message from popup
             window.addEventListener('message', async (event) => {

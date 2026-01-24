@@ -1,6 +1,17 @@
 import type { Env } from '../types';
 import { SignJWT } from 'jose';
 import { generateCsrfToken, storeCsrfToken } from '../utils/csrf';
+import { validateAndConsumeOAuthState } from '../utils/oauth-state';
+
+/**
+ * Allowed Redirect URIs for OAuth Callback
+ * RFC 6749 Section 10.6 - Open Redirector Prevention
+ */
+const ALLOWED_REDIRECT_URIS = [
+  'https://db-card.moda.gov.tw/oauth/callback',
+  'https://db-card-staging.csw30454.workers.dev/oauth/callback',
+  'http://localhost:8787/oauth/callback' // Development only
+];
 
 export async function handleOAuthCallback(
   request: Request,
@@ -9,6 +20,25 @@ export async function handleOAuthCallback(
   const url = new URL(request.url);
   const code = url.searchParams.get('code');
   const error = url.searchParams.get('error');
+  const state = url.searchParams.get('state');
+
+  // ✅ BDD Scenario 5, 6: OAuth State Parameter Validation (CSRF Protection)
+  // RFC 6749 Section 10.12
+  if (!state) {
+    return new Response('Missing state parameter', { status: 403 });
+  }
+
+  const isStateValid = await validateAndConsumeOAuthState(state, env);
+  if (!isStateValid) {
+    return new Response('Invalid or expired state parameter', { status: 403 });
+  }
+
+  // ✅ BDD Scenario 1, 2, 3: Redirect URI Validation (Open Redirector Prevention)
+  // RFC 6749 Section 10.6
+  const redirectUri = `${url.origin}/oauth/callback`;
+  if (!ALLOWED_REDIRECT_URIS.includes(redirectUri)) {
+    return new Response('Invalid redirect_uri', { status: 400 });
+  }
 
   if (error) {
     return new Response(`

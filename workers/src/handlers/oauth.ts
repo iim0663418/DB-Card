@@ -2,6 +2,7 @@ import type { Env } from '../types';
 import { SignJWT } from 'jose';
 import { generateCsrfToken, storeCsrfToken } from '../utils/csrf';
 import { validateAndConsumeOAuthState } from '../utils/oauth-state';
+import { validateIDToken } from '../utils/oidc-validator';
 
 /**
  * Allowed Redirect URIs for OAuth Callback
@@ -84,16 +85,41 @@ export async function handleOAuthCallback(
 
     const tokens = await tokenResponse.json() as any;
 
-    // Get user info
-    const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: { Authorization: `Bearer ${tokens.access_token}` }
-    });
+    // ✅ BDD Scenario 10, 11: ID Token Validation with UserInfo API Fallback
+    let userInfo: any;
 
-    if (!userInfoResponse.ok) {
-      throw new Error('Failed to get user info');
+    if (tokens.id_token) {
+      // ✅ Scenario 10: Priority path - Use ID Token validation
+      try {
+        const idTokenPayload = await validateIDToken(tokens.id_token, env);
+        userInfo = {
+          email: idTokenPayload.email,
+          name: idTokenPayload.name,
+          picture: idTokenPayload.picture
+        };
+        console.log('ID Token validation successful');
+      } catch (error) {
+        console.error('ID Token validation failed, falling back to UserInfo API:', error);
+        // Fall through to UserInfo API
+        userInfo = null;
+      }
+    } else {
+      // ⚠️ Scenario 11: Backward compatibility - ID Token not found
+      console.warn('ID Token not found, falling back to UserInfo API');
     }
 
-    const userInfo = await userInfoResponse.json() as any;
+    // Fallback to UserInfo API if ID Token validation failed or not present
+    if (!userInfo) {
+      const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { Authorization: `Bearer ${tokens.access_token}` }
+      });
+
+      if (!userInfoResponse.ok) {
+        throw new Error('Failed to get user info');
+      }
+
+      userInfo = await userInfoResponse.json() as any;
+    }
 
     // ⚠️ SECURITY: Validate email domain whitelist
     const allowedDomains = ['@moda.gov.tw'];

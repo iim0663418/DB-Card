@@ -11,6 +11,20 @@ const ERROR_MESSAGES = {
   'monthly_budget_exceeded': '本月使用次數已達上限,請下月再試'
 };
 
+/**
+ * Validate QR Code input
+ * @param {string} text - QR Code content
+ * @throws {Error} If input is invalid
+ */
+function validateQRInput(text) {
+    if (!text || typeof text !== 'string' || text.trim() === '') {
+        throw new Error('QR Code text cannot be empty');
+    }
+    if (text.length > 2953) {
+        throw new Error('QR Code text too long (max 2953 characters)');
+    }
+}
+
 let scene, camera, renderer, mesh, grid;
 let currentLanguage = 'zh';
 let typewriterTimeout = null;
@@ -157,6 +171,22 @@ const i18nTexts = {
     'shares-available': {
         'zh': '可分享次數',
         'en': 'Shares Available'
+    },
+    'hint-flip': {
+        'zh': '點擊翻面',
+        'en': 'Click to flip'
+    },
+    'skip-to-content': {
+        'zh': '跳到主要內容',
+        'en': 'Skip to main content'
+    },
+    'close-qr': {
+        'zh': '關閉',
+        'en': 'CLOSE'
+    },
+    'view-security': {
+        'zh': '查看詳細安全特性',
+        'en': 'View Security Features'
     }
 };
 
@@ -990,19 +1020,28 @@ document.getElementById('open-qr').addEventListener('click', () => {
     // 使用名片 URL 而不是 vCard（避免資料過長）
     const cardUrl = `${window.location.origin}/card-display?uuid=${uuid}`;
     
-    // Create canvas for QRious
+    // Validate input
+    try {
+        validateQRInput(cardUrl);
+    } catch (error) {
+        console.error('QR Code generation failed:', error);
+        showError(currentLanguage === 'zh' ? '無法生成 QR Code' : 'Failed to generate QR Code');
+        return;
+    }
+    
+    // Create canvas for qr-creator
     const canvas = document.createElement('canvas');
     qrContainer.appendChild(canvas);
     
-    // Use QRious (modern QR code library)
-    new QRious({
-        element: canvas,
-        value: cardUrl,
-        size: 240,
-        background: 'white',
-        foreground: 'black',
-        level: 'H'
-    });
+    // Use qr-creator (MIT License QR code library)
+    QrCreator.render({
+        text: cardUrl,
+        radius: 0,
+        ecLevel: 'H',
+        fill: '#000000',
+        background: '#ffffff',
+        size: 240
+    }, canvas);
 
     document.getElementById('qr-modal').classList.remove('hidden');
 });

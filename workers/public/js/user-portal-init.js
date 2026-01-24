@@ -361,7 +361,9 @@
                     state.isLoggedIn = true;
                     state.authToken = null; // No longer needed in memory
                     state.currentUser = { email, name, picture };
-                    document.getElementById('user-email-display').innerText = email;
+
+                    // BDD Scenario 5-6: 顯示個人化歡迎訊息
+                    updateUserDisplay(email, name, picture);
 
                     // 只存儲使用者資訊（不存儲 token）
                     sessionStorage.setItem('auth_user', JSON.stringify({ email, name, picture }));
@@ -577,16 +579,80 @@
             }
         }
 
+        // 姓名語言判斷邏輯
+        function detectNameLanguage(name) {
+            const hasChinese = /[\u4e00-\u9fa5]/.test(name);
+            const hasEnglish = /[a-zA-Z]/.test(name);
+
+            if (hasChinese && hasEnglish) {
+                // 混合：分割中英文
+                const parts = name.split(/\s+/);
+                const zhPart = parts.filter(p => /[\u4e00-\u9fa5]/.test(p)).join(' ');
+                const enPart = parts.filter(p => /[a-zA-Z]/.test(p)).join(' ');
+                return { name_zh: zhPart, name_en: enPart };
+            } else if (hasChinese) {
+                return { name_zh: name, name_en: '' };
+            } else {
+                return { name_zh: '', name_en: name };
+            }
+        }
+
+        // 自動填入 OIDC 資訊 (BDD Scenario 1-4)
+        function prefillFormWithOIDC(userData) {
+            if (!userData) return;
+
+            // Scenario 1: 自動填入 Email
+            if (userData.email) {
+                document.getElementById('email').value = userData.email;
+            }
+
+            // Scenario 1: 自動填入大頭貼 URL
+            if (userData.picture) {
+                document.getElementById('avatar_url').value = userData.picture;
+            }
+
+            // Scenario 2-4: 智慧判斷姓名語言
+            if (userData.name) {
+                const nameResult = detectNameLanguage(userData.name);
+                if (nameResult.name_zh) {
+                    document.getElementById('name_zh').value = nameResult.name_zh;
+                }
+                if (nameResult.name_en) {
+                    document.getElementById('name_en').value = nameResult.name_en;
+                }
+            }
+
+            updatePreview();
+        }
+
+        // BDD Scenario 5-6: 更新使用者顯示資訊
+        function updateUserDisplay(email, name, picture) {
+            document.getElementById('user-email-display').innerText = email || '---';
+
+            if (name) {
+                document.getElementById('user-name-display').innerText = name;
+            }
+
+            if (picture) {
+                const avatarEl = document.getElementById('user-avatar-display');
+                avatarEl.src = picture;
+                avatarEl.classList.remove('hidden');
+                avatarEl.onerror = function() {
+                    this.classList.add('hidden');
+                };
+            }
+        }
+
         // Scenario F5: GET /api/user/cards/:uuid (編輯模式)
         async function openEditForm(type) {
             const card = state.cards.find(c => c.type === type);
-            
+
             // 阻擋 revoked 卡片
             if (card && card.status === 'revoked') {
                 showToast('此名片已被撤銷，無法編輯');
                 return;
             }
-            
+
             const isEdit = card && card.status === 'bound';
 
             document.getElementById('edit-form').reset();
@@ -666,8 +732,10 @@
                 }
             } else {
                 document.getElementById('form-uuid').value = '';
-                document.getElementById('email').value = state.currentUser?.email || '';
                 document.getElementById('form-title').innerText = '建立新名片';
+
+                // BDD Scenario 1-4: 自動填入 OIDC 資訊(僅創建時)
+                prefillFormWithOIDC(state.currentUser);
             }
 
             updatePreview();
@@ -1355,7 +1423,9 @@
                     state.isLoggedIn = true;
                     state.authToken = null; // No longer needed
                     state.currentUser = user;
-                    document.getElementById('user-email-display').innerText = user.email;
+
+                    // BDD Scenario 5-6: 顯示個人化歡迎訊息
+                    updateUserDisplay(user.email, user.name, user.picture);
 
                     // 切換到選擇頁面
                     showView('selection');

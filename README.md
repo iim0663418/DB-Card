@@ -62,10 +62,10 @@
 本專案已通過三項安全掃描工具驗證（2026-01-24）：
 
 ### 1. OWASP ZAP 掃描 (Web 應用程式安全)
-- **評級**: A+
-- **Production**: 63 PASS, 2 WARN (設計選擇)
-- **Staging**: 52 PASS, 15 WARN (低風險)
-- **結果**: 所有中高風險漏洞已修復
+- **評級**: A
+- **結果**: 52 PASS, 15 WARN, 0 FAIL
+- **環境**: Staging (db-card-staging.csw30454.workers.dev)
+- **狀態**: 所有中高風險漏洞已修復
 - **安全標頭**: 9 個完整實作
   - Content-Security-Policy (CSP with nonce)
   - Strict-Transport-Security (HSTS)

@@ -189,7 +189,7 @@ export async function handleOAuthCallback(
             type: 'oauth_success',
             email: '${userInfo.email}',
             name: '${userInfo.name}',
-            picture: '${userInfo.picture}',
+            picture: '${userInfo.picture || ''}',
             csrfToken: '${csrfToken}'
           }, '*');
           window.close();

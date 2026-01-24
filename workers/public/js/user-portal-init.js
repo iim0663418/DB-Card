@@ -606,9 +606,12 @@
                 document.getElementById('email').value = userData.email;
             }
 
-            // Scenario 1: 自動填入大頭貼 URL
-            if (userData.picture) {
-                document.getElementById('avatar_url').value = userData.picture;
+            // Scenario 1: 自動填入大頭貼 URL (如果存在)
+            if (userData.picture && userData.picture !== 'undefined') {
+                const avatarInput = document.getElementById('avatar_url');
+                if (avatarInput) {
+                    avatarInput.value = userData.picture;
+                }
             }
 
             // Scenario 2-4: 智慧判斷姓名語言

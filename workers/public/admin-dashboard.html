@@ -1324,7 +1324,12 @@ wrangler secret delete OLD_KEK
                     document.getElementById('admin-nav').classList.remove('hidden');
                     document.getElementById('content-area').classList.remove('hidden');
                     
+                    // 載入名片列表
+                    await loadCards();
+                    
                     switchTab('list');
+                    
+                    // 背景載入次要資料
                     loadSystemHealth().catch(e => console.error(e));
                     checkCDNHealth().catch(e => console.error(e));
                     loadKekStatus().catch(e => console.error(e));
@@ -3435,8 +3440,8 @@ wrangler secret delete OLD_KEK
             lucide.createIcons();
             checkPasskeyAvailable();
             
-            // 檢查是否已經登入（透過 Cookie）
-            checkAuthStatus();
+            // 不再自動檢查認證狀態，改為手動登入
+            // checkAuthStatus();
 
             if (typeof THREE !== 'undefined') {
                 setTimeout(() => initThree(), 100);

@@ -1281,6 +1281,17 @@ wrangler secret delete OLD_KEK
             showNotification('已登出', 'success');
         }
 
+        // 統一處理授權過期
+        function handleAuthExpired() {
+            isVerified = false;
+            document.getElementById('token-section').classList.remove('hidden');
+            document.getElementById('auth-status').classList.add('hidden');
+            document.getElementById('admin-nav').classList.add('hidden');
+            document.getElementById('content-area').classList.add('hidden');
+            hideLoadingOverlay();
+            showNotification('授權已過期，請重新登入', 'error');
+        }
+
         async function checkAuthStatus() {
             try {
                 const resp = await fetch(`${API_BASE}/api/admin/cards`, {
@@ -1561,11 +1572,7 @@ wrangler secret delete OLD_KEK
                 });
 
                 if (response.status === 401 || response.status === 403) {
-                    showNotification('授權已過期，請重新登入', 'error');
-                    // 顯示登入表單
-                    document.getElementById('token-section').classList.remove('hidden');
-                    document.getElementById('admin-nav').classList.add('hidden');
-                    document.getElementById('content-area').classList.add('hidden');
+                    handleAuthExpired();
                     return;
                 }
 
@@ -1917,11 +1924,7 @@ wrangler secret delete OLD_KEK
                 });
 
                 if (response.status === 401 || response.status === 403) {
-                    showNotification('授權已過期，請重新登入', 'error');
-                    // 顯示登入表單
-                    document.getElementById('token-section').classList.remove('hidden');
-                    document.getElementById('admin-nav').classList.add('hidden');
-                    document.getElementById('content-area').classList.add('hidden');
+                    handleAuthExpired();
                     throw new Error('授權已過期，請重新登入');
                 }
 
@@ -1978,7 +1981,7 @@ wrangler secret delete OLD_KEK
         // Handle API errors (Phase 2: unified error handling with auto logout)
         async function handleApiError(response, defaultMessage = '操作失敗') {
             if (response.status === 401 || response.status === 403) {
-                showNotification('授權已過期，請重新登入', 'error');
+                handleAuthExpired();
 
                 // Clear verification state
                 isVerified = false;
@@ -1994,10 +1997,7 @@ wrangler secret delete OLD_KEK
                 }
 
                 // Show login section
-                document.getElementById('token-section').classList.remove('hidden');
                 document.getElementById('auth-status').classList.add('hidden');
-                document.getElementById('admin-nav').classList.add('hidden');
-                document.getElementById('content-area').classList.add('hidden');
                 
                 // 重新檢查 Passkey 可用性
                 checkPasskeyAvailable().catch(e => console.error(e));
@@ -2288,11 +2288,7 @@ wrangler secret delete OLD_KEK
                 });
 
                 if (response.status === 401 || response.status === 403) {
-                    showNotification('授權已過期，請重新登入', 'error');
-                    // 顯示登入表單
-                    document.getElementById('token-section').classList.remove('hidden');
-                    document.getElementById('admin-nav').classList.add('hidden');
-                    document.getElementById('content-area').classList.add('hidden');
+                    handleAuthExpired();
                     return;
                 }
 
@@ -2344,11 +2340,7 @@ wrangler secret delete OLD_KEK
                 });
 
                 if (response.status === 401 || response.status === 403) {
-                    showNotification('授權已過期，請重新登入', 'error');
-                    // 顯示登入表單
-                    document.getElementById('token-section').classList.remove('hidden');
-                    document.getElementById('admin-nav').classList.add('hidden');
-                    document.getElementById('content-area').classList.add('hidden');
+                    handleAuthExpired();
                     return;
                 }
 
@@ -2376,11 +2368,7 @@ wrangler secret delete OLD_KEK
                 });
 
                 if (response.status === 401 || response.status === 403) {
-                    showNotification('授權已過期，請重新登入', 'error');
-                    // 顯示登入表單
-                    document.getElementById('token-section').classList.remove('hidden');
-                    document.getElementById('admin-nav').classList.add('hidden');
-                    document.getElementById('content-area').classList.add('hidden');
+                    handleAuthExpired();
                     return;
                 }
 
@@ -2414,11 +2402,7 @@ wrangler secret delete OLD_KEK
                 });
 
                 if (response.status === 401 || response.status === 403) {
-                    showNotification('授權已過期，請重新登入', 'error');
-                    // 顯示登入表單
-                    document.getElementById('token-section').classList.remove('hidden');
-                    document.getElementById('admin-nav').classList.add('hidden');
-                    document.getElementById('content-area').classList.add('hidden');
+                    handleAuthExpired();
                     return;
                 }
 
@@ -2447,11 +2431,7 @@ wrangler secret delete OLD_KEK
                 });
 
                 if (response.status === 401 || response.status === 403) {
-                    showNotification('授權已過期，請重新登入', 'error');
-                    // 顯示登入表單
-                    document.getElementById('token-section').classList.remove('hidden');
-                    document.getElementById('admin-nav').classList.add('hidden');
-                    document.getElementById('content-area').classList.add('hidden');
+                    handleAuthExpired();
                     return;
                 }
 
@@ -2657,11 +2637,7 @@ wrangler secret delete OLD_KEK
                 });
 
                 if (response.status === 401 || response.status === 403) {
-                    showNotification('授權已過期，請重新登入', 'error');
-                    // 顯示登入表單
-                    document.getElementById('token-section').classList.remove('hidden');
-                    document.getElementById('admin-nav').classList.add('hidden');
-                    document.getElementById('content-area').classList.add('hidden');
+                    handleAuthExpired();
                     return;
                 }
 
@@ -2910,11 +2886,7 @@ wrangler secret delete OLD_KEK
                 });
 
                 if (response.status === 401 || response.status === 403) {
-                    showNotification('授權已過期，請重新登入', 'error');
-                    // 顯示登入表單
-                    document.getElementById('token-section').classList.remove('hidden');
-                    document.getElementById('admin-nav').classList.add('hidden');
-                    document.getElementById('content-area').classList.add('hidden');
+                    handleAuthExpired();
                     return;
                 }
 
@@ -2972,11 +2944,7 @@ wrangler secret delete OLD_KEK
                 });
 
                 if (response.status === 401 || response.status === 403) {
-                    showNotification('授權已過期，請重新登入', 'error');
-                    // 顯示登入表單
-                    document.getElementById('token-section').classList.remove('hidden');
-                    document.getElementById('admin-nav').classList.add('hidden');
-                    document.getElementById('content-area').classList.add('hidden');
+                    handleAuthExpired();
                     return;
                 }
 
@@ -3072,11 +3040,7 @@ wrangler secret delete OLD_KEK
                 });
 
                 if (response.status === 401 || response.status === 403) {
-                    showNotification('授權已過期，請重新登入', 'error');
-                    // 顯示登入表單
-                    document.getElementById('token-section').classList.remove('hidden');
-                    document.getElementById('admin-nav').classList.add('hidden');
-                    document.getElementById('content-area').classList.add('hidden');
+                    handleAuthExpired();
                     return;
                 }
 
@@ -3186,11 +3150,7 @@ wrangler secret delete OLD_KEK
                 });
 
                 if (response.status === 401 || response.status === 403) {
-                    showNotification('授權已過期，請重新登入', 'error');
-                    // 顯示登入表單
-                    document.getElementById('token-section').classList.remove('hidden');
-                    document.getElementById('admin-nav').classList.add('hidden');
-                    document.getElementById('content-area').classList.add('hidden');
+                    handleAuthExpired();
                     return;
                 }
 
@@ -3231,11 +3191,7 @@ wrangler secret delete OLD_KEK
                 });
 
                 if (response.status === 401 || response.status === 403) {
-                    showNotification('授權已過期，請重新登入', 'error');
-                    // 顯示登入表單
-                    document.getElementById('token-section').classList.remove('hidden');
-                    document.getElementById('admin-nav').classList.add('hidden');
-                    document.getElementById('content-area').classList.add('hidden');
+                    handleAuthExpired();
                     return;
                 }
 
@@ -3267,11 +3223,7 @@ wrangler secret delete OLD_KEK
                 });
 
                 if (response.status === 401 || response.status === 403) {
-                    showNotification('授權已過期，請重新登入', 'error');
-                    // 顯示登入表單
-                    document.getElementById('token-section').classList.remove('hidden');
-                    document.getElementById('admin-nav').classList.add('hidden');
-                    document.getElementById('content-area').classList.add('hidden');
+                    handleAuthExpired();
                     return;
                 }
 
@@ -3370,11 +3322,7 @@ wrangler secret delete OLD_KEK
                 });
 
                 if (response.status === 401 || response.status === 403) {
-                    showNotification('授權已過期，請重新登入', 'error');
-                    // 顯示登入表單
-                    document.getElementById('token-section').classList.remove('hidden');
-                    document.getElementById('admin-nav').classList.add('hidden');
-                    document.getElementById('content-area').classList.add('hidden');
+                    handleAuthExpired();
                     return;
                 }
 

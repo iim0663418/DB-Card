@@ -1276,7 +1276,17 @@
 
                 // Success
                 closeRevokeModal();
-                showToast(`名片已撤銷，可在 ${new Date(data.restore_deadline).toLocaleDateString('zh-TW')} 前恢復`);
+                
+                // Format restore deadline
+                const restoreDate = data.restore_deadline 
+                    ? new Date(data.restore_deadline).toLocaleDateString('zh-TW', { 
+                        year: 'numeric', 
+                        month: '2-digit', 
+                        day: '2-digit' 
+                    })
+                    : '7 天內';
+                
+                showToast(`名片已撤銷，可在 ${restoreDate} 前恢復`);
 
                 // Reload cards
                 await fetchUserCards();

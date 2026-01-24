@@ -4,6 +4,13 @@
 
 ## 最新更新
 
+### v4.3.2 (2026-01-24) - 安全掃描完成與 UX 優化
+- ✅ 完成三項安全掃描驗證（OWASP ZAP A、npm audit 0、OSV-Scanner 0）
+- ✅ 管理者介面 UX 優化（KEK 監控、登入載入體驗、Modal 設計統一）
+- ✅ 移除全域撤銷功能（邏輯缺陷）
+- ✅ KEK 輪替改為本地腳本執行（降低攻擊面）
+- ✅ 管理者驗證遷移至 HttpOnly Cookie（XSS 防護）
+
 ### v4.3.2 (2026-01-24) - OIDC Phase 2 完成
 - ✅ Nonce 防重放攻擊 (OpenID Connect Core 1.0)
 - ✅ Discovery Endpoint 動態配置

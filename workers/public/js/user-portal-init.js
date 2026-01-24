@@ -310,36 +310,47 @@
             const errorBox = document.getElementById('login-error-box');
             errorBox.classList.add('hidden');
 
-            const clientId = '675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com';
-            const redirectUri = window.location.origin + '/oauth/callback';
-            const scope = 'openid email profile';
+            try {
+                // ✅ BDD Scenario 1: Generate OAuth state and nonce (CSRF + Replay Protection)
+                const stateResponse = await fetch('/api/oauth/init', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
 
-            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` + new URLSearchParams({
-                client_id: clientId,
-                redirect_uri: redirectUri,
-                response_type: 'code',
-                scope: scope,
-                access_type: 'online',
-                prompt: 'select_account'
-            });
+                if (!stateResponse.ok) {
+                    throw new Error('Failed to initialize OAuth');
+                }
 
-            // Open popup
-            const popup = window.open(authUrl, 'Google Login', 'width=500,height=600');
+                const { state, nonce } = await stateResponse.json();
+
+                const clientId = '675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com';
+                const redirectUri = window.location.origin + '/oauth/callback';
+                const scope = 'openid email profile';
+
+                const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` + new URLSearchParams({
+                    client_id: clientId,
+                    redirect_uri: redirectUri,
+                    response_type: 'code',
+                    scope: scope,
+                    access_type: 'online',
+                    prompt: 'select_account',
+                    state: state, // CSRF protection
+                    nonce: nonce  // Replay protection (Phase 2)
+                });
+
+                // Open popup
+                const popup = window.open(authUrl, 'Google Login', 'width=500,height=600');
+            } catch (error) {
+                console.error('OAuth init error:', error);
+                errorBox.innerText = '登入初始化失敗，請重試';
+                errorBox.classList.remove('hidden');
+                return;
+            }
 
             // Listen for message from popup
             window.addEventListener('message', async (event) => {
                 if (event.data.type === 'oauth_success') {
                     const { email, name, picture, csrfToken } = event.data;
-
-                    // Check domain whitelist
-                    const allowedDomains = ['@moda.gov.tw', '@nics.nat.gov.tw'];
-                    const isAllowed = allowedDomains.some(domain => email.endsWith(domain));
-
-                    if (!isAllowed) {
-                        errorBox.innerText = '您的 Email 網域未授權（僅限 @moda.gov.tw 或 @nics.nat.gov.tw）';
-                        errorBox.classList.remove('hidden');
-                        return;
-                    }
 
                     // Store CSRF token from OAuth callback
                     if (csrfToken) {
@@ -350,7 +361,9 @@
                     state.isLoggedIn = true;
                     state.authToken = null; // No longer needed in memory
                     state.currentUser = { email, name, picture };
-                    document.getElementById('user-email-display').innerText = email;
+
+                    // BDD Scenario 5-6: 顯示個人化歡迎訊息
+                    updateUserDisplay(email, name, picture);
 
                     // 只存儲使用者資訊（不存儲 token）
                     sessionStorage.setItem('auth_user', JSON.stringify({ email, name, picture }));
@@ -372,7 +385,7 @@
                         document.getElementById('global-loading').classList.add('hidden');
                     }
                 } else if (event.data.type === 'oauth_error') {
-                    errorBox.innerText = '登入失敗：' + event.data.error;
+                    errorBox.innerText = '登入失敗：您的 Email 尚未授權';
                     errorBox.classList.remove('hidden');
                 }
             }, { once: true });
@@ -401,6 +414,9 @@
 
             // 清除使用者資訊
             sessionStorage.removeItem('auth_user');
+
+            // 隱藏導航欄
+            document.getElementById('app-header').classList.add('hidden');
 
             showView('login');
         }
@@ -563,16 +579,83 @@
             }
         }
 
+        // 姓名語言判斷邏輯
+        function detectNameLanguage(name) {
+            const hasChinese = /[\u4e00-\u9fa5]/.test(name);
+            const hasEnglish = /[a-zA-Z]/.test(name);
+
+            if (hasChinese && hasEnglish) {
+                // 混合：分割中英文
+                const parts = name.split(/\s+/);
+                const zhPart = parts.filter(p => /[\u4e00-\u9fa5]/.test(p)).join(' ');
+                const enPart = parts.filter(p => /[a-zA-Z]/.test(p)).join(' ');
+                return { name_zh: zhPart, name_en: enPart };
+            } else if (hasChinese) {
+                return { name_zh: name, name_en: '' };
+            } else {
+                return { name_zh: '', name_en: name };
+            }
+        }
+
+        // 自動填入 OIDC 資訊 (BDD Scenario 1-4)
+        function prefillFormWithOIDC(userData) {
+            if (!userData) return;
+
+            // Scenario 1: 自動填入 Email
+            if (userData.email) {
+                document.getElementById('email').value = userData.email;
+            }
+
+            // Scenario 1: 自動填入大頭貼 URL (如果存在)
+            if (userData.picture && userData.picture !== 'undefined') {
+                const avatarInput = document.getElementById('avatar_url');
+                if (avatarInput) {
+                    avatarInput.value = userData.picture;
+                }
+            }
+
+            // Scenario 2-4: 智慧判斷姓名語言
+            if (userData.name) {
+                const nameResult = detectNameLanguage(userData.name);
+                if (nameResult.name_zh) {
+                    document.getElementById('name_zh').value = nameResult.name_zh;
+                }
+                if (nameResult.name_en) {
+                    document.getElementById('name_en').value = nameResult.name_en;
+                }
+            }
+
+            updatePreview();
+        }
+
+        // BDD Scenario 5-6: 更新使用者顯示資訊
+        function updateUserDisplay(email, name, picture) {
+            document.getElementById('user-email-display').innerText = email || '---';
+
+            if (name) {
+                document.getElementById('user-name-display').innerText = name;
+            }
+
+            if (picture) {
+                const avatarEl = document.getElementById('user-avatar-display');
+                avatarEl.src = picture;
+                avatarEl.classList.remove('hidden');
+                avatarEl.onerror = function() {
+                    this.classList.add('hidden');
+                };
+            }
+        }
+
         // Scenario F5: GET /api/user/cards/:uuid (編輯模式)
         async function openEditForm(type) {
             const card = state.cards.find(c => c.type === type);
-            
+
             // 阻擋 revoked 卡片
             if (card && card.status === 'revoked') {
                 showToast('此名片已被撤銷，無法編輯');
                 return;
             }
-            
+
             const isEdit = card && card.status === 'bound';
 
             document.getElementById('edit-form').reset();
@@ -652,8 +735,10 @@
                 }
             } else {
                 document.getElementById('form-uuid').value = '';
-                document.getElementById('email').value = state.currentUser?.email || '';
                 document.getElementById('form-title').innerText = '建立新名片';
+
+                // BDD Scenario 1-4: 自動填入 OIDC 資訊(僅創建時)
+                prefillFormWithOIDC(state.currentUser);
             }
 
             updatePreview();
@@ -701,9 +786,9 @@
                                     const revokedTime = new Date(data.revoked_at * 1000);
                                     const restoreDeadline = new Date(revokedTime.getTime() + 7 * 86400 * 1000);
                                     const canRestore = Date.now() < restoreDeadline.getTime();
-                                    return `<p class="text-[10px] text-red-600 font-black mt-2 uppercase tracking-widest">⚠️ 已撤銷${canRestore ? ' (可恢復)' : ' (已過期)'}</p>
+                                    return `<p class="text-[10px] text-red-600 font-black mt-2 uppercase tracking-widest">已撤銷${canRestore ? ' (可恢復)' : ' (已過期)'}</p>
                                             <p class="text-[9px] text-red-500 mt-1">撤銷時間: ${revokedTime.toLocaleString('zh-TW')}</p>`;
-                                })() : `<p class="text-[10px] text-red-600 font-black mt-2 uppercase tracking-widest">⚠️ 已被管理員撤銷</p>`) : ''}
+                                })() : `<p class="text-[10px] text-red-600 font-black mt-2 uppercase tracking-widest">已被管理員撤銷</p>`) : ''}
                             </div>
                         </div>
                         ${isRevoked ? (data.revoked_at ? (() => {
@@ -1191,7 +1276,17 @@
 
                 // Success
                 closeRevokeModal();
-                showToast(`名片已撤銷，可在 ${new Date(data.restore_deadline).toLocaleDateString('zh-TW')} 前恢復`);
+                
+                // Format restore deadline
+                const restoreDate = data.restore_deadline 
+                    ? new Date(data.restore_deadline).toLocaleDateString('zh-TW', { 
+                        year: 'numeric', 
+                        month: '2-digit', 
+                        day: '2-digit' 
+                    })
+                    : '7 天內';
+                
+                showToast(`名片已撤銷，可在 ${restoreDate} 前恢復`);
 
                 // Reload cards
                 await fetchUserCards();
@@ -1341,7 +1436,9 @@
                     state.isLoggedIn = true;
                     state.authToken = null; // No longer needed
                     state.currentUser = user;
-                    document.getElementById('user-email-display').innerText = user.email;
+
+                    // BDD Scenario 5-6: 顯示個人化歡迎訊息
+                    updateUserDisplay(user.email, user.name, user.picture);
 
                     // 切換到選擇頁面
                     showView('selection');

@@ -99,44 +99,266 @@
 
 ## 快速開始
 
+### 前置需求
+- Node.js 18+ 
+- Cloudflare 帳號
+- Wrangler CLI (`npm install -g wrangler`)
+
 ### 1. 環境準備
 
 ```bash
+# Clone 專案
+git clone https://github.com/iim0663418/DB-Card.git
+cd DB-Card/workers
+
 # 安裝依賴
-cd workers
 npm install
 
-# 設定環境變數
-cp .dev.vars.example .dev.vars
-# 編輯 .dev.vars 設定：
-# - SETUP_TOKEN: 管理員認證 token
-# - KEK: 主加密金鑰
-# - GOOGLE_CLIENT_ID/SECRET: OAuth
-# - JWT_SECRET: JWT 簽名密鑰 (至少 32 bytes)
+# 登入 Cloudflare
+wrangler login
+```
 
-# 生成 JWT Secret
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+### 2. 設定環境變數
+
+```bash
+# 複製環境變數範本
+cp .dev.vars.example .dev.vars
+
+# 編輯 .dev.vars 設定以下變數：
+# - SETUP_TOKEN: 管理員認證 token (自訂強密碼)
+# - KEK: 主加密金鑰 (32 bytes base64)
+# - GOOGLE_CLIENT_ID: Google OAuth Client ID
+# - GOOGLE_CLIENT_SECRET: Google OAuth Client Secret
+# - JWT_SECRET: JWT 簽名密鑰 (至少 32 bytes base64)
+
+# 生成加密金鑰
+node -e "console.log('KEK:', require('crypto').randomBytes(32).toString('base64'))"
+node -e "console.log('JWT_SECRET:', require('crypto').randomBytes(32).toString('base64'))"
 ```
 
 **重要**：請參閱 [JWT Secret 管理指南](docs/JWT_SECRET_MANAGEMENT.md)
 
-### 2. 本地開發
+### 3. 創建 D1 資料庫
 
 ```bash
-npm run dev          # 啟動開發伺服器
-npm test             # 執行測試
-npm run deploy:staging    # 部署到 staging
-npm run deploy:production # 部署到 production
+# 創建 Staging 資料庫
+wrangler d1 create db-card-staging
+
+# 創建 Production 資料庫
+wrangler d1 create db-card-production
+
+# 記錄資料庫 ID 並更新 wrangler.toml
 ```
 
-### 3. 資料庫初始化
+更新 `wrangler.toml` 中的資料庫綁定：
+```toml
+[[d1_databases]]
+binding = "DB"
+database_name = "db-card-staging"
+database_id = "your-staging-database-id"
+
+[env.production.d1_databases]
+binding = "DB"
+database_name = "db-card-production"
+database_id = "your-production-database-id"
+```
+
+### 4. 初始化資料庫
 
 ```bash
 # 本地開發環境
 npx wrangler d1 execute DB --local --file=./migrations/0001_initial_schema.sql
+npx wrangler d1 execute DB --local --file=./migrations/0002_read_sessions.sql
+# ... 依序執行所有 migration
 
-# 生產環境
+# Staging 環境
 npx wrangler d1 execute DB --remote --file=./migrations/0001_initial_schema.sql
+npx wrangler d1 execute DB --remote --file=./migrations/0002_read_sessions.sql
+# ... 依序執行所有 migration
+
+# Production 環境
+npx wrangler d1 execute DB --remote --env production --file=./migrations/0001_initial_schema.sql
+npx wrangler d1 execute DB --remote --env production --file=./migrations/0002_read_sessions.sql
+# ... 依序執行所有 migration
+```
+
+### 5. 設定 Secrets (生產環境)
+
+```bash
+# Staging 環境
+wrangler secret put SETUP_TOKEN
+wrangler secret put KEK
+wrangler secret put GOOGLE_CLIENT_ID
+wrangler secret put GOOGLE_CLIENT_SECRET
+wrangler secret put JWT_SECRET
+
+# Production 環境
+wrangler secret put SETUP_TOKEN --env production
+wrangler secret put KEK --env production
+wrangler secret put GOOGLE_CLIENT_ID --env production
+wrangler secret put GOOGLE_CLIENT_SECRET --env production
+wrangler secret put JWT_SECRET --env production
+```
+
+### 6. 創建 KV Namespace
+
+```bash
+# 創建 Staging KV
+wrangler kv:namespace create "CACHE" --preview
+wrangler kv:namespace create "CACHE"
+
+# 創建 Production KV
+wrangler kv:namespace create "CACHE" --env production --preview
+wrangler kv:namespace create "CACHE" --env production
+
+# 更新 wrangler.toml 中的 KV ID
+```
+
+### 7. 本地開發
+
+```bash
+# 啟動開發伺服器 (http://localhost:8787)
+npm run dev
+
+# 執行測試
+npm test
+
+# TypeScript 編譯檢查
+npm run build
+```
+
+### 8. 部署到 Cloudflare Workers
+
+```bash
+# 部署到 Staging
+npm run deploy:staging
+# 或
+wrangler deploy
+
+# 部署到 Production
+npm run deploy:production
+# 或
+wrangler deploy --env production
+```
+
+### 9. 驗證部署
+
+```bash
+# 檢查健康狀態
+curl https://your-worker.workers.dev/health
+
+# 預期回應：
+# {
+#   "status": "healthy",
+#   "timestamp": "2026-01-24T15:00:00.000Z",
+#   "kek": {
+#     "version": 1,
+#     "status": "active"
+#   },
+#   "database": {
+#     "active_cards": 0
+#   }
+# }
+```
+
+### 10. 設定自訂網域 (選用)
+
+```bash
+# 在 Cloudflare Dashboard 設定 Workers Route
+# 或使用 wrangler.toml 設定：
+
+routes = [
+  { pattern = "db-card.example.com/*", zone_name = "example.com" }
+]
+```
+
+---
+
+## 部署架構
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Cloudflare Workers                        │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │   Staging    │  │  Production  │  │   Preview    │      │
+│  │ Environment  │  │ Environment  │  │ Environment  │      │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘      │
+│         │                  │                  │              │
+│         ▼                  ▼                  ▼              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │ D1 Database  │  │ D1 Database  │  │ D1 Database  │      │
+│  │  (Staging)   │  │ (Production) │  │   (Local)    │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │              KV Namespace (Cache)                    │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │         Secrets (KEK, JWT_SECRET, OAuth)             │   │
+│  └──────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 環境變數說明
+
+| 變數名稱 | 用途 | 生成方式 | 必填 |
+|---------|------|---------|------|
+| `SETUP_TOKEN` | 管理員登入 Token | 自訂強密碼 | ✅ |
+| `KEK` | 主加密金鑰 (Key Encryption Key) | `crypto.randomBytes(32).toString('base64')` | ✅ |
+| `JWT_SECRET` | JWT 簽名密鑰 | `crypto.randomBytes(32).toString('base64')` | ✅ |
+| `GOOGLE_CLIENT_ID` | Google OAuth Client ID | Google Cloud Console | ✅ |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret | Google Cloud Console | ✅ |
+
+---
+
+## 資料庫遷移
+
+執行所有 migration 腳本（依序執行）：
+
+```bash
+# 本地環境
+for file in migrations/*.sql; do
+  npx wrangler d1 execute DB --local --file="$file"
+done
+
+# Staging 環境
+for file in migrations/*.sql; do
+  npx wrangler d1 execute DB --remote --file="$file"
+done
+
+# Production 環境
+for file in migrations/*.sql; do
+  npx wrangler d1 execute DB --remote --env production --file="$file"
+done
+```
+
+---
+
+## 常見問題
+
+### Q: 如何輪替 KEK？
+A: 使用本地腳本執行：
+```bash
+npm run kek:rewrap
+```
+
+### Q: 如何查看部署日誌？
+A: 使用 wrangler tail：
+```bash
+wrangler tail              # Staging
+wrangler tail --env production  # Production
+```
+
+### Q: 如何回滾部署？
+A: 在 Cloudflare Dashboard > Workers > Deployments 選擇舊版本回滾
+
+### Q: 本地開發如何連接遠端資料庫？
+A: 修改 wrangler.toml 使用 `--remote` flag：
+```bash
+wrangler dev --remote
 ```
 
 ---

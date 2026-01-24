@@ -1336,9 +1336,13 @@ wrangler secret delete OLD_KEK
                     
                     // 檢查 Passkey 狀態並顯示提示
                     setTimeout(() => checkAndPromptPasskey(), 2000);
+                } else if (resp.status === 401) {
+                    // 未登入，靜默處理（不顯示錯誤）
+                    // 用戶需要手動登入
                 }
             } catch (error) {
-                console.error('Check auth status error:', error);
+                // 網路錯誤或其他問題，靜默處理
+                console.debug('Check auth status:', error.message);
             }
         }
 
@@ -3440,8 +3444,8 @@ wrangler secret delete OLD_KEK
             lucide.createIcons();
             checkPasskeyAvailable();
             
-            // 不再自動檢查認證狀態，改為手動登入
-            // checkAuthStatus();
+            // 檢查是否已經登入（透過 Cookie）
+            checkAuthStatus();
 
             if (typeof THREE !== 'undefined') {
                 setTimeout(() => initThree(), 100);

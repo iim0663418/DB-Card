@@ -691,10 +691,33 @@
 
                     <div class="glass-surface p-8 rounded-2xl space-y-4">
                         <h2 class="text-lg font-black text-slate-900 flex items-center gap-3">
-                            <i data-lucide="shield-alert" class="text-red-500"></i> KEK 密鑰輪替
+                            <i data-lucide="shield-check" class="text-moda"></i> KEK 密鑰監控
                         </h2>
-                        <p class="text-sm text-slate-500 leading-relaxed">輪替系統主密鑰 (Key Encryption Key)。執行此操作後，舊有的加密資料將進行重新封裝。建議每季執行一次。</p>
-                        <button onclick="confirmAction('kek_rotate')" class="w-full py-4 bg-red-100 text-red-700 rounded-xl font-bold hover:bg-red-200 transition-all">啟動 KEK 輪替</button>
+                        <div id="kek-monitor" class="space-y-3">
+                            <div class="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100">
+                                <div class="flex items-center gap-2">
+                                    <span id="kek-status-badge" class="px-2 py-1 text-xs font-bold rounded-lg bg-green-100 text-green-700">正常</span>
+                                    <span id="kek-status-text" class="text-sm text-slate-600">已使用 -- 天 / 建議 90 天</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3 text-xs">
+                                <div class="p-3 bg-slate-50 rounded-xl">
+                                    <p class="text-slate-400 mb-1">當前版本</p>
+                                    <p id="kek-version" class="font-bold text-slate-900">v--</p>
+                                </div>
+                                <div class="p-3 bg-slate-50 rounded-xl">
+                                    <p class="text-slate-400 mb-1">啟用時間</p>
+                                    <p id="kek-activated-at" class="font-bold text-slate-900">--</p>
+                                </div>
+                            </div>
+                            <div class="p-3 bg-blue-50 rounded-xl">
+                                <p class="text-xs text-blue-700">
+                                    <i data-lucide="info" class="w-3 h-3 inline"></i>
+                                    距離建議輪替：<span id="kek-days-until" class="font-bold">-- 天</span>
+                                </p>
+                            </div>
+                        </div>
+                        <button onclick="showRotationGuide()" class="w-full py-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-all">查看輪替指引</button>
                     </div>
 
                     <div class="md:col-span-2 glass-surface p-8 rounded-2xl">
@@ -752,6 +775,92 @@
             <div class="flex gap-4">
                 <button onclick="closeModal()" class="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200">取消</button>
                 <button id="modal-confirm-btn" class="flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 shadow-lg">確認執行</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- KEK 輪替指引 Modal -->
+    <div id="rotation-guide-modal" class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md hidden flex items-center justify-center p-6">
+        <div class="glass-surface max-w-2xl w-full p-8 rounded-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-black text-slate-900 flex items-center gap-3">
+                    <i data-lucide="shield-alert" class="text-red-500"></i>
+                    KEK 輪替標準作業程序 (SOP)
+                </h2>
+                <button onclick="closeRotationGuide()" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <div class="p-4 bg-red-50 border-l-4 border-red-500 rounded-xl">
+                <p class="text-sm font-bold text-red-700">警告：KEK 輪替需要系統管理員權限</p>
+                <p class="text-xs text-red-600 mt-1">此操作需要存取環境變數與 Cloudflare Workers 部署權限</p>
+            </div>
+
+            <div class="space-y-4">
+                <div class="p-4 bg-white rounded-xl border border-slate-200">
+                    <div class="flex items-start gap-3">
+                        <div class="flex-shrink-0 w-8 h-8 bg-moda text-white rounded-full flex items-center justify-center font-bold">1</div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-slate-900 mb-2">生成新 KEK</h3>
+                            <pre class="bg-slate-900 text-green-400 p-3 rounded-lg text-xs overflow-x-auto"><code>node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-white rounded-xl border border-slate-200">
+                    <div class="flex items-start gap-3">
+                        <div class="flex-shrink-0 w-8 h-8 bg-moda text-white rounded-full flex items-center justify-center font-bold">2</div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-slate-900 mb-2">更新環境變數</h3>
+                            <p class="text-sm text-slate-600 mb-2">將當前 KEK 移至 OLD_KEK，新 KEK 設為 KEK</p>
+                            <pre class="bg-slate-900 text-green-400 p-3 rounded-lg text-xs overflow-x-auto"><code>wrangler secret put KEK
+wrangler secret put OLD_KEK</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-white rounded-xl border border-slate-200">
+                    <div class="flex items-start gap-3">
+                        <div class="flex-shrink-0 w-8 h-8 bg-moda text-white rounded-full flex items-center justify-center font-bold">3</div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-slate-900 mb-2">重新部署</h3>
+                            <pre class="bg-slate-900 text-green-400 p-3 rounded-lg text-xs overflow-x-auto"><code>wrangler deploy</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-white rounded-xl border border-slate-200">
+                    <div class="flex items-start gap-3">
+                        <div class="flex-shrink-0 w-8 h-8 bg-moda text-white rounded-full flex items-center justify-center font-bold">4</div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-slate-900 mb-2">觸發 DEK 重新包裝</h3>
+                            <p class="text-sm text-slate-600 mb-2">使用系統管理員 API 進行重新包裝</p>
+                            <pre class="bg-slate-900 text-green-400 p-3 rounded-lg text-xs overflow-x-auto"><code>curl -X POST https://your-domain/api/admin/kek/rotate \
+  -H "Authorization: Bearer $SETUP_TOKEN"</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-white rounded-xl border border-slate-200">
+                    <div class="flex items-start gap-3">
+                        <div class="flex-shrink-0 w-8 h-8 bg-moda text-white rounded-full flex items-center justify-center font-bold">5</div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-slate-900 mb-2">清理舊密鑰</h3>
+                            <p class="text-sm text-slate-600 mb-2">確認輪替成功後刪除 OLD_KEK</p>
+                            <pre class="bg-slate-900 text-green-400 p-3 rounded-lg text-xs overflow-x-auto"><code>wrangler secret delete OLD_KEK</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 bg-blue-50 rounded-xl">
+                <p class="text-sm font-bold text-blue-700 mb-1">需要協助？</p>
+                <p class="text-xs text-blue-600">請聯絡系統管理員或參考運維文檔</p>
+            </div>
+
+            <div class="flex gap-4">
+                <button onclick="closeRotationGuide()" class="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200">關閉</button>
             </div>
         </div>
     </div>
@@ -1036,6 +1145,7 @@
                     switchTab('list');
                     loadSystemHealth().catch(e => console.error(e));
                     checkCDNHealth().catch(e => console.error(e));
+                    loadKekStatus().catch(e => console.error(e));
                     
                     // 檢查 Passkey 狀態並顯示提示
                     setTimeout(() => checkAndPromptPasskey(), 2000);
@@ -1135,6 +1245,7 @@
 
                 loadSystemHealth().catch(e => console.error(e));
                 checkCDNHealth().catch(e => console.error(e));
+                loadKekStatus().catch(e => console.error(e));
                 checkPasskeyAvailable().catch(e => console.error(e));
                 switchTab('list');
             } catch (error) {
@@ -1184,9 +1295,10 @@
                 showNotification('授權驗證成功', 'success');
 
                 switchTab('list');
-                
+
                 loadSystemHealth().catch(e => console.error(e));
                 checkCDNHealth().catch(e => console.error(e));
+                loadKekStatus().catch(e => console.error(e));
                 checkPasskeyAvailable().catch(e => console.error(e));
 
                 // 非阻塞提示
@@ -1250,6 +1362,77 @@
             }
         }
 
+        // Load KEK status monitoring
+        async function loadKekStatus() {
+            const token = sessionStorage.getItem('setup_token');
+            if (!token) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/kek/status`, {
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to load KEK status');
+
+                const result = await response.json();
+                const data = result.data;
+
+                // Update status badge
+                const statusBadge = document.getElementById('kek-status-badge');
+                const statusText = document.getElementById('kek-status-text');
+                const statusColors = {
+                    normal: { bg: 'bg-green-100', text: 'text-green-700', label: '正常' },
+                    reminder: { bg: 'bg-blue-100', text: 'text-blue-700', label: '提醒' },
+                    warning: { bg: 'bg-amber-100', text: 'text-amber-700', label: '警告' },
+                    urgent: { bg: 'bg-red-100', text: 'text-red-700', label: '緊急' }
+                };
+
+                const statusColor = statusColors[data.status];
+                if (statusBadge && statusColor) {
+                    statusBadge.className = `px-2 py-1 text-xs font-bold rounded-lg ${statusColor.bg} ${statusColor.text}`;
+                    statusBadge.textContent = statusColor.label;
+                }
+
+                if (statusText) {
+                    statusText.textContent = `已使用 ${data.days_active} 天 / 建議 ${data.recommendation.rotation_cycle_days} 天`;
+                }
+
+                // Update KEK info
+                const versionEl = document.getElementById('kek-version');
+                if (versionEl) {
+                    versionEl.textContent = `v${data.current_version}`;
+                }
+
+                const activatedEl = document.getElementById('kek-activated-at');
+                if (activatedEl) {
+                    const date = new Date(data.activated_at);
+                    activatedEl.textContent = date.toLocaleDateString('zh-TW');
+                }
+
+                const daysUntilEl = document.getElementById('kek-days-until');
+                if (daysUntilEl) {
+                    const days = data.recommendation.days_until_recommended;
+                    daysUntilEl.textContent = days >= 0 ? `${days} 天` : `已逾期 ${Math.abs(days)} 天`;
+                }
+
+                // Show warning toast if needed
+                if (data.status === 'reminder' || data.status === 'warning' || data.status === 'urgent') {
+                    const messages = {
+                        reminder: 'KEK 已使用超過 60 天，建議規劃輪替作業',
+                        warning: 'KEK 已使用超過 90 天，建議儘速輪替',
+                        urgent: 'KEK 已使用超過 120 天，請立即輪替'
+                    };
+                    showNotification(messages[data.status], data.status === 'urgent' ? 'error' : 'warning');
+                }
+
+            } catch (error) {
+                console.error('Failed to load KEK status:', error);
+            }
+        }
+
         async function checkCDNHealth() {
             const container = document.getElementById('cdn-health-container');
             if (!container) return;
@@ -1299,6 +1482,7 @@
             if(tabId === 'tools') {
                 loadSystemHealth();
                 checkCDNHealth();
+                loadKekStatus();
             }
             
             // 切換到創建 Tab 時，如果不是編輯模式，清空表單
@@ -2200,6 +2384,18 @@
             document.getElementById('confirm-modal').classList.add('hidden');
         }
         window.closeModal = closeModal;
+
+        function showRotationGuide() {
+            const modal = document.getElementById('rotation-guide-modal');
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+        window.showRotationGuide = showRotationGuide;
+
+        function closeRotationGuide() {
+            document.getElementById('rotation-guide-modal').classList.add('hidden');
+        }
+        window.closeRotationGuide = closeRotationGuide;
 
         // Fill form with card data
         function fillFormWithCardData(card) {

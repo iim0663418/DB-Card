@@ -368,9 +368,6 @@
                     // 只存儲使用者資訊（不存儲 token）
                     sessionStorage.setItem('auth_user', JSON.stringify({ email, name, picture }));
 
-                    // 立即切換視圖（使用者看到反應）
-                    showView('selection');
-                    
                     // 顯示載入中
                     document.getElementById('global-loading').classList.remove('hidden');
 
@@ -378,6 +375,8 @@
                     try {
                         await fetchUserCards();
                         showToast('登入成功');
+                        // 載入完成後切換視圖
+                        showView('selection');
                     } catch (err) {
                         handleError(err);
                     } finally {
@@ -1440,9 +1439,6 @@
                     // BDD Scenario 5-6: 顯示個人化歡迎訊息
                     updateUserDisplay(user.email, user.name, user.picture);
 
-                    // 切換到選擇頁面
-                    showView('selection');
-
                     // 顯示載入中
                     document.getElementById('global-loading').classList.remove('hidden');
 
@@ -1450,6 +1446,8 @@
                     try {
                         await fetchUserCards();
                         showToast('自動登入成功');
+                        // 載入完成後切換到選擇頁面
+                        showView('selection');
                     } catch (err) {
                         console.error('Failed to load cards:', err);
                         // Session 無效或過期，清除並顯示登入頁

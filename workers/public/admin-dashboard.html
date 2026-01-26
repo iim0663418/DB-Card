@@ -541,7 +541,7 @@
                                                     <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 16.707s-1.067 1.341-1.24 1.514c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26l-3.616-3.616-3.616 3.616c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26-.173-.173-1.24-1.514-1.24-1.514-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693l3.616-3.616-3.616-3.616c-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693 0 0 1.067-1.341 1.24-1.514.173-.173.346-.26.519-.26.173 0 .346.087.519.26l3.616 3.616 3.616-3.616c.173-.173.346-.26.519-.26.173 0 .346.087.519.26.173.173 1.24 1.514 1.24 1.514.173.173.26.433.26.693 0 .26-.087.52-.26.693l-3.616 3.616 3.616 3.616c.173.173.26.433.26.693 0 .26-.087.52-.26.693z"/>
                                                 </svg>
                                             </div>
-                                            <input type="text" id="social_signal" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs" placeholder="Signal username 或 https://signal.me/#eu/...">
+                                            <input type="text" id="social_signal" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs" placeholder="+886912345678 或 https://signal.me/#p/+886...">
                                         </div>
                                     </div>
 
@@ -1393,8 +1393,21 @@ wrangler secret delete OLD_KEK
                 await checkPasskeyAvailable();
             } catch (error) {
                 console.error('Passkey registration error:', error);
+                
+                // 友善的錯誤訊息（雙語）
+                let errorMsg = { zh: 'Passkey 註冊失敗', en: 'Passkey registration failed' };
+                if (error.name === 'NotAllowedError') {
+                    errorMsg = { zh: '您取消了 Passkey 註冊', en: 'Passkey registration cancelled' };
+                } else if (error.name === 'InvalidStateError') {
+                    errorMsg = { zh: 'Passkey 已存在，請直接使用登入', en: 'Passkey already exists, please login' };
+                } else if (error.name === 'NotSupportedError') {
+                    errorMsg = { zh: '您的瀏覽器不支援 Passkey', en: 'Your browser does not support Passkey' };
+                } else if (error.message) {
+                    errorMsg = { zh: error.message, en: error.message };
+                }
+                
                 if (error.name !== 'NotAllowedError') {
-                    showNotification('Passkey 註冊失敗: ' + error.message, 'error');
+                    showNotification(`${errorMsg.zh} / ${errorMsg.en}`, 'error');
                 }
             }
         }
@@ -1474,7 +1487,24 @@ wrangler secret delete OLD_KEK
 
             } catch (error) {
                 console.error('Passkey login error:', error);
-                showNotification('Passkey 登入失敗: ' + error.message, 'error');
+                
+                // 友善的錯誤訊息（雙語）
+                let errorMsg = { zh: 'Passkey 登入失敗', en: 'Passkey login failed' };
+                if (error.name === 'NotAllowedError') {
+                    errorMsg = { zh: '您取消了 Passkey 驗證', en: 'Passkey verification cancelled' };
+                } else if (error.name === 'InvalidStateError') {
+                    errorMsg = { zh: '找不到已註冊的 Passkey，請先註冊', en: 'No registered Passkey found, please register first' };
+                } else if (error.name === 'NotSupportedError') {
+                    errorMsg = { zh: '您的瀏覽器不支援 Passkey', en: 'Your browser does not support Passkey' };
+                } else if (error.name === 'SecurityError') {
+                    errorMsg = { zh: '安全性錯誤，請確認網站使用 HTTPS', en: 'Security error, please ensure HTTPS is used' };
+                } else if (error.message) {
+                    errorMsg = { zh: error.message, en: error.message };
+                }
+                
+                if (error.name !== 'NotAllowedError') {
+                    showNotification(`${errorMsg.zh} / ${errorMsg.en}`, 'error');
+                }
 
                 // 隱藏 loading overlay（如果已顯示）
                 hideLoadingOverlay();

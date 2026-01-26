@@ -1082,7 +1082,15 @@ document.addEventListener('DOMContentLoaded', initApp);
 
 // 翻轉控制（防抖）
 let isFlipping = false;
-window.toggleFlip = function() {
+window.toggleFlip = function(event) {
+    // 排除可互動元素的點擊
+    if (event && event.target) {
+        const isInteractive = event.target.closest('a, button, input, select, textarea, [role="button"]');
+        if (isInteractive && isInteractive.id !== 'card') {
+            return;
+        }
+    }
+    
     if (isFlipping) return;
     isFlipping = true;
     const card = document.getElementById('card');

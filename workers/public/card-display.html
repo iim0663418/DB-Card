@@ -45,7 +45,7 @@
 <body class="no-scrollbar flex flex-col items-center">
 
     <div id="hint-badge" class="fixed top-8 left-0 right-0 z-50 flex justify-center pointer-events-none px-6 transition-opacity duration-300">
-        <button class="pointer-events-auto group" onclick="toggleFlip()" aria-label="點擊翻面切換語言">
+        <button class="pointer-events-auto group" onclick="toggleFlip(event)" aria-label="點擊翻面切換語言">
             <div class="flex items-center gap-3 px-6 py-3 rounded-full bg-white/90 backdrop-blur-lg border border-slate-200 shadow-lg hover:shadow-xl hover:bg-white transition-all duration-300">
                 <i data-lucide="languages" class="w-5 h-5 text-moda group-hover:rotate-180 transition-transform duration-500"></i>
                 <div class="flex flex-col items-start">
@@ -122,7 +122,7 @@
     <div id="main-container" class="relative z-10 w-full max-w-4xl px-4 py-24 hidden reveal">
 
         <div class="card-perspective">
-            <div id="card" class="card-inner" tabindex="0" role="button" aria-label="點擊翻面切換語言" onclick="toggleFlip()">
+            <div id="card" class="card-inner" tabindex="0" role="button" aria-label="點擊翻面切換語言" onclick="toggleFlip(event)">
                 
                 <div class="card-face card-front">
                     <main id="main-content">

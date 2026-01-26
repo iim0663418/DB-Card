@@ -83,7 +83,12 @@
             bottom: -1px; left: 0; right: 0;
             height: 3px;
             background: var(--moda-accent);
-            border-radius: 3px 3px 0 0;
+        }
+        .tab-btn.logout-btn {
+            color: #dc2626 !important; /* text-red-600 */
+        }
+        .tab-btn.logout-btn:hover {
+            color: #b91c1c !important; /* text-red-700 */
         }
 
         /* 雙語輸入框 */
@@ -204,9 +209,9 @@
             border: 2px solid rgba(255, 255, 255, 0.3);
             border-top-color: white;
             border-radius: 50%;
-            animation: spin 0.6s linear infinite;
+            animation: btn-spin 0.6s linear infinite;
         }
-        @keyframes spin {
+        @keyframes btn-spin {
             to { transform: translateY(-50%) rotate(360deg); }
         }
 
@@ -308,7 +313,7 @@
             <button id="register-passkey-btn" onclick="registerPasskey()" class="hidden tab-btn flex items-center gap-2 text-slate-600 hover:text-slate-900">
                 <i data-lucide="fingerprint" class="w-4 h-4"></i> 註冊 Passkey
             </button>
-            <button onclick="handleLogout()" class="tab-btn flex items-center gap-2 text-red-600 hover:text-red-700 ml-auto">
+            <button onclick="handleLogout()" class="tab-btn logout-btn flex items-center gap-2 ml-auto">
                 <i data-lucide="log-out" class="w-4 h-4"></i> 登出
             </button>
         </nav>
@@ -1266,10 +1271,27 @@ wrangler secret delete OLD_KEK
 
             // 清除狀態並顯示登入頁面
             isVerified = false;
+            
+            // 重置所有登入相關元素
             document.getElementById('token-section').classList.remove('hidden');
             document.getElementById('auth-status').classList.add('hidden');
             document.getElementById('admin-nav').classList.add('hidden');
             document.getElementById('content-area').classList.add('hidden');
+            
+            // 清空輸入框
+            document.getElementById('admin-email').value = '';
+            document.getElementById('setup-token').value = '';
+            
+            // 重置 Passkey 按鈕狀態
+            const passkeyLogin = document.getElementById('passkey-login');
+            passkeyLogin.classList.add('hidden');
+            const passkeyBtn = passkeyLogin.querySelector('button');
+            if (passkeyBtn) {
+                passkeyBtn.disabled = false;
+                passkeyBtn.innerHTML = '<i data-lucide="fingerprint" class="w-4 h-4 text-slate-700"></i><span class="text-xs font-bold text-slate-700">Passkey</span>';
+                // 重新初始化 Lucide icon
+                lucide.createIcons({ nameAttr: 'data-lucide' });
+            }
             
             // 重新檢查 Passkey 可用性
             checkPasskeyAvailable().catch(e => console.error(e));
@@ -1302,16 +1324,25 @@ wrangler secret delete OLD_KEK
                     document.getElementById('admin-nav').classList.remove('hidden');
                     document.getElementById('content-area').classList.remove('hidden');
                     
+                    // 載入名片列表
+                    await loadCards();
+                    
                     switchTab('list');
+                    
+                    // 背景載入次要資料
                     loadSystemHealth().catch(e => console.error(e));
                     checkCDNHealth().catch(e => console.error(e));
                     loadKekStatus().catch(e => console.error(e));
                     
                     // 檢查 Passkey 狀態並顯示提示
                     setTimeout(() => checkAndPromptPasskey(), 2000);
+                } else if (resp.status === 401) {
+                    // 未登入，靜默處理（不顯示錯誤）
+                    // 用戶需要手動登入
                 }
             } catch (error) {
-                console.error('Check auth status error:', error);
+                // 網路錯誤或其他問題，靜默處理
+                console.debug('Check auth status:', error.message);
             }
         }
 
@@ -1369,6 +1400,12 @@ wrangler secret delete OLD_KEK
         }
 
         async function loginWithPasskey() {
+            // 1. 按鈕 Loading 狀態
+            const passkeyBtn = document.querySelector('#passkey-login button');
+            const originalHTML = passkeyBtn.innerHTML;
+            passkeyBtn.disabled = true;
+            passkeyBtn.innerHTML = '<div class="w-4 h-4 border-2 border-slate-300 border-t-slate-700 rounded-full animate-spin"></div><span class="text-xs font-bold text-slate-700">驗證中...</span>';
+
             try {
                 const startResp = await fetch(`${API_BASE}/api/admin/passkey/login/start`, {
                     method: 'POST',
@@ -1396,21 +1433,55 @@ wrangler secret delete OLD_KEK
                 }
 
                 isVerified = true;
-                document.getElementById('token-section').classList.add('hidden');
+
+                showNotification('Passkey 授權驗證成功', 'success');
+
+                // 2. 淡出登入表單
+                const tokenSection = document.getElementById('token-section');
+                tokenSection.style.transition = 'opacity 0.3s ease';
+                tokenSection.style.opacity = '0';
+
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                // 3. 顯示全屏 Loading
+                showLoadingOverlay('正在載入名片列表...', '驗證成功，正在準備您的工作區');
+
+                // 隱藏登入表單，顯示已授權狀態
+                tokenSection.classList.add('hidden');
+                tokenSection.style.opacity = '1';
                 document.getElementById('auth-status').classList.remove('hidden');
                 document.getElementById('admin-nav').classList.remove('hidden');
-                document.getElementById('content-area').classList.remove('hidden');
 
-                showNotification('Passkey 登入成功', 'success');
+                // 4. 載入名片列表（阻塞）
+                try {
+                    await loadCards();
 
-                loadSystemHealth().catch(e => console.error(e));
-                checkCDNHealth().catch(e => console.error(e));
-                loadKekStatus().catch(e => console.error(e));
-                checkPasskeyAvailable().catch(e => console.error(e));
-                switchTab('list');
+                    // 5. 成功 → 顯示內容
+                    document.getElementById('content-area').classList.remove('hidden');
+                    hideLoadingOverlay();
+
+                    switchTab('list');
+
+                    // 6. 背景載入次要資料（不阻塞）
+                    loadSystemHealth().catch(e => console.error(e));
+                    checkCDNHealth().catch(e => console.error(e));
+                    loadKekStatus().catch(e => console.error(e));
+
+                } catch (loadError) {
+                    // 7. 失敗 → 顯示錯誤 + 重試按鈕（阻塞）
+                    showLoadingError(loadError.message || '載入名片列表失敗');
+                }
+
             } catch (error) {
                 console.error('Passkey login error:', error);
                 showNotification('Passkey 登入失敗: ' + error.message, 'error');
+
+                // 隱藏 loading overlay（如果已顯示）
+                hideLoadingOverlay();
+
+                // 恢復按鈕狀態
+                passkeyBtn.disabled = false;
+                passkeyBtn.innerHTML = originalHTML;
             }
         }
 
@@ -1499,6 +1570,9 @@ wrangler secret delete OLD_KEK
             } catch (error) {
                 console.error('Token verification error:', error);
                 showNotification('驗證失敗: ' + error.message, 'error');
+
+                // 隱藏 loading overlay（如果已顯示）
+                hideLoadingOverlay();
 
                 // 恢復按鈕狀態
                 verifyBtn.classList.remove('btn-loading');

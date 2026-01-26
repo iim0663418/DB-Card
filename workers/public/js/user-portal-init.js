@@ -340,6 +340,27 @@
 
                 // Open popup
                 const popup = window.open(authUrl, 'Google Login', 'width=500,height=600');
+                
+                // Check if popup was blocked
+                if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+                    errorBox.innerHTML = `
+                        <div class="flex items-start gap-3">
+                            <i data-lucide="alert-circle" class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5"></i>
+                            <div class="text-left">
+                                <p class="font-bold mb-2">彈出視窗被阻擋</p>
+                                <p class="font-normal mb-2">請允許此網站的彈出視窗以完成登入：</p>
+                                <ol class="list-decimal list-inside space-y-1 text-xs font-normal">
+                                    <li>點擊網址列右側的「🚫」圖示</li>
+                                    <li>選擇「允許彈出視窗」</li>
+                                    <li>重新點擊登入按鈕</li>
+                                </ol>
+                            </div>
+                        </div>
+                    `;
+                    errorBox.classList.remove('hidden');
+                    lucide.createIcons();
+                    return;
+                }
             } catch (error) {
                 console.error('OAuth init error:', error);
                 errorBox.innerText = '登入初始化失敗，請重試';

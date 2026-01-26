@@ -74,6 +74,15 @@
 - **合規性**: ✅ 可商用、可修改、可分發
 - **備註**: 無 SRI（unpkg 不支援 CORS）
 
+### 8. Simple Icons
+- **版本**: Latest (CDN)
+- **來源**: https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/signal.svg
+- **授權**: CC0-1.0 (公有領域)
+- **用途**: Signal 品牌 icon (SVG path)
+- **授權連結**: https://github.com/simple-icons/simple-icons/blob/develop/LICENSE.md
+- **合規性**: ✅ 可商用、可修改、可分發、無需署名
+- **備註**: 公有領域授權，無任何限制
+
 ---
 
 ## 🔤 字體
@@ -207,6 +216,7 @@
 | ISC License | 1 | ✅ | ✅ | ✅ |
 | Apache 2.0 | 3 | ✅ | ✅ | ✅ |
 | SIL OFL 1.1 | 3 | ✅ | ✅ | ✅ |
+| CC0-1.0 | 1 | ✅ | ✅ | ✅ |
 | 商業服務 | 3 | ✅ | N/A | N/A |
 
 ---
@@ -235,6 +245,7 @@
 - Chart.js © Chart.js Contributors
 - SimpleWebAuthn © Matthew Miller
 - jose © Filip Skokan
+- Simple Icons © Simple Icons Contributors
 - Google Fonts © Google Inc.
 
 ---
@@ -244,5 +255,5 @@
 本文件將隨專案依賴更新而同步維護。如有新增或移除第三方元件，將即時更新此清單。
 
 **維護責任人**: DB-Card Project Team  
-**最後審查日期**: 2026-01-24  
+**最後審查日期**: 2026-01-26  
 **審查結果**: ✅ 所有元件授權合規，無版權風險

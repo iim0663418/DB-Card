@@ -115,9 +115,11 @@
             z-index: 200;
             background: rgba(255, 255, 255, 0.8);
             backdrop-filter: blur(10px);
-            display: flex;
             align-items: center;
             justify-content: center;
+        }
+        .loading-overlay:not(.hidden) {
+            display: flex;
         }
 
         .fade-in { animation: fadeIn 0.5s ease-out forwards; }

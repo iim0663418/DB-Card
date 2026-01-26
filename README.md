@@ -1,6 +1,6 @@
 # DB-Card - NFC 數位名片系統 v4.3.2
 
-企業級 NFC 數位名片系統 | 隱私優先 · 安全至上 · OIDC 認證
+安全預設 NFC 數位名片系統 | 隱私優先 · 安全至上 · OIDC 認證
 
 ## 最新更新
 
@@ -39,7 +39,7 @@
 - **Discovery Endpoint**: 動態配置，24 小時快取
 - **合規度**: 90% (OpenID Connect Core 1.0)
 
-### 企業級安全架構
+### 安全預設架構
 - **信封加密**: 每張名片獨立 DEK，KEK 定期輪換
 - **授權會話機制 (ReadSession)**: 24 小時 TTL，可撤銷、可限制同時讀取數
 - **即時撤銷**: NFC 重新觸碰即可撤銷上一個會話
@@ -513,7 +513,7 @@ Apache License 2.0 - 詳見 [LICENSE](LICENSE)
 
 ---
 
-**企業級安全，隱私優先設計，OIDC 認證**  
+**安全預設，隱私優先設計，OIDC 認證**  
 **Cloudflare Workers 全球邊緣運算**
   },
   "database": {
@@ -662,7 +662,7 @@ Apache License 2.0 - 詳見 [LICENSE](LICENSE)
 - 首頁產品介紹優化
 - LLM 友善文檔
 
-### v4.0.0 (2026-01-18) - 企業級安全架構
+### v4.0.0 (2026-01-18) - 安全預設架構
 - 信封加密機制
 - 授權會話系統
 - 完整雙語支援（11 個 i18n keys）
@@ -681,5 +681,5 @@ Apache License 2.0 - 詳見 [LICENSE](LICENSE)
 
 ---
 
-**企業級安全，隱私優先設計**  
+**安全預設，隱私優先設計**  
 **Cloudflare Workers 全球邊緣運算**

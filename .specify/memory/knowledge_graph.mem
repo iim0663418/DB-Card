@@ -820,7 +820,7 @@
 260120|Landing_Page_Feature_1|items|資料加密儲存_UUID_Only_IP_匿名化
 260120|Landing_Page_Feature_2|title|信封加密技術
 260120|Landing_Page_Feature_2|icon|lock
-260120|Landing_Page_Feature_2|items|獨立_DEK_KEK_輪換_企業級標準
+260120|Landing_Page_Feature_2|items|獨立_DEK_KEK_輪換_安全預設標準
 260120|Landing_Page_Feature_3|title|授權會話機制
 260120|Landing_Page_Feature_3|icon|clock
 260120|Landing_Page_Feature_3|items|24h_TTL_同時讀取限制_NFC_重新觸碰

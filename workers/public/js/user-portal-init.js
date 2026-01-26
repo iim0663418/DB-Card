@@ -1445,9 +1445,11 @@
                     // 驗證 session 並載入名片資料
                     try {
                         await fetchUserCards();
-                        showToast('自動登入成功');
-                        // 載入完成後切換到選擇頁面
-                        showView('selection');
+                        // 只有成功載入才切換視圖和顯示 toast
+                        if (state.isLoggedIn) {
+                            showToast('自動登入成功');
+                            showView('selection');
+                        }
                     } catch (err) {
                         console.error('Failed to load cards:', err);
                         // Session 無效或過期，清除並顯示登入頁

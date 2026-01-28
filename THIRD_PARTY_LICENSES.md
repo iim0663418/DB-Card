@@ -83,6 +83,16 @@
 - **合規性**: ✅ 可商用、可修改、可分發、無需署名
 - **備註**: 公有領域授權，無任何限制
 
+### 9. Panzoom
+- **版本**: 4.6.1
+- **來源**: https://unpkg.com/@panzoom/panzoom@4.6.1/dist/panzoom.min.js
+- **授權**: MIT License
+- **作者**: timmywil
+- **用途**: 管理後台圖片查看器（縮放/平移/旋轉）
+- **授權連結**: https://github.com/timmywil/panzoom/blob/main/MIT-License.txt
+- **合規性**: ✅ 可商用、可修改、可分發
+- **備註**: 無 SRI（unpkg 不支援 CORS）
+
 ---
 
 ## 🔤 字體
@@ -212,7 +222,7 @@
 
 | 授權類型 | 元件數量 | 商用許可 | 修改許可 | 分發許可 |
 |---------|---------|---------|---------|---------|
-| MIT License | 12 | ✅ | ✅ | ✅ |
+| MIT License | 13 | ✅ | ✅ | ✅ |
 | ISC License | 1 | ✅ | ✅ | ✅ |
 | Apache 2.0 | 3 | ✅ | ✅ | ✅ |
 | SIL OFL 1.1 | 3 | ✅ | ✅ | ✅ |
@@ -244,6 +254,7 @@
 - DOMPurify © Cure53
 - Chart.js © Chart.js Contributors
 - SimpleWebAuthn © Matthew Miller
+- Panzoom © timmywil
 - jose © Filip Skokan
 - Simple Icons © Simple Icons Contributors
 - Google Fonts © Google Inc.
@@ -255,5 +266,5 @@
 本文件將隨專案依賴更新而同步維護。如有新增或移除第三方元件，將即時更新此清單。
 
 **維護責任人**: DB-Card Project Team  
-**最後審查日期**: 2026-01-26  
+**最後審查日期**: 2026-01-28  
 **審查結果**: ✅ 所有元件授權合規，無版權風險

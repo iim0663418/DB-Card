@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="/css/v4-design.css">
     <script src="/js/tailwind-suppress.js"></script>
     <script src="https://unpkg.com/lucide@0.562.0/dist/umd/lucide.min.js"></script>
+    <script src="https://unpkg.com/@panzoom/panzoom@4.6.1/dist/panzoom.min.js"></script>
     <script src="https://unpkg.com/@simplewebauthn/browser@13.0.0/dist/bundle/index.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
             integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ=="
@@ -310,6 +311,9 @@
             </button>
             <button onclick="switchTab('create')" id="tab-create" class="tab-btn flex items-center gap-2">
                 <i data-lucide="plus-circle" class="w-4 h-4"></i> 創建名片
+            </button>
+            <button onclick="switchTab('twin')" id="tab-twin" class="tab-btn flex items-center gap-2">
+                <i data-lucide="image" class="w-4 h-4"></i> 實體孿生
             </button>
             <button onclick="switchTab('security')" id="tab-security" class="tab-btn flex items-center gap-2">
                 <i data-lucide="shield-alert" class="w-4 h-4"></i> 安全監控
@@ -630,8 +634,169 @@
                 </div>
             </section>
 
-            <!-- Tab 2.5: 安全監控 -->
+            <!-- Tab 2.5: 實體孿生 -->
+            <section id="section-twin" class="hidden space-y-6 fade-in">
+                <div class="glass-surface p-8 rounded-2xl space-y-6">
+                    <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                        <i data-lucide="image" class="w-4 h-4"></i> 上傳實體名片圖片
+                    </h2>
+
+                    <!-- 選擇名片 -->
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase mb-2 block">選擇名片</label>
+                        <select id="twin-card-select" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm">
+                            <option value="">請選擇名片...</option>
+                        </select>
+                    </div>
+
+                    <!-- 圖片類型 -->
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase mb-2 block">圖片類型</label>
+                        <div class="flex gap-4">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="asset-type" value="twin_front" checked class="w-4 h-4 text-moda">
+                                <span class="text-sm">正面 (twin_front)</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="asset-type" value="twin_back" class="w-4 h-4 text-moda">
+                                <span class="text-sm">背面 (twin_back)</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="asset-type" value="avatar" class="w-4 h-4 text-moda">
+                                <span class="text-sm">大頭貼 (avatar)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 拖放上傳區 -->
+                    <div id="drop-zone" class="border-2 border-dashed border-slate-300 rounded-2xl p-12 text-center cursor-pointer hover:border-moda hover:bg-moda-light transition-all">
+                        <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp" class="hidden">
+                        <i data-lucide="upload-cloud" class="w-12 h-12 text-slate-400 mx-auto mb-4"></i>
+                        <p class="text-slate-700 font-bold mb-2">拖放圖片到此處</p>
+                        <p class="text-sm text-slate-500 mb-1">或點擊選擇檔案</p>
+                        <p class="text-xs text-slate-400">支援格式: JPEG, PNG, WebP | 最大大小: 5 MB</p>
+                    </div>
+
+                    <!-- 圖片預覽 -->
+                    <div id="preview-container" class="hidden space-y-4">
+                        <div class="flex items-start gap-4 bg-slate-50 p-4 rounded-xl">
+                            <img id="preview-image" class="w-32 h-32 object-cover rounded-lg border border-slate-200">
+                            <div class="flex-1">
+                                <p id="preview-filename" class="font-bold text-slate-900 mb-1"></p>
+                                <p id="preview-filesize" class="text-sm text-slate-600 mb-1"></p>
+                                <p id="preview-dimensions" class="text-sm text-slate-600"></p>
+                            </div>
+                            <button onclick="clearPreview()" class="text-slate-400 hover:text-red-600">
+                                <i data-lucide="x" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 上傳按鈕 -->
+                    <div class="flex gap-3">
+                        <button id="upload-btn" onclick="uploadAsset()" disabled class="flex-1 bg-moda text-white px-6 py-3 rounded-xl font-bold hover:bg-moda transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                            上傳
+                        </button>
+                        <button onclick="clearPreview()" class="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-all">
+                            取消
+                        </button>
+                    </div>
+
+                    <!-- 上傳進度 -->
+                    <div id="upload-progress" class="hidden">
+                        <div class="bg-slate-200 rounded-full h-2 overflow-hidden">
+                            <div id="progress-bar" class="bg-moda h-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-2 text-center">上傳中...</p>
+                    </div>
+                </div>
+
+                <!-- 已上傳的圖片列表 -->
+                <div class="glass-surface p-8 rounded-2xl space-y-4">
+                    <h3 class="text-sm font-bold uppercase tracking-widest text-slate-400">已上傳的圖片</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                <tr>
+                                    <th class="px-4 py-3 text-left">縮圖</th>
+                                    <th class="px-4 py-3 text-left">類型</th>
+                                    <th class="px-4 py-3 text-left">版本</th>
+                                    <th class="px-4 py-3 text-left">上傳時間</th>
+                                    <th class="px-4 py-3 text-left">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assets-table-body" class="divide-y divide-slate-100">
+                                <tr>
+                                    <td colspan="5" class="px-4 py-8 text-center text-slate-400">請選擇名片以查看已上傳的圖片</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab 3: 安全監控 -->
             <section id="section-security" class="hidden space-y-6 fade-in">
+
+                <!-- 系統監控 -->
+                <div class="space-y-4">
+                    <h2 class="text-lg font-bold text-slate-900">系統監控</h2>
+                    
+                    <!-- Health Status -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="glass-surface p-6 rounded-2xl">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-[10px] font-bold text-slate-400 uppercase">Database</p>
+                                <span id="health-db-status" class="text-xs font-bold text-green-600">●</span>
+                            </div>
+                            <p id="health-db-latency" class="text-2xl font-black text-slate-900">-- ms</p>
+                        </div>
+                        <div class="glass-surface p-6 rounded-2xl">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-[10px] font-bold text-slate-400 uppercase">R2 Storage</p>
+                                <span id="health-r2-status" class="text-xs font-bold text-green-600">●</span>
+                            </div>
+                            <p id="health-r2-latency" class="text-2xl font-black text-slate-900">-- ms</p>
+                        </div>
+                        <div class="glass-surface p-6 rounded-2xl">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-[10px] font-bold text-slate-400 uppercase">KV Cache</p>
+                                <span id="health-kv-status" class="text-xs font-bold text-green-600">●</span>
+                            </div>
+                            <p id="health-kv-latency" class="text-2xl font-black text-slate-900">-- ms</p>
+                        </div>
+                    </div>
+
+                    <!-- Upload & Read Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="glass-surface p-6 rounded-2xl">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Upload (24h)</p>
+                            <div class="flex items-baseline gap-2">
+                                <p id="upload-total" class="text-3xl font-black text-slate-900">--</p>
+                                <p class="text-sm text-slate-500">total</p>
+                            </div>
+                            <div class="mt-2 flex gap-4 text-xs">
+                                <span class="text-green-600">✓ <span id="upload-success">--</span></span>
+                                <span class="text-red-600">✗ <span id="upload-failed">--</span></span>
+                                <span class="text-slate-500">(<span id="upload-rate">--%</span>)</span>
+                            </div>
+                        </div>
+                        <div class="glass-surface p-6 rounded-2xl">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Read (24h)</p>
+                            <div class="flex items-baseline gap-2">
+                                <p id="read-total" class="text-3xl font-black text-slate-900">--</p>
+                                <p class="text-sm text-slate-500">total</p>
+                            </div>
+                            <div class="mt-2 flex gap-4 text-xs">
+                                <span class="text-green-600">✓ <span id="read-success">--</span></span>
+                                <span class="text-red-600">✗ <span id="read-failed">--</span></span>
+                                <span class="text-slate-500">(<span id="read-rate">--%</span>)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="border-slate-200">
 
                 <!-- 統計卡片 -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1792,7 +1957,10 @@ wrangler secret delete OLD_KEK
                 checkCDNHealth();
                 loadKekStatus();
             }
-            
+            if(tabId === 'twin') {
+                loadTwinCards();
+            }
+
             // 切換到創建 Tab 時，如果不是編輯模式，清空表單
             if(tabId === 'create' && !window.editingCardUuid) {
                 cancelEdit();
@@ -2970,6 +3138,7 @@ wrangler secret delete OLD_KEK
 
         // 初始化安全監控儀表板
         function initSecurityDashboard() {
+            loadMonitoringData();
             loadSecurityStats();
             loadSecurityTimeline(24);
             loadSecurityEvents(1);
@@ -2981,8 +3150,54 @@ wrangler secret delete OLD_KEK
 
             // 每 60 秒刷新統計
             securityStatsInterval = setInterval(() => {
+                loadMonitoringData();
                 loadSecurityStats();
             }, 60000);
+        }
+
+        // 載入監控數據
+        async function loadMonitoringData() {
+            try {
+                const [health, overview] = await Promise.all([
+                    fetch('/api/admin/monitoring/health', { credentials: 'include' }).then(r => r.json()),
+                    fetch('/api/admin/monitoring/overview', { credentials: 'include' }).then(r => r.json())
+                ]);
+
+                // Update health status
+                updateHealthStatus('db', health.checks.database);
+                updateHealthStatus('r2', health.checks.r2);
+                updateHealthStatus('kv', health.checks.kv);
+
+                // Update upload stats
+                document.getElementById('upload-total').textContent = overview.upload.total;
+                document.getElementById('upload-success').textContent = overview.upload.success;
+                document.getElementById('upload-failed').textContent = overview.upload.failed;
+                document.getElementById('upload-rate').textContent = overview.upload.success_rate.toFixed(1) + '%';
+
+                // Update read stats
+                document.getElementById('read-total').textContent = overview.read.total;
+                document.getElementById('read-success').textContent = overview.read.success;
+                document.getElementById('read-failed').textContent = overview.read.failed;
+                document.getElementById('read-rate').textContent = overview.read.success_rate.toFixed(1) + '%';
+
+            } catch (error) {
+                console.error('Failed to load monitoring data:', error);
+            }
+        }
+
+        function updateHealthStatus(service, check) {
+            const statusEl = document.getElementById(`health-${service}-status`);
+            const latencyEl = document.getElementById(`health-${service}-latency`);
+            
+            if (check.status === 'ok') {
+                statusEl.textContent = '●';
+                statusEl.className = 'text-xs font-bold text-green-600';
+                latencyEl.textContent = check.latency + ' ms';
+            } else {
+                statusEl.textContent = '●';
+                statusEl.className = 'text-xs font-bold text-red-600';
+                latencyEl.textContent = 'Error';
+            }
         }
 
         // 載入安全統計
@@ -3584,6 +3799,374 @@ wrangler secret delete OLD_KEK
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         };
+
+        // ===========================
+        // Physical Twin Upload Functions
+        // ===========================
+
+        let selectedFile = null;
+
+        // Load cards into dropdown
+        async function loadTwinCards() {
+            const select = document.getElementById('twin-card-select');
+            select.innerHTML = '<option value="">請選擇名片...</option>';
+
+            if (allCards.length === 0) {
+                await loadCards();
+            }
+
+            allCards.forEach(card => {
+                const option = document.createElement('option');
+                option.value = card.uuid; // Fixed: use card.uuid instead of card.card_uuid
+                const nameZh = card.data.name?.zh || '';
+                const nameEn = card.data.name?.en || '';
+                const email = card.data.email || '';
+                option.textContent = `${nameZh} ${nameEn} (${email})`;
+                select.appendChild(option);
+            });
+        }
+
+        // Setup drag and drop
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('file-input');
+
+            // Click to upload
+            dropZone.addEventListener('click', () => fileInput.click());
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0]);
+                }
+            });
+
+            // Drag and drop
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-moda', 'bg-moda-light');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('border-moda', 'bg-moda-light');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-moda', 'bg-moda-light');
+                if (e.dataTransfer.files.length > 0) {
+                    handleFile(e.dataTransfer.files[0]);
+                }
+            });
+
+            // Load assets when card is selected
+            document.getElementById('twin-card-select').addEventListener('change', (e) => {
+                if (e.target.value) {
+                    loadCardAssets(e.target.value);
+                } else {
+                    document.getElementById('assets-table-body').innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">請選擇名片以查看已上傳的圖片</td></tr>';
+                }
+            });
+        });
+
+        // File validation
+        function validateFile(file) {
+            // Check file size (5 MB)
+            if (file.size > 5 * 1024 * 1024) {
+                return { valid: false, error: '檔案大小超過 5 MB 限制' };
+            }
+
+            // Check file format
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                return { valid: false, error: '不支援的檔案格式。請使用 JPEG, PNG 或 WebP' };
+            }
+
+            return { valid: true };
+        }
+
+        // Handle file selection/drop
+        function handleFile(file) {
+            const validation = validateFile(file);
+
+            if (!validation.valid) {
+                showNotification(validation.error, 'error');
+                return;
+            }
+
+            selectedFile = file;
+            previewImage(file);
+        }
+
+        // Preview image
+        function previewImage(file) {
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    document.getElementById('preview-image').src = e.target.result;
+                    document.getElementById('preview-filename').textContent = file.name;
+                    document.getElementById('preview-filesize').textContent = `大小: ${(file.size / 1024).toFixed(2)} KB`;
+                    document.getElementById('preview-dimensions').textContent = `尺寸: ${img.width} × ${img.height} px`;
+                    document.getElementById('preview-container').classList.remove('hidden');
+                    document.getElementById('upload-btn').disabled = false;
+                };
+                img.src = e.target.result;
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        // Clear preview
+        window.clearPreview = function() {
+            selectedFile = null;
+            document.getElementById('preview-container').classList.add('hidden');
+            document.getElementById('file-input').value = '';
+            document.getElementById('upload-btn').disabled = true;
+            document.getElementById('upload-progress').classList.add('hidden');
+            document.getElementById('progress-bar').style.width = '0%';
+        }
+
+        // Upload asset
+        window.uploadAsset = async function() {
+            const cardUuid = document.getElementById('twin-card-select').value;
+            const assetType = document.querySelector('input[name="asset-type"]:checked').value;
+
+            if (!cardUuid) {
+                showNotification('請選擇名片', 'error');
+                return;
+            }
+
+            if (!selectedFile) {
+                showNotification('請選擇圖片', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('card_uuid', cardUuid);
+            formData.append('asset_type', assetType);
+            formData.append('file', selectedFile);
+
+            const uploadBtn = document.getElementById('upload-btn');
+            const progressDiv = document.getElementById('upload-progress');
+            const progressBar = document.getElementById('progress-bar');
+
+            try {
+                uploadBtn.disabled = true;
+                uploadBtn.classList.add('btn-loading');
+                progressDiv.classList.remove('hidden');
+                progressBar.style.width = '30%';
+
+                // Get CSRF token from sessionStorage
+                const csrfToken = sessionStorage.getItem('csrfToken');
+                const headers = {};
+                if (csrfToken) {
+                    headers['X-CSRF-Token'] = csrfToken;
+                }
+
+                const response = await fetch(`${API_BASE}/api/admin/assets/upload`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: headers,
+                    body: formData
+                });
+
+                progressBar.style.width = '70%';
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    throw new Error('授權已過期，請重新登入');
+                }
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    const errorMsg = errorData.details || errorData.error || '上傳失敗';
+                    console.error('Upload error details:', errorData);
+                    throw new Error(errorMsg);
+                }
+
+                progressBar.style.width = '100%';
+
+                const result = await response.json();
+                showNotification('圖片上傳成功！', 'success');
+
+                // Reload assets list
+                await loadCardAssets(cardUuid);
+
+                // Clear form
+                clearPreview();
+
+            } catch (error) {
+                console.error('Upload error:', error);
+                showNotification('上傳失敗: ' + error.message, 'error');
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.classList.remove('btn-loading');
+                setTimeout(() => {
+                    progressDiv.classList.add('hidden');
+                    progressBar.style.width = '0%';
+                }, 1000);
+            }
+        }
+
+        // Load card assets
+        async function loadCardAssets(cardUuid) {
+            const tbody = document.getElementById('assets-table-body');
+            tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">載入中...</td></tr>';
+
+            try {
+                const url = `${API_BASE}/api/admin/cards/${cardUuid}/assets`;
+                console.log('Fetching assets from:', url); // Debug log
+                
+                const response = await fetch(url, {
+                    credentials: 'include'
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
+
+                if (!response.ok) {
+                    console.error('API error:', response.status, response.statusText);
+                    throw new Error('載入資產失敗');
+                }
+
+                const result = await response.json();
+                
+                // Handle empty or invalid response
+                if (!result || !result.data) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">尚無上傳的圖片</td></tr>';
+                    return;
+                }
+
+                const assets = result.data.assets || [];
+
+                if (assets.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">尚無上傳的圖片</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                assets.forEach(asset => {
+                    const row = document.createElement('tr');
+                    
+                    // Use admin API to view images (no session required)
+                    const thumbUrl = `/api/admin/assets/${asset.asset_id}/content?variant=thumb`;
+                    
+                    row.innerHTML = `
+                        <td class="px-4 py-3">
+                            <img src="${thumbUrl}" 
+                                 alt="${asset.asset_type}" 
+                                 class="w-16 h-16 object-cover rounded-lg border border-slate-300"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="w-16 h-16 bg-slate-200 rounded-lg border border-slate-300 items-center justify-center hidden">
+                                <i data-lucide="image" class="w-8 h-8 text-slate-400"></i>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">${asset.asset_type}</td>
+                        <td class="px-4 py-3">v${asset.current_version}</td>
+                        <td class="px-4 py-3">${new Date(asset.created_at + 'Z').toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}</td>
+                        <td class="px-4 py-3">
+                            <button onclick="viewAsset('${asset.asset_id}')" 
+                                    class="px-3 py-1 bg-[#6868ac] text-white rounded-lg hover:bg-[#5555aa] transition-colors text-sm">
+                                查看
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                // Re-initialize Lucide icons
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+
+            } catch (error) {
+                console.error('Load assets error:', error);
+                tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-red-400">載入失敗</td></tr>';
+            }
+        }
+
+        // View asset in modal with zoom/pan/rotate
+        window.viewAsset = function(assetId) {
+            const detailUrl = `/api/admin/assets/${assetId}/content?variant=detail`;
+            
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4';
+            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+            
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl p-6 max-w-fit max-h-[95vh] flex flex-col">
+                    <div class="flex justify-between items-center mb-4 flex-shrink-0">
+                        <h3 class="text-xl font-semibold text-slate-800">圖片預覽</h3>
+                        <div class="flex gap-2 ml-4">
+                            <button id="zoom-in" class="px-2 py-1 bg-slate-100 rounded hover:bg-slate-200 transition-colors">
+                                <i data-lucide="zoom-in" class="w-5 h-5"></i>
+                            </button>
+                            <button id="zoom-out" class="px-2 py-1 bg-slate-100 rounded hover:bg-slate-200 transition-colors">
+                                <i data-lucide="zoom-out" class="w-5 h-5"></i>
+                            </button>
+                            <button id="rotate" class="px-2 py-1 bg-slate-100 rounded hover:bg-slate-200 transition-colors">
+                                <i data-lucide="rotate-cw" class="w-5 h-5"></i>
+                            </button>
+                            <button id="reset" class="px-2 py-1 bg-slate-100 rounded hover:bg-slate-200 transition-colors">
+                                <i data-lucide="maximize" class="w-5 h-5"></i>
+                            </button>
+                            <button onclick="this.closest('.fixed').remove()" 
+                                    class="px-2 py-1 text-slate-400 hover:text-slate-600 transition-colors">
+                                <i data-lucide="x" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="panzoom-container" class="overflow-hidden flex-1 flex items-center justify-center" style="max-width: 90vw; max-height: 80vh;">
+                        <img id="panzoom-image" src="${detailUrl}" 
+                             alt="Asset" 
+                             style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;"
+                             onerror="this.src=''; this.alt='載入失敗';">
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Initialize Panzoom after image loads
+            const img = modal.querySelector('#panzoom-image');
+            let rotation = 0;
+            
+            img.onload = () => {
+                const panzoom = Panzoom(img, {
+                    maxScale: 5,
+                    minScale: 0.1,
+                    contain: 'outside'
+                });
+                
+                // Zoom buttons
+                modal.querySelector('#zoom-in').onclick = () => panzoom.zoomIn();
+                modal.querySelector('#zoom-out').onclick = () => panzoom.zoomOut();
+                modal.querySelector('#reset').onclick = () => {
+                    panzoom.reset();
+                    rotation = 0;
+                    img.style.transform = '';
+                };
+                
+                // Rotate button (90 degrees)
+                modal.querySelector('#rotate').onclick = () => {
+                    rotation += 90;
+                    const current = panzoom.getScale();
+                    const pan = panzoom.getPan();
+                    img.style.transform = `rotate(${rotation}deg) scale(${current}) translate(${pan.x}px, ${pan.y}px)`;
+                };
+                
+                // Mouse wheel zoom
+                modal.querySelector('#panzoom-container').addEventListener('wheel', panzoom.zoomWithWheel);
+            };
+            
+            // Re-initialize Lucide icons
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
     </script>
 </body>
 </html>

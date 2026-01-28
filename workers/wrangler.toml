@@ -1,9 +1,10 @@
-name = "db-card-api"
+name = "db-card-staging"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
 # Environment Variables
 [vars]
+ENVIRONMENT = "staging"
 GOOGLE_CLIENT_ID = "675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com"
 
 # Static Assets
@@ -11,16 +12,22 @@ GOOGLE_CLIENT_ID = "675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleuse
 directory = "./public"
 binding = "ASSETS"
 
-# Local Development D1 Database
+# Staging D1 Database
 [[d1_databases]]
 binding = "DB"
-database_name = "db-card-local"
-database_id = "local-db"
+database_name = "db-card-staging"
+database_id = "d31b5e42-d8bf-4044-9744-4aff5669de4b"
 
 # KV Namespace for Rate Limiting
 [[kv_namespaces]]
 binding = "KV"
 id = "87221de061f049d3a4c976b7b5092dd9"
+
+# R2 Bucket for Physical Card Images (Staging)
+[[r2_buckets]]
+binding = "PHYSICAL_CARDS"
+bucket_name = "db-card-physical-images-staging"
+preview_bucket_name = "db-card-physical-images-preview"
 
 # Cron Triggers
 [triggers]
@@ -37,20 +44,6 @@ database_name = "db-card-prod"
 database_id = "947e021c-2858-47b3-8495-2aaf8fa956ad"
 
 [[env.production.kv_namespaces]]
-binding = "KV"
-id = "87221de061f049d3a4c976b7b5092dd9"
-
-# Staging Environment
-[env.staging]
-name = "db-card-staging"
-vars = { ENVIRONMENT = "staging", GOOGLE_CLIENT_ID = "675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com" }
-
-[[env.staging.d1_databases]]
-binding = "DB"
-database_name = "db-card-staging"
-database_id = "d31b5e42-d8bf-4044-9744-4aff5669de4b"
-
-[[env.staging.kv_namespaces]]
 binding = "KV"
 id = "87221de061f049d3a4c976b7b5092dd9"
 

@@ -18,21 +18,21 @@ async function getCardType(
 ): Promise<'personal' | 'event' | 'sensitive'> {
   try {
     const result = await env.DB.prepare(`
-      SELECT ub.card_type
+      SELECT ub.type
       FROM uuid_bindings ub
       WHERE ub.uuid = ?
         AND ub.status = 'bound'
       LIMIT 1
-    `).bind(cardUuid).first<{ card_type: string }>();
+    `).bind(cardUuid).first<{ type: string }>();
 
-    if (!result || !result.card_type) {
-      console.warn(`[getCardType] No card_type found for ${cardUuid}, defaulting to 'personal'`);
+    if (!result || !result.type) {
+      console.warn(`[getCardType] No type found for ${cardUuid}, defaulting to 'personal'`);
       return 'personal';
     }
 
-    const cardType = result.card_type as 'personal' | 'event' | 'sensitive';
+    const cardType = result.type as 'personal' | 'event' | 'sensitive';
     if (!['personal', 'event', 'sensitive'].includes(cardType)) {
-      console.warn(`[getCardType] Invalid card_type '${cardType}', defaulting to 'personal'`);
+      console.warn(`[getCardType] Invalid type '${cardType}', defaulting to 'personal'`);
       return 'personal';
     }
 

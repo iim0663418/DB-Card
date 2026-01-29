@@ -6,7 +6,7 @@
 
 ## Recent Completions (2026-01-29)
 
-### Safari 卡片翻轉修復 + Glassmorphism 優化 ✅ (14:09)
+### Safari 卡片翻轉修復 + Glassmorphism 優化 + 響應式翻轉 ✅ (14:13)
 1. **問題診斷** - 找到真正原因
    - pointer-events: none 阻止 Safari 點擊事件
    - 缺少 GPU 加速提示 (translateZ)
@@ -22,18 +22,27 @@
    - 雙層陰影 + 內陰影高光
    - 實體圓角標準 (1rem = 16px ≈ 6mm)
    - 細緻色帶 (4px)
-4. **部署測試** - Staging 環境
-   - Version: 96bb4668-16ba-4e7b-9c14-90ff8f510e58
-   - Worker Startup: 13 ms
+4. **P2 響應式翻轉** - 跨裝置優化
+   - 手機 (<1024px): 中心翻轉（穩定）
+   - 桌面 (≥1024px): 側邊翻轉（逼真）
+   - transform-origin: center right
+5. **部署測試** - Staging 環境
+   - Version: 2d7fb217-bd96-4eec-a33a-8b4f1bfd3221
+   - Worker Startup: 16 ms
    - Safari iOS 測試穩定 ✅
+   - 桌面側邊翻轉驗證通過 ✅
    - 視覺效果驗證通過 ✅
-5. **技術改進**
+6. **技術改進**
    - Safari 點擊事件正常傳遞
    - GPU 硬體加速啟用
    - 避免 z-fighting
    - 動畫流暢無卡頓
    - 玻璃質感更強
    - 立體感更明顯
+   - 響應式體驗優化
+7. **Git 提交**
+   - Commit: e3a0943
+   - 23 files changed, 5696 insertions(+)
 
 ## Recent Completions (2026-01-28)
 

@@ -307,9 +307,9 @@
 
         <!-- 頁尾控制與安全規範 -->
         <footer class="mt-10 w-full flex flex-col md:flex-row gap-6 items-stretch">
-            <div class="flex-1 flex gap-4">
+            <div class="flex-1 flex gap-4 lg:justify-center">
                 <button id="save-vcard"
-                        class="flex-1 bg-slate-900 text-white font-black uppercase text-xs md:text-[10px] tracking-wider md:tracking-[0.3em] py-4 px-8 rounded-2xl hover:bg-moda shadow-xl transition-all flex items-center justify-center gap-3 focus:outline-none focus:ring-2 focus:ring-moda focus:ring-offset-2"
+                        class="flex-1 bg-slate-900 text-white font-black uppercase text-xs md:text-[10px] tracking-wider md:tracking-[0.3em] py-4 px-8 rounded-2xl hover:bg-moda shadow-xl transition-all flex items-center justify-center gap-3 focus:outline-none focus:ring-2 focus:ring-moda focus:ring-offset-2 lg:hidden"
                         aria-label="下載 vCard 名片">
                     <i id="vcard-icon" data-lucide="user-plus" class="w-5 h-5 md:w-4 md:h-4" aria-hidden="true"></i>
                     <span id="vcard-text" data-i18n="add_to_contacts">加入聯絡人</span>
@@ -321,7 +321,7 @@
                     <span class="text-xs font-bold md:hidden">QR</span>
                 </button>
             </div>
-            <aside class="md:w-80 p-6 border border-moda-light bg-white/80 rounded-2xl shadow-sm">
+            <aside class="md:w-80 p-6 border border-moda-light bg-white/80 rounded-2xl shadow-sm lg:hidden">
                 <div class="flex items-center gap-3 mb-2 text-moda-dark">
                     <i data-lucide="shield-check" class="w-4 h-4" aria-hidden="true"></i>
                     <p class="hud-text text-[10px]" data-i18n="security-spec">資料安全規範</p>

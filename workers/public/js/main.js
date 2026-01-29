@@ -656,6 +656,13 @@ function renderCardFace(cardData, sessionData, lang, suffix) {
         socialCluster.style.display = 'none';
     }
 
+    // Hide loading skeleton
+    const skeleton = document.getElementById('loading-skeleton');
+    if (skeleton) {
+        skeleton.style.opacity = '0';
+        setTimeout(() => skeleton.remove(), 300);
+    }
+
     hideLoading();
     document.getElementById('main-container').classList.remove('hidden');
 

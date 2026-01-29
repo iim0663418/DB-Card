@@ -1097,7 +1097,7 @@ window.toggleFlip = function(event) {
             return;
         }
     }
-    
+
     if (isFlipping) return;
     isFlipping = true;
     const card = document.getElementById('card');
@@ -1106,6 +1106,52 @@ window.toggleFlip = function(event) {
         setTimeout(() => { isFlipping = false; }, 800);
     }
 };
+
+// ========================================
+// 桌面版 3D 視差效果
+// ========================================
+function initDesktopParallax() {
+    if (window.innerWidth < 1024) return; // 僅桌面版
+
+    const cardPerspective = document.querySelector('.card-perspective');
+    const cardInner = document.querySelector('.card-inner');
+    if (!cardPerspective || !cardInner) return;
+
+    let ticking = false;
+    let currentRotation = { x: 0, y: 0 };
+
+    cardPerspective.addEventListener('mousemove', (e) => {
+        if (ticking) return;
+
+        requestAnimationFrame(() => {
+            const rect = cardPerspective.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width - 0.5;
+            const y = (e.clientY - rect.top) / rect.height - 0.5;
+
+            currentRotation = { x: -y * 10, y: x * 10 };
+            applyCardTransform();
+            ticking = false;
+        });
+        ticking = true;
+    });
+
+    cardPerspective.addEventListener('mouseleave', () => {
+        if (ticking) return;
+
+        requestAnimationFrame(() => {
+            currentRotation = { x: 0, y: 0 };
+            applyCardTransform();
+            ticking = false;
+        });
+        ticking = true;
+    });
+
+    function applyCardTransform() {
+        // 使用 CSS 變數，避免直接操作 transform
+        cardInner.style.setProperty('--rotate-x', `${currentRotation.x}deg`);
+        cardInner.style.setProperty('--rotate-y', `${currentRotation.y}deg`);
+    }
+}
 
 // 動態高度匹配
 function matchCardHeight() {
@@ -1142,4 +1188,5 @@ window.addEventListener('resize', matchCardHeight);
 setTimeout(() => {
     matchCardHeight();
     initHintBadge();
+    initDesktopParallax();
 }, 100);

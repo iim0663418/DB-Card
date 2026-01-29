@@ -74,12 +74,11 @@ const ORG_DEPT_MAPPING = {
 };
 
 /**
- * Update vCard button text and icon based on device type
+ * Update vCard button text and icon (unified as "Add to Contacts")
  */
 function updateVCardButton() {
-    const isMobile = isMobileDevice();
-    const i18nKey = isMobile ? 'add_to_contacts' : 'download_vcard';
-    const iconName = isMobile ? 'user-plus' : 'download';
+    const i18nKey = 'add_to_contacts';
+    const iconName = 'user-plus';
 
     // Update button text and data-i18n attribute
     const vCardText = document.getElementById('vcard-text');

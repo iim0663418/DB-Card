@@ -139,8 +139,8 @@
             <p class="text-sm md:text-base text-slate-500 font-medium">
                 安全預設 | 隱私優先 | 輕量化設計
             </p>
-            <div class="mt-6 text-xs text-slate-400 font-mono">
-                v4.5.2
+            <div class="mt-6 text-xs text-slate-400 font-mono" id="app-version">
+                載入中...
             </div>
         </header>
 
@@ -432,8 +432,8 @@
 
         <!-- Footer -->
         <footer class="container mx-auto px-6 py-8 text-center text-xs text-slate-500">
-            <p class="mb-2">
-                DB-Card v4.5.2 | Apache License 2.0
+            <p class="mb-2" id="footer-version">
+                DB-Card 載入中... | Apache License 2.0
             </p>
             <p>
                 <a href="https://github.com/iim0663418/DB-Card" target="_blank" class="hover:text-purple-600 transition-colors">
@@ -446,5 +446,33 @@
     </div>
 
     <script src="/js/page-init.js" defer></script>
+    <script>
+        // Load version from API
+        fetch('/health')
+            .then(r => r.json())
+            .then(response => {
+                const data = response.data || response; // Handle both formats
+                
+                // Update header version
+                const headerEl = document.getElementById('app-version');
+                if (headerEl && data.version) {
+                    headerEl.textContent = data.version;
+                }
+
+                // Update footer version
+                const footerEl = document.getElementById('footer-version');
+                if (footerEl && data.version) {
+                    footerEl.innerHTML = `DB-Card ${data.version} | Apache License 2.0`;
+                }
+            })
+            .catch(() => {
+                // Fallback to static version
+                const headerEl = document.getElementById('app-version');
+                if (headerEl) headerEl.textContent = 'v4.5.2';
+
+                const footerEl = document.getElementById('footer-version');
+                if (footerEl) footerEl.innerHTML = 'DB-Card v4.5.2 | Apache License 2.0';
+            });
+    </script>
 </body>
 </html>

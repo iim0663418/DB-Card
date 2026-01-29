@@ -25,14 +25,15 @@ async function deleteR2Variants(
       console.error(`Failed to delete ${key}:`, error);
       // Record to audit log but continue
       await env.DB.prepare(`
-        INSERT INTO audit_logs (event_type, actor_type, actor_id, details, ip_address)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO audit_logs (event_type, actor_type, actor_id, details, ip_address, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?)
       `).bind(
         'asset_cleanup_error',
         'system',
         'cron',
         JSON.stringify({ key, error: String(error) }),
-        '127.0.0.1'
+        '127.0.0.1',
+        Date.now()
       ).run();
     }
   }
@@ -49,7 +50,7 @@ export async function cleanupSoftDeletedAssets(env: Env): Promise<void> {
   try {
     // Scenario 1: Find soft-deleted versions older than 30 days
     const versions = await env.DB.prepare(`
-      SELECT asset_id, version, r2_key_prefix
+      SELECT av.asset_id, av.version, a.r2_key_prefix
       FROM asset_versions av
       JOIN assets a ON av.asset_id = a.asset_id
       WHERE av.soft_deleted_at < ?
@@ -88,8 +89,8 @@ export async function cleanupSoftDeletedAssets(env: Env): Promise<void> {
 
     // Record success to audit log
     await env.DB.prepare(`
-      INSERT INTO audit_logs (event_type, actor_type, actor_id, details, ip_address)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO audit_logs (event_type, actor_type, actor_id, details, ip_address, timestamp)
+      VALUES (?, ?, ?, ?, ?, ?)
     `).bind(
       'asset_cleanup',
       'system',
@@ -98,7 +99,8 @@ export async function cleanupSoftDeletedAssets(env: Env): Promise<void> {
         deleted_count: totalDeleted,
         cutoff_date: cutoffDate.toISOString()
       }),
-      '127.0.0.1'
+      '127.0.0.1',
+      Date.now()
     ).run();
 
     console.log(`Asset cleanup completed: ${totalDeleted} versions deleted`);
@@ -107,14 +109,15 @@ export async function cleanupSoftDeletedAssets(env: Env): Promise<void> {
 
     // Record failure to audit log
     await env.DB.prepare(`
-      INSERT INTO audit_logs (event_type, actor_type, actor_id, details, ip_address)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO audit_logs (event_type, actor_type, actor_id, details, ip_address, timestamp)
+      VALUES (?, ?, ?, ?, ?, ?)
     `).bind(
       'asset_cleanup_error',
       'system',
       'cron',
       JSON.stringify({ error: String(error) }),
-      '127.0.0.1'
+      '127.0.0.1',
+      Date.now()
     ).run();
   }
 }

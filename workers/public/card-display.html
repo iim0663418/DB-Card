@@ -326,7 +326,7 @@
                     <span id="vcard-text" data-i18n="add_to_contacts">加入聯絡人</span>
                 </button>
                 <button id="open-qr"
-                        class="bg-white border-2 border-slate-200 text-slate-700 px-8 py-4 rounded-2xl hover:bg-slate-50 shadow-sm transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-moda focus:ring-offset-2"
+                        class="bg-white border-2 border-slate-200 text-slate-700 px-8 py-4 rounded-2xl hover:bg-slate-50 shadow-sm transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-moda focus:ring-offset-2 lg:hidden"
                         aria-label="顯示 QR Code">
                     <i data-lucide="qr-code" class="w-6 h-6" aria-hidden="true"></i>
                     <span class="text-xs font-bold md:hidden">QR</span>
@@ -351,6 +351,14 @@
         <div id="token-info" class="lg:hidden mt-12 opacity-40 text-center space-y-2" role="status" aria-live="polite">
             <p id="session-expiry" class="hud-text text-[8px] text-slate-400">有效期限: --</p>
             <p id="session-reads" class="hud-text text-[8px] text-slate-400">可分享次數: --</p>
+        </div>
+
+        <!-- 桌面版 QR Code 區塊 -->
+        <div class="hidden lg:flex flex-col items-center mt-16 space-y-6">
+            <p class="hud-text text-slate-600 text-sm" data-i18n="qr-title">掃描分享名片</p>
+            <div class="bg-white p-8 rounded-2xl shadow-xl border border-slate-100">
+                <div id="qrcode-desktop" class="w-64 h-64 flex items-center justify-center" role="img" aria-label="名片 QR Code"></div>
+            </div>
         </div>
     </div>
 

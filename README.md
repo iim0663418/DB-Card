@@ -1,8 +1,16 @@
-# DB-Card - NFC 數位名片系統 v4.3.2
+# DB-Card - NFC 數位名片系統 v4.5.2
 
 安全預設 NFC 數位名片系統 | 隱私優先 · 安全至上 · OIDC 認證
 
 ## 最新更新
+
+### v4.5.2 (2026-01-29) - 卡片翻轉動畫優化
+- ✅ 修復 Safari iOS 翻轉失效問題（移除 pointer-events 阻止）
+- ✅ 添加 GPU 硬體加速（translateZ 強制啟用）
+- ✅ Glassmorphism 視覺增強（漸層背景、增強模糊、雙層陰影）
+- ✅ 實體名片標準圓角（1rem = 16px ≈ 6mm）
+- ✅ 響應式翻轉設計（手機中心翻轉、桌面側邊翻轉）
+- ✅ 完整 WebKit 前綴支援
 
 ### v4.3.2 (2026-01-24) - 安全掃描完成與 UX 優化
 - ✅ 完成三項安全掃描驗證（OWASP ZAP A、npm audit 0、OSV-Scanner 0）
@@ -614,18 +622,19 @@ Apache License 2.0 - 詳見 [LICENSE](LICENSE)
 
 ## 版本歷程
 
-### v4.3.0 (2026-01-22) - Passkey 個別管理員策略
-- 實作個別管理員 Passkey 策略（符合業界最佳實踐）
-- SETUP_TOKEN 登入需要 email（個別檢查 passkey_enabled）
-- 兩種登入方式並列顯示（附加而非替換）
-- 設計系統統一（純色風格，主色 #6868ac）
-- 完整 BDD 規格（5 scenarios）
-- 引用最佳實踐：SupportDevs, Tailscale, Corbado
+### v4.5.2 (2026-01-29) - 卡片翻轉動畫優化
+- 修復 Safari iOS 翻轉失效（移除 pointer-events 阻止）
+- 添加 GPU 硬體加速（translateZ 強制啟用）
+- Glassmorphism 視覺增強（漸層背景、增強模糊、雙層陰影）
+- 實體名片標準圓角（1rem = 16px ≈ 6mm）
+- 響應式翻轉設計（手機中心翻轉、桌面側邊翻轉）
+- 完整 WebKit 前綴支援
 
-### v4.2.1 (2026-01-21) - OWASP Top 10 安全修復
----
-
-## 版本歷程
+### v4.3.2 (2026-01-24) - 安全掃描與 UX 優化
+- 完成三項安全掃描驗證（OWASP ZAP A、npm audit 0、OSV-Scanner 0）
+- 管理者介面 UX 優化（KEK 監控、登入載入體驗）
+- KEK 輪替改為本地腳本執行（降低攻擊面）
+- 管理者驗證遷移至 HttpOnly Cookie（XSS 防護）
 
 ### v4.3.0 (2026-01-22) - Passkey 認證
 - 個別管理員策略（附加而非替換）

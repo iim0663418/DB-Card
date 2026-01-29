@@ -1031,42 +1031,48 @@ document.getElementById('save-vcard').addEventListener('click', () => {
     }
 });
 
-// QR Code 顯示
-document.getElementById('open-qr').addEventListener('click', () => {
+// QR Code 生成函數
+function generateQRCode(targetId) {
     const params = new URLSearchParams(window.location.search);
     const uuid = params.get('uuid');
-
-    const qrContainer = document.getElementById('qrcode-target');
+    const qrContainer = document.getElementById(targetId);
+    
+    if (!qrContainer) return;
+    
     qrContainer.innerHTML = '';
-
-    // 使用名片 URL 而不是 vCard（避免資料過長）
     const cardUrl = `${window.location.origin}/card-display?uuid=${uuid}`;
     
-    // Validate input
     try {
         validateQRInput(cardUrl);
+        const canvas = document.createElement('canvas');
+        qrContainer.appendChild(canvas);
+        
+        QrCreator.render({
+            text: cardUrl,
+            radius: 0,
+            ecLevel: 'H',
+            fill: '#000000',
+            background: '#ffffff',
+            size: 240
+        }, canvas);
     } catch (error) {
         console.error('QR Code generation failed:', error);
         showError(currentLanguage === 'zh' ? '無法生成 QR Code' : 'Failed to generate QR Code');
-        return;
     }
-    
-    // Create canvas for qr-creator
-    const canvas = document.createElement('canvas');
-    qrContainer.appendChild(canvas);
-    
-    // Use qr-creator (MIT License QR code library)
-    QrCreator.render({
-        text: cardUrl,
-        radius: 0,
-        ecLevel: 'H',
-        fill: '#000000',
-        background: '#ffffff',
-        size: 240
-    }, canvas);
+}
 
+// 手機版 QR Code modal
+document.getElementById('open-qr').addEventListener('click', () => {
+    generateQRCode('qrcode-target');
     document.getElementById('qr-modal').classList.remove('hidden');
 });
+
+// 桌面版自動生成 QR Code
+if (window.innerWidth >= 1024) {
+    window.addEventListener('load', () => {
+        setTimeout(() => generateQRCode('qrcode-desktop'), 500);
+    });
+}
 
 document.getElementById('close-qr').addEventListener('click', () => {
     document.getElementById('qr-modal').classList.add('hidden');

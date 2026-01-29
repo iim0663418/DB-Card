@@ -311,13 +311,103 @@ body {
 
 /* Desktop: side flip for realistic effect */
 @media (min-width: 1024px) {
+    /* 桌面版實體名片比例 */
+    .card-perspective {
+        max-width: 540px;
+        aspect-ratio: 540 / 856;
+        margin: 4rem auto;
+    }
+
     .card-inner {
         transform-origin: center right;
+        /* 移除 transition，讓 3D 傾斜即時響應 */
+        /* transition: transform 0.1s ease-out; */
+
+        /* 使用 CSS 變數 */
+        --rotate-x: 0deg;
+        --rotate-y: 0deg;
+        transform: rotateY(var(--rotate-y)) rotateX(var(--rotate-x)) translateZ(0);
+        -webkit-transform: rotateY(var(--rotate-y)) rotateX(var(--rotate-x)) translateZ(0);
     }
 
     .card-inner.is-flipped {
-        transform: translateX(-100%) rotateY(-180deg) translateZ(0);
-        -webkit-transform: translateX(-100%) rotateY(-180deg) translateZ(0);
+        transform: translateX(-100%) rotateY(calc(var(--rotate-y) - 180deg)) rotateX(var(--rotate-x)) translateZ(0);
+        -webkit-transform: translateX(-100%) rotateY(calc(var(--rotate-y) - 180deg)) rotateX(var(--rotate-x)) translateZ(0);
+    }
+
+    /* Hover 效果：移除 translateY，避免與 3D 傾斜衝突 */
+    /* .card-inner:hover {
+        transform: translateY(-4px) translateZ(0);
+    }
+
+    .card-inner.is-flipped:hover {
+        transform: translateX(-100%) rotateY(-180deg) translateY(-4px) translateZ(0);
+    } */
+
+    /* 白色邊框 */
+    .card-face {
+        border: 8px solid #fff;
+
+        /* 4 層陰影系統 */
+        box-shadow:
+            0 0 0 1px rgba(0,0,0,0.05),
+            0 2px 4px rgba(0,0,0,0.05),
+            0 8px 16px rgba(0,0,0,0.1),
+            0 30px 60px -10px rgba(0,0,0,0.2),
+            inset 0 1px 0 0 rgba(255,255,255,0.5);
+
+        transition: box-shadow 0.3s ease;
+    }
+
+    /* Hover 效果：陰影增強 */
+    .card-inner:hover .card-face {
+        box-shadow:
+            0 0 0 1px rgba(0,0,0,0.08),
+            0 4px 8px rgba(0,0,0,0.08),
+            0 16px 32px rgba(0,0,0,0.15),
+            0 50px 100px -15px rgba(0,0,0,0.3),
+            inset 0 1px 0 0 rgba(255,255,255,0.5);
+    }
+
+    /* 桌面版字體放大 */
+    /* 姓名 */
+    #user-name,
+    #user-name-en {
+        font-size: 3.5rem; /* text-6xl: 3.75rem, 調整為 3.5rem */
+        line-height: 1;
+    }
+
+    /* 職稱 */
+    #user-title,
+    #user-title-en {
+        font-size: 1rem; /* text-base */
+        line-height: 1.5rem;
+    }
+
+    /* 部門 */
+    #user-department,
+    #user-department-en {
+        font-size: 1rem; /* text-base */
+        line-height: 1.5rem;
+    }
+
+    /* HUD 文字 */
+    .hud-text {
+        font-size: 0.75rem; /* text-xs */
+        line-height: 1rem;
+    }
+
+    /* 資訊晶片 */
+    .info-chip {
+        font-size: 1rem; /* text-base */
+        line-height: 1.5rem;
+    }
+
+    /* Typewriter 文字 */
+    #typewriter,
+    #typewriter-en {
+        font-size: 1.25rem; /* text-xl */
+        line-height: 1.75rem;
     }
 }
 

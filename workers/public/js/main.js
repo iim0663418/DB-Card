@@ -382,6 +382,11 @@ function renderCard(cardData, sessionData) {
     renderCardFace(cardData, sessionData, 'en', '-en');
     
     setTimeout(matchCardHeight, 100);
+    
+    // 桌面版自動生成 QR Code
+    if (window.innerWidth >= 1024) {
+        setTimeout(() => generateQRCode('qrcode-desktop'), 200);
+    }
 }
 
 function renderCardFace(cardData, sessionData, lang, suffix) {
@@ -1066,13 +1071,6 @@ document.getElementById('open-qr').addEventListener('click', () => {
     generateQRCode('qrcode-target');
     document.getElementById('qr-modal').classList.remove('hidden');
 });
-
-// 桌面版自動生成 QR Code
-if (window.innerWidth >= 1024) {
-    window.addEventListener('load', () => {
-        setTimeout(() => generateQRCode('qrcode-desktop'), 500);
-    });
-}
 
 document.getElementById('close-qr').addEventListener('click', () => {
     document.getElementById('qr-modal').classList.add('hidden');

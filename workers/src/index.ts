@@ -7,7 +7,7 @@ import { handleRead } from './handlers/read';
 import { handleCreateCard, handleUpdateCard, handleDeleteCard, handleRestoreCard, handleListCards, handleGetCard, handleResetBudget } from './handlers/admin/cards';
 import { handleKekStatus } from './handlers/admin/kek-status';
 import { handleAdminLogin, handleAdminLogout } from './handlers/admin/auth';
-import { handleAssetUpload, handleAssetContent, handleListCardAssets, handleAdminAssetContent } from './handlers/admin/assets';
+import { handleAssetUpload, handleAssetContent, handleAssetTwinList, handleListCardAssets, handleAdminAssetContent } from './handlers/admin/assets';
 import { handlePasskeyRegisterStart, handlePasskeyRegisterFinish, handlePasskeyLoginStart, handlePasskeyLoginFinish, handlePasskeyStatus, handlePasskeyAvailable } from './handlers/admin/passkey';
 import { handleSecurityStats, handleSecurityEvents, handleSecurityTimeline, handleBlockIP, handleUnblockIP, handleIPDetail, handleSecurityExport, handleCDNHealth } from './handlers/admin/security';
 import { handleMonitoringOverview, handleMonitoringHealth } from './handlers/admin/monitoring';
@@ -392,6 +392,13 @@ export default {
     const listAssetsMatch = url.pathname.match(/^\/api\/admin\/cards\/([a-f0-9-]{36})\/assets$/);
     if (listAssetsMatch && request.method === 'GET') {
       return handleListCardAssets(request, env);
+    }
+
+    // GET /api/assets/:card_uuid/twin - List twin assets for card
+    const assetTwinListMatch = url.pathname.match(/^\/api\/assets\/([a-f0-9-]{36})\/twin$/);
+    if (assetTwinListMatch && request.method === 'GET') {
+      const cardUuid = assetTwinListMatch[1];
+      return handleAssetTwinList(request, env, ctx, cardUuid);
     }
 
     // GET /api/assets/:asset_id/content - Read asset with R2 Transform

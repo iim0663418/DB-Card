@@ -355,6 +355,144 @@ async function checkImageRateLimit(env: Env, sessionId: string): Promise<boolean
 }
 
 /**
+ * Handle asset twin list read
+ * GET /api/assets/:card_uuid/twin
+ *
+ * Implements all 10 BDD scenarios:
+ * 1. Successful twin list read (with assets)
+ * 2. Empty list when no assets
+ * 3. Reject missing session
+ * 4. Reject invalid session
+ * 5. Reject expired session
+ * 6. Reject concurrent limit exceeded
+ * 7. Rate limiting (100/min)
+ * 8. Only return ready status assets
+ * 9. Order by created_at DESC
+ * 10. Audit logging
+ */
+export async function handleAssetTwinList(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+  cardUuid: string
+): Promise<Response> {
+  const startTime = Date.now();
+
+  const url = new URL(request.url);
+  const sessionId = url.searchParams.get('session');
+
+  // Scenario 3: Validate session parameter
+  if (!sessionId) {
+    recordReadMetrics(env, false, Date.now() - startTime, 401);
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  // Fetch and validate session (same logic as /api/read)
+  const session = await env.DB.prepare(`
+    SELECT * FROM read_sessions
+    WHERE session_id = ? AND card_uuid = ?
+  `).bind(sessionId, cardUuid).first();
+
+  const validation = validateSession(session);
+
+  // Scenario 4, 5, 6: Session validation
+  if (!validation.valid) {
+    const statusCode = validation.reason === 'session_not_found' ? 401 :
+                       validation.reason === 'max_reads_exceeded' ? 429 : 401;
+    recordReadMetrics(env, false, Date.now() - startTime, statusCode);
+    return new Response(JSON.stringify({
+      error: validation.message
+    }), {
+      status: statusCode,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  // Scenario 7: Twin list rate limiting (100 requests per minute per session)
+  const rateLimitKey = `twin_rate:${sessionId}`;
+  const currentCount = parseInt(await env.KV.get(rateLimitKey) || '0');
+
+  if (currentCount >= 100) {
+    recordRateLimitTrigger(env, 'twin_list');
+    recordReadMetrics(env, false, Date.now() - startTime, 429);
+    return new Response(JSON.stringify({
+      error: 'Twin list rate limit exceeded'
+    }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  // Increment rate limit counter
+  await env.KV.put(rateLimitKey, (currentCount + 1).toString(), {
+    expirationTtl: 60
+  });
+
+  // Scenario 8, 9: Fetch assets (only ready status, ordered by created_at DESC)
+  const assets = await env.DB.prepare(`
+    SELECT asset_id, asset_type, current_version, created_at
+    FROM assets
+    WHERE card_uuid = ? AND status = 'ready'
+    ORDER BY created_at DESC
+  `).bind(cardUuid).all();
+
+  // Scenario 2: Check if twin is enabled
+  const twinEnabled = assets.results && assets.results.length > 0;
+
+  // Generate URLs with session
+  interface AssetRow {
+    asset_id: string;
+    asset_type: string;
+    current_version: number;
+    created_at: string;
+  }
+
+  const assetList = ((assets.results || []) as unknown as AssetRow[]).map((asset) => ({
+    asset_type: asset.asset_type,
+    asset_id: asset.asset_id,
+    version: asset.current_version,
+    url: `/api/assets/${asset.asset_id}/content?variant=detail&card_uuid=${encodeURIComponent(cardUuid)}&session=${encodeURIComponent(sessionId)}`
+  }));
+
+  // Scenario 10: Audit logging
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  // IPv4: 192.168.1.100 → 192.168.1.0
+  // IPv6: 2001:0db8:85a3:0000:0000:8a2e:0370:7334 → 2001:0db8:85a3:0000::
+  const anonymizedIp = ip.includes(':')
+    ? ip.split(':').slice(0, 4).join(':') + '::'
+    : ip.split('.').slice(0, 3).join('.') + '.0';
+
+  ctx.waitUntil(
+    env.DB.prepare(`
+      INSERT INTO audit_logs (event_type, card_uuid, session_id, ip_address, details, timestamp)
+      VALUES (?, ?, ?, ?, ?, datetime('now'))
+    `).bind(
+      'twin_list_read',
+      cardUuid,
+      sessionId,
+      anonymizedIp,
+      JSON.stringify({ asset_count: assetList.length })
+    ).run()
+  );
+
+  recordReadMetrics(env, true, Date.now() - startTime, 200);
+
+  return new Response(JSON.stringify({
+    twin_enabled: twinEnabled,
+    assets: assetList
+  }), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'private, no-cache'
+    }
+  });
+}
+
+/**
  * Handle asset content read with R2 Transform
  * GET /api/assets/:asset_id/content
  *

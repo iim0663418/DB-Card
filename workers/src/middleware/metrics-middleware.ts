@@ -94,7 +94,7 @@ export async function recordReadMetrics(
  */
 export async function recordRateLimitTrigger(
   env: Env,
-  type: 'upload' | 'read'
+  type: 'upload' | 'read' | 'twin_list'
 ): Promise<void> {
   const key = type === 'upload' ? METRICS_KEYS.RATE_LIMIT_UPLOAD : METRICS_KEYS.RATE_LIMIT_READ;
 

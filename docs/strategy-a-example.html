@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>策略 A 範例 | 實體孿生最小整合</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@0.562.0/dist/umd/lucide.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&family=Noto+Sans+TC:wght@300;500;900&display=swap');
+
+        :root {
+            --moda-accent: #6868ac;
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        /* HUD Text */
+        .hud-text {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            color: var(--moda-accent);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        /* Glassmorphism 卡片 */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px) saturate(180%);
+            -webkit-backdrop-filter: blur(10px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 1rem;
+            box-shadow: 0 8px 32px rgba(104, 104, 172, 0.12);
+            border-top: 5px solid var(--moda-accent);
+        }
+
+        /* Twin Card */
+        .twin-card {
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .twin-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 48px rgba(104, 104, 172, 0.2);
+        }
+
+        .twin-card img {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+            border-radius: 0.5rem;
+        }
+
+        /* Lightbox */
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .lightbox.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .lightbox-content {
+            position: relative;
+            max-width: 90vw;
+            max-height: 90vh;
+            background: white;
+            border-radius: 1rem;
+            padding: 1rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .lightbox-content img {
+            max-width: 100%;
+            max-height: 80vh;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            border-radius: 0.5rem;
+        }
+
+        /* Focus visible */
+        .twin-card:focus {
+            outline: 2px solid var(--moda-accent);
+            outline-offset: 4px;
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            .twin-card {
+                transition: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 數位名片區塊 -->
+    <div class="max-w-4xl mx-auto mb-8">
+        <div class="glass-card p-8">
+            <p class="hud-text mb-4 opacity-40">Digital Business Card System</p>
+            <h1 class="text-4xl font-black text-white mb-2">張三 Zhang San</h1>
+            <p class="text-white/80 font-bold text-sm uppercase tracking-wider">數位發展部 | Ministry of Digital Affairs</p>
+            
+            <div class="mt-8 pt-8 border-t border-white/10">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex items-center gap-3 text-white/90">
+                        <i data-lucide="mail" class="w-5 h-5"></i>
+                        <span>zhangsan@moda.gov.tw</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-white/90">
+                        <i data-lucide="phone" class="w-5 h-5"></i>
+                        <span>+886 2 1234 5678</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實體孿生區塊 -->
+    <div id="physical-twin-section" class="max-w-4xl mx-auto">
+        <div class="glass-card p-8">
+            <!-- 標題 -->
+            <div class="text-center mb-8">
+                <p class="hud-text mb-2 opacity-40">Physical Card Twin</p>
+                <h2 class="text-2xl font-bold text-white">實體名片孿生</h2>
+            </div>
+
+            <!-- 圖片網格 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <!-- 正面 -->
+                <figure class="twin-card glass-card p-4" 
+                        role="img" 
+                        aria-labelledby="twin-front-label"
+                        tabindex="0"
+                        onclick="openLightbox('https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800', '實體名片正面')"
+                        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLightbox('https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800', '實體名片正面');}">
+                    
+                    <img src="https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800" 
+                         alt="實體名片正面" 
+                         loading="lazy"
+                         decoding="async"
+                         width="600"
+                         height="400"
+                         style="aspect-ratio: 3/2;">
+                    
+                    <figcaption id="twin-front-label" class="mt-4 text-center">
+                        <span class="text-sm font-bold text-white tracking-wider">正面 Front</span>
+                    </figcaption>
+                </figure>
+
+                <!-- 背面 -->
+                <figure class="twin-card glass-card p-4" 
+                        role="img" 
+                        aria-labelledby="twin-back-label"
+                        tabindex="0"
+                        onclick="openLightbox('https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&flip=h', '實體名片背面')"
+                        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLightbox('https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&flip=h', '實體名片背面');}">
+                    
+                    <img src="https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&flip=h" 
+                         alt="實體名片背面" 
+                         loading="lazy"
+                         decoding="async"
+                         width="600"
+                         height="400"
+                         style="aspect-ratio: 3/2;">
+                    
+                    <figcaption id="twin-back-label" class="mt-4 text-center">
+                        <span class="text-sm font-bold text-white tracking-wider">背面 Back</span>
+                    </figcaption>
+                </figure>
+
+            </div>
+
+            <!-- 提示文字 -->
+            <p class="text-center text-white/60 text-sm mt-6">
+                點擊圖片可放大查看 Click to enlarge
+            </p>
+        </div>
+    </div>
+
+    <!-- Lightbox -->
+    <div id="lightbox" class="lightbox" onclick="closeLightbox(event)" role="dialog" aria-modal="true">
+        <div class="lightbox-content" onclick="event.stopPropagation()">
+            <button onclick="closeLightbox()" 
+                    class="absolute top-4 right-4 p-2 bg-white rounded-full shadow-lg hover:bg-gray-100 transition-colors z-10"
+                    aria-label="關閉">
+                <i data-lucide="x" class="w-6 h-6 text-gray-800"></i>
+            </button>
+            <img id="lightbox-image" src="" alt="">
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Lightbox functions
+        function openLightbox(url, alt) {
+            const lightbox = document.getElementById('lightbox');
+            const img = document.getElementById('lightbox-image');
+            
+            img.src = url;
+            img.alt = alt;
+            lightbox.classList.add('active');
+            
+            // Focus trap
+            lightbox.querySelector('button').focus();
+            
+            // Prevent body scroll
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox(event) {
+            if (event && event.target.id !== 'lightbox') return;
+            
+            const lightbox = document.getElementById('lightbox');
+            lightbox.classList.remove('active');
+            
+            // Restore body scroll
+            document.body.style.overflow = '';
+        }
+
+        // ESC key to close
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeLightbox();
+            }
+        });
+    </script>
+
+</body>
+</html>

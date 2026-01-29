@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>策略 B+ 範例 | 數位孿生門戶</title>
+
+    <!-- PhotoSwipe v5 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/dist/photoswipe.css">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@0.562.0/dist/umd/lucide.min.js" crossorigin="anonymous"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+TC:wght@300;500;700;900&display=swap');
+
+        :root {
+            --moda-accent: #6868ac;
+            --crystal-bg: rgba(255, 255, 255, 0.7);
+            --ui-text: #1e1e3f;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --crystal-bg: rgba(30, 41, 59, 0.7);
+                --ui-text: #e2e8f0;
+            }
+            body { background-color: #0f172a; }
+            .glass-card { background: rgba(30, 41, 59, 0.5) !important; }
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #e0e7ff 0%, #f0f2f5 100%);
+            color: var(--ui-text);
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* 卡片容器 */
+        .card-perspective {
+            perspective: 2000px;
+            width: 100%;
+            max-width: 450px;
+            z-index: 10;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            min-height: 720px;
+            transform-style: preserve-3d;
+            transform-origin: center right;
+            transition: transform 0.6s ease;
+            cursor: pointer;
+        }
+
+        .card-inner.is-flipped {
+            transform: translateX(-100%) rotateY(-180deg);
+        }
+
+        /* Glassmorphism 效果 */
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            transform-style: preserve-3d;
+            border-radius: 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.6) 100%);
+            backdrop-filter: blur(40px) saturate(180%) brightness(110%);
+            box-shadow: 0 8px 32px 0 rgba(104, 104, 172, 0.1), inset 0 1px 0 0 rgba(255, 255, 255, 0.5);
+            display: flex;
+            flex-direction: column;
+            padding: 2.5rem;
+            border-top: 6px solid var(--moda-accent);
+            overflow: hidden;
+        }
+
+        .card-front { z-index: 2; transform: translateZ(1px); }
+        .card-back { z-index: 1; transform: rotateY(180deg) translateZ(1px); }
+
+        /* MODA 主題色彩 */
+        .bg-moda { background-color: var(--moda-accent) !important; }
+        .bg-moda-light { background-color: rgba(104, 104, 172, 0.1) !important; }
+        .border-moda-light { border-color: rgba(104, 104, 172, 0.1) !important; }
+        .text-moda { color: var(--moda-accent) !important; }
+        .text-moda-dark { color: #4a4a8a !important; }
+        .group:hover .group-hover\:bg-moda { background-color: var(--moda-accent) !important; }
+        .group:hover .group-hover\:text-white { color: white !important; }
+
+        /* 進度環 */
+        .sync-progress-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 180px;
+            height: 180px;
+            z-index: 150;
+            pointer-events: none;
+            opacity: 0;
+            transition: all 0.4s ease;
+            scale: 0.8;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+
+        .sync-progress-container::before {
+            content: '';
+            position: absolute;
+            inset: -10px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(104, 104, 172, 0.2) 0%, transparent 70%);
+            animation: pulse 2s ease-in-out infinite;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        body.is-syncing .sync-progress-container::before { opacity: 1; }
+
+        .sync-ring {
+            fill: none;
+            stroke: var(--moda-accent);
+            stroke-width: 3;
+            stroke-dasharray: 283;
+            stroke-dashoffset: 283;
+            stroke-linecap: round;
+        }
+
+        /* 單一按鈕入口 */
+        .reveal-btn {
+            margin-top: 2rem;
+            padding: 1rem 2rem;
+            background: rgba(104, 104, 172, 0.85);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 1rem;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(104, 104, 172, 0.25);
+            backdrop-filter: blur(20px);
+            transition: all 0.3s ease;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .reveal-btn:hover {
+            background: rgba(104, 104, 172, 0.95);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(104, 104, 172, 0.35);
+        }
+
+        .reveal-btn:active {
+            transform: scale(0.98);
+        }
+
+        .reveal-btn.syncing {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .btn-text-hint {
+            font-size: 10px;
+            font-weight: 500;
+            opacity: 0.7;
+            letter-spacing: 0.05em;
+            margin-top: 0.25rem;
+        }
+
+        /* 文字樣式 */
+        .watermark {
+            position: absolute;
+            font-size: 8rem;
+            font-weight: 900;
+            color: rgba(104, 104, 172, 0.02);
+            pointer-events: none;
+            user-select: none;
+            z-index: 1;
+            letter-spacing: -0.05em;
+        }
+
+        .hud-text {
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--moda-accent);
+        }
+
+        .info-chip {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(104, 104, 172, 0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .info-chip:hover {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: rgba(104, 104, 172, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(104, 104, 172, 0.15);
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        @media (min-width: 1024px) {
+            .card-perspective { max-width: 560px; }
+            .card-inner { min-height: 800px; }
+            .watermark { font-size: 10rem; }
+            .reveal-btn { font-size: 15px; }
+            .btn-text-hint { font-size: 11px; }
+        }
+
+        /* PhotoSwipe 自訂樣式 */
+        .pswp__bg {
+            background: rgba(255, 255, 255, 0.98) !important;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .pswp__bg {
+                background: rgba(15, 23, 42, 0.98) !important;
+            }
+        }
+
+        /* 隱藏原本的圖片元素（PhotoSwipe 會創建自己的） */
+        .pswp-gallery { display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- 螢幕閱讀器狀態通知 -->
+    <div role="status" aria-live="polite" class="sr-only">
+        <span id="card-state">顯示數位名片中文正面</span>
+    </div>
+
+    <!-- 進度環 -->
+    <div class="sync-progress-container" id="sync-ui">
+        <svg viewBox="0 0 100 100" class="w-full h-full transform -rotate-90">
+            <circle cx="50" cy="50" r="45" stroke="rgba(104,104,172,0.05)" stroke-width="2" fill="none" />
+            <circle cx="50" cy="50" r="45" class="sync-ring" id="sync-bar" />
+        </svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center space-y-1">
+            <i data-lucide="layers" class="w-6 h-6 text-indigo-500 animate-bounce"></i>
+            <span id="sync-countdown" class="text-2xl font-black text-indigo-600">3</span>
+            <span class="text-[8px] font-black text-indigo-400 uppercase tracking-widest">Syncing</span>
+        </div>
+    </div>
+
+    <!-- PhotoSwipe 隱藏數據源 -->
+    <div class="pswp-gallery" id="gallery">
+        <a href="https://i.imgur.com/rN9vL1c.png"
+           data-pswp-width="1920"
+           data-pswp-height="1080"
+           target="_blank"
+           rel="noreferrer">
+            <img src="https://i.imgur.com/rN9vL1c.png" alt="實體名片正面" />
+        </a>
+        <a href="https://i.imgur.com/rN9vL1c.png"
+           data-pswp-width="1920"
+           data-pswp-height="1080"
+           target="_blank"
+           rel="noreferrer">
+            <img src="https://i.imgur.com/rN9vL1c.png" alt="實體名片背面" />
+        </a>
+    </div>
+
+    <!-- 數位名片 -->
+    <div class="card-perspective px-6">
+        <div class="card-inner" id="card" onclick="handleFlip(event)">
+            <!-- 中文卡面 -->
+            <div class="card-face card-front">
+                <main>
+                    <div class="watermark -top-5 -left-10" aria-hidden="true">數位發展部</div>
+                    <div class="watermark bottom-10 -right-20" aria-hidden="true">MODA</div>
+
+                    <article class="p-8 lg:p-12 border-b border-moda-light flex flex-col lg:flex-row gap-12 items-center lg:items-start relative z-10">
+                        <div class="relative">
+                            <div class="absolute -inset-4 border border-moda-light pointer-events-none" aria-hidden="true"></div>
+                            <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80"
+                                 alt="名片大頭貼"
+                                 class="w-32 h-32 lg:w-48 lg:h-48 object-cover border-4 border-white shadow-xl">
+                        </div>
+                        <div class="flex-1 text-center lg:text-left">
+                            <p class="hud-text mb-4 opacity-40" aria-hidden="true">數位名片系統 Digital Business Card</p>
+                            <h1 class="text-4xl lg:text-5xl font-black tracking-tighter text-slate-900 mb-2 italic">唐鳳</h1>
+                            <p class="text-moda-dark font-bold tracking-widest text-sm uppercase">數位發展部 部長</p>
+                        </div>
+                    </article>
+
+                    <section class="p-6 lg:p-10 grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10">
+                        <a href="mailto:audrey@moda.gov.tw" class="info-chip p-4 rounded-2xl flex items-center gap-3 group">
+                            <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                                <i data-lucide="mail" class="w-5 h-5"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="hud-text text-[8px] opacity-40">Communication Node</p>
+                                <p class="font-bold text-slate-700 truncate">audrey@moda.gov.tw</p>
+                            </div>
+                        </a>
+                        <a href="tel:+886-2-2737-7777" class="info-chip p-4 rounded-2xl flex items-center gap-3 group">
+                            <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                                <i data-lucide="phone" class="w-5 h-5"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="hud-text text-[8px] opacity-40">Voice Access</p>
+                                <p class="font-bold text-slate-700 truncate">+886 2 2737 7777</p>
+                            </div>
+                        </a>
+                        <a href="https://moda.gov.tw" target="_blank" rel="noopener noreferrer" class="info-chip p-4 rounded-2xl flex items-center gap-3 group md:col-span-2">
+                            <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                                <i data-lucide="globe" class="w-5 h-5"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="hud-text text-[8px] opacity-40">Official Portal</p>
+                                <p class="font-bold text-slate-700 truncate">moda.gov.tw</p>
+                            </div>
+                        </a>
+                    </section>
+                </main>
+
+                <!-- 單一按鈕入口 -->
+                <button id="reveal-btn" class="reveal-btn">
+                    <i data-lucide="layers" class="w-5 h-5"></i>
+                    <div class="flex flex-col items-start">
+                        <span>查看實體孿生</span>
+                        <span class="btn-text-hint">長按 3 秒進入</span>
+                    </div>
+                </button>
+            </div>
+
+            <!-- 英文卡面 -->
+            <div class="card-face card-back">
+                <main>
+                    <div class="watermark -top-5 -left-10" aria-hidden="true">Ministry of Digital Affairs</div>
+                    <div class="watermark bottom-10 -right-20" aria-hidden="true">MODA</div>
+
+                    <article class="p-8 lg:p-12 border-b border-moda-light flex flex-col lg:flex-row gap-12 items-center lg:items-start relative z-10">
+                        <div class="relative">
+                            <div class="absolute -inset-4 border border-moda-light pointer-events-none" aria-hidden="true"></div>
+                            <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80"
+                                 alt="Profile Photo"
+                                 class="w-32 h-32 lg:w-48 lg:h-48 object-cover border-4 border-white shadow-xl">
+                        </div>
+                        <div class="flex-1 text-center lg:text-left">
+                            <p class="hud-text mb-4 opacity-40" aria-hidden="true">Digital Business Card System</p>
+                            <h1 class="text-4xl lg:text-5xl font-black tracking-tighter text-slate-900 mb-2 italic">Audrey Tang</h1>
+                            <p class="text-moda-dark font-bold tracking-widest text-sm uppercase">Minister of Digital Affairs</p>
+                        </div>
+                    </article>
+
+                    <section class="p-6 lg:p-10 grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10">
+                        <a href="mailto:audrey@moda.gov.tw" class="info-chip p-4 rounded-2xl flex items-center gap-3 group">
+                            <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                                <i data-lucide="mail" class="w-5 h-5"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="hud-text text-[8px] opacity-40">Communication Node</p>
+                                <p class="font-bold text-slate-700 truncate">audrey@moda.gov.tw</p>
+                            </div>
+                        </a>
+                        <a href="tel:+886-2-2737-7777" class="info-chip p-4 rounded-2xl flex items-center gap-3 group">
+                            <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                                <i data-lucide="phone" class="w-5 h-5"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="hud-text text-[8px] opacity-40">Voice Access</p>
+                                <p class="font-bold text-slate-700 truncate">+886 2 2737 7777</p>
+                            </div>
+                        </a>
+                        <a href="https://moda.gov.tw" target="_blank" rel="noopener noreferrer" class="info-chip p-4 rounded-2xl flex items-center gap-3 group md:col-span-2">
+                            <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                                <i data-lucide="globe" class="w-5 h-5"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="hud-text text-[8px] opacity-40">Official Portal</p>
+                                <p class="font-bold text-slate-700 truncate">moda.gov.tw</p>
+                            </div>
+                        </a>
+                    </section>
+                </main>
+
+                <!-- 單一按鈕入口 -->
+                <button id="reveal-btn-back" class="reveal-btn">
+                    <i data-lucide="layers" class="w-5 h-5"></i>
+                    <div class="flex flex-col items-start">
+                        <span>查看實體孿生</span>
+                        <span class="btn-text-hint">長按 3 秒進入</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import PhotoSwipeLightbox from 'https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/dist/photoswipe-lightbox.esm.js';
+
+        // === 常量定義 ===
+        const SYNC_DURATION = 3000;
+        const SYNC_CIRCLE_LENGTH = 283;
+
+        // === DOM 元素 ===
+        const elements = {
+            card: document.getElementById('card'),
+            cardState: document.getElementById('card-state'),
+            syncUI: document.getElementById('sync-ui'),
+            syncBar: document.getElementById('sync-bar'),
+            syncCountdown: document.getElementById('sync-countdown'),
+            revealBtn: document.getElementById('reveal-btn'),
+            revealBtnBack: document.getElementById('reveal-btn-back')
+        };
+
+        // === PhotoSwipe 初始化 ===
+        const lightbox = new PhotoSwipeLightbox({
+            gallery: '#gallery',
+            children: 'a',
+            pswpModule: () => import('https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/dist/photoswipe.esm.js'),
+
+            // 配置
+            bgOpacity: 1,
+            showHideAnimationType: 'fade',
+            zoom: true,
+            pinchToClose: false,
+            closeOnVerticalDrag: false
+        });
+
+        lightbox.init();
+
+        // === 卡片翻轉 ===
+        let isFlipped = false;
+
+        function handleFlip(e) {
+            if (e.target.closest('.reveal-btn')) return;
+
+            isFlipped = !isFlipped;
+            elements.card.classList.toggle('is-flipped');
+            if ('vibrate' in navigator) navigator.vibrate(30);
+
+            const langText = '數位名片';
+            const sideText = isFlipped ? '背面' : '正面';
+            elements.cardState.textContent = `顯示${langText}${sideText}`;
+        }
+
+        // === 視差效果 ===
+        let ticking = false;
+        let currentRotation = { x: 0, y: 0 };
+
+        document.querySelector('.card-perspective').addEventListener('mousemove', (e) => {
+            if (ticking) return;
+
+            requestAnimationFrame(() => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / rect.width - 0.5;
+                const y = (e.clientY - rect.top) / rect.height - 0.5;
+
+                currentRotation = { x: -y * 10, y: x * 10 };
+                applyCardTransform();
+                ticking = false;
+            });
+            ticking = true;
+        });
+
+        document.querySelector('.card-perspective').addEventListener('mouseleave', () => {
+            if (ticking) return;
+
+            requestAnimationFrame(() => {
+                currentRotation = { x: 0, y: 0 };
+                applyCardTransform();
+                ticking = false;
+            });
+            ticking = true;
+        });
+
+        function applyCardTransform() {
+            const flipOffset = isFlipped ? ' translateX(-100%) rotateY(-180deg)' : '';
+            elements.card.style.transform = `rotateY(${currentRotation.y}deg) rotateX(${currentRotation.x}deg)${flipOffset}`;
+        }
+
+        // === 長按同步 → 開啟 PhotoSwipe ===
+        let progressInt;
+        let currentButton = null;
+
+        function startSync(e, button) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            currentButton = button;
+            button.classList.add('syncing');
+            if ('vibrate' in navigator) navigator.vibrate(50);
+
+            document.body.classList.add('is-syncing');
+            elements.syncUI.style.opacity = '1';
+            elements.syncUI.style.scale = '1';
+
+            const start = Date.now();
+            progressInt = setInterval(() => {
+                const elapsed = Date.now() - start;
+                const ratio = Math.min(elapsed / SYNC_DURATION, 1);
+                const remaining = Math.ceil((SYNC_DURATION - elapsed) / 1000);
+
+                elements.syncCountdown.innerText = remaining > 0 ? remaining : 0;
+                elements.syncBar.style.strokeDashoffset = SYNC_CIRCLE_LENGTH - (ratio * SYNC_CIRCLE_LENGTH);
+
+                if (ratio >= 1) {
+                    openPhotoSwipe();
+                    stopSync();
+                }
+            }, 30);
+        }
+
+        function stopSync() {
+            document.body.classList.remove('is-syncing');
+            if (currentButton) {
+                currentButton.classList.remove('syncing');
+            }
+            elements.syncUI.style.opacity = '0';
+            elements.syncUI.style.scale = '0.8';
+            clearInterval(progressInt);
+            elements.syncBar.style.strokeDashoffset = SYNC_CIRCLE_LENGTH;
+            elements.syncCountdown.innerText = "3";
+            currentButton = null;
+        }
+
+        function openPhotoSwipe() {
+            lightbox.loadAndOpen(0);
+            elements.cardState.textContent = '進入實體名片孿生模式';
+        }
+
+        // === 按鈕事件 ===
+        [elements.revealBtn, elements.revealBtnBack].forEach(button => {
+            if (!button) return;
+
+            button.addEventListener('mousedown', (e) => startSync(e, button));
+            button.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                startSync(e, button);
+            }, { passive: false });
+        });
+
+        window.addEventListener('mouseup', stopSync);
+        window.addEventListener('touchend', stopSync);
+
+        // === PhotoSwipe 關閉事件 ===
+        lightbox.on('close', () => {
+            elements.cardState.textContent = '返回數位名片模式';
+        });
+
+        // === 初始化 ===
+        lucide.createIcons();
+
+        // 預載圖片
+        ['https://i.imgur.com/rN9vL1c.png',
+         'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80']
+            .forEach(src => {
+                const img = new Image();
+                img.src = src;
+            });
+    </script>
+</body>
+</html>

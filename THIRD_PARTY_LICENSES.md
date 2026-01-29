@@ -93,6 +93,18 @@
 - **合規性**: ✅ 可商用、可修改、可分發
 - **備註**: 無 SRI（unpkg 不支援 CORS）
 
+### 10. PhotoSwipe
+- **版本**: 5.4.4
+- **來源**: https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/
+- **授權**: MIT License
+- **作者**: Dmytro Semenov
+- **用途**: 實體名片孿生圖片查看器（Lightbox）
+- **官網**: https://photoswipe.com/
+- **GitHub**: https://github.com/dimsemenov/photoswipe
+- **授權連結**: https://github.com/dimsemenov/PhotoSwipe/blob/main/LICENSE
+- **合規性**: ✅ 可商用、可修改、可分發
+- **功能**: 圖片縮放、拖曳、雙擊、鍵盤導航、觸控手勢
+
 ---
 
 ## 🔤 字體
@@ -222,12 +234,14 @@
 
 | 授權類型 | 元件數量 | 商用許可 | 修改許可 | 分發許可 |
 |---------|---------|---------|---------|---------|
-| MIT License | 13 | ✅ | ✅ | ✅ |
+| MIT License | 14 | ✅ | ✅ | ✅ |
 | ISC License | 1 | ✅ | ✅ | ✅ |
 | Apache 2.0 | 3 | ✅ | ✅ | ✅ |
 | SIL OFL 1.1 | 3 | ✅ | ✅ | ✅ |
 | CC0-1.0 | 1 | ✅ | ✅ | ✅ |
 | 商業服務 | 3 | ✅ | N/A | N/A |
+
+**新增**: PhotoSwipe v5.4.4 (MIT License)
 
 ---
 
@@ -254,6 +268,11 @@
 - DOMPurify © Cure53
 - Chart.js © Chart.js Contributors
 - SimpleWebAuthn © Matthew Miller
+- Panzoom © timmywil
+- PhotoSwipe © Dmytro Semenov
+- jose © Filip Skokan
+- Simple Icons © Simple Icons Contributors
+- Google Fonts © Google Inc.
 - Panzoom © timmywil
 - jose © Filip Skokan
 - Simple Icons © Simple Icons Contributors

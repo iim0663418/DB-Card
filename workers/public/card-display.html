@@ -15,6 +15,17 @@
     <!-- WCAG配色 v1.1 2026-01-19 -->
     <script src="/js/tailwind-suppress.js"></script>
     <link rel="stylesheet" href="/css/tailwind.css">
+    <style>
+/* 桌面版隱藏元素 */
+@media (min-width: 1024px) {
+    .lg\:hidden {
+        display: none !important;
+    }
+    .lg\:justify-center {
+        justify-content: center;
+    }
+}
+</style>
     <script src="https://unpkg.com/lucide@0.562.0/dist/umd/lucide.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
             integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ=="

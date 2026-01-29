@@ -425,7 +425,7 @@ function renderCardFace(cardData, sessionData, lang, suffix) {
             const deptEl = document.getElementById(`user-department${suffix}`);
             const deptTextEl = document.getElementById(`user-department-text${suffix}`);
             if (deptEl && deptTextEl) {
-                deptEl.style.display = 'flex';
+                deptEl.style.display = 'block';
                 deptTextEl.textContent = deptText;
             }
         } else {

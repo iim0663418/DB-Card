@@ -16,6 +16,7 @@ import { handleRevocationHistory } from './handlers/user/history';
 import { handleUserLogout } from './handlers/user/logout';
 import { handleOAuthCallback } from './handlers/oauth';
 import { handleOAuthInit } from './handlers/oauth-init';
+import { handleManifest } from './handlers/manifest';
 import { errorResponse, publicErrorResponse } from './utils/response';
 import { checkRateLimit } from './middleware/rate-limit';
 import { verifySetupToken } from './middleware/auth';
@@ -416,6 +417,13 @@ export default {
     // GET /api/admin/monitoring/health - Health check
     if (url.pathname === '/api/admin/monitoring/health' && request.method === 'GET') {
       return handleMonitoringHealth(request, env);
+    }
+
+    // GET /api/manifest/:uuid - Dynamic manifest for QR shortcut
+    const manifestMatch = url.pathname.match(/^\/api\/manifest\/([a-f0-9-]{36})$/);
+    if (manifestMatch && request.method === 'GET') {
+      const uuid = manifestMatch[1];
+      return handleManifest(request, env, uuid);
     }
 
     // Serve static assets (admin-dashboard.html, etc.)

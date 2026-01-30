@@ -246,14 +246,23 @@ export async function handleRead(request: Request, env: Env, ctx: ExecutionConte
           card.wrapped_dek,
           0 // ttl=0 disables caching
         );
-      } else {
-        // Scenario 2-4: personal/event cards - cache 60s
+      } else if (cardType === 'event') {
+        // Scenario 2: event cards - cache 600s (10 min)
         cardData = await getCachedCardData(
           env,
           card_uuid,
           card.encrypted_payload,
           card.wrapped_dek,
-          60 // Cache for 60 seconds
+          600 // Cache for 10 minutes (event cards change less frequently)
+        );
+      } else {
+        // Scenario 3: personal cards - cache 300s (5 min)
+        cardData = await getCachedCardData(
+          env,
+          card_uuid,
+          card.encrypted_payload,
+          card.wrapped_dek,
+          300 // Cache for 5 minutes
         );
       }
     } catch (error) {

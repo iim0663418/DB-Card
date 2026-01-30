@@ -1,6 +1,7 @@
 // Main Worker Entry Point
 
 import type { Env } from './types';
+import { RateLimiterDO } from './durable-objects/rate-limiter';
 import { handleHealth } from './handlers/health';
 import { handleTap } from './handlers/tap';
 import { handleRead } from './handlers/read';
@@ -495,3 +496,6 @@ export default {
     await cleanupSoftDeletedAssets(env);
   }
 };
+
+// Export Durable Object classes
+export { RateLimiterDO };

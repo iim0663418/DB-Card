@@ -117,11 +117,11 @@ export async function incrementSessionBudget(
   const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const dailyKey = `session:budget:${card_uuid}:daily:${today}`;
   const daily = parseInt((await env.KV.get(dailyKey)) || '0');
-  await env.KV.put(dailyKey, String(daily + 1), { expirationTtl: 86400 });
+  await env.KV.put(dailyKey, String(daily + 1), { expirationTtl: 172800 }); // 2 days (extended from 1 day)
 
   // 3. Increment monthly counter (KV)
   const month = new Date().toISOString().slice(0, 7).replace(/-/g, '');
   const monthlyKey = `session:budget:${card_uuid}:monthly:${month}`;
   const monthly = parseInt((await env.KV.get(monthlyKey)) || '0');
-  await env.KV.put(monthlyKey, String(monthly + 1), { expirationTtl: 2678400 });
+  await env.KV.put(monthlyKey, String(monthly + 1), { expirationTtl: 5356800 }); // 62 days (extended from 31 days)
 }

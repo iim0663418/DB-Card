@@ -7,7 +7,7 @@ import { jsonResponse, errorResponse } from '../utils/response';
 import { createSession, getRecentSession, revokeSession, shouldRevoke } from '../utils/session';
 import { logEvent } from '../utils/audit';
 import { getClientIP } from '../utils/ip';
-import { checkRateLimit, incrementRateLimit } from '../utils/rate-limit';
+import { checkRateLimitDO } from '../utils/rate-limit-do';
 import { checkSessionBudget, incrementSessionBudget } from '../utils/session-budget';
 
 /**
@@ -55,15 +55,15 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
     }
 
     // ============================================================
-    // STEP 1: Rate Limit Check (Hour-Only Window)
+    // STEP 1: Rate Limit Check (Durable Objects)
     // ============================================================
 
     const clientIP = getClientIP(request);
 
-    // Check 2 rate limit dimensions (hour-only window)
+    // Check 2 rate limit dimensions using Durable Objects
     const rateLimitChecks = await Promise.all([
-      checkRateLimit(env.KV, 'card_uuid', card_uuid, 'hour'),
-      checkRateLimit(env.KV, 'ip', clientIP, 'hour')
+      checkRateLimitDO(env, 'card_uuid', card_uuid),
+      checkRateLimitDO(env, 'ip', clientIP)
     ]);
 
     // Find first failed rate limit check
@@ -285,12 +285,8 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
     // Pass ctx to enable async session insert + cache update
     const newSession = await createSession(env, card_uuid, cardType, ctx);
 
-    // Increment rate limit counters + session budget (all in parallel)
-    await Promise.all([
-      incrementRateLimit(env.KV, 'card_uuid', card_uuid, 'hour'),
-      incrementRateLimit(env.KV, 'ip', clientIP, 'hour'),
-      incrementSessionBudget(env, card_uuid)
-    ]);
+    // Increment session budget (DO rate limiting already incremented atomically)
+    await incrementSessionBudget(env, card_uuid);
 
     ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, newSession.session_id, {
       card_type: result.card_type,

@@ -677,6 +677,24 @@
         </div>
     </div>
 
+
     <script src="/js/user-portal-init.js"></script>
+    <script>
+        function createQRShortcut(uuid, cardName, cardType) {
+            // Generate display name with fallback
+            let displayName = cardName;
+            if (!displayName) {
+                const typeLabels = {
+                    'personal': '個人名片',
+                    'event': '活動名片',
+                    'sensitive': '敏感名片'
+                };
+                displayName = typeLabels[cardType] || '數位名片';
+            }
+
+            // Navigate to qr-quick.html (merged install + QR display)
+            window.location.href = `/qr-quick.html?uuid=${uuid}&name=${encodeURIComponent(displayName)}&type=${encodeURIComponent(cardType || 'personal')}`;
+        }
+    </script>
 </body>
 </html>

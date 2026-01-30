@@ -847,6 +847,12 @@
                                         class="w-full py-3 ${data._optimistic ? 'bg-slate-300 cursor-not-allowed' : 'bg-moda hover:scale-[1.02] shadow-moda'} text-white rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all">
                                     ${data._optimistic ? '同步中...' : '查看名片'}
                                 </button>
+                                <button onclick="createQRShortcut('${data.uuid}', '${(data.name_zh || data.name_en || '').replace(/'/g, "\\'")}', '${data.type}')"
+                                        ${data._optimistic ? 'disabled' : ''}
+                                        class="w-full py-3 ${data._optimistic ? 'bg-slate-200 cursor-not-allowed' : 'bg-white border-2 border-moda/30 text-moda hover:border-moda hover:bg-moda/5'} rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all flex items-center justify-center gap-2">
+                                    <i data-lucide="qr-code" class="w-4 h-4"></i>
+                                    ${data._optimistic ? '同步中...' : '加到主畫面'}
+                                </button>
                                 <div class="grid grid-cols-3 gap-2">
                                     <button data-action="edit" data-type="${config.id}"
                                             class="py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all">

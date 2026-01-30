@@ -1,0 +1,1691 @@
+# Knowledge Graph: DB-Card NFC Digital Business Card System
+# Format: Date|Subject|Predicate|Object
+# Version: v3.2.1
+
+260118|DB-Card|type|NFC_Digital_Business_Card_System
+260118|DB-Card|version|v3.2.1
+260118|DB-Card|architecture|Pure_Frontend_PWA
+260118|DB-Card|license|Apache_2.0
+260118|DB-Card|privacy_model|Privacy_First_Design
+260118|DB-Card|storage|NFC_Card_Local_Storage
+260118|DB-Card|language_support|Bilingual_ZH_EN
+260118|DB-Card|deployment|GitHub_Pages_Static_Hosting
+
+260118|Core_Features|includes|NFC_Data_Self_Contained
+260118|Core_Features|includes|Dynamic_vCard_Generation
+260118|Core_Features|includes|Offline_QR_Code_Generation
+260118|Core_Features|includes|PWA_Offline_Storage
+
+260118|Security_Architecture|layer|Input_Security_Handler
+260118|Security_Architecture|layer|Auth_Security_Handler
+260118|Security_Architecture|layer|Data_Security_Handler
+260118|Security_Architecture|monitoring|24_7_Security_Monitor
+
+260118|PWA_System|version|v1.1.0
+260118|PWA_System|storage|IndexedDB
+260118|PWA_System|feature|Offline_Card_Management
+260118|PWA_System|feature|Cross_Device_Transfer
+
+260118|Translation_System|version|v3.1.3
+260118|Translation_System|module|Unified_Language_Manager
+260118|Translation_System|quality_score|9.2_out_of_10
+
+260118|Recent_Fixes|v3.2.1|ComponentHealthMonitor_Track_Method
+260118|Recent_Fixes|v3.2.1|ES6_Module_Loading_Compatibility
+260118|Recent_Fixes|v3.2.1|PWA_Initialization_Success_Rate_100_Percent
+
+# Dual-Layer Cache Optimization v4.2.1 (2026-01-20)
+260120|Dual_Layer_Cache|version|v4.2.1
+260120|Dual_Layer_Cache|status|COMPLETE
+260120|Dual_Layer_Cache|commit|fa53425
+260120|Dual_Layer_Cache|deployment|staging_pending
+
+# Frontend sessionStorage Cache
+260120|Frontend_Cache|implementation|api_js_readCard
+260120|Frontend_Cache|ttl|300_seconds_5_minutes
+260120|Frontend_Cache|cache_key|card_uuid_sessionId
+260120|Frontend_Cache|performance|minus_95_percent_200ms_to_10ms
+260120|Frontend_Cache|storage|sessionStorage
+260120|Frontend_Cache|error_handling|graceful_degradation
+260120|Frontend_Cache|bdd_scenarios|4_complete
+
+# Backend Mixed Cache Strategy
+260120|Backend_Mixed_Cache|implementation|handlers_read_ts
+260120|Backend_Mixed_Cache|strategy|by_card_type
+260120|Backend_Mixed_Cache|sensitive|no_kv_cache_ttl_0
+260120|Backend_Mixed_Cache|personal|kv_cache_60s
+260120|Backend_Mixed_Cache|event|kv_cache_60s
+260120|Backend_Mixed_Cache|function|getCardType
+260120|Backend_Mixed_Cache|function|getCachedCardData_with_ttl
+260120|Backend_Mixed_Cache|bdd_scenarios|5_complete
+
+# Performance Impact
+260120|Performance|frontend_cache_hit|minus_95_percent
+260120|Performance|backend_kv_ttl|minus_80_percent_300s_to_60s
+260120|Performance|sensitive_cards|zero_kv_exposure
+260120|Performance|page_refresh|200ms_to_10ms
+
+# Security Enhancement
+260120|Security|sensitive_cards|no_backend_kv_cache
+260120|Security|personal_event_cards|reduced_kv_exposure_60s
+260120|Security|multi_layer_protection|frontend_backend_envelope
+
+# Documentation
+260120|Documentation|bdd_spec_frontend|frontend_cache_optimization_md
+260120|Documentation|bdd_spec_backend|mixed_cache_strategy_md
+260120|Documentation|acceptance_frontend|frontend_cache_acceptance_md
+260120|Documentation|acceptance_backend|mixed_cache_acceptance_md
+260120|Documentation|performance_analysis|card_display_performance_analysis_md
+
+# Version Update
+260120|Version|number|v4.2.1
+260120|Version|readme|updated
+260120|Version|package_json|updated
+260120|Version|index_html|updated
+260118|DB-Card|project_type|Personal_Private_Project
+260118|DB-Card|previous_scope|Government_Open_Source_Project
+260118|DB-Card|data_controller|DB-Card_Project_Team
+260118|DB-Card|contact_email|privacy@db-card.example.com
+260118|Privacy_Policy|version|2.0.0_Personal_Edition
+260118|Privacy_Policy|compliance|GDPR_Taiwan_PDPA
+260118|Privacy_Policy|removed|Ministry_of_Digital_Affairs_References
+
+# ADR-002 Security Architecture (2026-01-18)
+260118|Security_Architecture|model|Envelope_Encryption
+260118|Security_Architecture|dek_strategy|One_DEK_Per_Card
+260118|Security_Architecture|kek_rotation|Event_Triggered_90_Days
+260118|Authorization_Model|type|ReadSession
+260118|ReadSession|ttl|24_Hours
+260118|ReadSession|max_reads|Concurrent_Read_Limit_Default_20
+260118|ReadSession|revocable|True
+260118|ReadSession|renewable|False
+260118|Revocation_Mechanism|trigger|Retap_NFC_Card
+260118|Revocation_Mechanism|target|Last_1_Session
+260118|Revocation_Mechanism|condition|10_Min_Or_2_Reads
+260118|CardType|personal|TTL_24h_Concurrent_Reads_20
+260118|CardType|event_booth|TTL_24h_Concurrent_Reads_50
+260118|CardType|sensitive|TTL_24h_Concurrent_Reads_5
+260118|Emergency_Response|method|Token_Version_Increment
+260118|Emergency_Response|method|KEK_Rotation
+260118|Emergency_Response|method|Maintenance_Mode
+
+# Phase 2 Completion (2026-01-18)
+260118|Phase_2|status|COMPLETE
+260118|Phase_2|commit|fbb4d89
+260118|POST_api_nfc_tap|scenarios|5_BDD_Scenarios
+260118|POST_api_nfc_tap|features|Rate_Limiting_Session_Creation_Revocation
+260118|GET_api_read|scenarios|5_BDD_Scenarios
+260118|GET_api_read|features|Session_Validation_Envelope_Decryption_Audit
+260118|handlers_tap_ts|implements|NFC_Tap_Handler
+260118|handlers_read_ts|implements|Card_Read_Handler
+260118|utils_session_ts|implements|Session_CRUD
+260118|utils_policy_ts|implements|CardType_Policy_Manager
+260118|utils_audit_ts|implements|Audit_Logging_IP_Anonymization
+260118|Deployment|environment|develop_branch
+260118|Health_Check|status|passing
+260118|Health_Check|kek_status|missing_needs_configuration
+
+# Phase 3 Completion (2026-01-18)
+260118|Phase_3|status|COMPLETE
+260118|Phase_3|commit|de6ac7b
+260118|POST_api_admin_cards|scenarios|5_BDD_Scenarios
+260118|POST_api_admin_cards|features|Card_Creation_Envelope_Encryption_Timing_Safe_Auth
+260118|PUT_api_admin_cards|scenarios|5_BDD_Scenarios
+260118|PUT_api_admin_cards|features|Card_Update_Reencryption_Session_Revocation
+260118|DELETE_api_admin_cards|scenarios|4_BDD_Scenarios
+260118|DELETE_api_admin_cards|features|Soft_Delete_Session_Revocation_Idempotency
+260118|POST_api_admin_revoke|scenarios|5_BDD_Scenarios
+260118|POST_api_admin_revoke|features|Card_Revocation_Global_Revocation_Token_Version_Increment
+260118|POST_api_admin_kek_rotate|scenarios|4_BDD_Scenarios
+260118|POST_api_admin_kek_rotate|features|KEK_Rotation_DEK_Rewrapping_Version_Management
+260118|middleware_auth_ts|implements|Timing_Safe_Token_Verification
+260118|handlers_admin_cards_ts|implements|Card_CRUD_Operations
+260118|handlers_admin_revoke_ts|implements|Emergency_Revocation
+260118|handlers_admin_kek_ts|implements|KEK_Rotation_Mechanism
+260118|crypto_envelope_ts|methods|unwrapDek_wrapDek
+260118|Deployment|environment|develop_branch
+260118|Health_Check|status|passing
+260118|Health_Check|kek_status|configured
+
+# Admin Dashboard v4.0 Complete (2026-01-18)
+260118|Admin_Dashboard|version|v4.0.0
+260118|Admin_Dashboard|status|Complete
+260118|Admin_Dashboard|features|Full_CRUD_Operations
+260118|Admin_Dashboard|form_fields|11_Fields_Aligned_With_Generator
+260118|Admin_Dashboard|address_presets|Yanping_Shinkong_Buildings
+260118|Admin_Dashboard|edit_function|Form_Prefill_PUT_API
+260118|Admin_Dashboard|view_function|Auto_Tap_Session_Creation
+260118|Admin_Dashboard|system_health|Real_Time_KEK_Active_Cards
+
+# Security Enhancements Phase 1 & 2 (2026-01-18)
+260118|Security_Phase_1|sessionStorage|Replaces_localStorage
+260118|Security_Phase_1|CSP_Headers|Content_Security_Policy
+260118|Security_Phase_1|CORS_Whitelist|Allowed_Origins_Only
+260118|Security_Phase_2|HttpOnly_Cookies|JavaScript_Cannot_Access
+260118|Security_Phase_2|Token_Expiration|1_Hour_Max_Age
+260118|Security_Phase_2|XSS_Protection|DOMPurify_TextContent
+260118|Security_Phase_2|Backward_Compatible|Cookie_Plus_Authorization_Header
+260118|Security_Phase_2|Auto_Logout|401_403_Error_Handling
+
+# API Enhancements (2026-01-18)
+260118|GET_api_admin_cards|status|Implemented
+260118|GET_api_admin_cards|function|List_All_Cards
+260118|GET_api_admin_cards|features|Exclude_Deleted_Decrypt_Data
+260118|GET_api_admin_cards_uuid|status|Implemented
+260118|GET_api_admin_cards_uuid|function|Get_Single_Card
+260118|GET_api_admin_cards_uuid|features|Full_CardData_Structure
+260118|POST_api_admin_login|status|Implemented
+260118|POST_api_admin_login|function|Set_HttpOnly_Cookie
+260118|POST_api_admin_login|cookie_flags|HttpOnly_Secure_SameSite_Strict
+260118|POST_api_admin_logout|status|Implemented
+260118|POST_api_admin_logout|function|Clear_Cookie
+260118|GET_health|enhanced|KEK_Version_Active_Cards_Stats
+
+# Frontend Integration (2026-01-18)
+260118|Frontend_Integration|loadCards|Real_API_No_Mock
+260118|Frontend_Integration|editCard|GET_API_Form_Prefill
+260118|Frontend_Integration|viewCard|Auto_Tap_Session
+260118|Frontend_Integration|createCard|POST_API_Complete_Form
+260118|Frontend_Integration|deleteCard|DELETE_API_Confirmation
+260118|Frontend_Integration|revokeCard|POST_Revoke_API
+260118|Frontend_Integration|systemHealth|Real_Time_Stats
+260118|Frontend_Integration|credentials|Include_For_Cookies
+
+# Testing Complete (2026-01-18)
+260118|Testing|API_Endpoints|All_Passing
+260118|Testing|CORS|Whitelist_Working
+260118|Testing|CSP_Headers|Applied_To_Static_Assets
+260118|Testing|HttpOnly_Cookies|Set_And_Working
+260118|Testing|Token_Expiration|1_Hour_Verified
+260118|Testing|XSS_Protection|DOMPurify_TextContent_Safe
+260118|Testing|Backward_Compatible|Cookie_And_Header_Both_Work
+260118|Testing|Frontend_Integration|All_Features_Working
+
+# Complete I18N Support (2026-01-18)
+260118|I18N_System|status|COMPLETE
+260118|I18N_System|version|v1.0.0
+260118|I18N_System|coverage|All_UI_Elements
+260118|I18N_System|languages|zh_TW_en_US
+260118|I18N_System|implementation|data_i18n_attributes
+260118|I18N_System|update_mechanism|updateButtonTexts_function
+
+# vCard Optimization (2026-01-18)
+260118|vCard_System|version|3.0
+260118|vCard_System|status|COMPLETE
+260118|vCard_System|encoding|UTF-8
+260118|vCard_System|download_method|data_URI
+260118|vCard_System|ios_compatibility|VERIFIED
+260118|vCard_System|escaping|RFC_6350_Compliant
+260118|vCard_System|photo_support|Google_Drive_uc_export
+
+# vCard Features
+260118|vCard_Feature|bilingual_support|Single_Language_Per_Download
+260118|vCard_Feature|special_char_escape|Semicolon_Comma_Backslash_Newline
+260118|vCard_Feature|photo_format|URL_VALUE_JPEG
+260118|vCard_Feature|google_drive_conversion|uc_export_view_format
+260118|vCard_Feature|safari_ios_fix|data_URI_instead_of_Blob
+
+# User Self-Service Planning (2026-01-18)
+260118|User_Self_Service|status|PLANNING
+260118|User_Self_Service|phase|Requirements_Analysis
+260118|User_Self_Service|core_feature|UUID_Preissue_System
+260118|User_Self_Service|auth_method|Google_OAuth
+260118|User_Self_Service|email_domain|moda_gov_tw
+260118|User_Self_Service|binding_model|One_UUID_One_Account
+
+# User Self-Service Architecture
+260118|Self_Service_Architecture|new_table|uuid_bindings
+260118|Self_Service_Architecture|new_apis|6_Plus_Endpoints
+260118|Self_Service_Architecture|new_frontend|user_portal_html
+260118|Self_Service_Architecture|session_management|JWT_Based
+260118|Self_Service_Architecture|admin_extension|UUID_Management_Tab
+
+# Audit Logging Strategy
+260118|Audit_Strategy|approach|Extend_Existing_Tables
+260118|Audit_Strategy|table_audit_logs|Add_Event_Types_And_Columns
+260118|Audit_Strategy|table_security_events|Add_UUID_Security_Events
+260118|Audit_Strategy|new_columns|actor_type_actor_id_target_uuid
+260118|Audit_Strategy|ip_anonymization|First_3_Octets_Only
+
+# Audit Event Types - UUID Management
+260118|Audit_Event|uuid_generate|Admin_Generate_UUID
+260118|Audit_Event|uuid_revoke|Admin_Revoke_UUID
+260118|Audit_Event|uuid_unbind|Admin_Unbind_UUID
+
+# Audit Event Types - User Authentication
+260118|Audit_Event|user_oauth_start|User_Start_OAuth_Flow
+260118|Audit_Event|user_oauth_success|OAuth_Success
+260118|Audit_Event|user_oauth_failed|OAuth_Failed_Invalid_Email
+260118|Audit_Event|user_bind_uuid|User_Bind_UUID
+260118|Audit_Event|user_login|User_Login
+260118|Audit_Event|user_logout|User_Logout
+
+# Audit Event Types - User Operations
+260118|Audit_Event|user_card_create|User_Create_Card
+260118|Audit_Event|user_card_update|User_Update_Card
+260118|Audit_Event|user_card_view|User_View_Card
+
+# Security Event Types
+260118|Security_Event|uuid_brute_force|UUID_Brute_Force_Attempt
+260118|Security_Event|invalid_email_domain|Non_MODA_Email_Login_Attempt
+260118|Security_Event|duplicate_bind_attempt|Duplicate_Bind_Attempt
+
+# Audit Priority
+260118|Audit_Priority|P0|UUID_Generate_Bind_OAuth_Failed_Card_CRUD
+260118|Audit_Priority|P1|UUID_Revoke_Unbind_Login_Logout_Brute_Force
+260118|Audit_Priority|P2|OAuth_Start_Card_View_Session_Expire
+
+# Requirements Pending Confirmation
+260118|Requirement_Question|Q1|UUID_Lifecycle
+260118|Requirement_Question|Q2|Account_UUID_Binding_Limit
+260118|Requirement_Question|Q3|UUID_Unbind_Policy
+260118|Requirement_Question|Q4|Email_Domain_Validation
+260118|Requirement_Question|Q5|Session_Expiration_Definition
+260118|Requirement_Question|Q6|Card_UUID_Usage_Model
+260118|Requirement_Question|Q7|User_Delete_Permission
+260118|Requirement_Question|Q8|Admin_Edit_User_Card_Permission
+260118|Requirement_Question|Q9|UUID_Distribution_Method
+260118|Requirement_Question|Q10|Security_Mechanism_Rate_Limit_CAPTCHA
+
+# Product Positioning Decision (2026-01-19)
+260119|DB_Card|product_type|Digital_Business_Card_System
+260119|DB_Card|not_product_type|Authorization_System
+260119|SESSION_EXPIRES|purpose|Resource_Management_Not_Access_Control
+260119|SESSION_EXPIRES|meaning|Session_Lifetime_24h
+260119|ATTEMPTS_REMAINING|purpose|Resource_Management_Not_Access_Control
+260119|ATTEMPTS_REMAINING|meaning|Total_Session_Traffic_Limit
+260119|Session_Sharing|allowed|True
+260119|Session_Sharing|reason|Business_Card_Sharing_Nature
+260119|QR_Code|status|Essential_Feature
+260119|QR_Code|purpose|Easy_Sharing_No_Physical_Contact
+260119|URL_Sharing|status|Essential_Feature
+260119|URL_Sharing|purpose|Easy_Propagation
+260119|ADR_005|status|Cancelled
+260119|ADR_005|reason|Conflicts_With_Product_Positioning
+260119|Fingerprint_Verification|status|Not_Needed
+260119|Fingerprint_Verification|reason|Would_Break_QR_Code_And_Sharing
+
+# Deployment Status
+260119|Deployment|environment|staging
+260119|Deployment|version|b671362c_ae22_464f_a117_58d7186f81ee
+260119|Deployment|features|Phase_2_User_Portal_Revoke_Restore_Complete
+260119|Deployment|status|Operational
+
+# I18N Text Keys
+260118|i18n_key|loading|Synchronizing_Secure_Identity
+260118|i18n_key|qr_title|Scan_for_Official_Verification
+260118|i18n_key|card_system|Digital_Business_Card_System
+260118|i18n_key|transmission_feed|Dynamic_Transmission_Feed
+260118|i18n_key|communication_node|Communication_Node
+260118|i18n_key|voice_access|Voice_Access
+260118|i18n_key|official_portal|Official_Portal
+260118|i18n_key|security_spec|Security_Specification
+260118|i18n_key|security_desc|Serverless_Encrypted_Node
+260118|i18n_key|offline_mode|Offline_Mode
+260118|i18n_key|privacy_notice|IndexedDB_Local_Storage_Notice
+
+# Form Reset Bug Fix (2026-01-18)
+260118|Bug_Fix|issue|REAL_TIME_CONTEXT_Cache_Previous_Card
+260118|Bug_Fix|root_cause|Form_Not_Cleared_On_Tab_Switch
+260118|Bug_Fix|solution|Auto_Clear_Form_In_Non_Edit_Mode
+260118|Bug_Fix|affected_component|Admin_Dashboard_Preview
+260118|Bug_Fix|fix_location|switchTab_function
+260118|Bug_Fix|status|RESOLVED
+
+# Browser Cache Mechanism (2026-01-18)
+260118|Browser_Cache|tailwind_cdn|max_age_14400_4_hours
+260118|Browser_Cache|unpkg_cdn|max_age_60_1_minute
+260118|Browser_Cache|cdnjs_cdn|max_age_30672000_355_days
+260118|Browser_Cache|mechanism|HTTP_Cache_Control_Headers
+260118|Browser_Cache|offline_support|Automatic_No_Service_Worker_Needed
+260118|Offline_Mode|trigger_1|Network_Error
+260118|Offline_Mode|trigger_2|Session_Expired
+260118|Offline_Mode|trigger_3|Concurrent_Reads_Exceeded
+260118|Offline_Mode|data_source|IndexedDB_Cache
+260118|Offline_Mode|ui_indicator|Offline_Badge
+
+# Deployment (2026-01-18)
+260119|Deployment|commit|a5b783f
+260119|Deployment|version|b671362c_ae22_464f_a117_58d7186f81ee
+260119|Deployment|features|Phase_2_User_Portal_Revoke_Restore_Complete
+260119|Deployment|status|Operational
+
+# Security Dashboard Planning (2026-01-18)
+260118|Security_Dashboard|status|Planning_Complete
+260118|Security_Dashboard|frontend_prd|admin-security-dashboard.md
+260118|Security_Dashboard|frontend_template|SECURITY-DASHBOARD-FRONTEND-TEMPLATE.html
+260118|Security_Dashboard|design_review|SECURITY-DASHBOARD-DESIGN-REVIEW.md
+260118|Security_Dashboard|api_requirements|SECURITY-DASHBOARD-API-REQUIREMENTS.md
+260118|Security_Dashboard|total_apis|8_Endpoints
+260118|Security_Dashboard|priority_p0|2_APIs_stats_events
+260118|Security_Dashboard|priority_p1|3_APIs_timeline_block_unblock
+260118|Security_Dashboard|priority_p2|2_APIs_ip_detail_export
+260118|Security_Dashboard|priority_p3|1_API_websocket_live
+
+# P0 APIs Implementation (2026-01-18)
+260118|P0_Implementation|status|COMPLETE
+260118|GET_api_admin_security_stats|status|Implemented
+260118|GET_api_admin_security_stats|features|24h_Statistics_Top_IPs_Last_Event
+260118|GET_api_admin_security_stats|cache|60_Seconds_KV
+260118|GET_api_admin_security_events|status|Implemented
+260118|GET_api_admin_security_events|features|Event_List_Filtering_Pagination
+260118|GET_api_admin_security_events|filters|event_type_start_time_end_time
+260118|GET_api_admin_security_events|pagination|page_limit_has_more
+
+# P1 APIs Implementation (2026-01-18)
+260118|P1_Implementation|status|COMPLETE
+260118|GET_api_admin_security_timeline|status|Implemented
+260118|GET_api_admin_security_timeline|features|Hourly_Distribution_24h_Default_168h_Max
+260118|GET_api_admin_security_timeline|cache|300_Seconds_KV
+260118|POST_api_admin_security_block|status|Implemented
+260118|POST_api_admin_security_block|features|Manual_IP_Block_UPSERT_Permanent_Support
+260118|DELETE_api_admin_security_block|status|Implemented
+260118|DELETE_api_admin_security_block|features|Unblock_IP_404_Not_Found
+
+# P2 APIs Implementation (2026-01-18)
+260118|P2_Implementation|status|COMPLETE
+260118|GET_api_admin_security_ip|status|Implemented
+260118|GET_api_admin_security_ip|features|IP_Detail_Analysis_Event_Statistics_Recent_10
+260118|GET_api_admin_security_export|status|Implemented
+260118|GET_api_admin_security_export|features|CSV_Export_Filtering_1000_Limit
+
+# Common Features (2026-01-18)
+260118|Security_APIs|ip_anonymization|All_Endpoints
+260118|Security_APIs|authentication|Admin_Required_HttpOnly_Cookie
+260118|Security_APIs|error_handling|Unified_Format
+260118|Security_APIs|file|handlers_admin_security_ts
+260118|Security_APIs|routes|index_ts_7_Routes
+260118|Database|migration|0003_blocked_ips_sql
+260118|Testing|all_apis|P0_P1_P2_All_Passed
+260118|Testing|total_scenarios|22_Scenarios_Verified
+
+# Frontend Integration (2026-01-18)
+260118|Frontend_Integration|status|COMPLETE
+260118|Frontend_Integration|file|admin_dashboard_html
+260118|Frontend_Integration|tab_system|Security_Monitor_Tab_Added
+260118|Frontend_Integration|statistics|4_Cards_Top_IPs_Last_Event
+260118|Frontend_Integration|timeline_chart|Chart_js_24h_48h_168h
+260118|Frontend_Integration|events_table|Filtering_Pagination
+260118|Frontend_Integration|ip_blocking|Block_Unblock_Forms
+260118|Frontend_Integration|ip_detail_modal|Statistics_Chart_Recent_Events
+260118|Frontend_Integration|csv_export|Download_With_Filters
+260118|Frontend_Integration|auto_refresh|60s_Stats_Refresh
+260118|Frontend_Integration|assets_handling|index_ts_Assets_Route
+260118|Testing|frontend|All_Features_Verified
+
+# API Specifications
+260118|API_security_stats|method|GET
+260118|API_security_stats|path|/api/admin/security/stats
+260118|API_security_stats|purpose|24h_statistics_top_ips_last_event
+260118|API_security_events|method|GET
+260118|API_security_events|path|/api/admin/security/events
+260118|API_security_events|purpose|event_list_with_filtering
+260118|API_security_timeline|method|GET
+260118|API_security_timeline|path|/api/admin/security/timeline
+260118|API_security_timeline|purpose|hourly_distribution_chart_data
+260118|API_security_block|method|POST
+260118|API_security_block|path|/api/admin/security/block
+260118|API_security_block|purpose|manual_ip_blocking
+260118|API_security_unblock|method|DELETE
+260118|API_security_unblock|path|/api/admin/security/block/:ip
+260118|API_security_unblock|purpose|unblock_ip_address
+260118|API_security_ip_detail|method|GET
+260118|API_security_ip_detail|path|/api/admin/security/ip/:ip
+260118|API_security_ip_detail|purpose|detailed_ip_analysis
+260118|API_security_export|method|GET
+260118|API_security_export|path|/api/admin/security/export
+260118|API_security_export|purpose|csv_export_functionality
+260118|API_security_live|method|WebSocket
+260118|API_security_live|path|/api/admin/security/live
+260118|API_security_live|purpose|realtime_event_streaming
+
+# Design Prototype Analysis
+260118|Design_Prototype|file|v4.0.0_Admin_Dashboard_增加安全監控.html
+260118|Design_Prototype|total_lines|437
+260118|Design_Prototype|visual_design|5_stars_glassmorphism_threejs
+260118|Design_Prototype|interaction|4_stars_tab_system_auto_refresh
+260118|Design_Prototype|architecture|4_stars_clear_structure
+260118|Design_Prototype|issue_critical|mock_data_integration
+260118|Design_Prototype|issue_high|data_structure_mismatch
+260118|Design_Prototype|issue_high|event_details_parsing
+260118|Design_Prototype|issue_medium|fixed_time_display
+260118|Design_Prototype|issue_medium|missing_error_handling
+260118|Design_Prototype|issue_low|threejs_performance
+
+# Integration Strategy
+260118|Integration_Phase1|duration|2_3_hours
+260118|Integration_Phase1|tasks|P0_APIs_real_data_error_handling
+260118|Integration_Phase2|duration|1_week
+260118|Integration_Phase2|tasks|P1_APIs_timeline_blocking
+260118|Integration_Phase3|duration|2_weeks
+260118|Integration_Phase3|tasks|P2_P3_APIs_advanced_features
+
+# Database Requirements
+260118|Database_New_Table|name|blocked_ips
+260118|Database_New_Table|columns|ip_address_blocked_until_reason
+260118|Database_New_Table|indexes|idx_blocked_ips_until
+
+# Security Considerations
+260118|Security_API|authentication|admin_required_httponly_cookie
+260118|Security_API|rate_limiting|60_requests_per_minute
+260118|Security_API|data_protection|ip_anonymized_30_day_retention
+260118|Security_API|cors|whitelist_only_credentials_include
+
+# Performance Optimization
+260118|Performance_Cache|stats_api|30_seconds
+260118|Performance_Cache|timeline_api|5_minutes
+260118|Performance_Cache|events_api|no_cache_realtime
+260118|Performance_Query|max_range|7_days
+260118|Performance_Query|max_limit|50_records
+260118|Performance_Query|indexes|created_at_event_type_ip_address
+
+# Phase 2 User Portal Complete (2026-01-19)
+260119|Phase_2|status|COMPLETE
+260119|Phase_2|commit|a5b783f
+260119|User_Portal|version|v1.0.0
+260119|User_Portal|features|OAuth_Login_Card_CRUD_Real_Time_Preview
+260119|User_Portal|form_fields|16_Fields_Aligned_With_Admin
+260119|User_Portal|address_presets|Yanping_Shinkong_Buildings
+260119|User_Portal|social_links|6_Fields_Supported
+260119|User_Portal|revoked_handling|Display_Only_No_Edit
+
+# Revoke/Restore Mechanism (2026-01-19)
+260119|Revoke_Mechanism|version|v2.0.0
+260119|Revoke_Mechanism|delete_api|Changed_To_Revoke_Logic
+260119|Revoke_Mechanism|restore_api|POST_api_admin_cards_uuid_restore
+260119|Admin_Dashboard|revoke_button|Amber_Color_Conditional_Display
+260119|Admin_Dashboard|restore_button|Green_Color_For_Revoked_Cards
+260119|Admin_Dashboard|global_revoke|Emergency_Revocation_Implemented
+260119|User_Portal|revoked_cards|Disabled_Operations_Warning_Label
+
+# Database Architecture Optimization (2026-01-19)
+260119|Database_Optimization|version|v2.0.0
+260119|Database_Optimization|removed_columns|cards_card_type_cards_status
+260119|Database_Optimization|single_source_of_truth|uuid_bindings
+260119|Database_Optimization|audit_table|deleted_cards
+260119|Migration_0005|purpose|Update_Type_Constraint
+260119|Migration_0005|mapping|official_to_personal_temporary_to_sensitive
+260119|Migration_0006|purpose|Sync_Card_Types
+260119|Migration_0007|purpose|Remove_Redundant_Columns
+260119|Migration_0008|purpose|Create_Deleted_Cards_Audit_Table
+
+# Scheduled Cleanup (2026-01-19)
+260119|Scheduled_Cleanup|version|v1.0.0
+260119|Scheduled_Cleanup|cron|0_2_asterisk_asterisk_asterisk
+260119|Scheduled_Cleanup|frequency|Daily_02_00_UTC
+260119|Scheduled_Cleanup|retention_period|90_Days
+260119|Scheduled_Cleanup|archive_target|deleted_cards
+260119|Scheduled_Cleanup|data_preservation|Encrypted_Snapshot
+260119|Scheduled_Cleanup|file|scheduled_cleanup_ts
+
+# Design System Unification (2026-01-19)
+260119|Design_System|version|v2.0.0
+260119|Design_System|accent_color|#6868ac_MODA_Purple
+260119|Design_System|font_family|Outfit
+260119|Design_System|wcag_compliance|AAA_7_8_to_1_Contrast
+260119|Design_System|unified_frontends|admin_dashboard_user_portal_card_display
+260119|Design_System|page_title_format|數位名片_pipe_XXX
+
+# Bug Fixes (2026-01-19)
+260119|Bug_Fix|user_portal_edit|Flat_Structure_Prefill
+260119|Bug_Fix|card_display|Address_Social_Links_Display
+260119|Bug_Fix|admin_dashboard|Social_Links_Compatibility
+260119|Bug_Fix|tap_read_api|Remove_Cards_Status_Query
+260119|Bug_Fix|type_mapping|event_to_event_booth
+260119|Bug_Fix|function_exposure|closeModal_confirmAction_restoreCard
+260119|Bug_Fix|security|Remove_Frontend_Debug_Logs
+260119|Bug_Fix|validation|Empty_String_Check_Not_Undefined
+260119|Bug_Fix|preview|Read_Default_Address
+
+# API Completeness (2026-01-19)
+260119|API_user_cards|method|GET
+260119|API_user_cards|path|/api/user/cards
+260119|API_user_cards|returns|bound_plus_revoked
+260119|API_user_card_detail|method|GET
+260119|API_user_card_detail|path|/api/user/cards/:uuid
+260119|API_user_card_detail|returns|16_Fields_Flat_Structure
+260119|API_user_card_create|method|POST
+260119|API_user_card_create|path|/api/user/cards
+260119|API_user_card_create|feature|Auto_Generate_UUID
+260119|API_user_card_update|method|PUT
+260119|API_user_card_update|path|/api/user/cards/:uuid
+260119|API_user_card_update|feature|Full_Update
+260119|API_admin_cards_list|method|GET
+260119|API_admin_cards_list|path|/api/admin/cards
+260119|API_admin_cards_list|feature|JOIN_uuid_bindings_Get_Status
+260119|API_admin_card_restore|method|POST
+260119|API_admin_card_restore|path|/api/admin/cards/:uuid/restore
+260119|API_admin_card_restore|feature|Restore_Revoked_Cards
+260119|API_admin_card_delete|method|DELETE
+260119|API_admin_card_delete|path|/api/admin/cards/:uuid
+260119|API_admin_card_delete|changed_to|Revoke_Logic
+260119|API_admin_revoke|method|POST
+260119|API_admin_revoke|path|/api/admin/revoke
+260119|API_admin_revoke|feature|Global_Revocation
+
+# User Self-Revoke Feature v1.0.0 (2026-01-20)
+260120|User_Self_Revoke|version|v1.0.0
+260120|User_Self_Revoke|status|COMPLETE
+260120|User_Self_Revoke|commit|a1e9f46
+260120|User_Self_Revoke|deployment|staging_52851b02
+
+# Core APIs
+260120|POST_api_user_cards_revoke|status|Implemented
+260120|POST_api_user_cards_revoke|path|/api/user/cards/:uuid/revoke
+260120|POST_api_user_cards_revoke|features|Rate_Limiting_Session_Revocation_Optional_Reason
+260120|POST_api_user_cards_restore|status|Implemented
+260120|POST_api_user_cards_restore|path|/api/user/cards/:uuid/restore
+260120|POST_api_user_cards_restore|features|7_Day_Window_Self_Service
+260120|GET_api_user_revocation_history|status|Implemented
+260120|GET_api_user_revocation_history|path|/api/user/revocation-history
+260120|GET_api_user_revocation_history|features|30_Day_History_Pagination
+
+# Rate Limiting
+260120|Rate_Limiting|hourly_limit|3_per_hour
+260120|Rate_Limiting|daily_limit|10_per_day
+260120|Rate_Limiting|table|revocation_rate_limits
+260120|Rate_Limiting|error_code|REVOCATION_RATE_LIMITED
+260120|Rate_Limiting|window_type|sliding_hourly_fixed_daily
+
+# Database
+260120|Migration_0009|table|revocation_rate_limits
+260120|Migration_0009|columns|user_id_window_type_window_start_revocation_count
+260120|Migration_0009|indexes|idx_rate_limits_user_window_idx_rate_limits_cleanup
+260120|uuid_bindings|revoked_at|Already_Exists_From_Migration_0004
+260120|uuid_bindings|revoke_reason|Already_Exists_From_Migration_0004
+
+# Frontend
+260120|User_Portal|revoke_modal|Confirmation_Dialog_With_Reason_Select
+260120|User_Portal|rate_limit_banner|Error_Display_With_Retry_Time
+260120|User_Portal|admin_contact_hint|Two_Locations_Modal_And_Banner
+260120|User_Portal|progress_indicator|Validating_Encrypting_Saving
+260120|User_Portal|no_emoji|Clean_Professional_UI
+
+# Security
+260120|Revoke_Security|session_revocation|Immediate_All_Active_Sessions
+260120|Revoke_Security|audit_logging|Complete_Actor_Reason_Sessions_Count
+260120|Revoke_Security|ip_anonymization|First_3_Octets_Only
+260120|Revoke_Security|restore_window|7_Days_Self_Service
+260120|Revoke_Security|admin_override|Permanent_Delete_Available
+
+# Performance Optimizations (2026-01-20)
+260120|Performance_Fix|addSecurityHeaders|response_clone_body
+260120|Performance_Fix|handleUserListCards|JOIN_Query_N_Plus_1_Fixed
+260120|Performance_Fix|database_queries|7_to_4_queries_minus_43_percent
+260120|Performance_Fix|tailwind_cdn|defer_attribute_added
+260120|Performance_Fix|api_response_time|47ms_average
+
+# Testing
+260120|Testing|coverage|80_percent_8_of_10
+260120|Testing|bdd_scenarios|8_scenarios_complete
+260120|Testing|staging_verification|passed
+260120|Testing|rate_limiting|verified_3_hour_10_day
+260120|Testing|session_revocation|verified_immediate
+260120|Testing|audit_logs|verified_complete
+260120|Testing|7_day_window|verified_timestamp
+260120|Testing|tested_by|iim0663418@moda.gov.tw
+
+# Documentation
+260120|Documentation|test_results|reports/USER-REVOKE-TEST-RESULTS.md
+260120|Documentation|user_guide|guides/REVOKE-AND-NEW-CARD-GUIDE.md
+260120|Documentation|performance|reports/CREATE-CARD-PERFORMANCE-TEST.md
+260120|Documentation|staging_report|reports/STAGING-TEST-REPORT.md
+260120|Documentation|bdd_spec|specs/user-self-revoke.md
+260120|Documentation|implementation|specs/user-self-revoke-implementation-summary.md
+260120|Documentation|architecture|specs/BUGFIX-architecture-clarification.md
+
+# Bug Fixes
+260120|Bug_Fix|modal_button_reset|closeRevokeModal_state_reset
+260120|Bug_Fix|empty_response|addSecurityHeaders_clone_body
+260120|Bug_Fix|n_plus_1_query|handleUserListCards_JOIN_optimization
+
+# UI Improvements
+260120|UI_Improvement|emoji_removal|professional_clean_interface
+260120|UI_Improvement|admin_hint|contact_admin_for_immediate_delete
+260120|UI_Improvement|progress_indicator|validating_encrypting_saving_states
+260120|UI_Improvement|rate_limit_error|clear_retry_time_display
+
+# Project Structure Cleanup (2026-01-20)
+260120|Project_Cleanup|reports_directory|created
+260120|Project_Cleanup|guides_directory|created
+260120|Project_Cleanup|deployment_directory|created
+260120|Project_Cleanup|temp_files|removed_test_scripts
+260120|Project_Cleanup|commit|70e152b
+
+# Deployment Status
+260120|Deployment|environment|staging
+260120|Deployment|version|52851b02_a6e7_4327_82c7_208df74b8bee
+260120|Deployment|url|https://db-card-staging.csw30454.workers.dev
+260120|Deployment|database|db-card-staging
+260120|Deployment|active_cards|3
+260120|Deployment|status|operational
+
+# Tap API Multi-Layer Defense v1.0.0 (2026-01-20)
+260120|Tap_API_Defense|version|v1.0.0
+260120|Tap_API_Defense|status|COMPLETE
+260120|Tap_API_Defense|commit|TBD
+260120|Tap_API_Defense|implementation_date|2026-01-20T14:00:00+08:00
+
+# Layer 1: Deduplication (60s)
+260120|Layer_1_Dedup|status|Implemented
+260120|Layer_1_Dedup|kv_key|tap:dedup:${card_uuid}
+260120|Layer_1_Dedup|value|session_id
+260120|Layer_1_Dedup|ttl|60_seconds
+260120|Layer_1_Dedup|behavior|Return_Existing_Session
+260120|Layer_1_Dedup|bypass|None_Including_Admin_Portal
+
+# Layer 2: Rate Limiting
+260120|Layer_2_RateLimit|status|Implemented
+260120|Layer_2_RateLimit|algorithm|Sliding_Window_Counter
+260120|Layer_2_RateLimit|dimensions|card_uuid_and_ip
+260120|Layer_2_RateLimit|card_uuid_minute|10_requests
+260120|Layer_2_RateLimit|card_uuid_hour|50_requests
+260120|Layer_2_RateLimit|ip_minute|10_requests
+260120|Layer_2_RateLimit|ip_hour|50_requests
+260120|Layer_2_RateLimit|kv_ttl|120s_minute_7200s_hour
+260120|Layer_2_RateLimit|error_code|429_rate_limited
+
+# Layer 3: Max Reads (Preserved)
+260120|Layer_3_MaxReads|status|Preserved
+260120|Layer_3_MaxReads|location|handlers/read.ts
+260120|Layer_3_MaxReads|behavior|Concurrent_Read_Limit
+260120|Layer_3_MaxReads|unchanged|True
+
+# Implementation Files
+260120|Implementation|utils_rate_limit_ts|Created
+260120|Implementation|utils_ip_ts|Created
+260120|Implementation|types_ts|Updated_5_New_Types
+260120|Implementation|handlers_tap_ts|Refactored_5_Step_Order
+260120|Implementation|typescript_compile|Passed
+
+# BDD Specification
+260120|BDD_Spec|file|.specify/specs/tap-dedup-ratelimit.md
+260120|BDD_Spec|scenarios|11_Complete
+260120|BDD_Spec|coverage|100_Percent
+
+# Execution Order
+260120|Execution_Order|step_0|Basic_Validation
+260120|Execution_Order|step_1|Dedup_Check
+260120|Execution_Order|step_2|Rate_Limit_Check
+260120|Execution_Order|step_3|Validate_Card
+260120|Execution_Order|step_4|Retap_Revocation
+260120|Execution_Order|step_5|Create_Session_Store_Dedup_Increment
+
+# IP Extraction
+260120|IP_Extraction|priority_1|CF-Connecting-IP
+260120|IP_Extraction|priority_2|X-Forwarded-For_First
+260120|IP_Extraction|priority_3|unknown
+260120|IP_Extraction|file|utils/ip.ts
+
+# Rate Limit Types
+260120|RateLimitDimension|type|card_uuid_or_ip
+260120|RateLimitWindow|type|minute_or_hour
+260120|RateLimitData|structure|count_first_seen_at
+260120|RateLimitResult|structure|allowed_current_limit_retry_after
+260120|RateLimitConfig|structure|card_uuid_ip_minute_hour
+
+# Design Decisions
+260120|Design_Decision|dedup_bypass|None_All_Requests_Subject
+260120|Design_Decision|rate_limit_values|Unified_10_min_50_hour
+260120|Design_Decision|window_algorithm|Sliding_Window_Counter
+260120|Design_Decision|kv_atomicity|Per_Key_Atomic
+260120|Design_Decision|phase_1_scope|P0_Three_Layers_Only
+
+# Out of Scope (Phase 2)
+260120|Phase_2_Future|layer_4|24h_Session_Budget
+260120|Phase_2_Future|layer_5|Active_Session_Cap
+260120|Phase_2_Future|force_new|mode_force_new_Parameter
+260120|Phase_2_Future|dynamic_limits|By_Card_Type
+260120|Phase_2_Future|frontend_cache|sessionStorage_Caching
+
+# External Research
+260120|Research|stripe_idempotency|24h_Key_Expiry
+260120|Research|shopify_dedup|Built_In_Mechanisms
+260120|Research|industry_standard|Sliding_Window_Recommended
+260120|Research|cloudflare_kv|Eventual_Consistency_Acceptable
+
+# Terminology Clarification (2026-01-20)
+260120|Terminology_Fix|max_reads|Clarified_As_Concurrent_Read_Limit
+260120|Terminology_Fix|scope|UI_Messages_Code_Comments_Documentation
+260120|Terminology_Fix|reason|Avoid_Confusion_With_Cumulative_Count
+260120|Terminology_Fix|updated_files|README_main_js_read_ts_types_ts_guides_landing_page
+260120|Terminology_Fix|additional_check|2026-01-20T14:10:00+08:00
+260120|Terminology_Fix|additional_fixes|ARCH-001_ARCH-002_FRONTEND-MIGRATION-PRD_CARD-DISPLAY-PAGE-PRD
+260120|Terminology_Fix|wrong_terms|最大讀取次數_最大回看次數_讀取次數上限
+260120|Terminology_Fix|correct_terms|同時讀取數上限_最大同時讀取數_併發讀取限制
+260120|Terminology_Fix|consistency|100_Percent_Verified
+
+# Tap API Multi-Layer Defense v1.0.0 (2026-01-20)
+260120|Tap_API_Defense|version|v1.0.0
+260120|Tap_API_Defense|status|COMPLETE
+260120|Tap_API_Defense|commit|a340a3b
+260120|Tap_API_Defense|deployment|staging_10e097d2
+
+# Layer 1: Deduplication
+260120|Layer_1_Dedup|ttl|60_seconds
+260120|Layer_1_Dedup|behavior|Return_Existing_Session
+
+# Layer 2: Rate Limiting
+260120|Layer_2_RateLimit|algorithm|Sliding_Window_Counter
+260120|Layer_2_RateLimit|card_uuid|10_per_min_50_per_hour
+260120|Layer_2_RateLimit|ip|10_per_min_60_per_hour
+
+# Session Budget v4.2.0 (2026-01-20)
+260120|Session_Budget|version|v4.2.0
+260120|Session_Budget|status|COMPLETE
+260120|Session_Budget|commit|714dc9d
+260120|Session_Budget|deployment|staging_5a37218c
+
+# Budget Limits
+260120|Budget_Personal|limits|1000_10_100
+260120|Budget_Event|limits|5000_50_500
+260120|Budget_Sensitive|limits|100_3_30
+
+# Frontend Update (2026-01-20)
+260120|Frontend_Update|version|v4.1_v4.2
+260120|Frontend_Update|commit|e031855_34ade89
+260120|Frontend_Update|deployment|staging_6d2a4af0
+
+# Error Messages
+260120|Error_rate_limited|message|請求過於頻繁，請稍後再試
+260120|Error_session_budget_exceeded|message|此名片已達到使用上限，請聯絡管理員
+260120|Error_daily_budget_exceeded|message|今日使用次數已達上限，請明天再試
+260120|Error_monthly_budget_exceeded|message|本月使用次數已達上限，請下月再試
+
+# Budget Reset
+260120|Budget_Reset|api|POST_/api/admin/cards/:uuid/reset-budget
+260120|Budget_Reset|button|admin-dashboard.html
+260120|Budget_Reset|audit_log|card_budget_reset
+
+# Testing
+260120|Testing|v4.1.0|6_of_6_passed
+260120|Testing|v4.2.0|6_of_6_passed
+260120|Testing|frontend|5_of_5_passed
+
+# Deployment
+260120|Deployment|staging|6d2a4af0-32a7-4080-81d9-d3eb824a591f
+260120|Deployment|url|https://db-card-staging.csw30454.workers.dev
+260120|Deployment|status|operational
+
+# Landing Page Update (2026-01-20)
+260120|Landing_Page|version|v4.0_Security_Features
+260120|Landing_Page|status|DEPLOYED
+260120|Landing_Page|commit|ac30bfb
+260120|Landing_Page|deployment|b49bc44f-a64f-4067-965d-bb026ba54267
+260120|Landing_Page|update_time|2026-01-20T15:51:00+08:00
+
+# Core Security Features Display
+260120|Landing_Page_Feature_1|title|隱私優先設計
+260120|Landing_Page_Feature_1|icon|shield-check
+260120|Landing_Page_Feature_1|items|資料加密儲存_UUID_Only_IP_匿名化
+260120|Landing_Page_Feature_2|title|信封加密技術
+260120|Landing_Page_Feature_2|icon|lock
+260120|Landing_Page_Feature_2|items|獨立_DEK_KEK_輪換_安全預設標準
+260120|Landing_Page_Feature_3|title|授權會話機制
+260120|Landing_Page_Feature_3|icon|clock
+260120|Landing_Page_Feature_3|items|24h_TTL_同時讀取限制_NFC_重新觸碰
+260120|Landing_Page_Feature_4|title|可隨時撤銷授權
+260120|Landing_Page_Feature_4|icon|x-circle
+260120|Landing_Page_Feature_4|items|使用者自助_管理員緊急_立即失效
+
+# Design Consistency
+260120|Landing_Page_Design|style|Glassmorphism
+260120|Landing_Page_Design|accent_color|#6868ac_MODA_Purple
+260120|Landing_Page_Design|layout|2x2_Grid_Responsive
+260120|Landing_Page_Design|icons|Lucide
+260120|Landing_Page_Design|check_color|#10b981_Green
+
+# Dynamic Page Title (2026-01-20)
+260120|Card_Display|feature|Dynamic_Page_Title
+260120|Card_Display|status|DEPLOYED
+260120|Card_Display|commit|f715232
+260120|Card_Display|deployment|901bdff1-6dcd-48fb-8e8d-f4bb0e69c54d
+260120|Card_Display|title_format_en|DB-Card_pipe_Name
+260120|Card_Display|title_format_zh|數位名片_pipe_Name
+260120|Card_Display|fallback_en|DB-Card_pipe_Card_Display
+260120|Card_Display|fallback_zh|數位名片_pipe_名片顯示
+260120|Card_Display|implementation|Bilingual_Support_In_renderCard
+260120|Card_Display|localization|Uses_currentLanguage_Variable
+
+# P0 Backend Optimization (2026-01-20)
+260120|Backend_Optimization|version|P0_Complete
+260120|Backend_Optimization|status|DEPLOYED
+260120|Backend_Optimization|commit|9d8f188
+260120|Backend_Optimization|deployment|1a4c529c-b63f-41bc-b205-a7409e4671b6
+260120|Backend_Optimization|report|reports/p0-backend-optimization-results.md
+
+# Optimization 1: Retap Revocation KV Cache
+260120|Retap_Cache|cache_key|last_session_card_uuid
+260120|Retap_Cache|ttl|3600s_1_hour
+260120|Retap_Cache|implementation|utils_session_ts_getRecentSession
+260120|Retap_Cache|invalidation|On_Session_Revocation
+260120|Retap_Cache|improvement|minus_100_150ms
+
+# Optimization 2: Card Type KV Cache
+260120|CardType_Cache|cache_key|card_type_card_uuid
+260120|CardType_Cache|ttl|86400s_24_hours
+260120|CardType_Cache|implementation|handlers_tap_ts_STEP_2_5_and_3
+260120|CardType_Cache|improvement|minus_50_100ms
+
+# Optimization 3: Async Session Insert
+260120|Async_Insert|method|ctx_waitUntil
+260120|Async_Insert|pre_generation|crypto_randomUUID
+260120|Async_Insert|implementation|utils_session_ts_createSession
+260120|Async_Insert|backwards_compatible|True
+260120|Async_Insert|improvement|minus_100_150ms
+
+# Performance Results
+260120|Performance_Tap_API|before|0_6s
+260120|Performance_Tap_API|after|0_35s
+260120|Performance_Tap_API|improvement|minus_42_percent
+260120|Performance_Read_API|before|0_31s
+260120|Performance_Read_API|after_cache_hit|0_10s
+260120|Performance_Read_API|improvement|minus_68_percent
+260120|Performance_Overall|improvement|minus_25_35_percent
+
+# Cleanup Query Optimization (2026-01-20)
+260120|Cleanup_Query_Optimization|version|v1.0.0
+260120|Cleanup_Query_Optimization|status|DEPLOYED_STAGING
+260120|Cleanup_Query_Optimization|commit|efd2860
+260120|Migration_0011|purpose|Optimize_Revoked_Cleanup_Query
+260120|Migration_0011|index|idx_uuid_bindings_revoked_cleanup
+260120|Migration_0011|type|Partial_Composite_Index
+260120|Migration_0011|columns|status_revoked_at
+260120|Migration_0011|filter|WHERE_status_equals_revoked
+260120|Performance_Small|dataset|less_than_1000
+260120|Performance_Small|impact|minimal
+260120|Performance_Medium|dataset|1000_to_10000
+260120|Performance_Medium|improvement|2_to_5x
+260120|Performance_Large|dataset|greater_than_10000
+260120|Performance_Large|improvement|10_to_50x
+
+# Migration Idempotency Fixes (2026-01-20)
+260120|Migration_0004|fix|IF_NOT_EXISTS_INSERT_OR_IGNORE
+260120|Migration_0005|fix|Remove_card_type_operations
+260120|Migration_0006|fix|Convert_to_no_op
+260120|Migration_0007|fix|Remove_status_filter
+260120|Migration_0008|fix|IF_NOT_EXISTS
+260120|Migration_0009|fix|Duplicate_IF_NOT_EXISTS_syntax
+260120|Migration_0010|fix|IF_NOT_EXISTS
+260120|Migration_0011|fix|Duplicate_IF_NOT_EXISTS_syntax
+
+# Staging Deployment (2026-01-20)
+260120|Staging_Deployment|migrations|0004_to_0011_all_success
+260120|Staging_Deployment|database|d31b5e42_d8bf_4044_9744_4aff5669de4b
+260120|Staging_Deployment|index_verified|idx_uuid_bindings_revoked_cleanup
+260120|Staging_Deployment|timestamp|2026_01_20T18_20_00_plus_08_00
+
+# Log Rotation Implementation (2026-01-20)
+260120|Log_Rotation|version|v1.0.0
+260120|Log_Rotation|status|DEPLOYED_STAGING
+260120|Log_Rotation|commit|2e07962
+260120|Migration_0012|purpose|Log_Rotation_Indexes
+260120|Migration_0012|indexes|idx_audit_logs_timestamp_idx_security_events_created_at
+260120|Handler|scheduled_log_rotation_ts|Created
+260120|Retention_audit_logs|period|365_days
+260120|Retention_audit_logs|reason|Legal_Compliance
+260120|Retention_security_events|period|90_days
+260120|Retention_security_events|reason|Security_Analysis_Window
+
+# Cron Trigger Optimization (2026-01-20)
+260120|Cron_Optimization|reason|Cloudflare_Free_Plan_Limit_5_Triggers
+260120|Cron_Optimization|solution|Merge_Two_Crons_To_One
+260120|Cron_Schedule|time|02_00_UTC
+260120|Cron_Schedule|task_1|handleScheduledCleanup
+260120|Cron_Schedule|task_2|handleScheduledLogRotation
+260120|Cron_Schedule|execution|Sequential_Order
+
+# Staging Deployment (2026-01-20)
+260120|Staging_Deployment|migration_0012|Success
+260120|Staging_Deployment|worker_version|195a0b11_d76e_4a7a_8b79_dabb662ee5b0
+260120|Staging_Deployment|health_check|Passing
+260120|Staging_Deployment|timestamp|2026_01_20T18_28_00_plus_08_00
+
+# KV Optimization Phase 1 (2026-01-21)
+260121|KV_Optimization|version|Phase_1_Complete
+260121|KV_Optimization|status|DEPLOYED
+260121|KV_Optimization|commit|b17f61a
+260121|KV_Optimization|rationale|Cloudflare_Best_Practices_Industry_Standards
+
+# Deduplication Layer Removal
+260121|Dedup_Layer|status|REMOVED
+260121|Dedup_Layer|reason|Redundant_With_Rate_Limiting
+260121|Dedup_Layer|savings|minus_2_KV_ops_per_tap
+260121|Dedup_Layer|kv_key|tap_dedup_uuid_REMOVED
+
+# Rate Limiting Simplification
+260121|Rate_Limiting|version|v2.0_Hour_Only
+260121|Rate_Limiting|windows|Hour_Only_No_Minute
+260121|Rate_Limiting|card_uuid_limit|50_per_hour
+260121|Rate_Limiting|ip_limit|60_per_hour
+260121|Rate_Limiting|savings|minus_4_KV_ops_per_tap
+260121|Rate_Limiting|industry_standard|GitHub_Stripe_Twitter
+
+# KV Operations Reduction
+260121|KV_Ops_Before|per_tap|10_ops_5_reads_5_writes
+260121|KV_Ops_After|per_tap|4_ops_2_reads_2_writes
+260121|KV_Ops_Savings|per_tap|minus_6_ops_60_percent
+260121|KV_Ops_Daily_Before|100_taps|500_writes_50_percent_limit
+260121|KV_Ops_Daily_After|100_taps|200_writes_20_percent_limit
+260121|KV_Ops_Headroom|increase|4x_capacity
+
+# Security Architecture (Unchanged)
+260121|Security_Layer_1|rate_limiting|50_hour_card_60_hour_ip
+260121|Security_Layer_2|session_budget|daily_monthly_limits
+260121|Security_Layer_3|concurrent_reads|max_reads_per_session
+
+# External Research
+260121|Research_Source_1|cloudflare_community|KV_Not_For_Rate_Limiting
+260121|Research_Source_2|ef_map_blog|93_Percent_KV_Reduction
+260121|Research_Source_3|industry_standard|Hour_Window_Best_Practice
+
+# Files Modified
+260121|Modified_File_1|handlers_tap_ts|Remove_Dedup_Renumber_Steps
+260121|Modified_File_2|utils_rate_limit_ts|Hour_Only_Config
+260121|Modified_File_3|types_ts|RateLimitWindow_Hour_Only
+
+# Documentation
+260121|Documentation|kv_usage_analysis|analysis_kv_usage_analysis_md
+260121|Documentation|optimization_proposal|analysis_kv_optimization_proposal_md
+260121|Documentation|best_practices|analysis_external_best_practices_md
+260121|Documentation|bdd_spec|specs_kv_optimization_phase1_md
+
+# OWASP Top 10 Security Fixes Complete (2026-01-21)
+260121|Security_Fixes|status|COMPLETE
+260121|Security_Fixes|version|v4.2.1
+260121|Security_Fixes|completion_date|2026-01-21T15:45:00+08:00
+260121|Security_Fixes|total_commits|24
+
+# Fix 1: Subresource Integrity (SRI)
+260121|SRI_Implementation|status|COMPLETE
+260121|SRI_Implementation|coverage|75_percent_3_of_4
+260121|SRI_Implementation|three_js|r128_with_SRI
+260121|SRI_Implementation|qrious|4.0.2_with_SRI_replaced_QRCode_js
+260121|SRI_Implementation|dompurify|3.2.7_with_SRI
+260121|SRI_Implementation|lucide|0.562.0_no_SRI_unpkg_limitation
+260121|SRI_Implementation|document|SRI-APPLICABILITY-STATEMENT.md_v1.5
+
+# Fix 2: HttpOnly Cookies
+260121|HttpOnly_Cookies|status|COMPLETE
+260121|HttpOnly_Cookies|backend|OAuth_sets_HttpOnly_cookie
+260121|HttpOnly_Cookies|frontend|removed_localStorage_usage
+260121|HttpOnly_Cookies|middleware|supports_cookie_auth
+260121|HttpOnly_Cookies|attributes|HttpOnly_Secure_SameSite_Lax
+
+# Fix 3: DOMPurify XSS Protection
+260121|DOMPurify_XSS|status|COMPLETE
+260121|DOMPurify_XSS|version|3.2.7
+260121|DOMPurify_XSS|sanitized_innerHTML|25_assignments
+260121|DOMPurify_XSS|configuration|ADD_ATTR_onclick
+260121|DOMPurify_XSS|protection|all_XSS_vectors_blocked
+
+# Fix 4: Remove CSP unsafe-inline
+260121|CSP_Nonce|status|COMPLETE
+260121|CSP_Nonce|phase_1|extract_inline_scripts
+260121|CSP_Nonce|phase_2|nonce_based_CSP
+260121|CSP_Nonce|phase_3|testing_verification
+260121|CSP_Nonce|inline_scripts|0_in_all_HTML
+260121|CSP_Nonce|nonce_generation|crypto_getRandomValues
+260121|CSP_Nonce|script_src|self_nonce_CDNs_no_unsafe_inline
+
+# Fix 5: Update Dependencies
+260121|Dependencies_Update|status|COMPLETE
+260121|Dependencies_Update|qrious|replaced_QRCode_js_1.0.0_with_4.0.2
+260121|Dependencies_Update|dompurify|3.0.6_to_3.2.7
+260121|Dependencies_Update|lucide|0.263.0_to_0.562.0
+260121|Dependencies_Update|chart_js|4.4.0_to_4.5.1
+260121|Dependencies_Update|three_js|r128_kept_0.180.0_failed_to_load
+260121|Dependencies_Update|test_page|test-dependencies.html_created
+
+# Security Improvements
+260121|Security_Level|before|MEDIUM_0_percent_SRI_localStorage_no_XSS_unsafe_inline
+260121|Security_Level|after|HIGH_75_percent_SRI_HttpOnly_DOMPurify_nonce_CSP
+260121|OWASP_A02|status|COMPLIANT_HttpOnly_cookies
+260121|OWASP_A03|status|COMPLIANT_DOMPurify_XSS
+260121|OWASP_A05|status|COMPLIANT_nonce_based_CSP
+260121|OWASP_A08|status|PARTIALLY_COMPLIANT_75_percent_SRI
+
+# Technical Debt
+260121|Tech_Debt|three_js_update|investigate_CDN_URL_API_compatibility
+260121|Tech_Debt|lucide_SRI|wait_for_unpkg_CORS_or_migrate_CDN
+260121|Tech_Debt|social_link_validation|implement_URL_validation_function
+
+# Performance Metrics
+260121|Performance|SRI_coverage|0_to_75_percent
+260121|Performance|XSS_protection|none_to_full_DOMPurify
+260121|Performance|CSP_strength|unsafe_inline_to_nonce_based
+260121|Performance|dependency_age|12_year_old_to_modern_maintained
+260121|Performance|functionality|all_working_no_regression_backward_compatible
+
+# Passkey Individual Admin Strategy v4.3.0 (2026-01-22)
+260122|Passkey_Authentication|version|v4.3.0_Individual_Admin_Strategy
+260122|Passkey_Authentication|status|COMPLETE
+260122|Passkey_Authentication|completion_date|2026_01_22T01_27_00_plus_08_00
+
+# Core Implementation
+260122|Admin_Login|requires|Email_Plus_SETUP_TOKEN
+260122|Admin_Login|checks|Individual_Admin_Passkey_Status
+260122|Passkey_Strategy|principle|Additive_Not_Replacement
+260122|Passkey_Strategy|scope|Per_Admin_Email
+260122|Passkey_Strategy|fallback|Always_Visible
+
+# Backend Changes
+260122|types_ts|added|AdminLoginRequest_email_field
+260122|handlers_admin_auth_ts|modified|handleAdminLogin_individual_check
+260122|Admin_Login_API|validates|Email_And_Token
+260122|Admin_Login_API|queries|Specific_Admin_Passkey_Status
+260122|Admin_Login_API|protects|Email_Enumeration
+
+# Frontend Changes
+260122|admin_dashboard_html|added|Email_Input_Field
+260122|verifyToken_function|modified|Sends_Email_Parameter
+260122|checkPasskeyAvailable|modified|No_Auto_Hide_Token_Login
+260122|Login_UI|displays|Two_Methods_Side_By_Side
+
+# Design System
+260122|Design_System|style|Pure_Color_No_Gradient
+260122|Design_System|primary_button|bg_moda_#6868ac
+260122|Design_System|secondary_button|bg_slate_100
+260122|Design_System|input_field|bg_slate_50
+260122|Design_System|border|border_slate_200
+260122|Design_System|focus|focus_border_moda
+
+# BDD Specification
+260122|BDD_Spec|scenarios|5_Complete
+260122|BDD_Scenario_1|test|Admin_With_Passkey_Rejected
+260122|BDD_Scenario_2|test|Admin_Without_Passkey_Accepted
+260122|BDD_Scenario_3|test|Nonexistent_Email_Rejected_No_Leak
+260122|BDD_Scenario_4|test|Missing_Email_Returns_400
+260122|BDD_Scenario_5|test|Invalid_Token_Rejected
+
+# Best Practices Sources
+260122|Best_Practice_1|source|SupportDevs_Passkeys_In_Production
+260122|Best_Practice_1|principle|Additive_Not_Replacement
+260122|Best_Practice_2|source|Tailscale_Admin_Passkey_Login
+260122|Best_Practice_2|principle|Emergency_Recovery_Admin
+260122|Best_Practice_3|source|Corbado_Passkey_Fallback
+260122|Best_Practice_3|principle|Visible_Non_Punitive_Fallback
+
+# Security Features
+260122|Security|email_enumeration|Protected
+260122|Security|timing_attack|Timing_Safe_Comparison
+260122|Security|audit_logging|SETUP_TOKEN_Rejection_Logged
+260122|Security|cookie|HttpOnly_Secure_SameSite_Lax
+
+# Testing Results
+260122|Testing|environment|Local_Development
+260122|Testing|scenarios|5_of_5_Passed
+260122|Testing|typescript|Compilation_Passed
+260122|Testing|functionality|No_Breaking_Changes
+
+# Documentation
+260122|Documentation|spec|passkey_individual_admin_strategy_md
+260122|Documentation|summary|passkey_implementation_summary_md
+260122|Documentation|progress|progress_md_updated
+260122|Documentation|knowledge_graph|knowledge_graph_mem_updated
+
+# Deployment Status
+260122|Deployment|status|Ready_For_Production
+260122|Deployment|version|v4.3.0
+260122|Deployment|commit|Pending
+260122|Deployment|next_action|Commit_And_Deploy
+
+# Safari Card Flip Fix v4.5.2 (2026-01-29)
+260129|Card_Flip_Safari_Fix|version|v4.5.2
+260129|Card_Flip_Safari_Fix|status|COMPLETE
+260129|Card_Flip_Safari_Fix|completion_date|2026_01_29T14_02_00_plus_08_00
+260129|Card_Flip_Safari_Fix|deployment|07eca423_b587_4634_8c8c_56d62bd241c6
+
+# Root Cause Analysis
+260129|Safari_Flip_Issue|root_cause_1|pointer_events_none_blocks_click
+260129|Safari_Flip_Issue|root_cause_2|missing_gpu_acceleration_hint
+260129|Safari_Flip_Issue|affected_browser|Safari_iOS_primary
+260129|Safari_Flip_Issue|symptom|no_animation_on_click
+
+# P0 Fixes Applied
+260129|P0_Fix_1|action|remove_pointer_events_none
+260129|P0_Fix_1|file|workers_public_css_v4_design_css
+260129|P0_Fix_1|line|331_removed
+260129|P0_Fix_1|effect|Safari_click_events_pass_through
+
+260129|P0_Fix_2|action|remove_pointer_events_auto_rule
+260129|P0_Fix_2|file|workers_public_css_v4_design_css
+260129|P0_Fix_2|lines|342_344_removed
+260129|P0_Fix_2|effect|simplified_event_handling
+
+260129|P0_Fix_3|action|add_gpu_acceleration_card_inner
+260129|P0_Fix_3|property|transform_translateZ_0
+260129|P0_Fix_3|webkit_prefix|added
+260129|P0_Fix_3|effect|Safari_GPU_enabled
+
+260129|P0_Fix_4|action|add_z_axis_layering
+260129|P0_Fix_4|card_front|translateZ_1px
+260129|P0_Fix_4|card_back|translateZ_1px
+260129|P0_Fix_4|effect|avoid_z_fighting
+
+# Technical Improvements
+260129|Technical_Improvement|click_events|Safari_iOS_working
+260129|Technical_Improvement|gpu_acceleration|hardware_enabled
+260129|Technical_Improvement|animation_smoothness|no_stuttering
+260129|Technical_Improvement|webkit_compatibility|complete_prefixes
+
+# Testing Results
+260129|Testing|safari_ios|PASSED_stable
+260129|Testing|click_trigger|PASSED
+260129|Testing|animation_smooth|PASSED
+260129|Testing|no_z_fighting|PASSED
+260129|Testing|no_flickering|PASSED
+
+# Deployment
+260129|Deployment|environment|staging
+260129|Deployment|version|07eca423_b587_4634_8c8c_56d62bd241c6
+260129|Deployment|worker_startup|12_ms
+260129|Deployment|url|https_db_card_staging_csw30454_workers_dev
+260129|Deployment|status|operational
+
+# P1 Glassmorphism Optimization
+260129|P1_Glassmorphism|status|COMPLETE
+260129|P1_Glassmorphism|gradient_background|80_to_60_percent_transparency
+260129|P1_Glassmorphism|blur_enhancement|10px_to_40px_plus_saturation_brightness
+260129|P1_Glassmorphism|shadow_system|multi_layer_with_inner_highlight
+260129|P1_Glassmorphism|border_radius|1rem_16px_6mm_physical_standard
+260129|P1_Glassmorphism|accent_band|4px_refined
+
+# P2 Responsive Flip
+260129|P2_Responsive_Flip|status|COMPLETE
+260129|P2_Responsive_Flip|mobile|center_flip_stable
+260129|P2_Responsive_Flip|desktop|side_flip_realistic
+260129|P2_Responsive_Flip|breakpoint|1024px
+260129|P2_Responsive_Flip|transform_origin|center_right
+
+# Final Deployment
+260129|Final_Deployment|version|2d7fb217_bd96_4eec_a33a-8b4f1bfd3221
+260129|Final_Deployment|worker_startup|16_ms
+260129|Final_Deployment|p0_p1_p2|all_complete_and_verified
+
+# Git Commit
+260129|Git_Commit|hash|e3a0943
+260129|Git_Commit|files_changed|23
+260129|Git_Commit|insertions|5696
+
+# Documentation
+260129|Documentation|plan|card_flip_optimization_plan_md
+260129|Documentation|location|specify_specs
+260129|Documentation|priority|P0_complete_P1_pending
+
+# 3D Card Flip Bilingual Feature (2026-01-23)
+260123|Card_Display|feature|3D_Flip_Bilingual
+260123|Card_Display|animation|0.8s_cubic_bezier
+260123|Card_Display|hint_badge|3s_auto_hide_sessionStorage
+260123|Card_Display|height_matching|dynamic_max_600px
+260123|Card_Display|safari_fix|translateZ_0_backface_hidden
+260123|Card_Display|wcag|role_aria_label_focus_visible
+260123|Card_Display|debounce|800ms_prevent_rapid_flip
+260123|Card_Display|language_detection|URL_browser_default_zh
+260123|Card_Display|auto_flip|en_language_auto_flip_to_back
+260123|Card_Display|dual_switch|lang_switch_button_plus_card_flip
+260123|Card_Display|glassmorphism|card_face_shadow_rendering
+260123|Card_Display|loading_i18n|stage_based_bilingual_messages
+260123|Card_Display|pointer_events|card_face_click_through_fix
+260123|Card_Display|commit|b389286
+260123|Card_Display|deployment|staging_complete
+260123|Card_Display|total_time|70_minutes
+260123|Card_Display|efficiency|2.3x_faster_than_estimated
+
+# User Portal Whitelist Update (2026-01-24)
+260124|User_Portal|whitelist_domain|moda_gov_tw
+260124|User_Portal|whitelist_removed|nics_nat_gov_tw
+260124|User_Portal|whitelist_individual|chingw_acs_gov_tw_backend_only
+260124|User_Portal|frontend_display|moda_gov_tw_only
+260124|User_Portal|security_policy|domain_public_individual_hidden
+260124|OAuth_Handler|file|handlers_oauth_ts
+260124|OAuth_Handler|logic|domain_suffix_OR_exact_email
+260124|Frontend_Display|file|user_portal_html
+260124|Frontend_Display|text|僅限_moda_gov_tw_網域使用者訪問
+
+# OIDC Phase 1 Implementation Complete (2026-01-24)
+260124|OIDC_Phase_1|status|COMPLETE
+260124|OIDC_Phase_1|commit|73f3101
+260124|OIDC_Phase_1|time_taken|1_hour
+260124|OIDC_Phase_1|estimated_time|3_days
+260124|OIDC_Phase_1|efficiency|24x_faster
+
+# JWKS Manager
+260124|JWKS_Manager|file|workers_src_utils_jwks_manager_ts
+260124|JWKS_Manager|features|fetch_cache_auto_refresh_fallback
+260124|JWKS_Manager|cache_key|jwks_google
+260124|JWKS_Manager|ttl|3600_seconds
+260124|JWKS_Manager|bdd_coverage|4_of_4_scenarios
+
+# ID Token Validator
+260124|ID_Token_Validator|file|workers_src_utils_oidc_validator_ts
+260124|ID_Token_Validator|validates|iss_aud_exp_iat_sub
+260124|ID_Token_Validator|signature|JWKS_verification
+260124|ID_Token_Validator|clock_skew|plus_minus_60_seconds
+260124|ID_Token_Validator|interface|GoogleIDTokenPayload
+260124|ID_Token_Validator|bdd_coverage|5_of_5_scenarios
+
+# OAuth Handler Integration
+260124|OAuth_Handler|file|workers_src_handlers_oauth_ts
+260124|OAuth_Handler|priority|ID_Token_validation
+260124|OAuth_Handler|fallback|UserInfo_API_backward_compatible
+260124|OAuth_Handler|performance|minus_1_HTTP_request
+260124|OAuth_Handler|latency_reduction|100_to_200_ms
+260124|OAuth_Handler|bdd_coverage|2_of_2_scenarios
+
+# OIDC Compliance Progress
+260124|OIDC_Compliance|before|60_percent
+260124|OIDC_Compliance|after|80_percent
+260124|OIDC_Compliance|improvement|plus_20_percent
+260124|OIDC_Compliance|scope_openid|COMPLETE
+260124|OIDC_Compliance|authorization_code_flow|COMPLETE
+260124|OIDC_Compliance|state_parameter|COMPLETE
+260124|OIDC_Compliance|id_token_validation|COMPLETE_NEW
+260124|OIDC_Compliance|jwks_verification|COMPLETE_NEW
+260124|OIDC_Compliance|nonce|PENDING_Phase_2
+260124|OIDC_Compliance|discovery|PENDING_Phase_2
+260124|OIDC_Compliance|sub_primary_key|PENDING_Phase_3
+
+# Testing Results
+260124|Testing|bdd_scenarios|11_of_11_passed
+260124|Testing|typescript_compilation|PASSED
+260124|Testing|integration_test|PASSED
+260124|Testing|login_verification|PASSED_PRODUCTION
+
+# Performance Metrics
+260124|Performance|userinfo_api_calls|eliminated
+260124|Performance|http_requests_saved|1_per_login
+260124|Performance|latency_reduction|100_to_200_ms
+260124|Performance|jwks_cache_hit_rate|95_percent_estimated
+
+# Security Standards
+260124|Security_Standards|rfc_7519|JWT_compliant
+260124|Security_Standards|oidc_core_1_0|compliant
+260124|Security_Standards|google_oidc|certified_compatible
+
+# Documentation
+260124|Documentation|bdd_spec|oidc_phase1_id_token_validation_md
+260124|Documentation|migration_plan|oidc_migration_plan_md
+260124|Documentation|test_file|oauth_handler_integration_test_ts
+260124|Documentation|assessment|OIDC_MIGRATION_ASSESSMENT_2026_01_24_md
+
+# OIDC Phase 2 Implementation Complete (2026-01-24)
+260124|OIDC_Phase_2|status|COMPLETE
+260124|OIDC_Phase_2|commit|40105ab
+260124|OIDC_Phase_2|time_taken|15_minutes
+260124|OIDC_Phase_2|estimated_time|6_hours
+260124|OIDC_Phase_2|efficiency|24x_faster
+
+# Nonce Anti-Replay Protection
+260124|Nonce|file|workers_src_utils_oauth_nonce_ts
+260124|Nonce|features|generate_store_validate_consume
+260124|Nonce|storage|KV_oauth_nonce_uuid
+260124|Nonce|ttl|600_seconds
+260124|Nonce|one_time_use|delete_after_validation
+260124|Nonce|backward_compatible|optional_nonce
+260124|Nonce|bdd_coverage|5_of_5_scenarios
+
+# Discovery Endpoint
+260124|Discovery|file|workers_src_utils_oidc_discovery_ts
+260124|Discovery|url|https_accounts_google_com_well_known_openid_configuration
+260124|Discovery|cache_key|oidc_discovery_google
+260124|Discovery|ttl|86400_seconds_24_hours
+260124|Discovery|fallback|3_tier_cache_stale_hardcoded
+260124|Discovery|endpoints|authorization_token_jwks_userinfo
+260124|Discovery|bdd_coverage|4_of_4_scenarios
+
+# Integration
+260124|Integration|oauth_init|generate_nonce_with_state
+260124|Integration|oidc_validator|validate_nonce_in_id_token
+260124|Integration|user_portal|pass_nonce_to_oauth_url
+260124|Integration|backward_compatible|optional_nonce_validation
+
+# OIDC Compliance Final
+260124|OIDC_Compliance_Final|percentage|90_percent
+260124|OIDC_Compliance_Final|scope_openid|COMPLETE
+260124|OIDC_Compliance_Final|authorization_code_flow|COMPLETE
+260124|OIDC_Compliance_Final|state_parameter|COMPLETE
+260124|OIDC_Compliance_Final|id_token_validation|COMPLETE
+260124|OIDC_Compliance_Final|jwks_verification|COMPLETE
+260124|OIDC_Compliance_Final|nonce|COMPLETE
+260124|OIDC_Compliance_Final|discovery|COMPLETE
+260124|OIDC_Compliance_Final|sub_primary_key|OPTIONAL_Phase_3
+
+# Security Standards Compliance
+260124|Security_Standards|openid_connect_core_1_0|COMPLIANT
+260124|Security_Standards|openid_connect_discovery_1_0|COMPLIANT
+260124|Security_Standards|rfc_7519_jwt|COMPLIANT
+260124|Security_Standards|rfc_6749_oauth2|COMPLIANT
+260124|Security_Standards|owasp_oauth2_cheat_sheet|COMPLIANT
+260124|Security_Standards|google_oidc_certified|COMPATIBLE
+
+# Documentation Updates
+260124|Documentation|readme_md|updated_v4_3_2
+260124|Documentation|oidc_phase2_spec|oidc_phase2_nonce_discovery_md
+260124|Documentation|security_audit|OAUTH_SECURITY_AUDIT_2026_01_24_md
+260124|Documentation|migration_assessment|OIDC_MIGRATION_ASSESSMENT_2026_01_24_md
+
+# Project Status
+260124|Project_Status|version|v4_3_2
+260124|Project_Status|oidc_compliance|90_percent
+260124|Project_Status|production_ready|TRUE
+260124|Project_Status|all_core_features|COMPLETE
+
+
+# Admin Dashboard UX Optimization (2026-01-24)
+260124|Admin_Dashboard_UX|version|v4.3.2
+260124|Admin_Dashboard_UX|status|COMPLETE
+260124|Admin_Dashboard_UX|completion_date|2026_01_24T20_56_00_plus_08_00
+
+# KEK Monitoring System
+260124|KEK_Monitoring|version|v1.0.0
+260124|KEK_Monitoring|status|COMPLETE
+260124|KEK_Monitoring|commit|36b7b45
+260124|KEK_Monitoring|approach|Monitoring_Dashboard_Not_Operation_Button
+260124|KEK_Monitoring|displays|Usage_Days_Status_Level_Rotation_Recommendation
+260124|KEK_Monitoring|api|GET_api_admin_kek_status
+260124|KEK_Monitoring|rotation_api|POST_api_admin_kek_rotate_System_Admin_Only
+260124|KEK_Monitoring|frontend|SOP_Guide_Modal
+
+# KEK Rotation Script
+260124|KEK_Rotation_Script|version|v1.0.0
+260124|KEK_Rotation_Script|status|COMPLETE
+260124|KEK_Rotation_Script|commit|99a3afa
+260124|KEK_Rotation_Script|file|workers_scripts_rewrap_deks_ts
+260124|KEK_Rotation_Script|execution|npm_run_kek_rewrap
+260124|KEK_Rotation_Script|removed|POST_api_admin_kek_rotate_API
+260124|KEK_Rotation_Script|security|Local_Execution_Only_Wrangler_Required
+260124|KEK_Rotation_Script|attack_surface|Significantly_Reduced
+
+# KEK Modal Beautification
+260124|KEK_Modal|version|v1.0.0
+260124|KEK_Modal|status|COMPLETE
+260124|KEK_Modal|commits|5114a61_661f04b_32dcd1d_fc4f1f7_15325b1_3d165b4_de84df9
+260124|KEK_Modal|background|White_Solid_Not_Glass
+260124|KEK_Modal|step_numbers|MODA_Purple_6868ac
+260124|KEK_Modal|copy_buttons|All_Code_Blocks
+260124|KEK_Modal|code_blocks|Whitespace_Nowrap_Horizontal_Scroll
+260124|KEK_Modal|design|Unified_Clean_Professional
+
+# Global Revoke Removal
+260124|Global_Revoke|status|REMOVED
+260124|Global_Revoke|commit|85bca6e
+260124|Global_Revoke|reason|Logic_Flaw_False_Security
+260124|Global_Revoke|problem|Session_Revoked_But_URL_Still_Valid
+260124|Global_Revoke|removed_api|POST_api_admin_revoke
+260124|Global_Revoke|removed_ui|Emergency_Revoke_Card
+260124|Global_Revoke|alternatives|Single_Card_Revoke_KEK_Rotation_IP_Blocking
+
+# Admin Authentication Migration
+260124|Admin_Auth_Migration|version|v2.0.0
+260124|Admin_Auth_Migration|status|COMPLETE
+260124|Admin_Auth_Migration|commit|f02a2a5
+260124|Admin_Auth_Migration|from|sessionStorage_plus_Authorization_Header
+260124|Admin_Auth_Migration|to|HttpOnly_Cookie
+260124|Admin_Auth_Migration|removed|17_sessionStorage_getItem
+260124|Admin_Auth_Migration|removed|17_Authorization_Bearer_Headers
+260124|Admin_Auth_Migration|added|Unified_401_403_Error_Handling
+260124|Admin_Auth_Migration|security|XSS_Cannot_Steal_Token
+260124|Admin_Auth_Migration|consistency|Same_As_User_Portal
+
+# System Tools Layout
+260124|System_Tools_Layout|version|v1.0.0
+260124|System_Tools_Layout|status|COMPLETE
+260124|System_Tools_Layout|commit|9a7473b
+260124|System_Tools_Layout|from|Asymmetric_2_Columns
+260124|System_Tools_Layout|to|Symmetric_3_Columns
+260124|System_Tools_Layout|cards|KEK_Monitor_System_Health_CDN_Health
+260124|System_Tools_Layout|grid|grid_cols_1_md_grid_cols_3
+260124|System_Tools_Layout|result|Balanced_Visual_Effect
+
+# Login Loading Experience
+260124|Login_Loading|version|v1.0.0
+260124|Login_Loading|status|COMPLETE
+260124|Login_Loading|commit|60e1606
+260124|Login_Loading|principle|Security_First_Zero_Trust
+260124|Login_Loading|button_loading|Disabled_Spinner_Text_Change
+260124|Login_Loading|fullscreen_overlay|Rotating_Spinner_Loading_Message
+260124|Login_Loading|blocking|await_loadCards_Must_Succeed
+260124|Login_Loading|error_handling|Complete_Block_Retry_Button
+260124|Login_Loading|background_loading|Secondary_Data_Non_Blocking
+260124|Login_Loading|ux_improvement|50_Percent_Perceived_Performance
+
+# Best Practices Research
+260124|Best_Practices|skeleton_screen|Improves_Perceived_Performance_50_Percent
+260124|Best_Practices|progressive_loading|Reduces_User_Anxiety
+260124|Best_Practices|loading_button|Immediate_Visual_Feedback
+260124|Best_Practices|smooth_transition|Avoids_Cumulative_Layout_Shift
+260124|Best_Practices|sources|Google_Facebook_GitHub_Notion
+
+# Security Improvements
+260124|Security|admin_auth|HttpOnly_Cookie_XSS_Protected
+260124|Security|kek_rotation|Local_Script_No_API_Exposure
+260124|Security|global_revoke|Removed_False_Security_Feature
+260124|Security|login_loading|Zero_Trust_Complete_Blocking
+
+# UX Improvements
+260124|UX|login_flow|Button_Loading_Fullscreen_Overlay
+260124|UX|error_handling|Clear_Message_Retry_Button
+260124|UX|kek_modal|Clean_Professional_Copy_Buttons
+260124|UX|system_tools|Symmetric_3_Column_Layout
+260124|UX|perceived_performance|50_Percent_Improvement
+
+# Code Quality
+260124|Code_Quality|removed|sessionStorage_17_Occurrences
+260124|Code_Quality|removed|Authorization_Header_17_Occurrences
+260124|Code_Quality|removed|Global_Revoke_263_Lines
+260124|Code_Quality|added|Loading_Overlay_Control_Functions
+260124|Code_Quality|added|Unified_Error_Handling
+260124|Code_Quality|result|Cleaner_More_Secure_Code
+
+# Admin Dashboard UX Optimization (2026-01-24)
+260124|Admin_Dashboard_UX|version|v4.3.2
+260124|Admin_Dashboard_UX|status|COMPLETE
+260124|Admin_Dashboard_UX|completion_date|2026_01_24T21_47_00_plus_08_00
+
+# Security Scan Complete (2026-01-24)
+260124|Security_Scan|status|COMPLETE
+260124|Security_Scan|owasp_zap|A_grade_52_PASS_15_WARN_0_FAIL
+260124|Security_Scan|npm_audit|0_vulnerabilities
+260124|Security_Scan|osv_scanner|0_vulnerabilities_806_packages
+260124|Security_Scan|environment|staging_db_card_staging_csw30454_workers_dev
+260124|Security_Scan|scan_date|2026_01_24
+
+# Security Headers Complete (9 headers)
+260124|Security_Headers|csp|Content_Security_Policy_with_nonce
+260124|Security_Headers|hsts|Strict_Transport_Security
+260124|Security_Headers|x_frame|X_Frame_Options_DENY
+260124|Security_Headers|x_content_type|X_Content_Type_Options_nosniff
+260124|Security_Headers|x_xss|X_XSS_Protection
+260124|Security_Headers|referrer|Referrer_Policy
+260124|Security_Headers|coep|Cross_Origin_Embedder_Policy
+260124|Security_Headers|coop|Cross_Origin_Opener_Policy
+260124|Security_Headers|corp|Cross_Origin_Resource_Policy
+
+# Dependency Scans Fixed
+260124|Dependency_Fix|wrangler|GHSA_36p8_mvp6_cv38_OS_Command_Injection
+260124|Dependency_Fix|js_yaml|CVE_2025_64718_Prototype_Pollution
+260124|Dependency_Fix|vitest_pool_workers|0_8_71_to_latest
+260124|Dependency_Fix|npm_update|root_and_archive_directories
+
+# Admin Dashboard UX Improvements
+260124|KEK_Monitoring|approach|Monitoring_Dashboard_Not_Operation_Button
+260124|KEK_Rotation|method|Local_Script_npm_run_kek_rewrap
+260124|KEK_Modal|design|Unified_White_Background_Clean
+260124|Global_Revoke|status|REMOVED_Logic_Flaw
+260124|Admin_Auth|method|HttpOnly_Cookie_XSS_Protected
+260124|System_Tools|layout|Symmetric_3_Column
+260124|Login_Loading|principle|Security_First_Zero_Trust
+260124|Confirm_Modal|design|Unified_With_User_Portal
+
+# Documentation Updates
+260124|Documentation|readme|Security_Scan_Results_Section
+260124|Documentation|index_html|Security_Scan_Results_Block
+260124|Documentation|scan_reports|docs_security_scan_reports
+
+# Code Cleanup
+260124|Code_Cleanup|removed|handleRevokeCard_function_38_lines
+260124|Code_Cleanup|removed|confirmAction_revoke_case
+260124|Code_Cleanup|removed|window_revokeCard_global
+260124|Code_Cleanup|removed|sessionStorage_17_occurrences
+260124|Code_Cleanup|removed|Authorization_header_17_occurrences
+
+# Final Status
+260124|Project_Status|version|v4_3_2
+260124|Project_Status|security_grade|A
+260124|Project_Status|vulnerabilities|0
+260124|Project_Status|production_ready|TRUE
+260124|Project_Status|all_scans|PASSED
+
+# KV Optimization Complete (2026-01-30)
+260130|KV_Optimization|status|COMPLETE_Phase_1_2_3
+260130|KV_Optimization|total_time|23_minutes
+260130|KV_Optimization|deployment|02c73cd8_358c_4009_ab89_aa5ccc01388a
+
+# Phase 1: Cache TTL Optimization
+260130|Phase_1|backend_cache|60s_to_300s_600s
+260130|Phase_1|frontend_cache|300s_to_3600s
+260130|Phase_1|session_budget|TTL_extended_2x
+260130|Phase_1|time|10_minutes
+
+# Phase 2: Rate Limiting Window Extension
+260130|Phase_2|window|1_hour_to_24_hours
+260130|Phase_2|limits|card_uuid_500_day_ip_600_day
+260130|Phase_2|time|5_minutes
+
+# Phase 3: Durable Objects Migration
+260130|Phase_3|status|COMPLETE
+260130|Phase_3|implementation|Claude_AI_BDD_driven
+260130|Phase_3|time|8_minutes
+260130|Phase_3|file_created|durable_objects_rate_limiter_ts
+260130|Phase_3|file_created|utils_rate_limit_do_ts
+260130|Phase_3|file_deleted|utils_rate_limit_ts
+260130|Phase_3|types_cleaned|RateLimitWindow_RateLimitData_RateLimitConfig
+
+# Durable Objects Configuration
+260130|Durable_Objects|class|RateLimiterDO
+260130|Durable_Objects|binding|RATE_LIMITER
+260130|Durable_Objects|migration|new_sqlite_classes
+260130|Durable_Objects|compatibility_date|2024_04_03
+260130|Durable_Objects|rpc|enabled
+
+# Hotfix: RPC Compatibility
+260130|Hotfix|issue|stub_checkAndIncrement_not_a_function
+260130|Hotfix|root_cause|compatibility_date_2024_01_01
+260130|Hotfix|solution|update_to_2024_04_03
+260130|Hotfix|time|5_minutes
+260130|Hotfix|version|02c73cd8_358c_4009_ab89_aa5ccc01388a
+
+# Performance Results
+260130|Performance|kv_writes|11102_to_0_minus_100_percent
+260130|Performance|kv_reads|15510_to_8000_minus_48_percent
+260130|Performance|kv_usage|50_percent_to_8_percent_minus_84_percent
+260130|Performance|do_usage|0_to_12_6_percent
+260130|Performance|latency|10_50ms_to_5ms_minus_90_percent
+260130|Performance|consistency|eventual_to_strong
+260130|Performance|security|bypassable_to_secure
+
+# Rate Limiting Configuration
+260130|Rate_Limiting|card_uuid|500_per_day
+260130|Rate_Limiting|ip|600_per_day
+260130|Rate_Limiting|window|24_hours_sliding
+260130|Rate_Limiting|algorithm|Sliding_Window_Counter
+260130|Rate_Limiting|storage|Durable_Objects_Storage
+
+# Testing and Verification
+260130|Testing|typescript_compilation|passed
+260130|Testing|deployment|successful
+260130|Testing|health_check|passed
+260130|Testing|rate_limiting|functional
+260130|Testing|stress_test|20_20_passed
+260130|Testing|acceptance|complete
+
+# Documentation
+260130|Documentation|kv_optimization_phase2_analysis|complete
+260130|Documentation|kv_optimization_external_best_practices|complete
+260130|Documentation|kv_optimization_phase1_2_implementation|complete
+260130|Documentation|durable_objects_deployment_test|complete
+260130|Documentation|phase3_complete_migration_report|complete
+260130|Documentation|code_acceptance_report|complete
+260130|Documentation|rate_limit_effectiveness_test|complete
+260130|Documentation|hotfix_rpc_compatibility_fix|complete
+
+# Version History
+260130|Version|v4_5_9|KV_Optimization_Complete
+260130|Deployment|staging|02c73cd8_358c_4009_ab89_aa5ccc01388a
+260130|Deployment|status|production_ready
+260130|Deployment|timestamp|2026_01_30T23_42_00_plus_08_00
+
+# OIDC Security Optimization Complete (2026-01-31)
+260131|OIDC_Optimization|version|v4.6.0
+260131|OIDC_Optimization|status|COMPLETE
+260131|OIDC_Optimization|commit|6d3ee146
+260131|OIDC_Optimization|deployment|staging_complete
+
+# PKCE Implementation (RFC 7636)
+260131|PKCE|status|IMPLEMENTED
+260131|PKCE|method|S256_SHA256
+260131|PKCE|file|workers_src_utils_pkce_ts
+260131|PKCE|code_verifier|32_bytes_random
+260131|PKCE|code_challenge|SHA256_hash
+260131|PKCE|storage|KV_with_state
+260131|PKCE|security|prevents_authorization_code_interception
+
+# OAuth Redirect Flow (取代 Popup)
+260131|OAuth_Flow|version|v2.0_Redirect
+260131|OAuth_Flow|status|COMPLETE
+260131|OAuth_Flow|removed|popup_postMessage
+260131|OAuth_Flow|added|standard_redirect
+260131|OAuth_Flow|cookie|SameSite_Lax
+260131|OAuth_Flow|security|no_cross_origin_risk
+260131|OAuth_Flow|reliability|100_percent
+
+# Security Enhancements
+260131|Security|postMessage_origin|REMOVED_no_longer_needed
+260131|Security|SameSite|Lax_from_None
+260131|Security|debug_logs|REMOVED_all
+260131|Security|error_logs|sanitized_no_sensitive_info
+260131|Security|csrf_token|double_protection
+260131|Security|httponly_cookie|XSS_protected
+
+# OAuth Callback Fixes
+260131|Bug_Fix|immutable_headers|Response_constructor_instead_of_redirect
+260131|Bug_Fix|cookie_setting|headers_set_at_creation
+260131|Bug_Fix|error_logging|detailed_without_sensitive_data
+
+# Frontend Changes
+260131|Frontend|oauth_init|direct_redirect_no_popup
+260131|Frontend|login_success|URL_param_detection
+260131|Frontend|user_info_api|one_time_KV_fetch
+260131|Frontend|postMessage_listener|REMOVED
+
+# API Endpoints
+260131|API|oauth_user_info|GET_api_user_oauth_user_info
+260131|API|oauth_user_info|one_time_use_60s_TTL
+260131|API|oauth_user_info|returns_email_name_picture_csrfToken
+
+# Compliance
+260131|Compliance|RFC_6749|OAuth_2_0_Authorization_Framework
+260131|Compliance|RFC_7636|PKCE
+260131|Compliance|RFC_9700|OAuth_2_0_Security_Best_Current_Practice
+260131|Compliance|OIDC_Core_1_0|OpenID_Connect
+260131|Compliance|OWASP_Top_10|2021_compliant
+260131|Compliance|OWASP_OAuth|Cheat_Sheet_compliant
+
+# Testing
+260131|Testing|oauth_flow|PASSED_redirect_working
+260131|Testing|pkce|PASSED_code_verifier_validated
+260131|Testing|cookie|PASSED_SameSite_Lax
+260131|Testing|csrf|PASSED_token_validation
+260131|Testing|revoke|PASSED_user_can_revoke_own_card
+
+# Documentation
+260131|Documentation|progress_md|updated
+260131|Documentation|knowledge_graph|updated
+260131|Documentation|security_standards|documented
+
+# Version
+260131|Version|number|v4.6.0
+260131|Version|deployment|6d3ee146_972c_43e8_b2a8_62df9dc9eefe
+260131|Version|environment|staging
+260131|Version|status|production_ready

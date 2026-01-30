@@ -4,6 +4,7 @@
 export interface Env {
   DB: D1Database;
   KV: KVNamespace;
+  RATE_LIMITER: DurableObjectNamespace;
   PHYSICAL_CARDS: R2Bucket;
   KEK: string;
   OLD_KEK?: string;
@@ -241,14 +242,8 @@ export interface RevocationHistoryResponse {
   limit: number;
 }
 
-// Rate Limiting Types (Hour-Only Window - Phase 1)
+// Rate Limiting Types (Durable Objects)
 export type RateLimitDimension = 'card_uuid' | 'ip';
-export type RateLimitWindow = 'hour';
-
-export interface RateLimitData {
-  count: number;
-  first_seen_at: number;
-}
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -256,16 +251,7 @@ export interface RateLimitResult {
   limit?: number;
   retry_after?: number;
   dimension?: RateLimitDimension;
-  window?: RateLimitWindow;
-}
-
-export interface RateLimitConfig {
-  card_uuid: {
-    hour: number;
-  };
-  ip: {
-    hour: number;
-  };
+  window?: 'day';
 }
 
 // Session Budget Types

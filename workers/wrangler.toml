@@ -1,6 +1,6 @@
 name = "db-card-staging"
 main = "src/index.ts"
-compatibility_date = "2024-01-01"
+compatibility_date = "2024-04-03"  # Enable Durable Objects RPC
 
 # Environment Variables
 [vars]
@@ -22,6 +22,16 @@ database_id = "d31b5e42-d8bf-4044-9744-4aff5669de4b"
 [[kv_namespaces]]
 binding = "KV"
 id = "87221de061f049d3a4c976b7b5092dd9"
+
+# Durable Objects
+[[durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiterDO"
+script_name = "db-card-staging"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RateLimiterDO"]
 
 # R2 Bucket for Physical Card Images (Staging)
 [[r2_buckets]]

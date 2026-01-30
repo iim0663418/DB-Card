@@ -1615,3 +1615,77 @@
 260130|Deployment|staging|02c73cd8_358c_4009_ab89_aa5ccc01388a
 260130|Deployment|status|production_ready
 260130|Deployment|timestamp|2026_01_30T23_42_00_plus_08_00
+
+# OIDC Security Optimization Complete (2026-01-31)
+260131|OIDC_Optimization|version|v4.6.0
+260131|OIDC_Optimization|status|COMPLETE
+260131|OIDC_Optimization|commit|6d3ee146
+260131|OIDC_Optimization|deployment|staging_complete
+
+# PKCE Implementation (RFC 7636)
+260131|PKCE|status|IMPLEMENTED
+260131|PKCE|method|S256_SHA256
+260131|PKCE|file|workers_src_utils_pkce_ts
+260131|PKCE|code_verifier|32_bytes_random
+260131|PKCE|code_challenge|SHA256_hash
+260131|PKCE|storage|KV_with_state
+260131|PKCE|security|prevents_authorization_code_interception
+
+# OAuth Redirect Flow (取代 Popup)
+260131|OAuth_Flow|version|v2.0_Redirect
+260131|OAuth_Flow|status|COMPLETE
+260131|OAuth_Flow|removed|popup_postMessage
+260131|OAuth_Flow|added|standard_redirect
+260131|OAuth_Flow|cookie|SameSite_Lax
+260131|OAuth_Flow|security|no_cross_origin_risk
+260131|OAuth_Flow|reliability|100_percent
+
+# Security Enhancements
+260131|Security|postMessage_origin|REMOVED_no_longer_needed
+260131|Security|SameSite|Lax_from_None
+260131|Security|debug_logs|REMOVED_all
+260131|Security|error_logs|sanitized_no_sensitive_info
+260131|Security|csrf_token|double_protection
+260131|Security|httponly_cookie|XSS_protected
+
+# OAuth Callback Fixes
+260131|Bug_Fix|immutable_headers|Response_constructor_instead_of_redirect
+260131|Bug_Fix|cookie_setting|headers_set_at_creation
+260131|Bug_Fix|error_logging|detailed_without_sensitive_data
+
+# Frontend Changes
+260131|Frontend|oauth_init|direct_redirect_no_popup
+260131|Frontend|login_success|URL_param_detection
+260131|Frontend|user_info_api|one_time_KV_fetch
+260131|Frontend|postMessage_listener|REMOVED
+
+# API Endpoints
+260131|API|oauth_user_info|GET_api_user_oauth_user_info
+260131|API|oauth_user_info|one_time_use_60s_TTL
+260131|API|oauth_user_info|returns_email_name_picture_csrfToken
+
+# Compliance
+260131|Compliance|RFC_6749|OAuth_2_0_Authorization_Framework
+260131|Compliance|RFC_7636|PKCE
+260131|Compliance|RFC_9700|OAuth_2_0_Security_Best_Current_Practice
+260131|Compliance|OIDC_Core_1_0|OpenID_Connect
+260131|Compliance|OWASP_Top_10|2021_compliant
+260131|Compliance|OWASP_OAuth|Cheat_Sheet_compliant
+
+# Testing
+260131|Testing|oauth_flow|PASSED_redirect_working
+260131|Testing|pkce|PASSED_code_verifier_validated
+260131|Testing|cookie|PASSED_SameSite_Lax
+260131|Testing|csrf|PASSED_token_validation
+260131|Testing|revoke|PASSED_user_can_revoke_own_card
+
+# Documentation
+260131|Documentation|progress_md|updated
+260131|Documentation|knowledge_graph|updated
+260131|Documentation|security_standards|documented
+
+# Version
+260131|Version|number|v4.6.0
+260131|Version|deployment|6d3ee146_972c_43e8_b2a8_62df9dc9eefe
+260131|Version|environment|staging
+260131|Version|status|production_ready

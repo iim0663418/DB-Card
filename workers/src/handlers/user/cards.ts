@@ -659,6 +659,11 @@ export async function handleUserRevokeCard(
     `).bind(uuid, email).first<{ uuid: string; status: string; revoked_at: number | null }>();
 
     if (!binding) {
+      // Also query without email filter to see if UUID exists
+      const anyBinding = await env.DB.prepare(`
+        SELECT uuid, bound_email, status FROM uuid_bindings WHERE uuid = ?
+      `).bind(uuid).first<{ uuid: string; bound_email: string; status: string }>();
+
       return new Response(
         JSON.stringify({
           error: 'FORBIDDEN',

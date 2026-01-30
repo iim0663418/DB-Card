@@ -321,13 +321,13 @@
                     throw new Error('Failed to initialize OAuth');
                 }
 
-                const { state, nonce } = await stateResponse.json();
+                const { state, nonce, codeChallenge, codeChallengeMethod } = await stateResponse.json();
 
                 const clientId = '675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com';
                 const redirectUri = window.location.origin + '/oauth/callback';
                 const scope = 'openid email profile';
 
-                const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` + new URLSearchParams({
+                const authParams = {
                     client_id: clientId,
                     redirect_uri: redirectUri,
                     response_type: 'code',
@@ -336,79 +336,23 @@
                     prompt: 'select_account',
                     state: state, // CSRF protection
                     nonce: nonce  // Replay protection (Phase 2)
-                });
+                };
 
-                // Open popup
-                const popup = window.open(authUrl, 'Google Login', 'width=500,height=600');
-                
-                // Check if popup was blocked
-                if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-                    errorBox.innerHTML = `
-                        <div class="flex items-start gap-3">
-                            <i data-lucide="alert-circle" class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5"></i>
-                            <div class="text-left">
-                                <p class="font-bold mb-2">彈出視窗被阻擋</p>
-                                <p class="font-normal mb-2">請允許此網站的彈出視窗以完成登入：</p>
-                                <ol class="list-decimal list-inside space-y-1 text-xs font-normal">
-                                    <li>點擊網址列右側的「🚫」圖示</li>
-                                    <li>選擇「允許彈出視窗」</li>
-                                    <li>重新點擊登入按鈕</li>
-                                </ol>
-                            </div>
-                        </div>
-                    `;
-                    errorBox.classList.remove('hidden');
-                    lucide.createIcons();
-                    return;
+                // Add PKCE parameters (RFC 7636)
+                if (codeChallenge) {
+                    authParams.code_challenge = codeChallenge;
+                    authParams.code_challenge_method = codeChallengeMethod || 'S256';
                 }
+
+                const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` + new URLSearchParams(authParams);
+
+                // Direct redirect (no popup)
+                window.location.href = authUrl;
             } catch (error) {
                 console.error('OAuth init error:', error);
                 errorBox.innerText = '登入初始化失敗，請重試';
                 errorBox.classList.remove('hidden');
-                return;
             }
-
-            // Listen for message from popup
-            window.addEventListener('message', async (event) => {
-                if (event.data.type === 'oauth_success') {
-                    const { email, name, picture, csrfToken } = event.data;
-
-                    // Store CSRF token from OAuth callback
-                    if (csrfToken) {
-                        sessionStorage.setItem('csrfToken', csrfToken);
-                    }
-
-                    // 立即設定登入狀態（token 已存在 HttpOnly cookie）
-                    state.isLoggedIn = true;
-                    state.authToken = null; // No longer needed in memory
-                    state.currentUser = { email, name, picture };
-
-                    // BDD Scenario 5-6: 顯示個人化歡迎訊息
-                    updateUserDisplay(email, name, picture);
-
-                    // 只存儲使用者資訊（不存儲 token）
-                    sessionStorage.setItem('auth_user', JSON.stringify({ email, name, picture }));
-
-                    // 顯示載入中
-                    document.getElementById('global-loading').classList.remove('hidden');
-
-                    // 背景載入卡片資料
-                    try {
-                        await fetchUserCards();
-                        showToast('登入成功');
-                        // 載入完成後切換視圖
-                        showView('selection');
-                    } catch (err) {
-                        handleError(err);
-                    } finally {
-                        // 隱藏載入中
-                        document.getElementById('global-loading').classList.add('hidden');
-                    }
-                } else if (event.data.type === 'oauth_error') {
-                    errorBox.innerText = '登入失敗：您的 Email 尚未授權';
-                    errorBox.classList.remove('hidden');
-                }
-            }, { once: true });
         }
 
         async function handleLogout() {
@@ -1297,7 +1241,19 @@
                 }
 
                 if (!response.ok) {
-                    throw new Error(data.message || data.error || 'Revoke failed');
+                    const errorMsg = data.message
+                        || (typeof data.error === 'string' ? data.error : data.error?.message)
+                        || 'Revoke failed';
+
+                    // Special handling for CSRF token errors
+                    if (data.error?.code === 'csrf_token_invalid' || data.error?.code === 'csrf_token_missing') {
+                        showToast('登入已過期，請重新整理頁面後再試');
+                        confirmBtn.disabled = false;
+                        confirmBtn.textContent = '確認撤銷';
+                        return;
+                    }
+
+                    throw new Error(errorMsg);
                 }
 
                 // Success
@@ -1440,7 +1396,7 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             lucide.createIcons();
-            
+
             if (typeof THREE !== 'undefined') {
                 setTimeout(() => initThree(), 100);
             } else {
@@ -1448,8 +1404,86 @@
                     if (typeof THREE !== 'undefined') initThree();
                 });
             }
-            
+
             document.getElementById('edit-form').onsubmit = handleFormSubmit;
+
+            // Check if just completed OAuth redirect
+            const urlParams = new URLSearchParams(window.location.search);
+            const loginStatus = urlParams.get('login');
+
+            if (loginStatus === 'success') {
+                // Clear URL parameters
+                window.history.replaceState({}, '', '/user-portal.html');
+
+                // Get session ID from URL
+                const sessionId = urlParams.get('session');
+
+                if (sessionId) {
+                    try {
+                        // Show loading
+                        document.getElementById('global-loading').classList.remove('hidden');
+
+                        // Retrieve user info from backend (one-time use)
+                        const response = await fetch(`/api/user/oauth-user-info?session=${sessionId}`, {
+                            credentials: 'include'
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            const { email, name, picture, csrfToken } = data.data;
+
+                            // Store CSRF token
+                            if (csrfToken) {
+                                sessionStorage.setItem('csrfToken', csrfToken);
+                            }
+
+                            // Store user info
+                            const user = { email, name, picture };
+                            sessionStorage.setItem('auth_user', JSON.stringify(user));
+
+                            // Set login state
+                            state.isLoggedIn = true;
+                            state.currentUser = user;
+
+                            // Update user display
+                            updateUserDisplay(email, name, picture);
+
+                            // Initialize user state
+                            await fetchUserCards();
+
+                            // Show success and switch to selection view
+                            showToast('登入成功');
+                            showView('selection');
+                        } else {
+                            throw new Error('Failed to retrieve user info');
+                        }
+                    } catch (error) {
+                        console.error('OAuth redirect error:', error);
+                        showToast('登入失敗，請重試');
+                        showView('login');
+                    } finally {
+                        document.getElementById('global-loading').classList.add('hidden');
+                    }
+                    return;
+                }
+            } else if (loginStatus === 'error') {
+                // Clear URL parameters
+                window.history.replaceState({}, '', '/user-portal.html');
+
+                // Handle OAuth error
+                const error = urlParams.get('error');
+                const errorBox = document.getElementById('login-error-box');
+
+                if (error === 'unauthorized_domain') {
+                    errorBox.innerText = '登入失敗：您的 Email 尚未授權';
+                } else {
+                    errorBox.innerText = '登入失敗，請重試';
+                }
+
+                errorBox.classList.remove('hidden');
+                showView('login');
+                return;
+            }
 
             // 檢查是否有存儲的使用者資訊（token 在 HttpOnly cookie 中）
             const userJson = sessionStorage.getItem('auth_user');

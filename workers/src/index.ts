@@ -15,6 +15,7 @@ import { handleMonitoringOverview, handleMonitoringHealth } from './handlers/adm
 import { handleUserCreateCard, handleUserUpdateCard, handleUserListCards, handleUserGetCard, handleUserRevokeCard, handleUserRestoreCard } from './handlers/user/cards';
 import { handleRevocationHistory } from './handlers/user/history';
 import { handleUserLogout } from './handlers/user/logout';
+import { handleGetOAuthUserInfo } from './handlers/user/oauth-user-info';
 import { handleOAuthCallback } from './handlers/oauth';
 import { handleOAuthInit } from './handlers/oauth-init';
 import { handleManifest } from './handlers/manifest';
@@ -127,12 +128,10 @@ export default {
     }
 
     if (url.pathname === '/api/admin/passkey/login/start' && request.method === 'POST') {
-      console.log('[DEBUG] Passkey login/start route matched');
       return handlePasskeyLoginStart(request, env);
     }
 
     if (url.pathname === '/api/admin/passkey/login/finish' && request.method === 'POST') {
-      console.log('[DEBUG] Passkey login/finish route matched');
       return handlePasskeyLoginFinish(request, env);
     }
 
@@ -211,6 +210,11 @@ export default {
     // User logout
     if (url.pathname === '/api/user/logout' && request.method === 'POST') {
       return handleUserLogout(request, env);
+    }
+
+    // Get OAuth user info after redirect (one-time use)
+    if (url.pathname === '/api/user/oauth-user-info' && request.method === 'GET') {
+      return handleGetOAuthUserInfo(request, env);
     }
 
     // Health check

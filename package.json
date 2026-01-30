@@ -1,6 +1,6 @@
 {
   "name": "db-card-pwa",
-  "version": "3.2.0",
+  "version": "4.6.0",
   "description": "NFC Digital Business Card PWA with Security Enhancements",
   "main": "pwa-card-storage/src/app.js",
   "scripts": {

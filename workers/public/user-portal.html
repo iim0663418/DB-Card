@@ -343,6 +343,12 @@
                         </div>
                     </div>
 
+                    <!-- 官網連結 -->
+                    <div class="space-y-2">
+                        <label for="web" class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">官方網站連結</label>
+                        <input type="url" id="web" name="web" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="https://moda.gov.tw">
+                    </div>
+
                     <!-- 地址預設選擇 + 自訂 -->
                     <div class="space-y-2">
                         <label for="address-preset" class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">辦公地址</label>
@@ -524,6 +530,18 @@
                         <div class="bg-slate-50 p-3 rounded-xl flex items-center gap-3 text-left mt-2">
                             <i data-lucide="phone" class="w-4 h-4 text-moda opacity-60"></i>
                             <span id="prev-phone" class="text-xs font-bold text-slate-600 truncate">---</span>
+                        </div>
+
+                        <!-- Web -->
+                        <div id="prev-web-container" class="bg-slate-50 p-3 rounded-xl flex items-center gap-3 text-left mt-2" style="display:none;">
+                            <i data-lucide="globe" class="w-4 h-4 text-moda opacity-60"></i>
+                            <span id="prev-web" class="text-xs font-bold text-slate-600 truncate">---</span>
+                        </div>
+
+                        <!-- Mobile -->
+                        <div id="prev-mobile-container" class="bg-slate-50 p-3 rounded-xl flex items-center gap-3 text-left mt-2" style="display:none;">
+                            <i data-lucide="smartphone" class="w-4 h-4 text-moda opacity-60"></i>
+                            <span id="prev-mobile" class="text-xs font-bold text-slate-600 truncate">---</span>
                         </div>
 
                         <!-- Address -->

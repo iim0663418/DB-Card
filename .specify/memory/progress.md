@@ -1,20 +1,22 @@
 # DB-Card Project Progress
 ## Current Phase: COMPLETED
-- Status: Staging 環境所有 migrations 已同步
+- Status: Real-time Context 對齊完成
 - Version: v4.6.0
-- Last Update: 2026-01-31T20:05:00+08:00
+- Last Update: 2026-01-31T20:08:00+08:00
 
 ## 本次完成項目
-1. ✅ 比對 d1_migrations 與實際 migration 文件
-2. ✅ 執行缺失的 migrations (0013-0017)
-3. ✅ 更新 d1_migrations 記錄
-4. ✅ 驗證所有 17 個 migrations 已同步
+1. ✅ user-portal.html 新增 web 和 mobile 預覽欄位
+2. ✅ admin-dashboard.html 新增 web 和 mobile 預覽欄位
+3. ✅ 更新 JavaScript 即時預覽邏輯
+4. ✅ 確保欄位順序與 card-display.html 一致
+5. ✅ 部署到 Staging 環境
 
-## Migration 狀態
-- 總數: 17 個
-- 最新: 0017_email_allowlist_individual.sql
-- 執行時間: 2026-01-31 12:05:22 UTC
+## 技術細節
+- 欄位順序：Email → Phone → Web → Mobile → Address
+- 條件顯示：有值才顯示，無值隱藏
+- 使用 Lucide icons (globe, smartphone)
+- 全局事件監聽器自動觸發更新
 
 ## Next Action
 - 等待用戶驗收
-- 確認是否需要同步到 Production 環境
+- 準備提交代碼

@@ -432,7 +432,7 @@
 
             // 收集表單資料（允許空字串以支援清空欄位）
             ['type', 'name_zh', 'name_en', 'title_zh', 'title_en',
-             'email', 'phone', 'mobile', 'avatar_url', 'greetings_zh', 'greetings_en',
+             'email', 'phone', 'mobile', 'web', 'avatar_url', 'greetings_zh', 'greetings_en',
              'social_github', 'social_linkedin', 'social_facebook',
              'social_instagram', 'social_twitter', 'social_youtube',
              'social_line', 'social_signal'].forEach(key => {
@@ -648,7 +648,7 @@
 
                     // 預填所有欄位（扁平結構）
                     ['name_zh', 'name_en', 'title_zh', 'title_en',
-                     'email', 'phone', 'mobile', 'avatar_url',
+                     'email', 'phone', 'mobile', 'web', 'avatar_url',
                      'greetings_zh', 'greetings_en',
                      'social_github', 'social_linkedin', 'social_facebook',
                      'social_instagram', 'social_twitter', 'social_youtube',
@@ -1129,6 +1129,27 @@
 
             document.getElementById('prev-email').innerText = email;
             document.getElementById('prev-phone').innerText = phone;
+
+            // Web (官網連結) - conditional display
+            const web = document.getElementById('web')?.value || '';
+            const webContainer = document.getElementById('prev-web-container');
+            if (web && web.trim()) {
+                webContainer.style.display = 'flex';
+                document.getElementById('prev-web').innerText = web;
+            } else {
+                webContainer.style.display = 'none';
+            }
+
+            // Mobile (手機) - conditional display
+            const mobile = document.getElementById('mobile')?.value || '';
+            const mobileContainer = document.getElementById('prev-mobile-container');
+            if (mobile && mobile.trim()) {
+                mobileContainer.style.display = 'flex';
+                document.getElementById('prev-mobile').innerText = mobile;
+            } else {
+                mobileContainer.style.display = 'none';
+            }
+
             document.getElementById('prev-address').innerText = addressText;
 
             // 問候語條件顯示

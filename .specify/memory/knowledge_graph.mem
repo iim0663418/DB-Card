@@ -8,7 +8,7 @@
 260131|DB-Card|architecture|Cloudflare_Workers_Serverless
 260131|DB-Card|license|Apache_2.0
 260131|DB-Card|privacy_model|Privacy_First_Design
-260131|DB-Card|deployment|GitHub_Pages_Static_Hosting
+260131|DB-Card|deployment|GitHub_Actions_Auto_Deploy
 
 # OIDC Authentication (v4.6.0)
 260131|OIDC|flow|Authorization_Code_Flow
@@ -19,6 +19,14 @@
 260131|OIDC|discovery|Dynamic_Config_24h_Cache
 260131|OIDC|redirect|Standard_OAuth_SameSite_Lax
 260131|OIDC|compliance|100_Percent_RFC_6749_7636_9700
+
+# CI/CD Pipeline
+260131|CI_CD|platform|GitHub_Actions
+260131|CI_CD|node_version|18
+260131|CI_CD|typecheck|npm_run_typecheck
+260131|CI_CD|css_build|Tailwind_CLI
+260131|CI_CD|deploy|Cloudflare_Wrangler_v3
+260131|CI_CD|health_check|Auto_Verify_After_Deploy
 
 # Security Architecture
 260131|Security|envelope_encryption|One_DEK_Per_Card
@@ -64,6 +72,6 @@
 260124|Security_Scan|osv_scanner|0_Vulnerabilities_806_Packages
 
 # Deployment
-260131|Deployment|staging|6d3ee146_972c_43e8_b2a8_62df9dc9eefe
+260131|Deployment|staging|2c7596c_Healthy_16_Cards
 260131|Deployment|status|Production_Ready
 260131|Deployment|environment|Cloudflare_Workers

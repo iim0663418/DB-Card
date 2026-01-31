@@ -24,12 +24,17 @@ jobs:
       - name: Install dependencies
         run: |
           cd workers
-          npm ci
+          npm ci --prefer-offline --no-audit
 
       - name: Run type check
         run: |
           cd workers
-          npx tsc --noEmit
+          npm run typecheck
+
+      - name: Build CSS
+        run: |
+          cd workers
+          npm run build:css
 
       - name: Deploy to Staging
         if: github.ref == 'refs/heads/develop'
@@ -38,7 +43,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: workers
-          command: deploy --env staging
+          command: deploy
 
       # Production deployment disabled - deploy manually when ready
       # - name: Deploy to Production

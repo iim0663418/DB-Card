@@ -45,7 +45,16 @@ export async function csrfMiddleware(request: Request, env: Env): Promise<Respon
     return acc;
   }, {} as Record<string, string>);
 
-  const sessionToken = cookies['admin_token'] || cookies['auth_token']; // Support both admin and user tokens
+  // Select session token based on request path
+  const url = new URL(request.url);
+  const isAdminPath = url.pathname.startsWith('/api/admin');
+  const sessionToken = isAdminPath
+    ? (cookies['admin_token'] || cookies['auth_token'])
+    : (cookies['auth_token'] || cookies['admin_token']);
+
+  console.log('[CSRF] Request path:', url.pathname);
+  console.log('[CSRF] Is admin path:', isAdminPath);
+  console.log('[CSRF] Selected token type:', isAdminPath ? 'admin_token' : 'auth_token');
   console.log('[CSRF] Session token extracted:', sessionToken ? sessionToken.substring(0, 8) + '...' : 'null');
   if (!sessionToken) {
     // No session token, let auth middleware handle it

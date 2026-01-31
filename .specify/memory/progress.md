@@ -1,53 +1,36 @@
 # DB-Card Project Progress
-## Current Phase: CI_CD_OPTIMIZATION_COMPLETE ✅
-- Status: 完成
-- Version: v4.6.0
-- Last Update: 2026-01-31T09:02:00+08:00
-- Deployment: 2c7596c (Staging Healthy)
+## Current Phase: USER_CARD_UPDATE_FIX
+- Status: 所有問題已修復並驗收完成
+- Version: v4.6.0 (690e1da9)
+- Last Update: 2026-01-31T18:02:00+08:00
 
-## 完成的優化 ✅
+## 修復的問題
 
-### 1. OAuth Popup Cookie 問題修復
-- **問題**: CSRF token 與 session 不匹配
-- **根本原因**: Popup 視窗的 cookie (SameSite=None) 無法傳遞到父視窗
-- **解決方案**: 改用標準 Redirect 流程
+### 1. 地址預設選項無法更新 ✅
+**根因**：前端沒有將 address-preset 下拉選單轉換為 address_zh/address_en
+**修復**：在表單提交時檢查預設選項並轉換為實際地址值
 
-### 2. PKCE 實作 (RFC 7636)
-- ✅ 生成 code_verifier 和 code_challenge
-- ✅ SHA-256 (S256) 方法
-- ✅ 防止授權碼攔截攻擊
-- ✅ 符合 OAuth 2.0 最佳實踐
+### 2. Signal 和 LINE 驗證錯誤 ✅
+**根因**：validateSocialLink 要求所有社群媒體必須是 URL 格式
+**修復**：分離驗證邏輯（URL 欄位嚴格驗證，文字欄位僅 XSS 檢查）
 
-### 3. Redirect 流程 (取代 Popup)
-- ✅ 移除 SameSite=None，改用 SameSite=Lax
-- ✅ 移除 postMessage 跨域通信
-- ✅ Cookie 設置 100% 可靠
-- ✅ 標準 OAuth 2.0 流程
+### 3. 問候語顯示問題 ✅
+**根因**：
+- 資料格式不匹配（字串 vs 陣列）
+- 英文面提前 return，問候語代碼未執行
+**修復**：
+- 儲存時將字串按行分割為陣列
+- 讀取時將陣列用換行符連接為字串
+- 將問候語處理移到英文面 return 之前
+- 顯示所有問候語行，用 `<br>` 分隔
+- 修改標題為「問候語 / Greeting」
 
-### 4. 安全增強
-- ✅ postMessage origin 驗證（已移除 postMessage）
-- ✅ 移除所有 DEBUG 日誌（防止資訊洩漏）
-- ✅ 詳細錯誤日誌（不含敏感資訊）
+## 完成項目
+- ✅ 地址預設選項更新（新光 ↔ 延平）
+- ✅ Signal/LINE 社群媒體驗證與更新
+- ✅ 問候語雙面靜態顯示（所有行）
+- ✅ 移除 debug 日誌
 
-## 最終安全評估 ✅
-
-| 安全特性 | 狀態 | 標準 |
-|---------|------|------|
-| OIDC Authorization Code Flow | ✅ | RFC 6749 |
-| PKCE | ✅ | RFC 7636 |
-| ID Token 驗證 | ✅ | OIDC Core 1.0 |
-| JWKS 驗證 | ✅ | OIDC Core 1.0 |
-| Nonce 防重放 | ✅ | OIDC Core 1.0 |
-| State CSRF 防護 | ✅ | RFC 6749 |
-| Redirect 流程 | ✅ | 最佳實踐 |
-| SameSite=Lax | ✅ | 安全 |
-| CSRF Token | ✅ | OWASP |
-| HttpOnly Cookie | ✅ | OWASP |
-
-## 符合的安全標準 ✅
-- RFC 6749: OAuth 2.0
-- RFC 7636: PKCE
-- RFC 9700: OAuth 2.0 Security Best Current Practice
-- OpenID Connect Core 1.0
-- OWASP Top 10 2021
-- OWASP OAuth 2.0 Cheat Sheet
+## Next Action
+- 歸檔到 Knowledge Graph
+- 清理進度記憶

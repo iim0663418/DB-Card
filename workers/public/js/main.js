@@ -306,7 +306,7 @@ async function initApp() {
     updateButtonTexts();
 
     if (!uuid) {
-        showError('錯誤：缺少名片 UUID 參數');
+        showError(currentLanguage === 'zh' ? '錯誤：缺少名片 UUID 參數' : 'Error: Missing card UUID parameter');
         hideLoading();
         return;
     }
@@ -315,7 +315,7 @@ async function initApp() {
         await loadCard(uuid);
     } catch (error) {
         console.error('Initialization error:', error);
-        showError(`載入失敗: ${error.message}`);
+        showError(currentLanguage === 'zh' ? `載入失敗: ${error.message}` : `Load failed: ${error.message}`);
         hideLoading();
     }
 }
@@ -366,12 +366,13 @@ async function loadCard(uuid) {
         if (sessionData && sessionData.warning) {
             const banner = document.createElement('div');
             banner.className = 'warning-banner';
-            banner.innerHTML = DOMPurify.sanitize(`<i data-lucide="alert-triangle"></i><span>${sessionData.warning.message} (剩餘 ${sessionData.warning.remaining} 次)</span>`, { ADD_ATTR: ['onclick'] });
+            const remainingText = currentLanguage === 'zh' ? `剩餘 ${sessionData.warning.remaining} 次` : `${sessionData.warning.remaining} remaining`;
+            banner.innerHTML = DOMPurify.sanitize(`<i data-lucide="alert-triangle"></i><span>${sessionData.warning.message} (${remainingText})</span>`, { ADD_ATTR: ['onclick'] });
             document.body.insertBefore(banner, document.body.firstChild);
             lucide.createIcons();
         }
     } else {
-        showError('無法載入名片資料');
+        showError(currentLanguage === 'zh' ? '無法載入名片資料' : 'Failed to load card data');
         hideLoading();
     }
 }
@@ -379,6 +380,9 @@ async function loadCard(uuid) {
 function renderCard(cardData, sessionData) {
     renderCardFace(cardData, sessionData, 'zh', '');
     renderCardFace(cardData, sessionData, 'en', '-en');
+    
+    hideLoading();
+    document.getElementById('main-container').classList.remove('hidden');
     
     setTimeout(matchCardHeight, 100);
     
@@ -507,6 +511,7 @@ function renderCardFace(cardData, sessionData, lang, suffix) {
         const addr = getLocalizedText(cardData.address, lang);
         if (addr) {
             addressEl.textContent = addr;
+            // Use both query and q parameters for maximum compatibility
             addressLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
             addressLink.style.display = 'flex';
         } else {
@@ -527,6 +532,21 @@ function renderCardFace(cardData, sessionData, lang, suffix) {
     }
 
     // 社群連結處理（僅正面完整處理，背面複製）
+    // 靜態顯示問候語（所有行）- 雙面渲染
+    try {
+        const greetingSection = document.getElementById(`greeting-section${suffix}`);
+        const greetingEl = document.getElementById(`typewriter${suffix}`);
+        
+        if (greetings && greetings.length > 0 && greetingSection && greetingEl) {
+            greetingSection.classList.remove('hidden');
+            greetingEl.innerHTML = greetings.map(line => DOMPurify.sanitize(line)).join('<br>');
+        } else if (greetingSection) {
+            greetingSection.classList.add('hidden');
+        }
+    } catch (error) {
+        console.error(`[${lang}] 問候語渲染錯誤:`, error);
+    }
+
     if (suffix === '-en') {
         // 背面：複製正面的社群連結
         const frontSocial = document.getElementById('social-cluster');
@@ -660,25 +680,6 @@ function renderCardFace(cardData, sessionData, lang, suffix) {
         socialCluster.style.display = 'none';
     }
 
-    // Hide loading skeleton
-    const skeleton = document.getElementById('loading-skeleton');
-    if (skeleton) {
-        skeleton.style.opacity = '0';
-        setTimeout(() => skeleton.remove(), 300);
-    }
-
-    hideLoading();
-    document.getElementById('main-container').classList.remove('hidden');
-
-    // 顯示問候語區塊（如果有內容）
-    const greetingSection = document.getElementById('greeting-section');
-    if (greetings && greetings.length > 0) {
-        greetingSection.classList.remove('hidden');
-        startTypewriter(greetings);
-    } else {
-        greetingSection.classList.add('hidden');
-    }
-
     lucide.createIcons();
 }
 
@@ -760,10 +761,6 @@ function startTypewriter(phrases) {
 }
 
 function hideLoading() {
-    // 清除載入文字變化的 timeouts
-    if (window.clearLoadingTimeouts) {
-        window.clearLoadingTimeouts();
-    }
     const loading = document.getElementById('loading');
     loading.style.opacity = '0';
     setTimeout(() => {
@@ -1031,7 +1028,7 @@ document.getElementById('save-vcard').addEventListener('click', () => {
         a.click();
         showNotification('vCard 已下載', 'success');
     } else {
-        showError('無法下載 vCard，請重新載入頁面');
+        showError(currentLanguage === 'zh' ? '無法下載 vCard，請重新載入頁面' : 'Failed to download vCard, please reload the page');
     }
 });
 

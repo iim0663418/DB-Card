@@ -1,26 +1,32 @@
-# DB-Card - NFC 數位名片系統 v4.3.2
+# DB-Card - NFC 數位名片系統 v4.6.0
 
-企業級 NFC 數位名片系統 | 隱私優先 · 安全至上 · OIDC 認證
+安全預設 NFC 數位名片系統 | 隱私優先 · 安全至上 · OIDC 認證
 
 ## 最新更新
 
+### v4.6.0 (2026-01-31) - OIDC 安全優化完成 🔒
+- ✅ **PKCE 實作** (RFC 7636) - 防止授權碼攔截攻擊
+- ✅ **OAuth Redirect 流程** - 取代 Popup，更安全可靠
+- ✅ **SameSite=Lax** - 從 None 改為 Lax，降低 CSRF 風險
+- ✅ **移除 postMessage** - 消除跨域通信風險
+- ✅ **移除 DEBUG 日誌** - 防止敏感資訊洩漏
+- ✅ **符合 RFC 9700** - OAuth 2.0 Security Best Current Practice
+- ✅ **OWASP 合規** - OAuth 2.0 Cheat Sheet 完全符合
+
+### v4.5.9 (2026-01-30) - QR 快速捷徑功能完成
+- ✅ qr-quick.html 雙模式（安裝引導 + QR 顯示）
+- ✅ 類型區分（個人/活動/敏感）
+- ✅ 平台支援（iOS/Android/Desktop）
+
+### v4.5.3 (2026-01-29) - 桌面版實體名片設計與互動優化
+- ✅ 桌面版實體名片比例（540px × 856px，直式佈局）
+- ✅ 3D 視差效果（鼠標移動產生傾斜）
+- ✅ 性能優化（CSS 變數 + GPU 加速）
+
 ### v4.3.2 (2026-01-24) - 安全掃描完成與 UX 優化
 - ✅ 完成三項安全掃描驗證（OWASP ZAP A、npm audit 0、OSV-Scanner 0）
-- ✅ 管理者介面 UX 優化（KEK 監控、登入載入體驗、Modal 設計統一）
-- ✅ 移除全域撤銷功能（邏輯缺陷）
-- ✅ KEK 輪替改為本地腳本執行（降低攻擊面）
-- ✅ 管理者驗證遷移至 HttpOnly Cookie（XSS 防護）
-
-### v4.3.2 (2026-01-24) - OIDC Phase 2 完成
-- ✅ Nonce 防重放攻擊 (OpenID Connect Core 1.0)
-- ✅ Discovery Endpoint 動態配置
-- ✅ OIDC 合規度：90%
-- ✅ 所有核心安全功能完整
-
-### v4.3.1 (2026-01-24) - OIDC Phase 1 完成
-- ✅ ID Token 驗證 (iss/aud/exp/iat/sub)
-- ✅ JWKS 公鑰驗證與快取
-- ✅ Clock skew 容忍 (±60s)
+- ✅ 管理者介面 UX 優化
+- ✅ KEK 輪替改為本地腳本執行
 - ✅ 向後相容 (降級到 UserInfo API)
 
 ### v4.3.0 (2026-01-22) - Passkey 認證
@@ -33,13 +39,16 @@
 ## 核心特性
 
 ### OpenID Connect (OIDC) 認證
+- **Authorization Code Flow**: 標準 OAuth 2.0 流程
+- **PKCE**: 防止授權碼攔截攻擊 (RFC 7636)
 - **ID Token 驗證**: iss/aud/exp/iat/sub 完整驗證
 - **JWKS 公鑰驗證**: 自動快取與輪替
 - **Nonce 防重放**: 一次性使用，600 秒 TTL
 - **Discovery Endpoint**: 動態配置，24 小時快取
-- **合規度**: 90% (OpenID Connect Core 1.0)
+- **Redirect 流程**: 標準 OAuth 流程，SameSite=Lax
+- **合規度**: 100% (RFC 6749, 7636, 9700, OIDC Core 1.0)
 
-### 企業級安全架構
+### 安全預設架構
 - **信封加密**: 每張名片獨立 DEK，KEK 定期輪換
 - **授權會話機制 (ReadSession)**: 24 小時 TTL，可撤銷、可限制同時讀取數
 - **即時撤銷**: NFC 重新觸碰即可撤銷上一個會話
@@ -483,6 +492,16 @@ Apache License 2.0 - 詳見 [LICENSE](LICENSE)
 
 ## 版本歷程
 
+### v4.5.3 (2026-01-29) - 桌面版實體名片設計與互動優化
+- 桌面版實體名片比例（540px × 856px，直式佈局）
+- 白色邊框 8px + 4 層陰影系統（實體質感）
+- 比照移動版排版（置中、直式佈局）
+- 更大更友善的字體（姓名 3.5rem、職稱/部門 1rem）
+- 3D 視差效果（鼠標移動產生傾斜，X/Y 軸 ±10deg）
+- Hover 互動（陰影增強）
+- 性能優化（CSS 變數 + GPU 加速，即時響應 0ms）
+- 部門欄位優化（移除圖示、完整換行、手機置中）
+
 ### v4.3.2 (2026-01-24) - OIDC Phase 2
 - Nonce 防重放攻擊
 - Discovery Endpoint 動態配置
@@ -513,7 +532,7 @@ Apache License 2.0 - 詳見 [LICENSE](LICENSE)
 
 ---
 
-**企業級安全，隱私優先設計，OIDC 認證**  
+**安全預設，隱私優先設計，OIDC 認證**  
 **Cloudflare Workers 全球邊緣運算**
 
 ### 審計日誌
@@ -608,18 +627,19 @@ Apache License 2.0 - 詳見 [LICENSE](LICENSE)
 
 ## 版本歷程
 
-### v4.3.0 (2026-01-22) - Passkey 個別管理員策略
-- 實作個別管理員 Passkey 策略（符合業界最佳實踐）
-- SETUP_TOKEN 登入需要 email（個別檢查 passkey_enabled）
-- 兩種登入方式並列顯示（附加而非替換）
-- 設計系統統一（純色風格，主色 #6868ac）
-- 完整 BDD 規格（5 scenarios）
-- 引用最佳實踐：SupportDevs, Tailscale, Corbado
+### v4.5.2 (2026-01-29) - 卡片翻轉動畫優化
+- 修復 Safari iOS 翻轉失效（移除 pointer-events 阻止）
+- 添加 GPU 硬體加速（translateZ 強制啟用）
+- Glassmorphism 視覺增強（漸層背景、增強模糊、雙層陰影）
+- 實體名片標準圓角（1rem = 16px ≈ 6mm）
+- 響應式翻轉設計（手機中心翻轉、桌面側邊翻轉）
+- 完整 WebKit 前綴支援
 
-### v4.2.1 (2026-01-21) - OWASP Top 10 安全修復
----
-
-## 版本歷程
+### v4.3.2 (2026-01-24) - 安全掃描與 UX 優化
+- 完成三項安全掃描驗證（OWASP ZAP A、npm audit 0、OSV-Scanner 0）
+- 管理者介面 UX 優化（KEK 監控、登入載入體驗）
+- KEK 輪替改為本地腳本執行（降低攻擊面）
+- 管理者驗證遷移至 HttpOnly Cookie（XSS 防護）
 
 ### v4.3.0 (2026-01-22) - Passkey 認證
 - 個別管理員策略（附加而非替換）
@@ -656,7 +676,7 @@ Apache License 2.0 - 詳見 [LICENSE](LICENSE)
 - 首頁產品介紹優化
 - LLM 友善文檔
 
-### v4.0.0 (2026-01-18) - 企業級安全架構
+### v4.0.0 (2026-01-18) - 安全預設架構
 - 信封加密機制
 - 授權會話系統
 - 完整雙語支援（11 個 i18n keys）
@@ -675,5 +695,5 @@ Apache License 2.0 - 詳見 [LICENSE](LICENSE)
 
 ---
 
-**企業級安全，隱私優先設計**  
+**安全預設，隱私優先設計**  
 **Cloudflare Workers 全球邊緣運算**

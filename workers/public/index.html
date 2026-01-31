@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="DB-Card 企業級 NFC 數位名片系統 - 信封加密、可撤銷會話、審計日誌">
+    <meta name="description" content="DB-Card 安全預設 NFC 數位名片系統 - 信封加密、可撤銷會話、審計日誌">
     <title>DB-Card | 數位名片系統</title>
     
     <!-- LLM-friendly documentation -->
@@ -137,10 +137,10 @@
                 數位名片系統
             </p>
             <p class="text-sm md:text-base text-slate-500 font-medium">
-                企業級安全 | 隱私優先 | 全球邊緣運算
+                安全預設 | 隱私優先 | 輕量化設計
             </p>
-            <div class="mt-6 text-xs text-slate-400 font-mono">
-                v4.3.2
+            <div class="mt-6 text-xs text-slate-400 font-mono" id="app-version">
+                載入中...
             </div>
         </header>
 
@@ -316,14 +316,66 @@
                                     </li>
                                     <li class="flex items-start gap-2">
                                         <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
-                                        <span>符合企業級安全標準</span>
+                                        <span>符合安全標準</span>
                                     </li>
                                 </ul>
                             </div>
                         </div>
                     </div>
 
-                    <!-- 特色 3: 現代化設計體驗 -->
+                    <!-- 特色 3: 授權會話機制 -->
+                    <div class="glass-card rounded-2xl p-8">
+                        <div class="flex gap-4">
+                            <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">
+                                <i data-lucide="clock" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold mb-3">授權會話機制</h4>
+                                <ul class="space-y-2 text-xs text-slate-600">
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <span>24 小時 TTL，可隨時撤銷</span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <span>同時讀取數限制，防止濫用</span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <span>NFC 重新觸碰即可撤銷上一個會話</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 特色 4: QR 快速捷徑 -->
+                    <div class="glass-card rounded-2xl p-8">
+                        <div class="flex gap-4">
+                            <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">
+                                <i data-lucide="qr-code" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold mb-3">QR 快速捷徑</h4>
+                                <ul class="space-y-2 text-xs text-slate-600">
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <span>加到主畫面，一鍵顯示 QR Code</span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <span>支援多張名片，類型清楚區分</span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <span>iOS / Android 完美支援</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 特色 5: 現代化設計體驗 -->
                     <div class="glass-card rounded-2xl p-8">
                         <div class="flex gap-4">
                             <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">
@@ -432,8 +484,8 @@
 
         <!-- Footer -->
         <footer class="container mx-auto px-6 py-8 text-center text-xs text-slate-500">
-            <p class="mb-2">
-                DB-Card v4.3.2 | Apache License 2.0
+            <p class="mb-2" id="footer-version">
+                DB-Card 載入中... | Apache License 2.0
             </p>
             <p>
                 <a href="https://github.com/iim0663418/DB-Card" target="_blank" class="hover:text-purple-600 transition-colors">
@@ -446,5 +498,33 @@
     </div>
 
     <script src="/js/page-init.js" defer></script>
+    <script>
+        // Load version from API
+        fetch('/health')
+            .then(r => r.json())
+            .then(response => {
+                const data = response.data || response; // Handle both formats
+                
+                // Update header version
+                const headerEl = document.getElementById('app-version');
+                if (headerEl && data.version) {
+                    headerEl.textContent = data.version;
+                }
+
+                // Update footer version
+                const footerEl = document.getElementById('footer-version');
+                if (footerEl && data.version) {
+                    footerEl.innerHTML = `DB-Card ${data.version} | Apache License 2.0`;
+                }
+            })
+            .catch(() => {
+                // Fallback to static version
+                const headerEl = document.getElementById('app-version');
+                if (headerEl) headerEl.textContent = 'v4.5.3';
+
+                const footerEl = document.getElementById('footer-version');
+                if (footerEl) footerEl.innerHTML = 'DB-Card v4.5.3 | Apache License 2.0';
+            });
+    </script>
 </body>
 </html>

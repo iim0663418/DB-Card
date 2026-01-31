@@ -321,13 +321,13 @@
                     throw new Error('Failed to initialize OAuth');
                 }
 
-                const { state, nonce } = await stateResponse.json();
+                const { state, nonce, codeChallenge, codeChallengeMethod } = await stateResponse.json();
 
                 const clientId = '675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com';
                 const redirectUri = window.location.origin + '/oauth/callback';
                 const scope = 'openid email profile';
 
-                const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` + new URLSearchParams({
+                const authParams = {
                     client_id: clientId,
                     redirect_uri: redirectUri,
                     response_type: 'code',
@@ -336,58 +336,23 @@
                     prompt: 'select_account',
                     state: state, // CSRF protection
                     nonce: nonce  // Replay protection (Phase 2)
-                });
+                };
 
-                // Open popup
-                const popup = window.open(authUrl, 'Google Login', 'width=500,height=600');
+                // Add PKCE parameters (RFC 7636)
+                if (codeChallenge) {
+                    authParams.code_challenge = codeChallenge;
+                    authParams.code_challenge_method = codeChallengeMethod || 'S256';
+                }
+
+                const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` + new URLSearchParams(authParams);
+
+                // Direct redirect (no popup)
+                window.location.href = authUrl;
             } catch (error) {
                 console.error('OAuth init error:', error);
                 errorBox.innerText = '登入初始化失敗，請重試';
                 errorBox.classList.remove('hidden');
-                return;
             }
-
-            // Listen for message from popup
-            window.addEventListener('message', async (event) => {
-                if (event.data.type === 'oauth_success') {
-                    const { email, name, picture, csrfToken } = event.data;
-
-                    // Store CSRF token from OAuth callback
-                    if (csrfToken) {
-                        sessionStorage.setItem('csrfToken', csrfToken);
-                    }
-
-                    // 立即設定登入狀態（token 已存在 HttpOnly cookie）
-                    state.isLoggedIn = true;
-                    state.authToken = null; // No longer needed in memory
-                    state.currentUser = { email, name, picture };
-
-                    // BDD Scenario 5-6: 顯示個人化歡迎訊息
-                    updateUserDisplay(email, name, picture);
-
-                    // 只存儲使用者資訊（不存儲 token）
-                    sessionStorage.setItem('auth_user', JSON.stringify({ email, name, picture }));
-
-                    // 顯示載入中
-                    document.getElementById('global-loading').classList.remove('hidden');
-
-                    // 背景載入卡片資料
-                    try {
-                        await fetchUserCards();
-                        showToast('登入成功');
-                        // 載入完成後切換視圖
-                        showView('selection');
-                    } catch (err) {
-                        handleError(err);
-                    } finally {
-                        // 隱藏載入中
-                        document.getElementById('global-loading').classList.add('hidden');
-                    }
-                } else if (event.data.type === 'oauth_error') {
-                    errorBox.innerText = '登入失敗：您的 Email 尚未授權';
-                    errorBox.classList.remove('hidden');
-                }
-            }, { once: true });
         }
 
         async function handleLogout() {
@@ -826,6 +791,12 @@
                                         class="w-full py-3 ${data._optimistic ? 'bg-slate-300 cursor-not-allowed' : 'bg-moda hover:scale-[1.02] shadow-moda'} text-white rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all">
                                     ${data._optimistic ? '同步中...' : '查看名片'}
                                 </button>
+                                <button onclick="createQRShortcut('${data.uuid}', '${(data.name_zh || data.name_en || '').replace(/'/g, "\\'")}', '${data.type}')"
+                                        ${data._optimistic ? 'disabled' : ''}
+                                        class="w-full py-3 ${data._optimistic ? 'bg-slate-200 cursor-not-allowed' : 'bg-white border-2 border-moda/30 text-moda hover:border-moda hover:bg-moda/5'} rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all flex items-center justify-center gap-2">
+                                    <i data-lucide="qr-code" class="w-4 h-4"></i>
+                                    ${data._optimistic ? '同步中...' : '加到主畫面'}
+                                </button>
                                 <div class="grid grid-cols-3 gap-2">
                                     <button data-action="edit" data-type="${config.id}"
                                             class="py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all">
@@ -1182,7 +1153,7 @@
                 if (icon === 'line') {
                     node.innerHTML = DOMPurify.sanitize(`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>`, { ADD_ATTR: ['onclick'] });
                 } else if (icon === 'signal') {
-                    node.innerHTML = DOMPurify.sanitize(`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 16.707s-1.067 1.341-1.24 1.514c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26l-3.616-3.616-3.616 3.616c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26-.173-.173-1.24-1.514-1.24-1.514-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693l3.616-3.616-3.616-3.616c-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693 0 0 1.067-1.341 1.24-1.514.173-.173.346-.26.519-.26.173 0 .346.087.519.26l3.616 3.616 3.616-3.616c.173-.173.346-.26.519-.26.173 0 .346.087.519.26.173.173 1.24 1.514 1.24 1.514.173.173.26.433.26.693 0 .26-.087.52-.26.693l-3.616 3.616 3.616 3.616c.173.173.26.433.26.693 0 .26-.087.52-.26.693z"/></svg>`, { ADD_ATTR: ['onclick'] });
+                    node.innerHTML = DOMPurify.sanitize(`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0q-.934 0-1.83.139l.17 1.111a11 11 0 0 1 3.32 0l.172-1.111A12 12 0 0 0 12 0M9.152.34A12 12 0 0 0 5.77 1.742l.584.961a10.8 10.8 0 0 1 3.066-1.27zm5.696 0-.268 1.094a10.8 10.8 0 0 1 3.066 1.27l.584-.962A12 12 0 0 0 14.848.34M12 2.25a9.75 9.75 0 0 0-8.539 14.459c.074.134.1.292.064.441l-1.013 4.338 4.338-1.013a.62.62 0 0 1 .441.064A9.7 9.7 0 0 0 12 21.75c5.385 0 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25m-7.092.068a12 12 0 0 0-2.59 2.59l.909.664a11 11 0 0 1 2.345-2.345zm14.184 0-.664.909a11 11 0 0 1 2.345 2.345l.909-.664a12 12 0 0 0-2.59-2.59M1.742 5.77A12 12 0 0 0 .34 9.152l1.094.268a10.8 10.8 0 0 1 1.269-3.066zm20.516 0-.961.584a10.8 10.8 0 0 1 1.27 3.066l1.093-.268a12 12 0 0 0-1.402-3.383M.138 10.168A12 12 0 0 0 0 12q0 .934.139 1.83l1.111-.17A11 11 0 0 1 1.125 12q0-.848.125-1.66zm23.723.002-1.111.17q.125.812.125 1.66c0 .848-.042 1.12-.125 1.66l1.111.172a12.1 12.1 0 0 0 0-3.662M1.434 14.58l-1.094.268a12 12 0 0 0 .96 2.591l-.265 1.14 1.096.255.36-1.539-.188-.365a10.8 10.8 0 0 1-.87-2.35m21.133 0a10.8 10.8 0 0 1-1.27 3.067l.962.584a12 12 0 0 0 1.402-3.383zm-1.793 3.848a11 11 0 0 1-2.345 2.345l.664.909a12 12 0 0 0 2.59-2.59zm-19.959 1.1L.357 21.48a1.8 1.8 0 0 0 2.162 2.161l1.954-.455-.256-1.095-1.953.455a.675.675 0 0 1-.81-.81l.454-1.954zm16.832 1.769a10.8 10.8 0 0 1-3.066 1.27l.268 1.093a12 12 0 0 0 3.382-1.402zm-10.94.213-1.54.36.256 1.095 1.139-.266c.814.415 1.683.74 2.591.961l.268-1.094a10.8 10.8 0 0 1-2.35-.869zm3.634 1.24-.172 1.111a12.1 12.1 0 0 0 3.662 0l-.17-1.111q-.812.125-1.66.125a11 11 0 0 1-1.66-.125"/></svg>`, { ADD_ATTR: ['onclick'] });
                 } else {
                     node.innerHTML = DOMPurify.sanitize(`<i data-lucide="${icon}" class="w-4 h-4"></i>`, { ADD_ATTR: ['onclick'] });
                 }
@@ -1270,7 +1241,19 @@
                 }
 
                 if (!response.ok) {
-                    throw new Error(data.message || data.error || 'Revoke failed');
+                    const errorMsg = data.message
+                        || (typeof data.error === 'string' ? data.error : data.error?.message)
+                        || 'Revoke failed';
+
+                    // Special handling for CSRF token errors
+                    if (data.error?.code === 'csrf_token_invalid' || data.error?.code === 'csrf_token_missing') {
+                        showToast('登入已過期，請重新整理頁面後再試');
+                        confirmBtn.disabled = false;
+                        confirmBtn.textContent = '確認撤銷';
+                        return;
+                    }
+
+                    throw new Error(errorMsg);
                 }
 
                 // Success
@@ -1413,7 +1396,7 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             lucide.createIcons();
-            
+
             if (typeof THREE !== 'undefined') {
                 setTimeout(() => initThree(), 100);
             } else {
@@ -1421,8 +1404,86 @@
                     if (typeof THREE !== 'undefined') initThree();
                 });
             }
-            
+
             document.getElementById('edit-form').onsubmit = handleFormSubmit;
+
+            // Check if just completed OAuth redirect
+            const urlParams = new URLSearchParams(window.location.search);
+            const loginStatus = urlParams.get('login');
+
+            if (loginStatus === 'success') {
+                // Clear URL parameters
+                window.history.replaceState({}, '', '/user-portal.html');
+
+                // Get session ID from URL
+                const sessionId = urlParams.get('session');
+
+                if (sessionId) {
+                    try {
+                        // Show loading
+                        document.getElementById('global-loading').classList.remove('hidden');
+
+                        // Retrieve user info from backend (one-time use)
+                        const response = await fetch(`/api/user/oauth-user-info?session=${sessionId}`, {
+                            credentials: 'include'
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            const { email, name, picture, csrfToken } = data.data;
+
+                            // Store CSRF token
+                            if (csrfToken) {
+                                sessionStorage.setItem('csrfToken', csrfToken);
+                            }
+
+                            // Store user info
+                            const user = { email, name, picture };
+                            sessionStorage.setItem('auth_user', JSON.stringify(user));
+
+                            // Set login state
+                            state.isLoggedIn = true;
+                            state.currentUser = user;
+
+                            // Update user display
+                            updateUserDisplay(email, name, picture);
+
+                            // Initialize user state
+                            await fetchUserCards();
+
+                            // Show success and switch to selection view
+                            showToast('登入成功');
+                            showView('selection');
+                        } else {
+                            throw new Error('Failed to retrieve user info');
+                        }
+                    } catch (error) {
+                        console.error('OAuth redirect error:', error);
+                        showToast('登入失敗，請重試');
+                        showView('login');
+                    } finally {
+                        document.getElementById('global-loading').classList.add('hidden');
+                    }
+                    return;
+                }
+            } else if (loginStatus === 'error') {
+                // Clear URL parameters
+                window.history.replaceState({}, '', '/user-portal.html');
+
+                // Handle OAuth error
+                const error = urlParams.get('error');
+                const errorBox = document.getElementById('login-error-box');
+
+                if (error === 'unauthorized_domain') {
+                    errorBox.innerText = '登入失敗：您的 Email 尚未授權';
+                } else {
+                    errorBox.innerText = '登入失敗，請重試';
+                }
+
+                errorBox.classList.remove('hidden');
+                showView('login');
+                return;
+            }
 
             // 檢查是否有存儲的使用者資訊（token 在 HttpOnly cookie 中）
             const userJson = sessionStorage.getItem('auth_user');

@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數位名片 | 數位孿生門戶</title>
+
+    <!-- Preconnect 與效能優化 -->
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <!-- SRI 完整性驗證與固定版本 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@0.562.0/dist/umd/lucide.min.js"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+            integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ=="
+            crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/qr-creator@1.0.0/dist/qr-creator.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.7/purify.min.js"
+            integrity="sha512-78KH17QLT5e55GJqP76vutp1D2iAoy06WcYBXB6iBCsmO6wWzx0Qdg8EDpm8mKXv68BcvHOyeeP4wxAL0twJGQ=="
+            crossorigin="anonymous"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+TC:wght@300;500;700;900&display=swap');
+
+        :root {
+            --moda-accent: #6868ac;
+            --crystal-bg: rgba(255, 255, 255, 0.7);
+            --ui-text: #1e1e3f;
+        }
+
+        /* 暗黑模式 */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --crystal-bg: rgba(30, 41, 59, 0.7);
+                --ui-text: #e2e8f0;
+            }
+            body { background-color: #0f172a; }
+            .btn-action { background: rgba(30, 41, 59, 0.8) !important; border-color: rgba(255,255,255,0.1) !important; color: #fff !important; }
+            .glass-card { background: rgba(30, 41, 59, 0.5) !important; }
+            #reality-overlay { background: rgba(15, 23, 42, 0.98); }
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+            background-color: #f0f2f5;
+            color: var(--ui-text);
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #three-canvas {
+            position: fixed;
+            top: 0; left: 0; z-index: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            opacity: 0.5;
+            transition: filter 1.2s ease, opacity 1s ease;
+        }
+
+        /* 動畫定義 */
+        @keyframes cardEnter {
+            0% { opacity: 0; transform: translateY(50px) rotateX(-15deg); }
+            100% { opacity: 1; transform: translateY(0) rotateX(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+
+        @keyframes digitalToPhysical {
+            0% { opacity: 0; transform: scale(0.8) rotateY(90deg); filter: blur(20px); }
+            50% { opacity: 0.5; filter: blur(10px); }
+            100% { opacity: 1; transform: scale(1) rotateY(0); filter: blur(0); }
+        }
+
+        /* 卡片容器 */
+        .card-perspective {
+            perspective: 2000px;
+            width: 100%;
+            max-width: 450px;
+            z-index: 10;
+            transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            will-change: transform, opacity;
+            animation: cardEnter 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            min-height: 580px;
+            transform-style: preserve-3d;
+            transform-origin: center right;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            will-change: transform;
+        }
+
+        .card-inner.is-flipped {
+            transform: translateX(-100%) rotateY(-180deg);
+        }
+
+        /* Glassmorphism 效果 */
+        .card-face {
+            position: absolute;
+            width: 100%; height: 100%;
+            backface-visibility: hidden;
+            transform-style: preserve-3d;
+            border-radius: 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.6) 100%);
+            backdrop-filter: blur(40px) saturate(180%) brightness(110%);
+            box-shadow: 0 8px 32px 0 rgba(104, 104, 172, 0.1), inset 0 1px 0 0 rgba(255, 255, 255, 0.5);
+            display: flex;
+            flex-direction: column;
+            padding: 2.5rem;
+            border-top: 6px solid var(--moda-accent);
+            overflow: hidden;
+        }
+
+        .card-front { z-index: 2; transform: translateZ(1px); }
+        .card-back { z-index: 1; transform: rotateY(180deg) translateZ(1px); }
+
+        /* MODA 主題色彩 */
+        .bg-moda { background-color: var(--moda-accent) !important; }
+        .bg-moda-light { background-color: rgba(104, 104, 172, 0.1) !important; }
+        .border-moda-light { border-color: rgba(104, 104, 172, 0.1) !important; }
+        .text-moda { color: var(--moda-accent) !important; }
+        .text-moda-dark { color: #4a4a8a !important; }
+        .border-moda { border-color: var(--moda-accent) !important; }
+        .hover\:bg-moda:hover { background-color: #5858a0 !important; }
+        .group:hover .group-hover\:bg-moda { background-color: var(--moda-accent) !important; }
+        .group:hover .group-hover\:text-white { color: white !important; }
+
+        /* 同步進度環 */
+        .sync-progress-container {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 180px; height: 180px;
+            z-index: 150;
+            pointer-events: none;
+            opacity: 0;
+            transition: all 0.4s ease;
+            scale: 0.8;
+        }
+
+        .sync-progress-container::before {
+            content: '';
+            position: absolute;
+            inset: -10px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(104, 104, 172, 0.2) 0%, transparent 70%);
+            animation: pulse 2s ease-in-out infinite;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        body.is-syncing .sync-progress-container::before { opacity: 1; }
+
+        .sync-ring {
+            fill: none;
+            stroke: var(--moda-accent);
+            stroke-width: 3;
+            stroke-dasharray: 283;
+            stroke-dashoffset: 283;
+            stroke-linecap: round;
+        }
+
+        /* 實體孿生展示層 */
+        #reality-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 300;
+            background: rgba(255, 255, 255, 0.98);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: all 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+            backdrop-filter: blur(30px);
+        }
+
+        #reality-overlay.active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        #reality-overlay.active .replica-wrapper {
+            animation: digitalToPhysical 1s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+
+        /* 實體名片容器 */
+        .replica-wrapper {
+            position: relative;
+            perspective: 1500px;
+            width: 85vw;
+            max-width: 340px;
+            aspect-ratio: 9/16;
+            cursor: pointer;
+            transition: all 1.2s cubic-bezier(0.28, 0.55, 0.385, 1.65);
+            transform-origin: center center;
+            will-change: transform;
+        }
+
+        .replica-wrapper.is-rotated {
+            transform: rotate(90deg) scale(0.72) translateZ(20px);
+            filter: drop-shadow(0 40px 80px rgba(0, 0, 0, 0.25));
+        }
+
+        .replica-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 1.2s cubic-bezier(0.28, 0.55, 0.385, 1.65);
+            will-change: transform;
+            touch-action: none;
+            transform-origin: center center;
+        }
+
+        .replica-inner.is-flipped {
+            transform: rotateY(180deg) scale(1.05);
+        }
+
+        .replica-inner.pinching {
+            transition: none;
+        }
+
+        /* 實體名片質感 - 4 層陰影系統 */
+        .replica-face {
+            position: absolute;
+            inset: 0;
+            background: #fff;
+            border-radius: 6px;
+            border: 8px solid #fff;
+            backface-visibility: hidden;
+            box-shadow:
+                0 0 0 1px rgba(0,0,0,0.05),
+                0 2px 4px rgba(0,0,0,0.05),
+                0 8px 16px rgba(0,0,0,0.1),
+                0 30px 60px -10px rgba(0,0,0,0.2);
+            overflow: hidden;
+            transition: box-shadow 1.2s cubic-bezier(0.28, 0.55, 0.385, 1.65);
+        }
+
+        /* 旋轉時增強陰影 */
+        .replica-wrapper.is-rotated .replica-face {
+            box-shadow:
+                0 0 0 1px rgba(0,0,0,0.08),
+                0 4px 8px rgba(0,0,0,0.08),
+                0 16px 32px rgba(0,0,0,0.15),
+                0 50px 100px -15px rgba(0,0,0,0.3);
+        }
+
+        /* 紙張紋理 */
+        .replica-face::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.04;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* 紙張光澤 */
+        .replica-face::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(0,0,0,0.02) 100%);
+            pointer-events: none;
+            z-index: 6;
+            transition: opacity 1.2s cubic-bezier(0.28, 0.55, 0.385, 1.65);
+        }
+
+        /* 旋轉時光澤增強 */
+        .replica-wrapper.is-rotated .replica-face::after {
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 45%, rgba(0,0,0,0.04) 100%);
+        }
+
+        .replica-back { transform: rotateY(180deg); }
+        .replica-img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* 骨架屏載入 */
+        .skeleton-loader {
+            position: absolute;
+            inset: 0;
+            background: #f1f5f9;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 按鈕樣式 */
+        .overlay-tool-btn {
+            width: 3.5rem; height: 3.5rem;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--moda-accent);
+            box-shadow: 0 10px 25px -5px rgba(104, 104, 172, 0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        .overlay-tool-btn:hover { background: #fdfdff; transform: scale(1.05); }
+        .overlay-tool-btn:active { scale: 0.9; }
+
+        .close-btn {
+            position: absolute;
+            top: -6rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.05);
+            color: #94a3b8;
+            border: none;
+            width: 3.5rem; height: 3.5rem;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .close-btn:hover { background: rgba(0,0,0,0.1); color: var(--moda-accent); }
+
+        body.revealed .card-perspective {
+            opacity: 0;
+            scale: 1.1;
+            filter: blur(30px);
+            pointer-events: none;
+        }
+
+        /* 文字樣式 */
+        .watermark {
+            position: absolute;
+            font-size: 8rem;
+            font-weight: 900;
+            color: rgba(104, 104, 172, 0.02);
+            pointer-events: none;
+            user-select: none;
+            z-index: 1;
+            letter-spacing: -0.05em;
+        }
+
+        .hud-text {
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--moda-accent);
+        }
+
+        .info-chip {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(104, 104, 172, 0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .info-chip:hover {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: rgba(104, 104, 172, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(104, 104, 172, 0.15);
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+
+        /* 螢幕閱讀器 */
+        .sr-only {
+            position: absolute;
+            width: 1px; height: 1px;
+            padding: 0; margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        /* 響應式設計 */
+        @media (min-width: 1024px) {
+            .card-perspective { max-width: 560px; }
+            .card-inner { min-height: 650px; }
+            .watermark { font-size: 10rem; }
+        }
+    </style>
+</head>
+<body class="no-scrollbar">
+
+    <!-- 螢幕閱讀器狀態通知 -->
+    <div role="status" aria-live="polite" class="sr-only">
+        <span id="card-state">顯示數位名片中文正面</span>
+    </div>
+
+    <canvas id="three-canvas"></canvas>
+
+    <!-- 能量同步環 -->
+    <div class="sync-progress-container" id="sync-ui">
+        <svg viewBox="0 0 100 100" class="w-full h-full transform -rotate-90">
+            <circle cx="50" cy="50" r="45" stroke="rgba(104,104,172,0.05)" stroke-width="2" fill="none" />
+            <circle cx="50" cy="50" r="45" class="sync-ring" id="sync-bar" />
+        </svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center space-y-1">
+            <i data-lucide="layers" class="w-6 h-6 text-indigo-500 animate-bounce"></i>
+            <span id="sync-countdown" class="text-2xl font-black text-indigo-600">5</span>
+            <span class="text-[8px] font-black text-indigo-400 uppercase tracking-widest">Syncing</span>
+        </div>
+    </div>
+
+    <!-- 實體孿生展示層 -->
+    <div id="reality-overlay" onclick="handleOverlayClick(event)" role="dialog" aria-modal="true">
+        <div class="flex flex-col items-center gap-12 w-full px-6">
+
+            <div id="replica-wrapper" class="replica-wrapper" onclick="handleReplicaFlip(event)">
+
+                <button onclick="hideReality()" class="close-btn" aria-label="關閉實體名片模式">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+
+                <div class="absolute -right-4 -top-4 z-50 flex flex-col gap-3">
+                    <button onclick="toggleRotation(event)" class="overlay-tool-btn" id="rotate-btn" aria-label="旋轉名片">
+                        <i data-lucide="rotate-cw" class="w-6 h-6" id="rotate-icon"></i>
+                    </button>
+                    <button onclick="resetZoom(event)" class="overlay-tool-btn" id="reset-zoom-btn" aria-label="重置縮放">
+                        <i data-lucide="maximize-2" class="w-6 h-6"></i>
+                    </button>
+                    <button onclick="sharePhysicalTwin()" class="overlay-tool-btn" aria-label="分享名片">
+                        <i data-lucide="share-2" class="w-6 h-6"></i>
+                    </button>
+                </div>
+
+                <div id="replica-inner" class="replica-inner">
+                    <div class="replica-face replica-front">
+                        <div class="skeleton-loader" id="img-loader-front">
+                            <div class="animate-pulse bg-slate-200 w-full h-full"></div>
+                        </div>
+                        <img src="https://i.imgur.com/rN9vL1c.png"
+                             class="replica-img"
+                             onload="document.getElementById('img-loader-front').style.display='none'"
+                             onerror="handleImageError('front')"
+                             alt="數位發展部實體名片正面照片">
+                    </div>
+                    <div class="replica-face replica-back">
+                        <div class="skeleton-loader" id="img-loader-back">
+                            <div class="animate-pulse bg-slate-200 w-full h-full"></div>
+                        </div>
+                        <img src="https://i.imgur.com/rN9vL1c.png"
+                             class="replica-img"
+                             onload="document.getElementById('img-loader-back').style.display='none'"
+                             onerror="handleImageError('back')"
+                             alt="數位發展部實體名片背面照片">
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="hideReality()" class="w-full max-w-[240px] py-4 bg-slate-900 text-white rounded-full font-black uppercase text-[10px] tracking-[0.2em] hover:bg-indigo-600 active:scale-95 transition-all shadow-2xl flex items-center justify-center gap-3">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i> 返回數位空間
+            </button>
+        </div>
+    </div>
+
+    <!-- 頂部提示 -->
+    <div id="ui-tips" class="fixed top-8 left-0 right-0 z-50 flex flex-col items-center gap-4 pointer-events-none">
+        <div class="px-6 py-2 glass-card rounded-full flex items-center gap-3 bg-white/40 border border-white/50 shadow-sm backdrop-blur-sm">
+            <i data-lucide="refresh-cw" class="w-4 h-4 text-indigo-500"></i>
+            <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Click to Flip Card</span>
+        </div>
+
+        <div id="reveal-btn" class="px-8 py-3 bg-white/60 border border-indigo-100 backdrop-blur-md rounded-2xl flex items-center gap-4 pointer-events-auto cursor-pointer group active:scale-95 transition-all shadow-xl">
+            <i data-lucide="maximize" class="w-5 h-5 text-indigo-500 group-hover:scale-110 transition-transform"></i>
+            <span class="text-[10px] font-black text-indigo-600 tracking-wider">長按 5 秒開啟實體名片孿生</span>
+        </div>
+    </div>
+
+    <!-- 3D 數位卡片 -->
+    <div class="card-perspective px-6">
+        <div class="card-inner" id="card" onclick="handleFlip(event)">
+            <!-- 中文卡面 -->
+            <div class="card-face card-front">
+                <main>
+                    <div class="watermark -top-5 -left-10" aria-hidden="true">數位發展部</div>
+                    <div class="watermark bottom-10 -right-20" aria-hidden="true">MODA</div>
+
+                    <article class="p-8 lg:p-12 border-b border-moda-light flex flex-col lg:flex-row gap-12 items-center lg:items-start relative z-10">
+                        <div class="relative">
+                            <div class="absolute -inset-4 border border-moda-light pointer-events-none" aria-hidden="true"></div>
+                            <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80"
+                                 alt="名片大頭貼"
+                                 class="w-32 h-32 lg:w-48 lg:h-48 object-cover border-4 border-white shadow-xl">
+                        </div>
+                        <div class="flex-1 text-center lg:text-left">
+                            <p class="hud-text mb-4 opacity-40" aria-hidden="true">數位名片系統 Digital Business Card</p>
+                            <h1 class="text-4xl lg:text-5xl font-black tracking-tighter text-slate-900 mb-2 italic">唐鳳</h1>
+                            <p class="text-moda-dark font-bold tracking-widest text-sm uppercase">數位發展部 部長</p>
+                        </div>
+                    </article>
+
+                    <section class="p-6 lg:p-10 grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10">
+                        <a href="mailto:audrey@moda.gov.tw" class="info-chip p-4 rounded-2xl flex items-center gap-3 group">
+                            <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                                <i data-lucide="mail" class="w-5 h-5"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="hud-text text-[8px] opacity-40">Communication Node</p>
+                                <p class="font-bold text-slate-700 truncate">audrey@moda.gov.tw</p>
+                            </div>
+                        </a>
+                        <a href="tel:+886-2-2737-7777" class="info-chip p-4 rounded-2xl flex items-center gap-3 group">
+                            <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                                <i data-lucide="phone" class="w-5 h-5"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="hud-text text-[8px] opacity-40">Voice Access</p>
+                                <p class="font-bold text-slate-700 truncate">+886 2 2737 7777</p>
+                            </div>
+                        </a>
+                        <a href="https://moda.gov.tw" target="_blank" rel="noopener noreferrer" class="info-chip p-4 rounded-2xl flex items-center gap-3 group md:col-span-2">
+                            <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                                <i data-lucide="globe" class="w-5 h-5"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="hud-text text-[8px] opacity-40">Official Portal</p>
+                                <p class="font-bold text-slate-700 truncate">moda.gov.tw</p>
+                            </div>
+                        </a>
+                    </section>
+                </main>
+            </div>
+
+            <!-- 英文卡面 -->
+            <div class="card-face card-back">
+                <main>
+                    <div class="watermark -top-5 -left-10" aria-hidden="true">Ministry of Digital Affairs</div>
+                    <div class="watermark bottom-10 -right-20" aria-hidden="true">MODA</div>
+
+                    <article class="p-8 lg:p-12 border-b border-moda-light flex flex-col lg:flex-row gap-12 items-center lg:items-start relative z-10">
+                        <div class="relative">
+                            <div class="absolute -inset-4 border border-moda-light pointer-events-none" aria-hidden="true"></div>
+                            <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80"
+                                 alt="Profile Photo"
+                                 class="w-32 h-32 lg:w-48 lg:h-48 object-cover border-4 border-white shadow-xl">
+                        </div>
+                        <div class="flex-1 text-center lg:text-left">
+                            <p class="hud-text mb-4 opacity-40" aria-hidden="true">Digital Business Card System</p>
+                            <h1 class="text-4xl lg:text-5xl font-black tracking-tighter text-slate-900 mb-2 italic">Audrey Tang</h1>
+                            <p class="text-moda-dark font-bold tracking-widest text-sm uppercase">Minister of Digital Affairs</p>
+                        </div>
+                    </article>
+
+                    <section class="p-6 lg:p-10 grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10">
+                        <a href="mailto:audrey@moda.gov.tw" class="info-chip p-4 rounded-2xl flex items-center gap-3 group">
+                            <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                                <i data-lucide="mail" class="w-5 h-5"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="hud-text text-[8px] opacity-40">Communication Node</p>
+                                <p class="font-bold text-slate-700 truncate">audrey@moda.gov.tw</p>
+                            </div>
+                        </a>
+                        <a href="tel:+886-2-2737-7777" class="info-chip p-4 rounded-2xl flex items-center gap-3 group">
+                            <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                                <i data-lucide="phone" class="w-5 h-5"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="hud-text text-[8px] opacity-40">Voice Access</p>
+                                <p class="font-bold text-slate-700 truncate">+886 2 2737 7777</p>
+                            </div>
+                        </a>
+                        <a href="https://moda.gov.tw" target="_blank" rel="noopener noreferrer" class="info-chip p-4 rounded-2xl flex items-center gap-3 group md:col-span-2">
+                            <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                                <i data-lucide="globe" class="w-5 h-5"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="hud-text text-[8px] opacity-40">Official Portal</p>
+                                <p class="font-bold text-slate-700 truncate">moda.gov.tw</p>
+                            </div>
+                        </a>
+                    </section>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === 常量定義 ===
+        const SYNC_DURATION = 5000;
+        const SYNC_CIRCLE_LENGTH = 283;
+
+        // === DOM 元素快取 ===
+        const elements = {};
+
+        function cacheElements() {
+            elements.card = document.getElementById('card');
+            elements.cardState = document.getElementById('card-state');
+            elements.revealBtn = document.getElementById('reveal-btn');
+            elements.syncUI = document.getElementById('sync-ui');
+            elements.syncBar = document.getElementById('sync-bar');
+            elements.syncCountdown = document.getElementById('sync-countdown');
+            elements.realityOverlay = document.getElementById('reality-overlay');
+            elements.replicaWrapper = document.getElementById('replica-wrapper');
+            elements.replicaInner = document.getElementById('replica-inner');
+            elements.rotateIcon = document.getElementById('rotate-icon');
+            elements.threeCanvas = document.getElementById('three-canvas');
+            elements.cardPerspective = document.querySelector('.card-perspective');
+        }
+
+        // === 手勢縮放系統 ===
+        class PinchZoom {
+            constructor(element) {
+                this.element = element;
+                this.evCache = [];
+                this.prevDiff = -1;
+                this.scale = 1;
+                this.init();
+            }
+
+            init() {
+                const events = ['pointerdown', 'pointermove', 'pointerup', 'pointercancel'];
+                events.slice(0, 3).forEach((event, index) => {
+                    this.element.addEventListener(event,
+                        index === 0 ? this.onPointerDown.bind(this) :
+                        index === 1 ? this.onPointerMove.bind(this) :
+                        this.onPointerUp.bind(this)
+                    );
+                });
+                this.element.addEventListener('pointercancel', this.onPointerUp.bind(this));
+                this.element.addEventListener('dblclick', this.reset.bind(this));
+            }
+
+            onPointerDown(ev) {
+                this.evCache.push(ev);
+                if (this.evCache.length === 2) {
+                    this.element.classList.add('pinching');
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                }
+            }
+
+            onPointerMove(ev) {
+                const index = this.evCache.findIndex(e => e.pointerId === ev.pointerId);
+                if (index === -1) return;
+                this.evCache[index] = ev;
+
+                if (this.evCache.length === 2) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+
+                    const curDiff = Math.hypot(
+                        this.evCache[0].clientX - this.evCache[1].clientX,
+                        this.evCache[0].clientY - this.evCache[1].clientY
+                    );
+
+                    if (this.prevDiff > 0) {
+                        this.scale = Math.max(0.5, Math.min(3, this.scale * (curDiff / this.prevDiff)));
+                        this.updateTransform();
+                    }
+                    this.prevDiff = curDiff;
+                }
+            }
+
+            onPointerUp(ev) {
+                const index = this.evCache.findIndex(e => e.pointerId === ev.pointerId);
+                if (index !== -1) this.evCache.splice(index, 1);
+                if (this.evCache.length < 2) {
+                    this.prevDiff = -1;
+                    this.element.classList.remove('pinching');
+                }
+            }
+
+            updateTransform() {
+                this.element.style.transform = `scale(${this.scale})`;
+                if ('vibrate' in navigator && this.scale !== 1) navigator.vibrate(10);
+            }
+
+            reset() {
+                this.scale = 1;
+                this.updateTransform();
+                if ('vibrate' in navigator) navigator.vibrate(30);
+            }
+        }
+
+        // === Three.js 初始化 ===
+        let scene, camera, renderer, mesh, particleBridge;
+
+        function initThree() {
+            if (!window.THREE) return;
+
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({
+                canvas: elements.threeCanvas,
+                antialias: true,
+                alpha: true
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            // 創建星空粒子
+            const starGeo = new THREE.BufferGeometry();
+            const starPos = new Float32Array(6000); // 2000 * 3
+            for (let i = 0; i < 6000; i++) starPos[i] = (Math.random() - 0.5) * 50;
+            starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+
+            mesh = new THREE.Points(starGeo, new THREE.PointsMaterial({
+                size: 0.06,
+                color: 0x6868ac,
+                transparent: true,
+                opacity: 0.3
+            }));
+            scene.add(mesh);
+            camera.position.z = 15;
+
+            function animate() {
+                requestAnimationFrame(animate);
+                if (mesh) mesh.rotation.y += 0.0003;
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
+
+        // === 粒子橋接動畫 ===
+        function createParticleBridge() {
+            if (!window.THREE || !scene) return;
+
+            const particles = [];
+            for (let i = 0; i < 50; i++) {
+                const particle = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.02),
+                    new THREE.MeshBasicMaterial({ color: 0x6868ac, transparent: true, opacity: 0.6 })
+                );
+
+                particle.position.set(
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2
+                );
+
+                particle.userData = {
+                    targetX: (Math.random() - 0.5) * 4,
+                    targetY: (Math.random() - 0.5) * 4,
+                    targetZ: Math.random() * 3 + 2,
+                    speed: 0.01 + Math.random() * 0.02,
+                    startPos: particle.position.clone()
+                };
+
+                particles.push(particle);
+                scene.add(particle);
+            }
+
+            let progress = 0;
+            const animateParticles = () => {
+                if (progress >= 1) {
+                    particles.forEach(p => scene.remove(p));
+                    return;
+                }
+
+                progress += 0.005;
+                particles.forEach(particle => {
+                    const t = Math.min(progress / particle.userData.speed, 1);
+                    const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+                    const { startPos, targetX, targetY, targetZ } = particle.userData;
+
+                    particle.position.x = startPos.x + (targetX - startPos.x) * eased;
+                    particle.position.y = startPos.y + (targetY - startPos.y) * eased;
+                    particle.position.z = startPos.z + (targetZ - startPos.z) * eased;
+                    particle.material.opacity = 0.6 * (1 - progress);
+                });
+
+                requestAnimationFrame(animateParticles);
+            };
+            animateParticles();
+        }
+
+        // === 卡片翻轉與狀態管理 ===
+        let isFlipped = false;
+
+        function handleFlip(e) {
+            if (!elements.card) return;
+            isFlipped = !isFlipped;
+            elements.card.classList.toggle('is-flipped');
+            if ('vibrate' in navigator) navigator.vibrate(30);
+            updateCardState('zh', isFlipped ? 'back' : 'front');
+        }
+
+        function updateCardState(lang, side) {
+            if (!elements.cardState) return;
+            const langText = lang === 'zh' ? '中文' : '英文';
+            const sideText = side === 'front' ? '正面' : '背面';
+            elements.cardState.textContent = `顯示數位名片${langText}${sideText}`;
+        }
+
+        // === 視差效果 ===
+        let ticking = false;
+        let currentRotation = { x: 0, y: 0 };
+
+        function initParallax() {
+            if (!elements.card || !elements.cardPerspective) return;
+
+            elements.cardPerspective.addEventListener('mousemove', (e) => {
+                if (ticking) return;
+
+                requestAnimationFrame(() => {
+                    const rect = elements.cardPerspective.getBoundingClientRect();
+                    const x = (e.clientX - rect.left) / rect.width - 0.5;
+                    const y = (e.clientY - rect.top) / rect.height - 0.5;
+
+                    currentRotation = { x: -y * 10, y: x * 10 };
+                    applyCardTransform();
+                    ticking = false;
+                });
+                ticking = true;
+            });
+
+            elements.cardPerspective.addEventListener('mouseleave', () => {
+                if (ticking) return;
+
+                requestAnimationFrame(() => {
+                    currentRotation = { x: 0, y: 0 };
+                    applyCardTransform();
+                    ticking = false;
+                });
+                ticking = true;
+            });
+        }
+
+        function applyCardTransform() {
+            if (!elements.card) return;
+            const flipOffset = isFlipped ? ' translateX(-100%) rotateY(-180deg)' : '';
+            elements.card.style.transform = `rotateY(${currentRotation.y}deg) rotateX(${currentRotation.x}deg)${flipOffset}`;
+        }
+
+        // === 同步與揭露邏輯 ===
+        let progressInt;
+
+        function startSync(e) {
+            e.preventDefault();
+            if ('vibrate' in navigator) navigator.vibrate(50);
+
+            document.body.classList.add('is-syncing');
+            elements.syncUI.style.opacity = '1';
+            elements.syncUI.style.scale = '1';
+
+            const start = Date.now();
+            progressInt = setInterval(() => {
+                const elapsed = Date.now() - start;
+                const ratio = Math.min(elapsed / SYNC_DURATION, 1);
+                const remaining = Math.ceil((SYNC_DURATION - elapsed) / 1000);
+
+                if (elements.syncCountdown) elements.syncCountdown.innerText = remaining > 0 ? remaining : 0;
+                if (elements.syncBar) elements.syncBar.style.strokeDashoffset = SYNC_CIRCLE_LENGTH - (ratio * SYNC_CIRCLE_LENGTH);
+
+                if (mesh) mesh.rotation.y += ratio * 0.05;
+                if (ratio >= 1) {
+                    showReality();
+                    stopSync();
+                }
+            }, 30);
+        }
+
+        function stopSync() {
+            document.body.classList.remove('is-syncing');
+            if (elements.syncUI) {
+                elements.syncUI.style.opacity = '0';
+                elements.syncUI.style.scale = '0.8';
+            }
+            clearInterval(progressInt);
+            if (elements.syncBar) elements.syncBar.style.strokeDashoffset = SYNC_CIRCLE_LENGTH;
+            if (elements.syncCountdown) elements.syncCountdown.innerText = "5";
+        }
+
+        function showReality() {
+            document.body.classList.add('revealed');
+            if (elements.realityOverlay) elements.realityOverlay.classList.add('active');
+            setTimeout(createParticleBridge, 300);
+            if (elements.cardState) elements.cardState.textContent = '進入實體名片孿生模式';
+        }
+
+        function hideReality() {
+            if (!elements.realityOverlay) return;
+            elements.realityOverlay.classList.remove('active');
+            if (elements.cardState) elements.cardState.textContent = '返回數位名片模式';
+
+            setTimeout(() => {
+                document.body.classList.remove('revealed');
+                if (elements.replicaWrapper) elements.replicaWrapper.classList.remove('is-rotated');
+                if (elements.replicaInner) elements.replicaInner.classList.remove('is-flipped');
+                if (elements.rotateIcon) {
+                    elements.rotateIcon.setAttribute('data-lucide', 'rotate-cw');
+                    lucide.createIcons();
+                }
+                if (mesh) mesh.rotation.y = 0.0003;
+                updateCardState('zh', isFlipped ? 'back' : 'front');
+            }, 300);
+        }
+
+        // === 實體名片互動 ===
+        function handleReplicaFlip(e) {
+            if (!elements.replicaInner) return;
+            if (e.target.closest('.overlay-tool-btn, .close-btn')) return;
+            if (elements.replicaInner.classList.contains('pinching')) return;
+
+            if ('vibrate' in navigator) navigator.vibrate(30);
+            elements.replicaInner.classList.toggle('is-flipped');
+        }
+
+        function toggleRotation(e) {
+            if (e) e.stopPropagation();
+            if (!elements.replicaWrapper || !elements.rotateIcon) return;
+            const isRotated = elements.replicaWrapper.classList.toggle('is-rotated');
+            elements.rotateIcon.setAttribute('data-lucide', isRotated ? 'rotate-ccw' : 'rotate-cw');
+            lucide.createIcons();
+        }
+
+        function resetZoom(e) {
+            if (e) {
+                e.stopPropagation();
+                e.preventDefault();
+            }
+            if (window.pinchZoom) window.pinchZoom.reset();
+        }
+
+        // === 放大鏡效果 ===
+        function initMagnifier() {
+            if (!elements.replicaInner) return;
+            let magnifierActive = false;
+
+            elements.replicaInner.addEventListener('mouseenter', () => magnifierActive = true);
+            elements.replicaInner.addEventListener('mousemove', (e) => {
+                if (!magnifierActive) return;
+                const rect = elements.replicaInner.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                elements.replicaInner.style.transformOrigin = `${x}% ${y}%`;
+            });
+            elements.replicaInner.addEventListener('mouseleave', () => {
+                magnifierActive = false;
+                elements.replicaInner.style.transformOrigin = 'center center';
+            });
+        }
+
+        // === 分享功能 ===
+        async function sharePhysicalTwin() {
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: '數位名片 | 實體孿生',
+                        text: '查看我的實體名片數位孿生',
+                        url: window.location.href
+                    });
+                } catch (err) {
+                    if (err.name !== 'AbortError') console.error('分享失敗:', err);
+                }
+            } else {
+                try {
+                    await navigator.clipboard.writeText(window.location.href);
+                    showNotification('連結已複製到剪貼簿', 'success');
+                } catch (err) {
+                    showNotification('分享功能暫時無法使用', 'error');
+                }
+            }
+        }
+
+        // === 工具函數 ===
+        function handleImageError(side) {
+            const loader = document.getElementById(`img-loader-${side}`);
+            if (loader) {
+                loader.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full text-center p-4">
+                        <i data-lucide="image-off" class="w-12 h-12 text-slate-400 mb-3"></i>
+                        <p class="text-sm text-slate-500 font-medium">圖片載入失敗</p>
+                        <p class="text-xs text-slate-400 mt-1">請檢查網路連線</p>
+                    </div>
+                `;
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            const colors = {
+                success: 'bg-green-500 text-white',
+                error: 'bg-red-500 text-white',
+                info: 'bg-slate-800 text-white'
+            };
+
+            const notification = document.createElement('div');
+            notification.className = `fixed top-24 left-1/2 transform -translate-x-1/2 z-[200] px-6 py-3 rounded-full shadow-xl transition-all duration-300 ${colors[type]}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        function preloadImages() {
+            const images = [
+                'https://i.imgur.com/rN9vL1c.png',
+                'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80'
+            ];
+            images.forEach(src => {
+                const img = new Image();
+                img.src = src;
+            });
+        }
+
+        // === 鍵盤導航 ===
+        let keyboardRotation = { x: 0, y: 0 };
+
+        document.addEventListener('keydown', (e) => {
+            const overlayActive = elements.realityOverlay.classList.contains('active');
+
+            if (e.key === 'Escape' && overlayActive) {
+                hideReality();
+                return;
+            }
+
+            if (e.key === ' ' && !overlayActive) {
+                e.preventDefault();
+                handleFlip(new Event('click'));
+                return;
+            }
+
+            if (!overlayActive && elements.card) {
+                const keyMap = {
+                    'ArrowLeft': { axis: 'y', delta: -10 },
+                    'ArrowRight': { axis: 'y', delta: 10 },
+                    'ArrowUp': { axis: 'x', delta: -10 },
+                    'ArrowDown': { axis: 'x', delta: 10 },
+                    'Home': { reset: true }
+                };
+
+                const action = keyMap[e.key];
+                if (action) {
+                    e.preventDefault();
+                    if (action.reset) {
+                        keyboardRotation = { x: 0, y: 0 };
+                    } else {
+                        keyboardRotation[action.axis] += action.delta;
+                    }
+
+                    const flipOffset = isFlipped ? ' translateX(-100%) rotateY(-180deg)' : '';
+                    elements.card.style.transform = `rotateY(${keyboardRotation.y}deg) rotateX(${keyboardRotation.x}deg)${flipOffset}`;
+                    showNotification(`視角: X${keyboardRotation.x}° Y${keyboardRotation.y}°`, 'info');
+                }
+            }
+        });
+
+        // === 事件監聽器設置 ===
+        function setupEventListeners() {
+            // 同步按鈕 - 長按邏輯
+            if (elements.revealBtn) {
+                elements.revealBtn.addEventListener('mousedown', startSync);
+                elements.revealBtn.addEventListener('touchstart', startSync, { passive: false });
+            }
+            window.addEventListener('mouseup', stopSync);
+            window.addEventListener('touchend', stopSync);
+
+            // 視窗調整
+            window.addEventListener('resize', () => {
+                if (camera && renderer) {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                }
+            });
+
+            // 清理資源
+            window.addEventListener('beforeunload', () => {
+                if (renderer) renderer.dispose();
+            });
+        }
+
+        // === 全局事件處理函數 (供 onclick 使用) ===
+        function handleOverlayClick(e) {
+            if (e.target === elements.realityOverlay) hideReality();
+        }
+
+        // === 初始化 ===
+        document.addEventListener('DOMContentLoaded', () => {
+            cacheElements();
+            lucide.createIcons();
+            preloadImages();
+            setTimeout(initThree, 200);
+            initParallax();
+            initMagnifier();
+            setupEventListeners();
+
+            // 初始化手勢縮放
+            if (elements.replicaInner) {
+                window.pinchZoom = new PinchZoom(elements.replicaInner);
+            }
+        });
+    </script>
+</body>
+</html>

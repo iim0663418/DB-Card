@@ -74,6 +74,37 @@
 - **合規性**: ✅ 可商用、可修改、可分發
 - **備註**: 無 SRI（unpkg 不支援 CORS）
 
+### 8. Simple Icons
+- **版本**: Latest (CDN)
+- **來源**: https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/signal.svg
+- **授權**: CC0-1.0 (公有領域)
+- **用途**: Signal 品牌 icon (SVG path)
+- **授權連結**: https://github.com/simple-icons/simple-icons/blob/develop/LICENSE.md
+- **合規性**: ✅ 可商用、可修改、可分發、無需署名
+- **備註**: 公有領域授權，無任何限制
+
+### 9. Panzoom
+- **版本**: 4.6.1
+- **來源**: https://unpkg.com/@panzoom/panzoom@4.6.1/dist/panzoom.min.js
+- **授權**: MIT License
+- **作者**: timmywil
+- **用途**: 管理後台圖片查看器（縮放/平移/旋轉）
+- **授權連結**: https://github.com/timmywil/panzoom/blob/main/MIT-License.txt
+- **合規性**: ✅ 可商用、可修改、可分發
+- **備註**: 無 SRI（unpkg 不支援 CORS）
+
+### 10. PhotoSwipe
+- **版本**: 5.4.4
+- **來源**: https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/
+- **授權**: MIT License
+- **作者**: Dmytro Semenov
+- **用途**: 實體名片孿生圖片查看器（Lightbox）
+- **官網**: https://photoswipe.com/
+- **GitHub**: https://github.com/dimsemenov/photoswipe
+- **授權連結**: https://github.com/dimsemenov/PhotoSwipe/blob/main/LICENSE
+- **合規性**: ✅ 可商用、可修改、可分發
+- **功能**: 圖片縮放、拖曳、雙擊、鍵盤導航、觸控手勢
+
 ---
 
 ## 🔤 字體
@@ -203,11 +234,14 @@
 
 | 授權類型 | 元件數量 | 商用許可 | 修改許可 | 分發許可 |
 |---------|---------|---------|---------|---------|
-| MIT License | 12 | ✅ | ✅ | ✅ |
+| MIT License | 14 | ✅ | ✅ | ✅ |
 | ISC License | 1 | ✅ | ✅ | ✅ |
 | Apache 2.0 | 3 | ✅ | ✅ | ✅ |
 | SIL OFL 1.1 | 3 | ✅ | ✅ | ✅ |
+| CC0-1.0 | 1 | ✅ | ✅ | ✅ |
 | 商業服務 | 3 | ✅ | N/A | N/A |
+
+**新增**: PhotoSwipe v5.4.4 (MIT License)
 
 ---
 
@@ -234,7 +268,14 @@
 - DOMPurify © Cure53
 - Chart.js © Chart.js Contributors
 - SimpleWebAuthn © Matthew Miller
+- Panzoom © timmywil
+- PhotoSwipe © Dmytro Semenov
 - jose © Filip Skokan
+- Simple Icons © Simple Icons Contributors
+- Google Fonts © Google Inc.
+- Panzoom © timmywil
+- jose © Filip Skokan
+- Simple Icons © Simple Icons Contributors
 - Google Fonts © Google Inc.
 
 ---
@@ -244,5 +285,5 @@
 本文件將隨專案依賴更新而同步維護。如有新增或移除第三方元件，將即時更新此清單。
 
 **維護責任人**: DB-Card Project Team  
-**最後審查日期**: 2026-01-24  
+**最後審查日期**: 2026-01-28  
 **審查結果**: ✅ 所有元件授權合規，無版權風險

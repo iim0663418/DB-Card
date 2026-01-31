@@ -1,260 +1,66 @@
-# BDD Specification: Admin Dashboard Phase 1 Implementation
+# BDD Spec: 優化 3D 旋轉動畫性能
 
-**Feature**: Admin Dashboard Basic Integration
-**Target File**: workers/public/admin-dashboard.html
-**Version**: 1.0.0
-**Base**: Design prototype from docs/
+## 問題分析
+- 當前問題：旋轉動畫有延遲
+- 根本原因：CSS transition 與 JavaScript transform 衝突
 
----
+## 解決方案
 
-## Scenario 1: Integrate Real API for Card Creation
+### 方案 1: 使用 CSS 變數（推薦）
+- JavaScript 只更新 CSS 變數
+- CSS 使用變數進行 transform
+- 避免直接操作 style.transform
 
-**Given**: User is on "創建名片" tab
-**When**: User fills form and clicks "簽發並部署"
-**Then**: 
-- Call POST /api/admin/cards with form data
-- Show success notification
-- Switch to "名片列表" tab
-- Refresh card list
+### 方案 2: 移除 transition
+- 3D 傾斜不使用 transition（即時響應）
+- Hover 效果保留 transition
 
----
+### 方案 3: 分離 transform
+- 使用不同的元素處理不同的 transform
+- 避免多個 transform 衝突
 
-## Scenario 2: Integrate Real API for Card Deletion
+## 實作方案（方案 1 + 2）
 
-**Given**: User clicks "刪除" button on a card
-**When**: User confirms deletion
-**Then**: 
-- Call DELETE /api/admin/cards/:uuid
-- Show success notification
-- Refresh card list
-
----
-
-## Scenario 3: Integrate Real API for Session Revocation
-
-**Given**: User clicks "撤銷" button on a card
-**When**: User confirms revocation
-**Then**: 
-- Call POST /api/admin/revoke with card_uuid
-- Show success notification with sessions_revoked count
-
----
-
-## Scenario 4: Update API Base URL Configuration
-
-**Given**: Application loads
-**When**: Detecting environment
-**Then**: 
-- Use correct API_BASE_URL
-- localhost → staging API
-- production → production API
-
----
-
-## Scenario 5: Integrate generator-api.js
-
-**Given**: Application loads
-**When**: User creates a card
-**Then**: 
-- Use existing generator-api.js functions
-- Reuse createCard() logic
-- Maintain consistency with nfc-generator.html
-
----
-
-## Technical Requirements
-
-### 1. API Configuration
-
-```javascript
-const API_BASE = window.location.hostname === 'localhost'
-  ? 'https://db-card-api-staging.csw30454.workers.dev'
-  : 'https://api.db-card.moda.gov.tw';
-```
-
-### 2. Import generator-api.js
-
-```html
-<script type="module">
-  import { createCard, deleteCard, revokeCard } from './js/generator-api.js';
-</script>
-```
-
-### 3. Update createCard Function
-
-```javascript
-async function handleCreateCard(e) {
-  e.preventDefault();
-  
-  const token = localStorage.getItem('setup_token');
-  const formData = {
-    name: { 
-      zh: document.getElementById('name_zh').value,
-      en: document.getElementById('name_en').value
-    },
-    title: {
-      zh: document.getElementById('title_zh').value,
-      en: document.getElementById('title_en').value
-    },
-    department: {
-      zh: document.getElementById('department').value,
-      en: document.getElementById('department').value
-    },
-    email: document.getElementById('email').value,
-    socialLinks: {
-      socialNote: document.getElementById('social_note').value
-    }
-  };
-  
-  const cardType = document.getElementById('card_type').value;
-  
-  try {
-    const result = await fetch(`${API_BASE}/api/admin/cards`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ cardType, data: formData })
-    });
+### CSS 修改
+```css
+@media (min-width: 1024px) {
+  .card-inner {
+    /* 移除 transition，讓 3D 傾斜即時響應 */
+    /* transition: transform 0.1s ease-out; */
     
-    if (!result.ok) throw new Error('創建失敗');
-    
-    showNotification('名片創建成功！', 'success');
-    switchTab('list');
-    
-  } catch (error) {
-    showNotification('創建失敗: ' + error.message, 'error');
+    /* 使用 CSS 變數 */
+    --rotate-x: 0deg;
+    --rotate-y: 0deg;
+    transform: rotateY(var(--rotate-y)) rotateX(var(--rotate-x)) translateZ(0);
+  }
+  
+  .card-inner.is-flipped {
+    transform: translateX(-100%) rotateY(calc(var(--rotate-y) - 180deg)) rotateX(var(--rotate-x)) translateZ(0);
+  }
+  
+  /* Hover 效果使用獨立的 pseudo-element */
+  .card-inner:hover {
+    /* 移除 translateY，避免與 3D 傾斜衝突 */
+  }
+  
+  /* 陰影 transition 保留 */
+  .card-face {
+    transition: box-shadow 0.3s ease;
   }
 }
 ```
 
-### 4. Update deleteCard Function
-
+### JavaScript 修改
 ```javascript
-async function handleDeleteCard(uuid) {
-  const token = localStorage.getItem('setup_token');
-  
-  try {
-    const result = await fetch(`${API_BASE}/api/admin/cards/${uuid}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    
-    if (!result.ok) throw new Error('刪除失敗');
-    
-    showNotification('名片已刪除', 'success');
-    loadCards();
-    
-  } catch (error) {
-    showNotification('刪除失敗: ' + error.message, 'error');
-  }
+function applyCardTransform() {
+  // 使用 CSS 變數，避免直接操作 transform
+  cardInner.style.setProperty('--rotate-x', `${currentRotation.x}deg`);
+  cardInner.style.setProperty('--rotate-y', `${currentRotation.y}deg`);
 }
 ```
-
-### 5. Update revokeCard Function
-
-```javascript
-async function handleRevokeCard(uuid) {
-  const token = localStorage.getItem('setup_token');
-  
-  try {
-    const result = await fetch(`${API_BASE}/api/admin/revoke`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ card_uuid: uuid })
-    });
-    
-    if (!result.ok) throw new Error('撤銷失敗');
-    
-    const data = await result.json();
-    showNotification(`已撤銷 ${data.sessions_revoked} 個 Session`, 'success');
-    
-  } catch (error) {
-    showNotification('撤銷失敗: ' + error.message, 'error');
-  }
-}
-```
-
-### 6. Add Notification System
-
-```javascript
-function showNotification(message, type = 'success') {
-  const toast = document.createElement('div');
-  toast.className = `fixed bottom-6 right-6 px-6 py-4 rounded-2xl shadow-2xl z-[200] font-bold text-sm ${
-    type === 'success' ? 'bg-green-500 text-white' :
-    type === 'error' ? 'bg-red-500 text-white' :
-    'bg-amber-500 text-white'
-  }`;
-  toast.textContent = message;
-  document.body.appendChild(toast);
-  
-  setTimeout(() => toast.remove(), type === 'error' ? 5000 : 2000);
-}
-```
-
-### 7. Update Token Verification
-
-```javascript
-async function verifyToken() {
-  const token = document.getElementById('setup-token').value;
-  
-  try {
-    // Test API call
-    const res = await fetch(`${API_BASE}/health`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    
-    if (res.ok) {
-      localStorage.setItem('setup_token', token);
-      isVerified = true;
-      // Show UI...
-    } else {
-      showNotification('授權驗證失敗', 'error');
-    }
-  } catch (error) {
-    showNotification('無法連接到伺服器', 'error');
-  }
-}
-```
-
----
 
 ## Acceptance Criteria
-
-- [ ] API_BASE_URL configured correctly
-- [ ] Create card calls real API
-- [ ] Delete card calls real API
-- [ ] Revoke card calls real API
-- [ ] Token stored in localStorage
-- [ ] Notification system works
-- [ ] Success/error handling works
-- [ ] Tab switching after create works
-- [ ] Card list refreshes after operations
-
----
-
-## Implementation Notes
-
-### Keep from Prototype
-- ✅ Three.js background
-- ✅ Tab switching system
-- ✅ Mock data for list (until GET API ready)
-- ✅ Confirmation modal
-- ✅ All styling
-
-### Update
-- ✅ API integration for create/delete/revoke
-- ✅ Notification system
-- ✅ Token verification
-- ✅ Error handling
-
-### Not in Phase 1
-- ❌ Edit functionality (needs GET API)
-- ❌ Real card list loading (needs GET API)
-- ❌ Search/filter
-- ❌ Pagination
-
+- [ ] 3D 傾斜即時響應（無延遲）
+- [ ] Hover 陰影效果保留
+- [ ] 翻轉動畫不受影響
+- [ ] 性能優化（60 FPS）

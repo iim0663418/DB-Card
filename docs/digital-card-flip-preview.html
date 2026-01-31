@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數位名片翻轉預覽 | Digital Card Flip</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@0.562.0/dist/umd/lucide.min.js" crossorigin="anonymous"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+TC:wght@300;500;700;900&display=swap');
+
+        :root {
+            --moda-accent: #6868ac;
+            --crystal-bg: rgba(255, 255, 255, 0.7);
+            --ui-text: #1e1e3f;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --crystal-bg: rgba(30, 41, 59, 0.7);
+                --ui-text: #e2e8f0;
+            }
+            body { background-color: #0f172a; }
+            .glass-card { background: rgba(30, 41, 59, 0.5) !important; }
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #e0e7ff 0%, #f0f2f5 100%);
+            color: var(--ui-text);
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* 卡片容器 */
+        .card-perspective {
+            perspective: 1500px;
+            width: 100%;
+            max-width: 450px;
+            z-index: 10;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            min-height: 640px;
+            -webkit-transform-style: preserve-3d;
+            transform-style: preserve-3d;
+            transform-origin: center right;
+            transition: transform 0.6s ease;
+            cursor: pointer;
+            will-change: transform;
+        }
+
+        .card-inner.is-flipped {
+            transform: translateX(-100%) rotateY(-180deg);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .card-inner {
+                transition: none;
+            }
+        }
+
+        /* Glassmorphism 效果 */
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            -webkit-transform-style: preserve-3d;
+            transform-style: preserve-3d;
+            border-radius: 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.6) 100%);
+            backdrop-filter: blur(40px) saturate(180%) brightness(110%);
+            box-shadow: 0 8px 32px 0 rgba(104, 104, 172, 0.1), inset 0 1px 0 0 rgba(255, 255, 255, 0.5);
+            display: flex;
+            flex-direction: column;
+            padding: 2.5rem;
+            border-top: 6px solid var(--moda-accent);
+            overflow: hidden;
+        }
+
+        .card-front { z-index: 2; transform: rotateY(0deg) translateZ(1px); }
+        .card-back { z-index: 1; transform: rotateY(180deg) translateZ(1px); }
+
+        /* MODA 主題色彩 */
+        .bg-moda-light { background-color: rgba(104, 104, 172, 0.1) !important; }
+        .border-moda-light { border-color: rgba(104, 104, 172, 0.1) !important; }
+        .text-moda-dark { color: #4a4a8a !important; }
+        .group:hover .group-hover\:bg-moda { background-color: var(--moda-accent) !important; }
+        .group:hover .group-hover\:text-white { color: white !important; }
+
+        /* 文字樣式 */
+        .watermark {
+            position: absolute;
+            font-size: 7rem;
+            font-weight: 900;
+            color: rgba(104, 104, 172, 0.02);
+            pointer-events: none;
+            user-select: none;
+            z-index: 1;
+            letter-spacing: -0.05em;
+        }
+
+        .hud-text {
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--moda-accent);
+        }
+
+        .info-chip {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(104, 104, 172, 0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .info-chip:hover {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: rgba(104, 104, 172, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(104, 104, 172, 0.15);
+        }
+
+        .flip-hint {
+            margin-top: auto;
+            padding: 1rem;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--moda-accent);
+            opacity: 0.5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        @media (min-width: 1024px) {
+            .card-perspective { max-width: 560px; }
+            .card-inner { min-height: 720px; }
+            .watermark { font-size: 9rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 數位名片 -->
+    <div class="card-perspective px-6">
+        <div class="card-inner" id="card">
+            <!-- 中文卡面 -->
+            <div class="card-face card-front">
+                <main>
+                    <div class="watermark -top-5 -left-10" aria-hidden="true">數位發展部</div>
+                    <div class="watermark bottom-10 -right-20" aria-hidden="true">MODA</div>
+
+                    <article class="p-8 lg:p-12 border-b border-moda-light flex flex-col lg:flex-row gap-8 items-center lg:items-start relative z-10">
+                        <div class="relative">
+                            <div class="absolute -inset-4 border border-moda-light pointer-events-none" aria-hidden="true"></div>
+                            <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80"
+                                 alt="名片大頭貼"
+                                 class="w-32 h-32 lg:w-40 lg:h-40 object-cover border-4 border-white shadow-xl">
+                        </div>
+                        <div class="flex-1 text-center lg:text-left">
+                            <p class="hud-text mb-3 opacity-40" aria-hidden="true">Digital Business Card</p>
+                            <h1 class="text-4xl lg:text-5xl font-black tracking-tighter text-slate-900 mb-2 italic">唐鳳</h1>
+                            <p class="text-moda-dark font-bold tracking-widest text-sm uppercase">數位發展部 部長</p>
+                        </div>
+                    </article>
+
+                    <section class="p-6 lg:p-10 grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+                        <a href="mailto:audrey@moda.gov.tw" class="info-chip p-4 rounded-2xl flex items-center gap-3 group">
+                            <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                                <i data-lucide="mail" class="w-5 h-5"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="hud-text text-[8px] opacity-40">Email</p>
+                                <p class="font-bold text-slate-700 truncate">audrey@moda.gov.tw</p>
+                            </div>
+                        </a>
+                        <a href="tel:+886-2-2737-7777" class="info-chip p-4 rounded-2xl flex items-center gap-3 group">
+                            <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                                <i data-lucide="phone" class="w-5 h-5"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="hud-text text-[8px] opacity-40">Phone</p>
+                                <p class="font-bold text-slate-700 truncate">+886 2 2737 7777</p>
+                            </div>
+                        </a>
+                        <a href="https://moda.gov.tw" target="_blank" rel="noopener noreferrer" class="info-chip p-4 rounded-2xl flex items-center gap-3 group md:col-span-2">
+                            <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                                <i data-lucide="globe" class="w-5 h-5"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="hud-text text-[8px] opacity-40">Website</p>
+                                <p class="font-bold text-slate-700 truncate">moda.gov.tw</p>
+                            </div>
+                        </a>
+                    </section>
+                </main>
+
+                <!-- 翻轉提示 -->
+                <div class="flip-hint">
+                    <i data-lucide="mouse-pointer-click" class="w-4 h-4"></i>
+                    <span>點擊卡片查看英文版</span>
+                </div>
+            </div>
+
+            <!-- 英文卡面 -->
+            <div class="card-face card-back">
+                <main>
+                    <div class="watermark -top-5 -left-10" aria-hidden="true">Ministry</div>
+                    <div class="watermark bottom-10 -right-20" aria-hidden="true">MODA</div>
+
+                    <article class="p-8 lg:p-12 border-b border-moda-light flex flex-col lg:flex-row gap-8 items-center lg:items-start relative z-10">
+                        <div class="relative">
+                            <div class="absolute -inset-4 border border-moda-light pointer-events-none" aria-hidden="true"></div>
+                            <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80"
+                                 alt="Profile Photo"
+                                 class="w-32 h-32 lg:w-40 lg:h-40 object-cover border-4 border-white shadow-xl">
+                        </div>
+                        <div class="flex-1 text-center lg:text-left">
+                            <p class="hud-text mb-3 opacity-40" aria-hidden="true">Digital Business Card</p>
+                            <h1 class="text-4xl lg:text-5xl font-black tracking-tighter text-slate-900 mb-2 italic">Audrey Tang</h1>
+                            <p class="text-moda-dark font-bold tracking-widest text-sm uppercase">Minister of Digital Affairs</p>
+                        </div>
+                    </article>
+
+                    <section class="p-6 lg:p-10 grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+                        <a href="mailto:audrey@moda.gov.tw" class="info-chip p-4 rounded-2xl flex items-center gap-3 group">
+                            <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                                <i data-lucide="mail" class="w-5 h-5"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="hud-text text-[8px] opacity-40">Email</p>
+                                <p class="font-bold text-slate-700 truncate">audrey@moda.gov.tw</p>
+                            </div>
+                        </a>
+                        <a href="tel:+886-2-2737-7777" class="info-chip p-4 rounded-2xl flex items-center gap-3 group">
+                            <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                                <i data-lucide="phone" class="w-5 h-5"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="hud-text text-[8px] opacity-40">Phone</p>
+                                <p class="font-bold text-slate-700 truncate">+886 2 2737 7777</p>
+                            </div>
+                        </a>
+                        <a href="https://moda.gov.tw" target="_blank" rel="noopener noreferrer" class="info-chip p-4 rounded-2xl flex items-center gap-3 group md:col-span-2">
+                            <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                                <i data-lucide="globe" class="w-5 h-5"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="hud-text text-[8px] opacity-40">Website</p>
+                                <p class="font-bold text-slate-700 truncate">moda.gov.tw</p>
+                            </div>
+                        </a>
+                    </section>
+                </main>
+
+                <!-- 翻轉提示 -->
+                <div class="flip-hint">
+                    <i data-lucide="mouse-pointer-click" class="w-4 h-4"></i>
+                    <span>Click to see Chinese version</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === DOM 元素 ===
+        const card = document.getElementById('card');
+        let isFlipped = false;
+
+        // === 卡片翻轉功能 ===
+        card.addEventListener('click', () => {
+            isFlipped = !isFlipped;
+            card.classList.toggle('is-flipped');
+
+            // 震動回饋（如支援）
+            if ('vibrate' in navigator) {
+                navigator.vibrate(30);
+            }
+        });
+
+        // === 視差效果 ===
+        let ticking = false;
+        let currentRotation = { x: 0, y: 0 };
+
+        const cardPerspective = document.querySelector('.card-perspective');
+
+        cardPerspective.addEventListener('mousemove', (e) => {
+            if (ticking) return;
+
+            requestAnimationFrame(() => {
+                const rect = cardPerspective.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / rect.width - 0.5;
+                const y = (e.clientY - rect.top) / rect.height - 0.5;
+
+                currentRotation = { x: -y * 10, y: x * 10 };
+                applyCardTransform();
+                ticking = false;
+            });
+            ticking = true;
+        });
+
+        cardPerspective.addEventListener('mouseleave', () => {
+            if (ticking) return;
+
+            requestAnimationFrame(() => {
+                currentRotation = { x: 0, y: 0 };
+                applyCardTransform();
+                ticking = false;
+            });
+            ticking = true;
+        });
+
+        function applyCardTransform() {
+            const flipOffset = isFlipped ? ' translateX(-100%) rotateY(-180deg)' : '';
+            card.style.transform = `rotateY(${currentRotation.y}deg) rotateX(${currentRotation.x}deg)${flipOffset}`;
+        }
+
+        // === 初始化 Lucide 圖示 ===
+        lucide.createIcons();
+
+        // === 預載圖片 ===
+        const img = new Image();
+        img.src = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80';
+    </script>
+</body>
+</html>

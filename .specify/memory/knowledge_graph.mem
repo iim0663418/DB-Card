@@ -89,3 +89,6 @@
 260131|Bug|user_cards_403|Resolved_Path_Aware_Cookie
 260131|CSRF|middleware|Path_Based_Token_Selection
 260131|Git|commit|877abf7_CSRF_Fix
+260131|Debug|logging|Environment_Variable_Control
+260131|Performance|optimization|Conditional_Logging
+260131|Git|commit|d5189ea_Env_Based_Logging

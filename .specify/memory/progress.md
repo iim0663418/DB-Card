@@ -1,27 +1,27 @@
 # DB-Card Project Progress
 ## Current Phase: COMPLETED
-- Status: User Cards 403 問題已完全解決
+- Status: 環境變數控制日誌已實作
 - Version: v4.6.0
-- Last Update: 2026-01-31T20:39:00+08:00
+- Last Update: 2026-01-31T20:40:00+08:00
 
-## 問題解決歷程
-1. ✅ 添加 OAuth 驗證詳細日誌
-2. ✅ 添加 CSRF 驗證詳細日誌
-3. ✅ 修復 CSRF token sessionStorage 更新邏輯
-4. ✅ 修復 CSRF middleware 路徑感知 cookie 選擇
+## 本次完成項目
+1. ✅ 實作環境變數控制的除錯日誌
+2. ✅ Staging 保留完整日誌
+3. ✅ Production 只輸出錯誤日誌
+4. ✅ TypeScript 編譯通過
+5. ✅ 部署到 Staging 環境
 
-## 最終解決方案
-- CSRF middleware 根據請求路徑選擇正確的 session cookie
-- Admin 路徑優先使用 admin_token
-- User 路徑優先使用 auth_token
-- 避免混用不同 session 的 CSRF token
+## 技術細節
+- 使用 env.ENVIRONMENT === 'staging' 判斷
+- 所有 console.log/warn 包裝在 if (DEBUG) 中
+- console.error 總是輸出
+- 無業務邏輯變更
 
-## 驗證結果
-- POST /api/user/cards: 成功
-- CSRF token 比對: true
-- OAuth 驗證: 成功
-- 名片建立: 正常運作
+## 效益
+- 減少 Production 日誌量
+- 提升性能（避免不必要的字串處理）
+- Staging 保持完整除錯能力
+- Production 日誌更乾淨
 
 ## Next Action
-- 考慮移除或環境變數控制除錯日誌
 - 準備同步到 Production

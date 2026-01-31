@@ -19,13 +19,19 @@ async function verifyOAuthToken(token: string, env: Env): Promise<string | null>
   }
 }
 
-async function checkEmailDomain(db: D1Database, email: string): Promise<boolean> {
+async function checkEmailAllowed(db: D1Database, email: string): Promise<boolean> {
   const domain = email.split('@')[1];
   if (!domain) return false;
 
+  // BDD: Support both domain-based and individual email validation
+  // Scenario 1: Domain whitelist (e.g., 'moda.gov.tw')
+  // Scenario 2: Individual email whitelist (e.g., 'chingw@acs.gov.tw')
   const result = await db.prepare(`
-    SELECT domain FROM email_allowlist WHERE domain = ?
-  `).bind(domain).first<{ domain: string }>();
+    SELECT 1 FROM email_allowlist
+    WHERE (type = 'domain' AND domain = ?)
+       OR (type = 'email' AND domain = ?)
+    LIMIT 1
+  `).bind(domain, email).first<{ 1: number }>();
 
   return result !== null;
 }
@@ -74,8 +80,8 @@ export async function verifyOAuth(
     return errorResponse('unauthorized', 'Invalid or expired token', 401, request);
   }
 
-  // Verify email domain
-  const isAllowed = await checkEmailDomain(env.DB, email);
+  // Verify email allowlist (domain or individual email)
+  const isAllowed = await checkEmailAllowed(env.DB, email);
   if (!isAllowed) {
     return publicErrorResponse(403, request);
   }

@@ -75,3 +75,8 @@
 260131|Deployment|staging|2c7596c_Healthy_16_Cards
 260131|Deployment|status|Production_Ready
 260131|Deployment|environment|Cloudflare_Workers
+260131|Security|email_allowlist|Only_moda_gov_tw
+260131|Database|email_allowlist|Type_Field_Domain_Email
+260131|OAuth|validation|Unified_Database_Check
+260131|Migration|0017|Email_Allowlist_Individual_Support
+260131|Security|email_allowlist|Only_moda_gov_tw_and_chingw_acs

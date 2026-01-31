@@ -3,6 +3,7 @@
 
 import type { Env } from '../types';
 import { jsonResponse, errorResponse } from '../utils/response';
+import { APP_VERSION } from '../config';
 
 export async function handleHealth(request: Request, env: Env): Promise<Response> {
   try {
@@ -48,6 +49,7 @@ export async function handleHealth(request: Request, env: Env): Promise<Response
 
     return jsonResponse({
       status: 'ok',
+      version: APP_VERSION,
       database: 'connected',
       kek: hasKek ? 'configured' : 'missing',
       kek_version: kekVersion,

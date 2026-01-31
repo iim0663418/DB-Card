@@ -86,7 +86,7 @@
 
 4. **Enterprise Security**
    - Icon: `shield-check` (Lucide)
-   - Title: 企業級安全
+   - Title: 安全預設
    - Points:
      - Cloudflare Workers 全球邊緣運算
      - 資料加密儲存

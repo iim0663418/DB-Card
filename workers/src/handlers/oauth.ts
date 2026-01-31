@@ -1,7 +1,7 @@
 import type { Env } from '../types';
 import { SignJWT } from 'jose';
 import { generateCsrfToken, storeCsrfToken } from '../utils/csrf';
-import { validateAndConsumeOAuthState } from '../utils/oauth-state';
+import { getAndConsumeOAuthState } from '../utils/oauth-state';
 import { validateIDToken } from '../utils/oidc-validator';
 
 /**
@@ -29,10 +29,13 @@ export async function handleOAuthCallback(
     return new Response('Missing state parameter', { status: 403 });
   }
 
-  const isStateValid = await validateAndConsumeOAuthState(state, env);
-  if (!isStateValid) {
+  const stateData = await getAndConsumeOAuthState(state, env);
+  if (!stateData) {
     return new Response('Invalid or expired state parameter', { status: 403 });
   }
+
+  // Extract code_verifier from state data for PKCE
+  const codeVerifier = stateData.codeVerifier;
 
   // ✅ BDD Scenario 1, 2, 3: Redirect URI Validation (Open Redirector Prevention)
   // RFC 6749 Section 10.6
@@ -42,23 +45,8 @@ export async function handleOAuthCallback(
   }
 
   if (error) {
-    return new Response(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>Login Failed</title>
-      </head>
-      <body>
-        <script>
-          window.opener.postMessage({ type: 'oauth_error', error: '${error}' }, '*');
-          window.close();
-        </script>
-      </body>
-      </html>
-    `, {
-      headers: { 'Content-Type': 'text/html; charset=utf-8' }
-    });
+    // Redirect back to user portal with error parameter
+    return Response.redirect(`${url.origin}/user-portal.html?login=error&error=${encodeURIComponent(error)}`, 302);
   }
 
   if (!code) {
@@ -66,20 +54,33 @@ export async function handleOAuthCallback(
   }
 
   try {
-    // Exchange code for tokens
+    // Exchange code for tokens with PKCE code_verifier
+    const tokenParams: Record<string, string> = {
+      code,
+      client_id: env.GOOGLE_CLIENT_ID,
+      client_secret: env.GOOGLE_CLIENT_SECRET,
+      redirect_uri: `${url.origin}/oauth/callback`,
+      grant_type: 'authorization_code'
+    };
+
+    // Add PKCE code_verifier if present (RFC 7636)
+    if (codeVerifier) {
+      tokenParams.code_verifier = codeVerifier;
+    }
+
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        code,
-        client_id: env.GOOGLE_CLIENT_ID,
-        client_secret: env.GOOGLE_CLIENT_SECRET,
-        redirect_uri: `${url.origin}/oauth/callback`,
-        grant_type: 'authorization_code'
-      })
+      body: new URLSearchParams(tokenParams)
     });
 
     if (!tokenResponse.ok) {
+      const errorBody = await tokenResponse.text();
+      console.error('[Token Exchange Failed]', {
+        status: tokenResponse.status,
+        statusText: tokenResponse.statusText,
+        body: errorBody
+      });
       throw new Error('Token exchange failed');
     }
 
@@ -128,26 +129,8 @@ export async function handleOAuthCallback(
                            allowedEmails.includes(userInfo.email);
 
     if (!isAllowedDomain) {
-      return new Response(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>Login Failed</title>
-        </head>
-        <body>
-          <script>
-            window.opener.postMessage({ 
-              type: 'oauth_error', 
-              error: 'unauthorized_domain' 
-            }, '*');
-            window.close();
-          </script>
-        </body>
-        </html>
-      `, {
-        headers: { 'Content-Type': 'text/html; charset=utf-8' }
-      });
+      // Redirect back to user portal with unauthorized domain error
+      return Response.redirect(`${url.origin}/user-portal.html?login=error&error=unauthorized_domain`, 302);
     }
 
     // Generate our JWT token
@@ -175,55 +158,35 @@ export async function handleOAuthCallback(
     const csrfToken = generateCsrfToken();
     await storeCsrfToken(sessionId, csrfToken, env);
 
-    // Set HttpOnly cookie and return user info (no token in response body)
-    const response = new Response(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>Login Success</title>
-      </head>
-      <body>
-        <script>
-          window.opener.postMessage({
-            type: 'oauth_success',
-            email: '${userInfo.email}',
-            name: '${userInfo.name}',
-            picture: '${userInfo.picture || ''}',
-            csrfToken: '${csrfToken}'
-          }, '*');
-          window.close();
-        </script>
-      </body>
-      </html>
-    `, {
-      headers: { 'Content-Type': 'text/html; charset=utf-8' }
-    });
+    // Store user info in KV for redirect flow (expires in 60 seconds, one-time use)
+    const userInfoKey = `oauth_user_info:${sessionId}`;
+    await env.KV.put(userInfoKey, JSON.stringify({
+      email: userInfo.email,
+      name: userInfo.name,
+      picture: userInfo.picture,
+      csrfToken
+    }), { expirationTtl: 60 });
 
-    // Set HttpOnly cookie with security flags
-    response.headers.set('Set-Cookie',
-      `auth_token=${sessionId}; HttpOnly; ${request.url.includes('localhost') ? '' : 'Secure; '}SameSite=Lax; Max-Age=3600; Path=/`
-    );
+    // Create redirect response with cookie header
+    const redirectUrl = `${url.origin}/user-portal.html?login=success&session=${sessionId}`;
+    const response = new Response(null, {
+      status: 302,
+      headers: {
+        'Location': redirectUrl,
+        'Set-Cookie': `auth_token=${sessionId}; HttpOnly; Secure; SameSite=Lax; Max-Age=3600; Path=/`
+      }
+    });
 
     return response;
   } catch (error) {
-    console.error('OAuth callback error:', error);
-    return new Response(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>Login Failed</title>
-      </head>
-      <body>
-        <script>
-          window.opener.postMessage({ type: 'oauth_error', error: 'authentication_failed' }, '*');
-          window.close();
-        </script>
-      </body>
-      </html>
-    `, {
-      headers: { 'Content-Type': 'text/html; charset=utf-8' }
+    console.error('[OAuth Callback Error]', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      code: code?.substring(0, 20) + '...',
+      state: state?.substring(0, 20) + '...',
+      hasCodeVerifier: !!codeVerifier
     });
+
+    return Response.redirect(`${url.origin}/user-portal.html?login=error&error=authentication_failed`, 302);
   }
 }

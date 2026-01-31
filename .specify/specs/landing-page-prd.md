@@ -88,7 +88,7 @@ box-shadow: 0 8px 32px rgba(104, 104, 172, 0.1);
 ### 4.1 Hero Section
 ```
 標題: DB-Card 數位名片系統
-副標題: 企業級安全 | 隱私優先 | 全球邊緣運算
+副標題: 安全預設 | 隱私優先 | 全球邊緣運算
 版本: v4.0.0
 ```
 
@@ -275,8 +275,8 @@ public/
 
 ### 10.2 SEO 優化
 ```html
-<meta name="description" content="DB-Card 企業級 NFC 數位名片系統 - 信封加密、授權會話、審計日誌">
-<meta name="keywords" content="NFC, 數位名片, 企業級, 安全, Cloudflare Workers">
+<meta name="description" content="DB-Card 安全預設 NFC 數位名片系統 - 信封加密、授權會話、審計日誌">
+<meta name="keywords" content="NFC, 數位名片, 安全預設, 安全, Cloudflare Workers">
 ```
 
 ### 10.3 可訪問性

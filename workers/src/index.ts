@@ -1,19 +1,24 @@
 // Main Worker Entry Point
 
 import type { Env } from './types';
+import { RateLimiterDO } from './durable-objects/rate-limiter';
 import { handleHealth } from './handlers/health';
 import { handleTap } from './handlers/tap';
 import { handleRead } from './handlers/read';
 import { handleCreateCard, handleUpdateCard, handleDeleteCard, handleRestoreCard, handleListCards, handleGetCard, handleResetBudget } from './handlers/admin/cards';
 import { handleKekStatus } from './handlers/admin/kek-status';
 import { handleAdminLogin, handleAdminLogout } from './handlers/admin/auth';
+import { handleAssetUpload, handleAssetContent, handleAssetTwinList, handleListCardAssets, handleAdminAssetContent } from './handlers/admin/assets';
 import { handlePasskeyRegisterStart, handlePasskeyRegisterFinish, handlePasskeyLoginStart, handlePasskeyLoginFinish, handlePasskeyStatus, handlePasskeyAvailable } from './handlers/admin/passkey';
 import { handleSecurityStats, handleSecurityEvents, handleSecurityTimeline, handleBlockIP, handleUnblockIP, handleIPDetail, handleSecurityExport, handleCDNHealth } from './handlers/admin/security';
+import { handleMonitoringOverview, handleMonitoringHealth } from './handlers/admin/monitoring';
 import { handleUserCreateCard, handleUserUpdateCard, handleUserListCards, handleUserGetCard, handleUserRevokeCard, handleUserRestoreCard } from './handlers/user/cards';
 import { handleRevocationHistory } from './handlers/user/history';
 import { handleUserLogout } from './handlers/user/logout';
+import { handleGetOAuthUserInfo } from './handlers/user/oauth-user-info';
 import { handleOAuthCallback } from './handlers/oauth';
 import { handleOAuthInit } from './handlers/oauth-init';
+import { handleManifest } from './handlers/manifest';
 import { errorResponse, publicErrorResponse } from './utils/response';
 import { checkRateLimit } from './middleware/rate-limit';
 import { verifySetupToken } from './middleware/auth';
@@ -59,7 +64,13 @@ function addSecurityHeaders(response: Response, nonce: string): Response {
   headers.set('Cross-Origin-Opener-Policy', 'same-origin');
   headers.set('Cross-Origin-Resource-Policy', 'same-origin');
 
-  return new Response(response.clone().body, {
+  // IMPORTANT: Preserve Set-Cookie header from original response
+  const setCookie = response.headers.get('Set-Cookie');
+  if (setCookie) {
+    headers.set('Set-Cookie', setCookie);
+  }
+
+  return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
     headers
@@ -117,12 +128,10 @@ export default {
     }
 
     if (url.pathname === '/api/admin/passkey/login/start' && request.method === 'POST') {
-      console.log('[DEBUG] Passkey login/start route matched');
       return handlePasskeyLoginStart(request, env);
     }
 
     if (url.pathname === '/api/admin/passkey/login/finish' && request.method === 'POST') {
-      console.log('[DEBUG] Passkey login/finish route matched');
       return handlePasskeyLoginFinish(request, env);
     }
 
@@ -201,6 +210,11 @@ export default {
     // User logout
     if (url.pathname === '/api/user/logout' && request.method === 'POST') {
       return handleUserLogout(request, env);
+    }
+
+    // Get OAuth user info after redirect (one-time use)
+    if (url.pathname === '/api/user/oauth-user-info' && request.method === 'GET') {
+      return handleGetOAuthUserInfo(request, env);
     }
 
     // Health check
@@ -369,6 +383,54 @@ export default {
       return handleCDNHealth(request, env);
     }
 
+    // POST /api/admin/assets/upload - Upload physical card asset
+    if (url.pathname === '/api/admin/assets/upload' && request.method === 'POST') {
+      return handleAssetUpload(request, env);
+    }
+
+    // GET /api/admin/assets/:id/content - Admin view asset (no session required)
+    const adminAssetContentMatch = url.pathname.match(/^\/api\/admin\/assets\/([a-f0-9-]{36})\/content$/);
+    if (adminAssetContentMatch && request.method === 'GET') {
+      return handleAdminAssetContent(request, env);
+    }
+
+    // GET /api/admin/cards/:uuid/assets - List card assets
+    const listAssetsMatch = url.pathname.match(/^\/api\/admin\/cards\/([a-f0-9-]{36})\/assets$/);
+    if (listAssetsMatch && request.method === 'GET') {
+      return handleListCardAssets(request, env);
+    }
+
+    // GET /api/assets/:card_uuid/twin - List twin assets for card
+    const assetTwinListMatch = url.pathname.match(/^\/api\/assets\/([a-f0-9-]{36})\/twin$/);
+    if (assetTwinListMatch && request.method === 'GET') {
+      const cardUuid = assetTwinListMatch[1];
+      return handleAssetTwinList(request, env, ctx, cardUuid);
+    }
+
+    // GET /api/assets/:asset_id/content - Read asset with R2 Transform
+    const assetContentMatch = url.pathname.match(/^\/api\/assets\/([a-f0-9-]{36})\/content$/);
+    if (assetContentMatch && request.method === 'GET') {
+      const assetId = assetContentMatch[1];
+      return handleAssetContent(request, env, ctx, assetId);
+    }
+
+    // GET /api/admin/monitoring/overview - Monitoring overview
+    if (url.pathname === '/api/admin/monitoring/overview' && request.method === 'GET') {
+      return handleMonitoringOverview(request, env);
+    }
+
+    // GET /api/admin/monitoring/health - Health check
+    if (url.pathname === '/api/admin/monitoring/health' && request.method === 'GET') {
+      return handleMonitoringHealth(request, env);
+    }
+
+    // GET /api/manifest/:uuid - Dynamic manifest for QR shortcut
+    const manifestMatch = url.pathname.match(/^\/api\/manifest\/([a-f0-9-]{36})$/);
+    if (manifestMatch && request.method === 'GET') {
+      const uuid = manifestMatch[1];
+      return handleManifest(request, env, uuid);
+    }
+
     // Serve static assets (admin-dashboard.html, etc.)
     // This handles requests for static files before falling through to 404
     if (env.ASSETS) {
@@ -429,10 +491,15 @@ export default {
     const { handleScheduledCleanup } = await import('./scheduled-cleanup');
     const { handleScheduledLogRotation } = await import('./scheduled-log-rotation');
     const { handleScheduledKVCleanup } = await import('./scheduled-kv-cleanup');
-    
+    const { cleanupSoftDeletedAssets } = await import('./handlers/scheduled/asset-cleanup');
+
     // Run sequentially to avoid resource contention
     await handleScheduledCleanup(env);
     await handleScheduledLogRotation(env);
     await handleScheduledKVCleanup(env);
+    await cleanupSoftDeletedAssets(env);
   }
 };
+
+// Export Durable Object classes
+export { RateLimiterDO };

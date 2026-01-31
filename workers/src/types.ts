@@ -4,6 +4,8 @@
 export interface Env {
   DB: D1Database;
   KV: KVNamespace;
+  RATE_LIMITER: DurableObjectNamespace;
+  PHYSICAL_CARDS: R2Bucket;
   KEK: string;
   OLD_KEK?: string;
   SETUP_TOKEN?: string;
@@ -240,14 +242,8 @@ export interface RevocationHistoryResponse {
   limit: number;
 }
 
-// Rate Limiting Types (Hour-Only Window - Phase 1)
+// Rate Limiting Types (Durable Objects)
 export type RateLimitDimension = 'card_uuid' | 'ip';
-export type RateLimitWindow = 'hour';
-
-export interface RateLimitData {
-  count: number;
-  first_seen_at: number;
-}
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -255,16 +251,7 @@ export interface RateLimitResult {
   limit?: number;
   retry_after?: number;
   dimension?: RateLimitDimension;
-  window?: RateLimitWindow;
-}
-
-export interface RateLimitConfig {
-  card_uuid: {
-    hour: number;
-  };
-  ip: {
-    hour: number;
-  };
+  window?: 'day';
 }
 
 // Session Budget Types
@@ -295,4 +282,106 @@ export interface SessionBudgetResult {
 export interface AdminLoginRequest {
   email: string;
   token: string;
+}
+
+// Asset Upload Types
+export type AssetType = 'twin_front' | 'twin_back' | 'avatar';
+export type AssetStatus = 'ready' | 'stale' | 'error';
+
+export interface Asset {
+  asset_id: string;
+  card_uuid: string;
+  asset_type: AssetType;
+  current_version: number;
+  r2_key_prefix: string;
+  status: AssetStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AssetVersion {
+  asset_id: string;
+  version: number;
+  size_original: number;
+  size_detail: number;
+  size_thumb: number;
+  created_at: string;
+  soft_deleted_at?: string;
+}
+
+export interface AssetUploadResponse {
+  asset_id: string;
+  current_version: number;
+  variants: {
+    detail: string;
+    thumb: string;
+  };
+  size: {
+    original: number;
+    detail: number;
+    thumb: number;
+  };
+}
+
+// Twin Status Types
+export type TwinStatus = 'ready' | 'stale' | 'disabled' | 'error';
+
+export interface TwinStatusRecord {
+  card_uuid: string;
+  enabled: boolean;
+  status: TwinStatus;
+  last_rebuild_at: string | null;
+  error_message: string | null;
+}
+
+// Monitoring API Types
+export interface MonitoringMetrics {
+  total: number;
+  success: number;
+  failed: number;
+  success_rate: number;
+}
+
+export interface RateLimitMetrics {
+  upload_triggered: number;
+  read_triggered: number;
+  trigger_rate: number;
+}
+
+export interface ErrorMetrics {
+  total: number;
+  by_type: Record<string, number>;
+}
+
+export interface AlertItem {
+  level: 'critical' | 'warning';
+  metric: string;
+  message: string;
+  value: number;
+  threshold: number;
+}
+
+export interface MonitoringOverview {
+  upload: MonitoringMetrics;
+  read: MonitoringMetrics;
+  rate_limit: RateLimitMetrics;
+  errors: ErrorMetrics;
+  alerts: AlertItem[];
+}
+
+export interface HealthCheckItem {
+  status: 'ok' | 'error';
+  latency?: number;
+  error?: string;
+}
+
+export interface HealthResponse {
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  checks: {
+    database: HealthCheckItem;
+    r2: HealthCheckItem;
+    kv: HealthCheckItem;
+  };
+  alerts: AlertItem[];
+  timestamp: number;
 }

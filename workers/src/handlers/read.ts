@@ -18,21 +18,21 @@ async function getCardType(
 ): Promise<'personal' | 'event' | 'sensitive'> {
   try {
     const result = await env.DB.prepare(`
-      SELECT ub.card_type
+      SELECT ub.type
       FROM uuid_bindings ub
       WHERE ub.uuid = ?
         AND ub.status = 'bound'
       LIMIT 1
-    `).bind(cardUuid).first<{ card_type: string }>();
+    `).bind(cardUuid).first<{ type: string }>();
 
-    if (!result || !result.card_type) {
-      console.warn(`[getCardType] No card_type found for ${cardUuid}, defaulting to 'personal'`);
+    if (!result || !result.type) {
+      console.warn(`[getCardType] No type found for ${cardUuid}, defaulting to 'personal'`);
       return 'personal';
     }
 
-    const cardType = result.card_type as 'personal' | 'event' | 'sensitive';
+    const cardType = result.type as 'personal' | 'event' | 'sensitive';
     if (!['personal', 'event', 'sensitive'].includes(cardType)) {
-      console.warn(`[getCardType] Invalid card_type '${cardType}', defaulting to 'personal'`);
+      console.warn(`[getCardType] Invalid type '${cardType}', defaulting to 'personal'`);
       return 'personal';
     }
 
@@ -246,14 +246,23 @@ export async function handleRead(request: Request, env: Env, ctx: ExecutionConte
           card.wrapped_dek,
           0 // ttl=0 disables caching
         );
-      } else {
-        // Scenario 2-4: personal/event cards - cache 60s
+      } else if (cardType === 'event') {
+        // Scenario 2: event cards - cache 600s (10 min)
         cardData = await getCachedCardData(
           env,
           card_uuid,
           card.encrypted_payload,
           card.wrapped_dek,
-          60 // Cache for 60 seconds
+          600 // Cache for 10 minutes (event cards change less frequently)
+        );
+      } else {
+        // Scenario 3: personal cards - cache 300s (5 min)
+        cardData = await getCachedCardData(
+          env,
+          card_uuid,
+          card.encrypted_payload,
+          card.wrapped_dek,
+          300 // Cache for 5 minutes
         );
       }
     } catch (error) {

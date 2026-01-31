@@ -2,17 +2,34 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
+    <!-- Resource Hints -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="DB-Card 數位名片系統 - 安全的企業級數位名片">
+    <meta name="description" content="DB-Card 數位名片系統 - 安全預設數位名片">
     <title>數位名片 | 名片顯示</title>
     <link rel="icon" type="image/png" sizes="192x192" href="favicon.png">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <!-- WCAG配色 v1.1 2026-01-19 -->
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-    <link rel="dns-prefetch" href="https://unpkg.com">
     <script src="/js/tailwind-suppress.js"></script>
     <link rel="stylesheet" href="/css/tailwind.css">
-    <script src="https://unpkg.com/lucide@0.562.0/dist/umd/lucide.min.js"></script>
+    <style>
+/* 桌面版隱藏元素 */
+@media (min-width: 1024px) {
+    .lg\:hidden {
+        display: none !important;
+    }
+    .lg\:justify-center {
+        justify-content: center;
+    }
+    .lg\:flex {
+        display: flex !important;
+    }
+}
+</style>
+    <script src="https://unpkg.com/lucide@0.562.0/dist/umd/lucide.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
             integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ=="
             crossorigin="anonymous"
@@ -22,7 +39,7 @@
             integrity="sha512-78KH17QLT5e55GJqP76vutp1D2iAoy06WcYBXB6iBCsmO6wWzx0Qdg8EDpm8mKXv68BcvHOyeeP4wxAL0twJGQ=="
             crossorigin="anonymous"
             defer></script>
-    <script src="/js/config.js"></script>
+    <script src="/js/config.js" defer></script>
     <link rel="stylesheet" href="css/v4-design.css">
     <style>
 /* MODA Accent 顏色覆蓋 Tailwind indigo */
@@ -44,8 +61,33 @@
 </head>
 <body class="no-scrollbar flex flex-col items-center">
 
+    <!-- Loading Skeleton -->
+    <div id="loading-skeleton" class="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 z-50 transition-opacity duration-300">
+        <div class="w-full max-w-md mx-6">
+            <div class="bg-white rounded-2xl shadow-xl p-8 animate-pulse">
+                <!-- Avatar -->
+                <div class="flex justify-center mb-6">
+                    <div class="w-24 h-24 bg-slate-200 rounded-full"></div>
+                </div>
+
+                <!-- Name -->
+                <div class="h-8 bg-slate-200 rounded w-3/4 mx-auto mb-4"></div>
+
+                <!-- Title -->
+                <div class="h-4 bg-slate-200 rounded w-1/2 mx-auto mb-6"></div>
+
+                <!-- Contact info -->
+                <div class="space-y-3">
+                    <div class="h-4 bg-slate-200 rounded w-full"></div>
+                    <div class="h-4 bg-slate-200 rounded w-5/6"></div>
+                    <div class="h-4 bg-slate-200 rounded w-4/6"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="hint-badge" class="fixed top-8 left-0 right-0 z-50 flex justify-center pointer-events-none px-6 transition-opacity duration-300">
-        <button class="pointer-events-auto group" onclick="toggleFlip()" aria-label="點擊翻面切換語言">
+        <button class="pointer-events-auto group" onclick="toggleFlip(event)" aria-label="點擊翻面切換語言">
             <div class="flex items-center gap-3 px-6 py-3 rounded-full bg-white/90 backdrop-blur-lg border border-slate-200 shadow-lg hover:shadow-xl hover:bg-white transition-all duration-300">
                 <i data-lucide="languages" class="w-5 h-5 text-moda group-hover:rotate-180 transition-transform duration-500"></i>
                 <div class="flex flex-col items-start">
@@ -122,7 +164,7 @@
     <div id="main-container" class="relative z-10 w-full max-w-4xl px-4 py-24 hidden reveal">
 
         <div class="card-perspective">
-            <div id="card" class="card-inner" tabindex="0" role="button" aria-label="點擊翻面切換語言" onclick="toggleFlip()">
+            <div id="card" class="card-inner" tabindex="0" role="button" aria-label="點擊翻面切換語言" onclick="toggleFlip(event)">
                 
                 <div class="card-face card-front">
                     <main id="main-content">
@@ -131,19 +173,18 @@
             <div class="watermark bottom-10 -right-20" aria-hidden="true">MODA</div>
 
             <!-- 身分首部 -->
-            <article class="p-8 lg:p-12 border-b border-moda-light flex flex-col lg:flex-row gap-12 items-center lg:items-start relative z-10">
+            <article class="p-8 border-b border-moda-light flex flex-col gap-12 items-center relative z-10">
                 <div class="relative">
                     <div class="absolute -inset-4 border border-moda-light pointer-events-none" aria-hidden="true"></div>
-                    <img id="user-avatar" src="" alt="名片大頭貼" class="w-32 h-32 lg:w-48 lg:h-48 object-cover border-4 border-white shadow-xl transition-all duration-700">
+                    <img id="user-avatar" src="" alt="名片大頭貼" class="w-32 h-32 object-cover border-4 border-white shadow-xl transition-all duration-700">
                 </div>
 
-                <div class="flex-1 text-center lg:text-left">
+                <div class="flex-1 text-center">
                     <p class="hud-text mb-4 opacity-40" aria-hidden="true" data-i18n="card-system">數位名片系統 Digital Business Card</p>
-                    <h1 id="user-name" class="text-4xl lg:text-5xl font-black tracking-tighter text-slate-900 mb-2 italic">---</h1>
+                    <h1 id="user-name" class="text-4xl font-black tracking-tighter text-slate-900 mb-2 italic">---</h1>
                     <p id="user-title" class="text-moda-dark font-bold tracking-widest text-sm uppercase">---</p>
-                    <p id="user-department" class="text-sm text-slate-500 mt-1 flex items-center gap-1 justify-center lg:justify-start" style="display:none;">
-                        <i data-lucide="briefcase" class="w-3 h-3 flex-shrink-0"></i>
-                        <span id="user-department-text" class="truncate max-w-[250px] lg:max-w-none">---</span>
+                    <p id="user-department" class="text-sm text-slate-500 mt-1 text-center" style="display:none;">
+                        <span id="user-department-text" class="break-words">---</span>
                     </p>
 
                     <div id="greeting-section" class="mt-8 pt-8 border-t border-moda-light hidden">
@@ -154,7 +195,7 @@
             </article>
 
             <!-- 資訊晶片網格 -->
-            <section class="p-6 lg:p-10 grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10" aria-label="聯絡資訊">
+            <section class="p-6 grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10" aria-label="聯絡資訊">
                 <a id="email-link" href="#" class="info-chip p-4 rounded-2xl flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-moda" aria-label="Email 聯絡">
                     <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
                         <i data-lucide="mail" class="w-5 h-5" aria-hidden="true"></i>
@@ -194,7 +235,7 @@
             </section>
 
             <!-- 社群連結聚落 -->
-            <nav id="social-cluster" class="px-6 lg:px-10 pb-10 flex flex-wrap gap-4 justify-center lg:justify-start relative z-10" aria-label="社群媒體連結">
+            <nav id="social-cluster" class="px-6 pb-10 flex flex-wrap gap-4 justify-center relative z-10" aria-label="社群媒體連結">
                 <!-- 由 JS 動態注入 -->
             </nav>
         </main>
@@ -207,19 +248,18 @@
             <div class="watermark bottom-10 -right-20" aria-hidden="true">MODA</div>
 
             <!-- 身分首部 -->
-            <article class="p-8 lg:p-12 border-b border-moda-light flex flex-col lg:flex-row gap-12 items-center lg:items-start relative z-10">
+            <article class="p-8 border-b border-moda-light flex flex-col gap-12 items-center relative z-10">
                 <div class="relative">
                     <div class="absolute -inset-4 border border-moda-light pointer-events-none" aria-hidden="true"></div>
-                    <img id="user-avatar-en" src="" alt="Profile Photo" class="w-32 h-32 lg:w-48 lg:h-48 object-cover border-4 border-white shadow-xl transition-all duration-700">
+                    <img id="user-avatar-en" src="" alt="Profile Photo" class="w-32 h-32 object-cover border-4 border-white shadow-xl transition-all duration-700">
                 </div>
 
-                <div class="flex-1 text-center lg:text-left">
+                <div class="flex-1 text-center">
                     <p class="hud-text mb-4 opacity-40" aria-hidden="true">Digital Business Card System</p>
-                    <h1 id="user-name-en" class="text-4xl lg:text-5xl font-black tracking-tighter text-slate-900 mb-2 italic">---</h1>
+                    <h1 id="user-name-en" class="text-4xl font-black tracking-tighter text-slate-900 mb-2 italic">---</h1>
                     <p id="user-title-en" class="text-moda-dark font-bold tracking-widest text-sm uppercase">---</p>
-                    <p id="user-department-en" class="text-sm text-slate-500 mt-1 flex items-center gap-1 justify-center lg:justify-start" style="display:none;">
-                        <i data-lucide="briefcase" class="w-3 h-3 flex-shrink-0"></i>
-                        <span id="user-department-text-en" class="truncate max-w-[250px] lg:max-w-none">---</span>
+                    <p id="user-department-en" class="text-sm text-slate-500 mt-1 text-center" style="display:none;">
+                        <span id="user-department-text-en" class="break-words">---</span>
                     </p>
 
                     <div id="greeting-section-en" class="mt-8 pt-8 border-t border-moda-light hidden">
@@ -230,7 +270,7 @@
             </article>
 
             <!-- 資訊晶片網格 -->
-            <section class="p-6 lg:p-10 grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10" aria-label="Contact Information">
+            <section class="p-6 grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10" aria-label="Contact Information">
                 <a id="email-link-en" href="#" class="info-chip p-4 rounded-2xl flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-moda" aria-label="Email Contact">
                     <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
                         <i data-lucide="mail" class="w-5 h-5" aria-hidden="true"></i>
@@ -270,7 +310,7 @@
             </section>
 
             <!-- 社群連結聚落 -->
-            <nav id="social-cluster-en" class="px-6 lg:px-10 pb-10 flex flex-wrap gap-4 justify-center lg:justify-start relative z-10" aria-label="Social Media Links">
+            <nav id="social-cluster-en" class="px-6 pb-10 flex flex-wrap gap-4 justify-center relative z-10" aria-label="Social Media Links">
                 <!-- 由 JS 動態注入 -->
             </nav>
         </main>
@@ -281,21 +321,21 @@
 
         <!-- 頁尾控制與安全規範 -->
         <footer class="mt-10 w-full flex flex-col md:flex-row gap-6 items-stretch">
-            <div class="flex-1 flex gap-4">
+            <div class="flex-1 flex gap-4 lg:justify-center">
                 <button id="save-vcard"
-                        class="flex-1 bg-slate-900 text-white font-black uppercase text-xs md:text-[10px] tracking-wider md:tracking-[0.3em] py-4 px-8 rounded-2xl hover:bg-moda shadow-xl transition-all flex items-center justify-center gap-3 focus:outline-none focus:ring-2 focus:ring-moda focus:ring-offset-2"
+                        class="flex-1 bg-slate-900 text-white font-black uppercase text-xs md:text-[10px] tracking-wider md:tracking-[0.3em] py-4 px-8 rounded-2xl hover:bg-moda shadow-xl transition-all flex items-center justify-center gap-3 focus:outline-none focus:ring-2 focus:ring-moda focus:ring-offset-2 lg:hidden"
                         aria-label="下載 vCard 名片">
                     <i id="vcard-icon" data-lucide="user-plus" class="w-5 h-5 md:w-4 md:h-4" aria-hidden="true"></i>
                     <span id="vcard-text" data-i18n="add_to_contacts">加入聯絡人</span>
                 </button>
                 <button id="open-qr"
-                        class="bg-white border-2 border-slate-200 text-slate-700 px-8 py-4 rounded-2xl hover:bg-slate-50 shadow-sm transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-moda focus:ring-offset-2"
+                        class="bg-white border-2 border-slate-200 text-slate-700 px-8 py-4 rounded-2xl hover:bg-slate-50 shadow-sm transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-moda focus:ring-offset-2 lg:hidden"
                         aria-label="顯示 QR Code">
                     <i data-lucide="qr-code" class="w-6 h-6" aria-hidden="true"></i>
                     <span class="text-xs font-bold md:hidden">QR</span>
                 </button>
             </div>
-            <aside class="md:w-80 p-6 border border-moda-light bg-white/80 rounded-2xl shadow-sm">
+            <aside class="md:w-80 p-6 border border-moda-light bg-white/80 rounded-2xl shadow-sm lg:hidden">
                 <div class="flex items-center gap-3 mb-2 text-moda-dark">
                     <i data-lucide="shield-check" class="w-4 h-4" aria-hidden="true"></i>
                     <p class="hud-text text-[10px]" data-i18n="security-spec">資料安全規範</p>
@@ -311,9 +351,20 @@
         </footer>
 
         <!-- 階段資訊 -->
-        <div id="token-info" class="mt-12 opacity-40 text-center space-y-2" role="status" aria-live="polite">
+        <div id="token-info" class="lg:hidden mt-12 opacity-40 text-center space-y-2" role="status" aria-live="polite">
             <p id="session-expiry" class="hud-text text-[8px] text-slate-400">有效期限: --</p>
             <p id="session-reads" class="hud-text text-[8px] text-slate-400">可分享次數: --</p>
+        </div>
+
+        <!-- 桌面版 QR Code 區塊 -->
+        <div class="hidden lg:flex flex-col items-center mt-16 space-y-6">
+            <div class="text-center space-y-2">
+                <p class="text-slate-800 text-base font-semibold">加入手機通訊錄</p>
+                <p class="text-slate-500 text-sm">掃描 QR Code 用手機開啟</p>
+            </div>
+            <div class="bg-white p-8 rounded-2xl shadow-xl border border-slate-100">
+                <div id="qrcode-desktop" class="w-64 h-64 flex items-center justify-center" role="img" aria-label="名片 QR Code"></div>
+            </div>
         </div>
     </div>
 

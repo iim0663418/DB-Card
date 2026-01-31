@@ -63,12 +63,19 @@
         /* 雙語輸入框組合 */
         .bilingual-field {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 40% 60%;
             gap: 1px;
             background: #e2e8f0;
             border-radius: 16px;
             overflow: hidden;
             border: 1px solid #e2e8f0;
+        }
+        
+        @media (max-width: 640px) {
+            .bilingual-field {
+                grid-template-columns: 1fr;
+                gap: 1px;
+            }
         }
         .bilingual-field input, .bilingual-field textarea {
             background: #fff;
@@ -205,7 +212,7 @@
                 <img id="user-avatar-display" src="" alt="" class="w-9 h-9 rounded-full border-2 border-white shadow-sm hidden">
                 <div class="flex flex-col items-end">
                     <span id="user-name-display" class="text-sm font-black text-slate-700">---</span>
-                    <span id="user-email-display" class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">---</span>
+                    <span id="user-email-display" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">---</span>
                 </div>
             </div>
             <button onclick="handleLogout()" class="px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:text-red-600 transition-all uppercase tracking-widest shadow-sm">
@@ -233,11 +240,11 @@
                 </div>
                 <button id="google-login-btn" onclick="handleGoogleLogin()" class="btn-google w-full flex items-center justify-center gap-4 py-4 rounded-2xl font-bold text-sm">
                     <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" class="w-5 h-5" alt="Google">
-                    Login with Google
+                    使用 Google 帳號登入
                 </button>
                 <div class="space-y-2">
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Authorized Access Only</p>
-                    <p class="text-[11px] text-slate-400">僅限 @moda.gov.tw 網域使用者訪問</p>
+                    <p class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">僅限授權使用者</p>
+                    <p class="text-xs text-slate-400">限 @moda.gov.tw 網域帳號</p>
                 </div>
             </div>
         </section>
@@ -275,29 +282,29 @@
                     <!-- 姓名與職稱 -->
                     <div class="space-y-6">
                         <div class="space-y-2">
-                            <div class="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
-                                <span>Chinese Name *</span><span>English Name *</span>
+                            <div class="flex justify-between text-xs font-black text-slate-400 uppercase tracking-widest px-1">
+                                <span>中文姓名 *</span><span>英文姓名 *</span>
                             </div>
                             <div class="bilingual-field">
-                                <input type="text" id="name_zh" name="name_zh" placeholder="如：王大明" required>
-                                <input type="text" id="name_en" name="name_en" placeholder="e.g. John Smith" required>
+                                <input type="text" id="name_zh" name="name_zh" placeholder="王大明" required aria-label="中文姓名">
+                                <input type="text" id="name_en" name="name_en" placeholder="John Smith" required aria-label="English Name">
                             </div>
                         </div>
 
                         <div class="space-y-2">
-                            <div class="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
-                                <span>Position (ZH)</span><span>Title (EN)</span>
+                            <div class="flex justify-between text-xs font-black text-slate-400 uppercase tracking-widest px-1">
+                                <span>中文職稱</span><span>英文職稱</span>
                             </div>
                             <div class="bilingual-field">
-                                <input type="text" id="title_zh" name="title_zh" placeholder="如：科長">
-                                <input type="text" id="title_en" name="title_en" placeholder="e.g. Section Chief">
+                                <input type="text" id="title_zh" name="title_zh" placeholder="科長" aria-label="中文職稱">
+                                <input type="text" id="title_en" name="title_en" placeholder="Section Chief" aria-label="English Title">
                             </div>
                         </div>
                     </div>
 
                     <!-- 部門選擇下拉選單 -->
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">所屬部門</label>
+                        <label for="department-preset" class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">選擇您的所屬部門</label>
                         <select id="department-preset" name="department" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold appearance-none">
                             <option value="">請選擇部門</option>
                             <option value="數位策略司">數位策略司</option>
@@ -320,74 +327,77 @@
                         </select>
 
                         <div id="custom-department-field" class="hidden space-y-2">
-                            <input type="text" id="department-custom-zh" name="department_custom_zh" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="請輸入部門名稱（中文）">
-                            <input type="text" id="department-custom-en" name="department_custom_en" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="Department Name (English)">
+                            <input type="text" id="department-custom-zh" name="department_custom_zh" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="輸入部門名稱" aria-label="自訂部門中文名稱">
+                            <input type="text" id="department-custom-en" name="department_custom_en" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="Department Name" aria-label="Custom Department English Name">
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email *</label>
-                            <input type="email" id="email" name="email" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" required>
+                            <label for="email" class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Email *</label>
+                            <input type="email" id="email" name="email" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="your.name@moda.gov.tw" required>
                         </div>
                         <div class="space-y-2">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone</label>
-                            <input type="text" id="phone" name="phone" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="02-2380-XXXX">
+                            <label for="phone" class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">辦公室電話</label>
+                            <input type="text" id="phone" name="phone" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="02-2380-1234">
                         </div>
                     </div>
 
                     <!-- 地址預設選擇 + 自訂 -->
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">地址 Address</label>
+                        <label for="address-preset" class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">辦公地址</label>
                         <select id="address-preset" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold appearance-none mb-2">
-                            <option value="">-- 選擇預設地址或自訂 --</option>
+                            <option value="">選擇預設地址或自訂</option>
                             <option value="yanping">延平大樓（數位發展部）</option>
                             <option value="shinkong">新光大樓（數位發展部）</option>
                             <option value="custom">自訂地址</option>
                         </select>
 
                         <div id="custom-address-fields" class="hidden space-y-2">
-                            <input type="text" id="address_zh" name="address_zh" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="中文地址（例：10058 台北市中正區延平南路143號）">
-                            <input type="text" id="address_en" name="address_en" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="English Address (e.g., No. 143, Yanping S. Rd., Taipei 10058)">
+                            <input type="text" id="address_zh" name="address_zh" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="10058 台北市中正區延平南路143號" aria-label="中文地址">
+                            <input type="text" id="address_en" name="address_en" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="No. 143, Yanping S. Rd., Taipei 10058" aria-label="English Address">
                         </div>
                     </div>
 
                     <!-- 進階資訊折疊區 -->
                     <details class="group border-t border-slate-100 pt-6 mt-6">
                         <summary class="list-none cursor-pointer flex items-center justify-between text-xs font-black text-moda hover:text-moda transition-colors uppercase tracking-widest">
-                            <span>+ 進階與社群資訊</span>
+                            <span>進階與社群資訊（選填）</span>
                             <i data-lucide="chevron-down" class="w-4 h-4 group-open:rotate-180 transition-transform"></i>
                         </summary>
                         <div class="pt-6 space-y-6">
                             <!-- 手機 & 大頭貼 -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div class="space-y-2">
-                                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">手機號碼</label>
+                                    <label for="mobile" class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">手機號碼</label>
                                     <input type="text" id="mobile" name="mobile" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="0912-345-678">
                                 </div>
                                 <div class="space-y-2">
-                                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">大頭貼 URL</label>
-                                    <input type="url" id="avatar_url" name="avatar_url" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="https://drive.google.com/file/d/...">
-                                    <p class="text-xs text-slate-500 ml-1">
-                                        推薦使用 Google Drive：取得連結時設為「知道連結的任何人」，並點擊右上角齒輪設定下載權限
+                                    <label for="avatar_url" class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">大頭貼連結</label>
+                                    <input type="url" id="avatar_url" name="avatar_url" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="貼上 Google Drive 分享連結">
+                                    <p class="text-xs text-slate-500 ml-1 leading-relaxed">
+                                        💡 使用 Google Drive：分享時設為「知道連結的任何人」
                                     </p>
                                 </div>
                             </div>
 
                             <!-- 問候語 -->
                             <div class="space-y-2">
-                                <div class="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
-                                    <span>Greeting (ZH)</span><span>Greeting (EN)</span>
+                                <div class="flex justify-between text-xs font-black text-slate-400 uppercase tracking-widest px-1">
+                                    <span>中文問候語</span><span>英文問候語</span>
                                 </div>
                                 <div class="bilingual-field">
-                                    <textarea id="greetings_zh" name="greetings_zh" class="h-24 resize-none" placeholder="您好，很高興認識您"></textarea>
-                                    <textarea id="greetings_en" name="greetings_en" class="h-24 resize-none" placeholder="Hello, nice to meet you"></textarea>
+                                    <textarea id="greetings_zh" name="greetings_zh" class="h-24 resize-none" placeholder="您好，很高興認識您" aria-label="中文問候語"></textarea>
+                                    <textarea id="greetings_en" name="greetings_en" class="h-24 resize-none" placeholder="Hello, nice to meet you" aria-label="English Greeting"></textarea>
                                 </div>
                             </div>
 
                             <!-- 社群連結 -->
                             <div class="space-y-3">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">社群連結 Social Links</label>
+                                <div class="flex items-center justify-between">
+                                    <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">社群連結</label>
+                                    <span class="text-[10px] text-slate-400">選填，方便他人聯繫</span>
+                                </div>
 
                                 <!-- GitHub -->
                                 <div class="flex items-center gap-2">
@@ -444,32 +454,30 @@
                                             <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
                                         </svg>
                                     </div>
-                                    <input type="text" id="social_line" name="social_line" class="flex-1 px-5 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" placeholder="LINE ID 或 https://line.me/ti/p/~username">
+                                    <input type="text" id="social_line" name="social_line" class="flex-1 px-5 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" placeholder="LINE ID 或完整連結" aria-label="LINE">
                                 </div>
 
                                 <!-- Signal -->
                                 <div class="flex items-center gap-2">
                                     <div class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center flex-shrink-0">
                                         <svg class="w-4 h-4 text-slate-600" viewBox="0 0 24 24" fill="currentColor">
-                                            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 16.707s-1.067 1.341-1.24 1.514c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26l-3.616-3.616-3.616 3.616c-.173.173-.346.26-.519.26-.173 0-.346-.087-.519-.26-.173-.173-1.24-1.514-1.24-1.514-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693l3.616-3.616-3.616-3.616c-.173-.173-.26-.433-.26-.693 0-.26.087-.52.26-.693 0 0 1.067-1.341 1.24-1.514.173-.173.346-.26.519-.26.173 0 .346.087.519.26l3.616 3.616 3.616-3.616c.173-.173.346-.26.519-.26.173 0 .346.087.519.26.173.173 1.24 1.514 1.24 1.514.173.173.26.433.26.693 0 .26-.087.52-.26.693l-3.616 3.616 3.616 3.616c.173.173.26.433.26.693 0 .26-.087.52-.26.693z"/>
+                                            <path d="M12 0q-.934 0-1.83.139l.17 1.111a11 11 0 0 1 3.32 0l.172-1.111A12 12 0 0 0 12 0M9.152.34A12 12 0 0 0 5.77 1.742l.584.961a10.8 10.8 0 0 1 3.066-1.27zm5.696 0-.268 1.094a10.8 10.8 0 0 1 3.066 1.27l.584-.962A12 12 0 0 0 14.848.34M12 2.25a9.75 9.75 0 0 0-8.539 14.459c.074.134.1.292.064.441l-1.013 4.338 4.338-1.013a.62.62 0 0 1 .441.064A9.7 9.7 0 0 0 12 21.75c5.385 0 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25m-7.092.068a12 12 0 0 0-2.59 2.59l.909.664a11 11 0 0 1 2.345-2.345zm14.184 0-.664.909a11 11 0 0 1 2.345 2.345l.909-.664a12 12 0 0 0-2.59-2.59M1.742 5.77A12 12 0 0 0 .34 9.152l1.094.268a10.8 10.8 0 0 1 1.269-3.066zm20.516 0-.961.584a10.8 10.8 0 0 1 1.27 3.066l1.093-.268a12 12 0 0 0-1.402-3.383M.138 10.168A12 12 0 0 0 0 12q0 .934.139 1.83l1.111-.17A11 11 0 0 1 1.125 12q0-.848.125-1.66zm23.723.002-1.111.17q.125.812.125 1.66c0 .848-.042 1.12-.125 1.66l1.111.172a12.1 12.1 0 0 0 0-3.662M1.434 14.58l-1.094.268a12 12 0 0 0 .96 2.591l-.265 1.14 1.096.255.36-1.539-.188-.365a10.8 10.8 0 0 1-.87-2.35m21.133 0a10.8 10.8 0 0 1-1.27 3.067l.962.584a12 12 0 0 0 1.402-3.383zm-1.793 3.848a11 11 0 0 1-2.345 2.345l.664.909a12 12 0 0 0 2.59-2.59zm-19.959 1.1L.357 21.48a1.8 1.8 0 0 0 2.162 2.161l1.954-.455-.256-1.095-1.953.455a.675.675 0 0 1-.81-.81l.454-1.954zm16.832 1.769a10.8 10.8 0 0 1-3.066 1.27l.268 1.093a12 12 0 0 0 3.382-1.402zm-10.94.213-1.54.36.256 1.095 1.139-.266c.814.415 1.683.74 2.591.961l.268-1.094a10.8 10.8 0 0 1-2.35-.869zm3.634 1.24-.172 1.111a12.1 12.1 0 0 0 3.662 0l-.17-1.111q-.812.125-1.66.125a11 11 0 0 1-1.66-.125"/>
                                         </svg>
                                     </div>
-                                    <input type="text" id="social_signal" name="social_signal" class="flex-1 px-5 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" placeholder="Signal username 或 https://signal.me/#eu/...">
+                                    <input type="text" id="social_signal" name="social_signal" class="flex-1 px-5 py-3 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda text-sm" placeholder="+886912345678" aria-label="Signal">
                                 </div>
-
-                                <p class="text-[9px] text-slate-400 italic">直接貼上完整連結，留空表示不顯示該平台</p>
                             </div>
                         </div>
                     </details>
 
-                    <div id="form-error-msg" class="hidden p-4 bg-red-50 text-red-600 rounded-2xl text-xs font-bold"></div>
+                    <div id="form-error-msg" class="hidden p-4 bg-red-50 border border-red-200 text-red-600 rounded-2xl text-xs font-bold"></div>
 
                     <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-6">
-                        <button type="button" onclick="showView('selection')" class="sm:flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-200">Cancel</button>
-                        <button id="submit-btn" type="submit" class="sm:flex-[2] py-4 bg-moda text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-moda shadow-xl shadow-moda transition-all">
-                            <span id="submit-btn-text">Save Changes</span>
+                        <button type="button" onclick="showView('selection')" class="sm:flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-200">取消</button>
+                        <button id="submit-btn" type="submit" class="sm:flex-[2] py-4 bg-moda text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-moda shadow-xl shadow-moda transition-all">
+                            <span id="submit-btn-text">儲存並預覽名片</span>
                             <span id="submit-btn-loading" class="hidden">
-                                <i data-lucide="loader-2" class="w-4 h-4 inline animate-spin"></i> Saving...
+                                <i data-lucide="loader-2" class="w-4 h-4 inline animate-spin"></i> 儲存中...
                             </span>
                         </button>
                     </div>
@@ -479,16 +487,16 @@
             <!-- 右側預覽 -->
             <div class="lg:col-span-4 space-y-6">
                 <div class="glass-panel p-6 lg:p-8 rounded-[3rem] lg:sticky lg:top-28 text-center flex flex-col items-center">
-                    <p class="text-[10px] font-black text-moda opacity-60 uppercase tracking-[0.3em] mb-10">Real-time Context</p>
+                    <p class="text-xs font-black text-moda opacity-60 uppercase tracking-[0.3em] mb-10">Real-time Context</p>
                     <div id="preview-lang-switch" class="flex bg-slate-100 p-1 rounded-lg mb-6">
-                        <button data-lang="zh" class="px-4 py-1 text-[10px] font-bold rounded-md bg-white shadow-sm transition-all">中</button>
-                        <button data-lang="en" class="px-4 py-1 text-[10px] font-bold rounded-md text-slate-500 hover:text-slate-900 transition-all">EN</button>
+                        <button data-lang="zh" class="px-4 py-1 text-xs font-bold rounded-md bg-white shadow-sm transition-all">中</button>
+                        <button data-lang="en" class="px-4 py-1 text-xs font-bold rounded-md text-slate-500 hover:text-slate-900 transition-all">EN</button>
                     </div>
                     <div id="preview-card" class="w-full max-w-[240px] sm:max-w-[260px] bg-white rounded-[2rem] sm:rounded-[3rem] shadow-2xl border-t-[6px] sm:border-t-[8px] border-t-moda p-6 sm:p-8 space-y-4 sm:space-y-6">
                         <img id="prev-avatar" src="" class="w-24 h-24 rounded-[2rem] mx-auto object-cover border-2 border-slate-50 hidden">
                         <div>
                             <h3 id="prev-name" class="text-2xl font-black italic">---</h3>
-                            <p id="prev-title" class="text-moda font-bold text-[10px] uppercase tracking-widest mt-2">---</p>
+                            <p id="prev-title" class="text-moda font-bold text-xs uppercase tracking-widest mt-2">---</p>
                             <p id="prev-department" class="text-sm text-slate-500 mt-1 flex items-center gap-1 justify-center" style="display:none;">
                                 <i data-lucide="briefcase" class="w-3 h-3 flex-shrink-0"></i>
                                 <span id="prev-department-text" class="truncate max-w-[200px]">---</span>
@@ -503,28 +511,28 @@
                         <!-- 問候語區塊 -->
                         <div id="prev-greeting-section" class="mt-6 pt-6 border-t border-moda opacity-20 hidden">
                             <p class="text-[8px] font-black tracking-widest text-slate-400 uppercase mb-3 opacity-40">Dynamic Transmission Feed</p>
-                            <p id="prev-greeting" class="text-slate-600 font-medium italic text-[10px]"></p>
+                            <p id="prev-greeting" class="text-slate-600 font-medium italic text-xs"></p>
                         </div>
 
                         <!-- Email -->
                         <div class="bg-slate-50 p-3 rounded-xl flex items-center gap-3 text-left mt-2">
                             <i data-lucide="mail" class="w-4 h-4 text-moda opacity-60"></i>
-                            <span id="prev-email" class="text-[10px] font-bold text-slate-600 truncate">---</span>
+                            <span id="prev-email" class="text-xs font-bold text-slate-600 truncate">---</span>
                         </div>
 
                         <!-- Phone -->
                         <div class="bg-slate-50 p-3 rounded-xl flex items-center gap-3 text-left mt-2">
                             <i data-lucide="phone" class="w-4 h-4 text-moda opacity-60"></i>
-                            <span id="prev-phone" class="text-[10px] font-bold text-slate-600 truncate">---</span>
+                            <span id="prev-phone" class="text-xs font-bold text-slate-600 truncate">---</span>
                         </div>
 
                         <!-- Address -->
                         <div class="bg-slate-50 p-3 rounded-xl flex items-center gap-3 text-left mt-2">
                             <i data-lucide="map-pin" class="w-4 h-4 text-moda opacity-60"></i>
-                            <span id="prev-address" class="text-[10px] font-bold text-slate-600 truncate">---</span>
+                            <span id="prev-address" class="text-xs font-bold text-slate-600 truncate">---</span>
                         </div>
                     </div>
-                    <p class="text-[9px] text-slate-400 mt-10 italic uppercase font-bold tracking-widest">Digital Twin Preview</p>
+                    <p class="text-[10px] text-slate-400 mt-10 italic uppercase font-bold tracking-widest">Digital Twin Preview</p>
                 </div>
             </div>
         </section>
@@ -544,13 +552,13 @@
                 <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i data-lucide="check-circle" class="w-8 h-8 text-green-600"></i>
                 </div>
-                <h3 class="text-2xl font-black text-slate-900">名片創建成功！</h3>
-                <p id="modal-card-type" class="text-sm text-slate-600 mt-2">您的個人名片已準備就緒</p>
+                <h3 class="text-2xl font-black text-slate-900">名片已儲存</h3>
+                <p id="modal-card-type" class="text-sm text-slate-600 mt-2">您的名片已成功更新</p>
             </div>
 
             <!-- Share Link -->
             <div class="mb-6">
-                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">名片網址</label>
+                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">分享連結</label>
                 <div class="flex gap-2">
                     <input id="modal-share-link" type="text" readonly class="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono text-slate-700">
                     <button id="modal-copy-btn" onclick="copyModalLink()" class="px-6 py-3 bg-moda text-white rounded-xl font-bold hover:bg-moda/90 transition-colors flex items-center gap-2">
@@ -558,7 +566,7 @@
                         <span id="modal-copy-text">複製</span>
                     </button>
                 </div>
-                <p class="text-xs text-slate-500 mt-2">此連結可分享給他人查看您的名片</p>
+                <p class="text-xs text-slate-500 mt-2">可透過此連結分享您的名片</p>
             </div>
 
             <!-- Next Steps -->
@@ -576,7 +584,7 @@
                             </div>
                             <div>
                                 <p class="text-xs font-black text-slate-700">寫入 NFC 卡片</p>
-                                <p class="text-[9px] text-slate-500 mt-1">實體卡片快速分享</p>
+                                <p class="text-[10px] text-slate-500 mt-1">實體卡片快速分享</p>
                             </div>
                         </div>
                     </div>
@@ -588,7 +596,7 @@
                             </div>
                             <div>
                                 <p class="text-xs font-black text-slate-700">縮短網址</p>
-                                <p class="text-[9px] text-slate-500 mt-1">方便線上分享</p>
+                                <p class="text-[10px] text-slate-500 mt-1">方便線上分享</p>
                             </div>
                         </div>
                     </div>
@@ -616,18 +624,18 @@
                     <i data-lucide="shield-alert" class="w-8 h-8 text-red-600"></i>
                 </div>
                 <h3 class="text-2xl font-black text-slate-900">確認撤銷名片</h3>
-                <p class="text-sm text-slate-600 mt-2">撤銷後，所有分享的連結將立即失效</p>
-                <p class="text-xs text-amber-600 mt-2 font-medium">您可在 7 天內自行恢復此名片</p>
+                <p class="text-sm text-slate-600 mt-2">撤銷後，所有分享連結將立即失效</p>
+                <p class="text-xs text-amber-600 mt-2 font-medium">可在 7 天內自行恢復</p>
                 <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
                     <p class="text-xs text-blue-800">
-                        <span class="font-bold">需要立即刪除並重新註冊？</span><br>
-                        請聯繫管理員協助永久刪除，即可立即創建新卡片
+                        <span class="font-bold">需要立即重新註冊？</span><br>
+                        請聯繫管理員協助永久刪除
                     </p>
                 </div>
             </div>
 
             <div class="mb-6 space-y-2">
-                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider block">撤銷原因（可選）</label>
+                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider block">撤銷原因（選填）</label>
                 <select id="revoke-reason" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-moda">
                     <option value="">不提供原因</option>
                     <option value="lost">卡片遺失</option>
@@ -669,6 +677,24 @@
         </div>
     </div>
 
+
     <script src="/js/user-portal-init.js"></script>
+    <script>
+        function createQRShortcut(uuid, cardName, cardType) {
+            // Generate display name with fallback
+            let displayName = cardName;
+            if (!displayName) {
+                const typeLabels = {
+                    'personal': '個人名片',
+                    'event': '活動名片',
+                    'sensitive': '敏感名片'
+                };
+                displayName = typeLabels[cardType] || '數位名片';
+            }
+
+            // Navigate to qr-quick.html (merged install + QR display)
+            window.location.href = `/qr-quick.html?uuid=${uuid}&name=${encodeURIComponent(displayName)}&type=${encodeURIComponent(cardType || 'personal')}`;
+        }
+    </script>
 </body>
 </html>

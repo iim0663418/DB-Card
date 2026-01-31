@@ -433,8 +433,9 @@ export async function handleUserUpdateCard(
     // Get all active sessions for this card and clear their response caches
     try {
       const sessions = await env.DB.prepare(`
-        SELECT session_id FROM read_sessions WHERE card_uuid = ? AND status = 'active'
-      `).bind(uuid).all();
+        SELECT session_id FROM read_sessions 
+        WHERE card_uuid = ? AND revoked_at IS NULL AND expires_at > ?
+      `).bind(uuid, Date.now()).all();
 
       if (sessions.results && sessions.results.length > 0) {
         const deletePromises = sessions.results.map((session: any) =>

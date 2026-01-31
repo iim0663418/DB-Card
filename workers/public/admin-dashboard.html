@@ -437,6 +437,15 @@
 
                         <div class="mb-4">
                             <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">
+                                官方網站 Official Website
+                            </label>
+                            <input type="url" id="web"
+                                   class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-moda text-sm"
+                                   placeholder="https://moda.gov.tw">
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">
                                 地址 Address
                             </label>
 
@@ -623,6 +632,14 @@
                                 <div class="bg-slate-50 p-4 rounded-2xl flex items-center gap-4 text-left mt-2">
                                     <i data-lucide="phone" class="w-4 h-4 text-moda opacity-60"></i>
                                     <span id="prev-phone" class="text-[10px] font-bold text-slate-600 truncate">---</span>
+                                </div>
+                                <div id="prev-web-container" class="bg-slate-50 p-4 rounded-2xl flex items-center gap-4 text-left mt-2" style="display:none;">
+                                    <i data-lucide="globe" class="w-4 h-4 text-moda opacity-60"></i>
+                                    <span id="prev-web" class="text-[10px] font-bold text-slate-600 truncate">---</span>
+                                </div>
+                                <div id="prev-mobile-container" class="bg-slate-50 p-4 rounded-2xl flex items-center gap-4 text-left mt-2" style="display:none;">
+                                    <i data-lucide="smartphone" class="w-4 h-4 text-moda opacity-60"></i>
+                                    <span id="prev-mobile" class="text-[10px] font-bold text-slate-600 truncate">---</span>
                                 </div>
                                 <div class="bg-slate-50 p-4 rounded-2xl flex items-center gap-4 text-left mt-2">
                                     <i data-lucide="map-pin" class="w-4 h-4 text-moda opacity-60"></i>
@@ -2439,6 +2456,7 @@ wrangler secret delete OLD_KEK
                 title_en: document.getElementById('title_en').value.trim(),
                 email: document.getElementById('email').value.trim(),
                 phone: document.getElementById('phone').value.trim(),
+                web: document.getElementById('web').value.trim(),
                 department: departmentValue,
                 mobile: document.getElementById('mobile').value.trim(),
                 avatar_url: document.getElementById('avatar_url').value.trim(),
@@ -2828,6 +2846,7 @@ wrangler secret delete OLD_KEK
 
             // 聯絡資訊
             document.getElementById('phone').value = data.phone || '';
+            document.getElementById('web').value = data.web || '';
 
             // 地址處理
             if (data.address) {
@@ -3089,7 +3108,27 @@ wrangler secret delete OLD_KEK
 
             document.getElementById('prev-email').innerText = email;
             document.getElementById('prev-phone').innerText = phone;
-            
+
+            // Web (官網連結) - conditional display
+            const web = document.getElementById('web')?.value || '';
+            const webContainer = document.getElementById('prev-web-container');
+            if (web && web.trim()) {
+                webContainer.style.display = 'flex';
+                document.getElementById('prev-web').innerText = web;
+            } else {
+                webContainer.style.display = 'none';
+            }
+
+            // Mobile (手機) - conditional display
+            const mobile = document.getElementById('mobile')?.value || '';
+            const mobileContainer = document.getElementById('prev-mobile-container');
+            if (mobile && mobile.trim()) {
+                mobileContainer.style.display = 'flex';
+                document.getElementById('prev-mobile').innerText = mobile;
+            } else {
+                mobileContainer.style.display = 'none';
+            }
+
             // 大頭貼處理 - 支援 Google Drive URL 轉換
             let avatarUrl = avatar;
             const driveMatch = avatarUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^\/\?&]+)/);
@@ -3722,7 +3761,7 @@ wrangler secret delete OLD_KEK
             }
 
             // 綁定所有輸入事件到實時預覽
-            const inputIds = ['name_zh', 'name_en', 'title_zh', 'title_en', 'email', 'phone', 'mobile', 'avatar_url', 'greetings_zh', 'greetings_en', 'address_zh', 'address_en', 'social_github', 'social_linkedin', 'social_facebook', 'social_instagram', 'social_twitter', 'social_youtube', 'social_line', 'social_signal'];
+            const inputIds = ['name_zh', 'name_en', 'title_zh', 'title_en', 'email', 'phone', 'web', 'mobile', 'avatar_url', 'greetings_zh', 'greetings_en', 'address_zh', 'address_en', 'social_github', 'social_linkedin', 'social_facebook', 'social_instagram', 'social_twitter', 'social_youtube', 'social_line', 'social_signal'];
             inputIds.forEach(id => {
                 const element = document.getElementById(id);
                 if (element) {

@@ -66,7 +66,11 @@ canvas{max-width:100%;height:auto;border-radius:.5rem}
 
 <div id="desktop-guide" class="guide desktop-guide hidden">
 <p class="guide-title">桌面版瀏覽器</p>
-<p class="guide-text">請使用手機瀏覽器開啟此頁面，以加到主畫面。</p>
+<p class="guide-text">請使用手機瀏覽器開啟此頁面，或複製連結傳送到手機。</p>
+<button class="btn btn-primary" onclick="copyLink(event)" style="margin-top:0.75rem">
+<i data-lucide="copy" style="width:1rem;height:1rem;display:inline-block;vertical-align:middle;margin-right:0.5rem"></i>
+複製連結
+</button>
 </div>
 
 <div id="success-message" class="guide android-guide hidden"><p class="guide-title">已加入主畫面</p><p class="guide-text">您現在可以從主畫面開啟 QR Code 了</p></div>
@@ -158,6 +162,24 @@ deferredPrompt=null;
 function openInSafari(){
 const safariUrl=window.location.href.replace('https://','x-safari-https://');
 window.location.href=safariUrl;
+}
+
+async function copyLink(event){
+const url=window.location.href;
+try{
+await navigator.clipboard.writeText(url);
+const btn=event.target.closest('button');
+const originalHTML=btn.innerHTML;
+btn.innerHTML='<i data-lucide="check" style="width:1rem;height:1rem;display:inline-block;vertical-align:middle;margin-right:0.5rem"></i>已複製';
+lucide.createIcons();
+setTimeout(()=>{
+btn.innerHTML=originalHTML;
+lucide.createIcons();
+},2000);
+}catch(err){
+console.error('Copy failed:', err);
+alert('複製失敗，請手動複製連結');
+}
 }
 
 function backToPortal(){

@@ -71,11 +71,23 @@ function validateUserCardData(data: any, isCreate: boolean): { valid: boolean; e
 
 
   // Validate social links if provided
-  const socialFields = ["social_github", "social_linkedin", "social_facebook", "social_instagram", "social_twitter", "social_youtube"];
-  for (const field of socialFields) {
+  const urlFields = ["social_github", "social_linkedin", "social_facebook", "social_instagram", "social_twitter", "social_youtube"];
+  for (const field of urlFields) {
     if (data[field] !== undefined && data[field] !== null && data[field] !== "") {
       if (!validateSocialLink(data[field])) {
         return { valid: false, error: `${field} URL 格式無效或包含不安全內容` };
+      }
+    }
+  }
+
+  // Validate LINE and Signal (allow non-URL formats)
+  const textFields = ["social_line", "social_signal"];
+  for (const field of textFields) {
+    if (data[field] !== undefined && data[field] !== null && data[field] !== "") {
+      const value = data[field].trim();
+      // Basic XSS check only
+      if (/<script|<iframe|javascript:/i.test(value)) {
+        return { valid: false, error: `${field} 包含不安全內容` };
       }
     }
   }
@@ -170,15 +182,20 @@ export async function handleUserCreateCard(request: Request, env: Env): Promise<
       mobile: body.mobile,
       address: body.address_zh && body.address_en ? { zh: body.address_zh, en: body.address_en } : undefined,
       avatar_url: body.avatar_url,
-      greetings: body.greetings_zh && body.greetings_en ? { zh: body.greetings_zh, en: body.greetings_en } : undefined,
-      social_github: body.social_github,
-      social_linkedin: body.social_linkedin,
-      social_facebook: body.social_facebook,
-      social_instagram: body.social_instagram,
-      social_twitter: body.social_twitter,
-      social_youtube: body.social_youtube,
-      social_line: body.social_line,
-      social_signal: body.social_signal
+      greetings: body.greetings_zh && body.greetings_en 
+        ? { 
+            zh: body.greetings_zh.split('\n').filter((line: string) => line.trim()), 
+            en: body.greetings_en.split('\n').filter((line: string) => line.trim()) 
+          } 
+        : undefined,
+      social_github: body.social_github || '',
+      social_linkedin: body.social_linkedin || '',
+      social_facebook: body.social_facebook || '',
+      social_instagram: body.social_instagram || '',
+      social_twitter: body.social_twitter || '',
+      social_youtube: body.social_youtube || '',
+      social_line: body.social_line || '',
+      social_signal: body.social_signal || ''
     };
 
     // Encrypt card data (before DB operations)
@@ -346,7 +363,7 @@ export async function handleUserUpdateCard(
     await encryption.initialize(env);
     const existingData: any = await encryption.decryptCard(card.encrypted_payload, card.wrapped_dek);
 
-    // Merge updates
+    // Merge updates with smart field handling
     const updatedData = {
       name: body.name_zh && body.name_en
         ? { zh: body.name_zh, en: body.name_en }
@@ -358,21 +375,34 @@ export async function handleUserUpdateCard(
       email: body.email || existingData.email,
       phone: body.phone !== undefined ? body.phone : existingData.phone,
       mobile: body.mobile !== undefined ? body.mobile : existingData.mobile,
-      address: body.address_zh && body.address_en
-        ? { zh: body.address_zh, en: body.address_en }
-        : existingData.address,
+      // Address: if field exists in body, use it (including empty string to clear)
+      address: (() => {
+        const hasZh = body.address_zh !== undefined;
+        const hasEn = body.address_en !== undefined;
+        if (!hasZh && !hasEn) return existingData.address;
+        
+        const zh = hasZh ? body.address_zh : (typeof existingData.address === 'object' ? existingData.address.zh : existingData.address || '');
+        const en = hasEn ? body.address_en : (typeof existingData.address === 'object' ? existingData.address.en : '');
+        
+        if (!zh && !en) return '';
+        return { zh, en };
+      })(),
       avatar_url: body.avatar_url !== undefined ? body.avatar_url : existingData.avatar_url,
       greetings: body.greetings_zh && body.greetings_en
-        ? { zh: body.greetings_zh, en: body.greetings_en }
+        ? { 
+            zh: body.greetings_zh.split('\n').filter((line: string) => line.trim()), 
+            en: body.greetings_en.split('\n').filter((line: string) => line.trim()) 
+          }
         : existingData.greetings,
-      social_github: body.social_github !== undefined ? body.social_github : existingData.social_github,
-      social_linkedin: body.social_linkedin !== undefined ? body.social_linkedin : existingData.social_linkedin,
-      social_facebook: body.social_facebook !== undefined ? body.social_facebook : existingData.social_facebook,
-      social_instagram: body.social_instagram !== undefined ? body.social_instagram : existingData.social_instagram,
-      social_twitter: body.social_twitter !== undefined ? body.social_twitter : existingData.social_twitter,
-      social_youtube: body.social_youtube !== undefined ? body.social_youtube : existingData.social_youtube,
-      social_line: body.social_line !== undefined ? body.social_line : existingData.social_line,
-      social_signal: body.social_signal !== undefined ? body.social_signal : existingData.social_signal
+      // Social media: treat empty string as valid clear operation
+      social_github: body.social_github !== undefined ? body.social_github : (existingData.social_github || ''),
+      social_linkedin: body.social_linkedin !== undefined ? body.social_linkedin : (existingData.social_linkedin || ''),
+      social_facebook: body.social_facebook !== undefined ? body.social_facebook : (existingData.social_facebook || ''),
+      social_instagram: body.social_instagram !== undefined ? body.social_instagram : (existingData.social_instagram || ''),
+      social_twitter: body.social_twitter !== undefined ? body.social_twitter : (existingData.social_twitter || ''),
+      social_youtube: body.social_youtube !== undefined ? body.social_youtube : (existingData.social_youtube || ''),
+      social_line: body.social_line !== undefined ? body.social_line : (existingData.social_line || ''),
+      social_signal: body.social_signal !== undefined ? body.social_signal : (existingData.social_signal || '')
     };
 
     // Re-encrypt with same DEK (actually new DEK for simplicity)
@@ -397,7 +427,25 @@ export async function handleUserUpdateCard(
       uuid
     ).run();
 
+    // Clear card data cache
     await env.KV.delete(`card:${uuid}`);
+
+    // Get all active sessions for this card and clear their response caches
+    try {
+      const sessions = await env.DB.prepare(`
+        SELECT session_id FROM read_sessions WHERE card_uuid = ? AND status = 'active'
+      `).bind(uuid).all();
+
+      if (sessions.results && sessions.results.length > 0) {
+        const deletePromises = sessions.results.map((session: any) =>
+          env.KV.delete(`read:${uuid}:${session.session_id}`)
+        );
+        await Promise.all(deletePromises);
+      }
+    } catch (cacheError) {
+      console.error('Failed to clear session caches:', cacheError);
+      // Continue even if cache clearing fails
+    }
 
     // Log audit event
     await logUserEvent(env.DB, 'user_card_update', email, uuid, request, {
@@ -578,14 +626,16 @@ export async function handleUserGetCard(
       address_zh: cardData.address?.zh || '',
       address_en: cardData.address?.en || '',
       avatar_url: cardData.avatar_url || '',
-      greetings_zh: cardData.greetings?.zh || '',
-      greetings_en: cardData.greetings?.en || '',
+      greetings_zh: Array.isArray(cardData.greetings?.zh) ? cardData.greetings.zh.join('\n') : (cardData.greetings?.zh || ''),
+      greetings_en: Array.isArray(cardData.greetings?.en) ? cardData.greetings.en.join('\n') : (cardData.greetings?.en || ''),
       social_github: cardData.social_github || '',
       social_linkedin: cardData.social_linkedin || '',
       social_facebook: cardData.social_facebook || '',
       social_instagram: cardData.social_instagram || '',
       social_twitter: cardData.social_twitter || '',
       social_youtube: cardData.social_youtube || '',
+      social_line: cardData.social_line || '',
+      social_signal: cardData.social_signal || '',
       updated_at: new Date(card.updated_at).toISOString()
     }, 200, request);
   } catch (error) {

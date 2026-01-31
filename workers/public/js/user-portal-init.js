@@ -252,11 +252,11 @@
         const ADDRESS_PRESETS = {
             yanping: {
                 zh: '10058 台北市中正區延平南路143號',
-                en: 'No. 143, Yanping S. Rd., Zhongzheng Dist., Taipei City 10058, Taiwan (R.O.C.)'
+                en: '143 Yanping South Road, Zhongzheng District, Taipei City 10058, Taiwan'
             },
             shinkong: {
                 zh: '臺北市中正區忠孝西路一段66號（17、19樓）',
-                en: '66 Zhongxiao W. Rd. Sec. 1, Zhongzheng Dist., Taipei City, Taiwan (17F, 19F)'
+                en: '66 Zhongxiao West Road Section 1, Zhongzheng District, Taipei City 100, Taiwan'
             }
         };
 
@@ -432,14 +432,26 @@
 
             // 收集表單資料（允許空字串以支援清空欄位）
             ['type', 'name_zh', 'name_en', 'title_zh', 'title_en',
-             'email', 'phone', 'address_zh', 'address_en',
-             'mobile', 'avatar_url', 'greetings_zh', 'greetings_en',
+             'email', 'phone', 'mobile', 'avatar_url', 'greetings_zh', 'greetings_en',
              'social_github', 'social_linkedin', 'social_facebook',
              'social_instagram', 'social_twitter', 'social_youtube',
              'social_line', 'social_signal'].forEach(key => {
                 const val = formData.get(key);
                 if (val !== null && val !== undefined) data[key] = val;
             });
+
+            // 處理地址欄位（檢查預設選項）
+            const addressPreset = document.getElementById('address-preset').value;
+            if (addressPreset === 'yanping') {
+                data.address_zh = ADDRESS_PRESETS.yanping.zh;
+                data.address_en = ADDRESS_PRESETS.yanping.en;
+            } else if (addressPreset === 'shinkong') {
+                data.address_zh = ADDRESS_PRESETS.shinkong.zh;
+                data.address_en = ADDRESS_PRESETS.shinkong.en;
+            } else {
+                data.address_zh = formData.get('address_zh') || '';
+                data.address_en = formData.get('address_en') || '';
+            }
 
             // 處理部門欄位
             const departmentPreset = document.getElementById('department-preset').value;

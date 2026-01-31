@@ -80,3 +80,6 @@
 260131|OAuth|validation|Unified_Database_Check
 260131|Migration|0017|Email_Allowlist_Individual_Support
 260131|Security|email_allowlist|Only_moda_gov_tw_and_chingw_acs
+260131|Frontend|card_edit|Real_Time_Context_Aligned
+260131|UI|preview|Web_Mobile_Fields_Added
+260131|Git|commit|4daa383_Real_Time_Context

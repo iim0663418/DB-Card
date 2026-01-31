@@ -86,3 +86,6 @@
 260131|Frontend|success_modal|Add_To_Home_Screen_Mobile_Optimized
 260131|UI|responsive|Grid_1_2_3_Columns
 260131|Git|commit|f423a25_Success_Modal_Mobile
+260131|Bug|user_cards_403|Resolved_Path_Aware_Cookie
+260131|CSRF|middleware|Path_Based_Token_Selection
+260131|Git|commit|877abf7_CSRF_Fix

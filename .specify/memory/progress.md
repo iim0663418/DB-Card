@@ -1,23 +1,27 @@
 # DB-Card Project Progress
 ## Current Phase: COMPLETED
-- Status: Success Modal Mobile 優化完成
+- Status: User Cards 403 問題已完全解決
 - Version: v4.6.0
-- Last Update: 2026-01-31T20:19:00+08:00
+- Last Update: 2026-01-31T20:39:00+08:00
 
-## 本次完成項目
-1. ✅ 新增「加入主畫面」引導卡片
-2. ✅ 響應式網格佈局（1 欄 → 2 欄 → 3 欄）
-3. ✅ Mobile CSS 優化（max-height, overflow, padding）
-4. ✅ 觸控區域優化（≥ 48px）
-5. ✅ 響應式文字大小
-6. ✅ 部署到 Staging 環境
+## 問題解決歷程
+1. ✅ 添加 OAuth 驗證詳細日誌
+2. ✅ 添加 CSRF 驗證詳細日誌
+3. ✅ 修復 CSRF token sessionStorage 更新邏輯
+4. ✅ 修復 CSRF middleware 路徑感知 cookie 選擇
 
-## 技術細節
-- 響應式 grid: grid-cols-1 sm:grid-cols-2 lg:grid-cols-3
-- Mobile max-height: 90vh, overflow-y: auto
-- 所有按鈕 min-h-[48px]
-- 文字響應式: text-xl sm:text-2xl
-- Mobile 簡化文案
+## 最終解決方案
+- CSRF middleware 根據請求路徑選擇正確的 session cookie
+- Admin 路徑優先使用 admin_token
+- User 路徑優先使用 auth_token
+- 避免混用不同 session 的 CSRF token
+
+## 驗證結果
+- POST /api/user/cards: 成功
+- CSRF token 比對: true
+- OAuth 驗證: 成功
+- 名片建立: 正常運作
 
 ## Next Action
-- 等待用戶驗收
+- 考慮移除或環境變數控制除錯日誌
+- 準備同步到 Production

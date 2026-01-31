@@ -3,8 +3,9 @@ import { jwtVerify } from 'jose';
 import { publicErrorResponse, errorResponse } from '../utils/response';
 
 async function verifyOAuthToken(token: string, env: Env): Promise<string | null> {
+  const DEBUG = env.ENVIRONMENT === 'staging';
   try {
-    console.log('[JWT] Verifying token:', token.substring(0, 8) + '...');
+    if (DEBUG) console.log('[JWT] Verifying token:', token.substring(0, 8) + '...');
     const secret = new TextEncoder().encode(env.JWT_SECRET);
 
     const { payload } = await jwtVerify(token, secret, {
@@ -12,7 +13,7 @@ async function verifyOAuthToken(token: string, env: Env): Promise<string | null>
       algorithms: ['HS256']
     });
 
-    console.log('[JWT] Token verified successfully, email:', payload.email);
+    if (DEBUG) console.log('[JWT] Token verified successfully, email:', payload.email);
     // JWT verification automatically checks expiration
     return payload.email as string;
   } catch (error) {
@@ -25,15 +26,16 @@ async function verifyOAuthToken(token: string, env: Env): Promise<string | null>
   }
 }
 
-async function checkEmailAllowed(db: D1Database, email: string): Promise<boolean> {
-  console.log('[EmailCheck] Checking email:', email);
+async function checkEmailAllowed(db: D1Database, email: string, env: Env): Promise<boolean> {
+  const DEBUG = env.ENVIRONMENT === 'staging';
+  if (DEBUG) console.log('[EmailCheck] Checking email:', email);
   const domain = email.split('@')[1];
   if (!domain) {
     console.error('[EmailCheck] Invalid email format - no domain found');
     return false;
   }
 
-  console.log('[EmailCheck] Extracted domain:', domain);
+  if (DEBUG) console.log('[EmailCheck] Extracted domain:', domain);
   // BDD: Support both domain-based and individual email validation
   // Scenario 1: Domain whitelist (e.g., 'moda.gov.tw')
   // Scenario 2: Individual email whitelist (e.g., 'chingw@acs.gov.tw')
@@ -44,8 +46,8 @@ async function checkEmailAllowed(db: D1Database, email: string): Promise<boolean
     LIMIT 1
   `).bind(domain, email).first<{ 1: number }>();
 
-  console.log('[EmailCheck] Query result:', result !== null ? 'ALLOWED' : 'DENIED');
-  console.log('[EmailCheck] Query parameters - domain:', domain, 'email:', email);
+  if (DEBUG) console.log('[EmailCheck] Query result:', result !== null ? 'ALLOWED' : 'DENIED');
+  if (DEBUG) console.log('[EmailCheck] Query parameters - domain:', domain, 'email:', email);
   return result !== null;
 }
 
@@ -53,42 +55,43 @@ export async function verifyOAuth(
   request: Request,
   env: Env
 ): Promise<{ email: string } | Response> {
-  console.log('[OAuth] Starting verification process');
+  const DEBUG = env.ENVIRONMENT === 'staging';
+  if (DEBUG) console.log('[OAuth] Starting verification process');
 
   // Priority 1: Check HttpOnly Cookie
   const cookieHeader = request.headers.get('Cookie');
   let sessionId: string | null = null;
 
-  console.log('[OAuth] Cookie header present:', !!cookieHeader);
+  if (DEBUG) console.log('[OAuth] Cookie header present:', !!cookieHeader);
   if (cookieHeader) {
     const match = cookieHeader.match(/auth_token=([^;]+)/);
     if (match) {
       sessionId = match[1];
-      console.log('[OAuth] Session ID extracted:', sessionId.substring(0, 8) + '...');
+      if (DEBUG) console.log('[OAuth] Session ID extracted:', sessionId.substring(0, 8) + '...');
     } else {
-      console.warn('[OAuth] auth_token not found in cookie:', cookieHeader.substring(0, 100));
+      if (DEBUG) console.warn('[OAuth] auth_token not found in cookie:', cookieHeader.substring(0, 100));
     }
   } else {
-    console.warn('[OAuth] No Cookie header found');
+    if (DEBUG) console.warn('[OAuth] No Cookie header found');
   }
 
   let token: string | null = null;
 
   // If we have a session ID, retrieve JWT from KV
   if (sessionId) {
-    console.log('[OAuth] Attempting to retrieve JWT from KV with key: oauth_session:' + sessionId.substring(0, 8) + '...');
+    if (DEBUG) console.log('[OAuth] Attempting to retrieve JWT from KV with key: oauth_session:' + sessionId.substring(0, 8) + '...');
     token = await env.KV.get(`oauth_session:${sessionId}`);
-    console.log('[OAuth] JWT retrieved from KV:', token ? 'SUCCESS (token: ' + token.substring(0, 8) + '...)' : 'FAILED (null)');
+    if (DEBUG) console.log('[OAuth] JWT retrieved from KV:', token ? 'SUCCESS (token: ' + token.substring(0, 8) + '...)' : 'FAILED (null)');
   }
 
   // Priority 2: Fallback to Authorization header (backward compatibility)
   if (!token) {
-    console.log('[OAuth] No token from KV, checking Authorization header');
+    if (DEBUG) console.log('[OAuth] No token from KV, checking Authorization header');
     const authHeader = request.headers.get('Authorization');
-    console.log('[OAuth] Authorization header present:', !!authHeader);
+    if (DEBUG) console.log('[OAuth] Authorization header present:', !!authHeader);
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.substring(7);
-      console.log('[OAuth] Token extracted from Authorization header:', token.substring(0, 8) + '...');
+      if (DEBUG) console.log('[OAuth] Token extracted from Authorization header:', token.substring(0, 8) + '...');
     }
   }
 
@@ -97,7 +100,7 @@ export async function verifyOAuth(
     return errorResponse('unauthorized', 'Missing or invalid authorization', 401, request);
   }
 
-  console.log('[OAuth] Token available, proceeding to verification');
+  if (DEBUG) console.log('[OAuth] Token available, proceeding to verification');
   const email = await verifyOAuthToken(token, env);
 
   if (!email) {
@@ -105,14 +108,14 @@ export async function verifyOAuth(
     return errorResponse('unauthorized', 'Invalid or expired token', 401, request);
   }
 
-  console.log('[OAuth] Email extracted from token:', email);
+  if (DEBUG) console.log('[OAuth] Email extracted from token:', email);
   // Verify email allowlist (domain or individual email)
-  const isAllowed = await checkEmailAllowed(env.DB, email);
+  const isAllowed = await checkEmailAllowed(env.DB, email, env);
   if (!isAllowed) {
     console.error('[OAuth] FAILED: Email not in allowlist:', email);
     return publicErrorResponse(403, request);
   }
 
-  console.log('[OAuth] SUCCESS: Verification complete for email:', email);
+  if (DEBUG) console.log('[OAuth] SUCCESS: Verification complete for email:', email);
   return { email };
 }

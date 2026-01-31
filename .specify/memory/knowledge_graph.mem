@@ -92,3 +92,6 @@
 260131|Debug|logging|Environment_Variable_Control
 260131|Performance|optimization|Conditional_Logging
 260131|Git|commit|d5189ea_Env_Based_Logging
+260131|Git|merge|Main_Branch_v4_6_0_Complete
+260131|Deployment|main|Commit_1d5d37c_Env_Logging
+260131|Release|v4_6_0|Production_Ready_OIDC_Security

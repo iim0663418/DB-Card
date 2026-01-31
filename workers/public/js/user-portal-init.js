@@ -1467,7 +1467,9 @@
 
                             // Store CSRF token
                             if (csrfToken) {
-                                sessionStorage.setItem('csrfToken', csrfToken);
+                                sessionStorage.removeItem('csrfToken'); // 先清除
+                                sessionStorage.setItem('csrfToken', csrfToken); // 再設定
+                                console.log('[User] CSRF token updated:', csrfToken?.substring(0, 8) + '...');
                             }
 
                             // Store user info

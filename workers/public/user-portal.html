@@ -176,6 +176,19 @@
             }
         }
 
+        /* Mobile Modal 優化 */
+        @media (max-width: 640px) {
+            #success-modal .modal-content {
+                max-height: 90vh;
+                overflow-y: auto;
+                padding: 1.5rem;
+            }
+
+            #success-modal .modal-content h3 {
+                font-size: 1.25rem;
+            }
+        }
+
         /* MODA hover/90 效果 */
         .bg-moda\/90 {
             background-color: rgba(104, 104, 172, 0.9);
@@ -570,7 +583,7 @@
                 <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i data-lucide="check-circle" class="w-8 h-8 text-green-600"></i>
                 </div>
-                <h3 class="text-2xl font-black text-slate-900">名片已儲存</h3>
+                <h3 class="text-xl sm:text-2xl font-black text-slate-900">名片已儲存</h3>
                 <p id="modal-card-type" class="text-sm text-slate-600 mt-2">您的名片已成功更新</p>
             </div>
 
@@ -579,23 +592,36 @@
                 <label class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">分享連結</label>
                 <div class="flex gap-2">
                     <input id="modal-share-link" type="text" readonly class="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono text-slate-700">
-                    <button id="modal-copy-btn" onclick="copyModalLink()" class="px-6 py-3 bg-moda text-white rounded-xl font-bold hover:bg-moda/90 transition-colors flex items-center gap-2">
+                    <button id="modal-copy-btn" onclick="copyModalLink()" class="px-6 py-3 bg-moda text-white rounded-xl font-bold hover:bg-moda/90 transition-colors flex items-center gap-2 min-h-[48px]">
                         <i data-lucide="copy" class="w-4 h-4"></i>
-                        <span id="modal-copy-text">複製</span>
+                        <span id="modal-copy-text" class="hidden sm:inline">複製</span>
                     </button>
                 </div>
                 <p class="text-xs text-slate-500 mt-2">可透過此連結分享您的名片</p>
             </div>
 
             <!-- Next Steps -->
-            <div class="mb-6 p-4 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border border-purple-100">
+            <div class="mb-6 p-3 sm:p-4 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border border-purple-100">
                 <h4 class="text-xs font-black text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
                     <i data-lucide="lightbulb" class="w-4 h-4 text-moda"></i>
-                    下一步操作建議
+                    <span class="hidden sm:inline">下一步操作建議</span>
+                    <span class="sm:hidden">下一步</span>
                 </h4>
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <!-- Add to Home Screen -->
+                    <div class="bg-white/80 backdrop-blur-sm p-3 sm:p-4 rounded-xl border border-white/50 hover:border-blue-300 transition-all cursor-default group min-h-[48px]">
+                        <div class="flex flex-col items-center text-center gap-2">
+                            <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                                <i data-lucide="home" class="w-5 h-5 text-blue-600"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-black text-slate-700">加入主畫面</p>
+                                <p class="text-[10px] text-slate-500 mt-1">一鍵快速開啟</p>
+                            </div>
+                        </div>
+                    </div>
                     <!-- NFC Card Writing -->
-                    <div class="bg-white/80 backdrop-blur-sm p-4 rounded-xl border border-white/50 hover:border-moda/30 transition-all cursor-default group">
+                    <div class="bg-white/80 backdrop-blur-sm p-3 sm:p-4 rounded-xl border border-white/50 hover:border-moda/30 transition-all cursor-default group min-h-[48px]">
                         <div class="flex flex-col items-center text-center gap-2">
                             <div class="w-10 h-10 bg-moda/10 rounded-lg flex items-center justify-center group-hover:bg-moda/20 transition-colors">
                                 <i data-lucide="credit-card" class="w-5 h-5 text-moda"></i>
@@ -607,7 +633,7 @@
                         </div>
                     </div>
                     <!-- URL Shortening -->
-                    <div class="bg-white/80 backdrop-blur-sm p-4 rounded-xl border border-white/50 hover:border-moda/30 transition-all cursor-default group">
+                    <div class="bg-white/80 backdrop-blur-sm p-3 sm:p-4 rounded-xl border border-white/50 hover:border-green-300 transition-all cursor-default group min-h-[48px] sm:col-span-2 lg:col-span-1">
                         <div class="flex flex-col items-center text-center gap-2">
                             <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center group-hover:bg-green-100 transition-colors">
                                 <i data-lucide="link-2" class="w-5 h-5 text-green-600"></i>
@@ -622,11 +648,11 @@
             </div>
 
             <!-- Actions -->
-            <div class="flex gap-3">
-                <button id="modal-view-btn" onclick="viewModalCard()" class="flex-1 px-6 py-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors">
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button id="modal-view-btn" onclick="viewModalCard()" class="flex-1 px-6 py-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors min-h-[48px] text-sm">
                     查看名片效果
                 </button>
-                <button onclick="closeSuccessModal()" class="flex-1 px-6 py-4 bg-moda text-white rounded-xl font-bold hover:bg-moda/90 transition-colors">
+                <button onclick="closeSuccessModal()" class="flex-1 px-6 py-4 bg-moda text-white rounded-xl font-bold hover:bg-moda/90 transition-colors min-h-[48px] text-sm">
                     完成
                 </button>
             </div>

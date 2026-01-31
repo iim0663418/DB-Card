@@ -421,23 +421,24 @@ wrangler dev --remote
 
 ## 安全標準合規
 
-### OIDC 合規度: 90%
-- ✅ Scope: openid email profile
-- ✅ Authorization Code Flow
+### OIDC 合規度: 100%
+- ✅ Authorization Code Flow (RFC 6749)
+- ✅ PKCE (RFC 7636)
 - ✅ State Parameter (CSRF Protection)
-- ✅ ID Token Validation
-- ✅ JWKS Verification
 - ✅ Nonce (Anti-Replay)
+- ✅ ID Token Validation (iss/aud/exp/iat/sub)
+- ✅ JWKS Verification
 - ✅ Discovery Endpoint
-- ⏳ Sub as Primary Key (Phase 3, 可選)
+- ✅ Redirect Flow (SameSite=Lax)
 
-### 安全標準
+### 符合標準
+- ✅ RFC 6749 (OAuth 2.0)
+- ✅ RFC 7636 (PKCE)
+- ✅ RFC 9700 (OAuth 2.0 Security Best Current Practice)
 - ✅ OpenID Connect Core 1.0
 - ✅ OpenID Connect Discovery 1.0
-- ✅ RFC 7519 (JWT)
-- ✅ RFC 6749 (OAuth 2.0)
-- ✅ OWASP OAuth2 Cheat Sheet
-- ✅ Google OIDC Certified
+- ✅ OWASP Top 10 2021
+- ✅ OWASP OAuth 2.0 Cheat Sheet
 
 ---
 
@@ -460,97 +461,13 @@ npm run test:e2e        # 端對端測試
 重要技術決策記錄於 `docs/adr/`：
 - ADR-001: 隱私優先設計原則
 - ADR-002: 信封加密架構
+- ADR-003: 移除客戶端快取
 
 ---
-
-## 授權條款
-
-Apache License 2.0 - 詳見 [LICENSE](LICENSE)
-
-完整的第三方元件清單與授權資訊請參閱：[THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md)
-
----
-
-## 貢獻指南
-
-1. Fork 專案
-2. 創建功能分支 (`git checkout -b feature/amazing-feature`)
-3. 撰寫 BDD 規格（`.specify/specs/`）
-4. 實作功能並通過測試
-5. 提交變更 (`git commit -m 'feat: add amazing feature'`)
-6. 推送分支 (`git push origin feature/amazing-feature`)
-7. 開啟 Pull Request
-
----
-
-## 技術支援
-
-- **文檔**: `docs/`
-- **Issues**: [GitHub Issues](https://github.com/iim0663418/DB-Card/issues)
-
----
-
-## 版本歷程
-
-### v4.5.3 (2026-01-29) - 桌面版實體名片設計與互動優化
-- 桌面版實體名片比例（540px × 856px，直式佈局）
-- 白色邊框 8px + 4 層陰影系統（實體質感）
-- 比照移動版排版（置中、直式佈局）
-- 更大更友善的字體（姓名 3.5rem、職稱/部門 1rem）
-- 3D 視差效果（鼠標移動產生傾斜，X/Y 軸 ±10deg）
-- Hover 互動（陰影增強）
-- 性能優化（CSS 變數 + GPU 加速，即時響應 0ms）
-- 部門欄位優化（移除圖示、完整換行、手機置中）
-
-### v4.3.2 (2026-01-24) - OIDC Phase 2
-- Nonce 防重放攻擊
-- Discovery Endpoint 動態配置
-- OIDC 合規度 90%
-
-### v4.3.1 (2026-01-24) - OIDC Phase 1
-- ID Token 驗證
-- JWKS 公鑰驗證
-- OIDC 合規度 80%
-
-### v4.3.0 (2026-01-22) - Passkey 認證
-- 個別管理員策略
-- 緊急恢復路徑
-- 符合業界最佳實踐
-
-### v4.2.1 (2026-01-21) - OWASP Top 10 修復
-- SRI 75% 覆蓋率
-- HttpOnly Cookies
-- DOMPurify XSS 防護
-- CSP Nonce-based
-
-### v4.2.0 (2026-01-20) - 雙層快取優化
-- 前端 sessionStorage 快取
-- 後端混合快取策略
-
-### v4.1.0 (2026-01-20) - 多層防護機制
-- 60 秒去重 + 速率限制 + 併發讀取限制
-
----
-
-**安全預設，隱私優先設計，OIDC 認證**  
-**Cloudflare Workers 全球邊緣運算**
-
-### 審計日誌
-
-所有敏感操作均記錄於 `audit_logs` 表：
-- 名片創建/更新/刪除
-- 會話創建/讀取
-- KEK 輪換
-- IP 地址自動匿名化（保留前 3 段）
 
 ## 從 v3.X 遷移
 
-v3.X 純前端架構已封存至 `archive/` 目錄，包含：
-- PWA 離線儲存系統
-- 雙語翻譯模組
-- 安全架構模組
-
-v4.0 採用後端 API 架構，提供更強的安全性與管理能力。
+v3.X 純前端架構已封存至 `archive/` 目錄。v4.0 採用後端 API 架構，提供更強的安全性與管理能力。
 
 **主要差異**：
 - v3.X: 資料儲存在 NFC 卡片 URL 參數（Base64）
@@ -563,50 +480,17 @@ v4.0 採用後端 API 架構，提供更強的安全性與管理能力。
 
 詳細遷移指南請參考 `archive/README.md`
 
-## 測試
-
-```bash
-# 單元測試
-npm test
-
-# 整合測試
-npm run test:integration
-
-# 端對端測試
-npm run test:e2e
-```
-
-## 開發指南
-
-### BDD 規格驅動開發
-
-所有功能開發均遵循 BDD 規格，位於 `.specify/specs/`：
-- `nfc-tap-api.md` - NFC 觸碰 API
-- `read-api.md` - 讀取 API
-- `admin-crud-apis.md` - 管理 CRUD API
-- `security-enhancements.md` - 安全增強
-
-### 架構決策記錄 (ADR)
-
-重要技術決策記錄於 `docs/adr/`：
-- ADR-001: 隱私優先設計原則
-- ADR-002: 信封加密架構
-
-### 記憶系統
-
-開發過程使用知識圖譜記憶系統（`.specify/memory/`）：
-- `progress.md` - 當前開發進度
-- `knowledge_graph.mem` - 長期知識歸檔
+---
 
 ## 授權條款
 
 Apache License 2.0 - 詳見 [LICENSE](LICENSE)
 
-### 第三方元件授權
-
 本專案使用多個開源元件與字體，所有依賴均為開源授權（MIT、ISC、Apache 2.0、SIL OFL 1.1），允許商業使用。
 
 完整的第三方元件清單與授權資訊請參閱：[THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md)
+
+---
 
 ## 貢獻指南
 
@@ -620,80 +504,14 @@ Apache License 2.0 - 詳見 [LICENSE](LICENSE)
 6. 推送分支 (`git push origin feature/amazing-feature`)
 7. 開啟 Pull Request
 
+---
+
 ## 技術支援
 
 - **文檔**: `docs/`
 - **Issues**: [GitHub Issues](https://github.com/iim0663418/DB-Card/issues)
 
-## 版本歷程
-
-### v4.5.2 (2026-01-29) - 卡片翻轉動畫優化
-- 修復 Safari iOS 翻轉失效（移除 pointer-events 阻止）
-- 添加 GPU 硬體加速（translateZ 強制啟用）
-- Glassmorphism 視覺增強（漸層背景、增強模糊、雙層陰影）
-- 實體名片標準圓角（1rem = 16px ≈ 6mm）
-- 響應式翻轉設計（手機中心翻轉、桌面側邊翻轉）
-- 完整 WebKit 前綴支援
-
-### v4.3.2 (2026-01-24) - 安全掃描與 UX 優化
-- 完成三項安全掃描驗證（OWASP ZAP A、npm audit 0、OSV-Scanner 0）
-- 管理者介面 UX 優化（KEK 監控、登入載入體驗）
-- KEK 輪替改為本地腳本執行（降低攻擊面）
-- 管理者驗證遷移至 HttpOnly Cookie（XSS 防護）
-
-### v4.3.0 (2026-01-22) - Passkey 認證
-- 個別管理員策略（附加而非替換）
-- 緊急恢復路徑（保留 SETUP_TOKEN）
-- 符合業界最佳實踐（SupportDevs, Tailscale, Corbado）
-
-### v4.2.1 (2026-01-21) - OWASP Top 10 修復
-- SRI 75% 覆蓋率
-- HttpOnly Cookies 認證（移除 localStorage）
-- DOMPurify XSS 防護（消毒 25 個 innerHTML）
-- CSP Nonce-based（移除 unsafe-inline）
-- 依賴更新（QRious, DOMPurify, Lucide, Chart.js）
-- 安全評級提升至「高」
-
-### v4.2.0 (2026-01-20) - 雙層快取優化
-- 前端 sessionStorage 快取（性能提升 95%）
-- 後端混合快取策略（依名片類型差異化）
-- sensitive 名片不快取解密資料（最高安全）
-- personal/event 名片快取 60s（從 300s 縮短）
-
-### v4.1.0 (2026-01-20) - 多層防護機制
-- NFC Tap API 三層防護（Dedup + Rate Limit + Max Reads）
-- 60 秒去重機制（防止重複請求）
-- 雙維度速率限制（Card UUID + IP: 10/min, 50/hour）
-- Sliding Window Counter 算法
-- IP 優先提取（CF-Connecting-IP）
-- 防爬蟲與資源濫用保護
-- 完整 BDD 規格（11 scenarios）
-
-### v4.0.1 (2026-01-19) - 性能優化與永久刪除
-- 前端性能優化（阻塞資源大幅減少）
-- API 性能提升（Tap API 72-79%, Read API 44%）
-- 永久刪除功能（協助重置）
-- 首頁產品介紹優化
-- LLM 友善文檔
-
-### v4.0.0 (2026-01-18) - 安全預設架構
-- 信封加密機制
-- 授權會話系統
-- 完整雙語支援（11 個 i18n keys）
-- 安全監控儀表板（7 個 APIs）
-- 表單驗證與清理
-- KEK 遷移基礎設施
-- 管理後台完整 CRUD
-- HttpOnly Cookies 安全增強
-- 審計日誌與監控
-
-### v3.2.1 (2025-08-09) - PWA 穩定版
-- PWA 離線儲存
-- 雙語翻譯系統
-- 安全架構模組
-- 已封存至 `archive/v3-pwa/`
-
 ---
 
-**安全預設，隱私優先設計**  
+**安全預設，隱私優先設計，OIDC 認證**  
 **Cloudflare Workers 全球邊緣運算**

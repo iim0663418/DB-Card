@@ -61,52 +61,7 @@
 </head>
 <body class="no-scrollbar flex flex-col items-center">
 
-    <!-- Loading Skeleton -->
-    <div id="loading-skeleton" class="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 z-50 transition-opacity duration-300">
-        <div class="w-full max-w-md mx-6">
-            <div class="bg-white rounded-2xl shadow-xl p-8 animate-pulse">
-                <!-- Avatar -->
-                <div class="flex justify-center mb-6">
-                    <div class="w-24 h-24 bg-slate-200 rounded-full"></div>
-                </div>
-
-                <!-- Name -->
-                <div class="h-8 bg-slate-200 rounded w-3/4 mx-auto mb-4"></div>
-
-                <!-- Title -->
-                <div class="h-4 bg-slate-200 rounded w-1/2 mx-auto mb-6"></div>
-
-                <!-- Contact info -->
-                <div class="space-y-3">
-                    <div class="h-4 bg-slate-200 rounded w-full"></div>
-                    <div class="h-4 bg-slate-200 rounded w-5/6"></div>
-                    <div class="h-4 bg-slate-200 rounded w-4/6"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="hint-badge" class="fixed top-8 left-0 right-0 z-50 flex justify-center pointer-events-none px-6 transition-opacity duration-300">
-        <button class="pointer-events-auto group" onclick="toggleFlip(event)" aria-label="點擊翻面切換語言">
-            <div class="flex items-center gap-3 px-6 py-3 rounded-full bg-white/90 backdrop-blur-lg border border-slate-200 shadow-lg hover:shadow-xl hover:bg-white transition-all duration-300">
-                <i data-lucide="languages" class="w-5 h-5 text-moda group-hover:rotate-180 transition-transform duration-500"></i>
-                <div class="flex flex-col items-start">
-                    <span class="text-xs font-bold text-slate-800">中文 ⇄ English</span>
-                    <span class="text-[10px] text-slate-500 font-medium" data-i18n="hint-flip">點擊翻面</span>
-                </div>
-            </div>
-        </button>
-    </div>
-
-    <!-- Skip to main content link (A11y) -->
-    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[200] focus:px-6 focus:py-3 focus:bg-moda focus:text-white focus:rounded-lg focus:shadow-lg" data-i18n="skip-to-content">
-        跳到主要內容
-    </a>
-
-    <!-- 背景 3D 光纖場域 -->
-    <canvas id="three-canvas" aria-hidden="true"></canvas>
-
-    <!-- 載入動畫門戶 -->
+    <!-- 載入動畫 -->
     <div id="loading" class="fixed inset-0 bg-[#f8fafd] z-[100] flex flex-col items-center justify-center transition-opacity duration-1000" role="status" aria-live="polite">
         <div class="relative w-32 h-32">
             <div class="absolute inset-0 border-2 border-moda opacity-10 rounded-full animate-ping"></div>
@@ -115,7 +70,7 @@
                 <i data-lucide="contact" class="w-10 h-10 animate-pulse" aria-hidden="true"></i>
             </div>
         </div>
-        <p class="mt-8 hud-text animate-pulse" data-i18n="loading">載入名片資料...</p>
+        <p id="loading-text" class="mt-8 hud-text animate-pulse">雲端資料解密中...</p>
     </div>
 
 
@@ -188,7 +143,7 @@
                     </p>
 
                     <div id="greeting-section" class="mt-8 pt-8 border-t border-moda-light hidden">
-                        <p class="hud-text mb-4 opacity-40" aria-hidden="true" data-i18n="transmission-feed">Dynamic Transmission Feed</p>
+                        <p class="hud-text mb-4 opacity-40" aria-hidden="true" data-i18n="about-me">關於我</p>
                         <p id="typewriter" class="text-slate-600 font-medium italic min-h-[1.5em] text-lg cursor" aria-live="polite"></p>
                     </div>
                 </div>
@@ -196,14 +151,17 @@
 
             <!-- 資訊晶片網格 -->
             <section class="p-6 grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10" aria-label="聯絡資訊">
-                <a id="email-link" href="#" class="info-chip p-4 rounded-2xl flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-moda" aria-label="Email 聯絡">
+                <a id="email-link" href="#" class="info-chip p-4 rounded-2xl flex items-center gap-3 group md:col-span-2 focus:outline-none focus:ring-2 focus:ring-moda relative" aria-label="Email 聯絡" onclick="handleEmailClick(event, 'user-email')">
                     <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
                         <i data-lucide="mail" class="w-5 h-5" aria-hidden="true"></i>
                     </div>
                     <div class="min-w-0 flex-1">
-                        <p class="hud-text text-[8px] opacity-40" aria-hidden="true" data-i18n="communication-node">Communication Node</p>
+                        <p class="hud-text text-[8px] opacity-40" aria-hidden="true" data-i18n="email">電子郵件</p>
                         <p id="user-email" class="font-bold text-slate-700 truncate">---</p>
                     </div>
+                    <button type="button" id="copy-email-btn" onclick="copyEmail(event, 'user-email')" class="hidden md:block ml-2 p-2 rounded-lg hover:bg-slate-100 transition-colors opacity-0 group-hover:opacity-100" aria-label="Copy email">
+                        <i data-lucide="copy" class="w-4 h-4 text-slate-600"></i>
+                    </button>
                 </a>
                 <a id="phone-link" href="#" class="info-chip p-4 rounded-2xl flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-moda" aria-label="電話聯絡">
                     <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
@@ -263,7 +221,7 @@
                     </p>
 
                     <div id="greeting-section-en" class="mt-8 pt-8 border-t border-moda-light hidden">
-                        <p class="hud-text mb-4 opacity-40" aria-hidden="true">Dynamic Transmission Feed</p>
+                        <p class="hud-text mb-4 opacity-40" aria-hidden="true">About Me</p>
                         <p id="typewriter-en" class="text-slate-600 font-medium italic min-h-[1.5em] text-lg cursor" aria-live="polite"></p>
                     </div>
                 </div>
@@ -271,14 +229,17 @@
 
             <!-- 資訊晶片網格 -->
             <section class="p-6 grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10" aria-label="Contact Information">
-                <a id="email-link-en" href="#" class="info-chip p-4 rounded-2xl flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-moda" aria-label="Email Contact">
+                <a id="email-link-en" href="#" class="info-chip p-4 rounded-2xl flex items-center gap-3 group md:col-span-2 focus:outline-none focus:ring-2 focus:ring-moda relative" aria-label="Email Contact" onclick="handleEmailClick(event, 'user-email-en')">
                     <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
                         <i data-lucide="mail" class="w-5 h-5" aria-hidden="true"></i>
                     </div>
                     <div class="min-w-0 flex-1">
-                        <p class="hud-text text-[8px] opacity-40" aria-hidden="true">Communication Node</p>
+                        <p class="hud-text text-[8px] opacity-40" aria-hidden="true">Email</p>
                         <p id="user-email-en" class="font-bold text-slate-700 truncate">---</p>
                     </div>
+                    <button type="button" onclick="copyEmail(event, 'user-email-en')" class="hidden md:block ml-2 p-2 rounded-lg hover:bg-slate-100 transition-colors opacity-0 group-hover:opacity-100" aria-label="Copy Email" title="Copy Email">
+                        <i data-lucide="copy" class="w-4 h-4 text-slate-600"></i>
+                    </button>
                 </a>
                 <a id="phone-link-en" href="#" class="info-chip p-4 rounded-2xl flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-moda" aria-label="Phone Contact">
                     <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
@@ -371,6 +332,7 @@
     <script type="module" src="js/main.js"></script>
     <script>
     // 自動偵測使用者語系
+    // 載入動畫：兩階段文字變化
     function detectUserLanguage() {
         const params = new URLSearchParams(window.location.search);
         const urlLang = params.get('lang');
@@ -383,35 +345,97 @@
         return browserLang.startsWith('zh') ? 'zh' : 'en';
     }
 
-    // 載入動畫文字變化雙語支援
-    const loadingMessages = {
-        stage1: { zh: '載入名片資料...', en: 'Loading card data...' },
-        stage2: { zh: '雲端資料解密中...', en: 'Decrypting cloud data...' },
-        stage3: { zh: '處理中，請稍候...', en: 'Processing, please wait...' },
-        stage4: { zh: '即將完成...', en: 'Almost done...' }
+    // Global language variable for reuse
+    const currentLang = detectUserLanguage();
+    
+    const loadingText = document.getElementById('loading-text');
+    
+    // Set initial text based on language
+    if (loadingText) {
+        if (currentLang === 'en') {
+            loadingText.textContent = 'Decrypting cloud data...';
+        }
+        
+        // Fallback text after 3 seconds
+        setTimeout(() => {
+            loadingText.textContent = currentLang === 'zh' ? '處理中，請稍候...' : 'Processing, please wait...';
+        }, 3000);
+    }
+
+    // Handle email click (mobile: copy, desktop: mailto)
+    window.handleEmailClick = async (event, elementId) => {
+        const isMobile = window.innerWidth < 768; // md breakpoint
+        
+        if (isMobile) {
+            event.preventDefault();
+            await copyEmailWithToast(event, elementId);
+        }
+        // Desktop: let mailto link work normally
     };
 
-    let loadingTimeouts = [];
-    const loadingText = document.querySelector('#loading p');
-    const currentLang = detectUserLanguage();
-
-    if (loadingText) {
-        loadingText.textContent = loadingMessages.stage1[currentLang];
+    // Copy email with toast notification (for mobile)
+    window.copyEmailWithToast = async (event, elementId) => {
+        const emailEl = document.getElementById(elementId);
+        const email = emailEl.textContent.trim();
         
-        loadingTimeouts.push(setTimeout(() => {
-            loadingText.textContent = loadingMessages.stage2[currentLang];
-        }, 4000));
-        loadingTimeouts.push(setTimeout(() => {
-            loadingText.textContent = loadingMessages.stage3[currentLang];
-        }, 8000));
-        loadingTimeouts.push(setTimeout(() => {
-            loadingText.textContent = loadingMessages.stage4[currentLang];
-        }, 12000));
-    }
-    
-    window.clearLoadingTimeouts = () => {
-        loadingTimeouts.forEach(t => clearTimeout(t));
-        loadingTimeouts = [];
+        if (email === '---') return;
+        
+        try {
+            await navigator.clipboard.writeText(email);
+            const message = currentLang === 'zh' ? '已複製電子郵件' : 'Email copied';
+            showToast(message);
+        } catch (err) {
+            console.error('Failed to copy email:', err);
+            const message = currentLang === 'zh' ? '複製失敗' : 'Copy failed';
+            showToast(message, true);
+        }
+    };
+
+    // Show toast notification
+    window.showToast = (message, isError = false) => {
+        const toast = document.createElement('div');
+        toast.className = `fixed bottom-20 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-lg z-[9999] transition-opacity duration-300 ${isError ? 'bg-red-600' : 'bg-slate-900'} text-white text-sm font-medium`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }, 2000);
+    };
+
+    // Copy email to clipboard
+    window.copyEmail = async (event, elementId) => {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        const emailEl = document.getElementById(elementId);
+        const email = emailEl.textContent.trim();
+        
+        if (email === '---') return;
+        
+        try {
+            await navigator.clipboard.writeText(email);
+            
+            // Visual feedback
+            const button = event.target.closest('button');
+            if (!button) return;
+            
+            const icon = button.querySelector('i');
+            if (!icon) return;
+            
+            icon.setAttribute('data-lucide', 'check');
+            lucide.createIcons();
+            button.classList.add('text-green-600');
+            
+            setTimeout(() => {
+                icon.setAttribute('data-lucide', 'copy');
+                lucide.createIcons();
+                button.classList.remove('text-green-600');
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy email:', err);
+        }
     };
     </script>
 </body>

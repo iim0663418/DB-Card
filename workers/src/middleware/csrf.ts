@@ -12,7 +12,9 @@ import { errorResponse } from '../utils/response';
  * @returns null if validation passes, Response if validation fails
  */
 export async function csrfMiddleware(request: Request, env: Env): Promise<Response | null> {
+  const DEBUG = env.ENVIRONMENT === 'staging';
   const method = request.method;
+  if (DEBUG) console.log('[CSRF] HTTP method:', method);
 
   // Skip CSRF check for GET requests (safe methods)
   if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') {
@@ -21,12 +23,15 @@ export async function csrfMiddleware(request: Request, env: Env): Promise<Respon
 
   // Extract CSRF token from X-CSRF-Token header
   const csrfToken = request.headers.get('X-CSRF-Token');
+  if (DEBUG) console.log('[CSRF] X-CSRF-Token header exists:', !!csrfToken);
+  if (DEBUG) console.log('[CSRF] X-CSRF-Token value:', csrfToken ? csrfToken.substring(0, 8) + '...' : 'null');
   if (!csrfToken) {
     return errorResponse('csrf_token_missing', 'CSRF token is required', 403, request);
   }
 
   // Extract session token from cookie (for KV lookup only, not for auth)
   const cookieHeader = request.headers.get('Cookie');
+  if (DEBUG) console.log('[CSRF] Cookie header exists:', !!cookieHeader);
   if (!cookieHeader) {
     // No cookie means no session, but we still need to check CSRF token exists
     // Let auth middleware handle the authentication failure
@@ -41,7 +46,17 @@ export async function csrfMiddleware(request: Request, env: Env): Promise<Respon
     return acc;
   }, {} as Record<string, string>);
 
-  const sessionToken = cookies['admin_token'] || cookies['auth_token']; // Support both admin and user tokens
+  // Select session token based on request path
+  const url = new URL(request.url);
+  const isAdminPath = url.pathname.startsWith('/api/admin');
+  const sessionToken = isAdminPath
+    ? (cookies['admin_token'] || cookies['auth_token'])
+    : (cookies['auth_token'] || cookies['admin_token']);
+
+  if (DEBUG) console.log('[CSRF] Request path:', url.pathname);
+  if (DEBUG) console.log('[CSRF] Is admin path:', isAdminPath);
+  if (DEBUG) console.log('[CSRF] Selected token type:', isAdminPath ? 'admin_token' : 'auth_token');
+  if (DEBUG) console.log('[CSRF] Session token extracted:', sessionToken ? sessionToken.substring(0, 8) + '...' : 'null');
   if (!sessionToken) {
     // No session token, let auth middleware handle it
     return null;
@@ -49,6 +64,7 @@ export async function csrfMiddleware(request: Request, env: Env): Promise<Respon
 
   // Validate CSRF token against stored value
   const storedToken = await env.KV.get(`csrf_token:${sessionToken}`);
+  if (DEBUG) console.log('[CSRF] Stored token from KV:', storedToken ? storedToken.substring(0, 8) + '...' : 'null');
   if (!storedToken) {
     // No stored CSRF token, might be expired session
     // Let auth middleware handle session validation
@@ -66,12 +82,15 @@ export async function csrfMiddleware(request: Request, env: Env): Promise<Respon
     }
 
     const isValid = await crypto.subtle.timingSafeEqual(tokenBuffer, storedBuffer);
+    if (DEBUG) console.log('[CSRF] Token comparison result:', isValid);
     if (!isValid) {
       return errorResponse('csrf_token_invalid', 'Invalid CSRF token', 403, request);
     }
   } catch (error) {
     // Fallback to constant-time comparison
-    if (!constantTimeEqual(csrfToken, storedToken)) {
+    const isValid = constantTimeEqual(csrfToken, storedToken);
+    if (DEBUG) console.log('[CSRF] Token comparison result (fallback):', isValid);
+    if (!isValid) {
       return errorResponse('csrf_token_invalid', 'Invalid CSRF token', 403, request);
     }
   }

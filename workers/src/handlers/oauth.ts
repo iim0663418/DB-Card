@@ -122,14 +122,27 @@ export async function handleOAuthCallback(
       userInfo = await userInfoResponse.json() as any;
     }
 
-    // ⚠️ SECURITY: Validate email domain whitelist
-    const allowedDomains = ['@moda.gov.tw'];
-    const allowedEmails = ['chingw@acs.gov.tw'];
-    const isAllowedDomain = allowedDomains.some(domain => userInfo.email?.endsWith(domain)) ||
-                           allowedEmails.includes(userInfo.email);
+    // ⚠️ SECURITY: Validate email allowlist (database-driven, no hardcoded values)
+    // BDD: Unified validation using checkEmailAllowed from middleware
+    const email = userInfo.email;
+    if (!email) {
+      return Response.redirect(`${url.origin}/user-portal.html?login=error&error=missing_email`, 302);
+    }
 
-    if (!isAllowedDomain) {
-      // Redirect back to user portal with unauthorized domain error
+    const domain = email.split('@')[1];
+    if (!domain) {
+      return Response.redirect(`${url.origin}/user-portal.html?login=error&error=invalid_email`, 302);
+    }
+
+    // Check email_allowlist for both domain and individual email entries
+    const allowlistResult = await env.DB.prepare(`
+      SELECT 1 FROM email_allowlist
+      WHERE (type = 'domain' AND domain = ?)
+         OR (type = 'email' AND domain = ?)
+      LIMIT 1
+    `).bind(domain, email).first<{ 1: number }>();
+
+    if (!allowlistResult) {
       return Response.redirect(`${url.origin}/user-portal.html?login=error&error=unauthorized_domain`, 302);
     }
 

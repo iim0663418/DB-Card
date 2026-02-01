@@ -313,7 +313,13 @@
             }
         };
 
-        let currentLanguage = 'zh';
+        // 自動偵測瀏覽器語言
+        function detectLanguage() {
+            const browserLang = navigator.language || navigator.userLanguage;
+            return browserLang.startsWith('zh') ? 'zh' : 'en';
+        }
+
+        let currentLanguage = detectLanguage();
 
         function updateLanguage(lang) {
             currentLanguage = lang;
@@ -330,9 +336,13 @@
             lucide.createIcons();
             initThree();
             
-            // 語言切換
+            // 初始化語言
             const langToggle = document.getElementById('lang-toggle');
             if (langToggle) {
+                langToggle.textContent = currentLanguage === 'zh' ? 'EN' : '中';
+                updateLanguage(currentLanguage);
+                
+                // 語言切換
                 langToggle.addEventListener('click', () => {
                     const newLang = currentLanguage === 'zh' ? 'en' : 'zh';
                     updateLanguage(newLang);

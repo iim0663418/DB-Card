@@ -59,6 +59,9 @@ function addSecurityHeaders(response: Response, nonce: string): Response {
   // HSTS (Strict-Transport-Security) - Force HTTPS for 1 year
   headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   
+  // Permissions Policy - Disable unnecessary browser features
+  headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  
   // Spectre vulnerability mitigation
   headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
   headers.set('Cross-Origin-Opener-Policy', 'same-origin');
@@ -456,6 +459,7 @@ export default {
           headers.set('X-Content-Type-Options', 'nosniff');
           headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
           headers.set('Cross-Origin-Resource-Policy', 'same-origin');
+          headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
           
           return new Response(asset.body, {
             status: asset.status,

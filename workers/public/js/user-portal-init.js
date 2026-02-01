@@ -8,7 +8,6 @@
                 'login-subtitle': '請使用內部 Google 帳號登入',
                 'login-button': '使用 Google 帳號登入',
                 'login-restriction': '僅限授權使用者',
-                'login-domain': '限 @moda.gov.tw 或 @adi.gov.tw 網域帳號',
 
                 // 2. Card Selection (5 keys)
                 'selection-title': '我的數位名片庫',
@@ -108,7 +107,6 @@
                 'login-subtitle': 'Please sign in with your internal Google account',
                 'login-button': 'Sign in with Google',
                 'login-restriction': 'Authorized Users Only',
-                'login-domain': '@moda.gov.tw or @adi.gov.tw domain only',
 
                 // 2. Card Selection (5 keys)
                 'selection-title': 'My Digital Card Library',

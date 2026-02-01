@@ -207,7 +207,7 @@
     <div id="global-loading" class="loading-overlay hidden">
         <div class="flex flex-col items-center gap-4">
             <div class="w-12 h-12 border-4 border-moda opacity-20 border-t-moda rounded-full animate-spin"></div>
-            <p class="text-xs font-black text-moda uppercase tracking-widest">Processing Request</p>
+            <p class="text-xs font-black text-moda uppercase tracking-widest" data-i18n="processing">Processing Request</p>
         </div>
     </div>
 
@@ -225,7 +225,7 @@
                 <img id="user-avatar-display" src="" alt="" class="w-9 h-9 rounded-full border-2 border-white shadow-sm hidden">
                 <div class="flex flex-col items-end">
                     <span id="user-name-display" class="text-sm font-black text-slate-700">---</span>
-                    <span id="user-email-display" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">---</span>
+                    <span id="user-email-display" class="text-xs font-bold text-slate-400 uppercase tracking-widest">---</span>
                 </div>
             </div>
             <button onclick="handleLogout()" class="px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:text-red-600 transition-all uppercase tracking-widest shadow-sm">
@@ -243,8 +243,8 @@
                 <div class="w-20 h-20 bg-moda text-white rounded-[2rem] flex items-center justify-center shadow-2xl mx-auto mb-8">
                     <i data-lucide="user-circle" class="w-10 h-10"></i>
                 </div>
-                <h1 class="text-4xl font-black tracking-tighter">DB-Card 數位名片系統</h1>
-                <p class="text-slate-400 font-medium">請使用內部 Google 帳號登入</p>
+                <h1 class="text-4xl font-black tracking-tighter" data-i18n="login-title">DB-Card 數位名片系統</h1>
+                <p class="text-slate-400 font-medium" data-i18n="login-subtitle">請使用內部 Google 帳號登入</p>
             </div>
 
             <div class="glass-panel p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] w-full max-w-md space-y-6 sm:space-y-8 text-center">
@@ -253,11 +253,11 @@
                 </div>
                 <button id="google-login-btn" onclick="handleGoogleLogin()" class="btn-google w-full flex items-center justify-center gap-4 py-4 rounded-2xl font-bold text-sm">
                     <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" class="w-5 h-5" alt="Google">
-                    使用 Google 帳號登入
+                    <span data-i18n="login-button">使用 Google 帳號登入</span>
                 </button>
                 <div class="space-y-2">
-                    <p class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">僅限授權使用者</p>
-                    <p class="text-xs text-slate-400">限 @moda.gov.tw 網域帳號</p>
+                    <p class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]" data-i18n="login-restriction">僅限授權使用者</p>
+                    <p class="text-xs text-slate-400" data-i18n="login-domain">限 @moda.gov.tw 網域帳號</p>
                 </div>
             </div>
         </section>
@@ -265,8 +265,8 @@
         <!-- 2. 卡片選擇頁 -->
         <section id="view-selection" class="hidden space-y-12 fade-in">
             <div class="flex flex-col items-center text-center space-y-2">
-                <h2 class="text-3xl font-black tracking-tight">我的數位名片庫</h2>
-                <p class="text-slate-400 font-medium text-sm">您最多可持有三種用途的數位名片</p>
+                <h2 class="text-3xl font-black tracking-tight" data-i18n="selection-title">我的數位名片庫</h2>
+                <p class="text-slate-400 font-medium text-sm leading-relaxed" data-i18n="selection-subtitle">您最多可持有三種用途的數位名片</p>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8" id="card-slots-container">
@@ -282,8 +282,8 @@
                         <i data-lucide="arrow-left" class="w-5 h-5"></i>
                     </button>
                     <div>
-                        <h2 id="form-title" class="text-2xl font-black tracking-tight">編輯數位名片</h2>
-                        <p id="form-subtitle" class="text-xs text-slate-400 font-bold uppercase tracking-widest">Self-Service Issuance</p>
+                        <h2 id="form-title" class="text-2xl font-black tracking-tight" data-i18n="form-title">編輯數位名片</h2>
+                        <p id="form-subtitle" class="text-xs text-slate-400 font-bold uppercase tracking-widest" data-i18n="form-subtitle">Self-Service Issuance</p>
                     </div>
                 </div>
 
@@ -317,7 +317,7 @@
 
                     <!-- 部門選擇下拉選單 -->
                     <div class="space-y-2">
-                        <label for="department-preset" class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">選擇您的所屬部門</label>
+                        <label for="department-preset" class="text-sm font-black text-slate-400 uppercase tracking-widest ml-1" data-i18n="label-department">選擇您的所屬部門</label>
                         <select id="department-preset" name="department" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold appearance-none">
                             <option value="">請選擇部門</option>
                             <option value="數位策略司">數位策略司</option>
@@ -347,24 +347,24 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
-                            <label for="email" class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Email *</label>
-                            <input type="email" id="email" name="email" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="your.name@moda.gov.tw" required>
+                            <label for="email" class="text-sm font-black text-slate-400 uppercase tracking-widest ml-1" data-i18n="label-email">Email *</label>
+                            <input type="email" id="email" name="email" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" data-i18n-placeholder="placeholder-email" required>
                         </div>
                         <div class="space-y-2">
-                            <label for="phone" class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">辦公室電話</label>
-                            <input type="text" id="phone" name="phone" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="02-2380-1234">
+                            <label for="phone" class="text-sm font-black text-slate-400 uppercase tracking-widest ml-1" data-i18n="label-phone">辦公室電話</label>
+                            <input type="text" id="phone" name="phone" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" data-i18n-placeholder="placeholder-phone">
                         </div>
                     </div>
 
                     <!-- 官網連結 -->
                     <div class="space-y-2">
-                        <label for="web" class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">官方網站連結</label>
-                        <input type="url" id="web" name="web" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="https://moda.gov.tw">
+                        <label for="web" class="text-sm font-black text-slate-400 uppercase tracking-widest ml-1" data-i18n="label-web">官方網站連結</label>
+                        <input type="url" id="web" name="web" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" data-i18n-placeholder="placeholder-web">
                     </div>
 
                     <!-- 地址預設選擇 + 自訂 -->
                     <div class="space-y-2">
-                        <label for="address-preset" class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">辦公地址</label>
+                        <label for="address-preset" class="text-sm font-black text-slate-400 uppercase tracking-widest ml-1" data-i18n="label-address">辦公地址</label>
                         <select id="address-preset" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold appearance-none mb-2">
                             <option value="">選擇預設地址或自訂</option>
                             <option value="yanping">延平大樓（數位發展部）</option>
@@ -381,41 +381,41 @@
                     <!-- 進階資訊折疊區 -->
                     <details class="group border-t border-slate-100 pt-6 mt-6">
                         <summary class="list-none cursor-pointer flex items-center justify-between text-xs font-black text-moda hover:text-moda transition-colors uppercase tracking-widest">
-                            <span>進階與社群資訊（選填）</span>
+                            <span data-i18n="advanced-section">進階與社群資訊（選填）</span>
                             <i data-lucide="chevron-down" class="w-4 h-4 group-open:rotate-180 transition-transform"></i>
                         </summary>
                         <div class="pt-6 space-y-6">
                             <!-- 手機 & 大頭貼 -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div class="space-y-2">
-                                    <label for="mobile" class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">手機號碼</label>
-                                    <input type="text" id="mobile" name="mobile" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="0912-345-678">
+                                    <label for="mobile" class="text-sm font-black text-slate-400 uppercase tracking-widest ml-1" data-i18n="label-mobile">手機號碼</label>
+                                    <input type="text" id="mobile" name="mobile" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" data-i18n-placeholder="placeholder-mobile">
                                 </div>
                                 <div class="space-y-2">
-                                    <label for="avatar_url" class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">大頭貼連結</label>
-                                    <input type="url" id="avatar_url" name="avatar_url" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" placeholder="貼上 Google Drive 分享連結">
+                                    <label for="avatar_url" class="text-sm font-black text-slate-400 uppercase tracking-widest ml-1" data-i18n="label-avatar">大頭貼連結</label>
+                                    <input type="url" id="avatar_url" name="avatar_url" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-moda font-bold" data-i18n-placeholder="placeholder-avatar">
                                     <p class="text-xs text-slate-500 ml-1 leading-relaxed">
                                         💡 使用 Google Drive：分享時設為「知道連結的任何人」
                                     </p>
                                 </div>
                             </div>
 
-                            <!-- 問候語 -->
+                            <!-- 關於我 -->
                             <div class="space-y-2">
                                 <div class="flex justify-between text-xs font-black text-slate-400 uppercase tracking-widest px-1">
-                                    <span>中文問候語</span><span>英文問候語</span>
+                                    <span data-i18n="label-greeting">關於我（中文）</span><span data-i18n="label-greeting">關於我（英文）</span>
                                 </div>
                                 <div class="bilingual-field">
-                                    <textarea id="greetings_zh" name="greetings_zh" class="h-24 resize-none" placeholder="您好，很高興認識您" aria-label="中文問候語"></textarea>
-                                    <textarea id="greetings_en" name="greetings_en" class="h-24 resize-none" placeholder="Hello, nice to meet you" aria-label="English Greeting"></textarea>
+                                    <textarea id="greetings_zh" name="greetings_zh" class="h-24 resize-none" data-i18n-placeholder="placeholder-greeting-zh" aria-label="關於我（中文）"></textarea>
+                                    <textarea id="greetings_en" name="greetings_en" class="h-24 resize-none" data-i18n-placeholder="placeholder-greeting-en" aria-label="About Me (English)"></textarea>
                                 </div>
                             </div>
 
                             <!-- 社群連結 -->
                             <div class="space-y-3">
                                 <div class="flex items-center justify-between">
-                                    <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">社群連結</label>
-                                    <span class="text-[10px] text-slate-400">選填，方便他人聯繫</span>
+                                    <label class="text-sm font-black text-slate-400 uppercase tracking-widest ml-1" data-i18n="label-social">社群連結</label>
+                                    <span class="text-xs text-slate-400 leading-relaxed">選填，方便他人聯繫</span>
                                 </div>
 
                                 <!-- GitHub -->
@@ -423,7 +423,7 @@
                                     <div class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center flex-shrink-0">
                                         <i data-lucide="github" class="w-4 h-4 text-slate-600"></i>
                                     </div>
-                                    <input type="url" id="social_github" name="social_github" class="flex-1 px-5 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" placeholder="https://github.com/username">
+                                    <input type="url" id="social_github" name="social_github" class="flex-1 px-5 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" data-i18n-placeholder="placeholder-github">
                                 </div>
 
                                 <!-- LinkedIn -->
@@ -431,7 +431,7 @@
                                     <div class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center flex-shrink-0">
                                         <i data-lucide="linkedin" class="w-4 h-4 text-slate-600"></i>
                                     </div>
-                                    <input type="url" id="social_linkedin" name="social_linkedin" class="flex-1 px-5 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" placeholder="https://linkedin.com/in/username">
+                                    <input type="url" id="social_linkedin" name="social_linkedin" class="flex-1 px-5 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" data-i18n-placeholder="placeholder-linkedin">
                                 </div>
 
                                 <!-- Facebook -->
@@ -455,7 +455,7 @@
                                     <div class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center flex-shrink-0">
                                         <i data-lucide="twitter" class="w-4 h-4 text-slate-600"></i>
                                     </div>
-                                    <input type="url" id="social_twitter" name="social_twitter" class="flex-1 px-5 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" placeholder="https://x.com/username">
+                                    <input type="url" id="social_twitter" name="social_twitter" class="flex-1 px-5 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-moda text-sm" data-i18n-placeholder="placeholder-twitter">
                                 </div>
 
                                 <!-- YouTube -->
@@ -492,9 +492,9 @@
                     <div id="form-error-msg" class="hidden p-4 bg-red-50 border border-red-200 text-red-600 rounded-2xl text-xs font-bold"></div>
 
                     <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-6">
-                        <button type="button" onclick="showView('selection')" class="sm:flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-200">取消</button>
+                        <button type="button" onclick="showView('selection')" class="sm:flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-200" data-i18n="button-cancel">取消</button>
                         <button id="submit-btn" type="submit" class="sm:flex-[2] py-4 bg-moda text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-moda shadow-xl shadow-moda transition-all">
-                            <span id="submit-btn-text">儲存並預覽名片</span>
+                            <span id="submit-btn-text" data-i18n="button-submit">儲存並預覽名片</span>
                             <span id="submit-btn-loading" class="hidden">
                                 <i data-lucide="loader-2" class="w-4 h-4 inline animate-spin"></i> 儲存中...
                             </span>
@@ -506,7 +506,7 @@
             <!-- 右側預覽 -->
             <div class="lg:col-span-4 space-y-6">
                 <div class="glass-panel p-6 lg:p-8 rounded-[3rem] lg:sticky lg:top-28 text-center flex flex-col items-center">
-                    <p class="text-xs font-black text-moda opacity-60 uppercase tracking-[0.3em] mb-10">Real-time Context</p>
+                    <p class="text-xs font-black text-moda opacity-60 uppercase tracking-[0.3em] mb-10" data-i18n="preview-title">Real-time Context</p>
                     <div id="preview-lang-switch" class="flex bg-slate-100 p-1 rounded-lg mb-6">
                         <button data-lang="zh" class="px-4 py-1 text-xs font-bold rounded-md bg-white shadow-sm transition-all">中</button>
                         <button data-lang="en" class="px-4 py-1 text-xs font-bold rounded-md text-slate-500 hover:text-slate-900 transition-all">EN</button>
@@ -527,9 +527,9 @@
                             <!-- 動態生成 -->
                         </div>
 
-                        <!-- 問候語區塊 -->
+                        <!-- 關於我區塊 -->
                         <div id="prev-greeting-section" class="mt-6 pt-6 border-t border-moda opacity-20 hidden">
-                            <p class="text-[8px] font-black tracking-widest text-slate-400 uppercase mb-3 opacity-40">Dynamic Transmission Feed</p>
+                            <p class="text-xs font-black tracking-widest text-slate-400 uppercase mb-3 opacity-40">關於我 About Me</p>
                             <p id="prev-greeting" class="text-slate-600 font-medium italic text-xs"></p>
                         </div>
 
@@ -563,7 +563,7 @@
                             <span id="prev-address" class="text-xs font-bold text-slate-600 truncate">---</span>
                         </div>
                     </div>
-                    <p class="text-[10px] text-slate-400 mt-10 italic uppercase font-bold tracking-widest">Digital Twin Preview</p>
+                    <p class="text-xs text-slate-400 mt-10 italic uppercase font-bold tracking-widest" data-i18n="preview-footer">Digital Twin Preview</p>
                 </div>
             </div>
         </section>
@@ -583,21 +583,21 @@
                 <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i data-lucide="check-circle" class="w-8 h-8 text-green-600"></i>
                 </div>
-                <h3 class="text-xl sm:text-2xl font-black text-slate-900">名片已儲存</h3>
-                <p id="modal-card-type" class="text-sm text-slate-600 mt-2">您的名片已成功更新</p>
+                <h3 class="text-xl sm:text-2xl font-black text-slate-900" data-i18n="modal-success-title">名片已儲存</h3>
+                <p id="modal-card-type" class="text-sm text-slate-600 mt-2 leading-relaxed" data-i18n="modal-success-subtitle">您的名片已成功更新</p>
             </div>
 
             <!-- Share Link -->
             <div class="mb-6">
-                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">分享連結</label>
+                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block" data-i18n="modal-share-link">分享連結</label>
                 <div class="flex gap-2">
                     <input id="modal-share-link" type="text" readonly class="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono text-slate-700">
                     <button id="modal-copy-btn" onclick="copyModalLink()" class="px-6 py-3 bg-moda text-white rounded-xl font-bold hover:bg-moda/90 transition-colors flex items-center gap-2 min-h-[48px]">
                         <i data-lucide="copy" class="w-4 h-4"></i>
-                        <span id="modal-copy-text" class="hidden sm:inline">複製</span>
+                        <span id="modal-copy-text" class="hidden sm:inline" data-i18n="button-copy">複製</span>
                     </button>
                 </div>
-                <p class="text-xs text-slate-500 mt-2">可透過此連結分享您的名片</p>
+                <p class="text-xs text-slate-500 mt-2" data-i18n="modal-share-desc">可透過此連結分享您的名片</p>
             </div>
 
             <!-- Next Steps -->
@@ -615,8 +615,8 @@
                                 <i data-lucide="home" class="w-5 h-5 text-blue-600"></i>
                             </div>
                             <div>
-                                <p class="text-xs font-black text-slate-700">加入主畫面</p>
-                                <p class="text-[10px] text-slate-500 mt-1">一鍵快速開啟</p>
+                                <p class="text-xs font-black text-slate-700" data-i18n="modal-qr-title">加入主畫面</p>
+                                <p class="text-xs text-slate-500 mt-1" data-i18n="modal-qr-desc">一鍵快速開啟</p>
                             </div>
                         </div>
                     </div>
@@ -627,8 +627,8 @@
                                 <i data-lucide="credit-card" class="w-5 h-5 text-moda"></i>
                             </div>
                             <div>
-                                <p class="text-xs font-black text-slate-700">寫入 NFC 卡片</p>
-                                <p class="text-[10px] text-slate-500 mt-1">實體卡片快速分享</p>
+                                <p class="text-xs font-black text-slate-700" data-i18n="modal-nfc-title">寫入 NFC 卡片</p>
+                                <p class="text-xs text-slate-500 mt-1" data-i18n="modal-nfc-desc">實體卡片快速分享</p>
                             </div>
                         </div>
                     </div>
@@ -639,8 +639,8 @@
                                 <i data-lucide="link-2" class="w-5 h-5 text-green-600"></i>
                             </div>
                             <div>
-                                <p class="text-xs font-black text-slate-700">縮短網址</p>
-                                <p class="text-[10px] text-slate-500 mt-1">方便線上分享</p>
+                                <p class="text-xs font-black text-slate-700" data-i18n="modal-short-title">縮短網址</p>
+                                <p class="text-xs text-slate-500 mt-1" data-i18n="modal-short-desc">方便線上分享</p>
                             </div>
                         </div>
                     </div>
@@ -667,9 +667,9 @@
                 <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i data-lucide="shield-alert" class="w-8 h-8 text-red-600"></i>
                 </div>
-                <h3 class="text-2xl font-black text-slate-900">確認撤銷名片</h3>
-                <p class="text-sm text-slate-600 mt-2">撤銷後，所有分享連結將立即失效</p>
-                <p class="text-xs text-amber-600 mt-2 font-medium">可在 7 天內自行恢復</p>
+                <h3 class="text-2xl font-black text-slate-900" data-i18n="modal-revoke-title">確認撤銷名片</h3>
+                <p class="text-sm text-slate-600 mt-2 leading-relaxed" data-i18n="modal-revoke-subtitle">撤銷後，所有分享連結將立即失效</p>
+                <p class="text-xs text-amber-600 mt-2 font-medium" data-i18n="modal-revoke-warning">可在 7 天內自行恢復</p>
                 <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
                     <p class="text-xs text-blue-800">
                         <span class="font-bold">需要立即重新註冊？</span><br>
@@ -679,12 +679,12 @@
             </div>
 
             <div class="mb-6 space-y-2">
-                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider block">撤銷原因（選填）</label>
+                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider block" data-i18n="modal-revoke-reason">撤銷原因（選填）</label>
                 <select id="revoke-reason" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-moda">
-                    <option value="">不提供原因</option>
-                    <option value="lost">卡片遺失</option>
-                    <option value="suspected_leak">疑似資訊外洩</option>
-                    <option value="info_update">資訊需更新</option>
+                    <option value="" data-i18n="revoke-reason-none">不提供原因</option>
+                    <option value="lost" data-i18n="revoke-reason-lost">卡片遺失</option>
+                    <option value="suspected_leak" data-i18n="revoke-reason-leak">疑似資訊外洩</option>
+                    <option value="info_update" data-i18n="revoke-reason-update">資訊需更新</option>
                     <option value="misdelivery">誤發</option>
                     <option value="other">其他</option>
                 </select>
@@ -695,10 +695,10 @@
             </div>
 
             <div class="flex gap-3">
-                <button onclick="closeRevokeModal()" class="flex-1 px-6 py-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors">
+                <button onclick="closeRevokeModal()" class="flex-1 px-6 py-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors" data-i18n="button-cancel">
                     取消
                 </button>
-                <button id="confirm-revoke-btn" onclick="confirmRevokeCard()" class="flex-1 px-6 py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors">
+                <button id="confirm-revoke-btn" onclick="confirmRevokeCard()" class="flex-1 px-6 py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors" data-i18n="button-confirm">
                     確認撤銷
                 </button>
             </div>

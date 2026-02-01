@@ -196,6 +196,14 @@ const i18nTexts = {
     'view-security': {
         'zh': '查看詳細安全特性',
         'en': 'View Security Features'
+    },
+    'desktop-qr-title': {
+        'zh': '加入手機通訊錄',
+        'en': 'Add to Contacts'
+    },
+    'desktop-qr-desc': {
+        'zh': '掃描 QR Code 用手機開啟',
+        'en': 'Scan QR Code with your phone'
     }
 };
 

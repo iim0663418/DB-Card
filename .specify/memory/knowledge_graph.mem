@@ -92,3 +92,13 @@
 260131|Debug|logging|Environment_Variable_Control
 260131|Performance|optimization|Conditional_Logging
 260131|Git|commit|d5189ea_Env_Based_Logging
+260201|card_display|background|Three_js_Perspective_Grid_Vanishing_Point
+260201|Performance|rendering|60fps_RequestAnimationFrame
+260201|UI|spatial_design|Rotation_X_Minus_PI_2_2_Perspective
+260201|user_portal|i18n|Complete_80_Keys_Zh_En
+260201|UI|multilingual|Auto_Detect_Navigator_Language
+260201|Frontend|translation|Data_I18n_Attribute_System
+260201|user_portal|accessibility|WCAG_2_1_Level_AA_Compliant
+260201|UI|font_size|Min_12px_Label_14px
+260201|UI|line_height|Leading_Relaxed_1_625
+260201|Frontend|optimization|19_Improvements_Total

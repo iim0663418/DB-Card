@@ -1,5 +1,240 @@
         // API Base URL (defined in config.js)
 
+        // ==================== i18n Translations (Batch 1) ====================
+        const i18n = {
+            zh: {
+                // 1. Login Page (5 keys)
+                'login-title': 'DB-Card 數位名片系統',
+                'login-subtitle': '請使用內部 Google 帳號登入',
+                'login-button': '使用 Google 帳號登入',
+                'login-restriction': '僅限授權使用者',
+                'login-domain': '限 @moda.gov.tw 網域帳號',
+
+                // 2. Card Selection (5 keys)
+                'selection-title': '我的數位名片庫',
+                'selection-subtitle': '您最多可持有三種用途的數位名片',
+                'card-type-personal': '個人名片',
+                'card-type-event': '活動名片',
+                'card-type-sensitive': '敏感名片',
+
+                // 3. Form Labels (15 keys)
+                'form-title': '編輯數位名片',
+                'form-subtitle': 'Self-Service Issuance',
+                'label-department': '選擇您的所屬部門',
+                'label-name': '姓名',
+                'label-title': '職稱',
+                'label-email': 'Email',
+                'label-phone': '辦公室電話',
+                'label-web': '官方網站連結',
+                'label-address': '辦公地址',
+                'label-mobile': '手機號碼',
+                'label-avatar': '大頭貼連結',
+                'label-greeting': '關於我',
+                'label-social': '社群連結',
+                'advanced-section': '進階與社群資訊',
+
+                // 4. Buttons (8 keys)
+                'button-cancel': '取消',
+                'button-submit': '送出',
+                'button-create': '創建名片',
+                'button-edit': '編輯',
+                'button-revoke': '撤銷',
+                'button-close': '關閉',
+                'button-confirm': '確認',
+                'button-copy': '複製',
+
+                // 5. Form Placeholder (10 keys)
+                'placeholder-email': 'your.email@moda.gov.tw',
+                'placeholder-phone': '02-1234-5678',
+                'placeholder-web': 'https://moda.gov.tw',
+                'placeholder-mobile': '0912-345-678',
+                'placeholder-avatar': 'https://example.com/avatar.jpg',
+                'placeholder-greeting-zh': '您好，很高興認識您',
+                'placeholder-greeting-en': 'Hello, nice to meet you',
+                'placeholder-github': 'https://github.com/username',
+                'placeholder-linkedin': 'https://linkedin.com/in/username',
+                'placeholder-twitter': 'https://twitter.com/username',
+
+                // 6. Success Modal (12 keys)
+                'modal-success-title': '名片已儲存',
+                'modal-success-subtitle': '您的名片已成功更新',
+                'modal-share-link': '分享連結',
+                'modal-share-desc': '可透過此連結分享您的名片',
+                'modal-qr-title': '加入主畫面',
+                'modal-qr-desc': '一鍵快速開啟',
+                'modal-nfc-title': '寫入 NFC 卡片',
+                'modal-nfc-desc': '實體卡片快速分享',
+                'modal-short-title': '縮短網址',
+                'modal-short-desc': '方便線上分享',
+                'modal-copied': '已複製',
+                'modal-copy-failed': '複製失敗',
+
+                // 7. Revoke Modal (8 keys)
+                'modal-revoke-title': '確認撤銷名片',
+                'modal-revoke-subtitle': '撤銷後，所有分享連結將立即失效',
+                'modal-revoke-warning': '可在 7 天內自行恢復',
+                'modal-revoke-reason': '撤銷原因（選填）',
+                'revoke-reason-none': '不提供原因',
+                'revoke-reason-lost': '卡片遺失',
+                'revoke-reason-leak': '疑似資訊外洩',
+                'revoke-reason-update': '資訊需更新',
+
+                // 8. Preview Block (5 keys)
+                'preview-title': 'Real-time Context',
+                'preview-footer': 'Digital Twin Preview',
+                'preview-email-label': '電子郵件',
+                'preview-phone-label': '辦公室電話',
+                'preview-mobile-label': '手機',
+
+                // 9. Error Messages (8 keys)
+                'error-login-failed': '登入失敗，請稍後再試',
+                'error-unauthorized': '您的帳號未獲授權',
+                'error-network': '網路連線錯誤',
+                'error-invalid-email': 'Email 格式不正確',
+                'error-required-field': '此欄位為必填',
+                'error-save-failed': '儲存失敗，請稍後再試',
+                'error-revoke-failed': '撤銷失敗，請稍後再試',
+                'error-rate-limit': '操作過於頻繁，請稍後再試',
+
+                // 10. Auxiliary Text (4 keys)
+                'loading': '載入中...',
+                'processing': '處理中...',
+                'saving': '儲存中...',
+                'success': '成功'
+            },
+            en: {
+                // 1. Login Page (5 keys)
+                'login-title': 'DB-Card Digital Business Card',
+                'login-subtitle': 'Please sign in with your internal Google account',
+                'login-button': 'Sign in with Google',
+                'login-restriction': 'Authorized Users Only',
+                'login-domain': '@moda.gov.tw domain only',
+
+                // 2. Card Selection (5 keys)
+                'selection-title': 'My Digital Card Library',
+                'selection-subtitle': 'You can hold up to three types of digital cards',
+                'card-type-personal': 'Personal Card',
+                'card-type-event': 'Event Card',
+                'card-type-sensitive': 'Sensitive Card',
+
+                // 3. Form Labels (15 keys)
+                'form-title': 'Edit Digital Card',
+                'form-subtitle': 'Self-Service Issuance',
+                'label-department': 'Select Your Department',
+                'label-name': 'Name',
+                'label-title': 'Title',
+                'label-email': 'Email',
+                'label-phone': 'Office Phone',
+                'label-web': 'Official Website',
+                'label-address': 'Office Address',
+                'label-mobile': 'Mobile Number',
+                'label-avatar': 'Avatar URL',
+                'label-greeting': 'About Me',
+                'label-social': 'Social Links',
+                'advanced-section': 'Advanced & Social Info',
+
+                // 4. Buttons (8 keys)
+                'button-cancel': 'Cancel',
+                'button-submit': 'Submit',
+                'button-create': 'Create Card',
+                'button-edit': 'Edit',
+                'button-revoke': 'Revoke',
+                'button-close': 'Close',
+                'button-confirm': 'Confirm',
+                'button-copy': 'Copy',
+
+                // 5. Form Placeholder (10 keys)
+                'placeholder-email': 'your.email@moda.gov.tw',
+                'placeholder-phone': '02-1234-5678',
+                'placeholder-web': 'https://moda.gov.tw',
+                'placeholder-mobile': '0912-345-678',
+                'placeholder-avatar': 'https://example.com/avatar.jpg',
+                'placeholder-greeting-zh': 'Hello, nice to meet you',
+                'placeholder-greeting-en': 'Hello, nice to meet you',
+                'placeholder-github': 'https://github.com/username',
+                'placeholder-linkedin': 'https://linkedin.com/in/username',
+                'placeholder-twitter': 'https://twitter.com/username',
+
+                // 6. Success Modal (12 keys)
+                'modal-success-title': 'Card Saved',
+                'modal-success-subtitle': 'Your card has been successfully updated',
+                'modal-share-link': 'Share Link',
+                'modal-share-desc': 'Share your card via this link',
+                'modal-qr-title': 'Add to Home Screen',
+                'modal-qr-desc': 'Quick access',
+                'modal-nfc-title': 'Write to NFC Card',
+                'modal-nfc-desc': 'Physical card sharing',
+                'modal-short-title': 'Shorten URL',
+                'modal-short-desc': 'Easy online sharing',
+                'modal-copied': 'Copied',
+                'modal-copy-failed': 'Copy failed',
+
+                // 7. Revoke Modal (8 keys)
+                'modal-revoke-title': 'Confirm Revoke Card',
+                'modal-revoke-subtitle': 'All shared links will be immediately invalidated',
+                'modal-revoke-warning': 'Can be restored within 7 days',
+                'modal-revoke-reason': 'Revoke Reason (Optional)',
+                'revoke-reason-none': 'No reason provided',
+                'revoke-reason-lost': 'Card lost',
+                'revoke-reason-leak': 'Suspected information leak',
+                'revoke-reason-update': 'Information needs update',
+
+                // 8. Preview Block (5 keys)
+                'preview-title': 'Real-time Context',
+                'preview-footer': 'Digital Twin Preview',
+                'preview-email-label': 'Email',
+                'preview-phone-label': 'Office Phone',
+                'preview-mobile-label': 'Mobile',
+
+                // 9. Error Messages (8 keys)
+                'error-login-failed': 'Login failed, please try again later',
+                'error-unauthorized': 'Your account is not authorized',
+                'error-network': 'Network connection error',
+                'error-invalid-email': 'Invalid email format',
+                'error-required-field': 'This field is required',
+                'error-save-failed': 'Save failed, please try again later',
+                'error-revoke-failed': 'Revoke failed, please try again later',
+                'error-rate-limit': 'Too many requests, please try again later',
+
+                // 10. Auxiliary Text (4 keys)
+                'loading': 'Loading...',
+                'processing': 'Processing...',
+                'saving': 'Saving...',
+                'success': 'Success'
+            }
+        };
+
+        // Auto-detect browser language and apply translations
+        const userLang = (navigator.language || navigator.userLanguage || 'zh-TW').toLowerCase();
+        const currentLang = userLang.startsWith('zh') ? 'zh' : 'en';
+
+        function applyTranslations(lang) {
+            const translations = i18n[lang] || i18n.zh;
+
+            // Handle data-i18n for text content
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[key]) {
+                    // Handle different element types
+                    if (el.tagName === 'INPUT' && el.type === 'button') {
+                        el.value = translations[key];
+                    } else if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                        el.placeholder = translations[key];
+                    } else {
+                        el.textContent = translations[key];
+                    }
+                }
+            });
+
+            // Handle data-i18n-placeholder for placeholder attributes
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if (translations[key]) {
+                    el.placeholder = translations[key];
+                }
+            });
+        }
+
         // CardStateManager: 管理狀態、快照、樂觀更新和回滾
         class CardStateManager {
             constructor() {
@@ -133,6 +368,12 @@
                 ]);
             }
 
+            // 取得當前語言的錯誤訊息
+            getI18nError(key) {
+                const i18nKey = `error-${key}`;
+                return i18n[currentLang][i18nKey] || null;
+            }
+
             handle(error) {
                 // 優先處理 code
                 if (error?.code && this.handlers.has(error.code)) {
@@ -189,7 +430,8 @@
             loading: false
         };
 
-        let previewLang = 'zh';
+        // 自動偵測瀏覽器語言（使用 currentLang 保持一致）
+        let previewLang = currentLang;
         let currentModalUuid = null;
         let currentRevokeUuid = null;
         let currentRevokeType = null;
@@ -219,6 +461,15 @@
                 return results;
             }
         };
+
+        function getCardTypeLabel(type) {
+            const typeMap = {
+                'personal': 'card-type-personal',
+                'event': 'card-type-event',
+                'sensitive': 'card-type-sensitive'
+            };
+            return i18n[currentLang][typeMap[type]] || type;
+        }
 
         const CARD_TYPES = [
             {
@@ -286,7 +537,7 @@
                         state.authToken = null;
                         state.currentUser = null;
                         showView('login');
-                        showToast('登入已過期，請重新登入');
+                        showToast(i18n[currentLang]['error-unauthorized'] || '登入已過期，請重新登入');
                     }
 
                     // Extract error details (support nested error object)
@@ -302,7 +553,7 @@
                 return res.json();
             } catch (err) {
                 if (err.status) throw err;
-                throw { status: 0, message: '網路連線失敗' };
+                throw { status: 0, message: i18n[currentLang]['error-network'] || '網路連線失敗' };
             }
         }
 
@@ -350,7 +601,7 @@
                 window.location.href = authUrl;
             } catch (error) {
                 console.error('OAuth init error:', error);
-                errorBox.innerText = '登入初始化失敗，請重試';
+                errorBox.innerText = i18n[currentLang]['error-login-failed'] || '登入初始化失敗，請重試';
                 errorBox.classList.remove('hidden');
             }
         }
@@ -628,7 +879,7 @@
 
             // 阻擋 revoked 卡片
             if (card && card.status === 'revoked') {
-                showToast('此名片已被撤銷，無法編輯');
+                showToast(i18n[currentLang]['error-revoke-failed'] || '此名片已被撤銷，無法編輯');
                 return;
             }
 
@@ -702,16 +953,16 @@
                         }
                     }
 
-                    document.getElementById('form-title').innerText = '編輯數位名片';
+                    document.getElementById('form-title').innerText = i18n[currentLang]['form-title'];
                 } catch (err) {
-                    showToast('載入名片資料失敗');
+                    showToast(i18n[currentLang]['error-save-failed'] || '載入名片資料失敗');
                     return;
                 } finally {
                     toggleLoading(false);
                 }
             } else {
                 document.getElementById('form-uuid').value = '';
-                document.getElementById('form-title').innerText = '建立新名片';
+                document.getElementById('form-title').innerText = i18n[currentLang]['button-create'];
 
                 // BDD Scenario 1-4: 自動填入 OIDC 資訊(僅創建時)
                 prefillFormWithOIDC(state.currentUser);
@@ -737,7 +988,7 @@
                                     <i data-lucide="${config.icon}"></i>
                                 </div>
                                 <span class="badge bg-${config.color}-100 text-${config.color}-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
-                                    ${config.label}
+                                    ${getCardTypeLabel(config.id)}
                                 </span>
                             </div>
                             <div class="space-y-1">
@@ -812,22 +1063,22 @@
                                 <div class="grid grid-cols-3 gap-2">
                                     <button data-action="edit" data-type="${config.id}"
                                             class="py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all">
-                                        編輯
+                                        ${i18n[currentLang]['button-edit']}
                                     </button>
                                     <button onclick="copyCardLink('${data.uuid}')"
                                             class="py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all">
-                                        複製
+                                        ${i18n[currentLang]['button-copy']}
                                     </button>
                                     <button onclick="showRevokeModal('${data.uuid}', '${config.id}')"
                                             class="py-3 bg-white border border-red-200 text-red-600 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-red-50 transition-all">
-                                        撤銷
+                                        ${i18n[currentLang]['button-revoke']}
                                     </button>
                                 </div>
                             </div>
                         ` : `
                             <button data-action="edit" data-type="${config.id}"
                                     class="w-full py-4 bg-moda text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-[1.02] transition-all mt-10 shadow-moda shadow-lg">
-                                建立名片
+                                ${i18n[currentLang]['button-create']}
                             </button>
                         `)}
                     </div>
@@ -851,12 +1102,9 @@
             currentModalUuid = uuid;
 
             // 設定名片類型文字
-            const typeText = {
-                'personal': '個人名片',
-                'event': '活動名片',
-                'sensitive': '敏感名片'
-            }[type] || '名片';
-            document.getElementById('modal-card-type').innerText = `您的${typeText}已準備就緒`;
+            const typeText = getCardTypeLabel(type);
+            const subtitleText = i18n[currentLang]['modal-success-subtitle'];
+            document.getElementById('modal-card-type').innerText = subtitleText;
 
             // 設定分享連結（不帶 session）
             const shareLink = `${window.location.origin}/card-display.html?uuid=${uuid}`;
@@ -867,7 +1115,7 @@
             const copyBtnText = document.getElementById('modal-copy-text');
             const copyBtnIcon = copyBtn.querySelector('i[data-lucide]');
 
-            if (copyBtnText) copyBtnText.innerText = '複製';
+            if (copyBtnText) copyBtnText.innerText = i18n[currentLang]['button-copy'];
             copyBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
             copyBtn.classList.add('bg-moda', 'hover:bg-moda/90');
 
@@ -915,7 +1163,7 @@
                 await navigator.clipboard.writeText(link);
 
                 // 視覺反饋
-                btnText.innerText = '已複製';
+                btnText.innerText = i18n[currentLang]['modal-copied'];
                 btn.classList.remove('bg-moda', 'hover:bg-moda/90');
                 btn.classList.add('bg-green-600', 'hover:bg-green-700');
 
@@ -927,7 +1175,7 @@
 
                 // 2 秒後恢復
                 setTimeout(() => {
-                    btnText.innerText = '複製';
+                    btnText.innerText = i18n[currentLang]['button-copy'];
                     btn.classList.remove('bg-green-600', 'hover:bg-green-700');
                     btn.classList.add('bg-moda', 'hover:bg-moda/90');
 
@@ -938,7 +1186,7 @@
                     }
                 }, 2000);
             } catch (err) {
-                showToast('複製失敗，請手動複製');
+                showToast(i18n[currentLang]['modal-copy-failed']);
             }
         }
 
@@ -1212,11 +1460,11 @@
                 // Token 過期或無權限,返回登入頁
                 state.isLoggedIn = false;
                 showView('login');
-                showToast('登入已過期,請重新登入');
+                showToast(i18n[currentLang]['error-unauthorized'] || '登入已過期,請重新登入');
             } else if (err.status === 429) {
-                showToast('操作過於頻繁,請稍後再試');
+                showToast(i18n[currentLang]['error-rate-limit'] || '操作過於頻繁,請稍後再試');
             } else {
-                showToast(err.message || '操作失敗');
+                showToast(err.message || i18n[currentLang]['error-save-failed'] || '操作失敗');
             }
         }
 
@@ -1428,6 +1676,9 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
+            // Apply i18n translations on page load
+            applyTranslations(currentLang);
+
             lucide.createIcons();
 
             if (typeof THREE !== 'undefined') {
@@ -1510,9 +1761,9 @@
                 const errorBox = document.getElementById('login-error-box');
 
                 if (error === 'unauthorized_domain') {
-                    errorBox.innerText = '登入失敗：您的 Email 尚未授權';
+                    errorBox.innerText = i18n[currentLang]['error-unauthorized'] || '登入失敗：您的 Email 尚未授權';
                 } else {
-                    errorBox.innerText = '登入失敗，請重試';
+                    errorBox.innerText = i18n[currentLang]['error-login-failed'] || '登入失敗，請重試';
                 }
 
                 errorBox.classList.remove('hidden');
@@ -1585,6 +1836,17 @@
                     btn.classList.remove('text-slate-500');
                     updatePreview();
                 };
+            });
+
+            // 初始化語言切換按鈕狀態（根據自動偵測的語言）
+            document.querySelectorAll('#preview-lang-switch button').forEach(btn => {
+                if (btn.dataset.lang === previewLang) {
+                    btn.classList.add('bg-white', 'shadow-sm', 'text-slate-900');
+                    btn.classList.remove('text-slate-500');
+                } else {
+                    btn.classList.remove('bg-white', 'shadow-sm', 'text-slate-900');
+                    btn.classList.add('text-slate-500');
+                }
             });
 
             // 地址預設選擇監聽

@@ -1,8 +1,8 @@
 # DB-Card Project Progress
-## Current Phase: SECURITY_ANALYSIS_COMPLETE
-- Status: OWASP ZAP WARN 項目分析完成
+## Current Phase: SECURITY_IMPROVEMENTS_COMPLETE
+- Status: CSP 和 SRI 安全改進完成
 - Version: v4.6.0
-- Last Update: 2026-02-01T08:53:00+08:00
+- Last Update: 2026-02-01T09:00:00+08:00
 
 ## 今日完成項目
 
@@ -14,42 +14,50 @@
 ### 2. 安全標頭修復（08:35-08:50）
 - ✅ 創建 addMinimalSecurityHeaders() 函數
 - ✅ 應用 Permissions-Policy 到所有 HTTP 響應
-- ✅ 驗證 API 端點：/health ✓
-- ✅ 驗證錯誤響應：404 ✓
-- ✅ TypeScript 編譯通過
+- ✅ 驗證 API 端點
 - ✅ 部署到 Staging (2bf0d122)
 
 ### 3. WARN 項目風險分析（08:50-08:53）
 - ✅ 分析 16 個 WARN 項目
-- ✅ 風險等級評估（高/中/低）
-- ✅ XSS 誤報確認（代碼審查）
-- ✅ 修復優先級建議
+- ✅ 風險等級評估
 - ✅ 創建完整分析報告
 
-## 風險評估結果
+### 4. CSP 和 SRI 改進（08:55-09:00）
+- ✅ 添加 4 個 CSP 指令（object-src, base-uri, form-action, frame-ancestors）
+- ✅ 為 15 個 CDN 資源添加 SRI 屬性
+- ✅ 更新 5 個 HTML 文件
+- ✅ TypeScript 編譯通過
+- ✅ 部署到 Staging (5f94a259)
 
-### 🔴 高風險: 0 項
-- XSS [10031]: 誤報（已驗證安全）
+## 安全改進摘要
 
-### 🟡 中風險: 2 項需處理
-1. CSP Directive Missing [10055] - 建議本月處理
-2. SRI Missing [90003] - 建議本月處理
+### CSP 完整性 ✅
+- object-src 'none' - 禁止 object/embed/applet
+- base-uri 'self' - 限制 base 標籤
+- form-action 'self' - 限制表單提交
+- frame-ancestors 'none' - 禁止 iframe 嵌入
 
-### 🟢 低風險: 14 項
-- 大部分為資訊性質或已修復等待快取更新
+### SRI 保護 ✅
+- DOMPurify 3.2.7: sha384-qJNkHwhlYywDHfyoEe1np+1lYvX/8x+3gHCKFhSSBMQyCFlvFnn+zXmaebXl21rV
+- Three.js r128: sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu
+- Lucide Icons 0.562.0: sha384-FmRlymRnpgjuKyAnwH4DftRjl+RqHOlfcw9k4xcpPyovclg/2RZRrvw7qe1koVCP
 
 ## 修改文件
-- workers/src/index.ts (52 處修改)
-- .specify/specs/security-headers-all-responses.md (新增)
-- docs/security/scan-reports/2026-02-01-permissions-policy-fix.md (新增)
-- docs/security/scan-reports/2026-02-01-owasp-zap-warn-analysis.md (新增)
+- workers/src/index.ts (CSP 策略)
+- workers/public/index.html (SRI)
+- workers/public/card-display.html (SRI)
+- workers/public/admin-dashboard.html (SRI)
+- workers/public/user-portal.html (SRI)
+- workers/public/qr-quick.html (SRI)
+- .specify/specs/csp-sri-improvements.md (BDD 規格)
+- docs/security/scan-reports/*.md (3 個報告)
 
 ## 部署資訊
-- Staging: 2bf0d122-f1cd-490c-8f77-6af00d18758c
+- Staging: 5f94a259-b4ac-48e5-93af-cc8ba9c2e91b
 - URL: https://db-card-staging.csw30454.workers.dev
-- Commit: 6f91a8d
+- Commit: ee9eeaf
 
 ## Next Action
 - 等待 Cloudflare 快取過期（24 小時）
-- 本月內處理 CSP 和 SRI 改進
-- 定期執行安全掃描（每週）
+- 重新執行 OWASP ZAP 掃描驗證改進效果
+- 預期 WARN 數量從 16 降至 ~10

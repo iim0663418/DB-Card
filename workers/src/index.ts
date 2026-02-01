@@ -47,7 +47,7 @@ function addSecurityHeaders(response: Response, nonce: string): Response {
     "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.tailwindcss.com; " +
     "font-src 'self' fonts.gstatic.com; " +
     "img-src 'self' data: https:; " +
-    "connect-src 'self' cdn.jsdelivr.net https://api.db-card.moda.gov.tw https://oauth2.googleapis.com https://www.googleapis.com accounts.google.com; " +
+    "connect-src 'self' cdn.jsdelivr.net https://oauth2.googleapis.com https://www.googleapis.com accounts.google.com; " +
     "object-src 'none'; " +
     "base-uri 'self'; " +
     "form-action 'self'; " +

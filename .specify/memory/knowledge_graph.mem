@@ -110,3 +110,11 @@
 260201|Cache|cloudflare_edge|Static_Assets_Pending_Expiry
 260201|Compliance|permissions_policy|W3C_Spec_Compliant
 260201|BDD_Spec|security_headers|All_Responses_Coverage
+260201|CSP|directives|Complete_4_Added_object_base_form_frame
+260201|SRI|cdn_resources|15_Scripts_Protected_SHA384
+260201|Security|csp_compliance|OWASP_Best_Practice_Met
+260201|Security|sri_implementation|DOMPurify_ThreeJS_Lucide
+260201|Deployment|staging|5f94a259_CSP_SRI_Complete
+260201|OWASP_ZAP|expected_improvement|WARN_16_to_10
+260201|BDD_Spec|csp_sri|Two_Phase_Implementation
+260201|Code_Quality|html_files|5_Updated_SRI_Attributes

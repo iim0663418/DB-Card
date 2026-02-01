@@ -102,3 +102,11 @@
 260201|UI|font_size|Min_12px_Label_14px
 260201|UI|line_height|Leading_Relaxed_1_625
 260201|Frontend|optimization|19_Improvements_Total
+260201|Security|permissions_policy|Implemented_All_Responses
+260201|OWASP_ZAP|scan_result|51_PASS_16_WARN_0_FAIL
+260201|Security_Headers|minimal_function|Created_For_Non_HTML
+260201|Deployment|staging|2bf0d122_Permissions_Policy_Applied
+260201|Code_Modification|index_ts|52_Return_Statements_Wrapped
+260201|Cache|cloudflare_edge|Static_Assets_Pending_Expiry
+260201|Compliance|permissions_policy|W3C_Spec_Compliant
+260201|BDD_Spec|security_headers|All_Responses_Coverage

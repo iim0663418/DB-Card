@@ -149,6 +149,10 @@ const i18nTexts = {
         'zh': '數位名片系統 Digital Business Card',
         'en': 'Digital Business Card System'
     },
+    'desktop-hint': {
+        'zh': '移動滑鼠體驗 3D 視差效果',
+        'en': 'Move mouse to experience 3D parallax effect'
+    },
     'transmission-feed': {
         'zh': 'Dynamic Transmission Feed',
         'en': 'Dynamic Transmission Feed'

@@ -144,6 +144,18 @@ body {
         </button>
     </div>
 
+    <!-- 桌面版互動提示 -->
+    <div id="desktop-hint" class="hidden md:block fixed bottom-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+        <div class="bg-slate-900/90 backdrop-blur-sm text-white px-6 py-3 rounded-full shadow-2xl border border-white/10 animate-bounce">
+            <p class="text-sm font-medium flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path>
+                </svg>
+                <span data-i18n="desktop-hint">移動滑鼠體驗 3D 效果 · 點擊翻面切換語言</span>
+            </p>
+        </div>
+    </div>
+
     <div id="main-container" class="relative z-10 w-full max-w-4xl px-4 py-24 hidden reveal">
 
         <div class="card-perspective">
@@ -359,6 +371,16 @@ body {
 
     <script type="module" src="js/main.js"></script>
     <script>
+    // 桌面版互動提示自動隱藏
+    setTimeout(() => {
+        const hint = document.getElementById('desktop-hint');
+        if (hint) {
+            hint.style.transition = 'opacity 0.5s ease-out';
+            hint.style.opacity = '0';
+            setTimeout(() => hint.remove(), 500);
+        }
+    }, 5000);
+
     // 自動偵測使用者語系
     // 載入動畫：兩階段文字變化
     function detectUserLanguage() {

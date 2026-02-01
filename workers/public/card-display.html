@@ -16,6 +16,28 @@
     <script src="/js/tailwind-suppress.js"></script>
     <link rel="stylesheet" href="/css/tailwind.css">
     <style>
+/* Three.js Canvas 容器樣式 */
+#three-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+}
+
+body {
+    background-color: #f8fafd;
+}
+
+/* 深色模式支援 */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #1a1a1a;
+    }
+}
+
 /* 桌面版隱藏元素 */
 @media (min-width: 1024px) {
     .lg\:hidden {
@@ -60,6 +82,9 @@
 </style>
 </head>
 <body class="no-scrollbar flex flex-col items-center">
+
+    <!-- Three.js 透視網格背景 -->
+    <canvas id="three-canvas"></canvas>
 
     <!-- 載入動畫 -->
     <div id="loading" class="fixed inset-0 bg-[#f8fafd] z-[100] flex flex-col items-center justify-center transition-opacity duration-1000" role="status" aria-live="polite">
@@ -320,8 +345,8 @@
         <!-- 桌面版 QR Code 區塊 -->
         <div class="hidden lg:flex flex-col items-center mt-16 space-y-6">
             <div class="text-center space-y-2">
-                <p class="text-slate-800 text-base font-semibold">加入手機通訊錄</p>
-                <p class="text-slate-500 text-sm">掃描 QR Code 用手機開啟</p>
+                <p class="text-slate-800 text-base font-semibold" data-i18n="desktop-qr-title">加入手機通訊錄</p>
+                <p class="text-slate-500 text-sm" data-i18n="desktop-qr-desc">掃描 QR Code 用手機開啟</p>
             </div>
             <div class="bg-white p-8 rounded-2xl shadow-xl border border-slate-100">
                 <div id="qrcode-desktop" class="w-64 h-64 flex items-center justify-center" role="img" aria-label="名片 QR Code"></div>
@@ -437,6 +462,76 @@
             console.error('Failed to copy email:', err);
         }
     };
+
+    // ========================================
+    // Three.js 透視網格背景初始化
+    // ========================================
+    let scene, camera, renderer, grid;
+
+    function initThree() {
+        const canvas = document.getElementById('three-canvas');
+        if (!canvas) return;
+
+        // 場景設置
+        scene = new THREE.Scene();
+
+        // 相機設置
+        camera = new THREE.PerspectiveCamera(
+            75,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        camera.position.set(0, 0, 10);
+
+        // 渲染器設置
+        renderer = new THREE.WebGLRenderer({
+            canvas,
+            antialias: true,
+            alpha: true
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        // 透視網格效果
+        const gridGeometry = new THREE.PlaneGeometry(150, 150, 45, 45);
+        const gridMaterial = new THREE.MeshBasicMaterial({
+            color: 0x6868ac,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.08
+        });
+        grid = new THREE.Mesh(gridGeometry, gridMaterial);
+        grid.rotation.x = -Math.PI / 2.2; // 創造透視效果
+        grid.position.y = -6;
+        scene.add(grid);
+
+        // 動畫循環
+        function animate() {
+            requestAnimationFrame(animate);
+            if (grid) grid.rotation.z += 0.0001; // 緩慢旋轉
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // 響應式支援
+        window.addEventListener('resize', onWindowResize, false);
+    }
+
+    function onWindowResize() {
+        if (!camera || !renderer) return;
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // 等待 Three.js 庫載入後初始化
+    if (typeof THREE !== 'undefined') {
+        setTimeout(() => initThree(), 100);
+    } else {
+        window.addEventListener('load', () => {
+            if (typeof THREE !== 'undefined') initThree();
+        });
+    }
     </script>
 </body>
 </html>

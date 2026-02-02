@@ -6,24 +6,27 @@
     <title>數位名片 | 管理後台</title>
     <link rel="icon" type="image/png" sizes="192x192" href="favicon.png">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-    <link rel="dns-prefetch" href="https://unpkg.com">
     <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="/css/tailwind.css">
     <link rel="stylesheet" href="/css/v4-design.css">
     <script src="/js/tailwind-suppress.js"></script>
-    <script src="https://unpkg.com/lucide@0.562.0/dist/umd/lucide.min.js"></script>
+    <script src="/vendor/lucide.min.js"
+            integrity="sha384-FmRlymRnpgjuKyAnwH4DftRjl+RqHOlfcw9k4xcpPyovclg/2RZRrvw7qe1koVCP"
+            crossorigin="anonymous"></script>
     <script src="https://unpkg.com/@panzoom/panzoom@4.6.1/dist/panzoom.min.js"></script>
     <script src="https://unpkg.com/@simplewebauthn/browser@13.0.0/dist/bundle/index.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
-            integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ=="
+    <script src="/vendor/three.min.js"
+            integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu"
             crossorigin="anonymous"
             defer></script>
-    <script src="https://unpkg.com/qr-creator@1.0.0/dist/qr-creator.min.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.7/purify.min.js"
-            integrity="sha512-78KH17QLT5e55GJqP76vutp1D2iAoy06WcYBXB6iBCsmO6wWzx0Qdg8EDpm8mKXv68BcvHOyeeP4wxAL0twJGQ=="
+    <script src="/vendor/qr-creator.min.js"
+            integrity="sha384-cmmVU8dn+rGH6Yvlt0Q1+31iG9lS4wdVsqV/ZP/53RBddef+VZcYakA+NhG4S8wE"
+            crossorigin="anonymous"
+            defer></script>
+    <script src="/vendor/purify.min.js"
+            integrity="sha384-qJNkHwhlYywDHfyoEe1np+1lYvX/8x+3gHCKFhSSBMQyCFlvFnn+zXmaebXl21rV"
             crossorigin="anonymous"
             defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" defer></script>
@@ -469,7 +472,7 @@
                         <!-- 進階資訊（折疊） -->
                         <details class="group border-t border-slate-100 pt-4">
                             <summary class="list-none cursor-pointer flex items-center justify-between text-xs font-bold text-moda hover:text-moda transition-colors">
-                                <span>+ 進階與社群資訊 (手機、頭像、問候語、社群)</span>
+                                <span>+ 進階與社群資訊 (手機、頭像、關於我、社群)</span>
                                 <i data-lucide="chevron-down" class="w-4 h-4 group-open:rotate-180 transition-transform"></i>
                             </summary>
                             <div class="pt-6 space-y-6">
@@ -484,7 +487,7 @@
                                     </div>
                                 </div>
                                 <div>
-                                    <div class="lang-indicator"><span>中文問候語 (每行一句)</span><span>ENGLISH GREETINGS</span></div>
+                                    <div class="lang-indicator"><span>關於我（中文，每行一句）</span><span>ABOUT ME (ENGLISH)</span></div>
                                     <div class="bilingual-field">
                                         <textarea id="greetings_zh" class="h-24" placeholder="Hello, 數位連結未來"></textarea>
                                         <textarea id="greetings_en" class="h-24" placeholder="Nice to meet you!"></textarea>
@@ -622,7 +625,7 @@
                                 </div>
 
                                 <div id="prev-greeting-section" class="mt-8 pt-8 border-t border-moda-light hidden">
-                                    <p class="hud-text mb-4 opacity-40 text-[8px] font-black tracking-widest text-slate-400 uppercase">Dynamic Transmission Feed</p>
+                                    <p class="hud-text mb-4 opacity-40 text-[8px] font-black tracking-widest text-slate-400 uppercase">關於我 About Me</p>
                                     <p id="prev-greeting" class="text-slate-600 font-medium italic min-h-[1.5em] text-[10px]"></p>
                                 </div>
                                 <div class="bg-slate-50 p-4 rounded-2xl flex items-center gap-4 text-left mt-2">
@@ -973,10 +976,10 @@
                         </div>
                     </div>
 
-                    <!-- CDN Health Status -->
+                    <!-- Resource Health Status -->
                     <div class="glass-surface p-8 rounded-2xl">
                         <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400">CDN Health Status</h2>
+                            <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400">Resource Health Status</h2>
                             <button onclick="checkCDNHealth()" class="text-xs text-moda hover:underline flex items-center gap-1">
                                 <i data-lucide="refresh-cw" class="w-3 h-3"></i>
                                 <span>Refresh</span>
@@ -1937,24 +1940,55 @@ wrangler secret delete OLD_KEK
                 if (!response.ok) throw new Error('CDN health check failed');
 
                 const result = await response.json();
-                const cdns = result.data.cdns;
+                const resources = result.data.cdns;
 
-                container.innerHTML = cdns.map(cdn => `
-                    <div class="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100">
-                        <div class="flex items-center gap-3">
-                            <div class="w-2 h-2 rounded-full ${cdn.status === 'healthy' ? 'bg-green-500' : 'bg-red-500'}"></div>
-                            <div>
-                                <p class="text-xs font-medium text-slate-900">${cdn.name}</p>
-                                <p class="text-[10px] text-slate-400">${cdn.status === 'healthy' ? 'Operational' : 'Failed'}</p>
+                // Group by type
+                const vendorResources = resources.filter(r => r.type === 'vendor');
+                const cdnResources = resources.filter(r => r.type === 'cdn');
+
+                let html = '';
+
+                // Vendor Resources Section
+                if (vendorResources.length > 0) {
+                    html += '<div class="mb-4"><p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2">Vendor Resources</p>';
+                    html += vendorResources.map(resource => `
+                        <div class="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100 mb-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-2 h-2 rounded-full ${resource.status === 'healthy' ? 'bg-green-500' : 'bg-red-500'}"></div>
+                                <div>
+                                    <p class="text-xs font-medium text-slate-900">${resource.name}</p>
+                                    <p class="text-[10px] text-slate-400">${resource.status === 'healthy' ? 'Available' : 'Failed'}</p>
+                                </div>
                             </div>
+                            <p class="text-xs text-slate-500">${resource.responseTime}ms</p>
                         </div>
-                        <p class="text-xs text-slate-500">${cdn.responseTime}ms</p>
-                    </div>
-                `).join('');
+                    `).join('');
+                    html += '</div>';
+                }
+
+                // External CDN Section
+                if (cdnResources.length > 0) {
+                    html += '<div><p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2">External CDN</p>';
+                    html += cdnResources.map(cdn => `
+                        <div class="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100 mb-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-2 h-2 rounded-full ${cdn.status === 'healthy' ? 'bg-green-500' : 'bg-red-500'}"></div>
+                                <div>
+                                    <p class="text-xs font-medium text-slate-900">${cdn.name}</p>
+                                    <p class="text-[10px] text-slate-400">${cdn.status === 'healthy' ? 'Operational' : 'Failed'}</p>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-500">${cdn.responseTime}ms</p>
+                        </div>
+                    `).join('');
+                    html += '</div>';
+                }
+
+                container.innerHTML = html;
 
             } catch (error) {
                 console.error('Failed to check CDN health:', error);
-                container.innerHTML = '<p class="text-sm text-red-600">Failed to load CDN status</p>';
+                container.innerHTML = '<p class="text-sm text-red-600">Failed to load resource status</p>';
             }
         }
 

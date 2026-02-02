@@ -2,20 +2,46 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <!-- Resource Hints -->
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-    <link rel="preconnect" href="https://unpkg.com" crossorigin>
-    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
-    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="DB-Card 數位名片系統 - 安全預設數位名片">
     <title>數位名片 | 名片顯示</title>
     <link rel="icon" type="image/png" sizes="192x192" href="favicon.png">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
+
     <!-- WCAG配色 v1.1 2026-01-19 -->
     <script src="/js/tailwind-suppress.js"></script>
-    <link rel="stylesheet" href="/css/tailwind.css">
+
+    <!-- Async load Tailwind CSS with media print trick -->
+    <link rel="stylesheet" href="/css/tailwind.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="/css/tailwind.css"></noscript>
+
+    <!-- Inline Critical CSS -->
     <style>
+/* Three.js Canvas 容器樣式 */
+#three-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    display: none; /* Hidden by default, shown on desktop via JS */
+}
+
+body {
+    background-color: #f8fafd;
+    margin: 0;
+    padding: 0;
+}
+
+/* 深色模式支援 */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #1a1a1a;
+    }
+}
+
 /* 桌面版隱藏元素 */
 @media (min-width: 1024px) {
     .lg\:hidden {
@@ -27,20 +53,72 @@
     .lg\:flex {
         display: flex !important;
     }
+    #three-canvas {
+        display: block; /* Show on desktop */
+    }
+}
+
+/* Loading animation critical styles */
+#loading {
+    position: fixed;
+    inset: 0;
+    background-color: #f8fafd;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 1s;
+}
+
+/* Font optimization */
+@font-face {
+    font-display: swap;
 }
 </style>
-    <script src="https://unpkg.com/lucide@0.562.0/dist/umd/lucide.min.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
-            integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ=="
-            crossorigin="anonymous"
-            defer></script>
-    <script src="https://unpkg.com/qr-creator@1.0.0/dist/qr-creator.min.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.7/purify.min.js"
-            integrity="sha512-78KH17QLT5e55GJqP76vutp1D2iAoy06WcYBXB6iBCsmO6wWzx0Qdg8EDpm8mKXv68BcvHOyeeP4wxAL0twJGQ=="
-            crossorigin="anonymous"
-            defer></script>
-    <script src="/js/config.js" defer></script>
-    <link rel="stylesheet" href="css/v4-design.css">
+    <!-- Critical scripts load immediately -->
+    <script src="/js/config.js"></script>
+
+    <!-- Non-critical scripts loaded after DOMContentLoaded -->
+    <script>
+        // Lazy load non-critical scripts after DOMContentLoaded
+        window.addEventListener('DOMContentLoaded', function() {
+            // Load Lucide icons
+            var lucideScript = document.createElement('script');
+            lucideScript.src = '/vendor/lucide.min.js';
+            lucideScript.integrity = 'sha384-FmRlymRnpgjuKyAnwH4DftRjl+RqHOlfcw9k4xcpPyovclg/2RZRrvw7qe1koVCP';
+            lucideScript.crossOrigin = 'anonymous';
+            document.head.appendChild(lucideScript);
+
+            // Load QR Creator
+            var qrScript = document.createElement('script');
+            qrScript.src = '/vendor/qr-creator.min.js';
+            qrScript.integrity = 'sha384-cmmVU8dn+rGH6Yvlt0Q1+31iG9lS4wdVsqV/ZP/53RBddef+VZcYakA+NhG4S8wE';
+            qrScript.crossOrigin = 'anonymous';
+            document.head.appendChild(qrScript);
+
+            // Load DOMPurify
+            var purifyScript = document.createElement('script');
+            purifyScript.src = '/vendor/purify.min.js';
+            purifyScript.integrity = 'sha384-qJNkHwhlYywDHfyoEe1np+1lYvX/8x+3gHCKFhSSBMQyCFlvFnn+zXmaebXl21rV';
+            purifyScript.crossOrigin = 'anonymous';
+            document.head.appendChild(purifyScript);
+
+            // Conditionally load Three.js only on desktop (width >= 1024px)
+            var isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+            if (isDesktop) {
+                var threeScript = document.createElement('script');
+                threeScript.src = '/vendor/three.min.js';
+                threeScript.integrity = 'sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu';
+                threeScript.crossOrigin = 'anonymous';
+                document.head.appendChild(threeScript);
+            }
+        });
+    </script>
+
+    <!-- Async load non-critical CSS -->
+    <link rel="stylesheet" href="css/v4-design.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="css/v4-design.css"></noscript>
     <style>
 /* MODA Accent 顏色覆蓋 Tailwind indigo */
 .bg-moda { background-color: var(--moda-accent) !important; }
@@ -60,6 +138,9 @@
 </style>
 </head>
 <body class="no-scrollbar flex flex-col items-center">
+
+    <!-- Three.js 透視網格背景 -->
+    <canvas id="three-canvas"></canvas>
 
     <!-- 載入動畫 -->
     <div id="loading" class="fixed inset-0 bg-[#f8fafd] z-[100] flex flex-col items-center justify-center transition-opacity duration-1000" role="status" aria-live="polite">
@@ -114,6 +195,18 @@
                 data-i18n="close-qr">
             CLOSE PORTAL
         </button>
+    </div>
+
+    <!-- 桌面版互動提示 -->
+    <div id="desktop-hint" class="hidden md:block fixed bottom-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+        <div class="bg-slate-900/90 backdrop-blur-sm text-white px-6 py-3 rounded-full shadow-2xl border border-white/10 animate-bounce">
+            <p class="text-sm font-medium flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path>
+                </svg>
+                <span data-i18n="desktop-hint">移動滑鼠體驗 3D 視差效果</span>
+            </p>
+        </div>
     </div>
 
     <div id="main-container" class="relative z-10 w-full max-w-4xl px-4 py-24 hidden reveal">
@@ -320,8 +413,8 @@
         <!-- 桌面版 QR Code 區塊 -->
         <div class="hidden lg:flex flex-col items-center mt-16 space-y-6">
             <div class="text-center space-y-2">
-                <p class="text-slate-800 text-base font-semibold">加入手機通訊錄</p>
-                <p class="text-slate-500 text-sm">掃描 QR Code 用手機開啟</p>
+                <p class="text-slate-800 text-base font-semibold" data-i18n="desktop-qr-title">加入手機通訊錄</p>
+                <p class="text-slate-500 text-sm" data-i18n="desktop-qr-desc">掃描 QR Code 用手機開啟</p>
             </div>
             <div class="bg-white p-8 rounded-2xl shadow-xl border border-slate-100">
                 <div id="qrcode-desktop" class="w-64 h-64 flex items-center justify-center" role="img" aria-label="名片 QR Code"></div>
@@ -331,6 +424,16 @@
 
     <script type="module" src="js/main.js"></script>
     <script>
+    // 桌面版互動提示自動隱藏
+    setTimeout(() => {
+        const hint = document.getElementById('desktop-hint');
+        if (hint) {
+            hint.style.transition = 'opacity 0.5s ease-out';
+            hint.style.opacity = '0';
+            setTimeout(() => hint.remove(), 500);
+        }
+    }, 5000);
+
     // 自動偵測使用者語系
     // 載入動畫：兩階段文字變化
     function detectUserLanguage() {
@@ -437,6 +540,8 @@
             console.error('Failed to copy email:', err);
         }
     };
+
+    // ========================================
     </script>
 </body>
 </html>

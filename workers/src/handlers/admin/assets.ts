@@ -7,6 +7,7 @@ import { verifyMagicBytes, validateFileSize, validateImageDimensions } from '../
 import { generateR2Key, getR2TransformParams } from '../../utils/image-processor';
 import { recordUploadMetrics, recordReadMetrics, recordRateLimitTrigger } from '../../middleware/metrics-middleware';
 import { autoEnableOnUpload, markStaleOnUpdate } from '../../utils/twin-status';
+import { anonymizeIP } from '../../utils/audit';
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const RATE_LIMIT_WINDOW = 600; // 10 minutes
@@ -459,11 +460,7 @@ export async function handleAssetTwinList(
 
   // Scenario 10: Audit logging
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-  // IPv4: 192.168.1.100 → 192.168.1.0
-  // IPv6: 2001:0db8:85a3:0000:0000:8a2e:0370:7334 → 2001:0db8:85a3:0000::
-  const anonymizedIp = ip.includes(':')
-    ? ip.split(':').slice(0, 4).join(':') + '::'
-    : ip.split('.').slice(0, 3).join('.') + '.0';
+  const anonymizedIp = anonymizeIP(ip);
 
   ctx.waitUntil(
     env.DB.prepare(`

@@ -99,7 +99,40 @@
                 'loading': '載入中...',
                 'processing': '處理中...',
                 'saving': '儲存中...',
-                'success': '成功'
+                'success': '成功',
+
+                // 11. Consent Management (30 keys)
+                'consent-title': '隱私權與個人資料保護政策',
+                'consent-subtitle': '請詳閱以下條款，同意後方可使用服務',
+                'consent-required-label': '必要同意（服務使用）',
+                'consent-optional-label': '選擇性同意（匿名統計）',
+                'consent-scroll-hint': '請滾動至底部閱讀完整內容',
+                'consent-agree-button': '我已詳閱並同意',
+                'consent-decline-button': '不同意',
+                'consent-accepting': '處理中...',
+                'consent-version': '版本',
+                'consent-effective-date': '生效日期',
+                'withdraw-title': '撤回個資同意',
+                'withdraw-subtitle': '撤回後將無法使用服務',
+                'withdraw-warning': '您的資料將在 30 天後永久刪除',
+                'withdraw-deletion-date': '預計刪除日期',
+                'withdraw-confirm-text': '請輸入「確認撤回」以繼續',
+                'withdraw-confirm-placeholder': '確認撤回',
+                'withdraw-understand-checkbox': '我了解撤回後果',
+                'withdraw-button': '確認撤回同意',
+                'withdraw-canceling': '取消中...',
+                'restore-title': '恢復個資同意',
+                'restore-subtitle': '您的資料將被保留',
+                'restore-days-remaining': '剩餘時間',
+                'restore-button': '取消撤回（恢復同意）',
+                'restore-continue-delete': '繼續刪除',
+                'restore-restoring': '恢復中...',
+                'history-title': '同意歷史記錄',
+                'history-no-records': '無歷史記錄',
+                'privacy-settings-title': '個資管理',
+                'privacy-view-history': '查看同意歷史',
+                'privacy-export-data': '匯出我的資料',
+                'privacy-withdraw-consent': '撤回同意'
             },
             en: {
                 // 1. Login Page (5 keys)
@@ -198,7 +231,40 @@
                 'loading': 'Loading...',
                 'processing': 'Processing...',
                 'saving': 'Saving...',
-                'success': 'Success'
+                'success': 'Success',
+
+                // 11. Consent Management (30 keys)
+                'consent-title': 'Privacy and Personal Data Protection Policy',
+                'consent-subtitle': 'Please review the following terms before using our services',
+                'consent-required-label': 'Required Consent (Service Usage)',
+                'consent-optional-label': 'Optional Consent (Anonymous Statistics)',
+                'consent-scroll-hint': 'Please scroll to the bottom to read the complete content',
+                'consent-agree-button': 'I have read and agree',
+                'consent-decline-button': 'Decline',
+                'consent-accepting': 'Processing...',
+                'consent-version': 'Version',
+                'consent-effective-date': 'Effective Date',
+                'withdraw-title': 'Withdraw Personal Data Consent',
+                'withdraw-subtitle': 'You will not be able to use the service after withdrawal',
+                'withdraw-warning': 'Your data will be permanently deleted in 30 days',
+                'withdraw-deletion-date': 'Scheduled Deletion Date',
+                'withdraw-confirm-text': 'Type "CONFIRM WITHDRAW" to continue',
+                'withdraw-confirm-placeholder': 'CONFIRM WITHDRAW',
+                'withdraw-understand-checkbox': 'I understand the consequences',
+                'withdraw-button': 'Confirm Withdrawal',
+                'withdraw-canceling': 'Withdrawing...',
+                'restore-title': 'Restore Personal Data Consent',
+                'restore-subtitle': 'Your data will be retained',
+                'restore-days-remaining': 'Days Remaining',
+                'restore-button': 'Cancel Withdrawal (Restore Consent)',
+                'restore-continue-delete': 'Continue Deletion',
+                'restore-restoring': 'Restoring...',
+                'history-title': 'Consent History',
+                'history-no-records': 'No History Records',
+                'privacy-settings-title': 'Privacy Management',
+                'privacy-view-history': 'View Consent History',
+                'privacy-export-data': 'Export My Data',
+                'privacy-withdraw-consent': 'Withdraw Consent'
             }
         };
 
@@ -1622,6 +1688,329 @@
             return `${minutes} 分鐘`;
         }
 
+        // ==================== Consent Management Functions ====================
+
+        /**
+         * Check consent status on login
+         */
+        async function checkConsentStatus() {
+            try {
+                const response = await apiCall('/api/consent/check', { method: 'GET' });
+
+                // Case 1: Needs consent (first login or version update)
+                if (response.needs_consent) {
+                    showConsentModal(response.current_policy, response.reason);
+                    return false;
+                }
+
+                // Case 2: Consent withdrawn - show restore option
+                if (response.is_withdrawn && response.can_restore) {
+                    showRestoreConsentModal(response.days_remaining);
+                    return false;
+                }
+
+                // Case 3: All good
+                return true;
+            } catch (error) {
+                console.error('Failed to check consent:', error);
+                // On error, allow login but log warning
+                return true;
+            }
+        }
+
+        /**
+         * Show consent modal (blocking)
+         */
+        function showConsentModal(policy, reason) {
+            const modal = document.getElementById('consent-modal');
+            const scrollContainer = document.getElementById('consent-content-scroll');
+            const scrollHint = document.getElementById('consent-scroll-hint');
+            const agreeBtn = document.getElementById('consent-agree-btn');
+            const fullContent = document.getElementById('consent-full-content');
+
+            // Populate policy data
+            document.getElementById('consent-policy-version').textContent = policy.version;
+            document.getElementById('consent-effective-date').textContent = new Date(policy.effective_date).toLocaleDateString('zh-TW');
+
+            const summary = currentLang === 'zh' ? policy.summary_zh : policy.summary_en;
+            const content = currentLang === 'zh' ? policy.content_zh : policy.content_en;
+
+            document.getElementById('consent-summary').textContent = summary;
+            fullContent.innerHTML = DOMPurify.sanitize(content.replace(/\n/g, '<br>'));
+
+            // Reset state
+            agreeBtn.disabled = true;
+            scrollHint.classList.remove('hidden');
+            document.getElementById('consent-optional-analytics').checked = false;
+            fullContent.classList.add('hidden'); // Initially hide full content
+
+            // Scroll detection
+            const checkScroll = () => {
+                const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+                const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
+
+                if (isAtBottom) {
+                    agreeBtn.disabled = false;
+                    scrollHint.classList.add('hidden');
+                }
+            };
+
+            scrollContainer.addEventListener('scroll', checkScroll);
+            checkScroll();
+
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        /**
+         * Toggle full content visibility (layered disclosure)
+         */
+        function toggleFullContent() {
+            const fullContent = document.getElementById('consent-full-content');
+            const toggleBtn = document.getElementById('toggle-full-content-btn');
+            const icon = toggleBtn.querySelector('i');
+            
+            if (fullContent.classList.contains('hidden')) {
+                fullContent.classList.remove('hidden');
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                fullContent.classList.add('hidden');
+                icon.style.transform = 'rotate(0deg)';
+            }
+            
+            lucide.createIcons();
+        }
+
+        /**
+         * Accept consent
+         */
+        async function acceptConsent() {
+            const agreeBtn = document.getElementById('consent-agree-btn');
+            const analyticsConsent = document.getElementById('consent-optional-analytics').checked;
+
+            agreeBtn.disabled = true;
+            agreeBtn.textContent = i18n[currentLang]['consent-accepting'] || '處理中...';
+
+            try {
+                await apiCall('/api/consent/accept', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        consent_analytics: analyticsConsent
+                    })
+                });
+
+                document.getElementById('consent-modal').classList.add('hidden');
+                showToast('同意已記錄，歡迎使用服務');
+
+                // Continue with login flow
+                await fetchUserCards();
+                showView('selection');
+            } catch (error) {
+                console.error('Failed to accept consent:', error);
+                showToast('同意處理失敗，請重試');
+                agreeBtn.disabled = false;
+                agreeBtn.textContent = i18n[currentLang]['consent-agree-button'];
+            }
+        }
+
+        /**
+         * Show withdraw consent modal
+         */
+        function showWithdrawConsentModal() {
+            const modal = document.getElementById('withdraw-consent-modal');
+            const confirmInput = document.getElementById('withdraw-confirm-input');
+            const checkbox = document.getElementById('withdraw-understand-checkbox');
+            const confirmBtn = document.getElementById('withdraw-consent-confirm-btn');
+
+            // Calculate deletion date (30 days from now)
+            const deletionDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+            document.getElementById('withdraw-deletion-date').textContent = deletionDate.toLocaleDateString('zh-TW');
+
+            // Reset state
+            confirmInput.value = '';
+            checkbox.checked = false;
+            confirmBtn.disabled = true;
+
+            // Validation
+            const validate = () => {
+                const confirmText = currentLang === 'zh' ? '確認撤回' : 'CONFIRM WITHDRAW';
+                const isValid = confirmInput.value.trim() === confirmText && checkbox.checked;
+                confirmBtn.disabled = !isValid;
+            };
+
+            confirmInput.addEventListener('input', validate);
+            checkbox.addEventListener('change', validate);
+
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        /**
+         * Close withdraw modal
+         */
+        function closeWithdrawConsentModal() {
+            document.getElementById('withdraw-consent-modal').classList.add('hidden');
+        }
+
+        /**
+         * Confirm withdraw consent
+         */
+        async function confirmWithdrawConsent() {
+            const confirmBtn = document.getElementById('withdraw-consent-confirm-btn');
+
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = i18n[currentLang]['withdraw-canceling'] || '處理中...';
+
+            try {
+                const response = await apiCall('/api/consent/withdraw', {
+                    method: 'POST'
+                });
+
+                closeWithdrawConsentModal();
+                showToast('同意已撤回，資料將在 30 天後刪除');
+
+                // Logout user
+                setTimeout(() => {
+                    handleLogout();
+                }, 2000);
+            } catch (error) {
+                console.error('Failed to withdraw consent:', error);
+                showToast(errorHandler.handle(error));
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = i18n[currentLang]['withdraw-button'];
+            }
+        }
+
+        /**
+         * Show restore consent modal
+         */
+        function showRestoreConsentModal(daysRemaining) {
+            const modal = document.getElementById('restore-consent-modal');
+            document.getElementById('restore-days-remaining').textContent = daysRemaining;
+
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        /**
+         * Close restore modal
+         */
+        function closeRestoreConsentModal() {
+            document.getElementById('restore-consent-modal').classList.add('hidden');
+            // User chose to continue deletion - logout
+            handleLogout();
+        }
+
+        /**
+         * Confirm restore consent
+         */
+        async function confirmRestoreConsent() {
+            try {
+                toggleLoading(true);
+
+                await apiCall('/api/consent/restore', {
+                    method: 'POST'
+                });
+
+                document.getElementById('restore-consent-modal').classList.add('hidden');
+                showToast('同意已恢復，歡迎回來');
+
+                // Continue with login
+                await fetchUserCards();
+                showView('selection');
+            } catch (error) {
+                console.error('Failed to restore consent:', error);
+                showToast(errorHandler.handle(error));
+            } finally {
+                toggleLoading(false);
+            }
+        }
+
+        /**
+         * Show consent history modal
+         */
+        async function showConsentHistoryModal() {
+            const modal = document.getElementById('consent-history-modal');
+            const content = document.getElementById('consent-history-content');
+
+            modal.classList.remove('hidden');
+            content.innerHTML = '<p class="text-center text-slate-400">載入中...</p>';
+
+            try {
+                const response = await apiCall('/api/consent/history', { method: 'GET' });
+                const history = response.history || [];
+
+                if (history.length === 0) {
+                    content.innerHTML = `<p class="text-center text-slate-400" data-i18n="history-no-records">${i18n[currentLang]['history-no-records']}</p>`;
+                } else {
+                    content.innerHTML = DOMPurify.sanitize(history.map(record => `
+                        <div class="p-4 bg-slate-50 rounded-xl mb-3">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-sm font-bold ${record.status === 'accepted' ? 'text-green-600' : record.status === 'withdrawn' ? 'text-red-600' : 'text-slate-600'}">
+                                    ${record.status === 'accepted' ? '✓ 已同意' : record.status === 'withdrawn' ? '✗ 已撤回' : record.status}
+                                </span>
+                                <span class="text-xs text-slate-500">${record.version}</span>
+                            </div>
+                            <div class="text-xs text-slate-600 space-y-1">
+                                <p><strong>類型</strong>: ${record.type === 'required' ? '必要' : '選擇性'} (${record.category})</p>
+                                <p><strong>時間</strong>: ${new Date(record.consented_at).toLocaleString('zh-TW')}</p>
+                                ${record.withdrawn_at ? `<p><strong>撤回時間</strong>: ${new Date(record.withdrawn_at).toLocaleString('zh-TW')}</p>` : ''}
+                                ${record.restored_at ? `<p><strong>恢復時間</strong>: ${new Date(record.restored_at).toLocaleString('zh-TW')}</p>` : ''}
+                            </div>
+                        </div>
+                    `).join(''), { ADD_ATTR: ['onclick'] });
+                }
+
+                lucide.createIcons();
+            } catch (error) {
+                console.error('Failed to fetch history:', error);
+                content.innerHTML = '<p class="text-center text-red-500">載入失敗</p>';
+            }
+        }
+
+        /**
+         * Close consent history modal
+         */
+        function closeConsentHistoryModal() {
+            document.getElementById('consent-history-modal').classList.add('hidden');
+        }
+
+        /**
+         * Export user data
+         */
+        async function handleDataExport() {
+            try {
+                toggleLoading(true);
+
+                const response = await fetch('/api/data/export', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: getHeadersWithCSRF()
+                });
+
+                if (!response.ok) {
+                    throw new Error('Export failed');
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `db-card-data-export-${Date.now()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                showToast('資料已匯出');
+            } catch (error) {
+                console.error('Failed to export data:', error);
+                showToast('匯出失敗，請稍後再試');
+            } finally {
+                toggleLoading(false);
+            }
+        }
+
         // 暴露函數到全域作用域供 onclick 使用
         window.viewCard = viewCard;
         window.copyCardLink = copyCardLink;
@@ -1632,6 +2021,24 @@
         window.closeRevokeModal = closeRevokeModal;
         window.confirmRevokeCard = confirmRevokeCard;
         window.handleRestoreCard = handleRestoreCard;
+        window.checkConsentStatus = checkConsentStatus;
+        window.acceptConsent = acceptConsent;
+        window.toggleFullContent = toggleFullContent;
+        window.showWithdrawConsentModal = showWithdrawConsentModal;
+        window.closeRevokeModal = closeRevokeModal;
+        window.confirmRevokeCard = confirmRevokeCard;
+        window.handleRestoreCard = handleRestoreCard;
+        window.checkConsentStatus = checkConsentStatus;
+        window.acceptConsent = acceptConsent;
+        window.showWithdrawConsentModal = showWithdrawConsentModal;
+        window.closeWithdrawConsentModal = closeWithdrawConsentModal;
+        window.confirmWithdrawConsent = confirmWithdrawConsent;
+        window.showRestoreConsentModal = showRestoreConsentModal;
+        window.closeRestoreConsentModal = closeRestoreConsentModal;
+        window.confirmRestoreConsent = confirmRestoreConsent;
+        window.showConsentHistoryModal = showConsentHistoryModal;
+        window.closeConsentHistoryModal = closeConsentHistoryModal;
+        window.handleDataExport = handleDataExport;
 
         let scene, camera, renderer, mesh, grid;
         function initThree() {
@@ -1718,7 +2125,7 @@
                             if (csrfToken) {
                                 sessionStorage.removeItem('csrfToken'); // 先清除
                                 sessionStorage.setItem('csrfToken', csrfToken); // 再設定
-                                console.log('[User] CSRF token updated:', csrfToken?.substring(0, 8) + '...');
+                                // CSRF token updated silently
                             }
 
                             // Store user info
@@ -1731,6 +2138,14 @@
 
                             // Update user display
                             updateUserDisplay(email, name, picture);
+
+                            // Check consent status (blocking if needed)
+                            const consentOk = await checkConsentStatus();
+                            if (!consentOk) {
+                                // User needs to consent first - modal will be shown
+                                document.getElementById('global-loading').classList.add('hidden');
+                                return;
+                            }
 
                             // Initialize user state
                             await fetchUserCards();
@@ -1789,6 +2204,14 @@
 
                     // 驗證 session 並載入名片資料
                     try {
+                        // Check consent status first
+                        const consentOk = await checkConsentStatus();
+                        if (!consentOk) {
+                            // User needs to consent - modal will be shown
+                            document.getElementById('global-loading').classList.add('hidden');
+                            return;
+                        }
+
                         await fetchUserCards();
                         // 只有成功載入才切換視圖和顯示 toast
                         if (state.isLoggedIn) {

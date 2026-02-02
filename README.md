@@ -1,8 +1,18 @@
 # DB-Card - NFC 數位名片系統 v4.6.0
 
-安全預設 NFC 數位名片系統 | 隱私優先 · 安全至上 · OIDC 認證
+安全預設 NFC 數位名片系統 | 隱私優先 · 安全至上 · OIDC 認證 · GDPR 合規
 
 ## 最新更新
+
+### v4.6.0 (2026-02-02) - 個資同意管理系統完成 🔒
+- ✅ **GDPR 合規** - 100% 符合 GDPR Article 7, 12, 13, 15, 20, 30
+- ✅ **分層揭露** - First Layer (摘要) + Second Layer (完整條款)
+- ✅ **同意管理** - 接受、撤回、恢復完整流程
+- ✅ **資料可攜權** - JSON 格式即時匯出
+- ✅ **審計追蹤** - 完整同意歷史記錄
+- ✅ **原子性交易** - DB.batch() 確保資料一致性
+- ✅ **既有使用者支援** - 隱式同意機制
+- ✅ **No-Email 設計** - Email 僅作內部 ID
 
 ### v4.6.0 (2026-01-31) - OIDC 安全優化完成 🔒
 - ✅ **PKCE 實作** (RFC 7636) - 防止授權碼攔截攻擊
@@ -12,41 +22,6 @@
 - ✅ **移除 DEBUG 日誌** - 防止敏感資訊洩漏
 - ✅ **符合 RFC 9700** - OAuth 2.0 Security Best Current Practice
 - ✅ **OWASP 合規** - OAuth 2.0 Cheat Sheet 完全符合
-
-### v4.5.9 (2026-01-30) - QR 快速捷徑功能完成
-- ✅ qr-quick.html 雙模式（安裝引導 + QR 顯示）
-- ✅ 類型區分（個人/活動/敏感）
-- ✅ 平台支援（iOS/Android/Desktop）
-
-### v4.5.3 (2026-01-29) - 桌面版實體名片設計與互動優化
-- ✅ 桌面版實體名片比例（540px × 856px，直式佈局）
-- ✅ 3D 視差效果（鼠標移動產生傾斜）
-- ✅ 性能優化（CSS 變數 + GPU 加速）
-
-### v4.3.2 (2026-01-24) - 安全掃描完成與 UX 優化
-- ✅ 完成三項安全掃描驗證（OWASP ZAP A、npm audit 0、OSV-Scanner 0）
-- ✅ 管理者介面 UX 優化
-- ✅ KEK 輪替改為本地腳本執行
-- ✅ 向後相容 (降級到 UserInfo API)
-
-### v4.3.0 (2026-01-22) - Passkey 認證
-- 個別管理員策略 (附加而非替換)
-- 緊急恢復路徑 (保留 SETUP_TOKEN)
-- 符合業界最佳實踐 (SupportDevs, Tailscale, Corbado)
-
----
-
-## 核心特性
-
-### OpenID Connect (OIDC) 認證
-- **Authorization Code Flow**: 標準 OAuth 2.0 流程
-- **PKCE**: 防止授權碼攔截攻擊 (RFC 7636)
-- **ID Token 驗證**: iss/aud/exp/iat/sub 完整驗證
-- **JWKS 公鑰驗證**: 自動快取與輪替
-- **Nonce 防重放**: 一次性使用，600 秒 TTL
-- **Discovery Endpoint**: 動態配置，24 小時快取
-- **Redirect 流程**: 標準 OAuth 流程，SameSite=Lax
-- **合規度**: 100% (RFC 6749, 7636, 9700, OIDC Core 1.0)
 
 ### 安全預設架構
 - **信封加密**: 每張名片獨立 DEK，KEK 定期輪換
@@ -72,6 +47,16 @@
 - **HttpOnly Cookies**: XSS 防護
 
 ---
+
+### 個資同意管理系統
+- **分層揭露**: First Layer (摘要 + 目的) + Second Layer (完整條款)
+- **同意類型**: 必要同意（服務使用）+ 選擇性同意（匿名統計）
+- **撤回機制**: 30 天緩衝期，可恢復
+- **資料可攜權**: JSON 格式即時匯出
+- **審計追蹤**: 完整同意歷史記錄
+- **原子性交易**: DB.batch() 確保資料一致性
+- **GDPR 合規**: 100% (Article 7, 12, 13, 15, 20, 30)
+- **No-Email 設計**: Email 僅作內部 ID，所有通知透過 UI
 
 ## 安全掃描結果
 

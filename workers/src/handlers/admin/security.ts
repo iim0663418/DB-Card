@@ -659,35 +659,31 @@ export async function handleCDNHealth(request: Request, env: Env): Promise<Respo
     return adminErrorResponse('Authentication required', 401, request);
   }
 
-  // Get origin from request to construct local URLs
-  const origin = new URL(request.url).origin;
-
-  const resources = [
-    { name: 'Three.js r128', url: `${origin}/vendor/three.min.js`, type: 'vendor' },
-    { name: 'qr-creator 1.0.0', url: `${origin}/vendor/qr-creator.min.js`, type: 'vendor' },
-    { name: 'DOMPurify 3.2.7', url: `${origin}/vendor/purify.min.js`, type: 'vendor' },
-    { name: 'Lucide 0.562.0', url: `${origin}/vendor/lucide.min.js`, type: 'vendor' },
-    { name: 'Google Fonts', url: 'https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap', type: 'cdn' }
+  // Local vendor resources - check via ASSETS binding
+  const vendorResources = [
+    { name: 'Three.js r128', path: 'vendor/three.min.js' },
+    { name: 'qr-creator 1.0.0', path: 'vendor/qr-creator.min.js' },
+    { name: 'DOMPurify 3.2.7', path: 'vendor/purify.min.js' },
+    { name: 'Lucide 0.562.0', path: 'vendor/lucide.min.js' }
   ];
 
-  const results = await Promise.all(resources.map(async (resource) => {
+  const vendorResults = await Promise.all(vendorResources.map(async (resource) => {
     const start = Date.now();
     try {
-      const response = await fetch(resource.url, { method: 'HEAD', signal: AbortSignal.timeout(5000) });
+      // Check if asset exists via ASSETS binding
+      const assetResponse = await env.ASSETS.fetch(new Request(`https://placeholder/${resource.path}`));
       const responseTime = Date.now() - start;
       return {
         name: resource.name,
-        url: resource.url,
-        type: resource.type,
-        status: response.ok ? 'healthy' : 'failed',
-        statusCode: response.status,
+        type: 'vendor',
+        status: assetResponse.ok ? 'healthy' : 'failed',
+        statusCode: assetResponse.status,
         responseTime
       };
     } catch (error) {
       return {
         name: resource.name,
-        url: resource.url,
-        type: resource.type,
+        type: 'vendor',
         status: 'failed',
         statusCode: 0,
         responseTime: Date.now() - start,
@@ -695,6 +691,37 @@ export async function handleCDNHealth(request: Request, env: Env): Promise<Respo
       };
     }
   }));
+
+  // External CDN resources
+  const cdnResources = [
+    { name: 'Google Fonts', url: 'https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap' }
+  ];
+
+  const cdnResults = await Promise.all(cdnResources.map(async (resource) => {
+    const start = Date.now();
+    try {
+      const response = await fetch(resource.url, { method: 'HEAD', signal: AbortSignal.timeout(5000) });
+      const responseTime = Date.now() - start;
+      return {
+        name: resource.name,
+        type: 'cdn',
+        status: response.ok ? 'healthy' : 'failed',
+        statusCode: response.status,
+        responseTime
+      };
+    } catch (error) {
+      return {
+        name: resource.name,
+        type: 'cdn',
+        status: 'failed',
+        statusCode: 0,
+        responseTime: Date.now() - start,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }));
+
+  const results = [...vendorResults, ...cdnResults];
 
   return jsonResponse({ cdns: results, timestamp: Date.now() }, 200, request);
 }

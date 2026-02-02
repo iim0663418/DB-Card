@@ -43,13 +43,13 @@ function addSecurityHeaders(response: Response, nonce: string): Response {
   // Content Security Policy (with nonce, no unsafe-inline for scripts)
   headers.set('Content-Security-Policy',
     "default-src 'self'; " +
-    `script-src 'self' 'nonce-${nonce}' cdn.tailwindcss.com unpkg.com cdnjs.cloudflare.com cdn.jsdelivr.net; ` +
+    `script-src 'self' 'nonce-${nonce}' cdn.tailwindcss.com cdn.jsdelivr.net; ` +
     "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.tailwindcss.com; " +
     "font-src 'self' fonts.gstatic.com; " +
     "img-src 'self' data: https:; " +
-    "connect-src 'self' cdn.jsdelivr.net https://oauth2.googleapis.com https://www.googleapis.com accounts.google.com; " +
+    "connect-src 'self' https://oauth2.googleapis.com https://www.googleapis.com accounts.google.com; " +
     "object-src 'none'; " +
-    "base-uri 'self'; " +
+    "base-src 'self'; " +
     "form-action 'self'; " +
     "frame-ancestors 'none'"
   );

@@ -2,19 +2,20 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <!-- Resource Hints -->
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-    <link rel="preconnect" href="https://unpkg.com" crossorigin>
-    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
-    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="DB-Card 數位名片系統 - 安全預設數位名片">
     <title>數位名片 | 名片顯示</title>
     <link rel="icon" type="image/png" sizes="192x192" href="favicon.png">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
+
     <!-- WCAG配色 v1.1 2026-01-19 -->
     <script src="/js/tailwind-suppress.js"></script>
-    <link rel="stylesheet" href="/css/tailwind.css">
+
+    <!-- Async load Tailwind CSS with media print trick -->
+    <link rel="stylesheet" href="/css/tailwind.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="/css/tailwind.css"></noscript>
+
+    <!-- Inline Critical CSS -->
     <style>
 /* Three.js Canvas 容器樣式 */
 #three-canvas {
@@ -25,10 +26,13 @@
     height: 100%;
     z-index: 0;
     pointer-events: none;
+    display: none; /* Hidden by default, shown on desktop via JS */
 }
 
 body {
     background-color: #f8fafd;
+    margin: 0;
+    padding: 0;
 }
 
 /* 深色模式支援 */
@@ -49,23 +53,72 @@ body {
     .lg\:flex {
         display: flex !important;
     }
+    #three-canvas {
+        display: block; /* Show on desktop */
+    }
+}
+
+/* Loading animation critical styles */
+#loading {
+    position: fixed;
+    inset: 0;
+    background-color: #f8fafd;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 1s;
+}
+
+/* Font optimization */
+@font-face {
+    font-display: swap;
 }
 </style>
-    <script src="https://unpkg.com/lucide@0.562.0/dist/umd/lucide.min.js"
-            integrity="sha384-FmRlymRnpgjuKyAnwH4DftRjl+RqHOlfcw9k4xcpPyovclg/2RZRrvw7qe1koVCP"
-            crossorigin="anonymous"
-            defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
-            integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu"
-            crossorigin="anonymous"
-            defer></script>
-    <script src="https://unpkg.com/qr-creator@1.0.0/dist/qr-creator.min.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.7/purify.min.js"
-            integrity="sha384-qJNkHwhlYywDHfyoEe1np+1lYvX/8x+3gHCKFhSSBMQyCFlvFnn+zXmaebXl21rV"
-            crossorigin="anonymous"
-            defer></script>
-    <script src="/js/config.js" defer></script>
-    <link rel="stylesheet" href="css/v4-design.css">
+    <!-- Critical scripts load immediately -->
+    <script src="/js/config.js"></script>
+
+    <!-- Non-critical scripts loaded after DOMContentLoaded -->
+    <script>
+        // Lazy load non-critical scripts after DOMContentLoaded
+        window.addEventListener('DOMContentLoaded', function() {
+            // Load Lucide icons
+            var lucideScript = document.createElement('script');
+            lucideScript.src = '/vendor/lucide.min.js';
+            lucideScript.integrity = 'sha384-FmRlymRnpgjuKyAnwH4DftRjl+RqHOlfcw9k4xcpPyovclg/2RZRrvw7qe1koVCP';
+            lucideScript.crossOrigin = 'anonymous';
+            document.head.appendChild(lucideScript);
+
+            // Load QR Creator
+            var qrScript = document.createElement('script');
+            qrScript.src = '/vendor/qr-creator.min.js';
+            qrScript.integrity = 'sha384-cmmVU8dn+rGH6Yvlt0Q1+31iG9lS4wdVsqV/ZP/53RBddef+VZcYakA+NhG4S8wE';
+            qrScript.crossOrigin = 'anonymous';
+            document.head.appendChild(qrScript);
+
+            // Load DOMPurify
+            var purifyScript = document.createElement('script');
+            purifyScript.src = '/vendor/purify.min.js';
+            purifyScript.integrity = 'sha384-qJNkHwhlYywDHfyoEe1np+1lYvX/8x+3gHCKFhSSBMQyCFlvFnn+zXmaebXl21rV';
+            purifyScript.crossOrigin = 'anonymous';
+            document.head.appendChild(purifyScript);
+
+            // Conditionally load Three.js only on desktop (width >= 1024px)
+            var isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+            if (isDesktop) {
+                var threeScript = document.createElement('script');
+                threeScript.src = '/vendor/three.min.js';
+                threeScript.integrity = 'sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu';
+                threeScript.crossOrigin = 'anonymous';
+                document.head.appendChild(threeScript);
+            }
+        });
+    </script>
+
+    <!-- Async load non-critical CSS -->
+    <link rel="stylesheet" href="css/v4-design.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="css/v4-design.css"></noscript>
     <style>
 /* MODA Accent 顏色覆蓋 Tailwind indigo */
 .bg-moda { background-color: var(--moda-accent) !important; }

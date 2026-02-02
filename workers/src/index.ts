@@ -16,6 +16,7 @@ import { handleUserCreateCard, handleUserUpdateCard, handleUserListCards, handle
 import { handleRevocationHistory } from './handlers/user/history';
 import { handleUserLogout } from './handlers/user/logout';
 import { handleGetOAuthUserInfo } from './handlers/user/oauth-user-info';
+import { handleConsentCheck, handleConsentAccept, handleConsentWithdraw, handleConsentRestore, handleConsentHistory, handleDataExport, handlePrivacyPolicyCurrent } from './handlers/consent';
 import { handleOAuthCallback } from './handlers/oauth';
 import { handleOAuthInit } from './handlers/oauth-init';
 import { handleManifest } from './handlers/manifest';
@@ -320,6 +321,42 @@ export default {
     // GET /api/user/revocation-history - Query revocation history
     if (url.pathname === '/api/user/revocation-history' && request.method === 'GET') {
       return addMinimalSecurityHeaders(await handleRevocationHistory(request, env));
+    }
+
+    // Consent Management APIs (No-Email Version)
+    // GET /api/consent/check - Check if user needs consent
+    if (url.pathname === '/api/consent/check' && request.method === 'GET') {
+      return addMinimalSecurityHeaders(await handleConsentCheck(request, env));
+    }
+
+    // POST /api/consent/accept - Record consent
+    if (url.pathname === '/api/consent/accept' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleConsentAccept(request, env));
+    }
+
+    // POST /api/consent/withdraw - Withdraw consent
+    if (url.pathname === '/api/consent/withdraw' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleConsentWithdraw(request, env));
+    }
+
+    // POST /api/consent/restore - Restore withdrawn consent
+    if (url.pathname === '/api/consent/restore' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleConsentRestore(request, env));
+    }
+
+    // GET /api/consent/history - Get consent history
+    if (url.pathname === '/api/consent/history' && request.method === 'GET') {
+      return addMinimalSecurityHeaders(await handleConsentHistory(request, env));
+    }
+
+    // POST /api/data/export - Export user data (instant download)
+    if (url.pathname === '/api/data/export' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleDataExport(request, env));
+    }
+
+    // GET /api/privacy-policy/current - Get current privacy policy
+    if (url.pathname === '/api/privacy-policy/current' && request.method === 'GET') {
+      return addMinimalSecurityHeaders(await handlePrivacyPolicyCurrent(request, env));
     }
 
     // Admin APIs

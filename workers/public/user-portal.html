@@ -271,6 +271,30 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8" id="card-slots-container">
                 <!-- Slot Template (由 JS 渲染) -->
             </div>
+
+            <!-- Privacy Management Section -->
+            <div class="glass-panel p-6 lg:p-8 rounded-[2rem] lg:rounded-[3rem] space-y-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                        <i data-lucide="shield" class="w-5 h-5 text-blue-600"></i>
+                    </div>
+                    <h3 class="text-lg font-black text-slate-900" data-i18n="privacy-settings-title">個資管理</h3>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <button onclick="showConsentHistoryModal()" class="py-4 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition-all text-sm flex items-center justify-center gap-2">
+                        <i data-lucide="clock" class="w-4 h-4"></i>
+                        <span data-i18n="privacy-view-history">查看同意歷史</span>
+                    </button>
+                    <button onclick="handleDataExport()" class="py-4 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition-all text-sm flex items-center justify-center gap-2">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span data-i18n="privacy-export-data">匯出我的資料</span>
+                    </button>
+                    <button onclick="showWithdrawConsentModal()" class="py-4 bg-white border border-red-200 text-red-600 rounded-xl font-bold hover:bg-red-50 transition-all text-sm flex items-center justify-center gap-2">
+                        <i data-lucide="user-x" class="w-4 h-4"></i>
+                        <span data-i18n="privacy-withdraw-consent">撤回同意</span>
+                    </button>
+                </div>
+            </div>
         </section>
 
         <!-- 3. 卡片編輯表單 -->
@@ -569,6 +593,180 @@
     </main>
 
     <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[300] px-8 py-4 bg-slate-900 text-white rounded-2xl shadow-2xl text-xs font-bold uppercase tracking-widest hidden fade-in"></div>
+
+    <!-- Consent Modal (First-time / Version Update) -->
+    <div id="consent-modal" class="hidden fixed inset-0 z-[250] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col">
+            <!-- Header -->
+            <div class="p-6 border-b border-slate-200">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                        <i data-lucide="shield-check" class="w-6 h-6 text-blue-600"></i>
+                    </div>
+                    <h3 class="text-xl font-black text-slate-900" data-i18n="consent-title">隱私權政策</h3>
+                </div>
+                <p class="text-sm text-slate-600" data-i18n="consent-subtitle">請詳閱以下條款</p>
+                <div class="flex gap-4 mt-3 text-xs text-slate-500">
+                    <span><strong data-i18n="consent-version">版本</strong>: <span id="consent-policy-version">---</span></span>
+                    <span><strong data-i18n="consent-effective-date">生效日期</strong>: <span id="consent-effective-date">---</span></span>
+                </div>
+            </div>
+
+            <!-- Scrollable Content -->
+            <div id="consent-content-scroll" class="flex-1 overflow-y-auto p-6 space-y-6">
+                <!-- First Layer: Summary + Purposes -->
+                <div class="p-4 bg-blue-50 rounded-xl border border-blue-200">
+                    <h4 class="text-sm font-black text-blue-900 mb-2" data-i18n="consent-summary-title">摘要</h4>
+                    <p id="consent-summary" class="text-sm text-blue-800 leading-relaxed mb-3">載入中...</p>
+                    
+                    <!-- Data Collection Purposes -->
+                    <div class="mt-3 pt-3 border-t border-blue-200">
+                        <p class="text-xs font-bold text-blue-900 mb-1" data-i18n="consent-purposes-title">蒐集目的</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded">069 契約</span>
+                            <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded">090 客戶管理</span>
+                            <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded">135 資訊服務</span>
+                            <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded">157 統計分析</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Toggle Full Content Button -->
+                    <button id="toggle-full-content-btn" onclick="toggleFullContent()" class="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+                        <span data-i18n="consent-view-full">查看完整條款</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <!-- Second Layer: Full Content (Initially Hidden) -->
+                <div id="consent-full-content" class="hidden prose prose-sm max-w-none text-slate-700 p-4 bg-slate-50 rounded-xl">載入中...</div>
+
+                <!-- Consents -->
+                <div class="space-y-3">
+                    <!-- Required Consent -->
+                    <div class="flex items-start gap-3 p-4 bg-slate-50 rounded-xl border-2 border-red-100">
+                        <input type="checkbox" id="consent-required" disabled checked class="mt-1 w-5 h-5 rounded border-slate-300">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 bg-red-100 text-red-600 text-xs font-bold rounded" data-i18n="consent-required-badge">必要</span>
+                                <label class="text-sm font-bold text-slate-900" data-i18n="consent-required-label">服務使用</label>
+                            </div>
+                            <p class="text-xs text-slate-600" data-i18n="consent-required-desc">此為服務必要項目，無法拒絕。包含基本資料蒐集、名片儲存與展示、系統操作日誌。</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Optional Consent -->
+                    <div class="flex items-start gap-3 p-4 bg-slate-50 rounded-xl border-2 border-blue-100">
+                        <input type="checkbox" id="consent-optional-analytics" class="mt-1 w-5 h-5 rounded border-slate-300">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 bg-blue-100 text-blue-600 text-xs font-bold rounded" data-i18n="consent-optional-badge">選擇性</span>
+                                <label for="consent-optional-analytics" class="text-sm font-bold text-slate-900" data-i18n="consent-optional-label">匿名統計</label>
+                            </div>
+                            <p class="text-xs text-slate-600" data-i18n="consent-optional-desc">協助我們改善服務品質，不包含個人識別資訊。您可隨時變更此設定。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scroll Hint (hidden when scrolled to bottom) -->
+            <div id="consent-scroll-hint" class="px-6 py-3 bg-amber-50 border-t border-amber-200 text-center">
+                <p class="text-xs text-amber-700 font-medium flex items-center justify-center gap-2">
+                    <i data-lucide="arrow-down" class="w-4 h-4"></i>
+                    <span data-i18n="consent-scroll-hint">請滾動至底部閱讀完整內容</span>
+                </p>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-6 border-t border-slate-200 flex gap-3">
+                <button id="consent-agree-btn" disabled onclick="acceptConsent()" class="flex-1 py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed" data-i18n="consent-agree-button">
+                    我已詳閱並同意
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Withdraw Consent Modal -->
+    <div id="withdraw-consent-modal" class="hidden fixed inset-0 z-[250] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-8">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="alert-triangle" class="w-8 h-8 text-red-600"></i>
+                </div>
+                <h3 class="text-2xl font-black text-slate-900" data-i18n="withdraw-title">撤回個資同意</h3>
+                <p class="text-sm text-slate-600 mt-2" data-i18n="withdraw-subtitle">撤回後將無法使用服務</p>
+            </div>
+
+            <div class="space-y-4 mb-6">
+                <div class="p-4 bg-red-50 border border-red-200 rounded-xl">
+                    <p class="text-sm text-red-800 font-medium" data-i18n="withdraw-warning">您的資料將在 30 天後永久刪除</p>
+                    <p class="text-xs text-red-600 mt-2">
+                        <strong data-i18n="withdraw-deletion-date">預計刪除日期</strong>: <span id="withdraw-deletion-date">---</span>
+                    </p>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-slate-700 block" data-i18n="withdraw-confirm-text">請輸入「確認撤回」以繼續</label>
+                    <input type="text" id="withdraw-confirm-input" class="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm" data-i18n-placeholder="withdraw-confirm-placeholder">
+                </div>
+
+                <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                    <input type="checkbox" id="withdraw-understand-checkbox" class="w-5 h-5 rounded border-slate-300">
+                    <label for="withdraw-understand-checkbox" class="text-sm text-slate-700" data-i18n="withdraw-understand-checkbox">我了解撤回後果</label>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="closeWithdrawConsentModal()" class="flex-1 px-6 py-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200" data-i18n="button-cancel">取消</button>
+                <button id="withdraw-consent-confirm-btn" disabled onclick="confirmWithdrawConsent()" class="flex-1 px-6 py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 disabled:bg-slate-300 disabled:cursor-not-allowed" data-i18n="withdraw-button">
+                    確認撤回同意
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Restore Consent Modal -->
+    <div id="restore-consent-modal" class="hidden fixed inset-0 z-[250] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-8">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="rotate-ccw" class="w-8 h-8 text-amber-600"></i>
+                </div>
+                <h3 class="text-2xl font-black text-slate-900" data-i18n="restore-title">恢復個資同意</h3>
+                <p class="text-sm text-slate-600 mt-2" data-i18n="restore-subtitle">您的資料將被保留</p>
+            </div>
+
+            <div class="space-y-4 mb-6">
+                <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl text-center">
+                    <p class="text-sm text-amber-800 font-medium">您的資料將在 <span id="restore-days-remaining" class="font-black text-lg">X</span> 天後刪除</p>
+                    <p class="text-xs text-amber-600 mt-2" data-i18n="restore-days-remaining">剩餘時間</p>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="confirmRestoreConsent()" class="flex-1 px-6 py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700" data-i18n="restore-button">
+                    取消撤回
+                </button>
+                <button onclick="closeRestoreConsentModal()" class="flex-1 px-6 py-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200" data-i18n="restore-continue-delete">
+                    繼續刪除
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Consent History Modal -->
+    <div id="consent-history-modal" class="hidden fixed inset-0 z-[250] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full mx-4 max-h-[90vh] flex flex-col">
+            <div class="p-6 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="text-xl font-black text-slate-900" data-i18n="history-title">同意歷史記錄</h3>
+                <button onclick="closeConsentHistoryModal()" class="p-2 hover:bg-slate-100 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="consent-history-content" class="flex-1 overflow-y-auto p-6">
+                <p class="text-center text-slate-400" data-i18n="history-no-records">載入中...</p>
+            </div>
+        </div>
+    </div>
 
     <!-- Success Modal -->
     <div id="success-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center">

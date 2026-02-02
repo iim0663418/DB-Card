@@ -331,6 +331,19 @@ done
 
 ---
 
+## 安全保證計畫
+
+DB-Card 遵循 **ISO/IEC 18974:2023** (OpenChain Security Assurance) 標準：
+
+- **漏洞掃描**: OSV-Scanner + npm audit (每次提交)
+- **零漏洞政策**: 生產環境不允許高/嚴重 CVE
+- **回報管道**: [GitHub Security Advisories](https://github.com/iim0663418/DB-Card/security/advisories/new) (48 小時內回應)
+- **修復承諾**: 高/嚴重漏洞 30 天內修復
+
+詳細文檔: `docs/security/`
+
+---
+
 ## 常見問題
 
 ### Q: 如何輪替 KEK？

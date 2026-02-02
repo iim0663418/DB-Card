@@ -149,6 +149,10 @@ const i18nTexts = {
         'zh': '數位名片系統 Digital Business Card',
         'en': 'Digital Business Card System'
     },
+    'desktop-hint': {
+        'zh': '移動滑鼠體驗 3D 視差效果',
+        'en': 'Move mouse to experience 3D parallax effect'
+    },
     'transmission-feed': {
         'zh': 'Dynamic Transmission Feed',
         'en': 'Dynamic Transmission Feed'
@@ -196,6 +200,14 @@ const i18nTexts = {
     'view-security': {
         'zh': '查看詳細安全特性',
         'en': 'View Security Features'
+    },
+    'desktop-qr-title': {
+        'zh': '加入手機通訊錄',
+        'en': 'Add to Contacts'
+    },
+    'desktop-qr-desc': {
+        'zh': '掃描 QR Code 用手機開啟',
+        'en': 'Scan QR Code with your phone'
     }
 };
 
@@ -267,12 +279,22 @@ async function initApp() {
     initLoadingIcon(); // 隨機選擇載入圖示
     lucide.createIcons();
 
-    if (typeof THREE !== 'undefined') {
-        setTimeout(() => initThree(), 100);
-    } else {
-        window.addEventListener('load', () => {
-            if (typeof THREE !== 'undefined') initThree();
-        });
+    // Conditional Three.js initialization - only on desktop (>= 1024px)
+    const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+    if (isDesktop) {
+        if (typeof THREE !== 'undefined') {
+            setTimeout(() => initThree(), 100);
+        } else {
+            // Wait for Three.js to load (lazy loaded on desktop)
+            const waitForThree = setInterval(() => {
+                if (typeof THREE !== 'undefined') {
+                    clearInterval(waitForThree);
+                    initThree();
+                }
+            }, 100);
+            // Timeout after 5 seconds if Three.js doesn't load
+            setTimeout(() => clearInterval(waitForThree), 5000);
+        }
     }
 
     const params = new URLSearchParams(window.location.search);
@@ -769,8 +791,15 @@ function hideLoading() {
 }
 
 function initThree() {
+    // Only initialize Three.js on desktop
+    const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+    if (!isDesktop) return;
+
     const canvas = document.getElementById('three-canvas');
     if (!canvas) return;
+
+    // Show canvas (it's hidden by default via CSS)
+    canvas.style.display = 'block';
 
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf4f7f9);

@@ -16,6 +16,7 @@ import { handleUserCreateCard, handleUserUpdateCard, handleUserListCards, handle
 import { handleRevocationHistory } from './handlers/user/history';
 import { handleUserLogout } from './handlers/user/logout';
 import { handleGetOAuthUserInfo } from './handlers/user/oauth-user-info';
+import { handleConsentCheck, handleConsentAccept, handleConsentWithdraw, handleConsentRestore, handleConsentHistory, handleDataExport, handlePrivacyPolicyCurrent } from './handlers/consent';
 import { handleOAuthCallback } from './handlers/oauth';
 import { handleOAuthInit } from './handlers/oauth-init';
 import { handleManifest } from './handlers/manifest';
@@ -43,11 +44,15 @@ function addSecurityHeaders(response: Response, nonce: string): Response {
   // Content Security Policy (with nonce, no unsafe-inline for scripts)
   headers.set('Content-Security-Policy',
     "default-src 'self'; " +
-    `script-src 'self' 'nonce-${nonce}' cdn.tailwindcss.com unpkg.com cdnjs.cloudflare.com cdn.jsdelivr.net; ` +
+    `script-src 'self' 'nonce-${nonce}' cdn.tailwindcss.com cdn.jsdelivr.net; ` +
     "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.tailwindcss.com; " +
     "font-src 'self' fonts.gstatic.com; " +
     "img-src 'self' data: https:; " +
-    "connect-src 'self' cdn.jsdelivr.net https://api.db-card.moda.gov.tw https://oauth2.googleapis.com https://www.googleapis.com accounts.google.com"
+    "connect-src 'self' https://oauth2.googleapis.com https://www.googleapis.com accounts.google.com; " +
+    "object-src 'none'; " +
+    "base-src 'self'; " +
+    "form-action 'self'; " +
+    "frame-ancestors 'none'"
   );
 
   // Additional security headers
@@ -59,10 +64,36 @@ function addSecurityHeaders(response: Response, nonce: string): Response {
   // HSTS (Strict-Transport-Security) - Force HTTPS for 1 year
   headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   
+  // Permissions Policy - Disable unnecessary browser features
+  headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  
   // Spectre vulnerability mitigation
   headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
   headers.set('Cross-Origin-Opener-Policy', 'same-origin');
   headers.set('Cross-Origin-Resource-Policy', 'same-origin');
+
+  // IMPORTANT: Preserve Set-Cookie header from original response
+  const setCookie = response.headers.get('Set-Cookie');
+  if (setCookie) {
+    headers.set('Set-Cookie', setCookie);
+  }
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+}
+
+/**
+ * Add minimal security headers to non-HTML responses
+ * Includes only Permissions-Policy header required by OWASP ZAP
+ */
+function addMinimalSecurityHeaders(response: Response): Response {
+  const headers = new Headers(response.headers);
+
+  // Permissions Policy - Required for all responses
+  headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
 
   // IMPORTANT: Preserve Set-Cookie header from original response
   const setCookie = response.headers.get('Set-Cookie');
@@ -104,6 +135,9 @@ export default {
         headers['Access-Control-Allow-Credentials'] = 'true';
       }
 
+      // Add Permissions-Policy to OPTIONS response
+      headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()';
+
       return new Response(null, { headers });
     }
 
@@ -111,41 +145,41 @@ export default {
 
     // Admin authentication endpoints
     if (url.pathname === '/api/admin/login' && request.method === 'POST') {
-      return handleAdminLogin(request, env);
+      return addMinimalSecurityHeaders(await handleAdminLogin(request, env));
     }
 
     if (url.pathname === '/api/admin/logout' && request.method === 'POST') {
-      return handleAdminLogout(request, env);
+      return addMinimalSecurityHeaders(await handleAdminLogout(request, env));
     }
 
     // Passkey authentication endpoints
     if (url.pathname === '/api/admin/passkey/register/start' && request.method === 'POST') {
-      return handlePasskeyRegisterStart(request, env);
+      return addMinimalSecurityHeaders(await handlePasskeyRegisterStart(request, env));
     }
 
     if (url.pathname === '/api/admin/passkey/register/finish' && request.method === 'POST') {
-      return handlePasskeyRegisterFinish(request, env);
+      return addMinimalSecurityHeaders(await handlePasskeyRegisterFinish(request, env));
     }
 
     if (url.pathname === '/api/admin/passkey/login/start' && request.method === 'POST') {
-      return handlePasskeyLoginStart(request, env);
+      return addMinimalSecurityHeaders(await handlePasskeyLoginStart(request, env));
     }
 
     if (url.pathname === '/api/admin/passkey/login/finish' && request.method === 'POST') {
-      return handlePasskeyLoginFinish(request, env);
+      return addMinimalSecurityHeaders(await handlePasskeyLoginFinish(request, env));
     }
 
     if (url.pathname === '/api/admin/passkey/available' && request.method === 'GET') {
-      return handlePasskeyAvailable(request, env);
+      return addMinimalSecurityHeaders(await handlePasskeyAvailable(request, env));
     }
 
     if (url.pathname === '/api/admin/passkey/status' && request.method === 'GET') {
       const cookieHeader = request.headers.get('Cookie');
       if (!cookieHeader) {
-        return new Response(JSON.stringify({ error: 'unauthorized' }), {
+        return addMinimalSecurityHeaders(new Response(JSON.stringify({ error: 'unauthorized' }), {
           status: 401,
           headers: { 'Content-Type': 'application/json' }
-        });
+        }));
       }
 
       const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
@@ -158,10 +192,10 @@ export default {
 
       const tokenFromCookie = cookies['admin_token'];
       if (!tokenFromCookie) {
-        return new Response(JSON.stringify({ error: 'unauthorized' }), {
+        return addMinimalSecurityHeaders(new Response(JSON.stringify({ error: 'unauthorized' }), {
           status: 401,
           headers: { 'Content-Type': 'application/json' }
-        });
+        }));
       }
 
       // 嘗試 1: Passkey session
@@ -188,46 +222,46 @@ export default {
       }
 
       if (!adminEmail) {
-        return new Response(JSON.stringify({ error: 'unauthorized' }), {
+        return addMinimalSecurityHeaders(new Response(JSON.stringify({ error: 'unauthorized' }), {
           status: 401,
           headers: { 'Content-Type': 'application/json' }
-        });
+        }));
       }
 
-      return handlePasskeyStatus(request, env, adminEmail);
+      return addMinimalSecurityHeaders(await handlePasskeyStatus(request, env, adminEmail));
     }
 
     // OAuth init - Generate state parameter
     if (url.pathname === '/api/oauth/init' && request.method === 'POST') {
-      return handleOAuthInit(request, env);
+      return addMinimalSecurityHeaders(await handleOAuthInit(request, env));
     }
 
     // OAuth callback
     if (url.pathname === '/oauth/callback' && request.method === 'GET') {
-      return handleOAuthCallback(request, env);
+      return addMinimalSecurityHeaders(await handleOAuthCallback(request, env));
     }
 
     // User logout
     if (url.pathname === '/api/user/logout' && request.method === 'POST') {
-      return handleUserLogout(request, env);
+      return addMinimalSecurityHeaders(await handleUserLogout(request, env));
     }
 
     // Get OAuth user info after redirect (one-time use)
     if (url.pathname === '/api/user/oauth-user-info' && request.method === 'GET') {
-      return handleGetOAuthUserInfo(request, env);
+      return addMinimalSecurityHeaders(await handleGetOAuthUserInfo(request, env));
     }
 
     // Health check
     if (url.pathname === '/health') {
-      return handleHealth(request, env);
+      return addMinimalSecurityHeaders(await handleHealth(request, env));
     }
 
     if (url.pathname === '/api/nfc/tap' && request.method === 'POST') {
-      return handleTap(request, env, ctx);
+      return addMinimalSecurityHeaders(await handleTap(request, env, ctx));
     }
 
     if (url.pathname === '/api/read' && request.method === 'GET') {
-      return handleRead(request, env, ctx);
+      return addMinimalSecurityHeaders(await handleRead(request, env, ctx));
     }
 
     // CSRF Protection for Admin/User APIs
@@ -249,186 +283,222 @@ export default {
 
     // User Self-Service APIs (OAuth required)
     if (url.pathname === '/api/user/cards' && request.method === 'POST') {
-      return handleUserCreateCard(request, env);
+      return addMinimalSecurityHeaders(await handleUserCreateCard(request, env));
     }
 
     if (url.pathname === '/api/user/cards' && request.method === 'GET') {
-      return handleUserListCards(request, env);
+      return addMinimalSecurityHeaders(await handleUserListCards(request, env));
     }
 
     // PUT /api/user/cards/:uuid - Update user's own card
     const updateUserCardMatch = url.pathname.match(/^\/api\/user\/cards\/([a-f0-9-]{36})$/);
     if (updateUserCardMatch && request.method === 'PUT') {
       const uuid = updateUserCardMatch[1];
-      return handleUserUpdateCard(request, env, uuid);
+      return addMinimalSecurityHeaders(await handleUserUpdateCard(request, env, uuid));
     }
 
     // GET /api/user/cards/:uuid - Get user's own card details
     const getUserCardMatch = url.pathname.match(/^\/api\/user\/cards\/([a-f0-9-]{36})$/);
     if (getUserCardMatch && request.method === 'GET') {
       const uuid = getUserCardMatch[1];
-      return handleUserGetCard(request, env, uuid);
+      return addMinimalSecurityHeaders(await handleUserGetCard(request, env, uuid));
     }
 
     // POST /api/user/cards/:uuid/revoke - User self-revoke card
     const revokeUserCardMatch = url.pathname.match(/^\/api\/user\/cards\/([a-f0-9-]{36})\/revoke$/);
     if (revokeUserCardMatch && request.method === 'POST') {
       const uuid = revokeUserCardMatch[1];
-      return handleUserRevokeCard(request, env, uuid);
+      return addMinimalSecurityHeaders(await handleUserRevokeCard(request, env, uuid));
     }
 
     // POST /api/user/cards/:uuid/restore - User self-restore card
     const restoreUserCardMatch = url.pathname.match(/^\/api\/user\/cards\/([a-f0-9-]{36})\/restore$/);
     if (restoreUserCardMatch && request.method === 'POST') {
       const uuid = restoreUserCardMatch[1];
-      return handleUserRestoreCard(request, env, uuid);
+      return addMinimalSecurityHeaders(await handleUserRestoreCard(request, env, uuid));
     }
 
     // GET /api/user/revocation-history - Query revocation history
     if (url.pathname === '/api/user/revocation-history' && request.method === 'GET') {
-      return handleRevocationHistory(request, env);
+      return addMinimalSecurityHeaders(await handleRevocationHistory(request, env));
+    }
+
+    // Consent Management APIs (No-Email Version)
+    // GET /api/consent/check - Check if user needs consent
+    if (url.pathname === '/api/consent/check' && request.method === 'GET') {
+      return addMinimalSecurityHeaders(await handleConsentCheck(request, env));
+    }
+
+    // POST /api/consent/accept - Record consent
+    if (url.pathname === '/api/consent/accept' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleConsentAccept(request, env));
+    }
+
+    // POST /api/consent/withdraw - Withdraw consent
+    if (url.pathname === '/api/consent/withdraw' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleConsentWithdraw(request, env));
+    }
+
+    // POST /api/consent/restore - Restore withdrawn consent
+    if (url.pathname === '/api/consent/restore' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleConsentRestore(request, env));
+    }
+
+    // GET /api/consent/history - Get consent history
+    if (url.pathname === '/api/consent/history' && request.method === 'GET') {
+      return addMinimalSecurityHeaders(await handleConsentHistory(request, env));
+    }
+
+    // POST /api/data/export - Export user data (instant download)
+    if (url.pathname === '/api/data/export' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleDataExport(request, env));
+    }
+
+    // GET /api/privacy-policy/current - Get current privacy policy
+    if (url.pathname === '/api/privacy-policy/current' && request.method === 'GET') {
+      return addMinimalSecurityHeaders(await handlePrivacyPolicyCurrent(request, env));
     }
 
     // Admin APIs
     if (url.pathname === '/api/admin/cards' && request.method === 'POST') {
-      return handleCreateCard(request, env);
+      return addMinimalSecurityHeaders(await handleCreateCard(request, env));
     }
 
     // GET /api/admin/cards - List all cards
     if (url.pathname === '/api/admin/cards' && request.method === 'GET') {
-      return handleListCards(request, env);
+      return addMinimalSecurityHeaders(await handleListCards(request, env));
     }
 
     // GET /api/admin/cards/:uuid - Get single card
     const getCardMatch = url.pathname.match(/^\/api\/admin\/cards\/([a-f0-9-]{36})$/);
     if (getCardMatch && request.method === 'GET') {
       const uuid = getCardMatch[1];
-      return handleGetCard(request, env, uuid);
+      return addMinimalSecurityHeaders(await handleGetCard(request, env, uuid));
     }
 
     // PUT /api/admin/cards/:uuid - Update a card
     const updateCardMatch = url.pathname.match(/^\/api\/admin\/cards\/([a-f0-9-]{36})$/);
     if (updateCardMatch && request.method === 'PUT') {
       const uuid = updateCardMatch[1];
-      return handleUpdateCard(request, env, uuid);
+      return addMinimalSecurityHeaders(await handleUpdateCard(request, env, uuid));
     }
 
     // DELETE /api/admin/cards/:uuid - Revoke a card
     const deleteCardMatch = url.pathname.match(/^\/api\/admin\/cards\/([a-f0-9-]{36})$/);
     if (deleteCardMatch && request.method === 'DELETE') {
       const uuid = deleteCardMatch[1];
-      return handleDeleteCard(request, env, uuid);
+      return addMinimalSecurityHeaders(await handleDeleteCard(request, env, uuid));
     }
 
     // POST /api/admin/cards/:uuid/restore - Restore a revoked card
     const restoreCardMatch = url.pathname.match(/^\/api\/admin\/cards\/([a-f0-9-]{36})\/restore$/);
     if (restoreCardMatch && request.method === 'POST') {
       const uuid = restoreCardMatch[1];
-      return handleRestoreCard(request, env, uuid);
+      return addMinimalSecurityHeaders(await handleRestoreCard(request, env, uuid));
     }
 
     // POST /api/admin/cards/:uuid/reset-budget - Reset session budget
     const resetBudgetMatch = url.pathname.match(/^\/api\/admin\/cards\/([a-f0-9-]{36})\/reset-budget$/);
     if (resetBudgetMatch && request.method === 'POST') {
       const uuid = resetBudgetMatch[1];
-      return handleResetBudget(request, env, ctx, uuid);
+      return addMinimalSecurityHeaders(await handleResetBudget(request, env, ctx, uuid));
     }
 
     // GET /api/admin/kek/status - KEK status monitoring
     if (url.pathname === '/api/admin/kek/status' && request.method === 'GET') {
-      return handleKekStatus(request, env);
+      return addMinimalSecurityHeaders(await handleKekStatus(request, env));
     }
 
     // GET /api/admin/security/stats - Security statistics
     if (url.pathname === '/api/admin/security/stats' && request.method === 'GET') {
-      return handleSecurityStats(request, env);
+      return addMinimalSecurityHeaders(await handleSecurityStats(request, env));
     }
 
     // GET /api/admin/security/events - Security events list
     if (url.pathname === '/api/admin/security/events' && request.method === 'GET') {
-      return handleSecurityEvents(request, env);
+      return addMinimalSecurityHeaders(await handleSecurityEvents(request, env));
     }
 
     // GET /api/admin/security/timeline - Security timeline
     if (url.pathname === '/api/admin/security/timeline' && request.method === 'GET') {
-      return handleSecurityTimeline(request, env);
+      return addMinimalSecurityHeaders(await handleSecurityTimeline(request, env));
     }
 
     // POST /api/admin/security/block - Block IP
     if (url.pathname === '/api/admin/security/block' && request.method === 'POST') {
-      return handleBlockIP(request, env);
+      return addMinimalSecurityHeaders(await handleBlockIP(request, env));
     }
 
     // DELETE /api/admin/security/block/:ip - Unblock IP
     const unblockMatch = url.pathname.match(/^\/api\/admin\/security\/block\/(.+)$/);
     if (unblockMatch && request.method === 'DELETE') {
       const ip = decodeURIComponent(unblockMatch[1]);
-      return handleUnblockIP(request, env, ip);
+      return addMinimalSecurityHeaders(await handleUnblockIP(request, env, ip));
     }
 
     // GET /api/admin/security/ip/:ip - IP detail analysis
     const ipDetailMatch = url.pathname.match(/^\/api\/admin\/security\/ip\/(.+)$/);
     if (ipDetailMatch && request.method === 'GET') {
       const ip = decodeURIComponent(ipDetailMatch[1]);
-      return handleIPDetail(request, env, ip);
+      return addMinimalSecurityHeaders(await handleIPDetail(request, env, ip));
     }
 
     // GET /api/admin/security/export - Export security events as CSV
     if (url.pathname === '/api/admin/security/export' && request.method === 'GET') {
-      return handleSecurityExport(request, env);
+      return addMinimalSecurityHeaders(await handleSecurityExport(request, env));
     }
 
     // GET /api/admin/cdn-health - Check CDN health
     if (url.pathname === '/api/admin/cdn-health' && request.method === 'GET') {
-      return handleCDNHealth(request, env);
+      return addMinimalSecurityHeaders(await handleCDNHealth(request, env));
     }
 
     // POST /api/admin/assets/upload - Upload physical card asset
     if (url.pathname === '/api/admin/assets/upload' && request.method === 'POST') {
-      return handleAssetUpload(request, env);
+      return addMinimalSecurityHeaders(await handleAssetUpload(request, env));
     }
 
     // GET /api/admin/assets/:id/content - Admin view asset (no session required)
     const adminAssetContentMatch = url.pathname.match(/^\/api\/admin\/assets\/([a-f0-9-]{36})\/content$/);
     if (adminAssetContentMatch && request.method === 'GET') {
-      return handleAdminAssetContent(request, env);
+      return addMinimalSecurityHeaders(await handleAdminAssetContent(request, env));
     }
 
     // GET /api/admin/cards/:uuid/assets - List card assets
     const listAssetsMatch = url.pathname.match(/^\/api\/admin\/cards\/([a-f0-9-]{36})\/assets$/);
     if (listAssetsMatch && request.method === 'GET') {
-      return handleListCardAssets(request, env);
+      return addMinimalSecurityHeaders(await handleListCardAssets(request, env));
     }
 
     // GET /api/assets/:card_uuid/twin - List twin assets for card
     const assetTwinListMatch = url.pathname.match(/^\/api\/assets\/([a-f0-9-]{36})\/twin$/);
     if (assetTwinListMatch && request.method === 'GET') {
       const cardUuid = assetTwinListMatch[1];
-      return handleAssetTwinList(request, env, ctx, cardUuid);
+      return addMinimalSecurityHeaders(await handleAssetTwinList(request, env, ctx, cardUuid));
     }
 
     // GET /api/assets/:asset_id/content - Read asset with R2 Transform
     const assetContentMatch = url.pathname.match(/^\/api\/assets\/([a-f0-9-]{36})\/content$/);
     if (assetContentMatch && request.method === 'GET') {
       const assetId = assetContentMatch[1];
-      return handleAssetContent(request, env, ctx, assetId);
+      return addMinimalSecurityHeaders(await handleAssetContent(request, env, ctx, assetId));
     }
 
     // GET /api/admin/monitoring/overview - Monitoring overview
     if (url.pathname === '/api/admin/monitoring/overview' && request.method === 'GET') {
-      return handleMonitoringOverview(request, env);
+      return addMinimalSecurityHeaders(await handleMonitoringOverview(request, env));
     }
 
     // GET /api/admin/monitoring/health - Health check
     if (url.pathname === '/api/admin/monitoring/health' && request.method === 'GET') {
-      return handleMonitoringHealth(request, env);
+      return addMinimalSecurityHeaders(await handleMonitoringHealth(request, env));
     }
 
     // GET /api/manifest/:uuid - Dynamic manifest for QR shortcut
     const manifestMatch = url.pathname.match(/^\/api\/manifest\/([a-f0-9-]{36})$/);
     if (manifestMatch && request.method === 'GET') {
       const uuid = manifestMatch[1];
-      return handleManifest(request, env, uuid);
+      return addMinimalSecurityHeaders(await handleManifest(request, env, uuid));
     }
 
     // Serve static assets (admin-dashboard.html, etc.)
@@ -456,6 +526,7 @@ export default {
           headers.set('X-Content-Type-Options', 'nosniff');
           headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
           headers.set('Cross-Origin-Resource-Policy', 'same-origin');
+          headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
           
           return new Response(asset.body, {
             status: asset.status,
@@ -473,14 +544,17 @@ export default {
     // Check rate limit for 404 errors
     const rateLimitResponse = await checkRateLimit(request, env, '404');
     if (rateLimitResponse) {
-      return rateLimitResponse;
+      return addMinimalSecurityHeaders(rateLimitResponse);
     }
-    
+
     let response = await publicErrorResponse(404, request);
 
     // Apply security headers to HTML responses
     if (response.headers.get('content-type')?.includes('text/html')) {
       response = await addSecurityHeaders(response, nonce);
+    } else {
+      // Apply minimal headers to non-HTML error responses
+      response = addMinimalSecurityHeaders(response);
     }
 
     return response;

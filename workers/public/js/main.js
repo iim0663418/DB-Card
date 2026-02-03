@@ -802,42 +802,79 @@ function initThree() {
     canvas.style.display = 'block';
 
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf4f7f9);
+    scene.background = new THREE.Color(0x0a0a0f);
+    scene.fog = new THREE.Fog(0x0a0a0f, 10, 50);
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 0, 10);
+    camera.position.set(0, 2, 10);
 
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    const gridGeo = new THREE.PlaneGeometry(150, 150, 45, 45);
+    // Digital Grid (Perspective Grid with Vanishing Point)
+    const gridGeo = new THREE.PlaneGeometry(200, 200, 50, 50);
     const gridMat = new THREE.MeshBasicMaterial({
-        color: 0x6868ac,
+        color: 0x00ffff,
         wireframe: true,
         transparent: true,
-        opacity: 0.05
+        opacity: 0.15
     });
     grid = new THREE.Mesh(gridGeo, gridMat);
     grid.rotation.x = -Math.PI / 2.2;
-    grid.position.y = -6;
+    grid.position.y = -8;
     scene.add(grid);
 
-    const starCount = 2000;
-    const starGeo = new THREE.BufferGeometry();
-    const starPos = new Float32Array(starCount * 3);
-    for (let i = 0; i < starCount * 3; i++) {
-        starPos[i] = (Math.random() - 0.5) * 50;
+    // Digital Particles (Matrix-style floating data)
+    const particleCount = 3000;
+    const particleGeo = new THREE.BufferGeometry();
+    const particlePos = new Float32Array(particleCount * 3);
+    const particleVelocity = new Float32Array(particleCount);
+    
+    for (let i = 0; i < particleCount; i++) {
+        const i3 = i * 3;
+        particlePos[i3] = (Math.random() - 0.5) * 80;
+        particlePos[i3 + 1] = Math.random() * 40 - 10;
+        particlePos[i3 + 2] = (Math.random() - 0.5) * 80;
+        particleVelocity[i] = Math.random() * 0.02 + 0.01;
     }
-    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-    const starMat = new THREE.PointsMaterial({
-        size: 0.05,
-        color: 0x6868ac,
+    
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePos, 3));
+    particleGeo.setAttribute('velocity', new THREE.BufferAttribute(particleVelocity, 1));
+    
+    const particleMat = new THREE.PointsMaterial({
+        size: 0.08,
+        color: 0x00ffff,
         transparent: true,
-        opacity: 0.3
+        opacity: 0.6,
+        blending: THREE.AdditiveBlending
     });
-    mesh = new THREE.Points(starGeo, starMat);
+    mesh = new THREE.Points(particleGeo, particleMat);
     scene.add(mesh);
+
+    // Accent Particles (Bright cyan highlights)
+    const accentCount = 200;
+    const accentGeo = new THREE.BufferGeometry();
+    const accentPos = new Float32Array(accentCount * 3);
+    
+    for (let i = 0; i < accentCount; i++) {
+        const i3 = i * 3;
+        accentPos[i3] = (Math.random() - 0.5) * 60;
+        accentPos[i3 + 1] = Math.random() * 30 - 5;
+        accentPos[i3 + 2] = (Math.random() - 0.5) * 60;
+    }
+    
+    accentGeo.setAttribute('position', new THREE.BufferAttribute(accentPos, 3));
+    
+    const accentMat = new THREE.PointsMaterial({
+        size: 0.15,
+        color: 0x00ffff,
+        transparent: true,
+        opacity: 0.9,
+        blending: THREE.AdditiveBlending
+    });
+    const accentMesh = new THREE.Points(accentGeo, accentMat);
+    scene.add(accentMesh);
 
     handleResize();
     animate();
@@ -845,8 +882,8 @@ function initThree() {
 
 let mouseX = 0, mouseY = 0;
 window.addEventListener('mousemove', (e) => {
-    mouseX = (e.clientX - window.innerWidth / 2) / 3000;
-    mouseY = (e.clientY - window.innerHeight / 2) / 3000;
+    mouseX = (e.clientX - window.innerWidth / 2) / 2000;
+    mouseY = (e.clientY - window.innerHeight / 2) / 2000;
 });
 
 function handleResize() {
@@ -858,14 +895,40 @@ function handleResize() {
 
 function animate() {
     requestAnimationFrame(animate);
-    if (mesh) mesh.rotation.y += 0.0003;
-    if (grid) {
-        grid.position.z += 0.012;
-        if (grid.position.z > 5) grid.position.z = 0;
+    
+    // Rotate particle system slowly
+    if (mesh) {
+        mesh.rotation.y += 0.0002;
+        
+        // Animate particles falling (Matrix-style)
+        const positions = mesh.geometry.attributes.position.array;
+        const velocities = mesh.geometry.attributes.velocity.array;
+        
+        for (let i = 0; i < positions.length / 3; i++) {
+            const i3 = i * 3;
+            positions[i3 + 1] -= velocities[i];
+            
+            // Reset particle when it falls below threshold
+            if (positions[i3 + 1] < -10) {
+                positions[i3 + 1] = 30;
+                positions[i3] = (Math.random() - 0.5) * 80;
+                positions[i3 + 2] = (Math.random() - 0.5) * 80;
+            }
+        }
+        mesh.geometry.attributes.position.needsUpdate = true;
     }
-    camera.position.x += (mouseX * 5 - camera.position.x) * 0.05;
-    camera.position.y += (-mouseY * 5 - camera.position.y) * 0.05;
+    
+    // Move grid forward (infinite scroll effect)
+    if (grid) {
+        grid.position.z += 0.015;
+        if (grid.position.z > 10) grid.position.z = 0;
+    }
+    
+    // Smooth camera parallax
+    camera.position.x += (mouseX * 3 - camera.position.x) * 0.05;
+    camera.position.y += (-mouseY * 3 + 2 - camera.position.y) * 0.05;
     camera.lookAt(scene.position);
+    
     renderer.render(scene, camera);
 }
 

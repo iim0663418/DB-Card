@@ -151,3 +151,14 @@
 260203|UI|history_display|Status_Badge_Type_Label_Friendly
 260203|Privacy_Policy|contact|GitHub_Issues_Updated
 260203|Git|commit|2d9b55b_Consent_History_Privacy_Fix
+260203|Three_js|design|Particle_Network_Connection_System
+260203|Three_js|particles|120_Nodes_Dynamic_Lines
+260203|Three_js|flying_cards|3_Cards_60_Particles_Vertical
+260203|Three_js|background|Ground_Grid_Fog_Depth
+260203|Three_js|optimization|Anti_Floater_Larger_Slower
+260203|Card_Display|interaction|3D_Tilt_Mouse_Follow
+260203|Card_Display|physics|Floating_Hover_Bounce
+260203|Card_Display|desktop_hints|QR_Code_Instructions
+260203|UI|unified_background|All_Pages_Same_Design
+260203|Performance|particle_count|120_vs_3600_Optimized
+260203|Git|commits|14_Three_js_Enhancements

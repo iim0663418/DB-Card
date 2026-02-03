@@ -840,21 +840,22 @@ function initThree() {
         
         particles.push({
             x, y, z,
-            vx: (Math.random() - 0.5) * 0.02,
-            vy: (Math.random() - 0.5) * 0.02,
-            vz: (Math.random() - 0.5) * 0.01
+            vx: (Math.random() - 0.5) * 0.01,
+            vy: (Math.random() - 0.5) * 0.01,
+            vz: (Math.random() - 0.5) * 0.005
         });
     }
     
     particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     
     const particleMat = new THREE.PointsMaterial({
-        size: 0.3,
+        size: 0.5,
         color: 0x6868ac,
         transparent: true,
-        opacity: 0.8,
+        opacity: 0.4,
         map: createCircleTexture(),
-        alphaTest: 0.01
+        alphaTest: 0.01,
+        sizeAttenuation: true
     });
     
     mesh = new THREE.Points(particleGeo, particleMat);
@@ -864,7 +865,7 @@ function initThree() {
     const lineMat = new THREE.LineBasicMaterial({
         color: 0x6868ac,
         transparent: true,
-        opacity: 0.15
+        opacity: 0.25
     });
     
     const lineGeo = new THREE.BufferGeometry();

@@ -1696,16 +1696,17 @@
         async function checkConsentStatus() {
             try {
                 const response = await apiCall('/api/consent/check', { method: 'GET' });
+                const data = response.data || response; // Handle both formats
 
                 // Case 1: Needs consent (first login or version update)
-                if (response.needs_consent) {
-                    showConsentModal(response.current_policy, response.reason);
+                if (data.needs_consent) {
+                    showConsentModal(data.current_policy, data.reason);
                     return false;
                 }
 
                 // Case 2: Consent withdrawn - show restore option
-                if (response.is_withdrawn && response.can_restore) {
-                    showRestoreConsentModal(response.days_remaining);
+                if (data.is_withdrawn && data.can_restore) {
+                    showRestoreConsentModal(data.days_remaining);
                     return false;
                 }
 
@@ -1768,14 +1769,14 @@
         function toggleFullContent() {
             const fullContent = document.getElementById('consent-full-content');
             const toggleBtn = document.getElementById('toggle-full-content-btn');
-            const icon = toggleBtn.querySelector('i');
+            const icon = toggleBtn?.querySelector('i');
             
             if (fullContent.classList.contains('hidden')) {
                 fullContent.classList.remove('hidden');
-                icon.style.transform = 'rotate(180deg)';
+                if (icon) icon.style.transform = 'rotate(180deg)';
             } else {
                 fullContent.classList.add('hidden');
-                icon.style.transform = 'rotate(0deg)';
+                if (icon) icon.style.transform = 'rotate(0deg)';
             }
             
             lucide.createIcons();
@@ -1786,6 +1787,12 @@
          */
         async function acceptConsent() {
             const agreeBtn = document.getElementById('consent-agree-btn');
+            
+            // Prevent double-click or clicking disabled button
+            if (agreeBtn.disabled) {
+                return;
+            }
+            
             const analyticsConsent = document.getElementById('consent-optional-analytics').checked;
 
             agreeBtn.disabled = true;

@@ -829,21 +829,42 @@ function initThree() {
     const particleGeo = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
     
+    // Create card-shaped particle clusters (3 flying cards)
+    const cardCount = 3;
+    const particlesPerCard = 20;
+    
     for (let i = 0; i < particleCount; i++) {
-        const x = (Math.random() - 0.5) * 100;
-        const y = Math.random() * 40 - 10;
-        const z = (Math.random() - 0.5) * 80 - 20;
+        let x, y, z, vx, vy, vz, isCard = false;
+        
+        if (i < cardCount * particlesPerCard) {
+            // Card particles - form rectangular clusters
+            const cardIndex = Math.floor(i / particlesPerCard);
+            const particleInCard = i % particlesPerCard;
+            const cardOffset = cardIndex * 40 - 40;
+            
+            x = (particleInCard % 5 - 2) * 3 + cardOffset;
+            y = Math.floor(particleInCard / 5) * 2 - 4;
+            z = -80 + cardIndex * 30;
+            vx = 0;
+            vy = 0;
+            vz = 0.15 + cardIndex * 0.05;
+            isCard = true;
+        } else {
+            // Regular network particles
+            x = (Math.random() - 0.5) * 100;
+            y = Math.random() * 40 - 10;
+            z = (Math.random() - 0.5) * 80 - 20;
+            vx = (Math.random() - 0.5) * 0.01;
+            vy = (Math.random() - 0.5) * 0.01;
+            vz = (Math.random() - 0.5) * 0.005;
+            isCard = false;
+        }
         
         positions[i * 3] = x;
         positions[i * 3 + 1] = y;
         positions[i * 3 + 2] = z;
         
-        particles.push({
-            x, y, z,
-            vx: (Math.random() - 0.5) * 0.01,
-            vy: (Math.random() - 0.5) * 0.01,
-            vz: (Math.random() - 0.5) * 0.005
-        });
+        particles.push({ x, y, z, vx, vy, vz, isCard });
     }
     
     particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -896,13 +917,20 @@ function initThree() {
             particle.y += particle.vy;
             particle.z += particle.vz;
             
-            // Bounce off boundaries
-            if (Math.abs(particle.x) > 50) particle.vx *= -1;
-            if (particle.y > 30 || particle.y < -10) particle.vy *= -1;
-            if (particle.z > 20 || particle.z < -60) particle.vz *= -1;
+            if (particle.isCard) {
+                // Card particles fly forward and reset
+                if (particle.z > 50) {
+                    particle.z = -80;
+                }
+            } else {
+                // Regular particles bounce
+                if (Math.abs(particle.x) > 50) particle.vx *= -1;
+                if (particle.y > 30 || particle.y < -10) particle.vy *= -1;
+                if (particle.z > 20 || particle.z < -60) particle.vz *= -1;
+            }
             
-            // Mouse attraction
-            if (mouseX !== 0 || mouseY !== 0) {
+            // Mouse attraction (only for non-card particles)
+            if (!particle.isCard && (mouseX !== 0 || mouseY !== 0)) {
                 const dx = mouseX * 50 - particle.x;
                 const dy = mouseY * 30 - particle.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);

@@ -802,8 +802,8 @@ function initThree() {
     canvas.style.display = 'block';
 
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0f0f1a);
-    scene.fog = new THREE.Fog(0x0f0f1a, 15, 60);
+    scene.background = new THREE.Color(0xf8f9fb);
+    scene.fog = new THREE.Fog(0xf8f9fb, 15, 60);
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 2, 12);
@@ -818,7 +818,7 @@ function initThree() {
         color: 0x6868ac,
         wireframe: true,
         transparent: true,
-        opacity: 0.12
+        opacity: 0.08
     });
     grid = new THREE.Mesh(gridGeo, gridMat);
     grid.rotation.x = -Math.PI / 2.2;
@@ -847,10 +847,10 @@ function initThree() {
     
     const dataMat = new THREE.PointsMaterial({
         size: 0.12,
-        color: 0x9090cc,
+        color: 0x6868ac,
         transparent: true,
-        opacity: 0.7,
-        blending: THREE.AdditiveBlending,
+        opacity: 0.4,
+        blending: THREE.NormalBlending,
         map: createCircleTexture(),
         alphaTest: 0.01
     });
@@ -878,8 +878,8 @@ function initThree() {
         size: 0.18,
         color: 0x6868ac,
         transparent: true,
-        opacity: 0.9,
-        blending: THREE.AdditiveBlending,
+        opacity: 0.6,
+        blending: THREE.NormalBlending,
         map: createCircleTexture(),
         alphaTest: 0.01
     });

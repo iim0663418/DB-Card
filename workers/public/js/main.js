@@ -850,7 +850,9 @@ function initThree() {
         color: 0x9090cc,
         transparent: true,
         opacity: 0.7,
-        blending: THREE.AdditiveBlending
+        blending: THREE.AdditiveBlending,
+        map: createCircleTexture(),
+        alphaTest: 0.01
     });
     mesh = new THREE.Points(dataGeo, dataMat);
     scene.add(mesh);
@@ -877,7 +879,9 @@ function initThree() {
         color: 0x6868ac,
         transparent: true,
         opacity: 0.9,
-        blending: THREE.AdditiveBlending
+        blending: THREE.AdditiveBlending,
+        map: createCircleTexture(),
+        alphaTest: 0.01
     });
     const accentMesh = new THREE.Points(accentGeo, accentMat);
     scene.add(accentMesh);
@@ -900,13 +904,35 @@ function initThree() {
         size: 0.06,
         color: 0x6868ac,
         transparent: true,
-        opacity: 0.25
+        opacity: 0.25,
+        map: createCircleTexture(),
+        alphaTest: 0.01
     });
     const ambientMesh = new THREE.Points(ambientGeo, ambientMat);
     scene.add(ambientMesh);
 
     handleResize();
     animate();
+}
+
+// Create circular particle texture
+function createCircleTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d');
+    
+    const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.5)');
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 32, 32);
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    return texture;
 }
 
 let mouseX = 0, mouseY = 0;

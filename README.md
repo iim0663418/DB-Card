@@ -268,6 +268,76 @@ routes = [
 
 ---
 
+## 隱私政策管理
+
+### 查看當前隱私政策
+
+```bash
+# 查看資料庫中的隱私政策版本
+cd /Users/shengfanwu/GitHub/DB-Card/workers
+wrangler d1 execute DB --remote --command "SELECT version, effective_date, is_active FROM privacy_policy_versions ORDER BY effective_date DESC"
+```
+
+### 更新隱私政策內容
+
+```bash
+# 更新特定版本的隱私政策（例如：修正聯絡方式）
+wrangler d1 execute DB --remote --command "
+UPDATE privacy_policy_versions 
+SET content_zh = REPLACE(content_zh, '舊文字', '新文字'),
+    content_en = REPLACE(content_en, 'Old Text', 'New Text')
+WHERE version = 'v1.0.0'
+"
+
+# 驗證更新結果
+wrangler d1 execute DB --remote --command "SELECT content_zh FROM privacy_policy_versions WHERE version = 'v1.0.0'" | grep "新文字"
+```
+
+### 發布新版本隱私政策
+
+```bash
+# 1. 停用舊版本
+wrangler d1 execute DB --remote --command "UPDATE privacy_policy_versions SET is_active = 0 WHERE version = 'v1.0.0'"
+
+# 2. 插入新版本
+wrangler d1 execute DB --remote --command "
+INSERT INTO privacy_policy_versions (version, content_zh, content_en, effective_date, is_active)
+VALUES (
+  'v1.1.0',
+  '【新版隱私政策中文內容】',
+  '【New Privacy Policy English Content】',
+  $(date +%s)000,
+  1
+)
+"
+
+# 3. 驗證新版本已生效
+wrangler d1 execute DB --remote --command "SELECT version, is_active FROM privacy_policy_versions WHERE is_active = 1"
+```
+
+### 部署隱私政策變更
+
+```bash
+# 隱私政策儲存於資料庫，無需重新部署 Worker
+# 但若修改了前端顯示邏輯，需要部署：
+
+cd /Users/shengfanwu/GitHub/DB-Card/workers
+wrangler deploy --env=""  # Staging
+wrangler deploy --env="production"  # Production
+```
+
+### 重置使用者同意狀態（測試用）
+
+```bash
+# 刪除特定使用者的同意記錄
+wrangler d1 execute DB --remote --command "DELETE FROM consent_records WHERE user_email = 'user@example.com'"
+
+# 查看使用者同意記錄
+wrangler d1 execute DB --remote --command "SELECT user_email, consent_type, consent_status, consented_at FROM consent_records WHERE user_email = 'user@example.com' ORDER BY consented_at DESC"
+```
+
+---
+
 ## 部署架構
 
 ```

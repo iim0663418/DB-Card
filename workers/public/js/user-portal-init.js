@@ -1945,27 +1945,67 @@
 
             try {
                 const response = await apiCall('/api/consent/history', { method: 'GET' });
-                const history = response.history || [];
+                const data = response.data || response;
+                const history = data.history || [];
 
                 if (history.length === 0) {
                     content.innerHTML = `<p class="text-center text-slate-400" data-i18n="history-no-records">${i18n[currentLang]['history-no-records']}</p>`;
                 } else {
-                    content.innerHTML = DOMPurify.sanitize(history.map(record => `
-                        <div class="p-4 bg-slate-50 rounded-xl mb-3">
-                            <div class="flex justify-between items-start mb-2">
-                                <span class="text-sm font-bold ${record.status === 'accepted' ? 'text-green-600' : record.status === 'withdrawn' ? 'text-red-600' : 'text-slate-600'}">
-                                    ${record.status === 'accepted' ? '✓ 已同意' : record.status === 'withdrawn' ? '✗ 已撤回' : record.status}
-                                </span>
-                                <span class="text-xs text-slate-500">${record.version}</span>
+                    content.innerHTML = DOMPurify.sanitize(history.map(record => {
+                        const statusText = record.status === 'accepted' ? '✓ 已同意' : 
+                                          record.status === 'withdrawn' ? '✗ 已撤回' : 
+                                          record.status === 'rejected' ? '✗ 已拒絕' : record.status;
+                        const statusColor = record.status === 'accepted' ? 'text-green-600 bg-green-50' : 
+                                           record.status === 'withdrawn' ? 'text-red-600 bg-red-50' : 
+                                           'text-slate-600 bg-slate-50';
+                        const typeText = record.type === 'required' ? '必要同意' : '選擇性同意';
+                        const categoryText = record.category === 'service' ? '服務使用' : 
+                                            record.category === 'analytics' ? '匿名統計' : record.category;
+                        
+                        return `
+                        <div class="p-4 border border-slate-200 rounded-xl mb-3 hover:border-slate-300 transition-colors">
+                            <div class="flex justify-between items-start mb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="px-3 py-1 ${statusColor} text-sm font-bold rounded-lg">
+                                        ${statusText}
+                                    </span>
+                                    <span class="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded">
+                                        ${typeText}
+                                    </span>
+                                </div>
+                                <span class="text-xs text-slate-500 font-mono">${record.version}</span>
                             </div>
-                            <div class="text-xs text-slate-600 space-y-1">
-                                <p><strong>類型</strong>: ${record.type === 'required' ? '必要' : '選擇性'} (${record.category})</p>
-                                <p><strong>時間</strong>: ${new Date(record.consented_at).toLocaleString('zh-TW')}</p>
-                                ${record.withdrawn_at ? `<p><strong>撤回時間</strong>: ${new Date(record.withdrawn_at).toLocaleString('zh-TW')}</p>` : ''}
-                                ${record.restored_at ? `<p><strong>恢復時間</strong>: ${new Date(record.restored_at).toLocaleString('zh-TW')}</p>` : ''}
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2 text-sm">
+                                    <span class="text-slate-500">項目：</span>
+                                    <span class="font-medium text-slate-900">${categoryText}</span>
+                                </div>
+                                <div class="flex items-center gap-2 text-sm">
+                                    <span class="text-slate-500">時間：</span>
+                                    <span class="text-slate-700">${new Date(record.consented_at).toLocaleString('zh-TW', { 
+                                        year: 'numeric', month: '2-digit', day: '2-digit', 
+                                        hour: '2-digit', minute: '2-digit' 
+                                    })}</span>
+                                </div>
+                                ${record.withdrawn_at ? `
+                                <div class="flex items-center gap-2 text-sm">
+                                    <span class="text-slate-500">撤回時間：</span>
+                                    <span class="text-red-600">${new Date(record.withdrawn_at).toLocaleString('zh-TW', { 
+                                        year: 'numeric', month: '2-digit', day: '2-digit', 
+                                        hour: '2-digit', minute: '2-digit' 
+                                    })}</span>
+                                </div>` : ''}
+                                ${record.restored_at ? `
+                                <div class="flex items-center gap-2 text-sm">
+                                    <span class="text-slate-500">恢復時間：</span>
+                                    <span class="text-green-600">${new Date(record.restored_at).toLocaleString('zh-TW', { 
+                                        year: 'numeric', month: '2-digit', day: '2-digit', 
+                                        hour: '2-digit', minute: '2-digit' 
+                                    })}</span>
+                                </div>` : ''}
                             </div>
                         </div>
-                    `).join(''), { ADD_ATTR: ['onclick'] });
+                    `}).join(''), { ADD_ATTR: ['onclick'] });
                 }
 
                 lucide.createIcons();

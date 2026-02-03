@@ -1304,11 +1304,18 @@ function initDesktopParallax() {
         if (ticking) return;
 
         requestAnimationFrame(() => {
+            // 加入 transition 讓回位動畫平滑（0.1s）
+            cardInner.style.transition = 'transform 0.1s ease';
             currentRotation = { x: 0, y: 0 };
             applyCardTransform();
             ticking = false;
         });
         ticking = true;
+    });
+
+    // mouseenter 時清除臨時 transition，保持傾斜即時響應
+    cardPerspective.addEventListener('mouseenter', () => {
+        cardInner.style.transition = '';
     });
 
     function applyCardTransform() {

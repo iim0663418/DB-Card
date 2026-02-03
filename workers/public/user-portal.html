@@ -595,8 +595,8 @@
     <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[300] px-8 py-4 bg-slate-900 text-white rounded-2xl shadow-2xl text-xs font-bold uppercase tracking-widest hidden fade-in"></div>
 
     <!-- Consent Modal (First-time / Version Update) -->
-    <div id="consent-modal" class="hidden fixed inset-0 z-[250] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-        <div class="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col">
+    <div id="consent-modal" class="hidden fixed inset-0 z-[250] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div class="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full flex flex-col overflow-hidden" style="height: 90vh;">
             <!-- Header -->
             <div class="p-6 border-b border-slate-200">
                 <div class="flex items-center gap-3 mb-2">
@@ -613,7 +613,7 @@
             </div>
 
             <!-- Scrollable Content -->
-            <div id="consent-content-scroll" class="flex-1 overflow-y-auto p-6 space-y-6">
+            <div id="consent-content-scroll" class="overflow-y-auto p-6 space-y-6" style="flex: 1 1 0; min-height: 0;">
                 <!-- First Layer: Summary + Purposes -->
                 <div class="p-4 bg-blue-50 rounded-xl border border-blue-200">
                     <h4 class="text-sm font-black text-blue-900 mb-2" data-i18n="consent-summary-title">摘要</h4>
@@ -678,7 +678,10 @@
 
             <!-- Footer -->
             <div class="p-6 border-t border-slate-200 flex gap-3">
-                <button id="consent-agree-btn" disabled onclick="acceptConsent()" class="flex-1 py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed" data-i18n="consent-agree-button">
+                <button id="consent-agree-btn" disabled onclick="acceptConsent()" 
+                    class="flex-1 py-4 rounded-xl font-bold transition-colors disabled:cursor-not-allowed" 
+                    style="background-color: #2563eb; color: white;"
+                    data-i18n="consent-agree-button">
                     我已詳閱並同意
                 </button>
             </div>

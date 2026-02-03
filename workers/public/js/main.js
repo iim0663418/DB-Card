@@ -1355,10 +1355,40 @@ function initHintBadge() {
     }
 }
 
+// ========================================
+// 物理互動效果（桌面版）
+// ========================================
+function initCardPhysics() {
+    if (window.innerWidth < 1024) return;
+
+    const cardPerspective = document.querySelector('.card-perspective');
+    if (!cardPerspective) return;
+
+    // Click Bounce：點擊名片時觸發彈跳動畫（與翻轉同時觸發）
+    cardPerspective.addEventListener('click', (e) => {
+        // 排除社群連結、輸入欄等可互動子元素（不排除 #card 本身）
+        const interactive = e.target.closest('a, button, input');
+        if (interactive) return;
+
+        cardPerspective.classList.remove('is-bouncing');
+        // 強制 reflow，才能重新觸發同一個 animation
+        void cardPerspective.offsetWidth;
+        cardPerspective.classList.add('is-bouncing');
+    });
+
+    // Bounce 動畫結束後移除 class，恢復浮動
+    cardPerspective.addEventListener('animationend', (e) => {
+        if (e.animationName === 'cardBounce') {
+            cardPerspective.classList.remove('is-bouncing');
+        }
+    });
+}
+
 // 初始化
 window.addEventListener('resize', matchCardHeight);
 setTimeout(() => {
     matchCardHeight();
     initHintBadge();
     initDesktopParallax();
+    initCardPhysics();
 }, 100);

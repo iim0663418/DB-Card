@@ -801,24 +801,38 @@ function initThree() {
 
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf8f9fb);
+    scene.fog = new THREE.Fog(0xf8f9fb, 20, 80);
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 50;
+    camera.position.set(0, 5, 50);
 
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
+    // Ground Grid (Perspective Horizon)
+    const gridGeo = new THREE.PlaneGeometry(200, 200, 40, 40);
+    const gridMat = new THREE.MeshBasicMaterial({
+        color: 0x6868ac,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.1
+    });
+    grid = new THREE.Mesh(gridGeo, gridMat);
+    grid.rotation.x = -Math.PI / 2;
+    grid.position.y = -15;
+    scene.add(grid);
+
     // Particle Network System
-    const particleCount = 100;
+    const particleCount = 120;
     const particles = [];
     const particleGeo = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
     
     for (let i = 0; i < particleCount; i++) {
         const x = (Math.random() - 0.5) * 100;
-        const y = (Math.random() - 0.5) * 60;
-        const z = (Math.random() - 0.5) * 40;
+        const y = Math.random() * 40 - 10;
+        const z = (Math.random() - 0.5) * 80 - 20;
         
         positions[i * 3] = x;
         positions[i * 3 + 1] = y;
@@ -883,8 +897,8 @@ function initThree() {
             
             // Bounce off boundaries
             if (Math.abs(particle.x) > 50) particle.vx *= -1;
-            if (Math.abs(particle.y) > 30) particle.vy *= -1;
-            if (Math.abs(particle.z) > 20) particle.vz *= -1;
+            if (particle.y > 30 || particle.y < -10) particle.vy *= -1;
+            if (particle.z > 20 || particle.z < -60) particle.vz *= -1;
             
             // Mouse attraction
             if (mouseX !== 0 || mouseY !== 0) {

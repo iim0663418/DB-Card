@@ -201,13 +201,21 @@ const i18nTexts = {
         'zh': '查看詳細安全特性',
         'en': 'View Security Features'
     },
-    'desktop-qr-title': {
+    'desktop-hint-contacts-title': {
         'zh': '加入手機通訊錄',
         'en': 'Add to Contacts'
     },
-    'desktop-qr-desc': {
-        'zh': '掃描 QR Code 用手機開啟',
-        'en': 'Scan QR Code with your phone'
+    'desktop-hint-contacts-desc': {
+        'zh': '掃描下方 QR Code，用手機開啟此頁面',
+        'en': 'Scan the QR Code below to open on your phone'
+    },
+    'desktop-hint-qr-title': {
+        'zh': '掃描 QR Code',
+        'en': 'Scan QR Code'
+    },
+    'desktop-hint-qr-desc': {
+        'zh': '使用手機相機掃描，即可加入通訊錄',
+        'en': 'Use your phone camera to scan and add to contacts'
     }
 };
 

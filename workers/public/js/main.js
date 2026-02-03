@@ -837,13 +837,13 @@ function initThree() {
         let x, y, z, vx, vy, vz, isCard = false;
         
         if (i < cardCount * particlesPerCard) {
-            // Card particles - form rectangular clusters
+            // Card particles - form rectangular clusters (vertical orientation)
             const cardIndex = Math.floor(i / particlesPerCard);
             const particleInCard = i % particlesPerCard;
             const cardOffset = cardIndex * 40 - 40;
             
-            x = (particleInCard % 5 - 2) * 3 + cardOffset;
-            y = Math.floor(particleInCard / 5) * 2 - 4;
+            x = (particleInCard % 4 - 1.5) * 2 + cardOffset;
+            y = Math.floor(particleInCard / 4) * 2.5 - 6;
             z = -80 + cardIndex * 30;
             vx = 0;
             vy = 0;

@@ -802,79 +802,108 @@ function initThree() {
     canvas.style.display = 'block';
 
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0a0f);
-    scene.fog = new THREE.Fog(0x0a0a0f, 10, 50);
+    scene.background = new THREE.Color(0x0f0f1a);
+    scene.fog = new THREE.Fog(0x0f0f1a, 15, 60);
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 2, 10);
+    camera.position.set(0, 2, 12);
 
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    // Digital Grid (Perspective Grid with Vanishing Point)
+    // Digital Grid (MODA Purple)
     const gridGeo = new THREE.PlaneGeometry(200, 200, 50, 50);
     const gridMat = new THREE.MeshBasicMaterial({
-        color: 0x00ffff,
+        color: 0x6868ac,
         wireframe: true,
         transparent: true,
-        opacity: 0.15
+        opacity: 0.12
     });
     grid = new THREE.Mesh(gridGeo, gridMat);
     grid.rotation.x = -Math.PI / 2.2;
     grid.position.y = -8;
     scene.add(grid);
 
-    // Digital Particles (Matrix-style floating data)
-    const particleCount = 3000;
-    const particleGeo = new THREE.BufferGeometry();
-    const particlePos = new Float32Array(particleCount * 3);
-    const particleVelocity = new Float32Array(particleCount);
+    // Data Stream Particles (Binary digits 0/1 falling effect)
+    const dataCount = 2500;
+    const dataGeo = new THREE.BufferGeometry();
+    const dataPos = new Float32Array(dataCount * 3);
+    const dataVelocity = new Float32Array(dataCount);
+    const dataOpacity = new Float32Array(dataCount);
     
-    for (let i = 0; i < particleCount; i++) {
+    for (let i = 0; i < dataCount; i++) {
         const i3 = i * 3;
-        particlePos[i3] = (Math.random() - 0.5) * 80;
-        particlePos[i3 + 1] = Math.random() * 40 - 10;
-        particlePos[i3 + 2] = (Math.random() - 0.5) * 80;
-        particleVelocity[i] = Math.random() * 0.02 + 0.01;
+        dataPos[i3] = (Math.random() - 0.5) * 100;
+        dataPos[i3 + 1] = Math.random() * 50 - 10;
+        dataPos[i3 + 2] = (Math.random() - 0.5) * 100;
+        dataVelocity[i] = Math.random() * 0.03 + 0.02;
+        dataOpacity[i] = Math.random() * 0.5 + 0.3;
     }
     
-    particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePos, 3));
-    particleGeo.setAttribute('velocity', new THREE.BufferAttribute(particleVelocity, 1));
+    dataGeo.setAttribute('position', new THREE.BufferAttribute(dataPos, 3));
+    dataGeo.setAttribute('velocity', new THREE.BufferAttribute(dataVelocity, 1));
+    dataGeo.setAttribute('opacity', new THREE.BufferAttribute(dataOpacity, 1));
     
-    const particleMat = new THREE.PointsMaterial({
-        size: 0.08,
-        color: 0x00ffff,
+    const dataMat = new THREE.PointsMaterial({
+        size: 0.12,
+        color: 0x9090cc,
         transparent: true,
-        opacity: 0.6,
+        opacity: 0.7,
         blending: THREE.AdditiveBlending
     });
-    mesh = new THREE.Points(particleGeo, particleMat);
+    mesh = new THREE.Points(dataGeo, dataMat);
     scene.add(mesh);
 
-    // Accent Particles (Bright cyan highlights)
-    const accentCount = 200;
+    // Accent Data Streams (Bright MODA purple highlights)
+    const accentCount = 300;
     const accentGeo = new THREE.BufferGeometry();
     const accentPos = new Float32Array(accentCount * 3);
+    const accentVelocity = new Float32Array(accentCount);
     
     for (let i = 0; i < accentCount; i++) {
         const i3 = i * 3;
-        accentPos[i3] = (Math.random() - 0.5) * 60;
-        accentPos[i3 + 1] = Math.random() * 30 - 5;
-        accentPos[i3 + 2] = (Math.random() - 0.5) * 60;
+        accentPos[i3] = (Math.random() - 0.5) * 80;
+        accentPos[i3 + 1] = Math.random() * 40 - 5;
+        accentPos[i3 + 2] = (Math.random() - 0.5) * 80;
+        accentVelocity[i] = Math.random() * 0.05 + 0.03;
     }
     
     accentGeo.setAttribute('position', new THREE.BufferAttribute(accentPos, 3));
+    accentGeo.setAttribute('velocity', new THREE.BufferAttribute(accentVelocity, 1));
     
     const accentMat = new THREE.PointsMaterial({
-        size: 0.15,
-        color: 0x00ffff,
+        size: 0.18,
+        color: 0x6868ac,
         transparent: true,
         opacity: 0.9,
         blending: THREE.AdditiveBlending
     });
     const accentMesh = new THREE.Points(accentGeo, accentMat);
     scene.add(accentMesh);
+
+    // Floating ambient particles (static background)
+    const ambientCount = 800;
+    const ambientGeo = new THREE.BufferGeometry();
+    const ambientPos = new Float32Array(ambientCount * 3);
+    
+    for (let i = 0; i < ambientCount; i++) {
+        const i3 = i * 3;
+        ambientPos[i3] = (Math.random() - 0.5) * 120;
+        ambientPos[i3 + 1] = Math.random() * 60 - 10;
+        ambientPos[i3 + 2] = (Math.random() - 0.5) * 120;
+    }
+    
+    ambientGeo.setAttribute('position', new THREE.BufferAttribute(ambientPos, 3));
+    
+    const ambientMat = new THREE.PointsMaterial({
+        size: 0.06,
+        color: 0x6868ac,
+        transparent: true,
+        opacity: 0.25
+    });
+    const ambientMesh = new THREE.Points(ambientGeo, ambientMat);
+    scene.add(ambientMesh);
 
     handleResize();
     animate();
@@ -896,11 +925,10 @@ function handleResize() {
 function animate() {
     requestAnimationFrame(animate);
     
-    // Rotate particle system slowly
+    // Animate data stream particles (falling like Matrix code)
     if (mesh) {
-        mesh.rotation.y += 0.0002;
+        mesh.rotation.y += 0.0001;
         
-        // Animate particles falling (Matrix-style)
         const positions = mesh.geometry.attributes.position.array;
         const velocities = mesh.geometry.attributes.velocity.array;
         
@@ -909,19 +937,40 @@ function animate() {
             positions[i3 + 1] -= velocities[i];
             
             // Reset particle when it falls below threshold
-            if (positions[i3 + 1] < -10) {
-                positions[i3 + 1] = 30;
-                positions[i3] = (Math.random() - 0.5) * 80;
-                positions[i3 + 2] = (Math.random() - 0.5) * 80;
+            if (positions[i3 + 1] < -15) {
+                positions[i3 + 1] = 35;
+                positions[i3] = (Math.random() - 0.5) * 100;
+                positions[i3 + 2] = (Math.random() - 0.5) * 100;
             }
         }
         mesh.geometry.attributes.position.needsUpdate = true;
     }
     
+    // Animate accent data streams (faster falling)
+    const accentMesh = scene.children.find(child => 
+        child instanceof THREE.Points && child.material.size === 0.18
+    );
+    if (accentMesh) {
+        const positions = accentMesh.geometry.attributes.position.array;
+        const velocities = accentMesh.geometry.attributes.velocity.array;
+        
+        for (let i = 0; i < positions.length / 3; i++) {
+            const i3 = i * 3;
+            positions[i3 + 1] -= velocities[i];
+            
+            if (positions[i3 + 1] < -10) {
+                positions[i3 + 1] = 35;
+                positions[i3] = (Math.random() - 0.5) * 80;
+                positions[i3 + 2] = (Math.random() - 0.5) * 80;
+            }
+        }
+        accentMesh.geometry.attributes.position.needsUpdate = true;
+    }
+    
     // Move grid forward (infinite scroll effect)
     if (grid) {
-        grid.position.z += 0.015;
-        if (grid.position.z > 10) grid.position.z = 0;
+        grid.position.z += 0.018;
+        if (grid.position.z > 12) grid.position.z = 0;
     }
     
     // Smooth camera parallax

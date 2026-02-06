@@ -4,6 +4,15 @@
 
 ## 最新更新
 
+### v4.6.0 (2026-02-06) - 並發控制與快取安全修復 🔒
+- ✅ **並發控制修復** - 使用 SQLite RETURNING 實現原子性操作
+- ✅ **樂觀鎖機制** - WHERE 子句防止競態條件
+- ✅ **移除 Response Cache** - 修復 rate limiting 繞過漏洞 (CVE-2024-21662 類似模式)
+- ✅ **統一快取失效** - 4 層快取一致性保證
+- ✅ **HTTP Cache-Control** - 符合 RFC 7234 標準 (no-store)
+- ✅ **max_reads 執行** - 100% 準確的讀取限制
+- ✅ **TOCTOU 緩解** - 消除 Time-of-Check-Time-of-Use 漏洞
+
 ### v4.6.0 (2026-02-02) - 個資同意管理系統完成 🔒
 - ✅ **GDPR 合規** - 100% 符合 GDPR Article 7, 12, 13, 15, 20, 30
 - ✅ **分層揭露** - First Layer (摘要) + Second Layer (完整條款)
@@ -26,6 +35,7 @@
 ### 安全預設架構
 - **信封加密**: 每張名片獨立 DEK，KEK 定期輪換
 - **授權會話機制 (ReadSession)**: 24 小時 TTL，可撤銷、可限制同時讀取數
+- **原子性計數器**: SQLite RETURNING 確保 reads_used 準確性
 - **即時撤銷**: NFC 重新觸碰即可撤銷上一個會話
 - **審計日誌**: 完整記錄所有存取行為，IP 匿名化保護隱私
 

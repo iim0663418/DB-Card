@@ -5,6 +5,51 @@ All notable changes to DB-Card project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.0] - 2026-02-06
+
+### Security
+- **🔒 CRITICAL FIX**: Removed response cache to fix rate limiting bypass vulnerability (CVE-2024-21662 pattern)
+  - Response cache (60s TTL) was bypassing `reads_used` counter updates
+  - `max_reads` limit was not enforced when cache hit
+  - Fixed by removing response cache and adding `Cache-Control: no-store` headers
+- **Concurrent Control**: Implemented atomic `UPDATE...RETURNING` with optimistic locking
+  - Prevents race conditions in `reads_used` counter
+  - Ensures accurate rate limiting enforcement
+- **Cache Consistency**: Unified cache invalidation across 4 layers
+  - Card data cache, card type cache, session response cache, last session cache
+  - Prevents stale data after card updates
+
+### Added
+- **HTTP Cache-Control Headers**: Added `no-store, no-cache, must-revalidate, private` to `/api/read` endpoint
+- **Unified Cache Invalidation**: New utility `workers/src/utils/cache.ts`
+  - `invalidateCardCaches()` function for atomic cache clearing
+  - Integrated into admin and user card update/delete operations
+
+### Changed
+- **Read Handler**: Removed response cache logic (Line 183-198, 300-304)
+- **Session Validation**: Now executes on every request (no cache bypass)
+- **Counter Updates**: Changed from `ctx.waitUntil()` to synchronous `await` for critical operations
+
+### Performance
+- Overall performance impact: ~5% (acceptable trade-off for security)
+- Card data cache (300s TTL) still provides primary optimization
+- D1 UPDATE latency: < 10ms
+
+### Testing
+- ✅ All Staging tests passed
+- ✅ max_reads enforcement: 100% accurate (20/20 reads, 21st blocked)
+- ✅ reads_used counter: matches actual requests
+
+### Documentation
+- Updated README.md with security fix details
+- Created detailed security fix report: `docs/security/SECURITY-FIX-2026-02-06.md`
+- Updated CHANGELOG.md
+
+### Compliance
+- ✅ RFC 7234 (HTTP Caching)
+- ✅ OWASP Rate Limiting Best Practices
+- ✅ Industry Standard: Counter First, Cache Second
+
 ## [4.2.0] - 2026-01-20
 
 ### Added

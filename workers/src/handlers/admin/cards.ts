@@ -8,6 +8,7 @@ import { EnvelopeEncryption } from '../../crypto/envelope';
 import { logEvent } from '../../utils/audit';
 import { jsonResponse, errorResponse, adminErrorResponse } from '../../utils/response';
 import { validateSocialLink } from '../../utils/social-link-validation';
+import { invalidateCardCaches } from '../../utils/cache';
 
 /**
  * Validate email format using RFC 5322 simplified regex
@@ -466,6 +467,9 @@ export async function handleDeleteCard(
       // Clear KV cache
       await env.KV.delete(`card:${uuid}`);
 
+      // Invalidate all related caches
+      await invalidateCardCaches(env, uuid);
+
       // Log audit event
       await logEvent(env, 'card_permanent_delete', request, uuid, undefined, {
         action: 'permanent_delete'
@@ -612,6 +616,9 @@ export async function handleUpdateCard(
     ).run();
 
     await env.KV.delete(`card:${uuid}`);
+
+    // Invalidate all related caches
+    await invalidateCardCaches(env, uuid);
 
     // Revoke all associated ReadSessions
     const sessionsRevoked = await revokeAllCardSessions(env, uuid, 'card_updated');

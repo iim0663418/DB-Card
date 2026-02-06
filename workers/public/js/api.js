@@ -1,4 +1,4 @@
-// API_BASE is defined in config.js (global variable)
+import { API_BASE } from './config.js';
 
 /**
  * Tap a card to initiate a session

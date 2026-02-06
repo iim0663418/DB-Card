@@ -1,5 +1,6 @@
 import { tapCard, readCard } from './api.js';
 import { getLocalizedText, getLocalizedArray } from './utils/bilingual.js';
+import { initIcons } from './icons-minimal.js';
 
 const DEBUG = window.location.hostname === 'localhost';
 
@@ -95,7 +96,6 @@ function updateVCardButton() {
 
     // Reinitialize lucide icons to apply the new icon
     if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
     }
 }
 
@@ -232,7 +232,7 @@ function showError(message) {
             </div>
         `, { ADD_ATTR: ['onclick'] });
         errorContainer.style.display = 'block';
-        lucide.createIcons();
+        initIcons();
     } else {
         console.error(message);
     }
@@ -260,7 +260,7 @@ function showNotification(message, type = 'info') {
         `, { ADD_ATTR: ['onclick'] });
 
         notificationContainer.appendChild(notification);
-        lucide.createIcons();
+        initIcons();
 
         // Auto remove after 5 seconds
         setTimeout(() => {
@@ -272,20 +272,7 @@ function showNotification(message, type = 'info') {
 }
 
 async function initApp() {
-    // 等待 Lucide 載入完成
-    if (typeof lucide === 'undefined') {
-        await new Promise(resolve => {
-            const checkLucide = setInterval(() => {
-                if (typeof lucide !== 'undefined') {
-                    clearInterval(checkLucide);
-                    resolve();
-                }
-            }, 50);
-        });
-    }
-
     initLoadingIcon(); // 隨機選擇載入圖示
-    lucide.createIcons();
 
     // Conditional Three.js initialization - only on desktop (>= 1024px)
     const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
@@ -399,7 +386,6 @@ async function loadCard(uuid) {
             const remainingText = currentLanguage === 'zh' ? `剩餘 ${sessionData.warning.remaining} 次` : `${sessionData.warning.remaining} remaining`;
             banner.innerHTML = DOMPurify.sanitize(`<i data-lucide="alert-triangle"></i><span>${sessionData.warning.message} (${remainingText})</span>`, { ADD_ATTR: ['onclick'] });
             document.body.insertBefore(banner, document.body.firstChild);
-            lucide.createIcons();
         }
     } else {
         showError(currentLanguage === 'zh' ? '無法載入名片資料' : 'Failed to load card data');
@@ -414,11 +400,15 @@ function renderCard(cardData, sessionData) {
     hideLoading();
     document.getElementById('main-container').classList.remove('hidden');
     
+    initIcons();
+
     setTimeout(matchCardHeight, 100);
-    
-    // 桌面版自動生成 QR Code
+
+    // 桌面版自動生成 QR Code - Deferred to idle time
     if (window.innerWidth >= 1024) {
-        setTimeout(() => generateQRCode('qrcode-desktop'), 200);
+        requestIdleCallback(() => {
+            generateQRCode('qrcode-desktop');
+        }, { timeout: 2000 });
     }
 }
 
@@ -696,7 +686,6 @@ function renderCardFace(cardData, sessionData, lang, suffix) {
 
             socialCluster.appendChild(node);
         });
-        lucide.createIcons();
         socialCluster.style.display = 'flex';
     } else if (cardData.socialLinks && cardData.socialLinks.socialNote) {
         // 舊格式：向後相容
@@ -710,7 +699,6 @@ function renderCardFace(cardData, sessionData, lang, suffix) {
         socialCluster.style.display = 'none';
     }
 
-    lucide.createIcons();
 }
 
 function parseSocialLinks(socialText) {
@@ -758,7 +746,6 @@ function parseSocialLinks(socialText) {
         }
     });
 
-    lucide.createIcons();
 }
 
 function startTypewriter(phrases) {
@@ -1237,7 +1224,10 @@ function generateQRCode(targetId) {
 
 // 手機版 QR Code modal
 document.getElementById('open-qr').addEventListener('click', () => {
-    generateQRCode('qrcode-target');
+    // Defer QR Code generation to idle time
+    requestIdleCallback(() => {
+        generateQRCode('qrcode-target');
+    }, { timeout: 2000 });
     document.getElementById('qr-modal').classList.remove('hidden');
 });
 

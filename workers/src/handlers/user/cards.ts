@@ -9,6 +9,7 @@ import { jsonResponse, errorResponse } from '../../utils/response';
 import { validateSocialLink } from "../../utils/social-link-validation";
 import { anonymizeIP } from '../../utils/audit';
 import { checkRevocationRateLimit, incrementRevocationCount } from '../../utils/revocation-rate-limit';
+import { invalidateCardCaches } from '../../utils/cache';
 
 /**
  * Log user audit event with actor information
@@ -430,6 +431,8 @@ export async function handleUserUpdateCard(
     // Clear card data cache
     await env.KV.delete(`card:${uuid}`);
 
+    await invalidateCardCaches(env, uuid);
+
     // Get all active sessions for this card and clear their response caches
     try {
       const sessions = await env.DB.prepare(`
@@ -770,6 +773,8 @@ export async function handleUserRevokeCard(
 
     // Clear KV cache
     await env.KV.delete(`card:data:${uuid}`);
+
+    await invalidateCardCaches(env, uuid);
 
     // Clear session caches (get session tokens first)
     const sessions = await env.DB.prepare(`

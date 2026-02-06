@@ -814,6 +814,25 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Core Web Vitals (7 天) -->
+                    <div class="glass-surface p-6 rounded-2xl">
+                        <h3 class="text-[10px] font-bold text-slate-400 uppercase mb-4">Core Web Vitals (7 天)</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="flex flex-col">
+                                <span class="text-xs text-slate-500 mb-1">FCP (First Contentful Paint)</span>
+                                <span id="vitals-fcp" class="text-2xl font-black text-blue-600">--</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-xs text-slate-500 mb-1">LCP (Largest Contentful Paint)</span>
+                                <span id="vitals-lcp" class="text-2xl font-black text-green-600">--</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-xs text-slate-500 mb-1">TTI (Time to Interactive)</span>
+                                <span id="vitals-tti" class="text-2xl font-black text-purple-600">--</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <hr class="border-slate-200">
@@ -3253,8 +3272,34 @@ wrangler secret delete OLD_KEK
                 document.getElementById('read-failed').textContent = overview.read.failed;
                 document.getElementById('read-rate').textContent = overview.read.success_rate.toFixed(1) + '%';
 
+                // Load Web Vitals
+                loadWebVitals();
+
             } catch (error) {
                 console.error('Failed to load monitoring data:', error);
+            }
+        }
+
+        // 載入 Web Vitals 統計
+        async function loadWebVitals() {
+            try {
+                const response = await fetch('/api/admin/analytics/vitals', {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const stats = data.data || [];
+
+                    stats.forEach(stat => {
+                        const el = document.getElementById(`vitals-${stat.metric_name}`);
+                        if (el) {
+                            el.textContent = `${Math.round(stat.avg)}ms`;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load Web Vitals:', error);
             }
         }
 

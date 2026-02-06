@@ -293,9 +293,8 @@ export async function handleRead(request: Request, env: Env, ctx: ExecutionConte
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        'Cache-Control': 'max-age=10, stale-while-revalidate=30, private',
+        'Vary': 'Accept-Encoding',
         ...(request ? getCorsHeaders(request) : {})
       }
     });

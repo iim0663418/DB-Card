@@ -12,6 +12,7 @@ import { handleAssetUpload, handleAssetContent, handleAssetTwinList, handleListC
 import { handlePasskeyRegisterStart, handlePasskeyRegisterFinish, handlePasskeyLoginStart, handlePasskeyLoginFinish, handlePasskeyStatus, handlePasskeyAvailable } from './handlers/admin/passkey';
 import { handleSecurityStats, handleSecurityEvents, handleSecurityTimeline, handleBlockIP, handleUnblockIP, handleIPDetail, handleSecurityExport, handleCDNHealth } from './handlers/admin/security';
 import { handleMonitoringOverview, handleMonitoringHealth } from './handlers/admin/monitoring';
+import { handleVitalsReport, handleVitalsStats } from './handlers/analytics';
 import { handleUserCreateCard, handleUserUpdateCard, handleUserListCards, handleUserGetCard, handleUserRevokeCard, handleUserRestoreCard } from './handlers/user/cards';
 import { handleRevocationHistory } from './handlers/user/history';
 import { handleUserLogout } from './handlers/user/logout';
@@ -270,6 +271,7 @@ export default {
                            url.pathname.startsWith('/api/admin/passkey/');
     const isPublicEndpoint = url.pathname === '/api/nfc/tap' ||
                             url.pathname === '/api/read' ||
+                            url.pathname === '/api/analytics/vitals' ||
                             url.pathname === '/oauth/callback' ||
                             url.pathname === '/health';
 
@@ -492,6 +494,17 @@ export default {
     // GET /api/admin/monitoring/health - Health check
     if (url.pathname === '/api/admin/monitoring/health' && request.method === 'GET') {
       return addMinimalSecurityHeaders(await handleMonitoringHealth(request, env));
+    }
+
+    // Analytics endpoints
+    // POST /api/analytics/vitals - Report Web Vitals (public endpoint)
+    if (url.pathname === '/api/analytics/vitals' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleVitalsReport(request, env));
+    }
+
+    // GET /api/admin/analytics/vitals - Get Web Vitals stats (admin only)
+    if (url.pathname === '/api/admin/analytics/vitals' && request.method === 'GET') {
+      return addMinimalSecurityHeaders(await handleVitalsStats(request, env));
     }
 
     // GET /api/manifest/:uuid - Dynamic manifest for QR shortcut

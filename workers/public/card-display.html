@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Resource Hints for Performance Optimization -->
+    <link rel="dns-prefetch" href="https://db-card-staging.csw30454.workers.dev">
+    <link rel="preconnect" href="https://db-card-staging.csw30454.workers.dev">
     <meta name="description" content="DB-Card 數位名片系統 - 安全預設數位名片">
     <title>數位名片 | 名片顯示</title>
     <link rel="icon" type="image/png" sizes="192x192" href="favicon.png">
@@ -76,44 +79,30 @@ body {
     font-display: swap;
 }
 </style>
-    <!-- Critical scripts load immediately -->
-    <script src="/js/config.js"></script>
+    <!-- Optimized: Tree-shaken Lucide Icons (ES Module) -->
+    <script type="module" src="/js/icons-minimal.js"></script>
 
-    <!-- Non-critical scripts loaded after DOMContentLoaded -->
+    <!-- Optimized: Async loading for independent scripts -->
+    <script src="/vendor/qr-creator.min.js" 
+            integrity="sha384-cmmVU8dn+rGH6Yvlt0Q1+31iG9lS4wdVsqV/ZP/53RBddef+VZcYakA+NhG4S8wE" 
+            crossorigin="anonymous" 
+            async></script>
+
+    <script src="/vendor/purify.min.js" 
+            integrity="sha384-qJNkHwhlYywDHfyoEe1np+1lYvX/8x+3gHCKFhSSBMQyCFlvFnn+zXmaebXl21rV" 
+            crossorigin="anonymous" 
+            async></script>
+
+    <!-- Conditionally load Three.js only on desktop (defer for non-blocking) -->
     <script>
-        // Lazy load non-critical scripts after DOMContentLoaded
-        window.addEventListener('DOMContentLoaded', function() {
-            // Load Lucide icons
-            var lucideScript = document.createElement('script');
-            lucideScript.src = '/vendor/lucide.min.js';
-            lucideScript.integrity = 'sha384-FmRlymRnpgjuKyAnwH4DftRjl+RqHOlfcw9k4xcpPyovclg/2RZRrvw7qe1koVCP';
-            lucideScript.crossOrigin = 'anonymous';
-            document.head.appendChild(lucideScript);
-
-            // Load QR Creator
-            var qrScript = document.createElement('script');
-            qrScript.src = '/vendor/qr-creator.min.js';
-            qrScript.integrity = 'sha384-cmmVU8dn+rGH6Yvlt0Q1+31iG9lS4wdVsqV/ZP/53RBddef+VZcYakA+NhG4S8wE';
-            qrScript.crossOrigin = 'anonymous';
-            document.head.appendChild(qrScript);
-
-            // Load DOMPurify
-            var purifyScript = document.createElement('script');
-            purifyScript.src = '/vendor/purify.min.js';
-            purifyScript.integrity = 'sha384-qJNkHwhlYywDHfyoEe1np+1lYvX/8x+3gHCKFhSSBMQyCFlvFnn+zXmaebXl21rV';
-            purifyScript.crossOrigin = 'anonymous';
-            document.head.appendChild(purifyScript);
-
-            // Conditionally load Three.js only on desktop (width >= 1024px)
-            var isDesktop = window.matchMedia('(min-width: 1024px)').matches;
-            if (isDesktop) {
-                var threeScript = document.createElement('script');
-                threeScript.src = '/vendor/three.min.js';
-                threeScript.integrity = 'sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu';
-                threeScript.crossOrigin = 'anonymous';
-                document.head.appendChild(threeScript);
-            }
-        });
+        if (window.matchMedia('(min-width: 1024px)').matches) {
+            var threeScript = document.createElement('script');
+            threeScript.src = '/vendor/three.min.js';
+            threeScript.integrity = 'sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu';
+            threeScript.crossOrigin = 'anonymous';
+            threeScript.defer = true;
+            document.head.appendChild(threeScript);
+        }
     </script>
 
     <!-- Async load non-critical CSS -->
@@ -570,5 +559,8 @@ body {
 
     // ========================================
     </script>
+
+    <!-- Web Vitals Monitoring (non-blocking) -->
+    <script src="/js/web-vitals-minimal.js" async></script>
 </body>
 </html>

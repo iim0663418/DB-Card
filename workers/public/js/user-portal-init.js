@@ -1,4 +1,5 @@
-        // API Base URL (defined in config.js)
+        // API Base URL
+        const API_BASE = window.location.origin;
 
         // ==================== i18n Translations (Batch 1) ====================
         const i18n = {

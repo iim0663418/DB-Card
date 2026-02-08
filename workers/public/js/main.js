@@ -1,6 +1,6 @@
 import { tapCard, readCard } from './api.js';
 import { getLocalizedText, getLocalizedArray } from './utils/bilingual.js';
-import { initIcons } from './icons-minimal.js';
+// Icons now loaded via vendor/lucide.min.js in HTML
 
 const DEBUG = window.location.hostname === 'localhost';
 
@@ -232,7 +232,7 @@ function showError(message) {
             </div>
         `, { ADD_ATTR: ['onclick'] });
         errorContainer.style.display = 'block';
-        initIcons();
+        if (window.lucide) lucide.createIcons();
     } else {
         console.error(message);
     }
@@ -260,7 +260,7 @@ function showNotification(message, type = 'info') {
         `, { ADD_ATTR: ['onclick'] });
 
         notificationContainer.appendChild(notification);
-        initIcons();
+        if (window.lucide) lucide.createIcons();
 
         // Auto remove after 5 seconds
         setTimeout(() => {
@@ -400,7 +400,7 @@ function renderCard(cardData, sessionData) {
     hideLoading();
     document.getElementById('main-container').classList.remove('hidden');
     
-    initIcons();
+    if (window.lucide) lucide.createIcons();
 
     setTimeout(matchCardHeight, 100);
 

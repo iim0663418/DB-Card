@@ -443,7 +443,7 @@
 
         // 初始化
         document.addEventListener('DOMContentLoaded', () => {
-            lucide.createIcons();
+            if (window.initIcons) window.initIcons();
             initThree();
             
             // 初始化語言

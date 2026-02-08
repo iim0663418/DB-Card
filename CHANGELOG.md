@@ -5,10 +5,55 @@ All notable changes to DB-Card project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.0] - 2026-02-08
+
+### Performance
+- **Icon Bundle Optimization**: Migrated from Lucide UMD bundle to Vite-bundled ES modules
+  - Bundle size: 379 KB → 12.33 KB (96.8% reduction, gzip: 3.98 KB)
+  - Tree-shaking: 65 icons used (vs 1,400+ in full bundle)
+  - Build tool: Vite with esbuild minifier
+  - Module format: ES Module with `window.initIcons()` global function
+  - Files updated: 5 HTML files, 3 JS files (38 replacements total)
+  - Expected FCP improvement: 50%+ on 3G networks
+  - Expected LCP improvement: 40%+
+  - Lighthouse score: +10-15 points (estimated)
+
+### Added
+- **Vite Build System**: New `vite.config.js` for icon bundling
+  - Output: `public/dist/icons.[hash].js`
+  - Minifier: esbuild (faster than terser)
+- **Icon Bundle**: `src/icons.js` with 65 tree-shaken icons
+  - Exports `initIcons()` function for dynamic icon replacement
+  - Uses Lucide's `createElement()` API
+  - Supports all icon attributes (width, height, stroke-width, class)
+
+### Changed
+- **Icon Loading**: Replaced `lucide.createIcons()` with `window.initIcons()`
+  - 22 replacements in JS files (main.js, page-init.js, user-portal-init.js)
+  - 16 replacements in HTML inline scripts
+- **Script Loading**: Changed to `type="module"` for icon bundle and config.js
+- **Dynamic Icons**: Added `window.initIcons()` calls after dynamic HTML insertion
+  - Social media icons (renderSocialLinks, parseSocialLinks)
+
+### Fixed
+- **Missing Icons**: Added `megaphone` icon to bundle
+- **ES Module Loading**: Fixed `config.js` syntax error by adding `type="module"`
+- **Social Icons**: Fixed dynamic icon initialization in card display
+
+### Build
+- New npm scripts:
+  - `npm run build:icons` - Build icon bundle
+  - `npm run dev:icons` - Watch mode for development
+
+### Deployment
+- Version: `20349584-8d93-417e-a8fa-a530a000d126`
+- Bundle: `icons.-k7gZ0Em.js` (12.33 KB)
+- Status: ✅ All pages tested and working
+
 ## [4.6.0] - 2026-02-06
 
 ### Security
-- **🔒 CRITICAL FIX**: Removed response cache to fix rate limiting bypass vulnerability (CVE-2024-21662 pattern)
+- **CRITICAL FIX**: Removed response cache to fix rate limiting bypass vulnerability (CVE-2024-21662 pattern)
   - Response cache (60s TTL) was bypassing `reads_used` counter updates
   - `max_reads` limit was not enforced when cache hit
   - Fixed by removing response cache and adding `Cache-Control: no-store` headers

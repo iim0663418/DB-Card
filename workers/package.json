@@ -6,13 +6,15 @@
 	"private": true,
 	"scripts": {
 		"deploy": "wrangler deploy",
-		"deploy:staging": "npm run build:css && wrangler deploy",
-		"deploy:production": "npm run build:css && wrangler deploy --env production",
+		"deploy:staging": "npm run build:css && npm run build:icons && wrangler deploy",
+		"deploy:production": "npm run build:css && npm run build:icons && wrangler deploy --env production",
 		"dev": "wrangler dev",
+		"dev:vite": "vite",
 		"start": "wrangler dev",
 		"test": "vitest",
 		"cf-typegen": "wrangler types",
 		"build:css": "npx @tailwindcss/cli -i ./public/css/tailwind-input.css -o ./public/css/tailwind.css --minify",
+		"build:icons": "vite build",
 		"watch:css": "npx @tailwindcss/cli -i ./public/css/tailwind-input.css -o ./public/css/tailwind.css --watch",
 		"typecheck": "tsc --noEmit",
 		"kek:rewrap": "tsx scripts/rewrap-deks.ts"
@@ -25,11 +27,13 @@
 		"tailwindcss": "^4.1.18",
 		"tsx": "^4.19.2",
 		"typescript": "^5.5.2",
+		"vite": "^7.3.1",
 		"vitest": "~3.2.0",
 		"wrangler": "^4.59.2"
 	},
 	"dependencies": {
 		"@simplewebauthn/server": "^13.2.2",
-		"jose": "^6.1.3"
+		"jose": "^6.1.3",
+		"lucide": "^0.563.0"
 	}
 }

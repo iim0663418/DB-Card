@@ -12,9 +12,8 @@
     <link rel="stylesheet" href="/css/tailwind.css">
     <link rel="stylesheet" href="/css/v4-design.css">
     <script src="/js/tailwind-suppress.js"></script>
-    <script src="/vendor/lucide.min.js"
-            integrity="sha384-aRB6X3zBuyu5EQF6GZFp0RCYdOwxYAOdFk4nViPfqSXYxc+MrZlqbM+nUYRwDQn1"
-            crossorigin="anonymous"></script>
+    <!-- Vite Icon Bundle (Tree-shaken: 11.62 KB, 96.9% reduction) -->
+    <script type="module" src="/dist/icons.-k7gZ0Em.js"></script>
     <script src="https://unpkg.com/@panzoom/panzoom@4.6.1/dist/panzoom.min.js"></script>
     <script src="https://unpkg.com/@simplewebauthn/browser@13.0.0/dist/bundle/index.umd.min.js"></script>
     <script src="/vendor/three.min.js"
@@ -30,7 +29,7 @@
             crossorigin="anonymous"
             defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" defer></script>
-    <script src="/js/config.js"></script>
+    <script type="module" src="/js/config.js"></script>
     <script src="/js/social-link-validation.js"></script>
     <script src="/js/social-link-integration.js"></script>
     <style>
@@ -1421,7 +1420,7 @@ wrangler secret delete OLD_KEK
             errorEl.classList.remove('hidden');
 
             // 初始化 Lucide 圖示
-            lucide.createIcons();
+            window.initIcons();
         }
 
         function retryLoadCards() {
@@ -2071,7 +2070,7 @@ wrangler secret delete OLD_KEK
                     <p class="text-slate-400">尚無名片</p>
                 </div>
             `, { ADD_ATTR: ['onclick'] });
-            lucide.createIcons();
+            window.initIcons();
         }
 
         // Render cards list (Phase 2: XSS防護 - 使用 DOM API 而非 innerHTML)
@@ -2244,7 +2243,7 @@ wrangler secret delete OLD_KEK
                 grid.appendChild(cardDiv);
             });
 
-            lucide.createIcons();
+            window.initIcons();
         }
 
         // Helper: 創建安全的操作按鈕
@@ -2608,7 +2607,7 @@ wrangler secret delete OLD_KEK
             const originalBtnHTML = submitBtn.innerHTML;
             submitBtn.disabled = true;
             submitBtn.innerHTML = DOMPurify.sanitize('<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> 處理中...', { ADD_ATTR: ['onclick'] });
-            lucide.createIcons();
+            window.initIcons();
 
             // 構建 API 資料格式
             const cardData = buildCardData(formData);
@@ -2672,7 +2671,7 @@ wrangler secret delete OLD_KEK
                 // 恢復按鈕狀態
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = DOMPurify.sanitize(originalBtnHTML, { ADD_ATTR: ['onclick'] });
-                lucide.createIcons();
+                window.initIcons();
             }
         }
 
@@ -2836,7 +2835,7 @@ wrangler secret delete OLD_KEK
 
             // Re-initialize Lucide icons
             if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
+                window.initIcons();
             }
 
             modal.classList.remove('hidden');
@@ -2850,7 +2849,7 @@ wrangler secret delete OLD_KEK
         function showRotationGuide() {
             const modal = document.getElementById('rotation-guide-modal');
             modal.classList.remove('hidden');
-            lucide.createIcons();
+            window.initIcons();
         }
         window.showRotationGuide = showRotationGuide;
 
@@ -3045,7 +3044,7 @@ wrangler secret delete OLD_KEK
                 }
             }
 
-            lucide.createIcons();
+            window.initIcons();
         }
 
         // Department mapping for preview (same as main.js)
@@ -3224,7 +3223,7 @@ wrangler secret delete OLD_KEK
 
                 cluster.appendChild(node);
             });
-            lucide.createIcons();
+            window.initIcons();
         }
 
 
@@ -3735,7 +3734,7 @@ wrangler secret delete OLD_KEK
 
                 // 顯示 Modal
                 document.getElementById('ip-detail-modal').classList.remove('hidden');
-                lucide.createIcons();
+                window.initIcons();
 
             } catch (error) {
                 console.error('Load IP detail error:', error);
@@ -3811,7 +3810,7 @@ wrangler secret delete OLD_KEK
         window.handleLogout = handleLogout;
 
         document.addEventListener('DOMContentLoaded', () => {
-            lucide.createIcons();
+            window.initIcons();
             checkPasskeyAvailable();
             
             // 檢查是否已經登入（透過 Cookie）
@@ -4197,7 +4196,7 @@ wrangler secret delete OLD_KEK
 
                 // Re-initialize Lucide icons
                 if (typeof lucide !== 'undefined') {
-                    lucide.createIcons();
+                    window.initIcons();
                 }
 
             } catch (error) {
@@ -4282,7 +4281,7 @@ wrangler secret delete OLD_KEK
             
             // Re-initialize Lucide icons
             if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
+                window.initIcons();
             }
         }
     </script>

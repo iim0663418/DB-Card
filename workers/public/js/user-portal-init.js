@@ -741,7 +741,7 @@
             submitBtn.disabled = true;
             submitBtnText.classList.add('hidden');
             submitBtnLoading.classList.remove('hidden');
-            lucide.createIcons();
+            if (window.initIcons) window.initIcons();
             
             const formData = new FormData(e.target);
             const data = {};
@@ -1149,7 +1149,7 @@
                     </div>
                 `;
             }).join(''), { ADD_ATTR: ['onclick'] });
-            lucide.createIcons();
+            if (window.initIcons) window.initIcons();
 
             // Event delegation for edit buttons
             container.addEventListener('click', (e) => {
@@ -1192,8 +1192,8 @@
             document.getElementById('success-modal').classList.remove('hidden');
 
             // 初始化 lucide icons（確保 check-circle 顯示）
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
+            if (window.initIcons) {
+                window.initIcons();
             }
 
             // 綁定 ESC 鍵
@@ -1235,7 +1235,7 @@
                 // 更換 icon 為 check
                 if (btnIcon) {
                     btnIcon.setAttribute('data-lucide', 'check');
-                    lucide.createIcons();
+                    if (window.initIcons) window.initIcons();
                 }
 
                 // 2 秒後恢復
@@ -1247,7 +1247,7 @@
                     // 恢復原始 icon
                     if (btnIcon) {
                         btnIcon.setAttribute('data-lucide', 'copy');
-                        lucide.createIcons();
+                        if (window.initIcons) window.initIcons();
                     }
                 }, 2000);
             } catch (err) {
@@ -1506,8 +1506,8 @@
 
                 cluster.appendChild(node);
             });
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
+            if (window.initIcons) {
+                window.initIcons();
             }
         }
 
@@ -1540,7 +1540,7 @@
             document.getElementById('revoke-modal').classList.remove('hidden');
             document.getElementById('revoke-reason').value = '';
             document.getElementById('rate-limit-warning').classList.add('hidden');
-            lucide.createIcons();
+            if (window.initIcons) window.initIcons();
         }
 
         function closeRevokeModal() {
@@ -1675,7 +1675,7 @@
             retry.textContent = `請在 ${retryMinutes} 分鐘後重試`;
 
             banner.classList.remove('hidden');
-            lucide.createIcons();
+            if (window.initIcons) window.initIcons();
 
             setTimeout(() => banner.classList.add('hidden'), 10000);
         }
@@ -1761,7 +1761,7 @@
             checkScroll();
 
             modal.classList.remove('hidden');
-            lucide.createIcons();
+            if (window.initIcons) window.initIcons();
         }
 
         /**
@@ -1779,8 +1779,8 @@
                 fullContent.classList.add('hidden');
                 if (icon) icon.style.transform = 'rotate(0deg)';
             }
-            
-            lucide.createIcons();
+
+            if (window.initIcons) window.initIcons();
         }
 
         /**
@@ -1850,7 +1850,7 @@
             checkbox.addEventListener('change', validate);
 
             modal.classList.remove('hidden');
-            lucide.createIcons();
+            if (window.initIcons) window.initIcons();
         }
 
         /**
@@ -1897,7 +1897,7 @@
             document.getElementById('restore-days-remaining').textContent = daysRemaining;
 
             modal.classList.remove('hidden');
-            lucide.createIcons();
+            if (window.initIcons) window.initIcons();
         }
 
         /**
@@ -2009,7 +2009,7 @@
                     `}).join(''), { ADD_ATTR: ['onclick'] });
                 }
 
-                lucide.createIcons();
+                if (window.initIcons) window.initIcons();
             } catch (error) {
                 console.error('Failed to fetch history:', error);
                 content.innerHTML = '<p class="text-center text-red-500">載入失敗</p>';
@@ -2246,7 +2246,7 @@
             // Apply i18n translations on page load
             applyTranslations(currentLang);
 
-            lucide.createIcons();
+            if (window.initIcons) window.initIcons();
 
             if (typeof THREE !== 'undefined') {
                 setTimeout(() => initThree(), 100);

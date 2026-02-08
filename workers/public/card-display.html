@@ -6,7 +6,6 @@
     <!-- Resource Hints for Performance Optimization -->
     <link rel="dns-prefetch" href="https://db-card-staging.csw30454.workers.dev">
     <link rel="preconnect" href="https://db-card-staging.csw30454.workers.dev">
-    <link rel="preload" href="/vendor/lucide.min.js" as="script" crossorigin="anonymous">
     <meta name="description" content="DB-Card 數位名片系統 - 安全預設數位名片">
     <title>數位名片 | 名片顯示</title>
     <link rel="icon" type="image/png" sizes="192x192" href="favicon.png">
@@ -234,14 +233,8 @@ body {
     })();
     </script>
 
-    <!-- Local Lucide Icons (Preloaded for Fast Loading) -->
-    <script src="/vendor/lucide.min.js"
-            integrity="sha384-aRB6X3zBuyu5EQF6GZFp0RCYdOwxYAOdFk4nViPfqSXYxc+MrZlqbM+nUYRwDQn1"
-            crossorigin="anonymous"
-            defer
-            onload="if(window.lucide && window.lucide.createIcons) { window.lucide.createIcons(); }"
-            onerror="console.warn('[Icons] Using Unicode fallbacks')">
-    </script>
+    <!-- Vite Icon Bundle (Tree-shaken: 11.62 KB, 96.9% reduction) -->
+    <script type="module" src="/dist/icons.-k7gZ0Em.js"></script>
 
     <!-- Optimized: Async loading for independent scripts -->
     <script src="/vendor/qr-creator.min.js" 

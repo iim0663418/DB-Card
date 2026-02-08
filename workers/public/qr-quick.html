@@ -9,9 +9,8 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png">
 <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png">
-<script src="/vendor/lucide.min.js"
-        integrity="sha384-aRB6X3zBuyu5EQF6GZFp0RCYdOwxYAOdFk4nViPfqSXYxc+MrZlqbM+nUYRwDQn1"
-        crossorigin="anonymous"></script>
+<!-- Vite Icon Bundle (Tree-shaken: 11.62 KB, 96.9% reduction) -->
+<script type="module" src="/dist/icons.-k7gZ0Em.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
 <style>
 body{margin:0;padding:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(244,247,249,0.3) 0%,rgba(230,235,240,0.4) 100%);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
@@ -207,10 +206,10 @@ await navigator.clipboard.writeText(url);
 const btn=event.target.closest('button');
 const originalHTML=btn.innerHTML;
 btn.innerHTML='<i data-lucide="check" style="width:1rem;height:1rem;display:inline-block;vertical-align:middle;margin-right:0.5rem"></i>已複製';
-lucide.createIcons();
+window.initIcons();
 setTimeout(()=>{
 btn.innerHTML=originalHTML;
-lucide.createIcons();
+window.initIcons();
 },2000);
 }catch(err){
 console.error('Copy failed:', err);
@@ -222,7 +221,7 @@ function backToPortal(){
 window.location.href='/user-portal.html';
 }
 
-lucide.createIcons();
+window.initIcons();
 </script>
 </body>
 </html>

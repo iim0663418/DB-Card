@@ -1,6 +1,6 @@
 import { tapCard, readCard } from './api.js';
 import { getLocalizedText, getLocalizedArray } from './utils/bilingual.js';
-// Icons now loaded via vendor/lucide.min.js in HTML
+// Icons now loaded via Vite bundle (/dist/icons.DTSin75g.js)
 
 const DEBUG = window.location.hostname === 'localhost';
 
@@ -95,7 +95,8 @@ function updateVCardButton() {
     }
 
     // Reinitialize lucide icons to apply the new icon
-    if (typeof lucide !== 'undefined') {
+    if (window.initIcons) {
+        window.initIcons();
     }
 }
 
@@ -232,7 +233,7 @@ function showError(message) {
             </div>
         `, { ADD_ATTR: ['onclick'] });
         errorContainer.style.display = 'block';
-        if (window.lucide) lucide.createIcons();
+        if (window.initIcons) window.initIcons();
     } else {
         console.error(message);
     }
@@ -260,7 +261,7 @@ function showNotification(message, type = 'info') {
         `, { ADD_ATTR: ['onclick'] });
 
         notificationContainer.appendChild(notification);
-        if (window.lucide) lucide.createIcons();
+        if (window.initIcons) window.initIcons();
 
         // Auto remove after 5 seconds
         setTimeout(() => {
@@ -399,8 +400,8 @@ function renderCard(cardData, sessionData) {
     
     hideLoading();
     document.getElementById('main-container').classList.remove('hidden');
-    
-    if (window.lucide) lucide.createIcons();
+
+    if (window.initIcons) window.initIcons();
 
     setTimeout(matchCardHeight, 100);
 
@@ -687,6 +688,8 @@ function renderCardFace(cardData, sessionData, lang, suffix) {
             socialCluster.appendChild(node);
         });
         socialCluster.style.display = 'flex';
+        // Initialize icons for dynamically added elements
+        if (window.initIcons) window.initIcons();
     } else if (cardData.socialLinks && cardData.socialLinks.socialNote) {
         // 舊格式：向後相容
         parseSocialLinks(cardData.socialLinks.socialNote);
@@ -746,6 +749,8 @@ function parseSocialLinks(socialText) {
         }
     });
 
+    // Initialize icons for dynamically added elements
+    if (window.initIcons) window.initIcons();
 }
 
 function startTypewriter(phrases) {

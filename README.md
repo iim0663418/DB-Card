@@ -4,30 +4,38 @@
 
 ## 最新更新
 
-### v4.6.0 (2026-02-06) - 並發控制與快取安全修復 🔒
-- ✅ **並發控制修復** - 使用 SQLite RETURNING 實現原子性操作
-- ✅ **樂觀鎖機制** - WHERE 子句防止競態條件
-- ✅ **移除 Response Cache** - 修復 rate limiting 繞過漏洞 (CVE-2024-21662 類似模式)
-- ✅ **統一快取失效** - 4 層快取一致性保證
-- ✅ **HTTP Cache-Control** - 符合 RFC 7234 標準 (no-store)
-- ✅ **max_reads 執行** - 100% 準確的讀取限制
-- ✅ **TOCTOU 緩解** - 消除 Time-of-Check-Time-of-Use 漏洞
+### v4.6.0 (2026-02-08) - Icon Bundle 優化完成
+- **Vite Tree-Shaking** - Lucide Icons 從 379 KB 降至 12.33 KB (96.8% 減少)
+- **ES Module 遷移** - 65 個實際使用的 icons，移除 1,400+ 未使用 icons
+- **效能提升** - 預期 FCP 改善 50%+, LCP 改善 40%+
+- **Build System** - Vite + esbuild minifier 自動化打包
+- **全域函式** - `window.initIcons()` 統一 icon 初始化
+- **動態載入** - 支援社群 icon 動態插入後初始化
 
-### v4.6.0 (2026-02-02) - 個資同意管理系統完成 🔒
-- ✅ **GDPR 合規** - 100% 符合 GDPR Article 7, 12, 13, 15, 20, 30
-- ✅ **分層揭露** - First Layer (摘要) + Second Layer (完整條款)
-- ✅ **同意管理** - 接受、撤回、恢復完整流程
-- ✅ **資料可攜權** - JSON 格式即時匯出
-- ✅ **審計追蹤** - 完整同意歷史記錄
-- ✅ **原子性交易** - DB.batch() 確保資料一致性
-- ✅ **既有使用者支援** - 隱式同意機制
-- ✅ **No-Email 設計** - Email 僅作內部 ID
+### v4.6.0 (2026-02-06) - 並發控制與快取安全修復
+- **並發控制修復** - 使用 SQLite RETURNING 實現原子性操作
+- **樂觀鎖機制** - WHERE 子句防止競態條件
+- **移除 Response Cache** - 修復 rate limiting 繞過漏洞 (CVE-2024-21662 類似模式)
+- **統一快取失效** - 4 層快取一致性保證
+- **HTTP Cache-Control** - 符合 RFC 7234 標準 (no-store)
+- **max_reads 執行** - 100% 準確的讀取限制
+- **TOCTOU 緩解** - 消除 Time-of-Check-Time-of-Use 漏洞
 
-### v4.6.0 (2026-01-31) - OIDC 安全優化完成 🔒
-- ✅ **PKCE 實作** (RFC 7636) - 防止授權碼攔截攻擊
-- ✅ **OAuth Redirect 流程** - 取代 Popup，更安全可靠
-- ✅ **SameSite=Lax** - 從 None 改為 Lax，降低 CSRF 風險
-- ✅ **移除 postMessage** - 消除跨域通信風險
+### v4.6.0 (2026-02-02) - 個資同意管理系統完成
+- **GDPR 合規** - 100% 符合 GDPR Article 7, 12, 13, 15, 20, 30
+- **分層揭露** - First Layer (摘要) + Second Layer (完整條款)
+- **同意管理** - 接受、撤回、恢復完整流程
+- **資料可攜權** - JSON 格式即時匯出
+- **審計追蹤** - 完整同意歷史記錄
+- **原子性交易** - DB.batch() 確保資料一致性
+- **既有使用者支援** - 隱式同意機制
+- **No-Email 設計** - Email 僅作內部 ID
+
+### v4.6.0 (2026-01-31) - OIDC 安全優化完成
+- **PKCE 實作** (RFC 7636) - 防止授權碼攔截攻擊
+- **OAuth Redirect 流程** - 取代 Popup，更安全可靠
+- **SameSite=Lax** - 從 None 改為 Lax，降低 CSRF 風險
+- **移除 postMessage** - 消除跨域通信風險
 - ✅ **移除 DEBUG 日誌** - 防止敏感資訊洩漏
 - ✅ **符合 RFC 9700** - OAuth 2.0 Security Best Current Practice
 - ✅ **OWASP 合規** - OAuth 2.0 Cheat Sheet 完全符合

@@ -74,13 +74,173 @@ body {
     transition: opacity 1s;
 }
 
-/* Font optimization */
-@font-face {
-    font-display: swap;
+#loading .relative {
+    position: relative;
+    width: 8rem;
+    height: 8rem;
+}
+
+#loading .absolute {
+    position: absolute;
+    inset: 0;
+}
+
+#loading .border-2 {
+    border-width: 2px;
+    border-color: #6366f1;
+    opacity: 0.1;
+    border-radius: 9999px;
+    animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+#loading .border-t-2 {
+    border-top-width: 2px;
+    border-color: #6366f1;
+    border-radius: 9999px;
+    animation: spin 1s linear infinite;
+}
+
+#loading-icon {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6366f1;
+}
+
+#loading-icon i {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+#loading-text {
+    margin-top: 2rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.625rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #64748b;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes ping {
+    75%, 100% {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: .5;
+    }
+}
+
+/* Icon Fallback Support - Progressive Enhancement */
+.icon-fallback {
+    line-height: 1;
+    display: inline-block;
+    text-align: center;
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+    /* Inherit size from parent element to prevent layout shift */
+}
+
+[data-lucide] {
+    display: inline-block;
+    /* Size controlled by Tailwind classes (w-3, w-4, w-5, w-6, w-10) */
+    flex-shrink: 0;
 }
 </style>
-    <!-- Optimized: Tree-shaken Lucide Icons (ES Module) -->
-    <script type="module" src="/js/icons-minimal.js"></script>
+    <!-- Progressive Icon Enhancement with Unicode Fallbacks -->
+    <script>
+    // Icon Fallback System - Unicode Symbols (Immediate Display)
+    (function() {
+        'use strict';
+
+        // Unicode fallback mapping
+        const ICON_FALLBACKS = {
+            'phone': '☎',           // U+260E
+            'mail': '✉',            // U+2709
+            'map-pin': '⌖',         // U+2316
+            'globe': '🌐',          // U+1F310
+            'facebook': '◉',        // U+25C9
+            'instagram': '◉',       // U+25C9
+            'linkedin': '◉',        // U+25C9
+            'twitter': '◉',         // U+25C9
+            'youtube': '◉',         // U+25C9
+            'github': '◉',          // U+25C9
+            'copy': '⧉',            // U+29C9
+            'check': '✓',           // U+2713
+            'qr-code': '▦',         // U+25A6
+            'shield-check': '🛡',   // U+1F6E1
+            'user-plus': '➕',      // U+2795
+            'contact': '👤',        // U+1F464
+            'arrow-right': '→',     // U+2192
+            'smartphone': '📱',     // U+1F4F1
+            'user-circle': '👤'     // U+1F464
+        };
+
+        // Render icon with fallback
+        function renderIconFallback(element) {
+            const iconName = element.getAttribute('data-lucide');
+            const fallback = ICON_FALLBACKS[iconName] || '◉';
+
+            // Get computed size from Tailwind classes
+            const classList = element.classList;
+            let fontSize = '1.25rem'; // default w-5
+            
+            if (classList.contains('w-10')) fontSize = '2.5rem';
+            else if (classList.contains('w-6')) fontSize = '1.5rem';
+            else if (classList.contains('w-5')) fontSize = '1.25rem';
+            else if (classList.contains('w-4')) fontSize = '1rem';
+            else if (classList.contains('w-3')) fontSize = '0.75rem';
+
+            // Set fallback with matching size
+            element.textContent = fallback;
+            element.style.fontSize = fontSize;
+            element.classList.add('icon-fallback');
+
+            // Preserve original attributes for accessibility
+            if (!element.getAttribute('aria-hidden')) {
+                element.setAttribute('aria-hidden', 'true');
+            }
+        }
+
+        // Initialize all icon fallbacks immediately
+        function initIconFallbacks() {
+            const iconElements = document.querySelectorAll('[data-lucide]');
+            iconElements.forEach(renderIconFallback);
+        }
+
+        // Run immediately for critical icons (loading screen)
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initIconFallbacks);
+        } else {
+            initIconFallbacks();
+        }
+
+        // Expose for dynamic content
+        window.renderIconFallback = renderIconFallback;
+    })();
+    </script>
+
+    <!-- Local Lucide Icons with Progressive Enhancement -->
+    <script src="/vendor/lucide.min.js"
+            integrity="sha384-aRB6X3zBuyu5EQF6GZFp0RCYdOwxYAOdFk4nViPfqSXYxc+MrZlqbM+nUYRwDQn1"
+            crossorigin="anonymous"
+            async
+            onload="if(window.lucide && window.lucide.createIcons) { window.lucide.createIcons(); }"
+            onerror="console.warn('[Icons] Using Unicode fallbacks')">
+    </script>
 
     <!-- Optimized: Async loading for independent scripts -->
     <script src="/vendor/qr-creator.min.js" 
@@ -548,17 +708,19 @@ body {
             // Visual feedback
             const button = event.target.closest('button');
             if (!button) return;
-            
+
             const icon = button.querySelector('i');
             if (!icon) return;
-            
+
+            // Use Unicode fallback for check icon
+            const originalIcon = icon.getAttribute('data-lucide');
             icon.setAttribute('data-lucide', 'check');
-            lucide.createIcons();
+            icon.textContent = '✓';
             button.classList.add('text-green-600');
-            
+
             setTimeout(() => {
-                icon.setAttribute('data-lucide', 'copy');
-                lucide.createIcons();
+                icon.setAttribute('data-lucide', originalIcon);
+                icon.textContent = '⧉'; // copy icon
                 button.classList.remove('text-green-600');
             }, 2000);
         } catch (err) {

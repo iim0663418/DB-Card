@@ -1244,6 +1244,15 @@ wrangler secret delete OLD_KEK
             animate();
         }
 
+        // Safe icon initialization with retry mechanism (fixes race condition)
+        function safeInitIcons(retries = 3) {
+            if (typeof window.initIcons === 'function') {
+                window.initIcons();
+            } else if (retries > 0) {
+                setTimeout(() => safeInitIcons(retries - 1), 100);
+            }
+        }
+
         let isVerified = false;
         let activeTab = 'list';
         let previewLang = 'zh';
@@ -1420,7 +1429,7 @@ wrangler secret delete OLD_KEK
             errorEl.classList.remove('hidden');
 
             // 初始化 Lucide 圖示
-            window.initIcons();
+            safeInitIcons();
         }
 
         function retryLoadCards() {
@@ -2070,7 +2079,7 @@ wrangler secret delete OLD_KEK
                     <p class="text-slate-400">尚無名片</p>
                 </div>
             `, { ADD_ATTR: ['onclick'] });
-            window.initIcons();
+            safeInitIcons();
         }
 
         // Render cards list (Phase 2: XSS防護 - 使用 DOM API 而非 innerHTML)
@@ -2243,7 +2252,7 @@ wrangler secret delete OLD_KEK
                 grid.appendChild(cardDiv);
             });
 
-            window.initIcons();
+            safeInitIcons();
         }
 
         // Helper: 創建安全的操作按鈕
@@ -2607,7 +2616,7 @@ wrangler secret delete OLD_KEK
             const originalBtnHTML = submitBtn.innerHTML;
             submitBtn.disabled = true;
             submitBtn.innerHTML = DOMPurify.sanitize('<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> 處理中...', { ADD_ATTR: ['onclick'] });
-            window.initIcons();
+            safeInitIcons();
 
             // 構建 API 資料格式
             const cardData = buildCardData(formData);
@@ -2671,7 +2680,7 @@ wrangler secret delete OLD_KEK
                 // 恢復按鈕狀態
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = DOMPurify.sanitize(originalBtnHTML, { ADD_ATTR: ['onclick'] });
-                window.initIcons();
+                safeInitIcons();
             }
         }
 
@@ -2835,7 +2844,7 @@ wrangler secret delete OLD_KEK
 
             // Re-initialize Lucide icons
             if (typeof lucide !== 'undefined') {
-                window.initIcons();
+                safeInitIcons();
             }
 
             modal.classList.remove('hidden');
@@ -2849,7 +2858,7 @@ wrangler secret delete OLD_KEK
         function showRotationGuide() {
             const modal = document.getElementById('rotation-guide-modal');
             modal.classList.remove('hidden');
-            window.initIcons();
+            safeInitIcons();
         }
         window.showRotationGuide = showRotationGuide;
 
@@ -3044,7 +3053,7 @@ wrangler secret delete OLD_KEK
                 }
             }
 
-            window.initIcons();
+            safeInitIcons();
         }
 
         // Department mapping for preview (same as main.js)
@@ -3223,7 +3232,7 @@ wrangler secret delete OLD_KEK
 
                 cluster.appendChild(node);
             });
-            window.initIcons();
+            safeInitIcons();
         }
 
 
@@ -3734,7 +3743,7 @@ wrangler secret delete OLD_KEK
 
                 // 顯示 Modal
                 document.getElementById('ip-detail-modal').classList.remove('hidden');
-                window.initIcons();
+                safeInitIcons();
 
             } catch (error) {
                 console.error('Load IP detail error:', error);
@@ -3810,7 +3819,7 @@ wrangler secret delete OLD_KEK
         window.handleLogout = handleLogout;
 
         document.addEventListener('DOMContentLoaded', () => {
-            window.initIcons();
+            safeInitIcons();
             checkPasskeyAvailable();
             
             // 檢查是否已經登入（透過 Cookie）
@@ -3912,9 +3921,11 @@ wrangler secret delete OLD_KEK
         });
 
         window.onresize = () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
         };
 
         // ===========================
@@ -4196,7 +4207,7 @@ wrangler secret delete OLD_KEK
 
                 // Re-initialize Lucide icons
                 if (typeof lucide !== 'undefined') {
-                    window.initIcons();
+                    safeInitIcons();
                 }
 
             } catch (error) {
@@ -4278,10 +4289,10 @@ wrangler secret delete OLD_KEK
                 // Mouse wheel zoom
                 modal.querySelector('#panzoom-container').addEventListener('wheel', panzoom.zoomWithWheel);
             };
-            
+
             // Re-initialize Lucide icons
             if (typeof lucide !== 'undefined') {
-                window.initIcons();
+                safeInitIcons();
             }
         }
     </script>

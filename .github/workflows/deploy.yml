@@ -36,6 +36,11 @@ jobs:
           cd workers
           npm run build:css
 
+      - name: Build Icons
+        run: |
+          cd workers
+          npm run build:icons
+
       - name: Deploy to Staging
         if: github.ref == 'refs/heads/develop'
         uses: cloudflare/wrangler-action@v3

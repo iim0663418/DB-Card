@@ -17,12 +17,17 @@
 		"build:icons": "vite build",
 		"watch:css": "npx @tailwindcss/cli -i ./public/css/tailwind-input.css -o ./public/css/tailwind.css --watch",
 		"typecheck": "tsc --noEmit",
+		"lint": "eslint src public/js --ext .ts,.js",
+		"lint:fix": "eslint src public/js --ext .ts,.js --fix",
 		"kek:rewrap": "tsx scripts/rewrap-deks.ts"
 	},
 	"devDependencies": {
 		"@cloudflare/vitest-pool-workers": "^0.12.6",
 		"@tailwindcss/cli": "^4.1.18",
+		"@typescript-eslint/eslint-plugin": "^8.55.0",
+		"@typescript-eslint/parser": "^8.55.0",
 		"autoprefixer": "^10.4.23",
+		"eslint": "^9.39.2",
 		"postcss": "^8.5.6",
 		"tailwindcss": "^4.1.18",
 		"tsx": "^4.19.2",

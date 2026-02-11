@@ -273,6 +273,7 @@ export default {
     const isPublicEndpoint = url.pathname === '/api/nfc/tap' ||
                             url.pathname === '/api/read' ||
                             url.pathname === '/api/analytics/vitals' ||
+                            url.pathname === '/api/csp-report' ||
                             url.pathname === '/oauth/callback' ||
                             url.pathname === '/health';
 

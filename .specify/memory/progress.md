@@ -1,8 +1,7 @@
-# Task: P1 - 延遲 Three.js 初始化
-## Phase: TASK_COMPLETE
-- Status: ✅ 所有 4 個 Scenarios 已完成
-- TypeScript: 零錯誤
-- Bundle Size: 減少 1.8MB（3 個頁面）
-- CardContentReady: 預期改善 200-500ms
-- Next: 部署到 Staging 驗證實際效能數據
+# Task: Admin Dashboard 安全重構（務實版 v2）
+## Phase: P1-1_COMPLETE
+- Status: ✅ 抽離 inline script 完成
+- Deployed: Staging (ebb7edd)
+- Achievement: HTML 大小 -72% (4379 → 1229 行)
+- Next: P1-2 執行 - CSP Report-Only 觀測
 

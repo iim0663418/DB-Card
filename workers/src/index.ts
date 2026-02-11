@@ -13,6 +13,7 @@ import { handlePasskeyRegisterStart, handlePasskeyRegisterFinish, handlePasskeyL
 import { handleSecurityStats, handleSecurityEvents, handleSecurityTimeline, handleBlockIP, handleUnblockIP, handleIPDetail, handleSecurityExport, handleCDNHealth } from './handlers/admin/security';
 import { handleMonitoringOverview, handleMonitoringHealth } from './handlers/admin/monitoring';
 import { handleVitalsReport, handleVitalsStats } from './handlers/analytics';
+import { handleCSPReport, handleCSPReportStats } from './handlers/csp-report';
 import { handleUserCreateCard, handleUserUpdateCard, handleUserListCards, handleUserGetCard, handleUserRevokeCard, handleUserRestoreCard } from './handlers/user/cards';
 import { handleRevocationHistory } from './handlers/user/history';
 import { handleUserLogout } from './handlers/user/logout';
@@ -500,6 +501,16 @@ export default {
     // POST /api/analytics/vitals - Report Web Vitals (public endpoint)
     if (url.pathname === '/api/analytics/vitals' && request.method === 'POST') {
       return addMinimalSecurityHeaders(await handleVitalsReport(request, env));
+    }
+
+    // POST /api/csp-report - CSP Violation Report (public endpoint)
+    if (url.pathname === '/api/csp-report' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleCSPReport(request, env));
+    }
+
+    // GET /api/admin/csp-reports - Get CSP Report stats (admin only)
+    if (url.pathname === '/api/admin/csp-reports' && request.method === 'GET') {
+      return addMinimalSecurityHeaders(await handleCSPReportStats(request, env));
     }
 
     // GET /api/admin/analytics/vitals - Get Web Vitals stats (admin only)

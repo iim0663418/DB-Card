@@ -275,27 +275,10 @@ function showNotification(message, type = 'info') {
 async function initApp() {
     initLoadingIcon(); // 隨機選擇載入圖示
 
-    // Conditional Three.js initialization - only on desktop (>= 1024px)
-    const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
-    if (isDesktop) {
-        if (typeof THREE !== 'undefined') {
-            setTimeout(() => initThree(), 100);
-        } else {
-            // Wait for Three.js to load (lazy loaded on desktop)
-            const waitForThree = setInterval(() => {
-                if (typeof THREE !== 'undefined') {
-                    clearInterval(waitForThree);
-                    initThree();
-                }
-            }, 100);
-            // Timeout after 5 seconds if Three.js doesn't load
-            setTimeout(() => clearInterval(waitForThree), 5000);
-        }
-    }
-
+    // 1. 載入資料
     const params = new URLSearchParams(window.location.search);
     const uuid = params.get('uuid');
-    
+
     // 自動偵測語系：URL > 瀏覽器語言 > 預設中文
     if (!params.get('lang')) {
         const browserLang = navigator.language || navigator.userLanguage;
@@ -335,6 +318,13 @@ async function initApp() {
         console.error('Initialization error:', error);
         showError(currentLanguage === 'zh' ? `載入失敗: ${error.message}` : `Load failed: ${error.message}`);
         hideLoading();
+        return;
+    }
+
+    // 2. 內容已顯示，延遲初始化特效
+    const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+    if (isDesktop && typeof THREE !== 'undefined') {
+        requestIdleCallback(() => initThree(), { timeout: 2000 });
     }
 }
 
@@ -400,6 +390,7 @@ function renderCard(cardData, sessionData) {
     
     hideLoading();
     document.getElementById('main-container').classList.remove('hidden');
+    if (window.reportCardReady) window.reportCardReady(performance.now());
 
     if (window.initIcons) window.initIcons();
 

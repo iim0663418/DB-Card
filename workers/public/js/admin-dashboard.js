@@ -1,5 +1,5 @@
         // Import validation utilities
-        import { validateURL, sanitizeText, validateEmail, validatePhone, validateSocialURL, SOCIAL_PLATFORMS } from './js/validation.js';
+        import { validateURL, sanitizeText, validateEmail, validatePhone, validateSocialURL, SOCIAL_PLATFORMS } from './validation.js';
 
         const API_BASE = window.location.hostname === 'localhost'
             ? '' // Use same origin for local development

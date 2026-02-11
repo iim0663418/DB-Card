@@ -1,0 +1,3150 @@
+        // Import validation utilities
+        import { validateURL, sanitizeText, validateEmail, validatePhone, validateSocialURL, SOCIAL_PLATFORMS } from './js/validation.js';
+
+        const API_BASE = window.location.hostname === 'localhost'
+            ? '' // Use same origin for local development
+            : ''; // Use same origin for staging/production
+
+        // v4.1.0 & v4.2.0: Error message constants
+        const ERROR_MESSAGES = {
+            'rate_limited': '請求過於頻繁，請稍後再試',
+            'session_budget_exceeded': '此名片已達到使用上限，請聯絡管理員',
+            'daily_budget_exceeded': '今日使用次數已達上限，請明天再試',
+            'monthly_budget_exceeded': '本月使用次數已達上限，請下月再試'
+        };
+
+        let scene, camera, renderer, mesh;
+        function initThree() {
+            const canvas = document.getElementById('three-canvas');
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            const starGeo = new THREE.BufferGeometry();
+            const count = 1000;
+            const pos = new Float32Array(count * 3);
+            for(let i=0; i<count*3; i++) pos[i] = (Math.random() - 0.5) * 40;
+            starGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            mesh = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.05, color: 0x6868ac, transparent: true, opacity: 0.3 }));
+            scene.add(mesh);
+            camera.position.z = 10;
+            function animate() { requestAnimationFrame(animate); mesh.rotation.y += 0.0003; renderer.render(scene, camera); }
+            animate();
+        }
+
+        // Safe icon initialization with retry mechanism (fixes race condition)
+        function safeInitIcons(retries = 3) {
+            if (typeof window.initIcons === 'function') {
+                window.initIcons();
+            } else if (retries > 0) {
+                setTimeout(() => safeInitIcons(retries - 1), 100);
+            }
+        }
+
+        let isVerified = false;
+        let activeTab = 'list';
+        let previewLang = 'zh';
+
+        // Helper function to get headers with CSRF token
+        function getHeadersWithCSRF(baseHeaders = {}) {
+            const csrfToken = sessionStorage.getItem('csrfToken');
+            if (csrfToken) {
+                return {
+                    ...baseHeaders,
+                    'X-CSRF-Token': csrfToken
+                };
+            }
+            return baseHeaders;
+        }
+
+        // 安全監控狀態
+        let currentEventPage = 1;
+        let currentEventType = '';
+        let timelineChart = null;
+        let ipDetailChart = null;
+        let securityStatsInterval = null;
+        let currentIPAddress = null;
+
+        // 地址預設選項
+        const ADDRESS_PRESETS = {
+            yanping: {
+                zh: '10058 台北市中正區延平南路143號',
+                en: 'No. 143, Yanping S. Rd., Zhongzheng Dist., Taipei City 10058, Taiwan (R.O.C.)'
+            },
+            shinkong: {
+                zh: '臺北市中正區忠孝西路一段66號（17、19樓）',
+                en: '66 Zhongxiao W. Rd. Sec. 1, Zhongzheng Dist., Taipei City, Taiwan (17F, 19F)'
+            }
+        };
+
+        // 社群解析器
+        const SocialParser = {
+            // 從獨立輸入框收集社群連結
+            collectFromInputs() {
+                const platforms = [
+                    { id: 'social_github', icon: 'github' },
+                    { id: 'social_linkedin', icon: 'linkedin' },
+                    { id: 'social_facebook', icon: 'facebook' },
+                    { id: 'social_instagram', icon: 'instagram' },
+                    { id: 'social_twitter', icon: 'twitter' },
+                    { id: 'social_youtube', icon: 'youtube' },
+                    { id: 'social_line', icon: 'line' },
+                    { id: 'social_signal', icon: 'signal' }
+                ];
+                
+                const results = [];
+                const links = [];
+                
+                for (const platform of platforms) {
+                    const input = document.getElementById(platform.id);
+                    if (input && input.value.trim()) {
+                        results.push(platform.icon);
+                        links.push(input.value.trim());
+                    }
+                }
+                
+                return { icons: results, text: links.join('\n') };
+            },
+            
+            // 向後相容：從文字解析（用於預覽）
+            parse(text) {
+                if (!text) return [];
+                
+                const platforms = [
+                    { patterns: ['github.com'], icon: 'github' },
+                    { patterns: ['linkedin.com'], icon: 'linkedin' },
+                    { patterns: ['facebook.com', 'fb.com'], icon: 'facebook' },
+                    { patterns: ['instagram.com'], icon: 'instagram' },
+                    { patterns: ['twitter.com', 'x.com'], icon: 'twitter' },
+                    { patterns: ['youtube.com', 'youtu.be'], icon: 'youtube' },
+                    { patterns: ['line.me'], icon: 'line' },
+                    { patterns: ['signal.me', 'signal.group'], icon: 'signal' }
+                ];
+                
+                const results = [];
+                const lines = text.split('\n').filter(line => line.trim());
+                
+                for (const line of lines) {
+                    for (const platform of platforms) {
+                        const matched = platform.patterns.some(pattern => 
+                            line.toLowerCase().includes(pattern)
+                        );
+                        
+                        if (matched && !results.includes(platform.icon)) {
+                            results.push(platform.icon);
+                            break;
+                        }
+                    }
+                }
+                
+                return results;
+            }
+        };
+
+        // 地址資料取得函數
+        function getAddressData() {
+            const preset = document.getElementById('address-preset').value;
+
+            if (preset && preset !== 'custom') {
+                return ADDRESS_PRESETS[preset];
+            } else if (preset === 'custom') {
+                const zh = document.getElementById('address_zh').value.trim();
+                const en = document.getElementById('address_en').value.trim();
+                if (zh || en) {
+                    return { zh: zh || '', en: en || '' };
+                }
+            }
+            return null;
+        }
+
+        function showNotification(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-6 right-6 px-6 py-4 rounded-2xl shadow-2xl z-[200] font-bold text-sm transition-all ${
+                type === 'success' ? 'bg-green-500 text-white' :
+                type === 'error' ? 'bg-red-500 text-white' :
+                'bg-amber-500 text-white'
+            }`;
+            toast.textContent = message;
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(20px)';
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateY(0)';
+            }, 10);
+
+            const duration = type === 'error' ? 5000 : 2000;
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(20px)';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        // 全屏 Loading Overlay 控制函數
+        function showLoadingOverlay(message = '載入中...', submessage = '請稍候') {
+            const overlay = document.getElementById('loading-overlay');
+            const messageEl = document.getElementById('loading-message');
+            const submessageEl = document.getElementById('loading-submessage');
+            const errorEl = document.getElementById('loading-error');
+
+            messageEl.textContent = message;
+            submessageEl.textContent = submessage;
+            errorEl.classList.add('hidden');
+
+            overlay.classList.remove('hidden');
+        }
+
+        function hideLoadingOverlay() {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.classList.add('hidden');
+        }
+
+        function showLoadingError(errorMessage = '載入失敗') {
+            const overlay = document.getElementById('loading-overlay');
+            const spinner = overlay.querySelector('.animate-spin');
+            const messageContainer = overlay.querySelector('.text-center');
+            const errorEl = document.getElementById('loading-error');
+            const errorMessageEl = document.getElementById('loading-error-message');
+
+            // 隱藏 loading 動畫和訊息
+            spinner.classList.add('hidden');
+            messageContainer.classList.add('hidden');
+
+            // 顯示錯誤
+            errorMessageEl.textContent = errorMessage;
+            errorEl.classList.remove('hidden');
+
+            // 初始化 Lucide 圖示
+            safeInitIcons();
+        }
+
+        function retryLoadCards() {
+            // 重置 Loading Overlay 狀態
+            const overlay = document.getElementById('loading-overlay');
+            const spinner = overlay.querySelector('.animate-spin');
+            const messageContainer = overlay.querySelector('.text-center');
+            const errorEl = document.getElementById('loading-error');
+
+            spinner.classList.remove('hidden');
+            messageContainer.classList.remove('hidden');
+            errorEl.classList.add('hidden');
+
+            showLoadingOverlay('正在重試載入...', '請稍候');
+
+            // 重試載入
+            loadCards()
+                .then(() => {
+                    document.getElementById('content-area').classList.remove('hidden');
+                    hideLoadingOverlay();
+                    showNotification('載入成功', 'success');
+                })
+                .catch(error => {
+                    showLoadingError(error.message || '載入失敗，請重試');
+                });
+        }
+
+        async function checkAndPromptPasskey() {
+            try {
+                const resp = await fetch(`${API_BASE}/api/admin/passkey/status`, { credentials: 'include' });
+                if (!resp.ok) return; // 如果 API 失敗，不顯示提示
+                
+                const result = await resp.json();
+                const hasPasskey = result.data?.hasPasskey || result.hasPasskey; // 支援兩種格式
+                
+                if (!hasPasskey) {
+                    showNotification('提示：可註冊 Passkey 提升安全性', 'info');
+                    document.getElementById('register-passkey-btn').classList.remove('hidden');
+                }
+            } catch (e) {
+                console.error('Passkey status check error:', e);
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                await fetch(`${API_BASE}/api/admin/logout`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: getHeadersWithCSRF()
+                });
+            } catch (e) {
+                console.error('Logout error:', e);
+            }
+
+            // Clear CSRF token from sessionStorage
+            sessionStorage.removeItem('csrfToken');
+
+            // 清除狀態並顯示登入頁面
+            isVerified = false;
+            
+            // 重置所有登入相關元素
+            document.getElementById('token-section').classList.remove('hidden');
+            document.getElementById('auth-status').classList.add('hidden');
+            document.getElementById('admin-nav').classList.add('hidden');
+            document.getElementById('content-area').classList.add('hidden');
+            
+            // 清空輸入框
+            document.getElementById('admin-email').value = '';
+            document.getElementById('setup-token').value = '';
+            
+            // 重置 Passkey 按鈕狀態
+            const passkeyLogin = document.getElementById('passkey-login');
+            passkeyLogin.classList.add('hidden');
+            const passkeyBtn = passkeyLogin.querySelector('button');
+            if (passkeyBtn) {
+                passkeyBtn.disabled = false;
+                passkeyBtn.innerHTML = '<i data-lucide="fingerprint" class="w-4 h-4 text-slate-700"></i><span class="text-xs font-bold text-slate-700">Passkey</span>';
+                // 重新初始化 Lucide icon
+                lucide.createIcons({ nameAttr: 'data-lucide' });
+            }
+            
+            // 重新檢查 Passkey 可用性
+            checkPasskeyAvailable().catch(e => console.error(e));
+            
+            showNotification('已登出', 'success');
+        }
+
+        // 統一處理授權過期
+        function handleAuthExpired() {
+            isVerified = false;
+            document.getElementById('token-section').classList.remove('hidden');
+            document.getElementById('auth-status').classList.add('hidden');
+            document.getElementById('admin-nav').classList.add('hidden');
+            document.getElementById('content-area').classList.add('hidden');
+            hideLoadingOverlay();
+            showNotification('授權已過期，請重新登入', 'error');
+        }
+
+        async function checkAuthStatus() {
+            try {
+                const resp = await fetch(`${API_BASE}/api/admin/cards`, {
+                    credentials: 'include'
+                });
+
+                if (resp.ok) {
+                    // 已登入，顯示 UI
+                    isVerified = true;
+                    document.getElementById('token-section').classList.add('hidden');
+                    document.getElementById('auth-status').classList.remove('hidden');
+                    document.getElementById('admin-nav').classList.remove('hidden');
+                    document.getElementById('content-area').classList.remove('hidden');
+                    
+                    // 載入名片列表
+                    await loadCards();
+                    
+                    switchTab('list');
+                    
+                    // 背景載入次要資料
+                    loadSystemHealth().catch(e => console.error(e));
+                    checkCDNHealth().catch(e => console.error(e));
+                    loadKekStatus().catch(e => console.error(e));
+                    
+                    // 檢查 Passkey 狀態並顯示提示
+                    setTimeout(() => checkAndPromptPasskey(), 2000);
+                } else if (resp.status === 401) {
+                    // 未登入，靜默處理（不顯示錯誤）
+                    // 用戶需要手動登入
+                }
+            } catch (error) {
+                // 網路錯誤或其他問題，靜默處理
+                console.debug('Check auth status:', error.message);
+            }
+        }
+
+        async function checkPasskeyAvailable() {
+            try {
+                const resp = await fetch(`${API_BASE}/api/admin/passkey/available`, {
+                    method: 'GET'
+                });
+
+                if (resp.ok) {
+                    const data = await resp.json();
+                    if (data.hasPasskey) {
+                        document.getElementById('passkey-login').classList.remove('hidden');
+                    }
+                }
+            } catch (error) {
+                console.error('Check passkey available error:', error);
+            }
+        }
+
+        async function registerPasskey() {
+            try {
+                const email = prompt('請輸入管理員 Email：');
+                if (!email) return;
+
+                const startResp = await fetch(`${API_BASE}/api/admin/passkey/register/start`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ email })
+                });
+
+                if (!startResp.ok) throw new Error('無法啟動 Passkey 註冊');
+
+                const options = await startResp.json();
+                const credential = await SimpleWebAuthnBrowser.startRegistration({ optionsJSON: options });
+
+                const finishResp = await fetch(`${API_BASE}/api/admin/passkey/register/finish`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ email, credential })
+                });
+
+                if (!finishResp.ok) throw new Error('Passkey 註冊失敗');
+
+                showNotification('Passkey 註冊成功！', 'success');
+                await checkPasskeyAvailable();
+            } catch (error) {
+                console.error('Passkey registration error:', error);
+                
+                // 友善的錯誤訊息（雙語）
+                let errorMsg = { zh: 'Passkey 註冊失敗', en: 'Passkey registration failed' };
+                if (error.name === 'NotAllowedError') {
+                    errorMsg = { zh: '您取消了 Passkey 註冊', en: 'Passkey registration cancelled' };
+                } else if (error.name === 'InvalidStateError') {
+                    errorMsg = { zh: 'Passkey 已存在，請直接使用登入', en: 'Passkey already exists, please login' };
+                } else if (error.name === 'NotSupportedError') {
+                    errorMsg = { zh: '您的瀏覽器不支援 Passkey', en: 'Your browser does not support Passkey' };
+                } else if (error.message) {
+                    errorMsg = { zh: error.message, en: error.message };
+                }
+                
+                if (error.name !== 'NotAllowedError') {
+                    showNotification(`${errorMsg.zh} / ${errorMsg.en}`, 'error');
+                }
+            }
+        }
+
+        async function loginWithPasskey() {
+            // 1. 按鈕 Loading 狀態
+            const passkeyBtn = document.querySelector('#passkey-login button');
+            const originalHTML = passkeyBtn.innerHTML;
+            passkeyBtn.disabled = true;
+            passkeyBtn.innerHTML = '<div class="w-4 h-4 border-2 border-slate-300 border-t-slate-700 rounded-full animate-spin"></div><span class="text-xs font-bold text-slate-700">驗證中...</span>';
+
+            try {
+                const startResp = await fetch(`${API_BASE}/api/admin/passkey/login/start`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                if (!startResp.ok) throw new Error('無法啟動 Passkey 登入');
+
+                const options = await startResp.json();
+                const credential = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: options });
+
+                const finishResp = await fetch(`${API_BASE}/api/admin/passkey/login/finish`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ credential })
+                });
+
+                if (!finishResp.ok) throw new Error('Passkey 登入失敗');
+
+                // Store CSRF token from response
+                const data = await finishResp.json();
+                if (data.data && data.data.csrfToken) {
+                    sessionStorage.setItem('csrfToken', data.data.csrfToken);
+                }
+
+                isVerified = true;
+
+                showNotification('Passkey 授權驗證成功', 'success');
+
+                // 2. 淡出登入表單
+                const tokenSection = document.getElementById('token-section');
+                tokenSection.style.transition = 'opacity 0.3s ease';
+                tokenSection.style.opacity = '0';
+
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                // 3. 顯示全屏 Loading
+                showLoadingOverlay('正在載入名片列表...', '驗證成功，正在準備您的工作區');
+
+                // 隱藏登入表單，顯示已授權狀態
+                tokenSection.classList.add('hidden');
+                tokenSection.style.opacity = '1';
+                document.getElementById('auth-status').classList.remove('hidden');
+                document.getElementById('admin-nav').classList.remove('hidden');
+
+                // 4. 載入名片列表（阻塞）
+                try {
+                    await loadCards();
+
+                    // 5. 成功 → 顯示內容
+                    document.getElementById('content-area').classList.remove('hidden');
+                    hideLoadingOverlay();
+
+                    switchTab('list');
+
+                    // 6. 背景載入次要資料（不阻塞）
+                    loadSystemHealth().catch(e => console.error(e));
+                    checkCDNHealth().catch(e => console.error(e));
+                    loadKekStatus().catch(e => console.error(e));
+
+                } catch (loadError) {
+                    // 7. 失敗 → 顯示錯誤 + 重試按鈕（阻塞）
+                    showLoadingError(loadError.message || '載入名片列表失敗');
+                }
+
+            } catch (error) {
+                console.error('Passkey login error:', error);
+                
+                // 友善的錯誤訊息（雙語）
+                let errorMsg = { zh: 'Passkey 登入失敗', en: 'Passkey login failed' };
+                if (error.name === 'NotAllowedError') {
+                    errorMsg = { zh: '您取消了 Passkey 驗證', en: 'Passkey verification cancelled' };
+                } else if (error.name === 'InvalidStateError') {
+                    errorMsg = { zh: '找不到已註冊的 Passkey，請先註冊', en: 'No registered Passkey found, please register first' };
+                } else if (error.name === 'NotSupportedError') {
+                    errorMsg = { zh: '您的瀏覽器不支援 Passkey', en: 'Your browser does not support Passkey' };
+                } else if (error.name === 'SecurityError') {
+                    errorMsg = { zh: '安全性錯誤，請確認網站使用 HTTPS', en: 'Security error, please ensure HTTPS is used' };
+                } else if (error.message) {
+                    errorMsg = { zh: error.message, en: error.message };
+                }
+                
+                if (error.name !== 'NotAllowedError') {
+                    showNotification(`${errorMsg.zh} / ${errorMsg.en}`, 'error');
+                }
+
+                // 隱藏 loading overlay（如果已顯示）
+                hideLoadingOverlay();
+
+                // 恢復按鈕狀態
+                passkeyBtn.disabled = false;
+                passkeyBtn.innerHTML = originalHTML;
+            }
+        }
+
+        async function verifyToken() {
+            const email = document.getElementById('admin-email').value.trim();
+            const token = document.getElementById('setup-token').value.trim();
+
+            if (!email || !token) {
+                showNotification('請輸入 Email 和 SETUP_TOKEN', 'error');
+                return;
+            }
+
+            // 1. 按鈕 Loading 狀態
+            const verifyBtn = document.getElementById('verify-btn');
+            const originalText = verifyBtn.textContent;
+            verifyBtn.classList.add('btn-loading');
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = '驗證中...';
+            verifyBtn.style.paddingLeft = '32px'; // 為 spinner 留空間
+
+            try {
+                // Call login API to set HttpOnly cookie
+                const response = await fetch(`${API_BASE}/api/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include', // Important: allows cookie
+                    body: JSON.stringify({ email, token })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || error.message || '驗證失敗');
+                }
+
+                // Store CSRF token from response
+                const data = await response.json();
+                if (data.data && data.data.csrfToken) {
+                    sessionStorage.setItem('csrfToken', data.data.csrfToken);
+                }
+
+                // Session token is now stored in HttpOnly cookie
+                isVerified = true;
+
+                showNotification('授權驗證成功', 'success');
+
+                // 2. 淡出登入表單
+                const tokenSection = document.getElementById('token-section');
+                tokenSection.style.transition = 'opacity 0.3s ease';
+                tokenSection.style.opacity = '0';
+
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                // 3. 顯示全屏 Loading
+                showLoadingOverlay('正在載入名片列表...', '驗證成功，正在準備您的工作區');
+
+                // 隱藏登入表單，顯示已授權狀態
+                tokenSection.classList.add('hidden');
+                tokenSection.style.opacity = '1'; // 重置 opacity
+                document.getElementById('auth-status').classList.remove('hidden');
+                document.getElementById('admin-nav').classList.remove('hidden');
+
+                // 4. 載入名片列表（阻塞）
+                try {
+                    await loadCards();
+
+                    // 5. 成功 → 顯示內容
+                    document.getElementById('content-area').classList.remove('hidden');
+                    hideLoadingOverlay();
+
+                    switchTab('list');
+
+                    // 6. 背景載入次要資料（不阻塞）
+                    loadSystemHealth().catch(e => console.error(e));
+                    checkCDNHealth().catch(e => console.error(e));
+                    loadKekStatus().catch(e => console.error(e));
+                    checkPasskeyAvailable().catch(e => console.error(e));
+
+                    // 非阻塞提示
+                    setTimeout(() => checkAndPromptPasskey(), 2000);
+
+                } catch (loadError) {
+                    // 7. 失敗 → 顯示錯誤 + 重試按鈕（阻塞）
+                    showLoadingError(loadError.message || '載入名片列表失敗');
+                }
+
+            } catch (error) {
+                console.error('Token verification error:', error);
+                showNotification('驗證失敗: ' + error.message, 'error');
+
+                // 隱藏 loading overlay（如果已顯示）
+                hideLoadingOverlay();
+
+                // 恢復按鈕狀態
+                verifyBtn.classList.remove('btn-loading');
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = originalText;
+                verifyBtn.style.paddingLeft = '';
+            }
+        }
+
+        // Load system health status
+        async function loadSystemHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+
+                if (!response.ok) {
+                    throw new Error('Health check failed');
+                }
+
+                const result = await response.json();
+                const health = result.data;
+
+                // Update API status
+                const apiEl = document.getElementById('health-api');
+                if (apiEl) {
+                    apiEl.textContent = health.status === 'ok' ? 'Operational' : 'Degraded';
+                    apiEl.className = health.status === 'ok' ? 'font-bold text-green-600' : 'font-bold text-red-600';
+                }
+
+                // Update Database status
+                const dbEl = document.getElementById('health-database');
+                if (dbEl) {
+                    dbEl.textContent = health.database === 'connected' ? 'Connected' : 'Disconnected';
+                    dbEl.className = health.database === 'connected' ? 'font-bold text-green-600' : 'font-bold text-red-600';
+                }
+
+                // Update KEK Version
+                const kekEl = document.getElementById('health-kek-version');
+                if (kekEl) {
+                    const version = health.kek_version;
+                    kekEl.textContent = version !== 'N/A' && typeof version === 'number' ? `v${version}` : 'N/A';
+                }
+
+                // Update Active Cards
+                const cardsEl = document.getElementById('health-active-cards');
+                if (cardsEl) {
+                    const count = health.active_cards;
+                    cardsEl.textContent = count !== 'N/A' && typeof count === 'number' ? count.toLocaleString() : 'N/A';
+                }
+
+            } catch (error) {
+                console.error('Failed to load system health:', error);
+
+                // Show N/A on error
+                const kekEl = document.getElementById('health-kek-version');
+                const cardsEl = document.getElementById('health-active-cards');
+
+                if (kekEl) kekEl.textContent = 'N/A';
+                if (cardsEl) cardsEl.textContent = 'N/A';
+            }
+        }
+
+        // Load KEK status monitoring
+        async function loadKekStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/kek/status`, {
+                    credentials: 'include'
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
+
+                if (!response.ok) throw new Error('Failed to load KEK status');
+
+                const result = await response.json();
+                const data = result.data;
+
+                // Update status badge
+                const statusBadge = document.getElementById('kek-status-badge');
+                const statusText = document.getElementById('kek-status-text');
+                const statusColors = {
+                    normal: { bg: 'bg-green-100', text: 'text-green-700', label: '正常' },
+                    reminder: { bg: 'bg-blue-100', text: 'text-blue-700', label: '提醒' },
+                    warning: { bg: 'bg-amber-100', text: 'text-amber-700', label: '警告' },
+                    urgent: { bg: 'bg-red-100', text: 'text-red-700', label: '緊急' }
+                };
+
+                const statusColor = statusColors[data.status];
+                if (statusBadge && statusColor) {
+                    statusBadge.className = `px-2 py-1 text-xs font-bold rounded-lg ${statusColor.bg} ${statusColor.text}`;
+                    statusBadge.textContent = statusColor.label;
+                }
+
+                if (statusText) {
+                    statusText.textContent = `已使用 ${data.days_active} 天 / 建議 ${data.recommendation.rotation_cycle_days} 天`;
+                }
+
+                // Update KEK info
+                const versionEl = document.getElementById('kek-version');
+                if (versionEl) {
+                    versionEl.textContent = `v${data.current_version}`;
+                }
+
+                const activatedEl = document.getElementById('kek-activated-at');
+                if (activatedEl) {
+                    const date = new Date(data.activated_at);
+                    activatedEl.textContent = date.toLocaleDateString('zh-TW');
+                }
+
+                const daysUntilEl = document.getElementById('kek-days-until');
+                if (daysUntilEl) {
+                    const days = data.recommendation.days_until_recommended;
+                    daysUntilEl.textContent = days >= 0 ? `${days} 天` : `已逾期 ${Math.abs(days)} 天`;
+                }
+
+                // Show warning toast if needed
+                if (data.status === 'reminder' || data.status === 'warning' || data.status === 'urgent') {
+                    const messages = {
+                        reminder: 'KEK 已使用超過 60 天，建議規劃輪替作業',
+                        warning: 'KEK 已使用超過 90 天，建議儘速輪替',
+                        urgent: 'KEK 已使用超過 120 天，請立即輪替'
+                    };
+                    showNotification(messages[data.status], data.status === 'urgent' ? 'error' : 'warning');
+                }
+
+            } catch (error) {
+                console.error('Failed to load KEK status:', error);
+            }
+        }
+
+        async function checkCDNHealth() {
+            const container = document.getElementById('cdn-health-container');
+            if (!container) return;
+
+            container.innerHTML = '<p class="text-sm text-slate-400">Checking...</p>';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/cdn-health`, {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) throw new Error('CDN health check failed');
+
+                const result = await response.json();
+                const resources = result.data.cdns;
+
+                // Group by type
+                const vendorResources = resources.filter(r => r.type === 'vendor');
+                const cdnResources = resources.filter(r => r.type === 'cdn');
+
+                let html = '';
+
+                // Vendor Resources Section
+                if (vendorResources.length > 0) {
+                    html += '<div class="mb-4"><p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2">Vendor Resources</p>';
+                    html += vendorResources.map(resource => `
+                        <div class="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100 mb-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-2 h-2 rounded-full ${resource.status === 'healthy' ? 'bg-green-500' : 'bg-red-500'}"></div>
+                                <div>
+                                    <p class="text-xs font-medium text-slate-900">${resource.name}</p>
+                                    <p class="text-[10px] text-slate-400">${resource.status === 'healthy' ? 'Available' : 'Failed'}</p>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-500">${resource.responseTime}ms</p>
+                        </div>
+                    `).join('');
+                    html += '</div>';
+                }
+
+                // External CDN Section
+                if (cdnResources.length > 0) {
+                    html += '<div><p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2">External CDN</p>';
+                    html += cdnResources.map(cdn => `
+                        <div class="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100 mb-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-2 h-2 rounded-full ${cdn.status === 'healthy' ? 'bg-green-500' : 'bg-red-500'}"></div>
+                                <div>
+                                    <p class="text-xs font-medium text-slate-900">${cdn.name}</p>
+                                    <p class="text-[10px] text-slate-400">${cdn.status === 'healthy' ? 'Operational' : 'Failed'}</p>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-500">${cdn.responseTime}ms</p>
+                        </div>
+                    `).join('');
+                    html += '</div>';
+                }
+
+                container.innerHTML = html;
+
+            } catch (error) {
+                console.error('Failed to check CDN health:', error);
+                container.innerHTML = '<p class="text-sm text-red-600">Failed to load resource status</p>';
+            }
+        }
+
+        function switchTab(tabId) {
+            if(!isVerified) return;
+            activeTab = tabId;
+            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`section-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+
+            if(tabId === 'list') loadCards();
+            if(tabId === 'security') initSecurityDashboard();
+            if(tabId === 'tools') {
+                loadSystemHealth();
+                checkCDNHealth();
+                loadKekStatus();
+            }
+            if(tabId === 'twin') {
+                loadTwinCards();
+            }
+
+            // 切換到創建 Tab 時，如果不是編輯模式，清空表單
+            if(tabId === 'create' && !window.editingCardUuid) {
+                cancelEdit();
+            }
+        }
+
+        // Show loading state with skeleton
+        function showLoadingState() {
+            const grid = document.getElementById('cards-grid');
+            grid.innerHTML = '';
+
+            // Create 3 skeleton cards
+            for (let i = 0; i < 3; i++) {
+                const skeletonCard = document.createElement('div');
+                skeletonCard.className = 'glass-surface p-6 rounded-2xl flex items-center gap-6';
+                skeletonCard.innerHTML = DOMPurify.sanitize(`
+                    <div class="skeleton" style="width: 56px; height: 56px; border-radius: 12px;"></div>
+                    <div class="flex-1 space-y-2">
+                        <div class="skeleton skeleton-text" style="width: 200px;"></div>
+                        <div class="skeleton skeleton-text" style="width: 300px;"></div>
+                        <div class="skeleton skeleton-text" style="width: 150px;"></div>
+                    </div>
+                    <div class="flex gap-2">
+                        <div class="skeleton skeleton-badge"></div>
+                        <div class="skeleton skeleton-badge"></div>
+                    </div>
+                `);
+                grid.appendChild(skeletonCard);
+            }
+        }
+
+        // Show empty state
+        function showEmptyState() {
+            const grid = document.getElementById('cards-grid');
+            grid.innerHTML = DOMPurify.sanitize(`
+                <div class="col-span-full text-center py-12">
+                    <i data-lucide="inbox" class="w-12 h-12 text-slate-300 mx-auto mb-4"></i>
+                    <p class="text-slate-400">尚無名片</p>
+                </div>
+            `);
+            safeInitIcons();
+        }
+
+        // Render cards list (Phase 2: XSS防護 - 使用 DOM API 而非 innerHTML)
+        function renderCardsList(cards) {
+            const grid = document.getElementById('cards-grid');
+
+            if (!cards || cards.length === 0) {
+                showEmptyState();
+                return;
+            }
+
+            // 清空列表
+            grid.innerHTML = '';
+
+            // 使用 DOM API 安全渲染每張卡片
+            cards.forEach(c => {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'glass-surface p-6 rounded-2xl flex flex-col lg:flex-row justify-between items-center gap-6 group hover:border-moda transition-all';
+
+                // 左側：資訊區
+                const infoSection = document.createElement('div');
+                infoSection.className = 'flex items-center gap-6 w-full lg:w-auto';
+
+                // 圖標
+                const iconDiv = document.createElement('div');
+                iconDiv.className = 'w-14 h-14 bg-slate-50 rounded-xl flex items-center justify-center text-moda opacity-60 group-hover:bg-moda group-hover:text-white transition-all';
+                iconDiv.innerHTML = DOMPurify.sanitize('<i data-lucide="user" class="w-6 h-6"></i>');
+                infoSection.appendChild(iconDiv);
+
+                // 文字資訊
+                const textDiv = document.createElement('div');
+
+                // 名稱與標籤行
+                const nameRow = document.createElement('div');
+                nameRow.className = 'flex items-center gap-3 mb-1';
+
+                const nameH3 = document.createElement('h3');
+                nameH3.className = 'font-black text-slate-800';
+                nameH3.textContent = `${c.data.name.zh} `;
+
+                const nameEnSpan = document.createElement('span');
+                nameEnSpan.className = 'text-xs font-medium text-slate-400 ml-1';
+                nameEnSpan.textContent = c.data.name.en;
+                nameH3.appendChild(nameEnSpan);
+
+                const typeBadge = document.createElement('span');
+                typeBadge.className = `badge badge-${c.card_type}`;
+                typeBadge.textContent = c.card_type;
+
+                const statusBadge = document.createElement('span');
+                statusBadge.className = `badge badge-${c.status}`;
+                statusBadge.textContent = c.status;
+
+                nameRow.appendChild(nameH3);
+                nameRow.appendChild(typeBadge);
+                nameRow.appendChild(statusBadge);
+
+                // Budget badge (only show if >=80%)
+                if (c.budget && c.budget.status !== 'normal') {
+                    const budgetBadge = document.createElement('span');
+                    budgetBadge.className = `badge badge-budget-${c.budget.status}`;
+                    budgetBadge.textContent = `${c.budget.percentage}%`;
+                    budgetBadge.title = `使用率 ${c.budget.percentage}%`;
+                    nameRow.appendChild(budgetBadge);
+                }
+
+                textDiv.appendChild(nameRow);
+
+                // 職稱與 Email
+                const titleP = document.createElement('p');
+                titleP.className = 'text-xs text-slate-500 font-bold uppercase tracking-tight';
+                titleP.textContent = `${c.data.title?.zh || ''} • ${c.data.email}`;
+                textDiv.appendChild(titleP);
+
+                // Budget usage (three dimensions)
+                if (c.budget) {
+                    const budgetP = document.createElement('p');
+                    budgetP.className = 'text-[10px] mt-1 flex items-center gap-2';
+
+                    // Calculate individual percentages
+                    const dailyPct = Math.round((c.budget.daily_used / c.budget.daily_limit) * 100);
+                    const monthlyPct = Math.round((c.budget.monthly_used / c.budget.monthly_limit) * 100);
+                    const totalPct = Math.round((c.budget.total_used / c.budget.total_limit) * 100);
+
+                    // Determine which dimension has the highest percentage (matches status)
+                    const maxPct = Math.max(dailyPct, monthlyPct, totalPct);
+
+                    // Helper function to get color class
+                    const getColorClass = (pct) => {
+                        if (pct >= 95) return 'text-red-600 font-bold';
+                        if (pct >= 80) return 'text-amber-600 font-bold';
+                        return 'text-slate-500';
+                    };
+
+                    // Daily
+                    const dailySpan = document.createElement('span');
+                    dailySpan.className = getColorClass(dailyPct);
+                    dailySpan.textContent = `今日 ${c.budget.daily_used}/${c.budget.daily_limit}`;
+
+                    // Monthly
+                    const monthlySpan = document.createElement('span');
+                    monthlySpan.className = getColorClass(monthlyPct);
+                    monthlySpan.textContent = `本月 ${c.budget.monthly_used}/${c.budget.monthly_limit}`;
+
+                    // Total
+                    const totalSpan = document.createElement('span');
+                    totalSpan.className = getColorClass(totalPct);
+                    totalSpan.textContent = `總計 ${c.budget.total_used}/${c.budget.total_limit}`;
+
+                    // Assemble with bullets
+                    budgetP.appendChild(dailySpan);
+
+                    const bullet1 = document.createElement('span');
+                    bullet1.className = 'text-slate-300';
+                    bullet1.textContent = '•';
+                    budgetP.appendChild(bullet1);
+
+                    budgetP.appendChild(monthlySpan);
+
+                    const bullet2 = document.createElement('span');
+                    bullet2.className = 'text-slate-300';
+                    bullet2.textContent = '•';
+                    budgetP.appendChild(bullet2);
+
+                    budgetP.appendChild(totalSpan);
+
+                    textDiv.appendChild(budgetP);
+                }
+
+                // UUID
+                const uuidP = document.createElement('p');
+                uuidP.className = 'text-[10px] font-mono text-slate-400 mt-2';
+                uuidP.textContent = `UUID: ${c.uuid}`;
+                textDiv.appendChild(uuidP);
+
+                infoSection.appendChild(textDiv);
+                cardDiv.appendChild(infoSection);
+
+                // 右側：操作按鈕（根據狀態顯示）
+                const actionDiv = document.createElement('div');
+                actionDiv.className = 'flex gap-2 w-full lg:w-auto border-t lg:border-none pt-4 lg:pt-0';
+
+                const viewBtn = createActionButton('查看', 'bg-slate-100 text-slate-600 hover:bg-moda hover:text-white', () => viewCard(c.uuid));
+                actionDiv.appendChild(viewBtn);
+
+                // v4.2.0: Reset budget button (icon button)
+                const resetBtn = document.createElement('button');
+                resetBtn.className = 'px-3 py-2 rounded-lg font-bold text-xs transition-all text-white';
+                resetBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+                resetBtn.title = '重置使用次數';
+                resetBtn.onclick = () => resetBudget(c.uuid);
+                resetBtn.innerHTML = DOMPurify.sanitize('<i data-lucide="refresh-cw" class="w-4 h-4"></i>');
+                actionDiv.appendChild(resetBtn);
+
+                if (c.status === 'revoked') {
+                    // Revoked 卡片：可查看、恢復、永久刪除
+                    const restoreBtn = createActionButton('恢復', 'bg-green-50 text-green-600 hover:bg-green-500 hover:text-white', () => confirmAction('restore', c.uuid));
+                    const permanentDeleteBtn = createActionButton('永久刪除', 'bg-red-50 text-red-600 hover:bg-red-500 hover:text-white', () => confirmAction('permanent_delete', c.uuid));
+                    actionDiv.appendChild(restoreBtn);
+                    actionDiv.appendChild(permanentDeleteBtn);
+                } else {
+                    // Bound 卡片：可編輯和撤銷
+                    const editBtn = createActionButton('編輯', 'bg-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white', () => editCard(c.uuid));
+                    const deleteBtn = createActionButton('撤銷', 'bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white', () => confirmAction('delete', c.uuid));
+                    actionDiv.appendChild(editBtn);
+                    actionDiv.appendChild(deleteBtn);
+                }
+
+                cardDiv.appendChild(actionDiv);
+                grid.appendChild(cardDiv);
+            });
+
+            safeInitIcons();
+        }
+
+        // Helper: 創建安全的操作按鈕
+        function createActionButton(text, className, onClick) {
+            const btn = document.createElement('button');
+            btn.className = `flex-1 lg:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all ${className}`;
+            btn.textContent = text;
+            btn.onclick = onClick;
+            return btn;
+        }
+
+        // Store all cards for search filtering
+        let allCards = [];
+
+        // Load cards from API (Phase 2: with credentials)
+        window.loadCards = async function() {
+            showLoadingState();
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/cards`, {
+                    credentials: 'include'
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    throw new Error('授權已過期，請重新登入');
+                }
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    const errorMsg = errorData.error || errorData.message || '載入失敗';
+                    showEmptyState();
+                    throw new Error(errorMsg);
+                }
+
+                const result = await response.json();
+                allCards = result.data.cards; // Store for search
+
+                renderCardsList(allCards);
+
+            } catch (error) {
+                console.error('Load cards error:', error);
+                showNotification('載入名片失敗: ' + error.message, 'error');
+                showEmptyState();
+                // 在初始載入時拋出錯誤以觸發阻塞 UI
+                throw error;
+            }
+        }
+
+        // Search cards
+        function searchCards(query) {
+            if (!query || query.trim() === '') {
+                renderCardsList(allCards);
+                return;
+            }
+
+            const lowerQuery = query.toLowerCase();
+            const filtered = allCards.filter(card => {
+                const nameZh = card.data.name?.zh?.toLowerCase() || '';
+                const nameEn = card.data.name?.en?.toLowerCase() || '';
+                const email = card.data.email?.toLowerCase() || '';
+                const titleZh = card.data.title?.zh?.toLowerCase() || '';
+                const titleEn = card.data.title?.en?.toLowerCase() || '';
+                const phone = card.data.phone || '';
+                const mobile = card.data.mobile || '';
+
+                return nameZh.includes(lowerQuery) ||
+                       nameEn.includes(lowerQuery) ||
+                       email.includes(lowerQuery) ||
+                       titleZh.includes(lowerQuery) ||
+                       titleEn.includes(lowerQuery) ||
+                       phone.includes(lowerQuery) ||
+                       mobile.includes(lowerQuery);
+            });
+
+            renderCardsList(filtered);
+        }
+
+        // Handle API errors (Phase 2: unified error handling with auto logout)
+        async function handleApiError(response, defaultMessage = '操作失敗') {
+            if (response.status === 401 || response.status === 403) {
+                handleAuthExpired();
+
+                // Clear verification state
+                isVerified = false;
+
+                // Call logout API to clear cookie
+                try {
+                    await fetch(`${API_BASE}/api/admin/logout`, {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                } catch (e) {
+                    console.error('Logout error:', e);
+                }
+
+                // Show login section
+                document.getElementById('auth-status').classList.add('hidden');
+                
+                // 重新檢查 Passkey 可用性
+                checkPasskeyAvailable().catch(e => console.error(e));
+
+                return true; // Handled
+            } else if (response.status === 404) {
+                showNotification('資源不存在或已刪除', 'error');
+                return true; // Handled
+            } else {
+                showNotification(defaultMessage, 'error');
+                return true; // Handled
+            }
+        }
+
+        async function viewCard(uuid) {
+            // Show loading notification
+            const loadingNotif = showNotification('正在開啟名片預覽...', 'info');
+            
+            try {
+                // 先 tap 獲取 session
+                const tapResponse = await fetch(`${API_BASE}/api/nfc/tap`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: getHeadersWithCSRF({
+                        'Content-Type': 'application/json'
+                    }),
+                    body: JSON.stringify({ card_uuid: uuid })
+                });
+
+                // v4.1.0 & v4.2.0: Handle rate_limited error
+                if (!tapResponse.ok) {
+                    const error = await tapResponse.json();
+                    const errorMsg = ERROR_MESSAGES[error.error?.code] || error.error?.message || '無法開啟預覽';
+                    // Remove loading notification
+                    if (loadingNotif && loadingNotif.parentNode) {
+                        loadingNotif.parentNode.removeChild(loadingNotif);
+                    }
+                    showNotification(errorMsg, 'error');
+                    return;
+                }
+
+                const result = await tapResponse.json();
+                const sessionId = result.data.session_id;
+
+                // Remove loading notification
+                if (loadingNotif && loadingNotif.parentNode) {
+                    loadingNotif.parentNode.removeChild(loadingNotif);
+                }
+
+                // 打開名片頁面（帶 session）
+                window.open(`./card-display?uuid=${uuid}&session=${sessionId}`, '_blank');
+
+            } catch (error) {
+                // Remove loading notification
+                if (loadingNotif && loadingNotif.parentNode) {
+                    loadingNotif.parentNode.removeChild(loadingNotif);
+                }
+                showNotification('查看失敗: ' + error.message, 'error');
+            }
+        }
+
+
+        // 構建名片資料（與 generator-api.js 一致）
+        function buildCardData(formData) {
+            const cardData = {
+                name: {
+                    zh: formData.name_zh,
+                    en: formData.name_en
+                },
+                email: formData.email
+            };
+
+            // 職稱（雙語）
+            if (formData.title_zh && formData.title_en) {
+                cardData.title = {
+                    zh: formData.title_zh,
+                    en: formData.title_en
+                };
+            }
+
+            // 部門
+            if (formData.department) {
+                cardData.department = formData.department;
+            }
+
+            // 公務電話
+            if (formData.phone) {
+                cardData.phone = formData.phone;
+            }
+
+            // 手機
+            if (formData.mobile) {
+                cardData.mobile = formData.mobile;
+            }
+
+            // 大頭貼
+            if (formData.avatar_url) {
+                cardData.avatar = formData.avatar_url;
+            }
+
+            // 地址（雙語）
+            if (formData.address) {
+                cardData.address = formData.address;
+            }
+
+            // 問候語（雙語）
+            const greetingsZh = formData.greetings_zh ? formData.greetings_zh.split('\n').filter(g => g.trim()) : [];
+            const greetingsEn = formData.greetings_en ? formData.greetings_en.split('\n').filter(g => g.trim()) : [];
+
+            if (greetingsZh.length > 0 && greetingsEn.length > 0) {
+                cardData.greetings = {
+                    zh: greetingsZh,
+                    en: greetingsEn
+                };
+            }
+
+            // 社群連結 - 從獨立輸入框收集（新格式）
+            const socialFields = ['social_github', 'social_linkedin', 'social_facebook', 
+                                 'social_instagram', 'social_twitter', 'social_youtube',
+                                 'social_line', 'social_signal'];
+            
+            socialFields.forEach(field => {
+                const input = document.getElementById(field);
+                if (input && input.value.trim()) {
+                    cardData[field] = input.value.trim();
+                }
+            });
+
+            return cardData;
+        }
+
+        // Create or Update Card
+        async function handleCreateCard(e) {
+            e.preventDefault();
+
+            const isEditing = !!window.editingCardUuid;
+
+            // 收集表單資料（完全對齊 nfc-generator）
+            // 處理部門欄位
+            const departmentPreset = document.getElementById('department-preset').value;
+            let departmentValue;
+
+            if (departmentPreset === 'custom') {
+                const zh = document.getElementById('department-custom-zh').value.trim();
+                const en = document.getElementById('department-custom-en').value.trim();
+
+                if (zh && en) {
+                    departmentValue = { zh, en };
+                } else if (zh) {
+                    departmentValue = zh;
+                } else if (en) {
+                    departmentValue = en;
+                } else {
+                    departmentValue = '';
+                }
+            } else {
+                departmentValue = departmentPreset;
+            }
+
+            const formData = {
+                name_zh: document.getElementById('name_zh').value.trim(),
+                name_en: document.getElementById('name_en').value.trim(),
+                title_zh: document.getElementById('title_zh').value.trim(),
+                title_en: document.getElementById('title_en').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                web: document.getElementById('web').value.trim(),
+                department: departmentValue,
+                mobile: document.getElementById('mobile').value.trim(),
+                avatar_url: document.getElementById('avatar_url').value.trim(),
+                greetings_zh: document.getElementById('greetings_zh').value,
+                greetings_en: document.getElementById('greetings_en').value,
+                social_note: SocialParser.collectFromInputs().text, // 從獨立輸入框收集
+                cardType: document.getElementById('card_type').value,
+                address: getAddressData()
+            };
+
+            // 安全驗證和清理
+            const validation = {
+                errors: []
+            };
+            
+            // 必填欄位驗證
+            if (!formData.name_zh || !formData.name_zh.trim()) {
+                validation.errors.push('中文姓名為必填');
+            }
+            if (!formData.name_en || !formData.name_en.trim()) {
+                validation.errors.push('英文姓名為必填');
+            }
+            if (!formData.title_zh || !formData.title_zh.trim()) {
+                validation.errors.push('中文職稱為必填');
+            }
+            if (!formData.title_en || !formData.title_en.trim()) {
+                validation.errors.push('英文職稱為必填');
+            }
+            
+            // Email 驗證
+            if (formData.email) {
+                if (!validateEmail(formData.email)) {
+                    validation.errors.push('Email 格式不正確');
+                }
+            } else {
+                validation.errors.push('Email 為必填');
+            }
+            
+            // 電話驗證
+            if (formData.phone && !validatePhone(formData.phone)) {
+                validation.errors.push('電話格式不正確');
+            }
+            if (formData.mobile && !validatePhone(formData.mobile)) {
+                validation.errors.push('手機格式不正確');
+            }
+            
+            // 大頭貼 URL 驗證
+            if (formData.avatar_url) {
+                const validAvatar = validateURL(formData.avatar_url);
+                if (!validAvatar) {
+                    validation.errors.push('大頭貼 URL 格式不正確');
+                } else {
+                    formData.avatar_url = validAvatar; // 使用清理後的 URL
+                }
+            }
+            
+            // 社群連結驗證
+            const socialFields = [
+                { field: 'social_github', platform: 'github', name: 'GitHub' },
+                { field: 'social_linkedin', platform: 'linkedin', name: 'LinkedIn' },
+                { field: 'social_facebook', platform: 'facebook', name: 'Facebook' },
+                { field: 'social_instagram', platform: 'instagram', name: 'Instagram' },
+                { field: 'social_twitter', platform: 'twitter', name: 'X/Twitter' },
+                { field: 'social_youtube', platform: 'youtube', name: 'YouTube' },
+                { field: 'social_line', platform: 'line', name: 'LINE' },
+                { field: 'social_signal', platform: 'signal', name: 'Signal' }
+            ];
+            
+            for (const { field, platform, name } of socialFields) {
+                const input = document.getElementById(field);
+                if (input && input.value.trim()) {
+                    const validURL = validateSocialURL(input.value, platform);
+                    if (!validURL) {
+                        validation.errors.push(`${name} 連結格式不正確或不是官方域名`);
+                    }
+                }
+            }
+            
+            // 如果有錯誤，顯示並停止
+            if (validation.errors.length > 0) {
+                showNotification(validation.errors.join('、'), 'error');
+                return;
+            }
+
+            // 文字清理（防止 XSS）
+            formData.name_zh = sanitizeText(formData.name_zh, 100);
+            formData.name_en = sanitizeText(formData.name_en, 100);
+            formData.title_zh = sanitizeText(formData.title_zh, 100);
+            formData.title_en = sanitizeText(formData.title_en, 100);
+            formData.email = formData.email.trim().toLowerCase();
+            if (formData.phone) formData.phone = formData.phone.trim();
+            if (formData.mobile) formData.mobile = formData.mobile.trim();
+
+            // 顯示 loading 狀態
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalBtnHTML = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = DOMPurify.sanitize('<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> 處理中...');
+            safeInitIcons();
+
+            // 構建 API 資料格式
+            const cardData = buildCardData(formData);
+            const cardType = formData.cardType;
+
+            try {
+                const url = isEditing
+                    ? `${API_BASE}/api/admin/cards/${window.editingCardUuid}`
+                    : `${API_BASE}/api/admin/cards`;
+
+                const method = isEditing ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        cardType: cardType,
+                        cardData: cardData
+                    })
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
+
+                if (!response.ok) {
+                    await handleApiError(response, '操作失敗');
+                    return;
+                }
+
+                const result = await response.json();
+                showNotification(
+                    isEditing ? '名片已更新' : '名片已創建',
+                    'success'
+                );
+
+                // 清除編輯狀態
+                window.editingCardUuid = null;
+
+                // 重置表單
+                document.getElementById('card-form').reset();
+                document.getElementById('custom-address-fields').classList.add('hidden');
+
+                // 更新 UI 為創建模式
+                updateEditModeUI(false);
+
+                // 重新載入名片列表
+                await loadCards();
+
+                // 切換到列表 Tab
+                switchTab('list');
+
+            } catch (error) {
+                console.error('Create/Update card error:', error);
+                showNotification('操作失敗: ' + error.message, 'error');
+            } finally {
+                // 恢復按鈕狀態
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = DOMPurify.sanitize(originalBtnHTML);
+                safeInitIcons();
+            }
+        }
+
+        // Delete Card
+        async function handleDeleteCard(uuid) {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}`, {
+                    method: 'DELETE',
+                    credentials: 'include',
+                    headers: getHeadersWithCSRF()
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
+
+                if (!response.ok) {
+                    await handleApiError(response, '撤銷失敗');
+                    return;
+                }
+
+                showNotification('名片已撤銷', 'success');
+                loadCards();
+
+            } catch (error) {
+                console.error('Revoke card error:', error);
+                showNotification('撤銷失敗: ' + error.message, 'error');
+            }
+        }
+
+        // Restore Card
+        async function handleRestoreCard(uuid) {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}/restore`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: getHeadersWithCSRF()
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
+
+                if (!response.ok) {
+                    await handleApiError(response, '恢復失敗');
+                    return;
+                }
+
+                showNotification('名片已恢復', 'success');
+                loadCards();
+
+            } catch (error) {
+                console.error('Restore card error:', error);
+                showNotification('恢復失敗: ' + error.message, 'error');
+            }
+        }
+
+        // v4.2.0: Reset Budget Function
+        async function resetBudget(uuid) {
+            if (!confirm('確定要重置此名片的使用次數嗎？\n\n此操作將：\n• 總使用次數歸零\n• 清除今日計數\n• 清除本月計數\n\n此操作無法撤銷。')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}/reset-budget`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: getHeadersWithCSRF({
+                        'Content-Type': 'application/json'
+                    })
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    const errorMsg = ERROR_MESSAGES[error.error?.code] || error.error?.message || '重置失敗';
+                    showNotification(errorMsg, 'error');
+                    return;
+                }
+
+                showNotification('使用次數已重置', 'success');
+                await loadCards();
+
+            } catch (error) {
+                console.error('Reset budget error:', error);
+                showNotification(error.message, 'error');
+            }
+        }
+
+        async function handlePermanentDelete(uuid) {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}?permanent=true`, {
+                    method: 'DELETE',
+                    credentials: 'include',
+                    headers: getHeadersWithCSRF()
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
+
+                if (!response.ok) {
+                    await handleApiError(response, '永久刪除失敗');
+                    return;
+                }
+
+                showNotification('名片已永久刪除', 'success');
+                loadCards();
+
+            } catch (error) {
+                console.error('Permanent delete error:', error);
+                showNotification('永久刪除失敗: ' + error.message, 'error');
+            }
+        }
+
+        function confirmAction(type, uuid = null) {
+            const modal = document.getElementById('confirm-modal');
+            const title = document.getElementById('modal-title');
+            const desc = document.getElementById('modal-desc');
+            const btn = document.getElementById('modal-confirm-btn');
+            const iconContainer = document.getElementById('modal-icon-container');
+
+            if(type === 'delete') {
+                title.innerText = "確認撤銷名片";
+                desc.innerText = "撤銷後使用者將無法編輯或使用此名片，但管理員可以恢復。";
+                iconContainer.className = "w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4";
+                iconContainer.innerHTML = '<i data-lucide="shield-alert" class="w-8 h-8 text-amber-600"></i>';
+                btn.className = "flex-1 px-6 py-4 bg-amber-600 text-white rounded-xl font-bold hover:bg-amber-700 transition-colors";
+                btn.onclick = async () => {
+                    closeModal();
+                    await handleDeleteCard(uuid);
+                };
+            } else if(type === 'permanent_delete') {
+                title.innerText = "【警告】確認永久刪除名片";
+                desc.innerText = "此操作將從資料庫永久刪除此名片，無法復原！請確認您真的要執行此操作。";
+                iconContainer.className = "w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4";
+                iconContainer.innerHTML = '<i data-lucide="alert-triangle" class="w-8 h-8 text-red-600"></i>';
+                btn.className = "flex-1 px-6 py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors";
+                btn.onclick = async () => {
+                    closeModal();
+                    await handlePermanentDelete(uuid);
+                };
+            } else if(type === 'restore') {
+                title.innerText = "確認恢復名片";
+                desc.innerText = "恢復後使用者將可以正常使用此名片。";
+                iconContainer.className = "w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4";
+                iconContainer.innerHTML = '<i data-lucide="check-circle" class="w-8 h-8 text-green-600"></i>';
+                btn.className = "flex-1 px-6 py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors";
+                btn.onclick = async () => {
+                    closeModal();
+                    await handleRestoreCard(uuid);
+                };
+            }
+
+            // Re-initialize Lucide icons
+            if (typeof lucide !== 'undefined') {
+                safeInitIcons();
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+        }
+        window.closeModal = closeModal;
+
+        function showRotationGuide() {
+            const modal = document.getElementById('rotation-guide-modal');
+            modal.classList.remove('hidden');
+            safeInitIcons();
+        }
+        window.showRotationGuide = showRotationGuide;
+
+        function closeRotationGuide() {
+            document.getElementById('rotation-guide-modal').classList.add('hidden');
+        }
+        window.closeRotationGuide = closeRotationGuide;
+
+        // Fill form with card data
+        function fillFormWithCardData(card) {
+            const data = card.data;
+
+            // 基本資訊
+            document.getElementById('name_zh').value = data.name?.zh || '';
+            document.getElementById('name_en').value = data.name?.en || '';
+            document.getElementById('title_zh').value = data.title?.zh || '';
+            document.getElementById('title_en').value = data.title?.en || '';
+            document.getElementById('email').value = data.email || '';
+
+            // 處理部門預設選項
+            const PRESET_DEPARTMENTS = [
+                '數位策略司', '數位政府司', '資源管理司', '韌性建設司',
+                '數位國際司', '資料創新司', '秘書處', '人事處',
+                '政風處', '主計處', '資訊處', '法制處',
+                '部長室', '政務次長室', '常務次長室', '主任秘書室'
+            ];
+
+            if (data.department) {
+                if (PRESET_DEPARTMENTS.includes(data.department)) {
+                    document.getElementById('department-preset').value = data.department;
+                    document.getElementById('custom-department-field').classList.add('hidden');
+                } else {
+                    // 自訂部門
+                    document.getElementById('department-preset').value = 'custom';
+                    document.getElementById('custom-department-field').classList.remove('hidden');
+
+                    if (typeof data.department === 'string') {
+                        document.getElementById('department-custom-zh').value = data.department;
+                        document.getElementById('department-custom-en').value = '';
+                    } else if (data.department && typeof data.department === 'object') {
+                        document.getElementById('department-custom-zh').value = data.department.zh || '';
+                        document.getElementById('department-custom-en').value = data.department.en || '';
+                    }
+                }
+            }
+
+            // 聯絡資訊
+            document.getElementById('phone').value = data.phone || '';
+            document.getElementById('web').value = data.web || '';
+
+            // 地址處理
+            if (data.address) {
+                // 檢查是否為預設地址
+                if (data.address.zh === ADDRESS_PRESETS.yanping.zh) {
+                    document.getElementById('address-preset').value = 'yanping';
+                } else if (data.address.zh === ADDRESS_PRESETS.shinkong.zh) {
+                    document.getElementById('address-preset').value = 'shinkong';
+                } else {
+                    // 自訂地址
+                    document.getElementById('address-preset').value = 'custom';
+                    document.getElementById('address_zh').value = data.address.zh || '';
+                    document.getElementById('address_en').value = data.address.en || '';
+                    document.getElementById('custom-address-fields').classList.remove('hidden');
+                }
+            }
+
+            // 進階資訊
+            document.getElementById('mobile').value = data.mobile || '';
+            document.getElementById('avatar_url').value = data.avatar_url || data.avatar || '';
+
+            // 問候語處理
+            if (data.greetings) {
+                const greetingsZh = Array.isArray(data.greetings.zh) ? data.greetings.zh.join('\n') : data.greetings.zh || '';
+                const greetingsEn = Array.isArray(data.greetings.en) ? data.greetings.en.join('\n') : data.greetings.en || '';
+                document.getElementById('greetings_zh').value = greetingsZh;
+                document.getElementById('greetings_en').value = greetingsEn;
+            }
+
+            // 社群連結 - 支援新舊格式
+            if (data.social_github) document.getElementById('social_github').value = data.social_github;
+            if (data.social_linkedin) document.getElementById('social_linkedin').value = data.social_linkedin;
+            if (data.social_facebook) document.getElementById('social_facebook').value = data.social_facebook;
+            if (data.social_instagram) document.getElementById('social_instagram').value = data.social_instagram;
+            if (data.social_twitter) document.getElementById('social_twitter').value = data.social_twitter;
+            if (data.social_youtube) document.getElementById('social_youtube').value = data.social_youtube;
+            if (data.social_line) document.getElementById('social_line').value = data.social_line;
+            if (data.social_signal) document.getElementById('social_signal').value = data.social_signal;
+
+            // 向後相容：舊格式 socialLinks.socialNote
+            if (data.socialLinks?.socialNote && !data.social_github) {
+                const lines = data.socialLinks.socialNote.split('\n');
+                lines.forEach(line => {
+                    const lower = line.toLowerCase();
+                    if (lower.includes('github.com')) document.getElementById('social_github').value = line.trim();
+                    else if (lower.includes('linkedin.com')) document.getElementById('social_linkedin').value = line.trim();
+                    else if (lower.includes('facebook.com') || lower.includes('fb.com')) document.getElementById('social_facebook').value = line.trim();
+                    else if (lower.includes('instagram.com')) document.getElementById('social_instagram').value = line.trim();
+                    else if (lower.includes('twitter.com') || lower.includes('x.com')) document.getElementById('social_twitter').value = line.trim();
+                    else if (lower.includes('youtube.com') || lower.includes('youtu.be')) document.getElementById('social_youtube').value = line.trim();
+                    else if (lower.includes('line.me')) document.getElementById('social_line').value = line.trim();
+                    else if (lower.includes('signal.me') || lower.includes('signal.group')) document.getElementById('social_signal').value = line.trim();
+                });
+            }
+
+            // 名片類型
+            document.getElementById('card_type').value = card.card_type;
+
+            // 更新預覽
+            updatePreview();
+        }
+
+        // Edit card
+        async function editCard(uuid) {
+            // 1. 先設定編輯狀態（避免 switchTab 誤判）
+            window.editingCardUuid = uuid;
+            
+            // 2. 立即切換 Tab（使用者立即看到反應）
+            switchTab('create');
+            
+            // 3. 更新 UI 為編輯模式
+            updateEditModeUI(true);
+            
+            // 4. 顯示載入狀態
+            const formElements = document.querySelectorAll('#card-form input, #card-form select, #card-form textarea');
+            formElements.forEach(el => el.disabled = true);
+            showNotification('載入名片資料中...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/cards/${uuid}`, {
+                    credentials: 'include'
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
+
+                if (!response.ok) {
+                    await handleApiError(response, '載入失敗');
+                    cancelEdit(); // 失敗時取消編輯
+                    return;
+                }
+
+                const result = await response.json();
+                const card = result.data;
+
+                // 5. 預填表單
+                fillFormWithCardData(card);
+                
+                // 6. 恢復表單可用
+                formElements.forEach(el => el.disabled = false);
+                showNotification('載入完成', 'success');
+
+            } catch (error) {
+                console.error('Edit card error:', error);
+                showNotification('載入名片失敗: ' + error.message, 'error');
+                formElements.forEach(el => el.disabled = false);
+                cancelEdit();
+            }
+        }
+
+        // Cancel editing
+        function cancelEdit() {
+            // 清除編輯狀態
+            window.editingCardUuid = null;
+
+            // 重置表單
+            document.getElementById('card-form').reset();
+            document.getElementById('custom-address-fields').classList.add('hidden');
+
+            // 更新 UI 為創建模式
+            updateEditModeUI(false);
+
+            // 更新預覽
+            updatePreview();
+        }
+
+        // Update UI for edit mode
+        function updateEditModeUI(isEditing) {
+            const submitBtn = document.querySelector('#card-form button[type="submit"]');
+            const cancelBtn = document.getElementById('cancel-edit-btn');
+
+            if (isEditing) {
+                submitBtn.innerHTML = DOMPurify.sanitize('<i data-lucide="save" class="w-5 h-5"></i> 更新名片');
+                if (cancelBtn) {
+                    cancelBtn.classList.remove('hidden');
+                }
+            } else {
+                submitBtn.innerHTML = DOMPurify.sanitize('<i data-lucide="zap" class="w-5 h-5"></i> 簽發數位名片');
+                if (cancelBtn) {
+                    cancelBtn.classList.add('hidden');
+                }
+            }
+
+            safeInitIcons();
+        }
+
+        // Department mapping for preview (same as main.js)
+        const ORG_DEPT_MAPPING = {
+            departments: {
+                '數位策略司': 'Department of Digital Strategy',
+                '數位政府司': 'Department of Digital Service',
+                '資源管理司': 'Department of Resource Management',
+                '韌性建設司': 'Department of Communications and Cyber Resilience',
+                '數位國際司': 'Department of International Cooperation',
+                '資料創新司': 'Department of Data Innovation',
+                '秘書處': 'Secretariat',
+                '人事處': 'Department of Personnel',
+                '政風處': 'Department of Civil Service Ethics',
+                '主計處': 'Department of Budget, Accounting and Statistics',
+                '資訊處': 'Department of Information Management',
+                '法制處': 'Department of Legal Affairs',
+                '部長室': "Minister's Office",
+                '政務次長室': "Deputy Minister's Office",
+                '常務次長室': "Administrative Deputy Minister's Office",
+                '主任秘書室': "Secretary-General's Office"
+            }
+        };
+
+        function updatePreview() {
+            const isEn = previewLang === 'en';
+            const name = isEn ? document.getElementById('name_en').value || "John Smith" : document.getElementById('name_zh').value || "王小明";
+            const title = isEn ? document.getElementById('title_en').value || "Minister" : document.getElementById('title_zh').value || "部長";
+
+            // 問候語處理
+            const greetingInput = isEn ? document.getElementById('greetings_en').value : document.getElementById('greetings_zh').value;
+            const greet = greetingInput.split('\n').filter(g => g.trim())[0] || "";
+
+            const email = document.getElementById('email').value || "---";
+            const phone = document.getElementById('phone').value || "---";
+            const avatar = document.getElementById('avatar_url').value || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80";
+            
+            // 從獨立輸入框收集社群連結
+            const socialData = SocialParser.collectFromInputs();
+            const socialText = socialData.text;
+
+            document.getElementById('prev-name').innerText = name;
+
+            // Title (conditional display - align with card-display)
+            const titleElement = document.getElementById('prev-title');
+            const titleZh = document.getElementById('title_zh').value;
+            const titleEn = document.getElementById('title_en').value;
+            if (title && title !== "部長" && title !== "Minister") {
+                titleElement.style.display = 'block';
+                titleElement.innerText = title;
+            } else if (!titleZh && !titleEn) {
+                titleElement.style.display = 'none';
+            } else {
+                titleElement.style.display = 'block';
+                titleElement.innerText = title;
+            }
+
+            // Department (conditional display with bilingual support)
+            const departmentPreset = document.getElementById('department-preset').value;
+            let deptValue;
+
+            if (departmentPreset === 'custom') {
+                const zh = document.getElementById('department-custom-zh').value.trim();
+                const en = document.getElementById('department-custom-en').value.trim();
+
+                if (zh && en) {
+                    deptValue = { zh, en };
+                } else if (zh) {
+                    deptValue = zh;
+                } else if (en) {
+                    deptValue = en;
+                }
+            } else if (departmentPreset) {
+                deptValue = departmentPreset;
+            }
+
+            const deptElement = document.getElementById('prev-department');
+            if (deptValue) {
+                let deptText;
+
+                // Handle bilingual object
+                if (typeof deptValue === 'object' && deptValue !== null) {
+                    deptText = isEn ? (deptValue.en || deptValue.zh || '') : (deptValue.zh || deptValue.en || '');
+                }
+                // Handle string (preset or single language)
+                else if (typeof deptValue === 'string') {
+                    // Use ORG_DEPT_MAPPING for preset departments
+                    if (isEn && ORG_DEPT_MAPPING.departments[deptValue]) {
+                        deptText = ORG_DEPT_MAPPING.departments[deptValue];
+                    } else {
+                        deptText = deptValue;
+                    }
+                }
+
+                if (deptText) {
+                    deptElement.style.display = 'flex';
+                    document.getElementById('prev-department-text').innerText = deptText;
+                } else {
+                    deptElement.style.display = 'none';
+                }
+            } else {
+                deptElement.style.display = 'none';
+            }
+
+            // 問候語區塊條件顯示
+            const greetingSection = document.getElementById('prev-greeting-section');
+            if (greet) {
+                greetingSection.classList.remove('hidden');
+                document.getElementById('prev-greeting').innerText = greet;
+            } else {
+                greetingSection.classList.add('hidden');
+            }
+
+            document.getElementById('prev-email').innerText = email;
+            document.getElementById('prev-phone').innerText = phone;
+
+            // Web (官網連結) - conditional display
+            const web = document.getElementById('web')?.value || '';
+            const webContainer = document.getElementById('prev-web-container');
+            if (web && web.trim()) {
+                webContainer.style.display = 'flex';
+                document.getElementById('prev-web').innerText = web;
+            } else {
+                webContainer.style.display = 'none';
+            }
+
+            // Mobile (手機) - conditional display
+            const mobile = document.getElementById('mobile')?.value || '';
+            const mobileContainer = document.getElementById('prev-mobile-container');
+            if (mobile && mobile.trim()) {
+                mobileContainer.style.display = 'flex';
+                document.getElementById('prev-mobile').innerText = mobile;
+            } else {
+                mobileContainer.style.display = 'none';
+            }
+
+            // 大頭貼處理 - 支援 Google Drive URL 轉換
+            let avatarUrl = avatar;
+            const driveMatch = avatarUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^\/\?&]+)/);
+            if (driveMatch) {
+                const fileId = driveMatch[1];
+                avatarUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
+            }
+            
+            const prevAvatar = document.getElementById('prev-avatar');
+            prevAvatar.src = avatarUrl;
+            prevAvatar.onerror = function() {
+                console.warn('Preview avatar failed to load:', avatarUrl);
+                this.src = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80';
+            };
+
+            // 地址預覽
+            const addressData = getAddressData();
+            const addressText = addressData
+                ? (previewLang === 'zh' ? (addressData.zh || '---') : (addressData.en || '---'))
+                : '---';
+
+            document.getElementById('prev-address').innerText = addressText;
+
+            // 社群解析與渲染
+            const icons = SocialParser.parse(socialText);
+            const cluster = document.getElementById('prev-social-cluster');
+            cluster.innerHTML = '';
+            icons.forEach(icon => {
+                const node = document.createElement('div');
+                node.className = "social-chip-prev";
+
+                // LINE 和 Signal 使用 SVG，其他使用 Lucide
+                if (icon === 'line') {
+                    node.innerHTML = DOMPurify.sanitize(`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>`);
+                } else if (icon === 'signal') {
+                    node.innerHTML = DOMPurify.sanitize(`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0q-.934 0-1.83.139l.17 1.111a11 11 0 0 1 3.32 0l.172-1.111A12 12 0 0 0 12 0M9.152.34A12 12 0 0 0 5.77 1.742l.584.961a10.8 10.8 0 0 1 3.066-1.27zm5.696 0-.268 1.094a10.8 10.8 0 0 1 3.066 1.27l.584-.962A12 12 0 0 0 14.848.34M12 2.25a9.75 9.75 0 0 0-8.539 14.459c.074.134.1.292.064.441l-1.013 4.338 4.338-1.013a.62.62 0 0 1 .441.064A9.7 9.7 0 0 0 12 21.75c5.385 0 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25m-7.092.068a12 12 0 0 0-2.59 2.59l.909.664a11 11 0 0 1 2.345-2.345zm14.184 0-.664.909a11 11 0 0 1 2.345 2.345l.909-.664a12 12 0 0 0-2.59-2.59M1.742 5.77A12 12 0 0 0 .34 9.152l1.094.268a10.8 10.8 0 0 1 1.269-3.066zm20.516 0-.961.584a10.8 10.8 0 0 1 1.27 3.066l1.093-.268a12 12 0 0 0-1.402-3.383M.138 10.168A12 12 0 0 0 0 12q0 .934.139 1.83l1.111-.17A11 11 0 0 1 1.125 12q0-.848.125-1.66zm23.723.002-1.111.17q.125.812.125 1.66c0 .848-.042 1.12-.125 1.66l1.111.172a12.1 12.1 0 0 0 0-3.662M1.434 14.58l-1.094.268a12 12 0 0 0 .96 2.591l-.265 1.14 1.096.255.36-1.539-.188-.365a10.8 10.8 0 0 1-.87-2.35m21.133 0a10.8 10.8 0 0 1-1.27 3.067l.962.584a12 12 0 0 0 1.402-3.383zm-1.793 3.848a11 11 0 0 1-2.345 2.345l.664.909a12 12 0 0 0 2.59-2.59zm-19.959 1.1L.357 21.48a1.8 1.8 0 0 0 2.162 2.161l1.954-.455-.256-1.095-1.953.455a.675.675 0 0 1-.81-.81l.454-1.954zm16.832 1.769a10.8 10.8 0 0 1-3.066 1.27l.268 1.093a12 12 0 0 0 3.382-1.402zm-10.94.213-1.54.36.256 1.095 1.139-.266c.814.415 1.683.74 2.591.961l.268-1.094a10.8 10.8 0 0 1-2.35-.869zm3.634 1.24-.172 1.111a12.1 12.1 0 0 0 3.662 0l-.17-1.111q-.812.125-1.66.125a11 11 0 0 1-1.66-.125"/></svg>`);
+                } else {
+                    node.innerHTML = DOMPurify.sanitize(`<i data-lucide="${icon}" class="w-4 h-4"></i>`);
+                }
+
+                cluster.appendChild(node);
+            });
+            safeInitIcons();
+        }
+
+
+        // 初始化安全監控儀表板
+        function initSecurityDashboard() {
+            loadMonitoringData();
+            loadSecurityStats();
+            loadSecurityTimeline(24);
+            loadSecurityEvents(1);
+
+            // 清除舊的自動刷新間隔
+            if (securityStatsInterval) {
+                clearInterval(securityStatsInterval);
+            }
+
+            // 每 60 秒刷新統計
+            securityStatsInterval = setInterval(() => {
+                loadMonitoringData();
+                loadSecurityStats();
+            }, 60000);
+        }
+
+        // 載入監控數據
+        async function loadMonitoringData() {
+            try {
+                const [health, overview] = await Promise.all([
+                    fetch('/api/admin/monitoring/health', { credentials: 'include' }).then(r => r.json()),
+                    fetch('/api/admin/monitoring/overview', { credentials: 'include' }).then(r => r.json())
+                ]);
+
+                // Update health status
+                updateHealthStatus('db', health.checks.database);
+                updateHealthStatus('r2', health.checks.r2);
+                updateHealthStatus('kv', health.checks.kv);
+
+                // Update upload stats
+                document.getElementById('upload-total').textContent = overview.upload.total;
+                document.getElementById('upload-success').textContent = overview.upload.success;
+                document.getElementById('upload-failed').textContent = overview.upload.failed;
+                document.getElementById('upload-rate').textContent = overview.upload.success_rate.toFixed(1) + '%';
+
+                // Update read stats
+                document.getElementById('read-total').textContent = overview.read.total;
+                document.getElementById('read-success').textContent = overview.read.success;
+                document.getElementById('read-failed').textContent = overview.read.failed;
+                document.getElementById('read-rate').textContent = overview.read.success_rate.toFixed(1) + '%';
+
+                // Load Web Vitals
+                loadWebVitals();
+
+            } catch (error) {
+                console.error('Failed to load monitoring data:', error);
+            }
+        }
+
+        // 門檻值顏色判定
+        function getVitalColor(metric, value) {
+            if (value === null || value === undefined) return 'text-slate-400';
+            if (metric === 'lcp') {
+                return value < 2500 ? 'text-green-600' : value < 4000 ? 'text-yellow-500' : 'text-red-600';
+            } else if (metric === 'inp') {
+                return value < 200 ? 'text-green-600' : value < 500 ? 'text-yellow-500' : 'text-red-600';
+            } else if (metric === 'cls') {
+                return value < 0.1 ? 'text-green-600' : value < 0.25 ? 'text-yellow-500' : 'text-red-600';
+            } else if (metric === 'fcp') {
+                return value < 1800 ? 'text-green-600' : 'text-slate-600';
+            } else if (metric === 'card_content_ready') {
+                return value < 1500 ? 'text-green-600' : 'text-slate-600';
+            }
+            return 'text-slate-600';
+        }
+
+        // 載入 Web Vitals 統計
+        async function loadWebVitals() {
+            try {
+                const response = await fetch('/api/admin/analytics/vitals', {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const stats = data.data || data;
+
+                    const metrics = ['lcp', 'inp', 'cls', 'fcp', 'card_content_ready'];
+                    metrics.forEach(metric => {
+                        const el = document.getElementById(`vitals-${metric}`);
+                        if (!el) return;
+                        const value = stats ? stats[metric] : null;
+                        if (value !== null && value !== undefined) {
+                            el.textContent = metric === 'cls'
+                                ? value.toFixed(3)
+                                : `${Math.round(value)}ms`;
+                            el.className = `text-2xl font-black ${getVitalColor(metric, metric === 'cls' ? value : Math.round(value))}`;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load Web Vitals:', error);
+            }
+        }
+
+        function updateHealthStatus(service, check) {
+            const statusEl = document.getElementById(`health-${service}-status`);
+            const latencyEl = document.getElementById(`health-${service}-latency`);
+            
+            if (check.status === 'ok') {
+                statusEl.textContent = '●';
+                statusEl.className = 'text-xs font-bold text-green-600';
+                latencyEl.textContent = check.latency + ' ms';
+            } else {
+                statusEl.textContent = '●';
+                statusEl.className = 'text-xs font-bold text-red-600';
+                latencyEl.textContent = 'Error';
+            }
+        }
+
+        // 載入安全統計
+        async function loadSecurityStats() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/security/stats`, {
+                    credentials: 'include'
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
+
+                if (!response.ok) {
+                    await handleApiError(response, '載入統計失敗');
+                    return;
+                }
+
+                const result = await response.json();
+                const stats = result.data;
+
+                // 更新統計卡片
+                document.getElementById('stat-total').textContent = stats.last24h.total_events.toLocaleString();
+                document.getElementById('stat-blocked').textContent = stats.last24h.blocked_attempts.toLocaleString();
+                document.getElementById('stat-suspicious').textContent = stats.last24h.suspicious_ips.toLocaleString();
+                document.getElementById('stat-ratelimit').textContent = stats.last24h.rate_limit_hits.toLocaleString();
+
+                // 更新 Top 5 IPs
+                const topIPsList = document.getElementById('top-ips-list');
+                topIPsList.innerHTML = '';
+
+                if (stats.top_ips && stats.top_ips.length > 0) {
+                    stats.top_ips.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'flex justify-between items-center p-2 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer transition-all';
+                        div.onclick = () => loadIPDetail(item.ip);
+
+                        const ipSpan = document.createElement('span');
+                        ipSpan.className = 'text-xs font-bold text-slate-700';
+                        ipSpan.textContent = item.ip;
+
+                        const countSpan = document.createElement('span');
+                        countSpan.className = 'text-xs font-bold text-moda';
+                        countSpan.textContent = item.count;
+
+                        div.appendChild(ipSpan);
+                        div.appendChild(countSpan);
+                        topIPsList.appendChild(div);
+                    });
+                } else {
+                    topIPsList.innerHTML = DOMPurify.sanitize('<p class="text-xs text-slate-400">No data</p>');
+                }
+
+            } catch (error) {
+                console.error('Load security stats error:', error);
+                showNotification('載入統計失敗: ' + error.message, 'error');
+            }
+        }
+
+        // 載入安全時間軸
+        async function loadSecurityTimeline(hours) {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/security/timeline?hours=${hours}`, {
+                    credentials: 'include'
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
+
+                if (!response.ok) {
+                    await handleApiError(response, '載入時間軸失敗');
+                    return;
+                }
+
+                const result = await response.json();
+                const timeline = result.data.timeline;
+
+                // 準備圖表資料
+                const labels = timeline.map(t => {
+                    const date = new Date(t.hour);
+                    return date.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+                });
+
+                const totalData = timeline.map(t => t.total);
+                const rateLimitData = timeline.map(t => t.rate_limit);
+                const suspiciousData = timeline.map(t => t.suspicious);
+
+                // 銷毀舊圖表
+                if (timelineChart) {
+                    timelineChart.destroy();
+                }
+
+                // 創建新圖表
+                const ctx = document.getElementById('timeline-chart').getContext('2d');
+                timelineChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Total',
+                                data: totalData,
+                                borderColor: '#6868ac',
+                                backgroundColor: 'rgba(104, 104, 172, 0.1)',
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Rate Limit',
+                                data: rateLimitData,
+                                borderColor: '#ef4444',
+                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Suspicious',
+                                data: suspiciousData,
+                                borderColor: '#f59e0b',
+                                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                tension: 0.4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'bottom'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('Load security timeline error:', error);
+                showNotification('載入時間軸失敗: ' + error.message, 'error');
+            }
+        }
+
+        // 載入安全事件列表
+        async function loadSecurityEvents(page = 1, eventType = '') {
+            currentEventPage = page;
+            currentEventType = eventType;
+
+            try {
+                let url = `${API_BASE}/api/admin/security/events?page=${page}&limit=20`;
+                if (eventType) {
+                    url += `&event_type=${eventType}`;
+                }
+
+                const response = await fetch(url, {
+                    credentials: 'include'
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
+
+                if (!response.ok) {
+                    await handleApiError(response, '載入事件失敗');
+                    return;
+                }
+
+                const result = await response.json();
+                const events = result.data.events;
+                const pagination = result.data.pagination;
+
+                // 更新表格
+                const tbody = document.getElementById('events-table-body');
+                tbody.innerHTML = '';
+
+                if (events && events.length > 0) {
+                    events.forEach(event => {
+                        const tr = document.createElement('tr');
+                        tr.className = 'hover:bg-slate-50 transition-all';
+
+                        const eventDate = new Date(event.created_at);
+                        const timeStr = eventDate.toLocaleString('zh-TW');
+
+                        // Parse details JSON if it's a string
+                        let details = {};
+                        try {
+                            details = typeof event.details === 'string' ? JSON.parse(event.details) : event.details;
+                        } catch (e) {
+                            details = {};
+                        }
+
+                        tr.innerHTML = DOMPurify.sanitize(`
+                            <td class="px-4 py-3 text-xs font-mono text-slate-500">#${event.id}</td>
+                            <td class="px-4 py-3">
+                                <span class="badge ${getEventTypeBadgeClass(event.event_type)}">${event.event_type}</span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <button data-action="loadIPDetail" data-ip="${event.ip}" class="text-xs font-bold text-moda hover:underline">${event.ip}</button>
+                            </td>
+                            <td class="px-4 py-3 text-xs text-slate-600">${event.endpoint || details.path || 'N/A'}</td>
+                            <td class="px-4 py-3 text-xs text-slate-500 truncate max-w-xs">${event.user_agent || 'unknown'}</td>
+                            <td class="px-4 py-3 text-xs text-slate-500">${timeStr}</td>
+                        `, { ADD_ATTR: ['data-action', 'data-ip'] });
+
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    tbody.innerHTML = DOMPurify.sanitize('<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">No events found</td></tr>');
+                }
+
+                // 更新分頁按鈕
+                const prevBtn = document.getElementById('events-prev-btn');
+                const nextBtn = document.getElementById('events-next-btn');
+                const pageInfo = document.getElementById('events-page-info');
+
+                prevBtn.disabled = page <= 1;
+                nextBtn.disabled = page >= pagination.total_pages;
+                pageInfo.textContent = `Page ${page} of ${pagination.total_pages}`;
+
+            } catch (error) {
+                console.error('Load security events error:', error);
+                showNotification('載入事件失敗: ' + error.message, 'error');
+            }
+        }
+
+        // 取得事件類型 Badge 樣式
+        function getEventTypeBadgeClass(type) {
+            const typeMap = {
+                'rate_limit': 'badge-event',
+                'suspicious_activity': 'badge-sensitive',
+                'blocked_ip': 'badge-suspended'
+            };
+            return typeMap[type] || 'badge-personal';
+        }
+
+        // 截斷字串
+        function truncate(str, len) {
+            return str.length > len ? str.substring(0, len) + '...' : str;
+        }
+
+        // 封鎖 IP
+        async function handleBlockIP(e) {
+            e.preventDefault();
+
+            const ip = document.getElementById('block-ip').value.trim();
+            const duration = parseInt(document.getElementById('block-duration').value);
+            const reason = document.getElementById('block-reason').value.trim();
+
+            if (!ip) {
+                showNotification('請輸入 IP 地址', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/security/block`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: getHeadersWithCSRF({
+                        'Content-Type': 'application/json'
+                    }),
+                    body: JSON.stringify({
+                        ip: ip,
+                        duration: duration,
+                        reason: reason || 'Manual block'
+                    })
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
+
+                if (!response.ok) {
+                    await handleApiError(response, '封鎖失敗');
+                    return;
+                }
+
+                showNotification('IP 已封鎖', 'success');
+
+                // 重置表單
+                document.getElementById('block-ip-form').reset();
+
+                // 刷新統計和事件
+                loadSecurityStats();
+                loadSecurityEvents(currentEventPage, currentEventType);
+
+            } catch (error) {
+                console.error('Block IP error:', error);
+                showNotification('封鎖失敗: ' + error.message, 'error');
+            }
+        }
+
+        // 解除封鎖 IP
+        async function handleUnblockIP() {
+            const ip = currentIPAddress;
+
+            if (!ip) {
+                showNotification('無效的 IP 地址', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/security/block/${encodeURIComponent(ip)}`, {
+                    method: 'DELETE',
+                    credentials: 'include',
+                    headers: getHeadersWithCSRF()
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
+
+                if (!response.ok) {
+                    await handleApiError(response, '解除封鎖失敗');
+                    return;
+                }
+
+                showNotification('IP 已解除封鎖', 'success');
+
+                // 關閉 Modal 並刷新資料
+                closeIPDetailModal();
+                loadSecurityStats();
+                loadSecurityEvents(currentEventPage, currentEventType);
+
+            } catch (error) {
+                console.error('Unblock IP error:', error);
+                showNotification('解除封鎖失敗: ' + error.message, 'error');
+            }
+        }
+
+        // 載入 IP 詳情
+        async function loadIPDetail(ip) {
+            currentIPAddress = ip;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/security/ip/${encodeURIComponent(ip)}`, {
+                    credentials: 'include'
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
+
+                if (!response.ok) {
+                    await handleApiError(response, '載入 IP 詳情失敗');
+                    return;
+                }
+
+                const result = await response.json();
+                const data = result.data;
+
+                // 更新 Modal 內容
+                document.getElementById('ip-detail-address').textContent = data.ip;
+                document.getElementById('ip-detail-status').textContent = data.is_blocked ? 'Blocked' : 'Active';
+                document.getElementById('ip-detail-status').className = data.is_blocked
+                    ? 'font-bold text-sm text-red-600'
+                    : 'font-bold text-sm text-green-600';
+
+                document.getElementById('ip-detail-total').textContent = data.total_events.toLocaleString();
+
+                const firstDate = new Date(data.first_seen);
+                const lastDate = new Date(data.last_seen);
+                document.getElementById('ip-detail-first').textContent = firstDate.toLocaleString('zh-TW');
+                document.getElementById('ip-detail-last').textContent = lastDate.toLocaleString('zh-TW');
+
+                // 顯示/隱藏解除封鎖按鈕
+                const unblockSection = document.getElementById('ip-detail-unblock-section');
+                if (data.is_blocked) {
+                    unblockSection.classList.remove('hidden');
+                } else {
+                    unblockSection.classList.add('hidden');
+                }
+
+                // 繪製圓餅圖
+                const eventTypes = data.event_types || {};
+                const labels = Object.keys(eventTypes);
+                const values = Object.values(eventTypes);
+
+                if (ipDetailChart) {
+                    ipDetailChart.destroy();
+                }
+
+                const ctx = document.getElementById('ip-detail-chart').getContext('2d');
+                ipDetailChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: [
+                                '#6868ac',
+                                '#ef4444',
+                                '#f59e0b',
+                                '#10b981',
+                                '#3b82f6'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+
+                // 顯示 Modal
+                document.getElementById('ip-detail-modal').classList.remove('hidden');
+                safeInitIcons();
+
+            } catch (error) {
+                console.error('Load IP detail error:', error);
+                showNotification('載入 IP 詳情失敗: ' + error.message, 'error');
+            }
+        }
+
+        // 關閉 IP 詳情 Modal
+        function closeIPDetailModal() {
+            document.getElementById('ip-detail-modal').classList.add('hidden');
+            currentIPAddress = null;
+        }
+
+        // 匯出 CSV
+        async function exportSecurityEvents() {
+            try {
+                let url = `${API_BASE}/api/admin/security/export`;
+                if (currentEventType) {
+                    url += `?event_type=${currentEventType}`;
+                }
+
+                const response = await fetch(url, {
+                    credentials: 'include'
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
+
+                if (!response.ok) {
+                    await handleApiError(response, '匯出失敗');
+                    return;
+                }
+
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+
+                const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+                a.download = `security-events-${today}.csv`;
+
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(downloadUrl);
+
+                showNotification('CSV 已匯出', 'success');
+
+            } catch (error) {
+                console.error('Export CSV error:', error);
+                showNotification('匯出失敗: ' + error.message, 'error');
+            }
+        }
+
+        // 暴露函數到全域作用域供 onclick 使用
+        window.switchTab = switchTab;
+        window.editCard = editCard;
+        window.viewCard = viewCard;
+        window.deleteCard = handleDeleteCard;
+        window.restoreCard = handleRestoreCard;
+        window.resetBudget = resetBudget;
+        window.confirmAction = confirmAction;
+        window.cancelEdit = cancelEdit;
+        window.handleBlockIP = handleBlockIP;
+        window.handleUnblockIP = handleUnblockIP;
+        window.showIPDetail = loadIPDetail;
+        window.closeIPDetailModal = closeIPDetailModal;
+        window.exportSecurityCSV = exportSecurityEvents;
+        window.loginWithPasskey = loginWithPasskey;
+        window.registerPasskey = registerPasskey;
+        window.handleLogout = handleLogout;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            safeInitIcons();
+            checkPasskeyAvailable();
+            
+            // 檢查是否已經登入（透過 Cookie）
+            checkAuthStatus();
+
+            if (typeof THREE !== 'undefined') {
+                setTimeout(() => initThree(), 100);
+            } else {
+                window.addEventListener('load', () => {
+                    if (typeof THREE !== 'undefined') initThree();
+                });
+            }
+
+            const verifyBtn = document.getElementById('verify-btn');
+            verifyBtn.onclick = verifyToken;
+
+            const cardForm = document.getElementById('card-form');
+            cardForm.onsubmit = handleCreateCard;
+
+            // 綁定搜尋輸入框
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    searchCards(e.target.value);
+                });
+            }
+
+            // 綁定所有輸入事件到實時預覽
+            const inputIds = ['name_zh', 'name_en', 'title_zh', 'title_en', 'email', 'phone', 'web', 'mobile', 'avatar_url', 'greetings_zh', 'greetings_en', 'address_zh', 'address_en', 'social_github', 'social_linkedin', 'social_facebook', 'social_instagram', 'social_twitter', 'social_youtube', 'social_line', 'social_signal'];
+            inputIds.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', updatePreview);
+                }
+            });
+
+            // 地址預設選單事件監聽器
+            document.getElementById('address-preset').addEventListener('change', (e) => {
+                const value = e.target.value;
+                const customFields = document.getElementById('custom-address-fields');
+
+                if (value === 'custom') {
+                    customFields.classList.remove('hidden');
+                } else {
+                    customFields.classList.add('hidden');
+                }
+                updatePreview();
+            });
+
+            // 部門預設選單事件監聽器
+            document.getElementById('department-preset').addEventListener('change', (e) => {
+                const value = e.target.value;
+                const customField = document.getElementById('custom-department-field');
+
+                if (value === 'custom') {
+                    customField.classList.remove('hidden');
+                    document.getElementById('department-custom-zh').focus();
+                } else {
+                    customField.classList.add('hidden');
+                    document.getElementById('department-custom-zh').value = '';
+                    document.getElementById('department-custom-en').value = '';
+                }
+                updatePreview();
+            });
+
+            // 預覽語言切換
+            document.querySelectorAll('#preview-lang-switch button').forEach(btn => {
+                btn.onclick = () => {
+                    previewLang = btn.dataset.lang;
+                    document.querySelectorAll('#preview-lang-switch button').forEach(b => {
+                        b.classList.remove('bg-white', 'shadow-sm', 'text-slate-900');
+                        b.classList.add('text-slate-500');
+                    });
+                    btn.classList.add('bg-white', 'shadow-sm', 'text-slate-900');
+                    btn.classList.remove('text-slate-500');
+                    updatePreview();
+                };
+            });
+
+            // 綁定安全監控事件
+            const blockIPForm = document.getElementById('block-ip-form');
+            if (blockIPForm) {
+                blockIPForm.onsubmit = handleBlockIP;
+            }
+
+            const timelineRangeSelect = document.getElementById('timeline-range');
+            if (timelineRangeSelect) {
+                timelineRangeSelect.addEventListener('change', (e) => {
+                    loadSecurityTimeline(parseInt(e.target.value));
+                });
+            }
+
+            const eventTypeFilter = document.getElementById('event-type-filter');
+            if (eventTypeFilter) {
+                eventTypeFilter.addEventListener('change', (e) => {
+                    loadSecurityEvents(1, e.target.value);
+                });
+            }
+        });
+
+        window.onresize = () => {
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        };
+
+        // ===========================
+        // Physical Twin Upload Functions
+        // ===========================
+
+        let selectedFile = null;
+
+        // Load cards into dropdown
+        async function loadTwinCards() {
+            const select = document.getElementById('twin-card-select');
+            select.innerHTML = '<option value="">請選擇名片...</option>';
+
+            if (allCards.length === 0) {
+                await loadCards();
+            }
+
+            allCards.forEach(card => {
+                const option = document.createElement('option');
+                option.value = card.uuid; // Fixed: use card.uuid instead of card.card_uuid
+                const nameZh = card.data.name?.zh || '';
+                const nameEn = card.data.name?.en || '';
+                const email = card.data.email || '';
+                option.textContent = `${nameZh} ${nameEn} (${email})`;
+                select.appendChild(option);
+            });
+        }
+
+        // Setup drag and drop
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('file-input');
+
+            // Click to upload
+            dropZone.addEventListener('click', () => fileInput.click());
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0]);
+                }
+            });
+
+            // Drag and drop
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-moda', 'bg-moda-light');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('border-moda', 'bg-moda-light');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-moda', 'bg-moda-light');
+                if (e.dataTransfer.files.length > 0) {
+                    handleFile(e.dataTransfer.files[0]);
+                }
+            });
+
+            // Load assets when card is selected
+            document.getElementById('twin-card-select').addEventListener('change', (e) => {
+                if (e.target.value) {
+                    loadCardAssets(e.target.value);
+                } else {
+                    document.getElementById('assets-table-body').innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">請選擇名片以查看已上傳的圖片</td></tr>';
+                }
+            });
+        });
+
+        // File validation
+        function validateFile(file) {
+            // Check file size (5 MB)
+            if (file.size > 5 * 1024 * 1024) {
+                return { valid: false, error: '檔案大小超過 5 MB 限制' };
+            }
+
+            // Check file format
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                return { valid: false, error: '不支援的檔案格式。請使用 JPEG, PNG 或 WebP' };
+            }
+
+            return { valid: true };
+        }
+
+        // Handle file selection/drop
+        function handleFile(file) {
+            const validation = validateFile(file);
+
+            if (!validation.valid) {
+                showNotification(validation.error, 'error');
+                return;
+            }
+
+            selectedFile = file;
+            previewImage(file);
+        }
+
+        // Preview image
+        function previewImage(file) {
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    document.getElementById('preview-image').src = e.target.result;
+                    document.getElementById('preview-filename').textContent = file.name;
+                    document.getElementById('preview-filesize').textContent = `大小: ${(file.size / 1024).toFixed(2)} KB`;
+                    document.getElementById('preview-dimensions').textContent = `尺寸: ${img.width} × ${img.height} px`;
+                    document.getElementById('preview-container').classList.remove('hidden');
+                    document.getElementById('upload-btn').disabled = false;
+                };
+                img.src = e.target.result;
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        // Clear preview
+        window.clearPreview = function() {
+            selectedFile = null;
+            document.getElementById('preview-container').classList.add('hidden');
+            document.getElementById('file-input').value = '';
+            document.getElementById('upload-btn').disabled = true;
+            document.getElementById('upload-progress').classList.add('hidden');
+            document.getElementById('progress-bar').style.width = '0%';
+        }
+
+        // Upload asset
+        window.uploadAsset = async function() {
+            const cardUuid = document.getElementById('twin-card-select').value;
+            const assetType = document.querySelector('input[name="asset-type"]:checked').value;
+
+            if (!cardUuid) {
+                showNotification('請選擇名片', 'error');
+                return;
+            }
+
+            if (!selectedFile) {
+                showNotification('請選擇圖片', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('card_uuid', cardUuid);
+            formData.append('asset_type', assetType);
+            formData.append('file', selectedFile);
+
+            const uploadBtn = document.getElementById('upload-btn');
+            const progressDiv = document.getElementById('upload-progress');
+            const progressBar = document.getElementById('progress-bar');
+
+            try {
+                uploadBtn.disabled = true;
+                uploadBtn.classList.add('btn-loading');
+                progressDiv.classList.remove('hidden');
+                progressBar.style.width = '30%';
+
+                // Get CSRF token from sessionStorage
+                const csrfToken = sessionStorage.getItem('csrfToken');
+                const headers = {};
+                if (csrfToken) {
+                    headers['X-CSRF-Token'] = csrfToken;
+                }
+
+                const response = await fetch(`${API_BASE}/api/admin/assets/upload`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: headers,
+                    body: formData
+                });
+
+                progressBar.style.width = '70%';
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    throw new Error('授權已過期，請重新登入');
+                }
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    const errorMsg = errorData.details || errorData.error || '上傳失敗';
+                    console.error('Upload error details:', errorData);
+                    throw new Error(errorMsg);
+                }
+
+                progressBar.style.width = '100%';
+
+                const result = await response.json();
+                showNotification('圖片上傳成功！', 'success');
+
+                // Reload assets list
+                await loadCardAssets(cardUuid);
+
+                // Clear form
+                clearPreview();
+
+            } catch (error) {
+                console.error('Upload error:', error);
+                showNotification('上傳失敗: ' + error.message, 'error');
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.classList.remove('btn-loading');
+                setTimeout(() => {
+                    progressDiv.classList.add('hidden');
+                    progressBar.style.width = '0%';
+                }, 1000);
+            }
+        }
+
+        // Load card assets
+        async function loadCardAssets(cardUuid) {
+            const tbody = document.getElementById('assets-table-body');
+            tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">載入中...</td></tr>';
+
+            try {
+                const url = `${API_BASE}/api/admin/cards/${cardUuid}/assets`;
+                console.log('Fetching assets from:', url); // Debug log
+                
+                const response = await fetch(url, {
+                    credentials: 'include'
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    handleAuthExpired();
+                    return;
+                }
+
+                if (!response.ok) {
+                    console.error('API error:', response.status, response.statusText);
+                    throw new Error('載入資產失敗');
+                }
+
+                const result = await response.json();
+                
+                // Handle empty or invalid response
+                if (!result || !result.data) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">尚無上傳的圖片</td></tr>';
+                    return;
+                }
+
+                const assets = result.data.assets || [];
+
+                if (assets.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">尚無上傳的圖片</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                assets.forEach(asset => {
+                    const row = document.createElement('tr');
+                    
+                    // Use admin API to view images (no session required)
+                    const thumbUrl = `/api/admin/assets/${asset.asset_id}/content?variant=thumb`;
+                    
+                    row.innerHTML = `
+                        <td class="px-4 py-3">
+                            <img src="${thumbUrl}" 
+                                 alt="${asset.asset_type}" 
+                                 class="w-16 h-16 object-cover rounded-lg border border-slate-300"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="w-16 h-16 bg-slate-200 rounded-lg border border-slate-300 items-center justify-center hidden">
+                                <i data-lucide="image" class="w-8 h-8 text-slate-400"></i>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">${asset.asset_type}</td>
+                        <td class="px-4 py-3">v${asset.current_version}</td>
+                        <td class="px-4 py-3">${new Date(asset.created_at + 'Z').toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}</td>
+                        <td class="px-4 py-3">
+                            <button data-action="viewAsset" data-asset-id="${asset.asset_id}"
+                                    class="px-3 py-1 bg-[#6868ac] text-white rounded-lg hover:bg-[#5555aa] transition-colors text-sm">
+                                查看
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                // Re-initialize Lucide icons
+                if (typeof lucide !== 'undefined') {
+                    safeInitIcons();
+                }
+
+            } catch (error) {
+                console.error('Load assets error:', error);
+                tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-red-400">載入失敗</td></tr>';
+            }
+        }
+
+        // View asset in modal with zoom/pan/rotate
+        window.viewAsset = function(assetId) {
+            const detailUrl = `/api/admin/assets/${assetId}/content?variant=detail`;
+            
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4';
+            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+            
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl p-6 max-w-fit max-h-[95vh] flex flex-col">
+                    <div class="flex justify-between items-center mb-4 flex-shrink-0">
+                        <h3 class="text-xl font-semibold text-slate-800">圖片預覽</h3>
+                        <div class="flex gap-2 ml-4">
+                            <button id="zoom-in" class="px-2 py-1 bg-slate-100 rounded hover:bg-slate-200 transition-colors">
+                                <i data-lucide="zoom-in" class="w-5 h-5"></i>
+                            </button>
+                            <button id="zoom-out" class="px-2 py-1 bg-slate-100 rounded hover:bg-slate-200 transition-colors">
+                                <i data-lucide="zoom-out" class="w-5 h-5"></i>
+                            </button>
+                            <button id="rotate" class="px-2 py-1 bg-slate-100 rounded hover:bg-slate-200 transition-colors">
+                                <i data-lucide="rotate-cw" class="w-5 h-5"></i>
+                            </button>
+                            <button id="reset" class="px-2 py-1 bg-slate-100 rounded hover:bg-slate-200 transition-colors">
+                                <i data-lucide="maximize" class="w-5 h-5"></i>
+                            </button>
+                            <button data-action="closeAssetModal"
+                                    class="px-2 py-1 text-slate-400 hover:text-slate-600 transition-colors">
+                                <i data-lucide="x" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="panzoom-container" class="overflow-hidden flex-1 flex items-center justify-center" style="max-width: 90vw; max-height: 80vh;">
+                        <img id="panzoom-image" src="${detailUrl}" 
+                             alt="Asset" 
+                             style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;"
+                             onerror="this.src=''; this.alt='載入失敗';">
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Initialize Panzoom after image loads
+            const img = modal.querySelector('#panzoom-image');
+            let rotation = 0;
+            
+            img.onload = () => {
+                const panzoom = Panzoom(img, {
+                    maxScale: 5,
+                    minScale: 0.1,
+                    contain: 'outside'
+                });
+                
+                // Zoom buttons
+                modal.querySelector('#zoom-in').onclick = () => panzoom.zoomIn();
+                modal.querySelector('#zoom-out').onclick = () => panzoom.zoomOut();
+                modal.querySelector('#reset').onclick = () => {
+                    panzoom.reset();
+                    rotation = 0;
+                    img.style.transform = '';
+                };
+                
+                // Rotate button (90 degrees)
+                modal.querySelector('#rotate').onclick = () => {
+                    rotation += 90;
+                    const current = panzoom.getScale();
+                    const pan = panzoom.getPan();
+                    img.style.transform = `rotate(${rotation}deg) scale(${current}) translate(${pan.x}px, ${pan.y}px)`;
+                };
+                
+                // Mouse wheel zoom
+                modal.querySelector('#panzoom-container').addEventListener('wheel', panzoom.zoomWithWheel);
+            };
+
+            // Re-initialize Lucide icons
+            if (typeof lucide !== 'undefined') {
+                safeInitIcons();
+            }
+        }
+
+        // Event Delegation for all click actions
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action]');
+            if (!btn) return;
+
+            const action = btn.dataset.action;
+
+            // Action handlers mapping
+            const handlers = {
+                'retryLoadCards': retryLoadCards,
+                'loginWithPasskey': loginWithPasskey,
+                'switchTab': () => switchTab(btn.dataset.tab),
+                'registerPasskey': registerPasskey,
+                'handleLogout': handleLogout,
+                'loadCards': loadCards,
+                'cancelEdit': cancelEdit,
+                'clearPreview': clearPreview,
+                'uploadAsset': uploadAsset,
+                'exportSecurityEvents': exportSecurityEvents,
+                'loadSecurityEvents': () => {
+                    const page = btn.dataset.page;
+                    if (page === '+1') loadSecurityEvents(currentEventPage + 1);
+                    else if (page === '-1') loadSecurityEvents(currentEventPage - 1);
+                },
+                'showRotationGuide': showRotationGuide,
+                'checkCDNHealth': checkCDNHealth,
+                'closeModal': closeModal,
+                'closeRotationGuide': closeRotationGuide,
+                'copyToClipboard': () => navigator.clipboard.writeText(btn.dataset.text),
+                'closeIPDetailModal': closeIPDetailModal,
+                'handleUnblockIP': handleUnblockIP,
+                'loadIPDetail': () => loadIPDetail(btn.dataset.ip),
+                'viewAsset': () => viewAsset(btn.dataset.assetId),
+                'closeAssetModal': () => btn.closest('.fixed').remove()
+            };
+
+            if (handlers[action]) {
+                e.preventDefault();
+                handlers[action](e, btn);
+            }
+        });

@@ -1,0 +1,33 @@
+name: Security Lint
+
+on:
+  push:
+    branches: [ develop, main ]
+  pull_request:
+    branches: [ develop, main ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: workers/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: workers
+      run: npm ci
+    
+    - name: Run ESLint (Security Rules)
+      working-directory: workers
+      run: npm run lint
+    
+    - name: TypeScript Check
+      working-directory: workers
+      run: npm run typecheck

@@ -3,15 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="DB-Card 安全預設 NFC 數位名片系統 - 信封加密、可撤銷會話、審計日誌">
+
+    <!-- Scenario 1: 完整 Meta Tags -->
+    <meta name="description" content="DB-Card 安全預設 NFC 數位名片系統 - 信封加密、可撤銷會話、審計日誌、OIDC 認證。由數位發展部（MODA）開發，符合 GDPR 規範。">
+    <meta name="keywords" content="NFC 數位名片, 數位名片系統, 信封加密, OIDC 認證, GDPR, 數位發展部, MODA, DB-Card, 安全名片">
+    <meta name="author" content="數位發展部 (MODA)">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://db-card.moda.gov.tw/">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="DB-Card | 安全預設 NFC 數位名片系統">
+    <meta property="og:description" content="信封加密、可撤銷會話、審計日誌、OIDC 認證。安全預設、隱私優先的 NFC 數位名片解決方案。">
+    <meta property="og:url" content="https://db-card.moda.gov.tw/">
+    <meta property="og:site_name" content="DB-Card">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:image" content="https://db-card.moda.gov.tw/images/og-cover.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="DB-Card NFC 數位名片系統">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="DB-Card | 安全預設 NFC 數位名片系統">
+    <meta name="twitter:description" content="信封加密、可撤銷會話、審計日誌、OIDC 認證。安全預設、隱私優先的 NFC 數位名片解決方案。">
+    <meta name="twitter:image" content="https://db-card.moda.gov.tw/images/og-cover.png">
+    <meta name="twitter:image:alt" content="DB-Card NFC 數位名片系統">
+
     <title>DB-Card | 數位名片系統</title>
-    
+
     <!-- LLM-friendly documentation -->
     <link rel="llms-txt" href="/llm.txt" />
-    
+
+    <!-- Scenario 4: 效能優化 - DNS 預解析與資源預載 -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&family=Noto+Sans+TC:wght@300;500;900&display=swap" rel="stylesheet">
+    <!-- 預載關鍵字體 -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&family=Noto+Sans+TC:wght@300;500;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&family=Noto+Sans+TC:wght@300;500;900&display=swap" rel="stylesheet"></noscript>
+
     <script src="/js/tailwind-suppress.js"></script>
     <link rel="stylesheet" href="/css/tailwind.css">
     <link rel="stylesheet" href="/css/v4-design.css">
@@ -22,12 +54,51 @@
             crossorigin="anonymous"
             defer></script>
     <script type="module" src="/js/config.js"></script>
+
+    <!-- Scenario 2: 結構化資料 JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "DB-Card",
+      "description": "安全預設 NFC 數位名片系統，採用信封加密、可撤銷會話、審計日誌與 OIDC 認證",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web-based, iOS, Android",
+      "url": "https://db-card.moda.gov.tw/",
+      "inLanguage": "zh-TW",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "TWD",
+        "availability": "https://schema.org/InStock",
+        "description": "開放原始碼，Apache 2.0 授權"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "數位發展部",
+        "alternateName": "MODA",
+        "url": "https://moda.gov.tw"
+      },
+      "license": "https://www.apache.org/licenses/LICENSE-2.0",
+      "codeRepository": "https://github.com/iim0663418/DB-Card",
+      "featureList": [
+        "信封加密 (Envelope Encryption)",
+        "可撤銷會話 (Revocable Sessions)",
+        "審計日誌 (Audit Logs)",
+        "OIDC 認證",
+        "GDPR 合規",
+        "NFC 卡片支援"
+      ]
+    }
+    </script>
+
     <style>
         :root {
             --moda-accent: #6868ac;
         }
 
         body {
+            /* Scenario 4: font-display: swap 已透過 Google Fonts display=swap 參數設定 */
             font-family: 'Outfit', 'Noto Sans TC', sans-serif;
             background: linear-gradient(135deg, rgba(244,247,249,0.3) 0%, rgba(230,235,240,0.4) 100%);
             color: #1e293b;
@@ -117,21 +188,23 @@
     </style>
 </head>
 <body>
-    <canvas id="three-canvas"></canvas>
+    <canvas id="three-canvas" aria-hidden="true"></canvas>
 
     <div class="relative z-10 min-h-screen flex flex-col">
-        <!-- Language Toggle -->
+        <!-- Scenario 5: 語言切換按鈕加上 aria-label -->
         <div class="absolute top-4 right-4 z-50">
-            <button id="lang-toggle" class="px-3 py-1 text-sm font-medium text-slate-600 hover:text-moda transition-colors bg-white/80 backdrop-blur-sm rounded-lg border border-slate-200 hover:border-moda/30">
+            <button id="lang-toggle"
+                    aria-label="切換語言為英文 (Switch to English)"
+                    class="px-3 py-1 text-sm font-medium text-slate-600 hover:text-moda transition-colors bg-white/80 backdrop-blur-sm rounded-lg border border-slate-200 hover:border-moda/30">
                 EN
             </button>
         </div>
-        
-        <!-- Hero Section -->
-        <header class="container mx-auto px-6 py-16 text-center">
+
+        <!-- Scenario 3: 語意化 HTML - header -->
+        <header class="container mx-auto px-6 py-16 text-center" role="banner">
             <div class="inline-block mb-4">
-                <span class="status-badge">
-                    <span class="status-dot"></span>
+                <span class="status-badge" role="status" aria-live="polite">
+                    <span class="status-dot" aria-hidden="true"></span>
                     <span id="system-status" data-i18n="system-status">系統運行中</span>
                 </span>
             </div>
@@ -144,333 +217,338 @@
             <p class="text-sm md:text-base text-slate-500 font-medium" data-i18n="hero-subtitle">
                 安全預設 | 隱私優先 | 輕量化設計
             </p>
-            <div class="mt-6 text-xs text-slate-400 font-mono" id="app-version" data-i18n="loading">
+            <div class="mt-6 text-xs text-slate-400 font-mono" id="app-version" data-i18n="loading" aria-label="應用程式版本">
                 載入中...
             </div>
         </header>
 
-        <!-- 功能入口 -->
-        <main class="container mx-auto px-6 py-12 flex-1">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-                <!-- 使用者入口 -->
-                <div class="glass-card rounded-2xl p-8">
-                    <div class="feature-icon mb-4" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">
-                        <i data-lucide="user" class="w-6 h-6"></i>
-                    </div>
-                    <h3 class="text-xl font-black mb-2" data-i18n="user-portal-title">使用者入口</h3>
-                    <p class="text-sm text-slate-600 mb-6" data-i18n="user-portal-desc">
-                        Google OAuth 登入，管理個人數位名片
-                    </p>
-                    <a href="/user-portal.html" class="btn-primary">
-                        <span data-i18n="user-portal-btn">前往入口</span>
-                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                    </a>
-                </div>
+        <!-- Scenario 3: 語意化 HTML - main -->
+        <main id="main-content" class="container mx-auto px-6 py-12 flex-1">
 
-                <!-- 管理後台 -->
-                <div class="glass-card rounded-2xl p-8">
-                    <div class="feature-icon mb-4" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">
-                        <i data-lucide="shield" class="w-6 h-6"></i>
-                    </div>
-                    <h3 class="text-xl font-black mb-2" data-i18n="admin-portal-title">管理後台</h3>
-                    <p class="text-sm text-slate-600 mb-6" data-i18n="admin-portal-desc">
-                        完整 CRUD 操作與安全監控儀表板
-                    </p>
-                    <a href="/admin-dashboard.html" class="btn-primary">
-                        <span data-i18n="admin-portal-btn">管理系統</span>
-                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                    </a>
-                </div>
+            <!-- Scenario 3: 功能入口區塊 -->
+            <section aria-labelledby="portals-heading">
+                <h2 id="portals-heading" class="sr-only">功能入口</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+                    <!-- 使用者入口 -->
+                    <article class="glass-card rounded-2xl p-8" aria-label="使用者入口">
+                        <div class="feature-icon mb-4" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
+                            <i data-lucide="user" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="text-xl font-black mb-2" data-i18n="user-portal-title">使用者入口</h3>
+                        <p class="text-sm text-slate-600 mb-6" data-i18n="user-portal-desc">
+                            Google OAuth 登入，管理個人數位名片
+                        </p>
+                        <a href="/user-portal.html" class="btn-primary" aria-label="前往使用者入口">
+                            <span data-i18n="user-portal-btn">前往入口</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4" aria-hidden="true"></i>
+                        </a>
+                    </article>
 
-                <!-- 系統健康 -->
-                <div class="glass-card rounded-2xl p-8">
-                    <div class="feature-icon mb-4" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">
-                        <i data-lucide="credit-card" class="w-6 h-6"></i>
-                    </div>
-                    <h3 class="text-xl font-black mb-2" data-i18n="nfc-card-title">NFC 卡片選購</h3>
-                    <p class="text-sm text-slate-600 mb-4" data-i18n="nfc-card-desc">
-                        如何選擇正確規格的 NFC 卡片
-                    </p>
-                    
-                    <div class="space-y-3 text-sm">
-                        <div>
-                            <div class="font-semibold text-slate-700 mb-1" data-i18n="nfc-recommended-chip">✓ 推薦晶片</div>
-                            <div class="text-xs text-slate-600">NTAG213 / NTAG215 / NTAG216</div>
+                    <!-- 管理後台 -->
+                    <article class="glass-card rounded-2xl p-8" aria-label="管理後台">
+                        <div class="feature-icon mb-4" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
+                            <i data-lucide="shield" class="w-6 h-6"></i>
                         </div>
-                        <div>
-                            <div class="font-semibold text-slate-700 mb-1" data-i18n="nfc-memory-requirement">✓ 記憶體需求</div>
-                            <div class="text-xs text-slate-600" data-i18n="nfc-memory-detail">最少 144 bytes（NTAG213 即可）</div>
+                        <h3 class="text-xl font-black mb-2" data-i18n="admin-portal-title">管理後台</h3>
+                        <p class="text-sm text-slate-600 mb-6" data-i18n="admin-portal-desc">
+                            完整 CRUD 操作與安全監控儀表板
+                        </p>
+                        <a href="/admin-dashboard.html" class="btn-primary" aria-label="前往管理後台">
+                            <span data-i18n="admin-portal-btn">管理系統</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4" aria-hidden="true"></i>
+                        </a>
+                    </article>
+
+                    <!-- NFC 卡片選購 -->
+                    <article class="glass-card rounded-2xl p-8" aria-label="NFC 卡片選購指南">
+                        <div class="feature-icon mb-4" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
+                            <i data-lucide="credit-card" class="w-6 h-6"></i>
                         </div>
-                        <div>
-                            <div class="font-semibold text-slate-700 mb-1" data-i18n="nfc-purchase-channel">✓ 購買管道</div>
-                            <div class="text-xs text-slate-600" data-i18n="nfc-purchase-detail">電商平台搜尋「NTAG213 白卡」</div>
-                        </div>
-                        <div>
-                            <div class="font-semibold text-slate-700 mb-1" data-i18n="nfc-write-tool">✓ 寫入工具</div>
-                            <div class="text-xs text-slate-600">
-                                iOS：Simply NFC / NFC Writer<br>
-                                Android：NFC Tools
+                        <h3 class="text-xl font-black mb-2" data-i18n="nfc-card-title">NFC 卡片選購</h3>
+                        <p class="text-sm text-slate-600 mb-4" data-i18n="nfc-card-desc">
+                            如何選擇正確規格的 NFC 卡片
+                        </p>
+
+                        <div class="space-y-3 text-sm">
+                            <div>
+                                <div class="font-semibold text-slate-700 mb-1" data-i18n="nfc-recommended-chip">✓ 推薦晶片</div>
+                                <div class="text-xs text-slate-600">NTAG213 / NTAG215 / NTAG216</div>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-slate-700 mb-1" data-i18n="nfc-memory-requirement">✓ 記憶體需求</div>
+                                <div class="text-xs text-slate-600" data-i18n="nfc-memory-detail">最少 144 bytes（NTAG213 即可）</div>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-slate-700 mb-1" data-i18n="nfc-purchase-channel">✓ 購買管道</div>
+                                <div class="text-xs text-slate-600" data-i18n="nfc-purchase-detail">電商平台搜尋「NTAG213 白卡」</div>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-slate-700 mb-1" data-i18n="nfc-write-tool">✓ 寫入工具</div>
+                                <div class="text-xs text-slate-600">
+                                    iOS：Simply NFC / NFC Writer<br>
+                                    Android：NFC Tools
+                                </div>
                             </div>
                         </div>
+                    </article>
+                </div>
+            </section>
+
+            <!-- Scenario 3: 使用場景區塊 -->
+            <section class="mb-16" aria-labelledby="use-cases-heading">
+                <h2 id="use-cases-heading" class="text-2xl font-black text-center mb-8" style="color: #6868ac;" data-i18n="use-cases-title">適用場景</h2>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-4" role="list">
+                    <div class="glass-card rounded-2xl p-4 overflow-hidden group cursor-pointer" role="listitem">
+                        <img src="/images/use-case-1.jpg" alt="政府機關人員交流名片場景" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110" loading="lazy">
+                    </div>
+                    <div class="glass-card rounded-2xl p-4 overflow-hidden group cursor-pointer" role="listitem">
+                        <img src="/images/use-case-2.jpg" alt="企業商務會議名片交換場景" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110" loading="lazy">
+                    </div>
+                    <div class="glass-card rounded-2xl p-4 overflow-hidden group cursor-pointer" role="listitem">
+                        <img src="/images/use-case-3.jpg" alt="學術研討會聯絡資訊分享場景" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110" loading="lazy">
+                    </div>
+                    <div class="glass-card rounded-2xl p-4 overflow-hidden group cursor-pointer" role="listitem">
+                        <img src="/images/use-case-4.jpg" alt="展覽活動 NFC 數位名片應用場景" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110" loading="lazy">
+                    </div>
+                    <div class="glass-card rounded-2xl p-4 overflow-hidden group cursor-pointer" role="listitem">
+                        <img src="/images/use-case-5.jpg" alt="遠端工作者線上聯絡資訊交換場景" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110" loading="lazy">
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- 使用場景 -->
-            <div class="mb-16">
-                <h2 class="text-2xl font-black text-center mb-8" style="color: #6868ac;" data-i18n="use-cases-title">適用場景</h2>
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <div class="glass-card rounded-2xl p-4 overflow-hidden group cursor-pointer">
-                        <img src="/images/use-case-1.jpg" alt="使用場景 1" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110">
-                    </div>
-                    <div class="glass-card rounded-2xl p-4 overflow-hidden group cursor-pointer">
-                        <img src="/images/use-case-2.jpg" alt="使用場景 2" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110">
-                    </div>
-                    <div class="glass-card rounded-2xl p-4 overflow-hidden group cursor-pointer">
-                        <img src="/images/use-case-3.jpg" alt="使用場景 3" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110">
-                    </div>
-                    <div class="glass-card rounded-2xl p-4 overflow-hidden group cursor-pointer">
-                        <img src="/images/use-case-4.jpg" alt="使用場景 4" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110">
-                    </div>
-                    <div class="glass-card rounded-2xl p-4 overflow-hidden group cursor-pointer">
-                        <img src="/images/use-case-5.jpg" alt="使用場景 5" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110">
-                    </div>
-                </div>
-            </div>
-
-            <!-- 產品介紹：如何使用 -->
-            <div class="mb-16">
-                <h2 class="text-2xl font-black text-center mb-8" style="color: #6868ac;" data-i18n="how-to-use-title">如何使用</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Scenario 3: 如何使用區塊 -->
+            <section class="mb-16" aria-labelledby="how-to-use-heading">
+                <h2 id="how-to-use-heading" class="text-2xl font-black text-center mb-8" style="color: #6868ac;" data-i18n="how-to-use-title">如何使用</h2>
+                <ol class="grid grid-cols-1 md:grid-cols-3 gap-6" aria-label="使用步驟">
                     <!-- Step 1 -->
-                    <div class="glass-card rounded-2xl p-8 text-center">
-                        <div class="w-12 h-12 mx-auto mb-4 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">
+                    <li class="glass-card rounded-2xl p-8 text-center list-none">
+                        <div class="w-12 h-12 mx-auto mb-4 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
                             <i data-lucide="smartphone" class="w-6 h-6"></i>
                         </div>
                         <div class="text-xs font-black mb-2" style="color: #6868ac;" data-i18n="step-1-label">步驟 1</div>
-                        <h4 class="font-bold mb-2" data-i18n="step-1-title">碰觸 NFC 卡片</h4>
+                        <h3 class="font-bold mb-2" data-i18n="step-1-title">碰觸 NFC 卡片</h3>
                         <p class="text-xs text-slate-600" data-i18n="step-1-desc">手機靠近卡片，自動開啟數位名片</p>
-                    </div>
+                    </li>
                     <!-- Step 2 -->
-                    <div class="glass-card rounded-2xl p-8 text-center">
-                        <div class="w-12 h-12 mx-auto mb-4 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">
+                    <li class="glass-card rounded-2xl p-8 text-center list-none">
+                        <div class="w-12 h-12 mx-auto mb-4 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
                             <i data-lucide="qr-code" class="w-6 h-6"></i>
                         </div>
                         <div class="text-xs font-black mb-2" style="color: #6868ac;" data-i18n="step-2-label">步驟 2</div>
-                        <h4 class="font-bold mb-2" data-i18n="step-2-title">掃描 QR Code</h4>
+                        <h3 class="font-bold mb-2" data-i18n="step-2-title">掃描 QR Code</h3>
                         <p class="text-xs text-slate-600" data-i18n="step-2-desc">快速分享聯絡資訊，無需實體接觸</p>
-                    </div>
+                    </li>
                     <!-- Step 3 -->
-                    <div class="glass-card rounded-2xl p-8 text-center">
-                        <div class="w-12 h-12 mx-auto mb-4 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">
+                    <li class="glass-card rounded-2xl p-8 text-center list-none">
+                        <div class="w-12 h-12 mx-auto mb-4 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
                             <i data-lucide="download" class="w-6 h-6"></i>
                         </div>
                         <div class="text-xs font-black mb-2" style="color: #6868ac;" data-i18n="step-3-label">步驟 3</div>
-                        <h4 class="font-bold mb-2" data-i18n="step-3-title">下載 vCard</h4>
+                        <h3 class="font-bold mb-2" data-i18n="step-3-title">下載 vCard</h3>
                         <p class="text-xs text-slate-600" data-i18n="step-3-desc">一鍵加入手機通訊錄</p>
-                    </div>
-                </div>
-            </div>
+                    </li>
+                </ol>
+            </section>
 
-            <!-- 核心特色 -->
-            <div class="mb-16">
-                <h2 class="text-2xl font-black text-center mb-8" style="color: #6868ac;" data-i18n="features-title">核心特色</h2>
+            <!-- Scenario 3: 核心特色區塊 -->
+            <section class="mb-16" aria-labelledby="features-heading">
+                <h2 id="features-heading" class="text-2xl font-black text-center mb-8" style="color: #6868ac;" data-i18n="features-title">核心特色</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- 特色 1: 隱私優先設計 -->
-                    <div class="glass-card rounded-2xl p-8">
+                    <article class="glass-card rounded-2xl p-8" aria-label="隱私優先設計">
                         <div class="flex gap-4">
-                            <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">
+                            <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
                                 <i data-lucide="shield-check" class="w-6 h-6"></i>
                             </div>
                             <div>
-                                <h4 class="font-bold mb-3" data-i18n="feature-privacy-title">隱私優先設計</h4>
+                                <h3 class="font-bold mb-3" data-i18n="feature-privacy-title">隱私優先設計</h3>
                                 <ul class="space-y-2 text-xs text-slate-600">
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-privacy-1">資料加密儲存於雲端資料庫</span>
                                     </li>
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-privacy-2">NFC 卡片僅含 UUID，無個資外洩風險</span>
                                     </li>
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-privacy-3">IP 地址自動匿名化（審計日誌）</span>
                                     </li>
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-privacy-4">GDPR 合規（100% 符合 Article 7, 12, 13, 15, 20, 30）</span>
                                     </li>
                                 </ul>
                             </div>
                         </div>
-                    </div>
+                    </article>
 
                     <!-- 特色 2: 信封加密技術 -->
-                    <div class="glass-card rounded-2xl p-8">
+                    <article class="glass-card rounded-2xl p-8" aria-label="信封加密技術">
                         <div class="flex gap-4">
-                            <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">
+                            <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
                                 <i data-lucide="lock" class="w-6 h-6"></i>
                             </div>
                             <div>
-                                <h4 class="font-bold mb-3" data-i18n="feature-encryption-title">信封加密技術</h4>
+                                <h3 class="font-bold mb-3" data-i18n="feature-encryption-title">信封加密技術</h3>
                                 <ul class="space-y-2 text-xs text-slate-600">
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-encryption-1">每張名片獨立 DEK（Data Encryption Key）</span>
                                     </li>
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-encryption-2">KEK（Key Encryption Key）定期輪換</span>
                                     </li>
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-encryption-3">符合安全標準</span>
                                     </li>
                                 </ul>
                             </div>
                         </div>
-                    </div>
+                    </article>
 
                     <!-- 特色 3: 授權會話機制 -->
-                    <div class="glass-card rounded-2xl p-8">
+                    <article class="glass-card rounded-2xl p-8" aria-label="授權會話機制">
                         <div class="flex gap-4">
-                            <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">
+                            <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
                                 <i data-lucide="clock" class="w-6 h-6"></i>
                             </div>
                             <div>
-                                <h4 class="font-bold mb-3" data-i18n="feature-session-title">授權會話機制</h4>
+                                <h3 class="font-bold mb-3" data-i18n="feature-session-title">授權會話機制</h3>
                                 <ul class="space-y-2 text-xs text-slate-600">
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-session-1">24 小時 TTL，可隨時撤銷</span>
                                     </li>
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-session-2">同時讀取數限制，防止濫用</span>
                                     </li>
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-session-3">NFC 重新觸碰即可撤銷上一個會話</span>
                                     </li>
                                 </ul>
                             </div>
                         </div>
-                    </div>
+                    </article>
 
                     <!-- 特色 4: QR 快速捷徑 -->
-                    <div class="glass-card rounded-2xl p-8">
+                    <article class="glass-card rounded-2xl p-8" aria-label="QR 快速捷徑">
                         <div class="flex gap-4">
-                            <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">
+                            <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
                                 <i data-lucide="qr-code" class="w-6 h-6"></i>
                             </div>
                             <div>
-                                <h4 class="font-bold mb-3" data-i18n="feature-qr-title">QR 快速捷徑</h4>
+                                <h3 class="font-bold mb-3" data-i18n="feature-qr-title">QR 快速捷徑</h3>
                                 <ul class="space-y-2 text-xs text-slate-600">
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-qr-1">加到主畫面，一鍵顯示 QR Code</span>
                                     </li>
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-qr-2">支援多張名片，類型清楚區分</span>
                                     </li>
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-qr-3">iOS / Android 完美支援</span>
                                     </li>
                                 </ul>
                             </div>
                         </div>
-                    </div>
+                    </article>
 
                     <!-- 特色 5: 現代化設計體驗 -->
-                    <div class="glass-card rounded-2xl p-8">
+                    <article class="glass-card rounded-2xl p-8" aria-label="現代化設計體驗">
                         <div class="flex gap-4">
-                            <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">
+                            <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
                                 <i data-lucide="sparkles" class="w-6 h-6"></i>
                             </div>
                             <div>
-                                <h4 class="font-bold mb-3" data-i18n="feature-design-title">現代化設計體驗</h4>
+                                <h3 class="font-bold mb-3" data-i18n="feature-design-title">現代化設計體驗</h3>
                                 <ul class="space-y-2 text-xs text-slate-600">
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-design-1">Glassmorphism 玻璃質感設計</span>
                                     </li>
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-design-2">Three.js 動態粒子背景</span>
                                     </li>
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-design-3">響應式設計，手機桌面完美適配</span>
                                     </li>
                                 </ul>
                             </div>
                         </div>
-                    </div>
+                    </article>
 
                     <!-- 特色 6: 個資同意管理 -->
-                    <div class="glass-card rounded-2xl p-8">
+                    <article class="glass-card rounded-2xl p-8" aria-label="個資同意管理">
                         <div class="flex gap-4">
-                            <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">
+                            <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
                                 <i data-lucide="file-check" class="w-6 h-6"></i>
                             </div>
                             <div>
-                                <h4 class="font-bold mb-3" data-i18n="feature-consent-title">個資同意管理</h4>
+                                <h3 class="font-bold mb-3" data-i18n="feature-consent-title">個資同意管理</h3>
                                 <ul class="space-y-2 text-xs text-slate-600">
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-consent-1">分層揭露（摘要 + 完整條款）</span>
                                     </li>
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-consent-2">可撤回同意（30 天緩衝期）</span>
                                     </li>
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-consent-3">資料可攜權（JSON 格式匯出）</span>
                                     </li>
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-consent-4">完整審計追蹤（同意歷史記錄）</span>
                                     </li>
                                 </ul>
                             </div>
                         </div>
-                    </div>
+                    </article>
 
-                    <!-- 特色 5: 可隨時撤銷授權 -->
-                    <div class="glass-card rounded-2xl p-8">
+                    <!-- 特色 7: 可隨時撤銷授權 -->
+                    <article class="glass-card rounded-2xl p-8" aria-label="可隨時撤銷存取">
                         <div class="flex gap-4">
-                            <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">
+                            <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
                                 <i data-lucide="x-circle" class="w-6 h-6"></i>
                             </div>
                             <div>
-                                <h4 class="font-bold mb-3" data-i18n="feature-revoke-title">可隨時撤銷存取</h4>
+                                <h3 class="font-bold mb-3" data-i18n="feature-revoke-title">可隨時撤銷存取</h3>
                                 <ul class="space-y-2 text-xs text-slate-600">
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-revoke-1">使用者自助撤銷（User Portal）</span>
                                     </li>
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-revoke-2">管理員緊急撤銷（Admin Dashboard）</span>
                                     </li>
                                     <li class="flex items-start gap-2">
-                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;"></i>
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-revoke-3">撤銷後所有會話立即失效</span>
                                     </li>
                                 </ul>
                             </div>
                         </div>
-                    </div>
+                    </article>
                 </div>
-            </div>
+            </section>
 
-            <!-- 安全掃描結果 -->
-            <div class="mb-16">
-                <h2 class="text-2xl font-black text-center mb-8" style="color: #6868ac;" data-i18n="security-scan-title">安全掃描結果</h2>
+            <!-- Scenario 3: 安全掃描結果區塊 -->
+            <section class="mb-16" aria-labelledby="security-scan-heading">
+                <h2 id="security-scan-heading" class="text-2xl font-black text-center mb-8" style="color: #6868ac;" data-i18n="security-scan-title">安全掃描結果</h2>
                 <div class="glass-card rounded-2xl p-8">
                     <div class="text-center mb-6">
                         <p class="text-sm text-slate-600 mb-4" data-i18n="security-scan-intro">
@@ -480,10 +558,10 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <!-- OWASP ZAP -->
                         <div class="text-center">
-                            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-3" style="background: rgba(16, 185, 129, 0.1);">
-                                <span class="text-2xl font-black" style="color: #10b981;">A</span>
+                            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-3" style="background: rgba(16, 185, 129, 0.1);" aria-label="OWASP ZAP 評級 A">
+                                <span class="text-2xl font-black" style="color: #10b981;" aria-hidden="true">A</span>
                             </div>
-                            <h4 class="font-bold mb-2">OWASP ZAP</h4>
+                            <h3 class="font-bold mb-2">OWASP ZAP</h3>
                             <p class="text-xs text-slate-600 mb-2" data-i18n="security-zap-desc">Web 應用程式安全掃描</p>
                             <div class="text-xs font-mono text-slate-500">
                                 51 PASS · 16 WARN · 0 FAIL
@@ -491,10 +569,10 @@
                         </div>
                         <!-- npm audit -->
                         <div class="text-center">
-                            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-3" style="background: rgba(16, 185, 129, 0.1);">
-                                <span class="text-2xl font-black" style="color: #10b981;">0</span>
+                            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-3" style="background: rgba(16, 185, 129, 0.1);" aria-label="npm audit 零漏洞">
+                                <span class="text-2xl font-black" style="color: #10b981;" aria-hidden="true">0</span>
                             </div>
-                            <h4 class="font-bold mb-2">npm audit</h4>
+                            <h3 class="font-bold mb-2">npm audit</h3>
                             <p class="text-xs text-slate-600 mb-2" data-i18n="security-npm-desc">Node.js 依賴安全掃描</p>
                             <div class="text-xs font-mono text-slate-500">
                                 0 vulnerabilities
@@ -502,10 +580,10 @@
                         </div>
                         <!-- OSV-Scanner -->
                         <div class="text-center">
-                            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-3" style="background: rgba(16, 185, 129, 0.1);">
-                                <span class="text-2xl font-black" style="color: #10b981;">0</span>
+                            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-3" style="background: rgba(16, 185, 129, 0.1);" aria-label="OSV-Scanner 零問題">
+                                <span class="text-2xl font-black" style="color: #10b981;" aria-hidden="true">0</span>
                             </div>
-                            <h4 class="font-bold mb-2">OSV-Scanner</h4>
+                            <h3 class="font-bold mb-2">OSV-Scanner</h3>
                             <p class="text-xs text-slate-600 mb-2" data-i18n="security-osv-desc">多語言依賴安全掃描</p>
                             <div class="text-xs font-mono text-slate-500">
                                 283 packages · 0 issues
@@ -515,39 +593,39 @@
                     <div class="mt-6 pt-6 border-t border-slate-200">
                         <div class="text-center mb-4">
                             <p class="text-xs font-semibold text-slate-700 mb-2" data-i18n="security-improvements">最新安全改進 (2026-02-01)</p>
-                            <div class="flex flex-wrap justify-center gap-2">
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                            <div class="flex flex-wrap justify-center gap-2" role="list" aria-label="安全改進項目">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800" role="listitem">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                                     Permissions-Policy
                                 </span>
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800" role="listitem">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                                     <span data-i18n="csp-directives">完整 CSP 指令</span>
                                 </span>
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800" role="listitem">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                                     <span data-i18n="sri-protection">SRI 完整性保護</span>
                                 </span>
                             </div>
                         </div>
                         <p class="text-xs text-slate-500 text-center">
-                            <span data-i18n="scan-reports">掃描報告</span>：<a href="https://github.com/iim0663418/DB-Card/tree/develop/docs/security/scan-reports" target="_blank" class="text-purple-600 hover:underline">docs/security/scan-reports/</a>
+                            <span data-i18n="scan-reports">掃描報告</span>：<a href="https://github.com/iim0663418/DB-Card/tree/develop/docs/security/scan-reports" target="_blank" rel="noopener noreferrer" class="text-purple-600 hover:underline" aria-label="查看安全掃描報告（在新分頁開啟）">docs/security/scan-reports/</a>
                         </p>
                     </div>
                 </div>
-            </div>
+            </section>
         </main>
 
-        <!-- Footer -->
-        <footer class="container mx-auto px-6 py-8 text-center text-xs text-slate-500">
+        <!-- Scenario 3: 語意化 HTML - footer -->
+        <footer class="container mx-auto px-6 py-8 text-center text-xs text-slate-500" role="contentinfo">
             <p class="mb-2" id="footer-version">
                 DB-Card 載入中... | Apache License 2.0
             </p>
             <p>
-                <a href="https://github.com/iim0663418/DB-Card" target="_blank" class="hover:text-purple-600 transition-colors">
+                <a href="https://github.com/iim0663418/DB-Card" target="_blank" rel="noopener noreferrer" class="hover:text-purple-600 transition-colors" aria-label="DB-Card GitHub 原始碼（在新分頁開啟）">
                     GitHub
                 </a>
-                <span class="mx-2">|</span>
+                <span class="mx-2" aria-hidden="true">|</span>
                 Powered by Cloudflare Workers
             </p>
         </footer>
@@ -560,7 +638,7 @@
             .then(r => r.json())
             .then(response => {
                 const data = response.data || response; // Handle both formats
-                
+
                 // Update header version
                 const headerEl = document.getElementById('app-version');
                 if (headerEl && data.version) {

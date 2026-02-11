@@ -14,8 +14,14 @@
     <script src="/js/tailwind-suppress.js"></script>
     <!-- Vite Icon Bundle (Tree-shaken: 11.62 KB, 96.9% reduction) -->
     <script type="module" src="/dist/icons.-k7gZ0Em.js"></script>
-    <script src="https://unpkg.com/@panzoom/panzoom@4.6.1/dist/panzoom.min.js"></script>
-    <script src="https://unpkg.com/@simplewebauthn/browser@13.0.0/dist/bundle/index.umd.min.js"></script>
+    <script src="/vendor/panzoom.min.js"
+            integrity="sha384-u8bfQFCgKdKTTif7iRiNzaUcfforzK6TX9dtMm6yqWCfFRmzlg3cz2npEiioASrH"
+            crossorigin="anonymous"
+            defer></script>
+    <script src="/vendor/simplewebauthn.min.js"
+            integrity="sha384-LXX7Wq4Ygc47p1Tw1tlv1G83JPgHQzVzu3WDtaZpekmpq5DTOz3JwqHAa65L/wAE"
+            crossorigin="anonymous"
+            defer></script>
     <script src="/vendor/qr-creator.min.js"
             integrity="sha384-cmmVU8dn+rGH6Yvlt0Q1+31iG9lS4wdVsqV/ZP/53RBddef+VZcYakA+NhG4S8wE"
             crossorigin="anonymous"
@@ -24,7 +30,10 @@
             integrity="sha384-qJNkHwhlYywDHfyoEe1np+1lYvX/8x+3gHCKFhSSBMQyCFlvFnn+zXmaebXl21rV"
             crossorigin="anonymous"
             defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" defer></script>
+    <script src="/vendor/chart.min.js"
+            integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ"
+            crossorigin="anonymous"
+            defer></script>
     <script type="module" src="/js/config.js"></script>
     <script src="/js/social-link-validation.js"></script>
     <script src="/js/social-link-integration.js"></script>

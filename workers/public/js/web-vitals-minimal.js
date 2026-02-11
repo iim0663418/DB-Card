@@ -1,5 +1,5 @@
 // Minimal Web Vitals collector using native Performance API
-// Collects: FCP, LCP, TTI (approximated)
+// Collects: FCP, LCP, INP, CLS, CardContentReady
 
 (function() {
   const vitals = {};
@@ -24,18 +24,52 @@
   });
   lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
 
+  // Collect INP (Interaction to Next Paint) - simplified: max event duration
+  try {
+    const inpObserver = new PerformanceObserver((list) => {
+      const entries = list.getEntries();
+      entries.forEach((entry) => {
+        if (vitals.inp === undefined || entry.duration > vitals.inp) {
+          vitals.inp = Math.round(entry.duration);
+        }
+      });
+    });
+    inpObserver.observe({ type: 'event', buffered: true, durationThreshold: 16 });
+  } catch (e) {
+    vitals.inp = null;
+  }
+
+  // Collect CLS (Cumulative Layout Shift)
+  vitals.cls = 0;
+  try {
+    const clsObserver = new PerformanceObserver((list) => {
+      const entries = list.getEntries();
+      entries.forEach((entry) => {
+        if (!entry.hadRecentInput) {
+          vitals.cls += entry.value;
+        }
+      });
+    });
+    clsObserver.observe({ type: 'layout-shift', buffered: true });
+  } catch (e) {
+    vitals.cls = null;
+  }
+
+  // Expose reportCardReady for main.js to call
+  window.reportCardReady = function(timestamp) {
+    vitals.card_content_ready = Math.round(timestamp);
+  };
+
   // Send vitals after page load
   window.addEventListener('load', () => {
     setTimeout(() => {
-      // Approximate TTI as load time + 500ms
-      vitals.tti = Math.round(performance.now());
-
-      // Send to backend (non-blocking)
       if (vitals.fcp && vitals.lcp) {
         navigator.sendBeacon(`${API_BASE}/api/analytics/vitals`, JSON.stringify({
           fcp: vitals.fcp,
           lcp: vitals.lcp,
-          tti: vitals.tti,
+          inp: vitals.inp !== undefined ? vitals.inp : null,
+          cls: vitals.cls !== null ? Math.round(vitals.cls * 1000) / 1000 : null,
+          card_content_ready: vitals.card_content_ready || null,
           page: 'card-display',
           timestamp: Date.now()
         }));

@@ -2,24 +2,44 @@
 import type { Env } from '../types';
 import { jsonResponse, errorResponse } from '../utils/response';
 
+interface VitalsPayload {
+  fcp?: number | null;
+  lcp?: number | null;
+  inp?: number | null;
+  cls?: number | null;
+  card_content_ready?: number | null;
+  page: string;
+  timestamp: number;
+}
+
+function clamp(value: number | null | undefined, min: number, max: number): number | null {
+  if (value === null || value === undefined) return null;
+  return value >= min && value <= max ? value : null;
+}
+
 export async function handleVitalsReport(request: Request, env: Env): Promise<Response> {
   try {
     const body = await request.text();
-    const data = JSON.parse(body);
+    const data: VitalsPayload = JSON.parse(body);
 
-    // Validate data
-    if (!data.fcp || !data.lcp || !data.page) {
+    // Validate required fields
+    if (!data.page) {
       return new Response(null, { status: 400 });
     }
 
-    // Store in D1 (async, non-blocking)
+    // Validate and sanitize ranges
+    const fcp = clamp(data.fcp, 0, 10000);
+    const lcp = clamp(data.lcp, 0, 10000);
+    const inp = clamp(data.inp, 0, 5000);
+    const cls = clamp(data.cls, 0, 1);
+    const cardContentReady = clamp(data.card_content_ready, 0, 10000);
+    const timestamp = data.timestamp ?? Date.now();
+
     await env.DB.prepare(`
-      INSERT INTO web_vitals (metric_name, metric_value, page, timestamp)
-      VALUES ('fcp', ?, ?, ?), ('lcp', ?, ?, ?), ('tti', ?, ?, ?)
+      INSERT INTO web_vitals (page, fcp, lcp, inp, cls, card_content_ready, timestamp)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `).bind(
-      data.fcp, data.page, data.timestamp,
-      data.lcp, data.page, data.timestamp,
-      data.tti || 0, data.page, data.timestamp
+      data.page, fcp, lcp, inp, cls, cardContentReady, timestamp
     ).run();
 
     return new Response(null, { status: 204 });
@@ -35,17 +55,17 @@ export async function handleVitalsStats(request: Request, env: Env): Promise<Res
 
     const stats = await env.DB.prepare(`
       SELECT
-        metric_name,
-        AVG(metric_value) as avg,
-        MIN(metric_value) as min,
-        MAX(metric_value) as max,
+        AVG(fcp) as fcp,
+        AVG(lcp) as lcp,
+        AVG(inp) as inp,
+        AVG(cls) as cls,
+        AVG(card_content_ready) as card_content_ready,
         COUNT(*) as count
       FROM web_vitals
       WHERE timestamp > ? AND page = 'card-display'
-      GROUP BY metric_name
-    `).bind(sevenDaysAgo).all();
+    `).bind(sevenDaysAgo).first();
 
-    return jsonResponse(stats.results, 200, request);
+    return jsonResponse(stats, 200, request);
   } catch (error) {
     return errorResponse('internal_error', '查詢失敗', 500, request);
   }

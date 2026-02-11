@@ -16,10 +16,6 @@
     <script type="module" src="/dist/icons.-k7gZ0Em.js"></script>
     <script src="https://unpkg.com/@panzoom/panzoom@4.6.1/dist/panzoom.min.js"></script>
     <script src="https://unpkg.com/@simplewebauthn/browser@13.0.0/dist/bundle/index.umd.min.js"></script>
-    <script src="/vendor/three.min.js"
-            integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu"
-            crossorigin="anonymous"
-            defer></script>
     <script src="/vendor/qr-creator.min.js"
             integrity="sha384-cmmVU8dn+rGH6Yvlt0Q1+31iG9lS4wdVsqV/ZP/53RBddef+VZcYakA+NhG4S8wE"
             crossorigin="anonymous"
@@ -814,21 +810,31 @@
                         </div>
                     </div>
 
-                    <!-- Core Web Vitals (7 天) -->
+                    <!-- Core Web Vitals (2024) -->
                     <div class="glass-surface p-6 rounded-2xl">
-                        <h3 class="text-[10px] font-bold text-slate-400 uppercase mb-4">Core Web Vitals (7 天)</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div class="flex flex-col">
-                                <span class="text-xs text-slate-500 mb-1">FCP (First Contentful Paint)</span>
-                                <span id="vitals-fcp" class="text-2xl font-black text-blue-600">--</span>
-                            </div>
+                        <h3 class="text-[10px] font-bold text-slate-400 uppercase mb-4">Core Web Vitals (2024)</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                             <div class="flex flex-col">
                                 <span class="text-xs text-slate-500 mb-1">LCP (Largest Contentful Paint)</span>
-                                <span id="vitals-lcp" class="text-2xl font-black text-green-600">--</span>
+                                <span id="vitals-lcp" class="text-2xl font-black">--</span>
                             </div>
                             <div class="flex flex-col">
-                                <span class="text-xs text-slate-500 mb-1">TTI (Time to Interactive)</span>
-                                <span id="vitals-tti" class="text-2xl font-black text-purple-600">--</span>
+                                <span class="text-xs text-slate-500 mb-1">INP (Interaction to Next Paint)</span>
+                                <span id="vitals-inp" class="text-2xl font-black">--</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-xs text-slate-500 mb-1">CLS (Cumulative Layout Shift)</span>
+                                <span id="vitals-cls" class="text-2xl font-black">--</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-200">
+                            <div class="flex flex-col">
+                                <span class="text-xs text-slate-500 mb-1">FCP (First Contentful Paint)</span>
+                                <span id="vitals-fcp" class="text-2xl font-black">--</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-xs text-slate-500 mb-1">CardContentReady (自訂)</span>
+                                <span id="vitals-card_content_ready" class="text-2xl font-black">--</span>
                             </div>
                         </div>
                     </div>
@@ -3288,6 +3294,23 @@ wrangler secret delete OLD_KEK
             }
         }
 
+        // 門檻值顏色判定
+        function getVitalColor(metric, value) {
+            if (value === null || value === undefined) return 'text-slate-400';
+            if (metric === 'lcp') {
+                return value < 2500 ? 'text-green-600' : value < 4000 ? 'text-yellow-500' : 'text-red-600';
+            } else if (metric === 'inp') {
+                return value < 200 ? 'text-green-600' : value < 500 ? 'text-yellow-500' : 'text-red-600';
+            } else if (metric === 'cls') {
+                return value < 0.1 ? 'text-green-600' : value < 0.25 ? 'text-yellow-500' : 'text-red-600';
+            } else if (metric === 'fcp') {
+                return value < 1800 ? 'text-green-600' : 'text-slate-600';
+            } else if (metric === 'card_content_ready') {
+                return value < 1500 ? 'text-green-600' : 'text-slate-600';
+            }
+            return 'text-slate-600';
+        }
+
         // 載入 Web Vitals 統計
         async function loadWebVitals() {
             try {
@@ -3297,12 +3320,18 @@ wrangler secret delete OLD_KEK
 
                 if (response.ok) {
                     const data = await response.json();
-                    const stats = data.data || [];
+                    const stats = data.data || data;
 
-                    stats.forEach(stat => {
-                        const el = document.getElementById(`vitals-${stat.metric_name}`);
-                        if (el) {
-                            el.textContent = `${Math.round(stat.avg)}ms`;
+                    const metrics = ['lcp', 'inp', 'cls', 'fcp', 'card_content_ready'];
+                    metrics.forEach(metric => {
+                        const el = document.getElementById(`vitals-${metric}`);
+                        if (!el) return;
+                        const value = stats ? stats[metric] : null;
+                        if (value !== null && value !== undefined) {
+                            el.textContent = metric === 'cls'
+                                ? value.toFixed(3)
+                                : `${Math.round(value)}ms`;
+                            el.className = `text-2xl font-black ${getVitalColor(metric, metric === 'cls' ? value : Math.round(value))}`;
                         }
                     });
                 }

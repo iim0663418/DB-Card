@@ -3,6 +3,8 @@ import { SignJWT } from 'jose';
 import { generateCsrfToken, storeCsrfToken } from '../utils/csrf';
 import { getAndConsumeOAuthState } from '../utils/oauth-state';
 import { validateIDToken } from '../utils/oidc-validator';
+import { isUserDisabled } from '../utils/user-security';
+import { addOAuthSessionForUser } from '../utils/oauth-session-index';
 
 /**
  * Allowed Redirect URIs for OAuth Callback
@@ -154,6 +156,11 @@ export async function handleOAuthCallback(
       return Response.redirect(`${url.origin}/user-portal.html?login=error&error=unauthorized_domain`, 302);
     }
 
+    // Block sign-in for users disabled by security events (RISC)
+    if (await isUserDisabled(env.DB, email)) {
+      return Response.redirect(`${url.origin}/user-portal.html?login=error&error=account_disabled`, 302);
+    }
+
     // Generate our JWT token
     const secret = new TextEncoder().encode(env.JWT_SECRET);
 
@@ -174,6 +181,7 @@ export async function handleOAuthCallback(
 
     // Store JWT token in KV with session ID as key
     await env.KV.put(`oauth_session:${sessionId}`, jwtToken, { expirationTtl: 3600 });
+    await addOAuthSessionForUser(env, email, sessionId);
 
     // Generate CSRF token for user session
     const csrfToken = generateCsrfToken();

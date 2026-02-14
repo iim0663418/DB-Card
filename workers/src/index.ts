@@ -21,6 +21,7 @@ import { handleGetOAuthUserInfo } from './handlers/user/oauth-user-info';
 import { handleConsentCheck, handleConsentAccept, handleConsentWithdraw, handleConsentRestore, handleConsentHistory, handleDataExport, handlePrivacyPolicyCurrent } from './handlers/consent';
 import { handleOAuthCallback } from './handlers/oauth';
 import { handleOAuthInit } from './handlers/oauth-init';
+import { handleRISCEvent } from './handlers/risc';
 import { handleManifest } from './handlers/manifest';
 import { errorResponse, publicErrorResponse } from './utils/response';
 import { checkRateLimit } from './middleware/rate-limit';
@@ -255,6 +256,11 @@ export default {
       return addMinimalSecurityHeaders(await handleOAuthCallback(request, env));
     }
 
+    // RISC security events endpoint (Google Cross-Account Protection)
+    if (url.pathname === '/api/risc/events' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleRISCEvent(request, env));
+    }
+
     // User logout
     if (url.pathname === '/api/user/logout' && request.method === 'POST') {
       return addMinimalSecurityHeaders(await handleUserLogout(request, env));
@@ -286,6 +292,7 @@ export default {
                             url.pathname === '/api/read' ||
                             url.pathname === '/api/analytics/vitals' ||
                             url.pathname === '/api/csp-report' ||
+                            url.pathname === '/api/risc/events' ||
                             url.pathname === '/oauth/callback' ||
                             url.pathname === '/health';
 

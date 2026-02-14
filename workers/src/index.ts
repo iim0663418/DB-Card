@@ -234,6 +234,18 @@ export default {
     }
 
     // OAuth init - Generate state parameter
+    // OAuth Config API
+    if (url.pathname === '/api/oauth/config' && request.method === 'GET') {
+      return new Response(JSON.stringify({
+        clientId: env.GOOGLE_CLIENT_ID
+      }), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, max-age=3600'
+        }
+      });
+    }
+
     if (url.pathname === '/api/oauth/init' && request.method === 'POST') {
       return addMinimalSecurityHeaders(await handleOAuthInit(request, env));
     }

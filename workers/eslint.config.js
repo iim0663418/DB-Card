@@ -43,7 +43,13 @@ export default [
         Chart: 'readonly',
         QRCreator: 'readonly',
         Panzoom: 'readonly',
-        SimpleWebAuthnBrowser: 'readonly'
+        SimpleWebAuthnBrowser: 'readonly',
+        URLSearchParams: 'readonly',
+        FormData: 'readonly',
+        // Functions called from HTML onclick attributes
+        closeWebViewWarning: 'writable',
+        copyCurrentURL: 'writable',
+        handleGoogleLogin: 'writable'
       }
     },
     rules: {

@@ -1,6 +1,8 @@
 import type { Env } from '../types';
 import { jwtVerify } from 'jose';
 import { publicErrorResponse, errorResponse } from '../utils/response';
+import { isUserDisabled } from '../utils/user-security';
+import { removeOAuthSessionForUser } from '../utils/oauth-session-index';
 
 async function verifyOAuthToken(token: string, env: Env): Promise<string | null> {
   const DEBUG = env.ENVIRONMENT === 'staging';
@@ -106,6 +108,19 @@ export async function verifyOAuth(
   if (!email) {
     console.error('[OAuth] FAILED: Token verification returned null');
     return errorResponse('unauthorized', 'Invalid or expired token', 401, request);
+  }
+
+  // Security status check (RISC account disabled)
+  if (await isUserDisabled(env.DB, email)) {
+    if (sessionId) {
+      await Promise.all([
+        env.KV.delete(`oauth_session:${sessionId}`),
+        env.KV.delete(`csrf_token:${sessionId}`),
+        env.KV.delete(`oauth_user_info:${sessionId}`),
+        removeOAuthSessionForUser(env, email, sessionId)
+      ]);
+    }
+    return errorResponse('account_disabled', 'Account disabled for security reasons', 403, request);
   }
 
   if (DEBUG) console.log('[OAuth] Email extracted from token:', email);

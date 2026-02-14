@@ -133,7 +133,14 @@
                 'privacy-settings-title': '個資管理',
                 'privacy-view-history': '查看同意歷史',
                 'privacy-export-data': '匯出我的資料',
-                'privacy-withdraw-consent': '撤回同意'
+                'privacy-withdraw-consent': '撤回同意',
+
+                // WebView Warning
+                'webview_warning_title': '不支援的瀏覽器',
+                'webview_warning_message': '此頁面不支援應用程式內建瀏覽器。請使用系統瀏覽器（Chrome、Safari、Firefox）開啟此連結。',
+                'copy_url': '複製網址',
+                'url_copied': '網址已複製',
+                'close': '關閉'
             },
             en: {
                 // 1. Login Page (5 keys)
@@ -265,7 +272,14 @@
                 'privacy-settings-title': 'Privacy Management',
                 'privacy-view-history': 'View Consent History',
                 'privacy-export-data': 'Export My Data',
-                'privacy-withdraw-consent': 'Withdraw Consent'
+                'privacy-withdraw-consent': 'Withdraw Consent',
+
+                // WebView Warning
+                'webview_warning_title': 'Unsupported Browser',
+                'webview_warning_message': 'This page does not support in-app browsers. Please open this link in your system browser (Chrome, Safari, Firefox).',
+                'copy_url': 'Copy URL',
+                'url_copied': 'URL copied',
+                'close': 'Close'
             }
         };
 
@@ -622,6 +636,67 @@
             }
         }
 
+        function isEmbeddedBrowser() {
+          const ua = navigator.userAgent || navigator.vendor || window.opera;
+          const patterns = [
+            /WebView/i, /\bwv\b/i, /WKWebView/i,
+            /FB_IAB/i, /Instagram/i, /Line\//i, /KAKAOTALK/i
+          ];
+          return patterns.some(pattern => pattern.test(ua));
+        }
+
+        function showWebViewWarning() {
+          const modal = document.getElementById('webview-warning-modal');
+          if (modal) {
+            modal.classList.remove('hidden');
+          }
+        }
+
+        function closeWebViewWarning() {
+          const modal = document.getElementById('webview-warning-modal');
+          if (modal) {
+            modal.classList.add('hidden');
+          }
+        }
+
+        function copyCurrentURL() {
+          navigator.clipboard.writeText(window.location.href).then(() => {
+            alert(i18n[currentLang]['url_copied'] || 'URL copied!');
+          });
+        }
+
+        // Check for WebView or OAuth error
+        const urlParams = new URLSearchParams(window.location.search);
+        if (isEmbeddedBrowser() || urlParams.get('oauth_error') === 'webview_blocked') {
+          showWebViewWarning();
+          // Disable Google Sign-In button
+          const signInBtn = document.getElementById('google-signin-btn');
+          if (signInBtn) {
+            signInBtn.disabled = true;
+            signInBtn.classList.add('opacity-50', 'cursor-not-allowed');
+          }
+        }
+
+        async function getOAuthConfig() {
+          const cached = sessionStorage.getItem('oauth_config');
+          if (cached) {
+            const { clientId, timestamp } = JSON.parse(cached);
+            if (Date.now() - timestamp < 3600000) {
+              return { clientId };
+            }
+          }
+
+          const res = await fetch('/api/oauth/config');
+          if (!res.ok) throw new Error('Failed to fetch OAuth config');
+          const config = await res.json();
+
+          sessionStorage.setItem('oauth_config', JSON.stringify({
+            ...config,
+            timestamp: Date.now()
+          }));
+          return config;
+        }
+
         async function handleGoogleLogin() {
             const errorBox = document.getElementById('login-error-box');
             errorBox.classList.add('hidden');
@@ -639,7 +714,7 @@
 
                 const { state, nonce, codeChallenge, codeChallengeMethod } = await stateResponse.json();
 
-                const clientId = '675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com';
+                const { clientId } = await getOAuthConfig();
                 const redirectUri = window.location.origin + '/oauth/callback';
                 const scope = 'openid email profile';
 

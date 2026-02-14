@@ -488,6 +488,7 @@ wrangler dev --remote
 - `POST /api/nfc/tap` - NFC 觸碰創建會話
 - `GET /api/read` - 讀取名片資料
 - `GET /health` - 系統健康檢查
+- `GET /api/oauth/config` - 取得 OAuth 配置（clientId）
 - `GET /api/oauth/init` - OAuth 初始化 (取得 state 和 nonce)
 - `GET /oauth/callback` - OAuth 回調
 

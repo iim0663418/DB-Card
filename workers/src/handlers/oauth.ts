@@ -44,6 +44,14 @@ export async function handleOAuthCallback(
     return new Response('Invalid redirect_uri', { status: 400 });
   }
 
+  // Check for OAuth errors (e.g., disallowed_useragent)
+  if (error === 'disallowed_useragent') {
+    return Response.redirect(
+      `${url.origin}/user-portal.html?oauth_error=webview_blocked`,
+      302
+    );
+  }
+
   if (error) {
     // Redirect back to user portal with error parameter
     return Response.redirect(`${url.origin}/user-portal.html?login=error&error=${encodeURIComponent(error)}`, 302);

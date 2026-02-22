@@ -17,7 +17,6 @@ interface OCRResult {
   name_suffix: string | null;
   organization: string | null;
   organization_en: string | null;
-  organization_alias: string | null;
   department: string | null;
   title: string | null;
   phone: string | null;
@@ -62,7 +61,6 @@ async function performOCR(
   "name_suffix": "學位/頭銜後綴（Ph.D./Jr./Sr./M.D./Esq.）或 null",
   "organization": "組織名稱（ORG 格式，公司正式名稱）",
   "organization_en": "組織英文名稱（名片上有印才填）或 null",
-  "organization_alias": "組織常用簡稱（名片上有印才填）或 null",
   "title": "職稱（TITLE 格式，如：總經理、Software Engineer）",
   "phone": "電話號碼（TEL 格式，保留原格式含國碼，如：+886-2-1234-5678）",
   "email": "電子郵件（EMAIL 格式，完整地址）",
@@ -73,12 +71,13 @@ async function performOCR(
 vCard 標準辨識規則：
 1. full_name (FN)：完整顯示名稱，保留名片原始格式
 2. last_name + first_name (N)：姓名結構化拆分
-3. organization (ORG)：公司正式全稱
-4. title (TITLE)：職稱/職位
-5. phone (TEL)：保留國碼和原始格式（+886-2-xxxx-xxxx）
-6. email (EMAIL)：完整電子郵件地址
-7. website (URL)：完整 URL（必須含 https:// 或 http://）
-8. address (ADR)：完整地址含郵遞區號
+3. organization (ORG)：公司正式全稱（不要辨識簡稱或別名）
+4. organization_en：僅辨識名片上明確印刷的英文名稱
+5. title (TITLE)：職稱/職位
+6. phone (TEL)：保留國碼和原始格式（+886-2-xxxx-xxxx）
+7. email (EMAIL)：完整電子郵件地址
+8. website (URL)：完整 URL（必須含 https:// 或 http://）
+9. address (ADR)：完整地址含郵遞區號
 9. 無法辨識的欄位填 null
 10. 不要添加解釋文字或 markdown 標記`;
 

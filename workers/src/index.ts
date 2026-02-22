@@ -20,6 +20,7 @@ import { handleUserLogout } from './handlers/user/logout';
 import { handleUpload } from './handlers/user/received-cards/upload';
 import { handleOCR } from './handlers/user/received-cards/ocr';
 import { handleEnrich } from './handlers/user/received-cards/enrich';
+import { handleUnifiedExtract } from './handlers/user/received-cards/unified-extract';
 import { handleSaveCard, handleListCards as handleListReceivedCards, handleUpdateCard as handleUpdateReceivedCard, handleDeleteCard as handleDeleteReceivedCard, handlePatchCard as handlePatchReceivedCard } from './handlers/user/received-cards/crud';
 import { handleGetThumbnail } from './handlers/user/received-cards/thumbnail';
 import { handleGetImage } from './handlers/user/received-cards/image';
@@ -338,6 +339,10 @@ export default {
     // Received Cards APIs (OAuth required)
     if (url.pathname === '/api/user/received-cards/upload' && request.method === 'POST') {
       return addMinimalSecurityHeaders(await handleUpload(request, env));
+    }
+
+    if (url.pathname === '/api/user/received-cards/unified-extract' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleUnifiedExtract(request, env));
     }
 
     if (url.pathname === '/api/user/received-cards/ocr' && request.method === 'POST') {

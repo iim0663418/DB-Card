@@ -153,6 +153,15 @@ const ReceivedCardsAPI = {
     });
   },
 
+  async unifiedExtract(uploadId, signal) {
+    return await this.call('/api/user/received-cards/unified-extract', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ upload_id: uploadId }),
+      signal
+    });
+  },
+
   async enrichCard(uploadId, ocrData, signal) {
     return await this.call('/api/user/received-cards/enrich', {
       method: 'POST',
@@ -273,25 +282,22 @@ const CardUploadStateMachine = {
     try {
       this.setState('uploading');
       const uploadResult = await ReceivedCardsAPI.uploadImage(file);
-      // Fix: jsonResponse wraps data in {success: true, data: {...}}
       const uploadData = uploadResult.data || uploadResult;
       this.currentUploadId = uploadData.upload_id;
       
       this.setState('ocr');
-      const ocrResult = await Promise.race([
-        ReceivedCardsAPI.performOCR(this.currentUploadId, this.abortController.signal),
-        this.timeout(15000, 'OCR timeout')
+      const extractResult = await Promise.race([
+        ReceivedCardsAPI.unifiedExtract(this.currentUploadId, this.abortController.signal),
+        this.timeout(20000, 'Extract timeout')
       ]);
       
-      // Fix: jsonResponse wraps data
-      const ocrData = ocrResult.data || ocrResult;
+      const extractData = extractResult.data || extractResult;
       
       this.currentData = {
-        ...ocrData,
+        ...extractData,
         upload_id: this.currentUploadId
       };
       
-      // Skip AI enrichment by default - user can manually trigger it later
       this.setState('preview', {
         ...this.currentData
       });
@@ -340,7 +346,13 @@ const CardUploadStateMachine = {
     safeSetValue('preview-name-suffix', data.name_suffix);
     safeSetValue('preview-organization', data.organization);
     safeSetValue('preview-organization-en', data.organization_en);
-    safeSetValue('preview-organization-alias', data.organization_alias);
+    
+    // Handle organization_alias: convert array to comma-separated string
+    const aliasValue = Array.isArray(data.organization_alias) 
+      ? data.organization_alias.join(', ') 
+      : (data.organization_alias || '');
+    safeSetValue('preview-organization-alias', aliasValue);
+    
     safeSetValue('preview-department', data.department);
     safeSetValue('preview-title', data.title);
     safeSetValue('preview-phone', data.phone);
@@ -359,6 +371,9 @@ const CardUploadStateMachine = {
     const saveBtn = document.getElementById('preview-save-btn');
     const handleSave = async () => {
       try {
+        // 判斷 ai_status：有 sources 就是 completed
+        const aiStatus = (data.sources && data.sources.length > 0) ? 'completed' : null;
+        
         const formData = {
           upload_id: data.upload_id,
           name_prefix: document.getElementById('preview-name-prefix').value,
@@ -376,6 +391,7 @@ const CardUploadStateMachine = {
           note: document.getElementById('preview-note').value,
           company_summary: data.company_summary,
           sources: data.sources,
+          ai_status: aiStatus,
           ocr_raw_text: data.ocr_raw_text
         };
         
@@ -1214,8 +1230,8 @@ const ReceivedCards = {
         this.renderDetailField('updated', `最後更新：${formatted}`);
       }
 
-      // 渲染 AI 狀態
-      this.renderAIStatus(card.ai_status);
+      // 渲染 AI 狀態（根據 sources 判斷）
+      this.renderAIStatus(card);
 
       // 渲染公司摘要
       this.renderCompanySummary(card);
@@ -1274,38 +1290,22 @@ const ReceivedCards = {
     }
   },
 
-  renderAIStatus(aiStatus) {
+  renderAIStatus(card) {
     const container = document.getElementById('ai-status-container');
     if (!container) return;
 
     // 清空容器
     container.innerHTML = '';
 
-    if (!aiStatus) return;
+    // 直接根據 ai_status 判斷
+    if (card.ai_status !== 'completed') return;
 
-    // 創建 badge（移除 icon）
+    // 創建 badge
     const badge = document.createElement('div');
-    badge.style.cssText = 'display: inline-flex; align-items: center; padding: 0.5rem 1rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 700;';
+    badge.style.cssText = 'display: inline-flex; align-items: center; padding: 0.5rem 1rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 700; background-color: #d1fae5; color: #065f46;';
 
     const text = document.createElement('span');
-
-    if (aiStatus === 'skipped') {
-      badge.style.backgroundColor = '#f3f4f6';
-      badge.style.color = '#374151';
-      text.textContent = '未使用 AI 分析';
-    } else if (aiStatus === 'completed') {
-      badge.style.backgroundColor = '#d1fae5';
-      badge.style.color = '#065f46';
-      text.textContent = 'AI 分析完成';
-    } else if (aiStatus === 'pending') {
-      badge.style.backgroundColor = '#dbeafe';
-      badge.style.color = '#1e40af';
-      text.textContent = 'AI 分析中...';
-    } else if (aiStatus === 'failed') {
-      badge.style.backgroundColor = '#fee2e2';
-      badge.style.color = '#991b1b';
-      text.textContent = 'AI 分析失敗';
-    }
+    text.textContent = '已使用外部資訊補全';
 
     badge.appendChild(text);
     container.appendChild(badge);
@@ -1629,19 +1629,6 @@ const ReceivedCards = {
     const modal = document.getElementById('editCardModal');
     if (modal) {
       modal.classList.remove('hidden');
-      
-      // 綁定補充按鈕（根據 ai_status 顯示/隱藏）
-      const enrichBtn = document.getElementById('enrichEditCard');
-      if (enrichBtn) {
-        if (card.ai_status === 'completed') {
-          // 已完成 AI 分析，隱藏按鈕
-          enrichBtn.style.display = 'none';
-        } else {
-          // 未完成，顯示按鈕
-          enrichBtn.style.display = 'flex';
-          enrichBtn.onclick = () => this.enrichCardInfo(cardUuid);
-        }
-      }
 
       // Re-init icons after modal is visible
       if (typeof window.initIcons === 'function') {

@@ -18,7 +18,7 @@ interface SaveCardRequest {
   name_suffix?: string;
   organization?: string;
   organization_en?: string;
-  organization_alias?: string;
+  organization_alias?: string | string[];  // Support both string and array
   department?: string;
   title?: string;
   phone?: string;
@@ -29,6 +29,7 @@ interface SaveCardRequest {
   company_summary?: string;
   personal_summary?: string;
   sources?: Array<{ uri: string; title: string }>;
+  ai_status?: string;
   ocr_raw_text?: string;
 }
 
@@ -154,6 +155,15 @@ export async function handleSaveCard(request: Request, env: Env): Promise<Respon
       const aiSourcesJson = (body.sources && body.sources.length > 0) 
         ? JSON.stringify(body.sources) 
         : null;
+      const aiStatus = body.ai_status || null;
+      
+      // Handle organization_alias: convert array to JSON string
+      const organizationAlias = body.organization_alias 
+        ? (Array.isArray(body.organization_alias) 
+            ? JSON.stringify(body.organization_alias) 
+            : body.organization_alias)
+        : null;
+      
       const now = Date.now();
 
       await env.DB.prepare(`
@@ -161,14 +171,14 @@ export async function handleSaveCard(request: Request, env: Env): Promise<Respon
           uuid, user_email, name_prefix, full_name, first_name, last_name, name_suffix,
           organization, organization_en, organization_alias, department, title, 
           phone, email, website, address, note,
-          company_summary, personal_summary, ai_sources_json,
+          company_summary, personal_summary, ai_sources_json, ai_status,
           original_image_url, thumbnail_url, ocr_raw_text, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         cardUuid, user.email, body.name_prefix || null, body.full_name, body.first_name || null, body.last_name || null, body.name_suffix || null,
-        body.organization || null, body.organization_en || null, body.organization_alias || null, body.department || null, body.title || null,
+        body.organization || null, body.organization_en || null, organizationAlias, body.department || null, body.title || null,
         body.phone || null, body.email || null, body.website || null, body.address || null, body.note || null,
-        body.company_summary || null, body.personal_summary || null, aiSourcesJson,
+        body.company_summary || null, body.personal_summary || null, aiSourcesJson, aiStatus,
         permanentUrl, thumbnailUrl, body.ocr_raw_text || null, now.toString()
       ).run();
 

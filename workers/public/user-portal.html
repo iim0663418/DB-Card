@@ -406,10 +406,9 @@
                     </div>
                     <div class="ai-step flex-1 text-center space-y-2">
                         <div class="w-8 h-8 rounded-full bg-slate-200 mx-auto"></div>
-                        <p class="text-xs font-bold text-slate-600" data-i18n="ai-step-ocr">辨識文字</p>
+                        <p class="text-xs font-bold text-slate-600" data-i18n="ai-step-ocr">辨識與補全</p>
                     </div>
                 </div>
-                <button id="skip-ai-button" class="hidden w-full py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-all" data-i18n="skip-ai">跳過 AI，直接儲存</button>
             </div>
 
             <!-- Search and Filter Section -->
@@ -733,21 +732,13 @@
                     </div>
 
                     <!-- 按鈕 -->
-                    <div class="flex justify-between items-center gap-2 mt-6 pt-4 border-t border-slate-200">
-                        <button type="button" id="enrichEditCard"
-                                style="padding: 0.5rem 1rem; background-color: #f3e8ff; color: #6b21a8; border-radius: 0.5rem; font-weight: 500; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"
-                                onmouseover="this.style.backgroundColor='#e9d5ff'"
-                                onmouseout="this.style.backgroundColor='#f3e8ff'">
-                            <i data-lucide="sparkles" class="w-4 h-4"></i>
-                            補充名片資訊
+                    <div class="flex justify-end items-center gap-2 mt-6 pt-4 border-t border-slate-200">
+                        <button type="button" id="cancelEdit"
+                                class="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors">
+                            取消
                         </button>
-                        <div class="flex gap-2">
-                            <button type="button" id="cancelEdit"
-                                    class="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors">
-                                取消
-                            </button>
-                            <button type="submit"
-                                    class="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">
+                        <button type="submit"
+                                class="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">
                                 儲存
                             </button>
                         </div>

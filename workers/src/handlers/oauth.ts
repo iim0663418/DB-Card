@@ -7,14 +7,21 @@ import { isUserDisabled } from '../utils/user-security';
 import { addOAuthSessionForUser } from '../utils/oauth-session-index';
 
 /**
- * Allowed Redirect URIs for OAuth Callback
- * RFC 6749 Section 10.6 - Open Redirector Prevention
+ * Get allowed redirect URIs based on environment
  */
-const ALLOWED_REDIRECT_URIS = [
-  'https://db-card.moda.gov.tw/oauth/callback',
-  'https://db-card-staging.csw30454.workers.dev/oauth/callback',
-  'http://localhost:8787/oauth/callback' // Development only
-];
+function getAllowedRedirectUris(env: Env): string[] {
+  const uris = [
+    `${env.WORKER_URL}/oauth/callback`,
+    'http://localhost:8787/oauth/callback'
+  ];
+  
+  // Staging: support both worker and custom domain
+  if (env.ENVIRONMENT === 'staging') {
+    uris.push('https://db-card.sfan-tech.com/oauth/callback');
+  }
+  
+  return uris;
+}
 
 export async function handleOAuthCallback(
   request: Request,
@@ -42,7 +49,8 @@ export async function handleOAuthCallback(
   // ✅ BDD Scenario 1, 2, 3: Redirect URI Validation (Open Redirector Prevention)
   // RFC 6749 Section 10.6
   const redirectUri = `${url.origin}/oauth/callback`;
-  if (!ALLOWED_REDIRECT_URIS.includes(redirectUri)) {
+  const allowedUris = getAllowedRedirectUris(env);
+  if (!allowedUris.includes(redirectUri)) {
     return new Response('Invalid redirect_uri', { status: 400 });
   }
 
@@ -178,6 +186,23 @@ export async function handleOAuthCallback(
 
     // Generate a short session ID for cookie and KV key
     const sessionId = crypto.randomUUID();
+
+    // Upsert user to database (for foreign key constraints)
+    const now = Date.now();
+    await env.DB.prepare(`
+      INSERT INTO users (email, name, picture, created_at, last_login)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(email) DO UPDATE SET
+        name = excluded.name,
+        picture = excluded.picture,
+        last_login = excluded.last_login
+    `).bind(
+      email, 
+      userInfo.name || null, 
+      userInfo.picture || null, 
+      now, 
+      now
+    ).run();
 
     // Store JWT token in KV with session ID as key
     await env.KV.put(`oauth_session:${sessionId}`, jwtToken, { expirationTtl: 3600 });

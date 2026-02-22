@@ -13,10 +13,12 @@ export interface Env {
   RP_ID?: string;
   ORIGIN?: string;
   ENVIRONMENT: 'production' | 'staging';
+  WORKER_URL: string;
   ASSETS: Fetcher;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
   JWT_SECRET: string;
+  GEMINI_API_KEY: string;
 }
 
 // Bilingual support types

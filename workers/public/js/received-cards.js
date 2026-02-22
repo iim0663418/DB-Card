@@ -1,0 +1,2096 @@
+// Received Cards Module
+// AI-First Card Capture Feature
+
+/* eslint-env browser */
+/* global showToast */
+
+// ==================== Thumbnail Generator ====================
+async function generateThumbnailClient(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      img.src = e.target.result;
+    };
+
+    img.onload = () => {
+      // Calculate thumbnail size (300x200 max, keep aspect ratio)
+      const maxWidth = 300;
+      const maxHeight = 200;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width = (width * maxHeight) / height;
+          height = maxHeight;
+        }
+      }
+
+      // Create canvas and draw thumbnail
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Convert to WebP blob with quality control
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error('Failed to generate thumbnail'));
+            return;
+          }
+
+          // Check size, reduce quality if needed
+          if (blob.size > 20 * 1024) {
+            canvas.toBlob(
+              (reducedBlob) => {
+                resolve(reducedBlob || blob);
+              },
+              'image/webp',
+              0.6
+            );
+          } else {
+            resolve(blob);
+          }
+        },
+        'image/webp',
+        0.8
+      );
+    };
+
+    img.onerror = () => reject(new Error('Failed to load image'));
+    reader.onerror = () => reject(new Error('Failed to read file'));
+
+    reader.readAsDataURL(file);
+  });
+}
+
+// ==================== API Helper ====================
+const ReceivedCardsAPI = {
+  async call(endpoint, options = {}) {
+    const csrfToken = sessionStorage.getItem('csrfToken');
+
+    // Debug: log CSRF token status
+    if (!csrfToken) {
+    }
+
+    const headers = {
+      ...options.headers,
+      ...(csrfToken && { 'X-CSRF-Token': csrfToken })
+    };
+
+    const response = await fetch(endpoint, {
+      ...options,
+      headers,
+      credentials: 'include',
+      signal: options.signal
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP ${response.status}`);
+    }
+
+    if (response.status === 204) {
+      return null;
+    }
+
+    return await response.json();
+  },
+
+  async uploadImage(file) {
+    try {
+      // Generate thumbnail
+      const thumbnail = await generateThumbnailClient(file);
+
+      // Read original image
+      const imageBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
+      });
+
+      // Read thumbnail
+      const thumbnailBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Failed to read thumbnail'));
+        reader.readAsDataURL(thumbnail);
+      });
+
+      // Upload both
+      const result = await this.call('/api/user/received-cards/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image_base64: imageBase64,
+          thumbnail_base64: thumbnailBase64,
+          filename: file.name
+        })
+      });
+
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async performOCR(uploadId, signal) {
+    return await this.call('/api/user/received-cards/ocr', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ upload_id: uploadId }),
+      signal
+    });
+  },
+
+  async enrichCard(uploadId, ocrData, signal) {
+    return await this.call('/api/user/received-cards/enrich', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        upload_id: uploadId,
+        organization: ocrData.organization,
+        full_name: ocrData.full_name,
+        title: ocrData.title
+      }),
+      signal
+    });
+  },
+
+  async saveCard(data) {
+    return await this.call('/api/user/received-cards', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  },
+
+  async loadCards() {
+    return await this.call('/api/user/received-cards');
+  },
+
+  async updateCard(uuid, data) {
+    return await this.call(`/api/user/received-cards/${uuid}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  },
+
+  async deleteCard(uuid) {
+    return await this.call(`/api/user/received-cards/${uuid}`, {
+      method: 'DELETE'
+    });
+  }
+};
+
+// ==================== State Machine ====================
+const CardUploadStateMachine = {
+  state: 'idle',
+  currentData: null,
+  currentUploadId: null,
+  abortController: null,
+  skipAITimer: null,
+
+  setState(newState, data = null) {
+    this.state = newState;
+    if (data) {
+      this.currentData = { ...this.currentData, ...data };
+    }
+    this.updateUI();
+  },
+
+  updateUI() {
+    const states = {
+      idle: { show: ['upload-area'], hide: ['ai-processing', 'preview-modal', 'error-message'] },
+      uploading: { show: ['ai-processing'], hide: ['upload-area', 'preview-modal'], step: 0 },
+      ocr: { show: ['ai-processing'], hide: ['upload-area', 'preview-modal'], step: 1 },
+      preview: { show: ['preview-modal'], hide: ['ai-processing', 'upload-area', 'skip-ai-button'] },
+      error: { show: ['error-message'], hide: ['ai-processing', 'upload-area', 'preview-modal'] }
+    };
+
+    const config = states[this.state];
+    if (!config) return;
+
+    config.show?.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('hidden');
+    });
+
+    config.hide?.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    });
+
+    if (config.step !== undefined) {
+      this.updateAIStep(config.step);
+    }
+
+    if (this.state === 'preview') {
+      this.showPreviewModal();
+    }
+  },
+
+  updateAIStep(stepIndex) {
+    document.querySelectorAll('.ai-step').forEach((el, index) => {
+      el.classList.remove('active', 'completed');
+      if (index < stepIndex) {
+        el.classList.add('completed');
+      } else if (index === stepIndex) {
+        el.classList.add('active');
+      }
+    });
+  },
+
+  startSkipAITimer() {
+    this.clearSkipAITimer();
+    this.skipAITimer = setTimeout(() => {
+      const btn = document.getElementById('skip-ai-button');
+      if (btn) btn.classList.remove('hidden');
+    }, 5000);
+  },
+
+  clearSkipAITimer() {
+    if (this.skipAITimer) {
+      clearTimeout(this.skipAITimer);
+      this.skipAITimer = null;
+    }
+  },
+
+  async processCard(file) {
+    this.abortController = new AbortController();
+    
+    try {
+      this.setState('uploading');
+      const uploadResult = await ReceivedCardsAPI.uploadImage(file);
+      // Fix: jsonResponse wraps data in {success: true, data: {...}}
+      const uploadData = uploadResult.data || uploadResult;
+      this.currentUploadId = uploadData.upload_id;
+      
+      this.setState('ocr');
+      const ocrResult = await Promise.race([
+        ReceivedCardsAPI.performOCR(this.currentUploadId, this.abortController.signal),
+        this.timeout(15000, 'OCR timeout')
+      ]);
+      
+      // Fix: jsonResponse wraps data
+      const ocrData = ocrResult.data || ocrResult;
+      
+      this.currentData = {
+        ...ocrData,
+        upload_id: this.currentUploadId
+      };
+      
+      // Skip AI enrichment by default - user can manually trigger it later
+      this.setState('preview', {
+        ...this.currentData
+      });
+      
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        return;
+      }
+      this.setState('error', { error: error.message });
+    } finally {
+      this.abortController = null;
+    }
+  },
+
+  async skipAI() {
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
+    }
+    
+    this.setState('preview', { ...this.currentData });
+  },
+
+  timeout(ms, message) {
+    return new Promise((_, reject) => 
+      setTimeout(() => reject(new Error(message)), ms)
+    );
+  },
+
+  showPreviewModal() {
+    const modal = document.getElementById('preview-modal');
+    const data = this.currentData;
+    
+    if (!modal || !data) {
+      return;
+    }
+    
+    // 安全填充表單（防止 DOM 元素不存在）
+    const safeSetValue = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.value = value || '';
+    };
+    
+    safeSetValue('preview-name-prefix', data.name_prefix);
+    safeSetValue('preview-full-name', data.full_name);
+    safeSetValue('preview-name-suffix', data.name_suffix);
+    safeSetValue('preview-organization', data.organization);
+    safeSetValue('preview-organization-en', data.organization_en);
+    safeSetValue('preview-organization-alias', data.organization_alias);
+    safeSetValue('preview-department', data.department);
+    safeSetValue('preview-title', data.title);
+    safeSetValue('preview-phone', data.phone);
+    safeSetValue('preview-email', data.email);
+    safeSetValue('preview-website', data.website);
+    safeSetValue('preview-address', data.address);
+    safeSetValue('preview-note', data.note);
+    
+    if (data.company_summary) {
+      document.getElementById('preview-company-summary').textContent = data.company_summary;
+      document.getElementById('ai-summary-section').classList.remove('hidden');
+    } else {
+      document.getElementById('ai-summary-section').classList.add('hidden');
+    }
+    
+    const saveBtn = document.getElementById('preview-save-btn');
+    const handleSave = async () => {
+      try {
+        const formData = {
+          upload_id: data.upload_id,
+          name_prefix: document.getElementById('preview-name-prefix').value,
+          full_name: document.getElementById('preview-full-name').value,
+          name_suffix: document.getElementById('preview-name-suffix').value,
+          organization: document.getElementById('preview-organization').value,
+          organization_en: document.getElementById('preview-organization-en').value,
+          organization_alias: document.getElementById('preview-organization-alias').value,
+          department: document.getElementById('preview-department').value,
+          title: document.getElementById('preview-title').value,
+          phone: document.getElementById('preview-phone').value,
+          email: document.getElementById('preview-email').value,
+          website: document.getElementById('preview-website').value,
+          address: document.getElementById('preview-address').value,
+          note: document.getElementById('preview-note').value,
+          company_summary: data.company_summary,
+          sources: data.sources,
+          ocr_raw_text: data.ocr_raw_text
+        };
+        
+        await ReceivedCardsAPI.saveCard(formData);
+        
+        modal.classList.add('hidden');
+        
+        if (typeof showToast === 'function') {
+          showToast('名片已儲存', 'success');
+        }
+        
+        ReceivedCards.checkDonationReminder();
+        
+        await ReceivedCards.loadCards();
+        
+        this.reset();
+        
+      } catch (error) {
+        if (typeof showToast === 'function') {
+          showToast(`儲存失敗：${error.message}`, 'error');
+        }
+      } finally {
+        saveBtn.removeEventListener('click', handleSave);
+      }
+    };
+    
+    saveBtn.addEventListener('click', handleSave);
+    
+    modal.classList.remove('hidden');
+  },
+
+  reset() {
+    this.state = 'idle';
+    this.currentData = null;
+    this.currentUploadId = null;
+    this.abortController = null;
+    this.clearSkipAITimer();
+    this.updateUI();
+  }
+};
+
+// ==================== Namespace: ReceivedCards ====================
+const ReceivedCards = {
+  cards: [], // Store loaded cards
+  allCards: [], // Store all cards for filtering
+  selectedTags: [], // Store selected tags
+  currentKeyword: '', // Store current search keyword
+
+  init() {
+    this.bindEvents();
+    this.bindSearchEvents();
+    this.bindEditModalEvents();
+    this.bindQRCodeModalEvents();
+    this.bindCardDetailModalEvents();
+    this.loadCards();
+    this.initDonationReminder();
+  },
+  
+  initDonationReminder() {
+    if (!localStorage.getItem('cardsSavedCount')) {
+      localStorage.setItem('cardsSavedCount', '0');
+    }
+  },
+  
+  checkDonationReminder() {
+    const count = parseInt(localStorage.getItem('cardsSavedCount') || '0');
+    const newCount = count + 1;
+    localStorage.setItem('cardsSavedCount', newCount.toString());
+    
+    if (newCount % 5 === 0) {
+      this.showDonationReminder();
+    }
+  },
+  
+  showDonationReminder() {
+    const lang = document.documentElement.lang || 'zh';
+    const messages = {
+      zh: '喜歡這個功能嗎？考慮<a href="https://github.com/sponsors/iim0663418" target="_blank" class="underline font-semibold">贊助開發者</a>支持專案發展！',
+      en: 'Enjoying this feature? Consider <a href="https://github.com/sponsors/iim0663418" target="_blank" class="underline font-semibold">sponsoring the developer</a> to support the project!'
+    };
+    
+    if (typeof showToast === 'function') {
+      showToast(messages[lang] || messages.zh, 'info', 8000);
+    }
+  },
+  
+  bindEvents() {
+    const uploadArea = document.getElementById('upload-area');
+    const fileInput = document.getElementById('card-image-input');
+
+    uploadArea.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files[0]) {
+        this.handleFileUpload(e.target.files[0]);
+      }
+    });
+
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('drag-over');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('drag-over');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('drag-over');
+
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.match(/^image\/(jpeg|png)$/)) {
+        this.handleFileUpload(file);
+      } else {
+        if (typeof showToast === 'function') {
+          showToast('請上傳 JPG 或 PNG 格式的圖片', 'error');
+        }
+      }
+    });
+
+    const skipBtn = document.getElementById('skip-ai-button');
+    if (skipBtn) {
+      skipBtn.addEventListener('click', () => {
+        CardUploadStateMachine.skipAI();
+      });
+    }
+  },
+
+  bindSearchEvents() {
+    // 搜尋框輸入事件
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        this.currentKeyword = e.target.value.toLowerCase().trim();
+        this.filterCards();
+
+        // 顯示/隱藏清除按鈕
+        const clearBtn = document.getElementById('clearSearch');
+        if (clearBtn) {
+          if (this.currentKeyword) {
+            clearBtn.classList.remove('hidden');
+          } else {
+            clearBtn.classList.add('hidden');
+          }
+        }
+      });
+    }
+
+    // 清除搜尋按鈕
+    const clearSearch = document.getElementById('clearSearch');
+    if (clearSearch) {
+      clearSearch.addEventListener('click', () => {
+        if (searchInput) {
+          searchInput.value = '';
+          this.currentKeyword = '';
+          this.filterCards();
+          clearSearch.classList.add('hidden');
+        }
+      });
+    }
+
+    // 清除所有篩選按鈕
+    const clearFilters = document.getElementById('clearFilters');
+    if (clearFilters) {
+      clearFilters.addEventListener('click', () => {
+        this.clearAllFilters();
+      });
+    }
+  },
+
+  bindEditModalEvents() {
+    // 綁定表單提交事件
+    const form = document.getElementById('editCardForm');
+    if (form) {
+      form.addEventListener('submit', (e) => this.handleEditFormSubmit(e));
+    }
+
+    // 取消按鈕
+    const cancelBtn = document.getElementById('cancelEdit');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', () => this.closeEditModal());
+    }
+
+    // 點擊背景關閉
+    const modal = document.getElementById('editCardModal');
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target.id === 'editCardModal') {
+          this.closeEditModal();
+        }
+      });
+    }
+
+    // ESC 鍵關閉
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('editCardModal');
+        if (modal && !modal.classList.contains('hidden')) {
+          this.closeEditModal();
+        }
+      }
+    });
+  },
+
+  bindQRCodeModalEvents() {
+    // 關閉按鈕
+    const closeBtn = document.getElementById('closeQRCode');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => this.closeQRCodeModal());
+    }
+
+    // 下載按鈕
+    const downloadBtn = document.getElementById('downloadQRCode');
+    if (downloadBtn) {
+      downloadBtn.addEventListener('click', () => this.downloadQRCode());
+    }
+
+    // 點擊背景關閉
+    const modal = document.getElementById('qrCodeModal');
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target.id === 'qrCodeModal') {
+          this.closeQRCodeModal();
+        }
+      });
+    }
+
+    // ESC 鍵關閉（共用）
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('qrCodeModal');
+        if (modal && !modal.classList.contains('hidden')) {
+          this.closeQRCodeModal();
+        }
+      }
+    });
+  },
+
+  filterCards() {
+    const filtered = this.allCards.filter(card => {
+      // 搜尋過濾
+      const matchKeyword = !this.currentKeyword ||
+        card.full_name?.toLowerCase().includes(this.currentKeyword) ||
+        card.organization?.toLowerCase().includes(this.currentKeyword) ||
+        card.title?.toLowerCase().includes(this.currentKeyword) ||
+        card.email?.toLowerCase().includes(this.currentKeyword);
+
+      // 標籤過濾（多選 OR 邏輯）
+      const matchTags = this.selectedTags.length === 0 ||
+        this.selectedTags.some(tag => card.tags?.includes(tag));
+
+      return matchKeyword && matchTags;
+    });
+
+    // 更新結果數量
+    const resultCount = document.getElementById('resultCount');
+    if (resultCount) {
+      resultCount.textContent = filtered.length;
+    }
+
+    // 渲染名片（帶高亮）
+    this.renderCards(filtered, this.currentKeyword);
+
+    // 更新清除篩選按鈕可見性
+    this.updateClearFiltersButton();
+
+    // 更新 URL 參數
+    this.updateURL();
+  },
+
+  clearAllFilters() {
+    // 清除標籤選擇
+    this.selectedTags = [];
+    document.querySelectorAll('.tag-filter').forEach(btn => {
+      btn.classList.remove('bg-blue-500', 'text-white', 'border-blue-500');
+      btn.classList.add('border-gray-300', 'text-gray-700');
+    });
+
+    // 清除搜尋
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+      searchInput.value = '';
+    }
+    this.currentKeyword = '';
+
+    const clearSearch = document.getElementById('clearSearch');
+    if (clearSearch) {
+      clearSearch.classList.add('hidden');
+    }
+
+    // 顯示所有名片
+    this.filterCards();
+  },
+
+  updateClearFiltersButton() {
+    const clearFilters = document.getElementById('clearFilters');
+    if (clearFilters) {
+      if (this.selectedTags.length > 0 || this.currentKeyword) {
+        clearFilters.classList.remove('hidden');
+      } else {
+        clearFilters.classList.add('hidden');
+      }
+    }
+  },
+
+  updateURL() {
+    const params = new URLSearchParams();
+    if (this.currentKeyword) params.set('q', this.currentKeyword);
+    if (this.selectedTags.length > 0) params.set('tags', this.selectedTags.join(','));
+
+    const newURL = params.toString() ? `?${params.toString()}` : window.location.pathname;
+    window.history.replaceState({}, '', newURL);
+  },
+
+  initFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    const keyword = params.get('q') || '';
+    const tags = params.get('tags')?.split(',').filter(Boolean) || [];
+
+    // 設定搜尋框
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput && keyword) {
+      searchInput.value = keyword;
+      this.currentKeyword = keyword.toLowerCase().trim();
+
+      const clearSearch = document.getElementById('clearSearch');
+      if (clearSearch) {
+        clearSearch.classList.remove('hidden');
+      }
+    }
+
+    // 設定標籤選擇
+    this.selectedTags = tags;
+    tags.forEach(tag => {
+      const btn = document.querySelector(`[data-tag="${tag}"]`);
+      if (btn) {
+        btn.classList.add('bg-blue-500', 'text-white', 'border-blue-500');
+        btn.classList.remove('border-gray-300', 'text-gray-700');
+      }
+    });
+
+    // 執行篩選
+    if (keyword || tags.length > 0) {
+      this.filterCards();
+    }
+  },
+
+  initTagFilters() {
+    // 從所有名片中提取唯一標籤並計算數量
+    const tagCounts = {};
+    this.allCards.forEach(card => {
+      card.tags?.forEach(tag => {
+        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+      });
+    });
+
+    // 渲染標籤按鈕
+    const tagFilters = document.getElementById('tagFilters');
+    if (!tagFilters) return;
+
+    if (Object.keys(tagCounts).length === 0) {
+      tagFilters.innerHTML = '<span class="text-sm text-slate-400">暫無標籤</span>';
+      return;
+    }
+
+    tagFilters.innerHTML = Object.entries(tagCounts).map(([tag, count]) => `
+      <button
+        class="tag-filter px-3 py-1.5 rounded-full text-sm font-bold border-2 border-gray-300 text-gray-700 hover:border-blue-500 hover:text-blue-600 transition-all"
+        data-tag="${this.escapeHTML(tag)}"
+      >
+        ${this.getTagLabel(tag)} <span class="text-xs opacity-75">(${count})</span>
+      </button>
+    `).join('');
+
+    // 綁定點擊事件
+    document.querySelectorAll('.tag-filter').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tag = btn.dataset.tag;
+
+        // 切換選中狀態
+        if (this.selectedTags.includes(tag)) {
+          this.selectedTags = this.selectedTags.filter(t => t !== tag);
+          btn.classList.remove('bg-blue-500', 'text-white', 'border-blue-500');
+          btn.classList.add('border-gray-300', 'text-gray-700');
+        } else {
+          this.selectedTags.push(tag);
+          btn.classList.add('bg-blue-500', 'text-white', 'border-blue-500');
+          btn.classList.remove('border-gray-300', 'text-gray-700');
+        }
+
+        // 更新篩選
+        this.filterCards();
+      });
+    });
+  },
+
+  getTagLabel(tag) {
+    const labels = {
+      'government': '政府機關',
+      'listed': '上市公司',
+      'startup': '新創公司',
+      'ngo': '非營利組織'
+    };
+    return labels[tag] || tag;
+  },
+
+  highlightText(text, keyword) {
+    if (!keyword || !text) return this.escapeHTML(text);
+
+    const escapedText = this.escapeHTML(text);
+    // Escape special regex characters in keyword
+    const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escapedKeyword})`, 'gi');
+    return escapedText.replace(regex, '<mark class="bg-yellow-200 font-bold">$1</mark>');
+  },
+  
+  async handleFileUpload(file) {
+    if (file.size > 5 * 1024 * 1024) {
+      if (typeof showToast === 'function') {
+        showToast('檔案大小不可超過 5MB', 'error');
+      }
+      return;
+    }
+    
+    await CardUploadStateMachine.processCard(file);
+  },
+  
+  async loadCards() {
+    try {
+      const response = await ReceivedCardsAPI.loadCards();
+      const cards = Array.isArray(response) ? response : (response?.data || []);
+      this.cards = cards; // Store for later use
+      this.allCards = cards; // Store all cards for filtering
+
+      // 初始化標籤篩選器
+      this.initTagFilters();
+
+      // 從 URL 初始化篩選
+      this.initFromURL();
+
+      // 如果沒有 URL 參數，顯示所有名片
+      if (!this.currentKeyword && this.selectedTags.length === 0) {
+        this.renderCards(cards);
+        const resultCount = document.getElementById('resultCount');
+        if (resultCount) {
+          resultCount.textContent = cards.length;
+        }
+      }
+    } catch (error) {
+      this.cards = [];
+      this.allCards = [];
+      this.renderCards([]);
+      const resultCount = document.getElementById('resultCount');
+      if (resultCount) {
+        resultCount.textContent = '0';
+      }
+    }
+  },
+  
+  renderCards(cards, keyword = '') {
+    const grid = document.getElementById('cards-grid');
+    if (!grid) return;
+
+    if (!Array.isArray(cards) || cards.length === 0) {
+      // 無結果提示
+      const isFiltering = this.currentKeyword || this.selectedTags.length > 0;
+      grid.innerHTML = `
+        <div class="col-span-full text-center py-12 space-y-4">
+          <svg class="mx-auto h-16 w-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          <p class="text-slate-500 font-medium">${isFiltering ? '找不到符合條件的名片' : '尚無名片'}</p>
+          ${isFiltering ? `
+            <button
+              onclick="ReceivedCards.clearAllFilters()"
+              class="px-4 py-2 text-blue-600 hover:text-blue-800 font-bold transition-colors"
+            >
+              清除篩選
+            </button>
+          ` : ''}
+        </div>
+      `;
+      return;
+    }
+
+    grid.innerHTML = cards.map(card => this.renderCardHTML(card, keyword)).join('');
+
+    // Bind thumbnail click events
+    this.bindThumbnailEvents();
+
+    if (typeof window.initIcons === 'function') {
+      window.initIcons();
+    }
+  },
+
+  renderCardThumbnail(card) {
+    // Desktop: 120x80px, Mobile: 80x53px (responsive via CSS)
+    if (card.thumbnail_url) {
+      return `
+        <div class="card-thumbnail flex-shrink-0 w-20 h-[53px] md:w-[120px] md:h-20 bg-gray-100 rounded overflow-hidden cursor-pointer"
+             data-card-uuid="${card.uuid}">
+          <img
+            src="/api/user/received-cards/${card.uuid}/thumbnail"
+            alt="名片縮圖"
+            class="w-full h-full object-cover"
+            loading="lazy"
+            onerror="this.parentElement.innerHTML='<svg class=\\'w-8 h-8 text-gray-400\\' fill=\\'none\\' stroke=\\'currentColor\\' viewBox=\\'0 0 24 24\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'2\\' d=\\'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z\\' /></svg>';"
+          >
+        </div>
+      `;
+    } else {
+      // No thumbnail: show default icon
+      return `
+        <div class="card-thumbnail flex-shrink-0 w-20 h-[53px] md:w-[120px] md:h-20 bg-gray-100 rounded overflow-hidden flex items-center justify-center">
+          <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        </div>
+      `;
+    }
+  },
+
+  bindThumbnailEvents() {
+    // Bind click events for thumbnails
+    document.querySelectorAll('.card-thumbnail[data-card-uuid]').forEach(thumbnail => {
+      thumbnail.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const cardUuid = thumbnail.dataset.cardUuid;
+        this.showImagePreview(cardUuid);
+      });
+    });
+  },
+
+  showImagePreview(cardUuid) {
+    // Create modal backdrop
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4';
+    modal.style.cursor = 'zoom-out';
+    
+    // Create container
+    const container = document.createElement('div');
+    container.className = 'relative';
+    container.onclick = (e) => e.stopPropagation();
+    
+    // Create close button
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors';
+    closeBtn.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>';
+    closeBtn.onclick = () => modal.remove();
+    
+    // Create image
+    const img = document.createElement('img');
+    img.src = `/api/user/received-cards/${cardUuid}/image`;
+    img.className = 'max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl';
+    img.style.cursor = 'default';
+    
+    container.appendChild(closeBtn);
+    container.appendChild(img);
+    modal.appendChild(container);
+    
+    // Click backdrop to close
+    modal.onclick = () => modal.remove();
+    
+    // ESC key to close
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') {
+        modal.remove();
+        document.removeEventListener('keydown', handleEsc);
+      }
+    };
+    document.addEventListener('keydown', handleEsc);
+    
+    document.body.appendChild(modal);
+  },
+
+  renderCardHTML(card, keyword = '') {
+    return `
+      <div class="received-card glass-panel p-6 rounded-[2rem] space-y-4"
+           data-card-id="${card.uuid}"
+           data-card-name="${this.escapeHTML(card.full_name)}"
+           data-card-org="${this.escapeHTML(card.organization || '')}">
+        <div class="flex items-start gap-4">
+          ${this.renderCardThumbnail(card)}
+          <div class="flex-1 min-w-0">
+            <h3 class="text-lg font-black text-slate-900 truncate tracking-tight">${this.highlightText(card.full_name, keyword)}</h3>
+            ${card.organization ? `<p class="text-sm font-bold text-slate-600 truncate">${this.highlightText(card.organization, keyword)}</p>` : ''}
+            ${card.organization_en ? `<p class="text-xs text-slate-500 truncate">${this.escapeHTML(card.organization_en)}</p>` : ''}
+            ${card.organization_alias ? `<p class="text-xs text-slate-400 truncate italic">(${this.escapeHTML(card.organization_alias)})</p>` : ''}
+            ${card.title ? `<p class="text-xs text-slate-500 truncate uppercase tracking-wider">${this.highlightText(card.title, keyword)}</p>` : ''}
+          </div>
+        </div>
+        ${card.phone || card.email || card.website ? `
+        <div class="space-y-2 text-sm text-slate-700">
+          ${card.phone ? `<div class="flex items-center gap-2"><i data-lucide="phone" class="w-4 h-4 flex-shrink-0" style="color: var(--moda-accent);"></i><span class="truncate">${this.escapeHTML(card.phone)}</span></div>` : ''}
+          ${card.email ? `<div class="flex items-center gap-2"><i data-lucide="mail" class="w-4 h-4 flex-shrink-0" style="color: var(--moda-accent);"></i><span class="truncate">${this.highlightText(card.email, keyword)}</span></div>` : ''}
+          ${card.website ? `<div class="flex items-center gap-2"><i data-lucide="globe" class="w-4 h-4 flex-shrink-0" style="color: var(--moda-accent);"></i><span class="truncate">${this.escapeHTML(card.website)}</span></div>` : ''}
+        </div>
+        ` : ''}
+        ${card.note ? `<p class="text-xs text-slate-500 italic truncate px-3 py-2 rounded-xl border border-white/20" style="background: rgba(255, 255, 255, 0.4);">${this.escapeHTML(card.note)}</p>` : ''}
+        <div class="pt-4 mt-4 border-t border-white/30 grid grid-cols-3 gap-2">
+          <button onclick="ReceivedCards.viewCard('${card.uuid}')" class="card-action-btn py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2" style="background: var(--moda-accent); color: white;">
+            <i data-lucide="info" class="w-4 h-4"></i>
+            <span data-i18n="view-card">查看</span>
+          </button>
+          <button onclick="ReceivedCards.openEditModal('${card.uuid}')" class="card-action-btn py-3 px-3 rounded-xl font-black transition-all flex items-center justify-center" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;" title="編輯名片">
+            <i data-lucide="edit" class="w-5 h-5"></i>
+          </button>
+          <button onclick="ReceivedCards.exportVCard('${card.uuid}')" class="card-action-btn py-3 px-3 rounded-xl font-black transition-all flex items-center justify-center" style="background: rgba(16, 185, 129, 0.15); color: #10b981;" title="匯出 vCard">
+            <i data-lucide="download" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <button onclick="ReceivedCards.deleteCardFromElement(this)" class="w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+          <span data-i18n="delete-card">刪除名片</span>
+        </button>
+      </div>
+    `;
+  },
+  
+  deleteCardFromElement(buttonElement) {
+    const cardElement = buttonElement.closest('[data-card-id]');
+    const uuid = cardElement.dataset.cardId;
+    const fullName = cardElement.dataset.cardName;
+    const organization = cardElement.dataset.cardOrg;
+    
+    this.deleteCard(uuid, fullName, organization);
+  },
+  
+  viewCard(uuid) {
+    this.openCardDetail(uuid);
+  },
+  
+  async exportVCard(uuid) {
+    try {
+      // 1. 呼叫 vCard API
+      const response = await fetch(`/api/user/received-cards/${uuid}/vcard`, {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to export vCard');
+      }
+
+      // 2. 取得檔案內容
+      const blob = await response.blob();
+
+      // 3. 取得檔名（從 Content-Disposition header，處理 UTF-8 編碼）
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = 'contact.vcf';
+      
+      if (contentDisposition) {
+        // 嘗試解析 filename*=UTF-8''encoded_name 格式
+        const filenameStarMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/);
+        if (filenameStarMatch) {
+          filename = decodeURIComponent(filenameStarMatch[1]);
+        } else {
+          // 回退到 filename="name" 格式
+          const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+          if (filenameMatch) {
+            filename = filenameMatch[1];
+          }
+        }
+      }
+
+      // 4. 下載檔案
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast('vCard 已下載', 'success');
+    } catch (error) {
+      showToast('匯出失敗', 'error');
+    }
+  },
+
+  async showQRCode(uuid) {
+    try {
+      // 檢查 QRCode 函式庫是否載入
+      if (typeof QRCode === 'undefined') {
+        showToast('QR Code 功能載入中，請稍後再試', 'error');
+        return;
+      }
+
+      // 1. 取得 vCard 資料
+      const response = await fetch(`/api/user/received-cards/${uuid}/vcard`, {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get vCard');
+      }
+
+      const vCardText = await response.text();
+
+      // 2. 清空容器
+      const qrCodeContainer = document.getElementById('qrCodeContainer');
+      if (!qrCodeContainer) {
+        throw new Error('QR Code container not found');
+      }
+      qrCodeContainer.innerHTML = '';
+
+      // 3. 生成 QR Code
+      new QRCode(qrCodeContainer, {
+        text: vCardText,
+        width: 256,
+        height: 256,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+      });
+
+      // 4. 顯示 Modal
+      const modal = document.getElementById('qrCodeModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+      }
+
+      // 5. 初始化 icons
+      if (window.lucide) {
+        window.lucide.createIcons();
+      }
+
+    } catch (error) {
+      showToast('生成 QR Code 失敗：' + error.message, 'error');
+    }
+  },
+
+  downloadQRCode() {
+    try {
+      // 1. 取得 QR Code canvas
+      const canvas = document.querySelector('#qrCodeContainer canvas');
+      if (!canvas) {
+        throw new Error('QR Code not found');
+      }
+
+      // 2. 轉換為 PNG
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          throw new Error('Failed to create blob');
+        }
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'qrcode.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        if (typeof showToast === 'function') {
+          showToast('QR Code 已下載', 'success');
+        }
+      });
+    } catch (error) {
+      if (typeof showToast === 'function') {
+        showToast('下載失敗', 'error');
+      }
+    }
+  },
+
+  closeQRCodeModal() {
+    const modal = document.getElementById('qrCodeModal');
+    if (modal) {
+      modal.classList.add('hidden');
+    }
+
+    // 清空 QR Code
+    const qrCodeContainer = document.getElementById('qrCodeContainer');
+    if (qrCodeContainer) {
+      qrCodeContainer.innerHTML = '';
+    }
+  },
+
+  // Card Detail Modal
+  async openCardDetail(uuid) {
+    try {
+      // 從已載入的 cards 陣列中找到卡片
+      const card = this.cards.find(c => c.uuid === uuid);
+      if (!card) {
+        showToast('找不到名片', 'error');
+        return;
+      }
+
+      // 解析 AI sources JSON
+      if (card.ai_sources_json && typeof card.ai_sources_json === 'string') {
+        try {
+          card.sources = JSON.parse(card.ai_sources_json);
+        } catch (e) {
+          // Silently fallback to empty array
+          card.sources = [];
+        }
+      } else {
+        card.sources = [];
+      }
+
+      // 渲染基本資訊（含稱謂和後綴）
+      let fullName = card.full_name || '';
+      if (card.name_prefix) fullName = card.name_prefix + ' ' + fullName;
+      if (card.name_suffix) fullName = fullName + ', ' + card.name_suffix;
+      document.getElementById('detail-name').textContent = fullName;
+      
+      // 公司和部門並存顯示（含雙語和別名）
+      let orgParts = [];
+      if (card.organization) orgParts.push(card.organization);
+      if (card.organization_en) orgParts.push(`(${card.organization_en})`);
+      if (card.organization_alias) orgParts.push(`[${card.organization_alias}]`);
+      if (card.department) orgParts.push(`- ${card.department}`);
+      document.getElementById('detail-org').textContent = orgParts.join(' ');
+
+      // 渲染可選欄位
+      this.renderDetailField('title', card.title);
+      this.renderDetailField('phone', card.phone);
+      this.renderDetailField('email', card.email);
+      this.renderDetailField('website', card.website, true);
+      this.renderDetailField('address', card.address);
+      this.renderDetailField('note', card.note);
+      
+      // 渲染更新時間
+      if (card.updated_at) {
+        const updatedDate = new Date(parseInt(card.updated_at));
+        const formatted = updatedDate.toLocaleString('zh-TW', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        this.renderDetailField('updated', `最後更新：${formatted}`);
+      }
+
+      // 渲染 AI 狀態
+      this.renderAIStatus(card.ai_status);
+
+      // 渲染公司摘要
+      this.renderCompanySummary(card);
+
+      // 綁定按鈕事件
+      const editBtn = document.getElementById('detail-edit-btn');
+      const exportBtn = document.getElementById('detail-export-btn');
+      
+      if (editBtn) {
+        editBtn.onclick = () => {
+          this.closeCardDetailModal();
+          this.openEditModal(uuid);
+        };
+      }
+      
+      if (exportBtn) {
+        exportBtn.onclick = () => {
+          this.exportVCard(uuid);
+        };
+      }
+
+      // 顯示 Modal
+      const modal = document.getElementById('cardDetailModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+      }
+
+      // 初始化 Lucide icons
+      if (window.lucide) {
+        window.lucide.createIcons();
+      }
+
+    } catch (error) {
+      showToast('載入失敗', 'error');
+    }
+  },
+
+  renderDetailField(fieldName, value, isLink = false) {
+    const container = document.getElementById(`detail-${fieldName}-container`);
+    const element = document.getElementById(`detail-${fieldName}`);
+
+    if (!container || !element) {
+      return;
+    }
+
+    if (value) {
+      if (isLink) {
+        element.href = value;
+        element.textContent = value;
+      } else {
+        element.textContent = value;
+      }
+      container.classList.remove('hidden');
+    } else {
+      container.classList.add('hidden');
+    }
+  },
+
+  renderAIStatus(aiStatus) {
+    const container = document.getElementById('ai-status-container');
+    if (!container) return;
+
+    // 清空容器
+    container.innerHTML = '';
+
+    if (!aiStatus) return;
+
+    // 創建 badge（移除 icon）
+    const badge = document.createElement('div');
+    badge.style.cssText = 'display: inline-flex; align-items: center; padding: 0.5rem 1rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 700;';
+
+    const text = document.createElement('span');
+
+    if (aiStatus === 'skipped') {
+      badge.style.backgroundColor = '#f3f4f6';
+      badge.style.color = '#374151';
+      text.textContent = '未使用 AI 分析';
+    } else if (aiStatus === 'completed') {
+      badge.style.backgroundColor = '#d1fae5';
+      badge.style.color = '#065f46';
+      text.textContent = 'AI 分析完成';
+    } else if (aiStatus === 'pending') {
+      badge.style.backgroundColor = '#dbeafe';
+      badge.style.color = '#1e40af';
+      text.textContent = 'AI 分析中...';
+    } else if (aiStatus === 'failed') {
+      badge.style.backgroundColor = '#fee2e2';
+      badge.style.color = '#991b1b';
+      text.textContent = 'AI 分析失敗';
+    }
+
+    badge.appendChild(text);
+    container.appendChild(badge);
+  },
+
+  renderCompanySummary(card) {
+    const companyContainer = document.getElementById('company-summary-container');
+    const companyText = document.getElementById('company-summary-text');
+    const personalContainer = document.getElementById('personal-summary-container');
+    const personalText = document.getElementById('personal-summary-text');
+    const sourcesContainer = document.getElementById('sources-container');
+    const sourcesList = document.getElementById('sources-list');
+
+    // 顯示公司摘要
+    if (card.company_summary && companyContainer && companyText) {
+      companyText.textContent = card.company_summary;
+      companyContainer.classList.remove('hidden');
+    } else if (companyContainer) {
+      companyContainer.classList.add('hidden');
+    }
+
+    // 顯示參考來源（如果有公司摘要）
+    if (card.company_summary && card.sources && card.sources.length > 0) {
+      if (sourcesList) {
+        sourcesList.innerHTML = '';
+
+        card.sources.forEach(s => {
+          // 驗證 URL scheme（只允許 https）
+          let url = s.uri;
+          try {
+            const parsed = new URL(url);
+            if (parsed.protocol !== 'https:') {
+              url = '#';
+            }
+          } catch {
+            url = '#';
+          }
+
+          // 使用 createElement 避免 XSS
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = url;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.textContent = s.title;
+          a.style.cssText = 'color: #2563eb; text-decoration: underline;';
+          li.appendChild(a);
+          sourcesList.appendChild(li);
+        });
+      }
+
+      if (sourcesContainer) {
+        sourcesContainer.classList.remove('hidden');
+      }
+    } else if (sourcesContainer) {
+      sourcesContainer.classList.add('hidden');
+    }
+  },
+
+  async enrichCardInfo(uuid) {
+    try {
+      // 顯示進度覆蓋層
+      this.showEnrichProgress('🔍 步驟 1/3：搜尋公司資訊...', 33);
+
+      // 取得卡片資料
+      const card = this.cards.find(c => c.uuid === uuid);
+      if (!card) {
+        this.hideEnrichProgress();
+        showToast('找不到名片', 'error');
+        return;
+      }
+
+      // 呼叫 Enrich API
+      const enrichResult = await ReceivedCardsAPI.call('/api/user/received-cards/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          card_uuid: uuid,
+          organization: card.organization,
+          full_name: card.full_name,
+          title: card.title
+        })
+      });
+
+      // 步驟 2: 驗證來源
+      this.showEnrichProgress('✓ 步驟 2/3：驗證資料來源...', 66);
+      
+      // 處理 jsonResponse 包裝
+      const enrichData = enrichResult.data || enrichResult;
+      
+      // 驗證 AI 來源：無來源則不採信
+      if (!enrichData.sources || enrichData.sources.length === 0) {
+        this.hideEnrichProgress();
+        showToast('此名片無法補齊（AI 無法找到可靠來源）', 'error');
+        return;
+      }
+
+      // 步驟 3: 回填資料
+      this.showEnrichProgress('✓ 步驟 3/3：回填資料到表單...', 100);
+      
+      // 關閉詳情 Modal，開啟編輯 Modal
+      this.closeCardDetailModal();
+      this.openEditModal(uuid);
+      
+      // 等待 Modal 開啟和表單渲染
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // 回填 AI 補齊的資料到編輯表單（只填空白欄位）
+      const form = document.getElementById('editCardForm');
+      if (!form) {
+        this.hideEnrichProgress();
+        return;
+      }
+      
+      // 只回填空白欄位
+      if (enrichData.organization_en && !form.elements.organization_en?.value) {
+        form.elements.organization_en.value = enrichData.organization_en;
+      }
+      if (enrichData.organization_alias && !form.elements.organization_alias?.value) {
+        form.elements.organization_alias.value = enrichData.organization_alias;
+      }
+      if (enrichData.website && !form.elements.website?.value) {
+        form.elements.website.value = enrichData.website;
+      }
+      if (enrichData.address && !form.elements.address?.value) {
+        form.elements.address.value = enrichData.address;
+      }
+      
+      // 儲存 AI 摘要到表單 dataset（供儲存時使用）
+      if (enrichData.company_summary) {
+        form.dataset.companySummary = enrichData.company_summary;
+      }
+      if (enrichData.sources) {
+        form.dataset.aiSources = JSON.stringify(enrichData.sources);
+      }
+      form.dataset.aiStatus = 'completed';
+      
+      this.hideEnrichProgress();
+      showToast('✓ AI 資訊已回填，請確認後儲存', 'success');
+
+    } catch (error) {
+      this.hideEnrichProgress();
+      showToast('補齊失敗，請稍後再試', 'error');
+    }
+  },
+  
+  showEnrichProgress(message, progress) {
+    let overlay = document.getElementById('enrich-progress-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'enrich-progress-overlay';
+      overlay.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9999; display: flex; align-items: center; justify-content: center;';
+      overlay.innerHTML = `
+        <div style="background: white; padding: 2rem; border-radius: 1rem; max-width: 400px; width: 90%;">
+          <div id="enrich-progress-message" style="font-size: 1rem; font-weight: bold; margin-bottom: 1rem; text-align: center;"></div>
+          <div style="background: #e5e7eb; height: 8px; border-radius: 4px; overflow: hidden;">
+            <div id="enrich-progress-bar" style="background: linear-gradient(90deg, #8b5cf6, #6366f1); height: 100%; transition: width 0.3s;"></div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+    }
+    
+    const messageEl = document.getElementById('enrich-progress-message');
+    const barEl = document.getElementById('enrich-progress-bar');
+    if (messageEl) messageEl.textContent = message;
+    if (barEl) barEl.style.width = progress + '%';
+    overlay.classList.remove('hidden');
+  },
+  
+  hideEnrichProgress() {
+    const overlay = document.getElementById('enrich-progress-overlay');
+    if (overlay) {
+      overlay.remove();
+    }
+  },
+
+  closeCardDetailModal() {
+    const modal = document.getElementById('cardDetailModal');
+    if (modal) {
+      modal.classList.add('hidden');
+    }
+  },
+
+  bindCardDetailModalEvents() {
+    // 關閉按鈕
+    const closeBtn = document.getElementById('closeCardDetail');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => this.closeCardDetailModal());
+    }
+
+    // 點擊背景關閉
+    const modal = document.getElementById('cardDetailModal');
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target.id === 'cardDetailModal') {
+          this.closeCardDetailModal();
+        }
+      });
+    }
+
+    // ESC 鍵關閉
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('cardDetailModal');
+        if (modal && !modal.classList.contains('hidden')) {
+          this.closeCardDetailModal();
+        }
+      }
+    });
+  },
+  
+  async deleteCard(uuid, fullName, organization) {
+    const confirmed = await this.showDeleteConfirmModal(uuid, fullName, organization);
+    if (!confirmed) return;
+    
+    const cardElement = document.querySelector(`[data-card-id="${uuid}"]`);
+    const cardHTML = cardElement ? cardElement.outerHTML : '';
+    
+    if (cardElement) {
+      cardElement.remove();
+    }
+    
+    try {
+      await ReceivedCardsAPI.deleteCard(uuid);
+      
+      if (typeof showToast === 'function') {
+        showToast('名片已刪除', 'success');
+      }
+    } catch (error) {
+      const grid = document.getElementById('cards-grid');
+      grid.insertAdjacentHTML('beforeend', cardHTML);
+      
+      if (typeof showToast === 'function') {
+        showToast(`刪除失敗：${error.message}`, 'error');
+      }
+      
+      if (typeof window.initIcons === 'function') {
+        window.initIcons();
+      }
+    }
+  },
+  
+  async showDeleteConfirmModal(uuid, fullName, organization) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById('delete-confirm-modal');
+      const cardInfo = document.getElementById('delete-card-info');
+      const cancelBtn = document.getElementById('delete-cancel-btn');
+      const confirmBtn = document.getElementById('delete-confirm-btn');
+      
+      cardInfo.textContent = `${fullName}${organization ? ' - ' + organization : ''}`;
+      
+      const handleCancel = () => {
+        modal.classList.add('hidden');
+        resolve(false);
+        cleanup();
+      };
+      
+      const handleConfirm = () => {
+        modal.classList.add('hidden');
+        resolve(true);
+        cleanup();
+      };
+      
+      const cleanup = () => {
+        cancelBtn.removeEventListener('click', handleCancel);
+        confirmBtn.removeEventListener('click', handleConfirm);
+      };
+      
+      cancelBtn.addEventListener('click', handleCancel);
+      confirmBtn.addEventListener('click', handleConfirm);
+      
+      modal.classList.remove('hidden');
+    });
+  },
+  
+  escapeHTML(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  },
+
+  // ==================== Edit Card Functions ====================
+
+  openEditModal(cardUuid) {
+    const card = this.allCards.find(c => c.uuid === cardUuid);
+    if (!card) {
+      return;
+    }
+
+    const form = document.getElementById('editCardForm');
+    if (!form) {
+      return;
+    }
+
+    // 填充表單
+    form.elements.name_prefix.value = card.name_prefix || '';
+    form.elements.name.value = card.full_name || '';
+    form.elements.name_suffix.value = card.name_suffix || '';
+    form.elements.organization.value = card.organization || '';
+    form.elements.organization_en.value = card.organization_en || '';
+    form.elements.organization_alias.value = card.organization_alias || '';
+    form.elements.department.value = card.department || '';
+    form.elements.title.value = card.title || '';
+    form.elements.email.value = card.email || '';
+    form.elements.phone.value = card.phone || '';
+    form.elements.website.value = card.website || '';
+    form.elements.address.value = card.address || '';
+    form.elements.notes.value = card.note || '';
+
+    // 儲存 card_uuid
+    form.dataset.cardUuid = cardUuid;
+    
+    // 清除之前的 AI 資料
+    delete form.dataset.companySummary;
+    delete form.dataset.aiSources;
+    delete form.dataset.aiStatus;
+
+    // 顯示 Modal
+    const modal = document.getElementById('editCardModal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      
+      // 綁定補充按鈕（根據 ai_status 顯示/隱藏）
+      const enrichBtn = document.getElementById('enrichEditCard');
+      if (enrichBtn) {
+        if (card.ai_status === 'completed') {
+          // 已完成 AI 分析，隱藏按鈕
+          enrichBtn.style.display = 'none';
+        } else {
+          // 未完成，顯示按鈕
+          enrichBtn.style.display = 'flex';
+          enrichBtn.onclick = () => this.enrichCardInfo(cardUuid);
+        }
+      }
+
+      // Re-init icons after modal is visible
+      if (typeof window.initIcons === 'function') {
+        window.initIcons();
+      }
+    }
+  },
+
+  closeEditModal() {
+    const modal = document.getElementById('editCardModal');
+    if (modal) {
+      modal.classList.add('hidden');
+    }
+
+    // 重置表單
+    const form = document.getElementById('editCardForm');
+    if (form) {
+      form.reset();
+      delete form.dataset.cardUuid;
+    }
+  },
+
+  validateEditForm(formData) {
+    const errors = [];
+
+    // 姓名必填
+    if (!formData.name.trim()) {
+      errors.push('姓名為必填欄位');
+    }
+
+    // Email 格式驗證
+    if (formData.email && !this.isValidEmail(formData.email)) {
+      errors.push('Email 格式不正確');
+    }
+
+    // 網站格式驗證
+    if (formData.website && !this.isValidURL(formData.website)) {
+      errors.push('網站格式不正確');
+    }
+
+    return errors;
+  },
+
+  isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  },
+
+  isValidURL(url) {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  async handleEditFormSubmit(e) {
+    e.preventDefault();
+
+    const form = e.target;
+    const cardUuid = form.dataset.cardUuid;
+
+    if (!cardUuid) {
+      return;
+    }
+
+    // 收集表單資料
+    const formData = {
+      name_prefix: form.elements.name_prefix.value.trim(),
+      name: form.elements.name.value.trim(),
+      name_suffix: form.elements.name_suffix.value.trim(),
+      organization: form.elements.organization.value.trim(),
+      organization_en: form.elements.organization_en?.value.trim() || '',
+      organization_alias: form.elements.organization_alias?.value.trim() || '',
+      department: form.elements.department.value.trim(),
+      title: form.elements.title.value.trim(),
+      email: form.elements.email.value.trim(),
+      phone: form.elements.phone.value.trim(),
+      website: form.elements.website.value.trim(),
+      address: form.elements.address.value.trim(),
+      notes: form.elements.notes.value.trim()
+    };
+
+    // 驗證
+    const errors = this.validateEditForm(formData);
+    if (errors.length > 0) {
+      if (typeof showToast === 'function') {
+        showToast(errors.join('\n'), 'error');
+      }
+      return;
+    }
+
+    try {
+      // 準備更新資料
+      const updateData = {
+        name_prefix: formData.name_prefix,
+        full_name: formData.name,
+        name_suffix: formData.name_suffix,
+        organization: formData.organization,
+        organization_en: formData.organization_en,
+        organization_alias: formData.organization_alias,
+        department: formData.department,
+        title: formData.title,
+        email: formData.email,
+        phone: formData.phone,
+        website: formData.website,
+        address: formData.address,
+        note: formData.notes
+      };
+      
+      // 如果有 AI 補齊的資料，一併更新
+      if (form.dataset.companySummary) {
+        updateData.company_summary = form.dataset.companySummary;
+      }
+      if (form.dataset.aiSources) {
+        updateData.ai_sources_json = form.dataset.aiSources;
+      }
+      if (form.dataset.aiStatus) {
+        updateData.ai_status = form.dataset.aiStatus;
+      }
+      
+      // 更新名片（使用 PATCH 支援 AI 欄位）
+      await ReceivedCardsAPI.call(`/api/user/received-cards/${cardUuid}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+      });
+
+      // 關閉 Modal
+      this.closeEditModal();
+
+      // 重新載入名片列表
+      await this.loadCards();
+
+      if (typeof showToast === 'function') {
+        showToast('名片已更新', 'success');
+      }
+    } catch (error) {
+      if (typeof showToast === 'function') {
+        showToast('更新失敗，請稍後再試', 'error');
+      }
+    }
+  },
+
+  show() {
+    document.getElementById('view-selection').classList.add('hidden');
+    document.getElementById('view-received-cards').classList.remove('hidden');
+    this.init();
+  },
+  
+  hide() {
+    document.getElementById('view-received-cards').classList.add('hidden');
+    document.getElementById('view-selection').classList.remove('hidden');
+  }
+};
+
+function showReceivedCards() {
+  ReceivedCards.show();
+}
+
+function backToSelection() {
+  ReceivedCards.hide();
+}
+
+// ==================== Batch Upload Module ====================
+const BatchUpload = {
+  currentBatchId: null,
+  progressInterval: null,
+
+  init() {
+    this.bindBatchEvents();
+  },
+
+  bindBatchEvents() {
+    const dropZone = document.getElementById('batch-drop-zone');
+    const fileInput = document.getElementById('batch-file-input');
+    const cancelBtn = document.getElementById('cancel-batch-upload');
+
+    if (!dropZone || !fileInput) return;
+
+    // Click to select files
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    // File input change
+    fileInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      if (files.length > 0) {
+        this.handleBatchUpload(files);
+      }
+      // Reset file input
+      e.target.value = '';
+    });
+
+    // Drag & Drop events
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = '#3b82f6';
+      dropZone.style.backgroundColor = '#eff6ff';
+    });
+
+    dropZone.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = '';
+      dropZone.style.backgroundColor = '';
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = '';
+      dropZone.style.backgroundColor = '';
+
+      const files = Array.from(e.dataTransfer.files);
+      this.handleBatchUpload(files);
+    });
+
+    // Cancel upload
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', () => this.cancelUpload());
+    }
+  },
+
+  validateFiles(files) {
+    const MAX_FILES = 20;
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    const VALID_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+    // Check file count
+    if (files.length > MAX_FILES) {
+      if (typeof showToast === 'function') {
+        showToast(`最多只能上傳 ${MAX_FILES} 張圖片`, 'error');
+      }
+      return false;
+    }
+
+    // Check each file
+    for (const file of files) {
+      // Check file size
+      if (file.size > MAX_FILE_SIZE) {
+        if (typeof showToast === 'function') {
+          showToast(`檔案 ${file.name} 超過 10MB 限制`, 'error');
+        }
+        return false;
+      }
+
+      // Check file type
+      if (!VALID_TYPES.includes(file.type)) {
+        if (typeof showToast === 'function') {
+          showToast(`檔案 ${file.name} 不是有效的圖片格式`, 'error');
+        }
+        return false;
+      }
+    }
+
+    return true;
+  },
+
+  async handleBatchUpload(files) {
+    try {
+      // Validate files
+      if (!this.validateFiles(files)) {
+        return;
+      }
+
+      // Show progress UI
+      this.showProgressUI();
+
+      // Create FormData
+      const formData = new FormData();
+      files.forEach(file => {
+        formData.append('images', file);
+      });
+
+      // Upload
+      const response = await ReceivedCardsAPI.call('/api/user/received-cards/batch-upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = response.data || response;
+      this.currentBatchId = data.batch_id;
+
+      // Start progress polling
+      this.startProgressPolling();
+
+    } catch (error) {
+      if (typeof showToast === 'function') {
+        showToast(`上傳失敗：${error.message}`, 'error');
+      }
+      this.hideProgressUI();
+    }
+  },
+
+  showProgressUI() {
+    const dropZone = document.getElementById('batch-drop-zone');
+    const progressContainer = document.getElementById('batch-progress-container');
+
+    if (dropZone) dropZone.classList.add('hidden');
+    if (progressContainer) progressContainer.classList.remove('hidden');
+  },
+
+  hideProgressUI() {
+    const dropZone = document.getElementById('batch-drop-zone');
+    const progressContainer = document.getElementById('batch-progress-container');
+
+    if (dropZone) dropZone.classList.remove('hidden');
+    if (progressContainer) progressContainer.classList.add('hidden');
+
+    // Reset progress
+    this.updateProgress({ total: 0, completed: 0, failed: 0, results: [] });
+  },
+
+  startProgressPolling() {
+    // Clear existing interval
+    if (this.progressInterval) {
+      clearInterval(this.progressInterval);
+    }
+
+    // Poll every 2 seconds
+    this.progressInterval = setInterval(async () => {
+      try {
+        const response = await ReceivedCardsAPI.call(
+          `/api/user/received-cards/batch/${this.currentBatchId}`
+        );
+        const data = response.data || response;
+
+        this.updateProgress(data);
+
+        // Check if complete
+        const { total, completed, failed } = data;
+        if (completed + failed >= total) {
+          this.onBatchComplete(data);
+        }
+      } catch (error) {
+        this.cancelUpload();
+        if (typeof showToast === 'function') {
+          showToast('無法取得上傳進度', 'error');
+        }
+      }
+    }, 2000);
+  },
+
+  updateProgress(data) {
+    const { total, completed, failed, results } = data;
+    const percentage = total > 0 ? Math.round((completed + failed) / total * 100) : 0;
+
+    // Update progress bar
+    const progressBar = document.getElementById('batch-progress-bar');
+    if (progressBar) {
+      progressBar.style.width = `${percentage}%`;
+    }
+
+    // Update progress text
+    const progressText = document.getElementById('batch-progress-text');
+    if (progressText) {
+      progressText.textContent = `${completed + failed} / ${total}`;
+    }
+
+    // Update status list
+    const statusList = document.getElementById('batch-status-list');
+    if (statusList && results) {
+      statusList.innerHTML = results.map(result => {
+        const statusColor = this.getStatusColor(result.status);
+        const statusText = this.getStatusText(result.status);
+
+        return `
+          <div class="flex items-center justify-between p-3 bg-white/60 rounded-xl border border-white/40">
+            <span class="text-sm font-bold text-slate-700 truncate flex-1">${this.escapeHTML(result.filename)}</span>
+            <span class="text-xs font-bold ${statusColor} ml-3">${statusText}</span>
+          </div>
+        `;
+      }).join('');
+    }
+  },
+
+  getStatusColor(status) {
+    switch (status) {
+      case 'completed': return 'text-green-600';
+      case 'failed': return 'text-red-600';
+      case 'processing': return 'text-blue-600';
+      default: return 'text-slate-400';
+    }
+  },
+
+  getStatusText(status) {
+    switch (status) {
+      case 'completed': return '✓ 完成';
+      case 'failed': return '✗ 失敗';
+      case 'processing': return '⏳ 處理中';
+      default: return '等待中';
+    }
+  },
+
+  onBatchComplete(data) {
+    const { total, completed, failed } = data;
+
+    // Stop polling
+    if (this.progressInterval) {
+      clearInterval(this.progressInterval);
+      this.progressInterval = null;
+    }
+
+    // Show completion message
+    if (failed === 0) {
+      if (typeof showToast === 'function') {
+        showToast(`成功上傳 ${completed} 張名片！`, 'success');
+      }
+    } else {
+      if (typeof showToast === 'function') {
+        showToast(`上傳完成：${completed} 成功，${failed} 失敗`, 'warning');
+      }
+    }
+
+    // Reload cards
+    ReceivedCards.loadCards();
+
+    // Reset UI after 3 seconds
+    setTimeout(() => {
+      this.hideProgressUI();
+      this.currentBatchId = null;
+    }, 3000);
+  },
+
+  cancelUpload() {
+    // Stop polling
+    if (this.progressInterval) {
+      clearInterval(this.progressInterval);
+      this.progressInterval = null;
+    }
+
+    // Reset UI
+    this.hideProgressUI();
+    this.currentBatchId = null;
+
+    if (typeof showToast === 'function') {
+      showToast('已取消上傳', 'info');
+    }
+  },
+
+  escapeHTML(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+};
+
+// Initialize batch upload when ReceivedCards is shown
+const originalReceivedCardsShow = ReceivedCards.show;
+ReceivedCards.show = function() {
+  originalReceivedCardsShow.call(this);
+  BatchUpload.init();
+};

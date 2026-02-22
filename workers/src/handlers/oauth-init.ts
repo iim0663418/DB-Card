@@ -23,6 +23,7 @@ export async function handleOAuthInit(
     const codeChallenge = await generateCodeChallenge(codeVerifier);
 
     // Store state with associated PKCE code_verifier and nonce
+    // Wait for both KV writes to complete before responding
     await Promise.all([
       storeOAuthState(state, env, {
         nonce,
@@ -30,6 +31,9 @@ export async function handleOAuthInit(
       }),
       storeOAuthNonce(nonce, env)
     ]);
+
+    // Add small delay to ensure KV propagation (eventual consistency)
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     return new Response(JSON.stringify({
       state,

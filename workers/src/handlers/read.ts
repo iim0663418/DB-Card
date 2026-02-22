@@ -82,16 +82,22 @@ async function getCachedCardData(
 }
 
 // CORS allowed origins whitelist
-const ALLOWED_ORIGINS = [
-  'http://localhost:8788',
-  'http://localhost:8787',
-  'https://db-card-staging.csw30454.workers.dev',
-  'https://db-card.moda.gov.tw'
-];
+import { getCorsHeaders } from '../utils/response';
 
-function getCorsHeaders(request: Request): HeadersInit {
+function getCardCorsHeaders(request: Request, env: Env): HeadersInit {
+  const allowedOrigins = [
+    'http://localhost:8788',
+    'http://localhost:8787',
+    env.WORKER_URL
+  ];
+  
+  // Staging: support both worker and custom domain
+  if (env.ENVIRONMENT === 'staging') {
+    allowedOrigins.push('https://db-card.sfan-tech.com');
+  }
+  
   const origin = request.headers.get('Origin');
-  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+  if (origin && allowedOrigins.includes(origin)) {
     return {
       'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
@@ -295,7 +301,7 @@ export async function handleRead(request: Request, env: Env, ctx: ExecutionConte
         'Content-Type': 'application/json',
         'Cache-Control': 'max-age=10, stale-while-revalidate=30, private',
         'Vary': 'Accept-Encoding',
-        ...(request ? getCorsHeaders(request) : {})
+        ...(request ? getCardCorsHeaders(request, env) : {})
       }
     });
 

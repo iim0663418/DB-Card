@@ -14,7 +14,7 @@ import {
   RotateCcw, PlusCircle, Maximize, LogOut, Lock, List,
   Link2, Lightbulb, LayoutDashboard, Home, FileCheck,
   Component, ChevronRight, ChevronLeft, ArrowLeft, ArrowDown,
-  AlertCircle, Megaphone
+  AlertCircle, Megaphone, Camera, Edit, Trash2
 } from 'lucide/dist/esm/lucide/src/lucide.js';
 
 // Icon registry (kebab-case → PascalCase mapping)
@@ -83,7 +83,10 @@ const icons = {
   'arrow-left': ArrowLeft,
   'arrow-down': ArrowDown,
   'alert-circle': AlertCircle,
-  'megaphone': Megaphone
+  'megaphone': Megaphone,
+  'camera': Camera,
+  'edit': Edit,
+  'trash-2': Trash2
 };
 
 // Initialize icons - replaces [data-lucide] elements with SVG

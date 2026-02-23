@@ -574,15 +574,29 @@ const CardUploadStateMachine = {
     safeSetValue('preview-address', data.address);
     safeSetValue('preview-note', data.note);
     
-    // Safe handling of company_summary section
-    const summaryEl = document.getElementById('preview-company-summary');
-    const sectionEl = document.getElementById('ai-summary-section');
+    // Safe handling of AI summaries
+    const companySummaryEl = document.getElementById('preview-company-summary');
+    const personalSummaryEl = document.getElementById('preview-personal-summary');
+    const aiSectionEl = document.getElementById('ai-summary-section');
     
-    if (data.company_summary && summaryEl && sectionEl) {
-      summaryEl.textContent = data.company_summary;
-      sectionEl.classList.remove('hidden');
-    } else if (sectionEl) {
-      sectionEl.classList.add('hidden');
+    if ((data.company_summary || data.personal_summary) && aiSectionEl) {
+      if (data.company_summary && companySummaryEl) {
+        companySummaryEl.textContent = data.company_summary;
+        companySummaryEl.parentElement.classList.remove('hidden');
+      } else if (companySummaryEl) {
+        companySummaryEl.parentElement.classList.add('hidden');
+      }
+      
+      if (data.personal_summary && personalSummaryEl) {
+        personalSummaryEl.textContent = data.personal_summary;
+        personalSummaryEl.parentElement.classList.remove('hidden');
+      } else if (personalSummaryEl) {
+        personalSummaryEl.parentElement.classList.add('hidden');
+      }
+      
+      aiSectionEl.classList.remove('hidden');
+    } else if (aiSectionEl) {
+      aiSectionEl.classList.add('hidden');
     }
     
     const saveBtn = document.getElementById('preview-save-btn');
@@ -617,6 +631,7 @@ const CardUploadStateMachine = {
           address: document.getElementById('preview-address').value,
           note: document.getElementById('preview-note').value,
           company_summary: data.company_summary,
+          personal_summary: data.personal_summary,
           sources: data.sources,
           ai_status: aiStatus,
           ocr_raw_text: data.ocr_raw_text

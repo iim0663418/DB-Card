@@ -28,6 +28,7 @@ interface UnifiedExtractResult {
   organization_alias: string[] | null;
   organization_full: string | null;
   company_summary: string | null;
+  personal_summary: string | null;
   sources: Array<{ uri: string; title: string }>;
 }
 
@@ -115,28 +116,33 @@ async function performUnifiedExtract(
       company_summary: {
         type: ["string", "null"],
         description: "組織摘要（100-200字：產業、主要業務、成立年份、規模、營運狀況。如有部門名稱，額外說明該部門職能）"
+      },
+      personal_summary: {
+        type: ["string", "null"],
+        description: "個人摘要（30-50字：基於名片特徵搜尋此人，提供快速掌握個人特色的資訊。例如：專業領域、代表性成就、特殊專長等）"
       }
     },
     required: ["full_name", "organization"]
   };
 
-  const prompt = `你是專業的名片辨識與資訊補全系統。請完成以下兩個任務：
+  const prompt = `你是專業的名片辨識與資訊補全系統。請完成以下任務：
 
 **任務 1：OCR 辨識**
 從名片圖片中精確辨識所有可見資訊（姓名、公司、部門、職稱、聯絡方式等）。
 
-**任務 2：組織資訊補全**
-使用 Google Search 補全組織資訊：
+**任務 2：資訊補全**
+使用 Google Search 補全以下資訊：
 - 組織完整名稱、英文名稱、常用簡稱
 - 組織摘要（產業、業務、規模、營運狀況）
 - 如有部門名稱，說明該部門在組織中的職能
+- 個人摘要（30-50字：基於名片特徵搜尋此人，提供快速掌握個人特色的資訊，如專業領域、代表性成就、特殊專長）
 - 若名片缺少官網或地址，從官方來源補全
 
 **搜尋策略**：
-- 可使用「姓名 + 組織/部門」作為搜尋關鍵字（用於精確定位組織資訊）
-- company_summary 僅描述組織和部門，不包含個人研究領域或學術成果
-- 優先使用官方來源（組織官網、政府登記）
-- 使用近 2 年內資料`;
+- 可使用「姓名 + 組織/部門」作為搜尋關鍵字
+- company_summary 僅描述組織和部門
+- personal_summary 精簡且有意義，突出個人特色
+- 優先使用官方來源（組織官網、政府登記、專業檔案）`;
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`,

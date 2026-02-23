@@ -351,12 +351,6 @@
                 'field-address': 'Address',
                 'field-note': 'Note',
                 'share-with-users': 'Share with Users',
-                'tag-filter-label': 'Filter by tag:',
-                'tag-all': 'All',
-                'edit-card-title': 'Edit Card',
-                'enrich-card-btn': 'Enrich Card Info',
-                'enrich-card-time': '(takes 10-30 seconds)',
-                'card-detail-title': 'Card Details',
 
                 // WebView Warning
                 'webview_warning_title': 'Unsupported Browser',

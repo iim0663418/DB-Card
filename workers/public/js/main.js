@@ -31,23 +31,6 @@ let currentLanguage = 'zh';
 let typewriterTimeout = null;
 let currentCardData = null; // 儲存當前名片資料供 vCard 下載使用
 
-/**
- * Device detection function for device-aware vCard button
- * @returns {boolean} true if mobile device (iOS/Android/tablet), false for desktop
- */
-function isMobileDevice() {
-    // Method 1: User Agent detection
-    const ua = navigator.userAgent.toLowerCase();
-    const isMobileUA = /iphone|ipad|ipod|android|mobile/i.test(ua);
-
-    // Method 2: Touch capability + screen size
-    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    const isSmallScreen = window.matchMedia('(max-width: 768px)').matches;
-
-    // Return true if either UA indicates mobile OR (has touch AND small screen)
-    return isMobileUA || (hasTouch && isSmallScreen);
-}
-
 // 組織與部門雙語對照表（來自 v3 bilingual-common.js）
 const ORG_DEPT_MAPPING = {
     organization: {
@@ -463,7 +446,7 @@ function renderCardFace(cardData, sessionData, lang, suffix) {
     if (avatarUrl && avatarEl) {
         let processedUrl = avatarUrl;
 
-        const driveMatch = processedUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^\/\?&]+)/);
+        const driveMatch = processedUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^/?&]+)/);
         if (driveMatch) {
             const fileId = driveMatch[1];
             processedUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
@@ -1106,7 +1089,7 @@ function generateVCard(cardData) {
     if (cardData.avatar_url || cardData.avatar) {
         let photoUrl = cardData.avatar_url || cardData.avatar;
         // 轉換 Google Drive 分享連結為直接圖片 URL
-        const driveMatch = photoUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^\/\?&]+)/);
+        const driveMatch = photoUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^/?&]+)/);
         if (driveMatch) {
             const fileId = driveMatch[1];
             // 使用 uc?export=view 格式，相容性更好

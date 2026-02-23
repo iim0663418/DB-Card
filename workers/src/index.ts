@@ -407,12 +407,12 @@ export default {
     }
 
     // POST /api/user/received-cards/:uuid/share - Share card with another user
-    if (url.pathname.match(/^\/api\/user\/received-cards\/[^\/]+\/share$/) && request.method === 'POST') {
+    if (url.pathname.match(/^\/api\/user\/received-cards\/[^/]+\/share$/) && request.method === 'POST') {
       return addMinimalSecurityHeaders(await handleShareCard(request, env));
     }
 
     // DELETE /api/user/received-cards/:uuid/share - Unshare card from recipient
-    if (url.pathname.match(/^\/api\/user\/received-cards\/[^\/]+\/share$/) && request.method === 'DELETE') {
+    if (url.pathname.match(/^\/api\/user\/received-cards\/[^/]+\/share$/) && request.method === 'DELETE') {
       return addMinimalSecurityHeaders(await handleUnshareCard(request, env));
     }
 

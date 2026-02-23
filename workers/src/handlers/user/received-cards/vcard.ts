@@ -63,6 +63,7 @@ function generateNameField(card: ReceivedCard): string {
  * Prevents file system issues on various platforms
  */
 function sanitizeFilename(name: string): string {
+  // eslint-disable-next-line no-control-regex
   return name.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_');
 }
 

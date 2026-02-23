@@ -1,5 +1,5 @@
         // Import validation utilities
-        import { validateURL, sanitizeText, validateEmail, validatePhone, validateSocialURL, SOCIAL_PLATFORMS } from './validation.js';
+        import { validateURL, sanitizeText, validateEmail, validatePhone, validateSocialURL } from './validation.js';
 
         const API_BASE = window.location.hostname === 'localhost'
             ? '' // Use same origin for local development
@@ -42,7 +42,6 @@
         }
 
         let isVerified = false;
-        let activeTab = 'list';
         let previewLang = 'zh';
 
         // Helper function to get headers with CSRF token
@@ -809,7 +808,6 @@
 
         function switchTab(tabId) {
             if(!isVerified) return;
-            activeTab = tabId;
             document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
             document.getElementById(`section-${tabId}`).classList.remove('hidden');
 
@@ -868,6 +866,16 @@
                 </div>
             `);
             safeInitIcons();
+        }
+
+        // Load cards from API and render
+        async function loadCards() {
+            try {
+                const cards = await api.getCards();
+                renderCardsList(cards);
+            } catch (error) {
+                showLoadingError(error.message || '載入失敗');
+            }
         }
 
         // Render cards list (Phase 2: XSS防護 - 使用 DOM API 而非 innerHTML)
@@ -951,9 +959,6 @@
                     const dailyPct = Math.round((c.budget.daily_used / c.budget.daily_limit) * 100);
                     const monthlyPct = Math.round((c.budget.monthly_used / c.budget.monthly_limit) * 100);
                     const totalPct = Math.round((c.budget.total_used / c.budget.total_limit) * 100);
-
-                    // Determine which dimension has the highest percentage (matches status)
-                    const maxPct = Math.max(dailyPct, monthlyPct, totalPct);
 
                     // Helper function to get color class
                     const getColorClass = (pct) => {
@@ -1439,7 +1444,7 @@
                     return;
                 }
 
-                const result = await response.json();
+                await response.json();
                 showNotification(
                     isEditing ? '名片已更新' : '名片已創建',
                     'success'
@@ -1980,7 +1985,7 @@
 
             // 大頭貼處理 - 支援 Google Drive URL 轉換
             let avatarUrl = avatar;
-            const driveMatch = avatarUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^\/\?&]+)/);
+            const driveMatch = avatarUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^/?&]+)/);
             if (driveMatch) {
                 const fileId = driveMatch[1];
                 avatarUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
@@ -2328,7 +2333,7 @@
                         let details = {};
                         try {
                             details = typeof event.details === 'string' ? JSON.parse(event.details) : event.details;
-                        } catch (e) {
+                        } catch {
                             details = {};
                         }
 
@@ -2374,11 +2379,6 @@
                 'blocked_ip': 'badge-suspended'
             };
             return typeMap[type] || 'badge-personal';
-        }
-
-        // 截斷字串
-        function truncate(str, len) {
-            return str.length > len ? str.substring(0, len) + '...' : str;
         }
 
         // 封鎖 IP
@@ -2926,7 +2926,7 @@
 
                 progressBar.style.width = '100%';
 
-                const result = await response.json();
+                await response.json();
                 showNotification('圖片上傳成功！', 'success');
 
                 // Reload assets list

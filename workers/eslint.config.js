@@ -5,12 +5,13 @@ import tsParser from '@typescript-eslint/parser';
 export default [
   js.configs.recommended,
   {
-    files: ['src/**/*.ts', 'public/js/**/*.js'],
+    files: ['src/**/*.ts', 'src/**/*.js', 'public/js/**/*.js'],
     languageOptions: {
       parser: tsParser,
       ecmaVersion: 2022,
       sourceType: 'module',
       globals: {
+        // Node.js Globals
         console: 'readonly',
         process: 'readonly',
         Buffer: 'readonly',
@@ -19,6 +20,8 @@ export default [
         exports: 'writable',
         module: 'writable',
         require: 'readonly',
+
+        // Browser Globals
         window: 'readonly',
         document: 'readonly',
         navigator: 'readonly',
@@ -37,15 +40,57 @@ export default [
         prompt: 'readonly',
         confirm: 'readonly',
         alert: 'readonly',
+        URLSearchParams: 'readonly',
+        FormData: 'readonly',
+
+        // Cloudflare Workers Runtime
+        Request: 'readonly',
+        Response: 'readonly',
+        Headers: 'readonly',
+        HeadersInit: 'readonly',
+        ExecutionContext: 'readonly',
+        D1Database: 'readonly',
+        KVNamespace: 'readonly',
+        R2Bucket: 'readonly',
+        DurableObjectNamespace: 'readonly',
+        DurableObjectStub: 'readonly',
+        Fetcher: 'readonly',
+        ScheduledEvent: 'readonly',
+        Env: 'readonly',
+
+        // Web APIs
+        URL: 'readonly',
+        TextEncoder: 'readonly',
+        TextDecoder: 'readonly',
+        CryptoKey: 'readonly',
+        File: 'readonly',
+        FileReader: 'readonly',
+        Image: 'readonly',
+        AbortController: 'readonly',
+        AbortSignal: 'readonly',
+        PerformanceObserver: 'readonly',
+        performance: 'readonly',
+
+        // Third-party Libraries
         DOMPurify: 'readonly',
         lucide: 'readonly',
         THREE: 'readonly',
         Chart: 'readonly',
         QRCreator: 'readonly',
+        QRCode: 'readonly',
+        QrCreator: 'readonly',
         Panzoom: 'readonly',
         SimpleWebAuthnBrowser: 'readonly',
-        URLSearchParams: 'readonly',
-        FormData: 'readonly',
+        API_BASE: 'readonly',
+
+        // Global Functions
+        api: 'readonly',
+        clearPreview: 'readonly',
+        uploadAsset: 'readonly',
+        viewAsset: 'readonly',
+        getSocialLinkError: 'readonly',
+        showToast: 'readonly',
+
         // Functions called from HTML onclick attributes
         closeWebViewWarning: 'writable',
         copyCurrentURL: 'writable',

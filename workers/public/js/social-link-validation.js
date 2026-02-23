@@ -24,6 +24,7 @@ function validateSocialLink(url) {
 
     // Dangerous protocols to block
     const dangerousProtocols = [
+        // eslint-disable-next-line no-script-url -- String literal in validation list
         'javascript:',
         'data:',
         'vbscript:',
@@ -95,6 +96,7 @@ function getSocialLinkError(url) {
     url = url.trim();
 
     // Check for dangerous protocols
+    // eslint-disable-next-line no-script-url -- 'javascript:' is a string literal in validation list, not executable code
     const dangerousProtocols = ['javascript:', 'data:', 'vbscript:', 'file:', 'about:', 'blob:'];
     const lowerUrl = url.toLowerCase();
     

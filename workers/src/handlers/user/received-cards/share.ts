@@ -14,7 +14,7 @@ export async function handleShareCard(request: Request, env: Env): Promise<Respo
     const user = userResult;
 
     const url = new URL(request.url);
-    const uuidMatch = url.pathname.match(/^\/api\/user\/received-cards\/([^\/]+)\/share$/);
+    const uuidMatch = url.pathname.match(/^\/api\/user\/received-cards\/([^/]+)\/share$/);
     if (!uuidMatch) {
       return errorResponse('INVALID_REQUEST', 'Invalid URL format', 400);
     }

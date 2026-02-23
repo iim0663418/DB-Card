@@ -64,7 +64,7 @@ export function sanitizeText(text, maxLength = 1000) {
         '/': '&#x2F;'
     };
     
-    sanitized = sanitized.replace(/[&<>"'\/]/g, char => escapeMap[char]);
+    sanitized = sanitized.replace(/[&<>"'/]/g, char => escapeMap[char]);
     
     return sanitized;
 }
@@ -78,7 +78,7 @@ export function validateEmail(email) {
     if (!email || typeof email !== 'string') return false;
     
     // RFC 5322 compliant regex (simplified)
-    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
     
     return emailRegex.test(email.trim()) && email.length <= 254;
 }
@@ -92,7 +92,7 @@ export function validatePhone(phone) {
     if (!phone || typeof phone !== 'string') return false;
     
     // Allow digits, spaces, +, -, (, )
-    const phoneRegex = /^[\d\s\+\-\(\)]+$/;
+    const phoneRegex = /^[\d\s+\-()]+$/;
     const cleaned = phone.trim();
     
     return phoneRegex.test(cleaned) && cleaned.length >= 7 && cleaned.length <= 20;

@@ -1,9 +1,6 @@
 // Received Cards Module
 // AI-First Card Capture Feature
 
-/* eslint-env browser */
-/* global showToast */
-
 // ==================== Thumbnail Generator ====================
 async function generateThumbnailClient(file) {
   return new Promise((resolve, reject) => {
@@ -80,6 +77,7 @@ const ReceivedCardsAPI = {
 
     // Debug: log CSRF token status
     if (!csrfToken) {
+      // CSRF token not found - request will proceed without it
     }
 
     const headers = {
@@ -383,10 +381,12 @@ const CardUploadStateMachine = {
       // 防止重複點擊
       if (saveBtn.disabled) return;
 
+      // 儲存原始按鈕文字
+      const originalText = saveBtn.innerHTML;
+
       try {
         // 禁用按鈕並顯示 loading
         saveBtn.disabled = true;
-        const originalText = saveBtn.innerHTML;
         saveBtn.innerHTML = '<svg class="animate-spin h-5 w-5 inline-block" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> 儲存中...';
 
         // 判斷 ai_status：有 sources 就是 completed

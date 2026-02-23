@@ -1101,22 +1101,22 @@ const ReceivedCards = {
           </span>
           `}
         </div>
-        <div class="grid grid-cols-3 gap-2">
+        <div class="grid grid-cols-${card.source === 'own' ? '3' : '2'} gap-2">
           <button onclick="ReceivedCards.viewCard('${card.uuid}')" class="card-action-btn py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2" style="background: var(--moda-accent); color: white;">
             <i data-lucide="info" class="w-4 h-4"></i>
             <span data-i18n="view-card">查看</span>
           </button>
-          <button onclick="ReceivedCards.openEditModal('${card.uuid}')" class="card-action-btn py-3 px-3 rounded-xl font-black transition-all flex items-center justify-center" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;" title="編輯名片">
+          ${card.source === 'own' ? `<button onclick="ReceivedCards.openEditModal('${card.uuid}')" class="card-action-btn py-3 px-3 rounded-xl font-black transition-all flex items-center justify-center" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;" title="編輯名片">
             <i data-lucide="edit" class="w-5 h-5"></i>
-          </button>
+          </button>` : ''}
           <button onclick="ReceivedCards.exportVCard('${card.uuid}')" class="card-action-btn py-3 px-3 rounded-xl font-black transition-all flex items-center justify-center" style="background: rgba(16, 185, 129, 0.15); color: #10b981;" title="匯出 vCard">
             <i data-lucide="download" class="w-5 h-5"></i>
           </button>
         </div>
-        <button onclick="ReceivedCards.deleteCardFromElement(this)" class="w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+        ${card.source === 'own' ? `<button onclick="ReceivedCards.deleteCardFromElement(this)" class="w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
           <i data-lucide="trash-2" class="w-4 h-4"></i>
           <span data-i18n="delete-card">刪除名片</span>
-        </button>
+        </button>` : ''}
       </div>
     `;
   },

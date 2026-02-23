@@ -5,7 +5,7 @@
 ## 最新更新
 
 ### v5.0.0 (2026-02-23) - 收到的名片管理系統完成
-- **OCR 狀態追蹤** - pending/completed/failed 三階段狀態，ocr_error 錯誤記錄
+- **多模態 AI 狀態追蹤** - pending/completed/failed 三階段狀態，ocr_error 錯誤記錄
 - **上傳冪等性保證** - idempotency_key UNIQUE 約束，防止重複上傳
 - **HEIC 格式檢測與阻擋** - Extension + MIME + Magic Bytes 三重驗證
 - **智慧圖片壓縮** - browser-image-compression，目標 1MB，80% 上傳時間減少
@@ -87,6 +87,40 @@
 - **原子性交易**: DB.batch() 確保資料一致性
 - **GDPR 合規**: 100% (Article 7, 12, 13, 15, 20, 30)
 - **No-Email 設計**: Email 僅作內部 ID，所有通知透過 UI
+
+---
+
+## 核心功能
+
+### 1. NFC 數位名片
+- **一觸即用**: NFC 觸碰自動創建授權會話
+- **授權會話**: 24 小時 TTL,可撤銷、可限制同時讀取數
+- **即時撤銷**: NFC 重新觸碰即可撤銷上一個會話
+
+### 2. 收到的名片管理
+- **多模態 AI**: pending/completed/failed 三階段狀態追蹤
+- **智慧壓縮**: browser-image-compression,目標 1MB,80% 上傳時間減少
+- **冪等上傳**: idempotency_key 防止重複上傳
+
+### 3. 管理後台
+- **完整 CRUD**: 創建、讀取、更新、刪除名片
+- **即時監控**: KEK 版本、活躍名片數統計
+- **緊急撤銷**: 全域撤銷機制
+
+### 4. 隱私合規
+- **GDPR 合規**: 100% 符合 Article 7, 12, 13, 15, 20, 30
+- **個資同意**: 分層揭露、撤回機制、30 天緩衝期
+- **資料可攜**: JSON 格式即時匯出
+
+### 5. 安全架構
+- **信封加密**: 每張名片獨立 DEK,KEK 定期輪換
+- **OIDC 認證**: PKCE、State、Nonce 防護
+- **審計日誌**: 完整記錄所有存取行為,IP 匿名化
+
+### 6. 效能優化
+- **Icon Tree-Shaking**: Lucide Icons 從 379 KB 降至 12.33 KB (96.8%)
+- **並發控制**: SQLite RETURNING 原子性操作
+- **快取策略**: 4 層快取一致性保證
 
 ## 安全掃描結果
 
@@ -410,7 +444,7 @@ wrangler d1 execute DB --remote --command "SELECT user_email, consent_type, cons
 
 ## 資料庫遷移
 
-執行所有 migration 腳本（依序執行）：
+目前共有 **33 個 migrations** (0001-0032)，執行所有 migration 腳本（依序執行）：
 
 ```bash
 # 本地環境
@@ -428,6 +462,12 @@ for file in migrations/*.sql; do
   npx wrangler d1 execute DB --remote --env production --file="$file"
 done
 ```
+
+### 最新關鍵 Migrations (v5.0.0)
+- **0029_bilingual_card_support**: 雙語名片支援
+- **0030_organization_extended**: 組織資訊擴充
+- **0031_shared_cards**: 共享名片功能
+- **0032_idempotency_key**: 冪等性金鑰 + user_email 複合唯一索引
 
 ---
 
@@ -513,6 +553,11 @@ wrangler dev --remote
 - `DELETE /api/admin/cards/:uuid` - 刪除名片
 - `POST /api/admin/revoke` - 撤銷會話
 - `POST /api/admin/kek/rotate` - KEK 輪換
+
+### 使用者 API (需 OIDC 認證)
+- `POST /api/user/upload` - 上傳名片圖片
+- `GET /api/user/received-cards` - 列出收到的名片
+- `DELETE /api/user/received-cards/:id` - 刪除收到的名片
 
 詳細文檔: `docs/api/`
 

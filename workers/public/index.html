@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Scenario 1: 完整 Meta Tags -->
-    <meta name="description" content="DB-Card 安全預設 NFC 數位名片系統 - 信封加密、可撤銷會話、審計日誌、OIDC 認證。符合 GDPR 規範。">
+    <meta name="description" content="DB-Card 安全預設 NFC 數位名片系統 - 名片管理（多模態 AI、智慧壓縮）、信封加密、可撤銷會話。隱私優先、GDPR 合規。">
     <meta name="keywords" content="NFC 數位名片, 數位名片系統, 信封加密, OIDC 認證, GDPR, DB-Card, 安全名片">
     <meta name="author" content="Sheng-Fan Wu">
     <meta name="robots" content="index, follow">
@@ -14,7 +14,7 @@
     <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="DB-Card | 安全預設 NFC 數位名片系統">
-    <meta property="og:description" content="信封加密、可撤銷會話、審計日誌、OIDC 認證。安全預設、隱私優先的 NFC 數位名片解決方案。">
+    <meta property="og:description" content="NFC 數位名片 + 收到的名片管理（多模態 AI、智慧壓縮）。信封加密、可撤銷會話。安全預設、隱私優先、GDPR 合規。">
     <meta property="og:url" content="https://db-card-staging.csw30454.workers.dev/">
     <meta property="og:site_name" content="DB-Card">
     <meta property="og:locale" content="zh_TW">
@@ -26,7 +26,7 @@
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="DB-Card | 安全預設 NFC 數位名片系統">
-    <meta name="twitter:description" content="信封加密、可撤銷會話、審計日誌、OIDC 認證。安全預設、隱私優先的 NFC 數位名片解決方案。">
+    <meta name="twitter:description" content="NFC 數位名片 + 收到的名片管理（多模態 AI、智慧壓縮）。信封加密、可撤銷會話。安全預設、隱私優先、GDPR 合規。">
     <meta name="twitter:image" content="https://db-card-staging.csw30454.workers.dev/images/og-cover.png">
     <meta name="twitter:image:alt" content="DB-Card NFC 數位名片系統">
 
@@ -65,7 +65,7 @@
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "DB-Card",
-      "description": "安全預設 NFC 數位名片系統，採用信封加密、可撤銷會話、審計日誌與 OIDC 認證",
+      "description": "安全預設 NFC 數位名片系統，收到的名片管理（多模態 AI、智慧壓縮）、信封加密、可撤銷會話，GDPR 合規",
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web-based, iOS, Android",
       "url": "https://db-card-staging.csw30454.workers.dev/",
@@ -239,7 +239,7 @@
                         </div>
                         <h3 class="text-xl font-black mb-2" data-i18n="user-portal-title">使用者入口</h3>
                         <p class="text-sm text-slate-600 mb-6" data-i18n="user-portal-desc">
-                            Google OAuth 登入，管理個人數位名片
+                            管理個人數位名片、收到的名片（多模態 AI）
                         </p>
                         <a href="/user-portal.html" class="btn-primary" aria-label="前往使用者入口">
                             <span data-i18n="user-portal-btn">前往入口</span>
@@ -521,7 +521,33 @@
                         </div>
                     </article>
 
-                    <!-- 特色 7: 可隨時撤銷授權 -->
+                    <!-- 特色 7: 收到的名片管理 -->
+                    <article class="glass-card rounded-2xl p-8" aria-label="收到的名片管理">
+                        <div class="flex gap-4">
+                            <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
+                                <i data-lucide="image" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold mb-3" data-i18n="feature-received-cards-title">收到的名片管理</h3>
+                                <ul class="space-y-2 text-xs text-slate-600">
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
+                                        <span data-i18n="feature-received-cards-1">多模態 AI 自動辨識名片資訊</span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
+                                        <span data-i18n="feature-received-cards-2">智慧圖片壓縮（80% 上傳時間減少）</span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
+                                        <span data-i18n="feature-received-cards-3">冪等上傳機制，防止重複提交</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- 特色 8: 可隨時撤銷授權 -->
                     <article class="glass-card rounded-2xl p-8" aria-label="可隨時撤銷存取">
                         <div class="flex gap-4">
                             <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">

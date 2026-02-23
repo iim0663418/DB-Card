@@ -42,6 +42,7 @@ export default [
         alert: 'readonly',
         URLSearchParams: 'readonly',
         FormData: 'readonly',
+        imageCompression: 'readonly',  // browser-image-compression vendor library
 
         // Cloudflare Workers Runtime
         Request: 'readonly',

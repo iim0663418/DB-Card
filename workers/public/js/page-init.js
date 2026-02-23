@@ -185,8 +185,8 @@
                 'en': 'User Portal'
             },
             'user-portal-desc': {
-                'zh': 'Google OAuth 登入，管理個人數位名片',
-                'en': 'Google OAuth login, manage your digital business cards'
+                'zh': '管理個人數位名片、收到的名片（多模態 AI）',
+                'en': 'Manage your digital cards and received cards (Multimodal AI)'
             },
             'user-portal-btn': {
                 'zh': '前往入口',
@@ -303,6 +303,22 @@
             'feature-privacy-3': {
                 'zh': 'IP 地址自動匿名化（審計日誌）',
                 'en': 'IP addresses automatically anonymized (audit logs)'
+            },
+            'feature-received-cards-title': {
+                'zh': '收到的名片管理',
+                'en': 'Received Cards Management'
+            },
+            'feature-received-cards-1': {
+                'zh': '多模態 AI 自動辨識名片資訊',
+                'en': 'Multimodal AI automatic recognition'
+            },
+            'feature-received-cards-2': {
+                'zh': '智慧圖片壓縮（80% 上傳時間減少）',
+                'en': 'Smart image compression (80% faster upload)'
+            },
+            'feature-received-cards-3': {
+                'zh': '冪等上傳機制，防止重複提交',
+                'en': 'Idempotent upload, prevent duplicates'
             },
             'feature-encryption-title': {
                 'zh': '信封加密技術',

@@ -49,7 +49,9 @@ export async function handlePasskeyRegisterStart(request: Request, env: Env): Pr
       return errorResponse('not_found', 'User not found or inactive', 404, request);
     }
 
-    const rpID = env.RP_ID || 'localhost';
+    // 動態獲取 RP ID（從請求的 hostname）
+    const url = new URL(request.url);
+    const rpID = url.hostname;
     const rpName = 'DB-Card Admin';
     const userID = new TextEncoder().encode(String(user.id)) as ReturnType<Uint8Array['slice']>;
 
@@ -105,7 +107,9 @@ export async function handlePasskeyRegisterFinish(request: Request, env: Env): P
       return errorResponse('invalid_challenge', 'Challenge expired or not found', 400, request);
     }
 
-    const rpID = env.RP_ID || 'localhost';
+    // 動態獲取 RP ID（從請求的 hostname）
+    const url = new URL(request.url);
+    const rpID = url.hostname;
     const origin = env.ORIGIN || 'http://localhost:8788';
 
     const opts: VerifyRegistrationResponseOpts = {
@@ -157,7 +161,9 @@ export async function handlePasskeyRegisterFinish(request: Request, env: Env): P
 
 export async function handlePasskeyLoginStart(request: Request, env: Env): Promise<Response> {
   try {
-    const rpID = env.RP_ID || 'localhost';
+    // 動態獲取 RP ID（從請求的 hostname）
+    const url = new URL(request.url);
+    const rpID = url.hostname;
 
     // 查詢所有已註冊的 Passkey credentials
     const credentials = await env.DB.prepare(
@@ -203,7 +209,9 @@ export async function handlePasskeyLoginFinish(request: Request, env: Env): Prom
       return errorResponse('invalid_request', 'Credential required', 400, request);
     }
 
-    const rpID = env.RP_ID || 'localhost';
+    // 動態獲取 RP ID（從請求的 hostname）
+    const url = new URL(request.url);
+    const rpID = url.hostname;
 
     // 從 credential ID 查找用戶
     const user = await env.DB.prepare(`

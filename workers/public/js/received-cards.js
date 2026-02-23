@@ -1684,7 +1684,7 @@ const ReceivedCards = {
       this.renderAIStatus(card);
 
       // 渲染公司摘要
-      this.renderCompanySummary(card);
+      this.renderAISummaries(card);
 
       // 綁定按鈕事件
       const editBtn = document.getElementById('detail-edit-btn');
@@ -1761,22 +1761,46 @@ const ReceivedCards = {
     container.appendChild(badge);
   },
 
-  renderCompanySummary(card) {
-    const companyContainer = document.getElementById('company-summary-container');
+  renderAISummaries(card) {
+    const aiContainer = document.getElementById('ai-summaries-container');
+    const companySection = document.getElementById('company-summary-section');
     const companyText = document.getElementById('company-summary-text');
+    const personalSection = document.getElementById('personal-summary-section');
+    const personalText = document.getElementById('personal-summary-text');
     const sourcesContainer = document.getElementById('sources-container');
     const sourcesList = document.getElementById('sources-list');
 
-    // 顯示公司摘要
-    if (card.company_summary && companyContainer && companyText) {
+    let hasAnySummary = false;
+
+    // 顯示組織摘要
+    if (card.company_summary && companySection && companyText) {
       companyText.textContent = card.company_summary;
-      companyContainer.classList.remove('hidden');
-    } else if (companyContainer) {
-      companyContainer.classList.add('hidden');
+      companySection.classList.remove('hidden');
+      hasAnySummary = true;
+    } else if (companySection) {
+      companySection.classList.add('hidden');
     }
 
-    // 顯示參考來源（如果有公司摘要）
-    if (card.company_summary && card.sources && card.sources.length > 0) {
+    // 顯示個人摘要
+    if (card.personal_summary && personalSection && personalText) {
+      personalText.textContent = card.personal_summary;
+      personalSection.classList.remove('hidden');
+      hasAnySummary = true;
+    } else if (personalSection) {
+      personalSection.classList.add('hidden');
+    }
+
+    // 顯示 AI 摘要容器
+    if (aiContainer) {
+      if (hasAnySummary) {
+        aiContainer.classList.remove('hidden');
+      } else {
+        aiContainer.classList.add('hidden');
+      }
+    }
+
+    // 顯示參考來源（如果有任何摘要）
+    if (hasAnySummary && card.sources && card.sources.length > 0) {
       if (sourcesList) {
         sourcesList.innerHTML = '';
 

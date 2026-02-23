@@ -136,6 +136,7 @@ async function fileToBase64(file) {
 async function uploadWithRetry(file, signal, maxRetries = 3) {
   const idempotencyKey = generateIdempotencyKey();
   const API_BASE = window.API_BASE || '';
+  const csrfToken = sessionStorage.getItem('csrfToken');
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -145,7 +146,8 @@ async function uploadWithRetry(file, signal, maxRetries = 3) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Idempotency-Key': idempotencyKey
+          'X-Idempotency-Key': idempotencyKey,
+          ...(csrfToken && { 'X-CSRF-Token': csrfToken })
         },
         body: JSON.stringify({
           image_base64: imageBase64,

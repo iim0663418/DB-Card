@@ -5,7 +5,7 @@
  * Application version (single source of truth)
  * Update this constant when releasing new versions
  */
-export const APP_VERSION = 'v4.6.0';
+export const APP_VERSION = 'v5.0.0';
 
 /**
  * Other configuration constants can be added here

@@ -29,9 +29,15 @@ export async function handleGetImage(
     const card = await env.DB.prepare(`
       SELECT original_image_url
       FROM received_cards
-      WHERE uuid = ? AND user_email = ? AND deleted_at IS NULL
+      WHERE uuid = ? AND deleted_at IS NULL
+        AND (
+          user_email = ?
+          OR EXISTS (
+            SELECT 1 FROM shared_cards WHERE card_uuid = ?
+          )
+        )
     `)
-      .bind(uuid, user.email)
+      .bind(uuid, user.email, uuid)
       .first();
 
     if (!card) {

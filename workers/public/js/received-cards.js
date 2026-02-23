@@ -97,11 +97,15 @@ function showHEICError() {
  * Compress image with cancellation support
  */
 async function compressImageWithCancellation(file, signal) {
+  // Safari/iOS compatibility: disable Web Worker, use main thread
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  
   const compressionPromise = imageCompression(file, {
     maxSizeMB: 1,
     maxWidthOrHeight: 1920,
-    useWebWorker: true,
-    fileType: 'image/jpeg'
+    useWebWorker: !isSafari,  // Disable for Safari
+    fileType: 'image/jpeg',
+    initialQuality: 0.8  // Better compatibility
   });
   
   if (!signal) {

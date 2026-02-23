@@ -137,7 +137,7 @@ async function fileToBase64(file) {
 /**
  * Upload with exponential backoff retry
  */
-async function uploadWithRetry(file, signal, maxRetries = 3) {
+async function uploadWithRetry(file, thumbnail, signal, maxRetries = 3) {
   const idempotencyKey = generateIdempotencyKey();
   const API_BASE = window.API_BASE || '';
   const csrfToken = sessionStorage.getItem('csrfToken');
@@ -145,6 +145,7 @@ async function uploadWithRetry(file, signal, maxRetries = 3) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const imageBase64 = await fileToBase64(file);
+      const thumbnailBase64 = thumbnail ? await fileToBase64(thumbnail) : null;
       
       const response = await fetch(`${API_BASE}/api/user/received-cards/upload`, {
         method: 'POST',
@@ -155,6 +156,7 @@ async function uploadWithRetry(file, signal, maxRetries = 3) {
         },
         body: JSON.stringify({
           image_base64: imageBase64,
+          thumbnail_base64: thumbnailBase64,
           filename: file.name
         }),
         signal
@@ -316,13 +318,18 @@ const ReceivedCardsAPI = {
       const compressedFile = await compressImageWithCancellation(file, signal);
       console.log(`[Upload] Compressed to ${(compressedFile.size/1024/1024).toFixed(2)}MB`);
 
-      // 4. Check cancellation after compression
+      // 4. Generate thumbnail (parallel with upload preparation)
+      console.log('[Upload] Generating thumbnail...');
+      const thumbnail = await generateThumbnailClient(compressedFile);
+      console.log('[Upload] Thumbnail generated');
+
+      // 5. Check cancellation after compression
       if (signal?.aborted) {
         throw new Error('Upload cancelled');
       }
 
-      // 5. Upload with retry (idempotent)
-      const result = await uploadWithRetry(compressedFile, signal);
+      // 6. Upload with retry (idempotent)
+      const result = await uploadWithRetry(compressedFile, thumbnail, signal);
 
       // Handle response format: { success: true, data: { upload_id, ... } }
       const uploadData = result.data || result;

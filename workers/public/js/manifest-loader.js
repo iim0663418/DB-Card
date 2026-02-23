@@ -9,7 +9,7 @@
 
   const MANIFEST_PATH = '/dist/.vite/manifest.json';
   const FALLBACK_HASH = 'sS1r72aF'; // Current hash as fallback
-  const ICON_ENTRY = 'icons.js';
+  const ICON_ENTRY = 'src/icons.js'; // Vite uses src path as key
 
   /**
    * Load icon bundle dynamically from manifest

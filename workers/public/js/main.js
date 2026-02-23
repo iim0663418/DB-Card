@@ -1,6 +1,5 @@
 import { tapCard, readCard } from './api.js';
 import { getLocalizedText, getLocalizedArray } from './utils/bilingual.js';
-import { APP_VERSION } from './config.js';
 // Icons now loaded via Vite bundle (/dist/icons.DTSin75g.js)
 
 const DEBUG = window.location.hostname === 'localhost';
@@ -1196,13 +1195,6 @@ function initLoadingIcon() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Display APP_VERSION
-    const appVersionEl = document.getElementById('app-version');
-    const footerVersionEl = document.getElementById('footer-version');
-    if (appVersionEl) appVersionEl.textContent = `v${APP_VERSION}`;
-    if (footerVersionEl) footerVersionEl.textContent = `DB-Card v${APP_VERSION} | Apache License 2.0`;
-    window.APP_VERSION = APP_VERSION;
-
     initApp();
 });
 

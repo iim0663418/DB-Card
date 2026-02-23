@@ -1,3 +1,13 @@
+// Display APP_VERSION
+import { APP_VERSION } from './config.js';
+document.addEventListener('DOMContentLoaded', () => {
+    const appVersionEl = document.getElementById('app-version');
+    const footerVersionEl = document.getElementById('footer-version');
+    if (appVersionEl) appVersionEl.textContent = `v${APP_VERSION}`;
+    if (footerVersionEl) footerVersionEl.textContent = `DB-Card v${APP_VERSION} | Apache License 2.0`;
+    window.APP_VERSION = APP_VERSION;
+});
+
         // Three.js 背景初始化
         let scene, camera, renderer, mesh, grid;
         let particles = [];

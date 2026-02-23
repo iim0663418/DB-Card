@@ -1651,11 +1651,24 @@ const ReceivedCards = {
       if (card.name_suffix) fullName = fullName + ', ' + card.name_suffix;
       document.getElementById('detail-name').textContent = fullName;
       
+      // Parse organization_alias
+      let aliasDisplay = '';
+      if (card.organization_alias) {
+        try {
+          const aliases = typeof card.organization_alias === 'string' && card.organization_alias.startsWith('[')
+            ? JSON.parse(card.organization_alias)
+            : card.organization_alias;
+          aliasDisplay = Array.isArray(aliases) ? aliases.join(', ') : aliases;
+        } catch {
+          aliasDisplay = card.organization_alias;
+        }
+      }
+      
       // 公司和部門並存顯示（含雙語和別名）
       let orgParts = [];
       if (card.organization) orgParts.push(card.organization);
       if (card.organization_en) orgParts.push(`(${card.organization_en})`);
-      if (card.organization_alias) orgParts.push(`[${card.organization_alias}]`);
+      if (aliasDisplay) orgParts.push(`(${aliasDisplay})`);
       if (card.department) orgParts.push(`- ${card.department}`);
       document.getElementById('detail-org').textContent = orgParts.join(' ');
 
@@ -2074,13 +2087,26 @@ const ReceivedCards = {
       return;
     }
 
+    // Parse organization_alias for editing
+    let aliasValue = '';
+    if (card.organization_alias) {
+      try {
+        const aliases = typeof card.organization_alias === 'string' && card.organization_alias.startsWith('[')
+          ? JSON.parse(card.organization_alias)
+          : card.organization_alias;
+        aliasValue = Array.isArray(aliases) ? aliases.join(', ') : aliases;
+      } catch {
+        aliasValue = card.organization_alias;
+      }
+    }
+
     // 填充表單
     form.elements.name_prefix.value = card.name_prefix || '';
     form.elements.name.value = card.full_name || '';
     form.elements.name_suffix.value = card.name_suffix || '';
     form.elements.organization.value = card.organization || '';
     form.elements.organization_en.value = card.organization_en || '';
-    form.elements.organization_alias.value = card.organization_alias || '';
+    form.elements.organization_alias.value = aliasValue;
     form.elements.department.value = card.department || '';
     form.elements.title.value = card.title || '';
     form.elements.email.value = card.email || '';

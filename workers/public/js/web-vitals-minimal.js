@@ -24,19 +24,32 @@
   });
   lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
 
-  // Collect INP (Interaction to Next Paint) - simplified: max event duration
+  // Collect INP (Interaction to Next Paint) - use first-input as fallback
+  vitals.inp = null;
   try {
-    const inpObserver = new PerformanceObserver((list) => {
-      const entries = list.getEntries();
-      entries.forEach((entry) => {
-        if (vitals.inp === undefined || entry.duration > vitals.inp) {
-          vitals.inp = Math.round(entry.duration);
+    // Try Event Timing API (Chrome 96+)
+    if (PerformanceObserver.supportedEntryTypes.includes('event')) {
+      const inpObserver = new PerformanceObserver((list) => {
+        const entries = list.getEntries();
+        entries.forEach((entry) => {
+          if (vitals.inp === null || entry.duration > vitals.inp) {
+            vitals.inp = Math.round(entry.duration);
+          }
+        });
+      });
+      inpObserver.observe({ type: 'event', buffered: true, durationThreshold: 16 });
+    } else {
+      // Fallback: use first-input
+      const firstInputObserver = new PerformanceObserver((list) => {
+        const entries = list.getEntries();
+        if (entries.length > 0) {
+          vitals.inp = Math.round(entries[0].processingStart - entries[0].startTime);
         }
       });
-    });
-    inpObserver.observe({ type: 'event', buffered: true, durationThreshold: 16 });
+      firstInputObserver.observe({ type: 'first-input', buffered: true });
+    }
   } catch (e) {
-    vitals.inp = null;
+    console.warn('INP collection not supported:', e);
   }
 
   // Collect CLS (Cumulative Layout Shift)

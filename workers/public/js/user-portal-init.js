@@ -172,6 +172,7 @@
                 'field-website': '網站',
                 'field-address': '地址',
                 'field-note': '備註',
+                'share-with-users': '分享給其他使用者',
 
                 // WebView Warning
                 'webview_warning_title': '不支援的瀏覽器',
@@ -349,6 +350,7 @@
                 'field-website': 'Website',
                 'field-address': 'Address',
                 'field-note': 'Note',
+                'share-with-users': 'Share with Users',
                 'tag-filter-label': 'Filter by tag:',
                 'tag-all': 'All',
                 'edit-card-title': 'Edit Card',

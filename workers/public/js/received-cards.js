@@ -370,10 +370,18 @@ const CardUploadStateMachine = {
     
     const saveBtn = document.getElementById('preview-save-btn');
     const handleSave = async () => {
+      // 防止重複點擊
+      if (saveBtn.disabled) return;
+
       try {
+        // 禁用按鈕並顯示 loading
+        saveBtn.disabled = true;
+        const originalText = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<svg class="animate-spin h-5 w-5 inline-block" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> 儲存中...';
+
         // 判斷 ai_status：有 sources 就是 completed
         const aiStatus = (data.sources && data.sources.length > 0) ? 'completed' : null;
-        
+
         const formData = {
           upload_id: data.upload_id,
           name_prefix: document.getElementById('preview-name-prefix').value,
@@ -394,25 +402,29 @@ const CardUploadStateMachine = {
           ai_status: aiStatus,
           ocr_raw_text: data.ocr_raw_text
         };
-        
+
         await ReceivedCardsAPI.saveCard(formData);
-        
+
         modal.classList.add('hidden');
-        
+
         if (typeof showToast === 'function') {
           showToast('名片已儲存', 'success');
         }
-        
+
         ReceivedCards.checkDonationReminder();
-        
+
         await ReceivedCards.loadCards();
-        
+
         this.reset();
-        
+
       } catch (error) {
         if (typeof showToast === 'function') {
           showToast(`儲存失敗：${error.message}`, 'error');
         }
+
+        // 錯誤時恢復按鈕狀態
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText || '確認儲存';
       } finally {
         saveBtn.removeEventListener('click', handleSave);
       }
@@ -828,6 +840,28 @@ const ReceivedCards = {
     try {
       const response = await ReceivedCardsAPI.loadCards();
       const cards = Array.isArray(response) ? response : (response?.data || []);
+
+      // 查詢已分享的名片 UUID（加上錯誤處理）
+      let sharedUuids = new Set();
+      try {
+        const sharedResponse = await fetch(`${API_BASE}/api/user/shared-cards`, {
+          credentials: 'include'
+        });
+        if (sharedResponse.ok) {
+          const sharedData = await sharedResponse.json();
+          const sharedCards = Array.isArray(sharedData) ? sharedData : (sharedData?.data || []);
+          sharedUuids = new Set(sharedCards.map(c => c.uuid));
+        }
+      } catch (error) {
+        console.warn('Failed to load shared cards:', error);
+        // 繼續執行，不影響主要功能
+      }
+
+      // 標記 is_shared
+      cards.forEach(card => {
+        card.is_shared = sharedUuids.has(card.uuid);
+      });
+
       this.cards = cards; // Store for later use
       this.allCards = cards; // Store all cards for filtering
 
@@ -887,6 +921,9 @@ const ReceivedCards = {
     // Bind thumbnail click events
     this.bindThumbnailEvents();
 
+    // Bind share toggle events
+    this.bindShareToggles();
+
     if (typeof window.initIcons === 'function') {
       window.initIcons();
     }
@@ -927,6 +964,54 @@ const ReceivedCards = {
         e.stopPropagation();
         const cardUuid = thumbnail.dataset.cardUuid;
         this.showImagePreview(cardUuid);
+      });
+    });
+  },
+
+  bindShareToggles() {
+    document.querySelectorAll('.share-toggle').forEach(toggle => {
+      const switchEl = toggle.nextElementSibling; // .toggle-switch
+      const slider = switchEl?.querySelector('.toggle-slider');
+
+      // 初始化樣式
+      if (toggle.checked) {
+        if (switchEl) switchEl.style.backgroundColor = '#3b82f6'; // blue-600
+        if (slider) slider.style.transform = 'translateX(20px)';
+      }
+
+      toggle.addEventListener('change', async (e) => {
+        const uuid = e.target.dataset.cardUuid;
+        const isShared = e.target.checked;
+
+        // 立即更新 UI
+        if (isShared) {
+          if (switchEl) switchEl.style.backgroundColor = '#3b82f6';
+          if (slider) slider.style.transform = 'translateX(20px)';
+        } else {
+          if (switchEl) switchEl.style.backgroundColor = '#d1d5db';
+          if (slider) slider.style.transform = 'translateX(0)';
+        }
+
+        try {
+          if (isShared) {
+            await this.shareCard(uuid);
+          } else {
+            await this.unshareCard(uuid);
+          }
+        } catch (error) {
+          // Revert toggle and styles on error
+          e.target.checked = !isShared;
+          if (!isShared) {
+            if (switchEl) switchEl.style.backgroundColor = '#3b82f6';
+            if (slider) slider.style.transform = 'translateX(20px)';
+          } else {
+            if (switchEl) switchEl.style.backgroundColor = '#d1d5db';
+            if (slider) slider.style.transform = 'translateX(0)';
+          }
+          if (typeof showToast === 'function') {
+            showToast(error.message, 'error');
+          }
+        }
       });
     });
   },
@@ -997,7 +1082,20 @@ const ReceivedCards = {
         </div>
         ` : ''}
         ${card.note ? `<p class="text-xs text-slate-500 italic truncate px-3 py-2 rounded-xl border border-white/20" style="background: rgba(255, 255, 255, 0.4);">${this.escapeHTML(card.note)}</p>` : ''}
-        <div class="pt-4 mt-4 border-t border-white/30 grid grid-cols-3 gap-2">
+        <div class="pt-4 mt-4 border-t border-white/30 flex items-center justify-between gap-3">
+          <label class="inline-flex items-center cursor-pointer">
+            <input type="checkbox"
+                   class="share-toggle"
+                   data-card-uuid="${card.uuid}"
+                   ${card.is_shared ? 'checked' : ''}
+                   style="display: none;">
+            <div class="toggle-switch" style="position: relative; width: 44px; height: 24px; background-color: ${card.is_shared ? '#3b82f6' : '#d1d5db'}; border-radius: 9999px; transition: background-color 0.3s;">
+              <div class="toggle-slider" style="position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background-color: white; border-radius: 50%; transition: transform 0.3s; ${card.is_shared ? 'transform: translateX(20px);' : ''}"></div>
+            </div>
+            <span class="ms-3 text-sm font-medium text-gray-900" data-i18n="share-with-users">分享給其他使用者</span>
+          </label>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
           <button onclick="ReceivedCards.viewCard('${card.uuid}')" class="card-action-btn py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2" style="background: var(--moda-accent); color: white;">
             <i data-lucide="info" class="w-4 h-4"></i>
             <span data-i18n="view-card">查看</span>
@@ -1047,7 +1145,7 @@ const ReceivedCards = {
       // 3. 取得檔名（從 Content-Disposition header，處理 UTF-8 編碼）
       const contentDisposition = response.headers.get('Content-Disposition');
       let filename = 'contact.vcf';
-      
+
       if (contentDisposition) {
         // 嘗試解析 filename*=UTF-8''encoded_name 格式
         const filenameStarMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/);
@@ -1075,6 +1173,48 @@ const ReceivedCards = {
       showToast('vCard 已下載', 'success');
     } catch (error) {
       showToast('匯出失敗', 'error');
+    }
+  },
+
+  async shareCard(uuid) {
+    const csrfToken = sessionStorage.getItem('csrfToken');
+
+    const response = await fetch(`${API_BASE}/api/user/received-cards/${uuid}/share`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        ...(csrfToken && { 'X-CSRF-Token': csrfToken })
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to share card');
+    }
+
+    if (typeof showToast === 'function') {
+      showToast('已分享給其他使用者', 'success');
+    }
+  },
+
+  async unshareCard(uuid) {
+    const csrfToken = sessionStorage.getItem('csrfToken');
+
+    const response = await fetch(`${API_BASE}/api/user/received-cards/${uuid}/share`, {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: {
+        ...(csrfToken && { 'X-CSRF-Token': csrfToken })
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to unshare card');
+    }
+
+    if (typeof showToast === 'function') {
+      showToast('已取消分享', 'success');
     }
   },
 

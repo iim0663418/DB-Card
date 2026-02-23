@@ -25,6 +25,9 @@ import { handleSaveCard, handleListCards as handleListReceivedCards, handleUpdat
 import { handleGetThumbnail } from './handlers/user/received-cards/thumbnail';
 import { handleGetImage } from './handlers/user/received-cards/image';
 import { handleGetVCard } from './handlers/user/received-cards/vcard';
+import { handleShareCard } from './handlers/user/received-cards/share';
+import { handleUnshareCard } from './handlers/user/received-cards/unshare';
+import { handleListSharedCards } from './handlers/user/received-cards/list-shared';
 import { handleGetOAuthUserInfo } from './handlers/user/oauth-user-info';
 import { handleConsentCheck, handleConsentAccept, handleConsentWithdraw, handleConsentRestore, handleConsentHistory, handleDataExport, handlePrivacyPolicyCurrent } from './handlers/consent';
 import { handleOAuthCallback } from './handlers/oauth';
@@ -401,6 +404,21 @@ export default {
     if (vcardMatch && request.method === 'GET') {
       const uuid = vcardMatch[1];
       return addMinimalSecurityHeaders(await handleGetVCard(request, env, uuid));
+    }
+
+    // POST /api/user/received-cards/:uuid/share - Share card with another user
+    if (url.pathname.match(/^\/api\/user\/received-cards\/[^\/]+\/share$/) && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleShareCard(request, env));
+    }
+
+    // DELETE /api/user/received-cards/:uuid/share - Unshare card from recipient
+    if (url.pathname.match(/^\/api\/user\/received-cards\/[^\/]+\/share$/) && request.method === 'DELETE') {
+      return addMinimalSecurityHeaders(await handleUnshareCard(request, env));
+    }
+
+    // GET /api/user/shared-cards - List cards shared with me
+    if (url.pathname === '/api/user/shared-cards' && request.method === 'GET') {
+      return addMinimalSecurityHeaders(await handleListSharedCards(request, env));
     }
 
     // PUT /api/user/cards/:uuid - Update user's own card

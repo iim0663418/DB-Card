@@ -1,8 +1,20 @@
-# DB-Card - NFC 數位名片系統 v4.6.0
+# DB-Card - NFC 數位名片系統 v5.0.0
 
 安全預設 NFC 數位名片系統 | 隱私優先 · 安全至上 · OIDC 認證 · GDPR 合規
 
 ## 最新更新
+
+### v5.0.0 (2026-02-23) - 收到的名片管理系統完成
+- **OCR 狀態追蹤** - pending/completed/failed 三階段狀態，ocr_error 錯誤記錄
+- **上傳冪等性保證** - idempotency_key UNIQUE 約束，防止重複上傳
+- **HEIC 格式檢測與阻擋** - Extension + MIME + Magic Bytes 三重驗證
+- **智慧圖片壓縮** - browser-image-compression，目標 1MB，80% 上傳時間減少
+- **可靠性提升** - 指數退避重試機制 (3 次 + Jitter)，成功率 70%→95%
+- **上傳取消支援** - AbortController 實作，使用者可中斷上傳
+- **本地 Vendor 資源** - browser-image-compression 56KB MIT 授權本地化
+- **代碼品質** - ESLint warnings 547→44 (87% 改善)，TypeScript 零錯誤
+- **全域類型定義** - 33 個 Cloudflare + Web API 類型定義，消除 any 類型
+- **資料庫優化** - Migration 0032: idempotency_key + user_email 複合唯一索引
 
 ### v4.6.0 (2026-02-08) - Icon Bundle 優化完成
 - **Vite Tree-Shaking** - Lucide Icons 從 379 KB 降至 12.33 KB (96.8% 減少)

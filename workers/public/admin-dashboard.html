@@ -288,12 +288,12 @@
             <!-- Setup Token 驗證區 (Don't Make Me Think: 驗證後隱藏或縮小) -->
             <div id="token-section" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <!-- SETUP_TOKEN 登入 -->
-                <div id="token-login" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white/50 px-3 py-2 rounded-xl border border-white/50">
-                    <input type="email" id="admin-email" placeholder="Email" class="w-full sm:w-28 bg-transparent outline-none text-xs placeholder:text-slate-400">
+                <form id="token-login-form" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white/50 px-3 py-2 rounded-xl border border-white/50">
+                    <input type="email" id="admin-email" placeholder="Email" autocomplete="username" class="w-full sm:w-28 bg-transparent outline-none text-xs placeholder:text-slate-400">
                     <div class="hidden sm:block w-px h-4 bg-slate-300"></div>
-                    <input type="password" id="setup-token" placeholder="Token" class="w-full sm:w-28 bg-transparent outline-none text-xs placeholder:text-slate-400">
-                    <button id="verify-btn" class="bg-slate-900 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-black transition-all whitespace-nowrap">驗證</button>
-                </div>
+                    <input type="password" id="setup-token" placeholder="Token" autocomplete="current-password" class="w-full sm:w-28 bg-transparent outline-none text-xs placeholder:text-slate-400">
+                    <button type="submit" id="verify-btn" class="bg-slate-900 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-black transition-all whitespace-nowrap">驗證</button>
+                </form>
 
                 <!-- Passkey 登入 -->
                 <div id="passkey-login" class="hidden">

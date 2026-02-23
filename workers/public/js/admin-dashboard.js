@@ -2644,8 +2644,12 @@
                 });
             }
 
-            const verifyBtn = document.getElementById('verify-btn');
-            verifyBtn.onclick = verifyToken;
+            // Token 登入表單
+            const tokenForm = document.getElementById('token-login-form');
+            tokenForm.onsubmit = async (e) => {
+                e.preventDefault();
+                await verifyToken();
+            };
 
             const cardForm = document.getElementById('card-form');
             cardForm.onsubmit = handleCreateCard;

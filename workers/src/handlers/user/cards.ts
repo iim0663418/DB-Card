@@ -9,6 +9,7 @@ import { jsonResponse, errorResponse } from '../../utils/response';
 import { validateSocialLink } from "../../utils/social-link-validation";
 import { anonymizeIP } from '../../utils/audit';
 import { checkRevocationRateLimit, incrementRevocationCount } from '../../utils/revocation-rate-limit';
+import { invalidateCardCaches } from '../../utils/cache';
 
 /**
  * Log user audit event with actor information
@@ -119,7 +120,7 @@ export async function handleUserCreateCard(request: Request, env: Env): Promise<
     let body: UserCardCreateRequest;
     try {
       body = await request.json();
-    } catch (error) {
+    } catch (_error) {
       return errorResponse('invalid_request', 'Invalid JSON format', 400, request);
     }
 
@@ -300,7 +301,7 @@ export async function handleUserUpdateCard(
     let body: UserCardUpdateRequest;
     try {
       body = await request.json();
-    } catch (error) {
+    } catch (_error) {
       return errorResponse('invalid_request', 'Invalid JSON format', 400, request);
     }
 
@@ -429,6 +430,8 @@ export async function handleUserUpdateCard(
 
     // Clear card data cache
     await env.KV.delete(`card:${uuid}`);
+
+    await invalidateCardCaches(env, uuid);
 
     // Get all active sessions for this card and clear their response caches
     try {
@@ -699,7 +702,7 @@ export async function handleUserRevokeCard(
       if (request.headers.get('content-type')?.includes('application/json')) {
         body = await request.json();
       }
-    } catch (error) {
+    } catch (_error) {
       // Optional body, continue
     }
 
@@ -711,7 +714,7 @@ export async function handleUserRevokeCard(
 
     if (!binding) {
       // Also query without email filter to see if UUID exists
-      const anyBinding = await env.DB.prepare(`
+      await env.DB.prepare(`
         SELECT uuid, bound_email, status FROM uuid_bindings WHERE uuid = ?
       `).bind(uuid).first<{ uuid: string; bound_email: string; status: string }>();
 
@@ -770,6 +773,8 @@ export async function handleUserRevokeCard(
 
     // Clear KV cache
     await env.KV.delete(`card:data:${uuid}`);
+
+    await invalidateCardCaches(env, uuid);
 
     // Clear session caches (get session tokens first)
     const sessions = await env.DB.prepare(`

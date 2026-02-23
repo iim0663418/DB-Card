@@ -96,7 +96,7 @@ export async function handleRevocationHistory(
         let details: any = {};
         try {
           details = log.details ? JSON.parse(log.details) : {};
-        } catch (error) {
+        } catch (_error) {
           // Ignore parse errors
         }
 

@@ -61,7 +61,7 @@ export async function validateCsrfToken(
     }
 
     return crypto.subtle.timingSafeEqual(tokenBuffer, storedBuffer);
-  } catch (error) {
+  } catch (_error) {
     console.warn('crypto.subtle.timingSafeEqual not available, using fallback');
     return constantTimeEqual(csrfToken, storedToken);
   }

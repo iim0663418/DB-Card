@@ -319,14 +319,18 @@ export async function handlePasskeyLoginFinish(request: Request, env: Env): Prom
     });
 
     const reqOrigin = request.headers.get('Origin');
-    const ALLOWED_ORIGINS = [
+    const allowedOrigins = [
       'http://localhost:8788',
       'http://localhost:8787',
-      'https://db-card-staging.csw30454.workers.dev',
-      'https://db-card.moda.gov.tw'
+      env.WORKER_URL
     ];
+    
+    // Staging: support both worker and custom domain
+    if (env.ENVIRONMENT === 'staging') {
+      allowedOrigins.push('https://db-card.sfan-tech.com');
+    }
 
-    if (reqOrigin && ALLOWED_ORIGINS.includes(reqOrigin)) {
+    if (reqOrigin && allowedOrigins.includes(reqOrigin)) {
       headers.set('Access-Control-Allow-Origin', reqOrigin);
       headers.set('Access-Control-Allow-Credentials', 'true');
     }

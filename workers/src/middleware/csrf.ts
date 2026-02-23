@@ -86,7 +86,7 @@ export async function csrfMiddleware(request: Request, env: Env): Promise<Respon
     if (!isValid) {
       return errorResponse('csrf_token_invalid', 'Invalid CSRF token', 403, request);
     }
-  } catch (error) {
+  } catch (_error) {
     // Fallback to constant-time comparison
     const isValid = constantTimeEqual(csrfToken, storedToken);
     if (DEBUG) console.log('[CSRF] Token comparison result (fallback):', isValid);

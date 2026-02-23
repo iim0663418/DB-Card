@@ -1,10 +1,12 @@
 name = "db-card-staging"
 main = "src/index.ts"
 compatibility_date = "2024-04-03"  # Enable Durable Objects RPC
+# Version: v5.0.0
 
 # Environment Variables
 [vars]
 ENVIRONMENT = "staging"
+WORKER_URL = "https://db-card-staging.csw30454.workers.dev"
 GOOGLE_CLIENT_ID = "675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com"
 
 # Static Assets
@@ -33,7 +35,11 @@ script_name = "db-card-staging"
 tag = "v1"
 new_sqlite_classes = ["RateLimiterDO"]
 
-# R2 Bucket for Physical Card Images (Staging)
+# R2 Bucket for Card Images (Staging)
+# Directory structure:
+#   - physical/: Physical card images (existing feature)
+#   - received/temp/: Temporary uploads for AI processing (1 hour TTL)
+#   - received/permanent/: Saved card images
 [[r2_buckets]]
 binding = "PHYSICAL_CARDS"
 bucket_name = "db-card-physical-images-staging"
@@ -46,7 +52,7 @@ crons = ["0 2 * * *"]  # Daily maintenance: cleanup (02:00) + log rotation (02:0
 # Production Environment
 [env.production]
 name = "db-card-api-prod"
-vars = { ENVIRONMENT = "production", GOOGLE_CLIENT_ID = "675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com" }
+vars = { ENVIRONMENT = "production", WORKER_URL = "https://db-card.example.com", GOOGLE_CLIENT_ID = "675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com" }
 
 [[env.production.d1_databases]]
 binding = "DB"

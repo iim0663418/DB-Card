@@ -246,7 +246,7 @@ async function performHealthChecks(env: Env) {
     const dbStart = Date.now();
     await env.DB.prepare('SELECT 1').first();
     checks.database.latency = Date.now() - dbStart;
-  } catch (error) {
+  } catch (_error) {
     checks.database.status = 'error';
     checks.database.error = 'Database connection failed';
   }
@@ -279,7 +279,7 @@ async function performHealthChecks(env: Env) {
     const kvStart = Date.now();
     await env.KV.get('health-check');
     checks.kv.latency = Date.now() - kvStart;
-  } catch (error) {
+  } catch (_error) {
     checks.kv.status = 'error';
     checks.kv.error = 'KV connection failed';
   }

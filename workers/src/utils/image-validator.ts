@@ -79,16 +79,16 @@ export async function validateImageDimensions(
 
   // WebP dimensions
   else if (bytes[0] === 0x52 && bytes[1] === 0x49) {
-    // VP8 lossy
-    if (bytes[12] === 0x56 && bytes[13] === 0x50 && bytes[14] === 0x38) {
-      width = ((bytes[26] | (bytes[27] << 8)) & 0x3fff);
-      height = ((bytes[28] | (bytes[29] << 8)) & 0x3fff);
-    }
     // VP8L lossless
-    else if (bytes[12] === 0x56 && bytes[13] === 0x50 && bytes[14] === 0x38 && bytes[15] === 0x4C) {
+    if (bytes[12] === 0x56 && bytes[13] === 0x50 && bytes[14] === 0x38 && bytes[15] === 0x4C) {
       const bits = (bytes[21] << 24) | (bytes[22] << 16) | (bytes[23] << 8) | bytes[24];
       width = (bits & 0x3FFF) + 1;
       height = ((bits >> 14) & 0x3FFF) + 1;
+    }
+    // VP8 lossy
+    else if (bytes[12] === 0x56 && bytes[13] === 0x50 && bytes[14] === 0x38) {
+      width = ((bytes[26] | (bytes[27] << 8)) & 0x3fff);
+      height = ((bytes[28] | (bytes[29] << 8)) & 0x3fff);
     }
   }
 

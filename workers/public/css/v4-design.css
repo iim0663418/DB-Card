@@ -320,8 +320,6 @@ body {
 
     .card-inner {
         transform-origin: center right;
-        /* 移除 transition，讓 3D 傾斜即時響應 */
-        /* transition: transform 0.1s ease-out; */
 
         /* 使用 CSS 變數 */
         --rotate-x: 0deg;
@@ -408,6 +406,45 @@ body {
     #typewriter-en {
         font-size: 1.25rem; /* text-xl */
         line-height: 1.75rem;
+    }
+}
+
+/* ========================================
+   物理互動效果 (Desktop Only)
+   ======================================== */
+
+/* 輕微浮動動畫 */
+@keyframes cardFloating {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-5px); }
+}
+
+/* 點擊彈跳動畫 */
+@keyframes cardBounce {
+    0%   { transform: scale(1); }
+    30%  { transform: scale(0.95); }
+    60%  { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@media (min-width: 1024px) {
+    /* 浮動：套用在 perspective 容器，不干涉 card-inner 的 3D transform */
+    .card-perspective {
+        animation: cardFloating 3s ease-in-out infinite;
+    }
+
+    /* Hover 時暫停浮動，啟動放大 */
+    .card-perspective:hover {
+        animation-play-state: paused;
+        transform: scale(1.05);
+        transition: transform 0.3s ease-out;
+        z-index: 20;
+    }
+
+    /* Bounce 時暫停浮動，由 JS 添加此 class */
+    .card-perspective.is-bouncing {
+        animation-play-state: paused;
+        animation: cardBounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     }
 }
 

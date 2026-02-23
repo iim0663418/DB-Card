@@ -2,7 +2,7 @@
 // BDD Specification: Phase 2 Task 2.2
 // Implements secure card data reading with session validation
 
-import type { Env, ReadSession, Card, CardData } from '../types';
+import type { Env, ReadSession, CardData } from '../types';
 import { EnvelopeEncryption } from '../crypto/envelope';
 import { logEvent } from '../utils/audit';
 import { errorResponse } from '../utils/response';
@@ -82,16 +82,20 @@ async function getCachedCardData(
 }
 
 // CORS allowed origins whitelist
-const ALLOWED_ORIGINS = [
-  'http://localhost:8788',
-  'http://localhost:8787',
-  'https://db-card-staging.csw30454.workers.dev',
-  'https://db-card.moda.gov.tw'
-];
-
-function getCorsHeaders(request: Request): HeadersInit {
+function getCardCorsHeaders(request: Request, env: Env): HeadersInit {
+  const allowedOrigins = [
+    'http://localhost:8788',
+    'http://localhost:8787',
+    env.WORKER_URL
+  ];
+  
+  // Staging: support both worker and custom domain
+  if (env.ENVIRONMENT === 'staging') {
+    allowedOrigins.push('https://db-card.sfan-tech.com');
+  }
+  
   const origin = request.headers.get('Origin');
-  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+  if (origin && allowedOrigins.includes(origin)) {
     return {
       'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
@@ -179,25 +183,6 @@ export async function handleRead(request: Request, env: Env, ctx: ExecutionConte
       return errorResponse('invalid_request', '缺少必要參數 uuid 或 session', 400, request);
     }
 
-    const responseCacheKey = `read:${card_uuid}:${session_id}`;
-    const cachedResponse = await env.KV.get(responseCacheKey, {
-      type: 'json',
-      cacheTtl: 60
-    });
-
-    if (cachedResponse) {
-      return new Response(JSON.stringify({
-        success: true,
-        ...cachedResponse
-      }), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(request ? getCorsHeaders(request) : {})
-        }
-      });
-    }
-
     const session = await env.DB.prepare(`
       SELECT * FROM read_sessions
       WHERE session_id = ? AND card_uuid = ?
@@ -273,15 +258,24 @@ export async function handleRead(request: Request, env: Env, ctx: ExecutionConte
       return errorResponse('internal_error', '解密失敗', 500, request);
     }
 
-    ctx.waitUntil(
-      env.DB.prepare(`
-        UPDATE read_sessions
-        SET reads_used = reads_used + 1
-        WHERE session_id = ?
-      `).bind(session_id).run()
-    );
+    const updateResult = await env.DB.prepare(`
+      UPDATE read_sessions
+      SET reads_used = reads_used + 1
+      WHERE session_id = ?
+        AND reads_used < max_reads
+        AND expires_at > ?
+        AND revoked_at IS NULL
+      RETURNING reads_used, max_reads
+    `).bind(session_id, Date.now()).first<{ reads_used: number; max_reads: number }>();
 
-    const reads_remaining = session!.max_reads - (session!.reads_used + 1);
+    if (!updateResult) {
+      ctx.waitUntil(logEvent(env, 'read', request, card_uuid, session_id, {
+        error: 'session_invalid_or_exhausted'
+      }));
+      return errorResponse('session_invalid', 'Session 已失效或達讀取上限', 403, request);
+    }
+
+    const reads_remaining = updateResult.max_reads - updateResult.reads_used;
 
     ctx.waitUntil(logEvent(env, 'read', request, card_uuid, session_id, {
       reads_used: session!.reads_used + 1,
@@ -296,12 +290,6 @@ export async function handleRead(request: Request, env: Env, ctx: ExecutionConte
       }
     };
 
-    ctx.waitUntil(
-      env.KV.put(responseCacheKey, JSON.stringify(responseData), {
-        expirationTtl: 60
-      })
-    );
-
     return new Response(JSON.stringify({
       success: true,
       ...responseData
@@ -309,7 +297,9 @@ export async function handleRead(request: Request, env: Env, ctx: ExecutionConte
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        ...(request ? getCorsHeaders(request) : {})
+        'Cache-Control': 'max-age=10, stale-while-revalidate=30, private',
+        'Vary': 'Accept-Encoding',
+        ...(request ? getCardCorsHeaders(request, env) : {})
       }
     });
 

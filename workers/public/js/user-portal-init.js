@@ -1,4 +1,5 @@
-        // API Base URL (defined in config.js)
+        // API Base URL
+        const API_BASE = window.location.origin;
 
         // ==================== i18n Translations (Batch 1) ====================
         const i18n = {
@@ -78,8 +79,7 @@
                 'revoke-reason-leak': '疑似資訊外洩',
                 'revoke-reason-update': '資訊需更新',
 
-                // 8. Preview Block (5 keys)
-                'preview-title': 'Real-time Context',
+                // 8. Preview Block (4 keys) - preview-title moved to Received Cards
                 'preview-footer': 'Digital Twin Preview',
                 'preview-email-label': '電子郵件',
                 'preview-phone-label': '辦公室電話',
@@ -132,7 +132,54 @@
                 'privacy-settings-title': '個資管理',
                 'privacy-view-history': '查看同意歷史',
                 'privacy-export-data': '匯出我的資料',
-                'privacy-withdraw-consent': '撤回同意'
+                'privacy-withdraw-consent': '撤回同意',
+
+                // Received Cards (40 keys)
+                'received-cards-title': '收到的名片',
+                'received-cards-subtitle': 'AI-First Card Capture',
+                'received-cards-description': '拍照上傳名片，AI 自動辨識並整理',
+                'received-cards-open': '開啟名片夾',
+                'upload-title': '拍照或上傳名片',
+                'upload-subtitle': '支援 JPG/PNG，最大 5MB',
+                'ai-processing': 'AI 處理中...',
+                'ai-step-uploading': '上傳中',
+                'ai-step-ocr': '辨識與補全',
+                'skip-ai': '跳過 AI，直接儲存',
+                'preview-title': '確認名片資訊',
+                'delete-confirm-title': '確定要刪除名片嗎？',
+                'delete-confirm-warning': '⚠️ 此操作無法復原',
+                'delete-confirm-cancel': '取消',
+                'delete-confirm-ok': '確定刪除',
+                'search-placeholder': '搜尋名片...',
+                'tag-filter-label': '標籤篩選：',
+                'tag-all': '全部',
+                'edit-card-title': '編輯名片',
+                'enrich-card-btn': '補充名片資訊',
+                'enrich-card-time': '(約需 10-30 秒)',
+                'card-detail-title': '名片詳情',
+                
+                // Field Labels (13 keys)
+                'field-name-prefix': '稱謂',
+                'field-full-name': '姓名 *',
+                'field-name-suffix': '後綴',
+                'field-organization': '公司',
+                'field-organization-en': '公司英文名稱',
+                'field-organization-alias': '公司簡稱',
+                'field-department': '部門',
+                'field-title': '職稱',
+                'field-phone': '電話',
+                'field-email': 'Email',
+                'field-website': '網站',
+                'field-address': '地址',
+                'field-note': '備註',
+                'share-with-users': '分享給其他使用者',
+
+                // WebView Warning
+                'webview_warning_title': '不支援的瀏覽器',
+                'webview_warning_message': '此頁面不支援應用程式內建瀏覽器。請使用系統瀏覽器（Chrome、Safari、Firefox）開啟此連結。',
+                'copy_url': '複製網址',
+                'url_copied': '網址已複製',
+                'close': '關閉'
             },
             en: {
                 // 1. Login Page (5 keys)
@@ -210,8 +257,7 @@
                 'revoke-reason-leak': 'Suspected information leak',
                 'revoke-reason-update': 'Information needs update',
 
-                // 8. Preview Block (5 keys)
-                'preview-title': 'Real-time Context',
+                // 8. Preview Block (4 keys) - preview-title moved to Received Cards
                 'preview-footer': 'Digital Twin Preview',
                 'preview-email-label': 'Email',
                 'preview-phone-label': 'Office Phone',
@@ -264,7 +310,54 @@
                 'privacy-settings-title': 'Privacy Management',
                 'privacy-view-history': 'View Consent History',
                 'privacy-export-data': 'Export My Data',
-                'privacy-withdraw-consent': 'Withdraw Consent'
+                'privacy-withdraw-consent': 'Withdraw Consent',
+
+                // Received Cards (40 keys)
+                'received-cards-title': 'Received Cards',
+                'received-cards-subtitle': 'AI-First Card Capture',
+                'received-cards-description': 'Take a photo and let AI organize your cards',
+                'received-cards-open': 'Open Card Holder',
+                'upload-title': 'Take Photo or Upload Card',
+                'upload-subtitle': 'Supports JPG/PNG, max 5MB',
+                'ai-processing': 'AI Processing...',
+                'ai-step-uploading': 'Uploading',
+                'ai-step-ocr': 'Recognizing & Enriching',
+                'skip-ai': 'Skip AI, Save Now',
+                'preview-title': 'Confirm Card Information',
+                'delete-confirm-title': 'Delete this card?',
+                'delete-confirm-warning': '⚠️ This action cannot be undone',
+                'delete-confirm-cancel': 'Cancel',
+                'delete-confirm-ok': 'Confirm Delete',
+                'search-placeholder': 'Search cards...',
+                'tag-filter-label': 'Filter by Tag:',
+                'tag-all': 'All',
+                'edit-card-title': 'Edit Card',
+                'enrich-card-btn': 'Enrich Card Info',
+                'enrich-card-time': '(10-30 seconds)',
+                'card-detail-title': 'Card Details',
+                
+                // Field Labels (13 keys)
+                'field-name-prefix': 'Prefix',
+                'field-full-name': 'Full Name *',
+                'field-name-suffix': 'Suffix',
+                'field-organization': 'Organization',
+                'field-organization-en': 'Organization (English)',
+                'field-organization-alias': 'Organization Alias',
+                'field-department': 'Department',
+                'field-title': 'Title',
+                'field-phone': 'Phone',
+                'field-email': 'Email',
+                'field-website': 'Website',
+                'field-address': 'Address',
+                'field-note': 'Note',
+                'share-with-users': 'Share with Users',
+
+                // WebView Warning
+                'webview_warning_title': 'Unsupported Browser',
+                'webview_warning_message': 'This page does not support in-app browsers. Please open this link in your system browser (Chrome, Safari, Firefox).',
+                'copy_url': 'Copy URL',
+                'url_copied': 'URL copied',
+                'close': 'Close'
             }
         };
 
@@ -621,6 +714,70 @@
             }
         }
 
+        function isEmbeddedBrowser() {
+          const ua = navigator.userAgent || navigator.vendor || window.opera;
+          const patterns = [
+            /WebView/i, /\bwv\b/i, /WKWebView/i,
+            /FB_IAB/i, /Instagram/i, /Line\//i, /KAKAOTALK/i
+          ];
+          return patterns.some(pattern => pattern.test(ua));
+        }
+
+        function showWebViewWarning() {
+          const modal = document.getElementById('webview-warning-modal');
+          if (modal) {
+            modal.classList.remove('hidden');
+          }
+        }
+
+        // eslint-disable-next-line no-unused-vars -- Called from HTML onclick
+        function closeWebViewWarning() {
+          const modal = document.getElementById('webview-warning-modal');
+          if (modal) {
+            modal.classList.add('hidden');
+          }
+        }
+
+        // eslint-disable-next-line no-unused-vars -- Called from HTML onclick
+        function copyCurrentURL() {
+          navigator.clipboard.writeText(window.location.href).then(() => {
+            alert(i18n[currentLang]['url_copied'] || 'URL copied!');
+          });
+        }
+
+        // Check for WebView or OAuth error
+        const urlParams = new URLSearchParams(window.location.search);
+        if (isEmbeddedBrowser() || urlParams.get('oauth_error') === 'webview_blocked') {
+          showWebViewWarning();
+          // Disable Google Sign-In button
+          const signInBtn = document.getElementById('google-signin-btn');
+          if (signInBtn) {
+            signInBtn.disabled = true;
+            signInBtn.classList.add('opacity-50', 'cursor-not-allowed');
+          }
+        }
+
+        async function getOAuthConfig() {
+          const cached = sessionStorage.getItem('oauth_config');
+          if (cached) {
+            const { clientId, timestamp } = JSON.parse(cached);
+            if (Date.now() - timestamp < 3600000) {
+              return { clientId };
+            }
+          }
+
+          const res = await fetch('/api/oauth/config');
+          if (!res.ok) throw new Error('Failed to fetch OAuth config');
+          const config = await res.json();
+
+          sessionStorage.setItem('oauth_config', JSON.stringify({
+            ...config,
+            timestamp: Date.now()
+          }));
+          return config;
+        }
+
+        // eslint-disable-next-line no-unused-vars -- Called from HTML onclick
         async function handleGoogleLogin() {
             const errorBox = document.getElementById('login-error-box');
             errorBox.classList.add('hidden');
@@ -638,7 +795,7 @@
 
                 const { state, nonce, codeChallenge, codeChallengeMethod } = await stateResponse.json();
 
-                const clientId = '675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com';
+                const { clientId } = await getOAuthConfig();
                 const redirectUri = window.location.origin + '/oauth/callback';
                 const scope = 'openid email profile';
 
@@ -740,7 +897,7 @@
             submitBtn.disabled = true;
             submitBtnText.classList.add('hidden');
             submitBtnLoading.classList.remove('hidden');
-            lucide.createIcons();
+            if (window.initIcons) window.initIcons();
             
             const formData = new FormData(e.target);
             const data = {};
@@ -1018,7 +1175,7 @@
                     }
 
                     document.getElementById('form-title').innerText = i18n[currentLang]['form-title'];
-                } catch (err) {
+                } catch (_err) {
                     showToast(i18n[currentLang]['error-save-failed'] || '載入名片資料失敗');
                     return;
                 } finally {
@@ -1148,7 +1305,7 @@
                     </div>
                 `;
             }).join(''), { ADD_ATTR: ['onclick'] });
-            lucide.createIcons();
+            if (window.initIcons) window.initIcons();
 
             // Event delegation for edit buttons
             container.addEventListener('click', (e) => {
@@ -1166,7 +1323,6 @@
             currentModalUuid = uuid;
 
             // 設定名片類型文字
-            const typeText = getCardTypeLabel(type);
             const subtitleText = i18n[currentLang]['modal-success-subtitle'];
             document.getElementById('modal-card-type').innerText = subtitleText;
 
@@ -1191,8 +1347,8 @@
             document.getElementById('success-modal').classList.remove('hidden');
 
             // 初始化 lucide icons（確保 check-circle 顯示）
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
+            if (window.initIcons) {
+                window.initIcons();
             }
 
             // 綁定 ESC 鍵
@@ -1234,7 +1390,7 @@
                 // 更換 icon 為 check
                 if (btnIcon) {
                     btnIcon.setAttribute('data-lucide', 'check');
-                    lucide.createIcons();
+                    if (window.initIcons) window.initIcons();
                 }
 
                 // 2 秒後恢復
@@ -1246,10 +1402,10 @@
                     // 恢復原始 icon
                     if (btnIcon) {
                         btnIcon.setAttribute('data-lucide', 'copy');
-                        lucide.createIcons();
+                        if (window.initIcons) window.initIcons();
                     }
                 }, 2000);
-            } catch (err) {
+            } catch (_err) {
                 showToast(i18n[currentLang]['modal-copy-failed']);
             }
         }
@@ -1358,7 +1514,6 @@
 
             const email = document.getElementById('email').value || '---';
             const phone = document.getElementById('phone').value || '---';
-            const avatar = document.getElementById('avatar_url').value || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80";
 
             // 地址
             const preset = document.getElementById('address-preset').value;
@@ -1505,8 +1660,8 @@
 
                 cluster.appendChild(node);
             });
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
+            if (window.initIcons) {
+                window.initIcons();
             }
         }
 
@@ -1539,7 +1694,7 @@
             document.getElementById('revoke-modal').classList.remove('hidden');
             document.getElementById('revoke-reason').value = '';
             document.getElementById('rate-limit-warning').classList.add('hidden');
-            lucide.createIcons();
+            if (window.initIcons) window.initIcons();
         }
 
         function closeRevokeModal() {
@@ -1674,18 +1829,9 @@
             retry.textContent = `請在 ${retryMinutes} 分鐘後重試`;
 
             banner.classList.remove('hidden');
-            lucide.createIcons();
+            if (window.initIcons) window.initIcons();
 
             setTimeout(() => banner.classList.add('hidden'), 10000);
-        }
-
-        function formatDuration(seconds) {
-            const hours = Math.floor(seconds / 3600);
-            const minutes = Math.ceil((seconds % 3600) / 60);
-            if (hours > 0) {
-                return `${hours} 小時 ${minutes} 分鐘`;
-            }
-            return `${minutes} 分鐘`;
         }
 
         // ==================== Consent Management Functions ====================
@@ -1696,16 +1842,17 @@
         async function checkConsentStatus() {
             try {
                 const response = await apiCall('/api/consent/check', { method: 'GET' });
+                const data = response.data || response; // Handle both formats
 
                 // Case 1: Needs consent (first login or version update)
-                if (response.needs_consent) {
-                    showConsentModal(response.current_policy, response.reason);
+                if (data.needs_consent) {
+                    showConsentModal(data.current_policy, data.reason);
                     return false;
                 }
 
                 // Case 2: Consent withdrawn - show restore option
-                if (response.is_withdrawn && response.can_restore) {
-                    showRestoreConsentModal(response.days_remaining);
+                if (data.is_withdrawn && data.can_restore) {
+                    showRestoreConsentModal(data.days_remaining);
                     return false;
                 }
 
@@ -1759,7 +1906,7 @@
             checkScroll();
 
             modal.classList.remove('hidden');
-            lucide.createIcons();
+            if (window.initIcons) window.initIcons();
         }
 
         /**
@@ -1768,17 +1915,17 @@
         function toggleFullContent() {
             const fullContent = document.getElementById('consent-full-content');
             const toggleBtn = document.getElementById('toggle-full-content-btn');
-            const icon = toggleBtn.querySelector('i');
+            const icon = toggleBtn?.querySelector('i');
             
             if (fullContent.classList.contains('hidden')) {
                 fullContent.classList.remove('hidden');
-                icon.style.transform = 'rotate(180deg)';
+                if (icon) icon.style.transform = 'rotate(180deg)';
             } else {
                 fullContent.classList.add('hidden');
-                icon.style.transform = 'rotate(0deg)';
+                if (icon) icon.style.transform = 'rotate(0deg)';
             }
-            
-            lucide.createIcons();
+
+            if (window.initIcons) window.initIcons();
         }
 
         /**
@@ -1786,6 +1933,12 @@
          */
         async function acceptConsent() {
             const agreeBtn = document.getElementById('consent-agree-btn');
+            
+            // Prevent double-click or clicking disabled button
+            if (agreeBtn.disabled) {
+                return;
+            }
+            
             const analyticsConsent = document.getElementById('consent-optional-analytics').checked;
 
             agreeBtn.disabled = true;
@@ -1842,7 +1995,7 @@
             checkbox.addEventListener('change', validate);
 
             modal.classList.remove('hidden');
-            lucide.createIcons();
+            if (window.initIcons) window.initIcons();
         }
 
         /**
@@ -1862,7 +2015,7 @@
             confirmBtn.textContent = i18n[currentLang]['withdraw-canceling'] || '處理中...';
 
             try {
-                const response = await apiCall('/api/consent/withdraw', {
+                await apiCall('/api/consent/withdraw', {
                     method: 'POST'
                 });
 
@@ -1889,7 +2042,7 @@
             document.getElementById('restore-days-remaining').textContent = daysRemaining;
 
             modal.classList.remove('hidden');
-            lucide.createIcons();
+            if (window.initIcons) window.initIcons();
         }
 
         /**
@@ -1938,30 +2091,70 @@
 
             try {
                 const response = await apiCall('/api/consent/history', { method: 'GET' });
-                const history = response.history || [];
+                const data = response.data || response;
+                const history = data.history || [];
 
                 if (history.length === 0) {
                     content.innerHTML = `<p class="text-center text-slate-400" data-i18n="history-no-records">${i18n[currentLang]['history-no-records']}</p>`;
                 } else {
-                    content.innerHTML = DOMPurify.sanitize(history.map(record => `
-                        <div class="p-4 bg-slate-50 rounded-xl mb-3">
-                            <div class="flex justify-between items-start mb-2">
-                                <span class="text-sm font-bold ${record.status === 'accepted' ? 'text-green-600' : record.status === 'withdrawn' ? 'text-red-600' : 'text-slate-600'}">
-                                    ${record.status === 'accepted' ? '✓ 已同意' : record.status === 'withdrawn' ? '✗ 已撤回' : record.status}
-                                </span>
-                                <span class="text-xs text-slate-500">${record.version}</span>
+                    content.innerHTML = DOMPurify.sanitize(history.map(record => {
+                        const statusText = record.status === 'accepted' ? '✓ 已同意' : 
+                                          record.status === 'withdrawn' ? '✗ 已撤回' : 
+                                          record.status === 'rejected' ? '✗ 已拒絕' : record.status;
+                        const statusColor = record.status === 'accepted' ? 'text-green-600 bg-green-50' : 
+                                           record.status === 'withdrawn' ? 'text-red-600 bg-red-50' : 
+                                           'text-slate-600 bg-slate-50';
+                        const typeText = record.type === 'required' ? '必要同意' : '選擇性同意';
+                        const categoryText = record.category === 'service' ? '服務使用' : 
+                                            record.category === 'analytics' ? '匿名統計' : record.category;
+                        
+                        return `
+                        <div class="p-4 border border-slate-200 rounded-xl mb-3 hover:border-slate-300 transition-colors">
+                            <div class="flex justify-between items-start mb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="px-3 py-1 ${statusColor} text-sm font-bold rounded-lg">
+                                        ${statusText}
+                                    </span>
+                                    <span class="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded">
+                                        ${typeText}
+                                    </span>
+                                </div>
+                                <span class="text-xs text-slate-500 font-mono">${record.version}</span>
                             </div>
-                            <div class="text-xs text-slate-600 space-y-1">
-                                <p><strong>類型</strong>: ${record.type === 'required' ? '必要' : '選擇性'} (${record.category})</p>
-                                <p><strong>時間</strong>: ${new Date(record.consented_at).toLocaleString('zh-TW')}</p>
-                                ${record.withdrawn_at ? `<p><strong>撤回時間</strong>: ${new Date(record.withdrawn_at).toLocaleString('zh-TW')}</p>` : ''}
-                                ${record.restored_at ? `<p><strong>恢復時間</strong>: ${new Date(record.restored_at).toLocaleString('zh-TW')}</p>` : ''}
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2 text-sm">
+                                    <span class="text-slate-500">項目：</span>
+                                    <span class="font-medium text-slate-900">${categoryText}</span>
+                                </div>
+                                <div class="flex items-center gap-2 text-sm">
+                                    <span class="text-slate-500">時間：</span>
+                                    <span class="text-slate-700">${new Date(record.consented_at).toLocaleString('zh-TW', { 
+                                        year: 'numeric', month: '2-digit', day: '2-digit', 
+                                        hour: '2-digit', minute: '2-digit' 
+                                    })}</span>
+                                </div>
+                                ${record.withdrawn_at ? `
+                                <div class="flex items-center gap-2 text-sm">
+                                    <span class="text-slate-500">撤回時間：</span>
+                                    <span class="text-red-600">${new Date(record.withdrawn_at).toLocaleString('zh-TW', { 
+                                        year: 'numeric', month: '2-digit', day: '2-digit', 
+                                        hour: '2-digit', minute: '2-digit' 
+                                    })}</span>
+                                </div>` : ''}
+                                ${record.restored_at ? `
+                                <div class="flex items-center gap-2 text-sm">
+                                    <span class="text-slate-500">恢復時間：</span>
+                                    <span class="text-green-600">${new Date(record.restored_at).toLocaleString('zh-TW', { 
+                                        year: 'numeric', month: '2-digit', day: '2-digit', 
+                                        hour: '2-digit', minute: '2-digit' 
+                                    })}</span>
+                                </div>` : ''}
                             </div>
                         </div>
-                    `).join(''), { ADD_ATTR: ['onclick'] });
+                    `}).join(''), { ADD_ATTR: ['onclick'] });
                 }
 
-                lucide.createIcons();
+                if (window.initIcons) window.initIcons();
             } catch (error) {
                 console.error('Failed to fetch history:', error);
                 content.innerHTML = '<p class="text-center text-red-500">載入失敗</p>';
@@ -2041,40 +2234,154 @@
         window.handleDataExport = handleDataExport;
 
         let scene, camera, renderer, mesh, grid;
+        let particles = [];
+        let mouseX = 0, mouseY = 0;
+        
+        window.addEventListener('mousemove', (e) => {
+            mouseX = (e.clientX / window.innerWidth) - 0.5;
+            mouseY = -(e.clientY / window.innerHeight) + 0.5;
+        });
+        
+        function createCircleTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 32;
+            canvas.height = 32;
+            const ctx = canvas.getContext('2d');
+            const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+            gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.5)');
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 32, 32);
+            return new THREE.CanvasTexture(canvas);
+        }
+        
         function initThree() {
             const canvas = document.getElementById('three-canvas');
             scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf8f9fb);
+            scene.fog = new THREE.Fog(0xf8f9fb, 20, 80);
+            
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 0, 10);
+            camera.position.set(0, 5, 50);
+            
             renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             
-            // 網格效果
-            const gridGeo = new THREE.PlaneGeometry(150, 150, 45, 45);
+            // Ground Grid
+            const gridGeo = new THREE.PlaneGeometry(200, 200, 40, 40);
             const gridMat = new THREE.MeshBasicMaterial({
                 color: 0x6868ac,
                 wireframe: true,
                 transparent: true,
-                opacity: 0.08
+                opacity: 0.1
             });
             grid = new THREE.Mesh(gridGeo, gridMat);
-            grid.rotation.x = -Math.PI / 2.2;
-            grid.position.y = -6;
+            grid.rotation.x = -Math.PI / 2;
+            grid.position.y = -15;
             scene.add(grid);
             
-            // 星空效果
-            const starGeo = new THREE.BufferGeometry();
-            const pos = new Float32Array(2000 * 3);
-            for(let i=0; i<2000*3; i++) pos[i] = (Math.random() - 0.5) * 50;
-            starGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-            mesh = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.05, color: 0x6868ac, transparent: true, opacity: 0.3 }));
+            // Particle Network
+            const particleCount = 120;
+            const particleGeo = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            
+            for (let i = 0; i < particleCount; i++) {
+                const x = (Math.random() - 0.5) * 100;
+                const y = Math.random() * 40 - 10;
+                const z = (Math.random() - 0.5) * 80 - 20;
+                positions[i * 3] = x;
+                positions[i * 3 + 1] = y;
+                positions[i * 3 + 2] = z;
+                particles.push({
+                    x, y, z,
+                    vx: (Math.random() - 0.5) * 0.01,
+                    vy: (Math.random() - 0.5) * 0.01,
+                    vz: (Math.random() - 0.5) * 0.005
+                });
+            }
+            
+            particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            mesh = new THREE.Points(particleGeo, new THREE.PointsMaterial({
+                size: 0.5,
+                color: 0x6868ac,
+                transparent: true,
+                opacity: 0.4,
+                map: createCircleTexture(),
+                alphaTest: 0.01,
+                sizeAttenuation: true
+            }));
             scene.add(mesh);
             
-            camera.position.z = 10;
+            // Connection lines
+            const lineMat = new THREE.LineBasicMaterial({
+                color: 0x6868ac,
+                transparent: true,
+                opacity: 0.25
+            });
+            const lineGeo = new THREE.BufferGeometry();
+            const maxConnections = particleCount * 5;
+            const linePositions = new Float32Array(maxConnections * 6);
+            lineGeo.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+            lineGeo.setDrawRange(0, 0);
+            const lines = new THREE.LineSegments(lineGeo, lineMat);
+            scene.add(lines);
+            
             function animate() { 
-                requestAnimationFrame(animate); 
-                if(mesh) mesh.rotation.y += 0.0002;
-                if(grid) grid.rotation.z += 0.0001;
+                requestAnimationFrame(animate);
+                
+                const positions = mesh.geometry.attributes.position.array;
+                const linePositions = lines.geometry.attributes.position.array;
+                let lineIndex = 0;
+                const maxDistance = 15;
+                
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = particles[i];
+                    particle.x += particle.vx;
+                    particle.y += particle.vy;
+                    particle.z += particle.vz;
+                    
+                    if (Math.abs(particle.x) > 50) particle.vx *= -1;
+                    if (particle.y > 30 || particle.y < -10) particle.vy *= -1;
+                    if (particle.z > 20 || particle.z < -60) particle.vz *= -1;
+                    
+                    if (mouseX !== 0 || mouseY !== 0) {
+                        const dx = mouseX * 50 - particle.x;
+                        const dy = mouseY * 30 - particle.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < 20) {
+                            particle.vx += dx * 0.0001;
+                            particle.vy += dy * 0.0001;
+                        }
+                    }
+                    
+                    positions[i * 3] = particle.x;
+                    positions[i * 3 + 1] = particle.y;
+                    positions[i * 3 + 2] = particle.z;
+                    
+                    for (let j = i + 1; j < particleCount; j++) {
+                        const other = particles[j];
+                        const dx = particle.x - other.x;
+                        const dy = particle.y - other.y;
+                        const dz = particle.z - other.z;
+                        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                        
+                        if (distance < maxDistance && lineIndex < maxConnections * 6) {
+                            linePositions[lineIndex++] = particle.x;
+                            linePositions[lineIndex++] = particle.y;
+                            linePositions[lineIndex++] = particle.z;
+                            linePositions[lineIndex++] = other.x;
+                            linePositions[lineIndex++] = other.y;
+                            linePositions[lineIndex++] = other.z;
+                        }
+                    }
+                }
+                
+                mesh.geometry.attributes.position.needsUpdate = true;
+                lines.geometry.attributes.position.needsUpdate = true;
+                lines.geometry.setDrawRange(0, lineIndex / 3);
+                
                 renderer.render(scene, camera); 
             }
             animate();
@@ -2084,7 +2391,7 @@
             // Apply i18n translations on page load
             applyTranslations(currentLang);
 
-            lucide.createIcons();
+            if (window.initIcons) window.initIcons();
 
             if (typeof THREE !== 'undefined') {
                 setTimeout(() => initThree(), 100);

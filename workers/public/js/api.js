@@ -1,4 +1,4 @@
-// API_BASE is defined in config.js (global variable)
+import { API_BASE } from './config.js';
 
 /**
  * Tap a card to initiate a session
@@ -49,7 +49,7 @@ export async function readCard(uuid, sessionId) {
       }
       // Scenario 2: Cache expired - continue to fetch
     }
-  } catch (e) {
+  } catch {
     // Invalid cache data, continue to fetch
   }
 
@@ -73,7 +73,7 @@ export async function readCard(uuid, sessionId) {
       data: result,
       timestamp: Date.now()
     }));
-  } catch (e) {
+  } catch {
     // sessionStorage full or unavailable, continue without caching
   }
 

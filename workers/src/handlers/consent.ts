@@ -10,7 +10,6 @@ import { anonymizeIP } from '../utils/audit';
  * Consent management constants
  */
 const WITHDRAWAL_GRACE_PERIOD_DAYS = 30;  // 撤回緩衝期
-const DATA_RETENTION_DAYS = 90;            // 資料保存期限
 const AUDIT_LOG_RETENTION_DAYS = 90;       // 審計日誌保存期限
 const PRIVACY_POLICY_BASE_URL = 'https://db-card.moda.gov.tw/privacy-policy';
 
@@ -201,7 +200,7 @@ export async function handleConsentAccept(request: Request, env: Env): Promise<R
     };
     try {
       body = await request.json();
-    } catch (error) {
+    } catch (_error) {
       body = {};
     }
 

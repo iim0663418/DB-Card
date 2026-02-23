@@ -1,7 +1,7 @@
 # DB-Card 第三方元件授權清單
 
-**最後更新**: 2026-01-24  
-**專案版本**: v4.3.2
+**最後更新**: 2026-02-23  
+**專案版本**: v4.6.0
 
 ---
 
@@ -104,6 +104,20 @@
 - **授權連結**: https://github.com/dimsemenov/PhotoSwipe/blob/main/LICENSE
 - **合規性**: ✅ 可商用、可修改、可分發
 - **功能**: 圖片縮放、拖曳、雙擊、鍵盤導航、觸控手勢
+
+### 11. browser-image-compression
+- **版本**: 2.0.2
+- **來源**: /vendor/browser-image-compression.min.js (本地)
+- **授權**: MIT License
+- **作者**: Donald Wu
+- **用途**: 客戶端圖片壓縮（Mobile 上傳優化）
+- **官網**: https://www.npmjs.com/package/browser-image-compression
+- **GitHub**: https://github.com/Donaldcwl/browser-image-compression
+- **授權連結**: https://github.com/Donaldcwl/browser-image-compression/blob/master/LICENSE
+- **SRI Hash**: sha384-dHP9fwqd9BAiDh9uJ0p10khgbbcFMh34bVEiCnJ1Ah/AT2T2k4t572VEo3WXzxXp
+- **檔案大小**: 56 KB (未壓縮)
+- **合規性**: ✅ 可商用、可修改、可分發
+- **功能**: JPEG/PNG/WebP 壓縮、多執行緒 Web Worker、尺寸調整
 
 ---
 
@@ -234,14 +248,14 @@
 
 | 授權類型 | 元件數量 | 商用許可 | 修改許可 | 分發許可 |
 |---------|---------|---------|---------|---------|
-| MIT License | 14 | ✅ | ✅ | ✅ |
+| MIT License | 15 | ✅ | ✅ | ✅ |
 | ISC License | 1 | ✅ | ✅ | ✅ |
 | Apache 2.0 | 3 | ✅ | ✅ | ✅ |
 | SIL OFL 1.1 | 3 | ✅ | ✅ | ✅ |
 | CC0-1.0 | 1 | ✅ | ✅ | ✅ |
 | 商業服務 | 3 | ✅ | N/A | N/A |
 
-**新增**: PhotoSwipe v5.4.4 (MIT License)
+**新增**: browser-image-compression v2.0.2 (MIT License, 本地 vendor)
 
 ---
 
@@ -270,10 +284,7 @@
 - SimpleWebAuthn © Matthew Miller
 - Panzoom © timmywil
 - PhotoSwipe © Dmytro Semenov
-- jose © Filip Skokan
-- Simple Icons © Simple Icons Contributors
-- Google Fonts © Google Inc.
-- Panzoom © timmywil
+- browser-image-compression © Donald Wu
 - jose © Filip Skokan
 - Simple Icons © Simple Icons Contributors
 - Google Fonts © Google Inc.
@@ -285,5 +296,30 @@
 本文件將隨專案依賴更新而同步維護。如有新增或移除第三方元件，將即時更新此清單。
 
 **維護責任人**: DB-Card Project Team  
-**最後審查日期**: 2026-01-28  
+**最後審查日期**: 2026-02-23  
 **審查結果**: ✅ 所有元件授權合規，無版權風險
+
+---
+
+## 📦 Vendor 目錄管理
+
+本專案將關鍵第三方庫存放於 `/public/vendor/` 目錄，避免 CDN 依賴風險：
+
+| 檔案 | 版本 | 大小 | SRI Hash | 來源 |
+|------|------|------|----------|------|
+| three.min.js | r128 | 582 KB | sha384-CI3E... | cdnjs.cloudflare.com |
+| purify.min.js | 3.2.7 | 48 KB | sha384-qJNk... | cdnjs.cloudflare.com |
+| lucide.min.js | 0.562.0 | 379 KB | sha384-5Yx8... | unpkg.com |
+| browser-image-compression.min.js | 2.0.2 | 56 KB | sha384-dHP9... | jsdelivr.net |
+
+**優點**：
+- 消除 CDN 單點故障風險
+- 中國大陸可訪問（無需翻牆）
+- 離線開發環境支援
+- SRI 完整性驗證
+
+**更新流程**：
+1. 下載新版本到 `/public/vendor/`
+2. 生成 SRI hash: `openssl dgst -sha384 -binary <file> | openssl base64 -A`
+3. 更新 HTML `integrity` 屬性
+4. 更新本文件版本號與 SRI hash

@@ -212,7 +212,7 @@ export async function handleSecurityEvents(request: Request, env: Env): Promise<
           user_agent = parsedDetails.user_agent || 'unknown';
           endpoint = parsedDetails.endpoint || '';
         }
-      } catch (e) {
+      } catch (_e) {
         // Invalid JSON, use defaults
       }
 
@@ -511,7 +511,7 @@ export async function handleIPDetail(request: Request, env: Env, ip: string): Pr
           const parsedDetails = JSON.parse(row.details);
           endpoint = parsedDetails.endpoint || '';
         }
-      } catch (e) {
+      } catch (_e) {
         // Invalid JSON, use empty string
       }
 
@@ -610,7 +610,7 @@ export async function handleSecurityExport(request: Request, env: Env): Promise<
           userAgent = parsedDetails.user_agent || '';
           endpoint = parsedDetails.endpoint || '';
         }
-      } catch (e) {
+      } catch (_e) {
         // Invalid JSON, use empty strings
       }
 

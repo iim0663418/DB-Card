@@ -2,7 +2,7 @@
 // POST /api/nfc/tap - Issue ReadSession on NFC card tap
 // Implements BDD Spec: Multi-Layer Defense (Rate Limit + Budget)
 
-import type { Env, Card, CardType } from '../types';
+import type { Env, CardType } from '../types';
 import { jsonResponse, errorResponse } from '../utils/response';
 import { createSession, getRecentSession, revokeSession, shouldRevoke } from '../utils/session';
 import { logEvent } from '../utils/audit';
@@ -282,8 +282,8 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
       cardType = 'sensitive';
     }
 
-    // Pass ctx to enable async session insert + cache update
-    const newSession = await createSession(env, card_uuid, cardType, ctx);
+    // Synchronous session insert to prevent race condition with /api/read
+    const newSession = await createSession(env, card_uuid, cardType);
 
     // Increment session budget (DO rate limiting already incremented atomically)
     await incrementSessionBudget(env, card_uuid);

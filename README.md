@@ -1,24 +1,53 @@
-# DB-Card - NFC 數位名片系統 v4.6.0
+# DB-Card - NFC 數位名片系統 v5.0.0
 
 安全預設 NFC 數位名片系統 | 隱私優先 · 安全至上 · OIDC 認證 · GDPR 合規
 
 ## 最新更新
 
-### v4.6.0 (2026-02-02) - 個資同意管理系統完成 🔒
-- ✅ **GDPR 合規** - 100% 符合 GDPR Article 7, 12, 13, 15, 20, 30
-- ✅ **分層揭露** - First Layer (摘要) + Second Layer (完整條款)
-- ✅ **同意管理** - 接受、撤回、恢復完整流程
-- ✅ **資料可攜權** - JSON 格式即時匯出
-- ✅ **審計追蹤** - 完整同意歷史記錄
-- ✅ **原子性交易** - DB.batch() 確保資料一致性
-- ✅ **既有使用者支援** - 隱式同意機制
-- ✅ **No-Email 設計** - Email 僅作內部 ID
+### v5.0.0 (2026-02-23) - 收到的名片管理系統完成
+- **OCR 狀態追蹤** - pending/completed/failed 三階段狀態，ocr_error 錯誤記錄
+- **上傳冪等性保證** - idempotency_key UNIQUE 約束，防止重複上傳
+- **HEIC 格式檢測與阻擋** - Extension + MIME + Magic Bytes 三重驗證
+- **智慧圖片壓縮** - browser-image-compression，目標 1MB，80% 上傳時間減少
+- **可靠性提升** - 指數退避重試機制 (3 次 + Jitter)，成功率 70%→95%
+- **上傳取消支援** - AbortController 實作，使用者可中斷上傳
+- **本地 Vendor 資源** - browser-image-compression 56KB MIT 授權本地化
+- **代碼品質** - ESLint warnings 547→44 (87% 改善)，TypeScript 零錯誤
+- **全域類型定義** - 33 個 Cloudflare + Web API 類型定義，消除 any 類型
+- **資料庫優化** - Migration 0032: idempotency_key + user_email 複合唯一索引
 
-### v4.6.0 (2026-01-31) - OIDC 安全優化完成 🔒
-- ✅ **PKCE 實作** (RFC 7636) - 防止授權碼攔截攻擊
-- ✅ **OAuth Redirect 流程** - 取代 Popup，更安全可靠
-- ✅ **SameSite=Lax** - 從 None 改為 Lax，降低 CSRF 風險
-- ✅ **移除 postMessage** - 消除跨域通信風險
+### v4.6.0 (2026-02-08) - Icon Bundle 優化完成
+- **Vite Tree-Shaking** - Lucide Icons 從 379 KB 降至 12.33 KB (96.8% 減少)
+- **ES Module 遷移** - 65 個實際使用的 icons，移除 1,400+ 未使用 icons
+- **效能提升** - 預期 FCP 改善 50%+, LCP 改善 40%+
+- **Build System** - Vite + esbuild minifier 自動化打包
+- **全域函式** - `window.initIcons()` 統一 icon 初始化
+- **動態載入** - 支援社群 icon 動態插入後初始化
+
+### v4.6.0 (2026-02-06) - 並發控制與快取安全修復
+- **並發控制修復** - 使用 SQLite RETURNING 實現原子性操作
+- **樂觀鎖機制** - WHERE 子句防止競態條件
+- **移除 Response Cache** - 修復 rate limiting 繞過漏洞 (CVE-2024-21662 類似模式)
+- **統一快取失效** - 4 層快取一致性保證
+- **HTTP Cache-Control** - 符合 RFC 7234 標準 (no-store)
+- **max_reads 執行** - 100% 準確的讀取限制
+- **TOCTOU 緩解** - 消除 Time-of-Check-Time-of-Use 漏洞
+
+### v4.6.0 (2026-02-02) - 個資同意管理系統完成
+- **GDPR 合規** - 100% 符合 GDPR Article 7, 12, 13, 15, 20, 30
+- **分層揭露** - First Layer (摘要) + Second Layer (完整條款)
+- **同意管理** - 接受、撤回、恢復完整流程
+- **資料可攜權** - JSON 格式即時匯出
+- **審計追蹤** - 完整同意歷史記錄
+- **原子性交易** - DB.batch() 確保資料一致性
+- **既有使用者支援** - 隱式同意機制
+- **No-Email 設計** - Email 僅作內部 ID
+
+### v4.6.0 (2026-01-31) - OIDC 安全優化完成
+- **PKCE 實作** (RFC 7636) - 防止授權碼攔截攻擊
+- **OAuth Redirect 流程** - 取代 Popup，更安全可靠
+- **SameSite=Lax** - 從 None 改為 Lax，降低 CSRF 風險
+- **移除 postMessage** - 消除跨域通信風險
 - ✅ **移除 DEBUG 日誌** - 防止敏感資訊洩漏
 - ✅ **符合 RFC 9700** - OAuth 2.0 Security Best Current Practice
 - ✅ **OWASP 合規** - OAuth 2.0 Cheat Sheet 完全符合
@@ -26,6 +55,7 @@
 ### 安全預設架構
 - **信封加密**: 每張名片獨立 DEK，KEK 定期輪換
 - **授權會話機制 (ReadSession)**: 24 小時 TTL，可撤銷、可限制同時讀取數
+- **原子性計數器**: SQLite RETURNING 確保 reads_used 準確性
 - **即時撤銷**: NFC 重新觸碰即可撤銷上一個會話
 - **審計日誌**: 完整記錄所有存取行為，IP 匿名化保護隱私
 
@@ -268,6 +298,76 @@ routes = [
 
 ---
 
+## 隱私政策管理
+
+### 查看當前隱私政策
+
+```bash
+# 查看資料庫中的隱私政策版本
+cd /Users/shengfanwu/GitHub/DB-Card/workers
+wrangler d1 execute DB --remote --command "SELECT version, effective_date, is_active FROM privacy_policy_versions ORDER BY effective_date DESC"
+```
+
+### 更新隱私政策內容
+
+```bash
+# 更新特定版本的隱私政策（例如：修正聯絡方式）
+wrangler d1 execute DB --remote --command "
+UPDATE privacy_policy_versions 
+SET content_zh = REPLACE(content_zh, '舊文字', '新文字'),
+    content_en = REPLACE(content_en, 'Old Text', 'New Text')
+WHERE version = 'v1.0.0'
+"
+
+# 驗證更新結果
+wrangler d1 execute DB --remote --command "SELECT content_zh FROM privacy_policy_versions WHERE version = 'v1.0.0'" | grep "新文字"
+```
+
+### 發布新版本隱私政策
+
+```bash
+# 1. 停用舊版本
+wrangler d1 execute DB --remote --command "UPDATE privacy_policy_versions SET is_active = 0 WHERE version = 'v1.0.0'"
+
+# 2. 插入新版本
+wrangler d1 execute DB --remote --command "
+INSERT INTO privacy_policy_versions (version, content_zh, content_en, effective_date, is_active)
+VALUES (
+  'v1.1.0',
+  '【新版隱私政策中文內容】',
+  '【New Privacy Policy English Content】',
+  $(date +%s)000,
+  1
+)
+"
+
+# 3. 驗證新版本已生效
+wrangler d1 execute DB --remote --command "SELECT version, is_active FROM privacy_policy_versions WHERE is_active = 1"
+```
+
+### 部署隱私政策變更
+
+```bash
+# 隱私政策儲存於資料庫，無需重新部署 Worker
+# 但若修改了前端顯示邏輯，需要部署：
+
+cd /Users/shengfanwu/GitHub/DB-Card/workers
+wrangler deploy --env=""  # Staging
+wrangler deploy --env="production"  # Production
+```
+
+### 重置使用者同意狀態（測試用）
+
+```bash
+# 刪除特定使用者的同意記錄
+wrangler d1 execute DB --remote --command "DELETE FROM consent_records WHERE user_email = 'user@example.com'"
+
+# 查看使用者同意記錄
+wrangler d1 execute DB --remote --command "SELECT user_email, consent_type, consent_status, consented_at FROM consent_records WHERE user_email = 'user@example.com' ORDER BY consented_at DESC"
+```
+
+---
+
 ## 部署架構
 
 ```
@@ -400,6 +500,7 @@ wrangler dev --remote
 - `POST /api/nfc/tap` - NFC 觸碰創建會話
 - `GET /api/read` - 讀取名片資料
 - `GET /health` - 系統健康檢查
+- `GET /api/oauth/config` - 取得 OAuth 配置（clientId）
 - `GET /api/oauth/init` - OAuth 初始化 (取得 state 和 nonce)
 - `GET /oauth/callback` - OAuth 回調
 

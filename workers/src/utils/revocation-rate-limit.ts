@@ -2,8 +2,6 @@
 // Implements rate limiting for user self-revoke feature
 // Limits: 3/hour, 10/day
 
-import type { Env } from '../types';
-
 const HOURLY_LIMIT = 3;
 const DAILY_LIMIT = 10;
 

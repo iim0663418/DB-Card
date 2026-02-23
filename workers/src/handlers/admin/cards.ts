@@ -1,13 +1,14 @@
 // Admin Cards Handler
 // POST /api/admin/cards - Create a new business card
 
-import type { Env, CardData, CardType } from '../../types';
+import type { Env, CardType } from '../../types';
 import { CARD_POLICIES } from '../../types';
 import { verifySetupToken } from '../../middleware/auth';
 import { EnvelopeEncryption } from '../../crypto/envelope';
 import { logEvent } from '../../utils/audit';
 import { jsonResponse, errorResponse, adminErrorResponse } from '../../utils/response';
 import { validateSocialLink } from '../../utils/social-link-validation';
+import { invalidateCardCaches } from '../../utils/cache';
 
 /**
  * Validate email format using RFC 5322 simplified regex
@@ -288,7 +289,7 @@ export async function handleCreateCard(request: Request, env: Env): Promise<Resp
     let body: any;
     try {
       body = await request.json();
-    } catch (error) {
+    } catch (_error) {
       return errorResponse('invalid_request', '無效的 JSON 格式', 400, request);
     }
 
@@ -466,6 +467,9 @@ export async function handleDeleteCard(
       // Clear KV cache
       await env.KV.delete(`card:${uuid}`);
 
+      // Invalidate all related caches
+      await invalidateCardCaches(env, uuid);
+
       // Log audit event
       await logEvent(env, 'card_permanent_delete', request, uuid, undefined, {
         action: 'permanent_delete'
@@ -555,7 +559,7 @@ export async function handleUpdateCard(
     let body: any;
     try {
       body = await request.json();
-    } catch (error) {
+    } catch (_error) {
       return errorResponse('invalid_request', '無效的 JSON 格式', 400, request);
     }
 
@@ -612,6 +616,9 @@ export async function handleUpdateCard(
     ).run();
 
     await env.KV.delete(`card:${uuid}`);
+
+    // Invalidate all related caches
+    await invalidateCardCaches(env, uuid);
 
     // Revoke all associated ReadSessions
     const sessionsRevoked = await revokeAllCardSessions(env, uuid, 'card_updated');

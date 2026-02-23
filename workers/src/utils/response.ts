@@ -2,13 +2,25 @@
 
 import type { ApiResponse } from '../types';
 
-// CORS allowed origins whitelist
-const ALLOWED_ORIGINS = [
-  'http://localhost:8788',
-  'http://localhost:8787',
-  'https://db-card-staging.csw30454.workers.dev',
-  'https://db-card.moda.gov.tw'
-];
+// CORS allowed origins (will be set dynamically)
+let ALLOWED_ORIGINS: string[] = [];
+
+/**
+ * Initialize allowed origins based on environment
+ * Called once at worker startup
+ */
+export function initAllowedOrigins(workerUrl: string, environment: string): void {
+  ALLOWED_ORIGINS = [
+    'http://localhost:8788',
+    'http://localhost:8787',
+    workerUrl
+  ];
+  
+  // Staging: support both worker and custom domain
+  if (environment === 'staging') {
+    ALLOWED_ORIGINS.push('https://db-card.sfan-tech.com');
+  }
+}
 
 /**
  * Get CORS headers based on request origin

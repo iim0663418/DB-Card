@@ -12,15 +12,30 @@ import { handleAssetUpload, handleAssetContent, handleAssetTwinList, handleListC
 import { handlePasskeyRegisterStart, handlePasskeyRegisterFinish, handlePasskeyLoginStart, handlePasskeyLoginFinish, handlePasskeyStatus, handlePasskeyAvailable } from './handlers/admin/passkey';
 import { handleSecurityStats, handleSecurityEvents, handleSecurityTimeline, handleBlockIP, handleUnblockIP, handleIPDetail, handleSecurityExport, handleCDNHealth } from './handlers/admin/security';
 import { handleMonitoringOverview, handleMonitoringHealth } from './handlers/admin/monitoring';
+import { handleVitalsReport, handleVitalsStats } from './handlers/analytics';
+import { handleCSPReport, handleCSPReportStats } from './handlers/csp-report';
 import { handleUserCreateCard, handleUserUpdateCard, handleUserListCards, handleUserGetCard, handleUserRevokeCard, handleUserRestoreCard } from './handlers/user/cards';
 import { handleRevocationHistory } from './handlers/user/history';
 import { handleUserLogout } from './handlers/user/logout';
+import { handleUpload } from './handlers/user/received-cards/upload';
+import { handleOCR } from './handlers/user/received-cards/ocr';
+import { handleEnrich } from './handlers/user/received-cards/enrich';
+import { handleUnifiedExtract } from './handlers/user/received-cards/unified-extract';
+import { handleSaveCard, handleListCards as handleListReceivedCards, handleUpdateCard as handleUpdateReceivedCard, handleDeleteCard as handleDeleteReceivedCard, handlePatchCard as handlePatchReceivedCard } from './handlers/user/received-cards/crud';
+import { handleGetThumbnail } from './handlers/user/received-cards/thumbnail';
+import { handleGetImage } from './handlers/user/received-cards/image';
+import { handleGetVCard } from './handlers/user/received-cards/vcard';
+import { handleShareCard } from './handlers/user/received-cards/share';
+import { handleUnshareCard } from './handlers/user/received-cards/unshare';
+import { handleListSharedCards } from './handlers/user/received-cards/list-shared';
 import { handleGetOAuthUserInfo } from './handlers/user/oauth-user-info';
 import { handleConsentCheck, handleConsentAccept, handleConsentWithdraw, handleConsentRestore, handleConsentHistory, handleDataExport, handlePrivacyPolicyCurrent } from './handlers/consent';
 import { handleOAuthCallback } from './handlers/oauth';
 import { handleOAuthInit } from './handlers/oauth-init';
+import { handleRISCEvent } from './handlers/risc';
 import { handleManifest } from './handlers/manifest';
-import { errorResponse, publicErrorResponse } from './utils/response';
+import { publicErrorResponse } from './utils/response';
+import { initAllowedOrigins } from './utils/response';
 import { checkRateLimit } from './middleware/rate-limit';
 import { verifySetupToken } from './middleware/auth';
 import { csrfMiddleware } from './middleware/csrf';
@@ -44,13 +59,13 @@ function addSecurityHeaders(response: Response, nonce: string): Response {
   // Content Security Policy (with nonce, no unsafe-inline for scripts)
   headers.set('Content-Security-Policy',
     "default-src 'self'; " +
-    `script-src 'self' 'nonce-${nonce}' cdn.tailwindcss.com cdn.jsdelivr.net; ` +
+    `script-src 'self' 'nonce-${nonce}' cdn.tailwindcss.com cdn.jsdelivr.net static.cloudflareinsights.com; ` +
     "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.tailwindcss.com; " +
     "font-src 'self' fonts.gstatic.com; " +
     "img-src 'self' data: https:; " +
-    "connect-src 'self' https://oauth2.googleapis.com https://www.googleapis.com accounts.google.com; " +
+    "connect-src 'self' https://oauth2.googleapis.com https://www.googleapis.com accounts.google.com cloudflareinsights.com; " +
     "object-src 'none'; " +
-    "base-src 'self'; " +
+    "base-uri 'self'; " +
     "form-action 'self'; " +
     "frame-ancestors 'none'"
   );
@@ -108,16 +123,29 @@ function addMinimalSecurityHeaders(response: Response): Response {
   });
 }
 
-// CORS allowed origins whitelist (duplicated from response.ts for OPTIONS handling)
-const ALLOWED_ORIGINS = [
-  'http://localhost:8788',
-  'http://localhost:8787',
-  'https://db-card-staging.csw30454.workers.dev',
-  'https://db-card.moda.gov.tw'
-];
+/**
+ * Get CORS allowed origins based on environment
+ */
+function getAllowedOrigins(env: Env): string[] {
+  const origins = [
+    'http://localhost:8788',
+    'http://localhost:8787',
+    env.WORKER_URL
+  ];
+  
+  // Staging: support both worker and custom domain
+  if (env.ENVIRONMENT === 'staging') {
+    origins.push('https://db-card.sfan-tech.com');
+  }
+  
+  return origins;
+}
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    // Initialize allowed origins once per request (lightweight)
+    initAllowedOrigins(env.WORKER_URL, env.ENVIRONMENT);
+    
     const url = new URL(request.url);
     
     // Generate nonce for this request
@@ -127,8 +155,9 @@ export default {
     if (request.method === 'OPTIONS') {
       const origin = request.headers.get('Origin');
       const headers: HeadersInit = {};
+      const allowedOrigins = getAllowedOrigins(env);
 
-      if (origin && ALLOWED_ORIGINS.includes(origin)) {
+      if (origin && allowedOrigins.includes(origin)) {
         headers['Access-Control-Allow-Origin'] = origin;
         headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
         headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
@@ -232,6 +261,18 @@ export default {
     }
 
     // OAuth init - Generate state parameter
+    // OAuth Config API
+    if (url.pathname === '/api/oauth/config' && request.method === 'GET') {
+      return new Response(JSON.stringify({
+        clientId: env.GOOGLE_CLIENT_ID
+      }), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, max-age=3600'
+        }
+      });
+    }
+
     if (url.pathname === '/api/oauth/init' && request.method === 'POST') {
       return addMinimalSecurityHeaders(await handleOAuthInit(request, env));
     }
@@ -239,6 +280,11 @@ export default {
     // OAuth callback
     if (url.pathname === '/oauth/callback' && request.method === 'GET') {
       return addMinimalSecurityHeaders(await handleOAuthCallback(request, env));
+    }
+
+    // RISC security events endpoint (Google Cross-Account Protection)
+    if (url.pathname === '/api/risc/events' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleRISCEvent(request, env));
     }
 
     // User logout
@@ -270,6 +316,9 @@ export default {
                            url.pathname.startsWith('/api/admin/passkey/');
     const isPublicEndpoint = url.pathname === '/api/nfc/tap' ||
                             url.pathname === '/api/read' ||
+                            url.pathname === '/api/analytics/vitals' ||
+                            url.pathname === '/api/csp-report' ||
+                            url.pathname === '/api/risc/events' ||
                             url.pathname === '/oauth/callback' ||
                             url.pathname === '/health';
 
@@ -288,6 +337,88 @@ export default {
 
     if (url.pathname === '/api/user/cards' && request.method === 'GET') {
       return addMinimalSecurityHeaders(await handleUserListCards(request, env));
+    }
+
+    // Received Cards APIs (OAuth required)
+    if (url.pathname === '/api/user/received-cards/upload' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleUpload(request, env));
+    }
+
+    if (url.pathname === '/api/user/received-cards/unified-extract' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleUnifiedExtract(request, env));
+    }
+
+    if (url.pathname === '/api/user/received-cards/ocr' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleOCR(request, env));
+    }
+
+    if (url.pathname === '/api/user/received-cards/enrich' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleEnrich(request, env));
+    }
+
+    if (url.pathname === '/api/user/received-cards' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleSaveCard(request, env));
+    }
+
+    if (url.pathname === '/api/user/received-cards' && request.method === 'GET') {
+      return addMinimalSecurityHeaders(await handleListReceivedCards(request, env));
+    }
+
+    // PUT /api/user/received-cards/:uuid - Update received card (full update)
+    const updateReceivedCardMatch = url.pathname.match(/^\/api\/user\/received-cards\/([a-f0-9-]{36})$/);
+    if (updateReceivedCardMatch && request.method === 'PUT') {
+      const uuid = updateReceivedCardMatch[1];
+      return addMinimalSecurityHeaders(await handleUpdateReceivedCard(request, env, uuid));
+    }
+
+    // PATCH /api/user/received-cards/:uuid - Patch received card (partial update)
+    const patchReceivedCardMatch = url.pathname.match(/^\/api\/user\/received-cards\/([a-f0-9-]{36})$/);
+    if (patchReceivedCardMatch && request.method === 'PATCH') {
+      const uuid = patchReceivedCardMatch[1];
+      return addMinimalSecurityHeaders(await handlePatchReceivedCard(request, env, uuid));
+    }
+
+    // DELETE /api/user/received-cards/:uuid - Delete received card
+    const deleteReceivedCardMatch = url.pathname.match(/^\/api\/user\/received-cards\/([a-f0-9-]{36})$/);
+    if (deleteReceivedCardMatch && request.method === 'DELETE') {
+      const uuid = deleteReceivedCardMatch[1];
+      return addMinimalSecurityHeaders(await handleDeleteReceivedCard(request, env, uuid));
+    }
+
+    // GET /api/user/received-cards/:uuid/thumbnail - Get card thumbnail
+    const thumbnailMatch = url.pathname.match(/^\/api\/user\/received-cards\/([a-f0-9-]{36})\/thumbnail$/);
+    if (thumbnailMatch && request.method === 'GET') {
+      const uuid = thumbnailMatch[1];
+      return addMinimalSecurityHeaders(await handleGetThumbnail(request, env, uuid));
+    }
+
+    // GET /api/user/received-cards/:uuid/image - Get card original image
+    const imageMatch = url.pathname.match(/^\/api\/user\/received-cards\/([a-f0-9-]{36})\/image$/);
+    if (imageMatch && request.method === 'GET') {
+      const uuid = imageMatch[1];
+      return addMinimalSecurityHeaders(await handleGetImage(request, env, uuid));
+    }
+
+    // GET /api/user/received-cards/:uuid/vcard - Export card as vCard
+    const vcardMatch = url.pathname.match(/^\/api\/user\/received-cards\/([a-f0-9-]{36})\/vcard$/);
+    if (vcardMatch && request.method === 'GET') {
+      const uuid = vcardMatch[1];
+      return addMinimalSecurityHeaders(await handleGetVCard(request, env, uuid));
+    }
+
+    // POST /api/user/received-cards/:uuid/share - Share card with another user
+    if (url.pathname.match(/^\/api\/user\/received-cards\/[^/]+\/share$/) && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleShareCard(request, env));
+    }
+
+    // DELETE /api/user/received-cards/:uuid/share - Unshare card from recipient
+    if (url.pathname.match(/^\/api\/user\/received-cards\/[^/]+\/share$/) && request.method === 'DELETE') {
+      return addMinimalSecurityHeaders(await handleUnshareCard(request, env));
+    }
+
+    // GET /api/user/shared-cards - List cards shared with me
+    if (url.pathname === '/api/user/shared-cards' && request.method === 'GET') {
+      return addMinimalSecurityHeaders(await handleListSharedCards(request, env));
     }
 
     // PUT /api/user/cards/:uuid - Update user's own card
@@ -494,6 +625,27 @@ export default {
       return addMinimalSecurityHeaders(await handleMonitoringHealth(request, env));
     }
 
+    // Analytics endpoints
+    // POST /api/analytics/vitals - Report Web Vitals (public endpoint)
+    if (url.pathname === '/api/analytics/vitals' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleVitalsReport(request, env));
+    }
+
+    // POST /api/csp-report - CSP Violation Report (public endpoint)
+    if (url.pathname === '/api/csp-report' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleCSPReport(request, env));
+    }
+
+    // GET /api/admin/csp-reports - Get CSP Report stats (admin only)
+    if (url.pathname === '/api/admin/csp-reports' && request.method === 'GET') {
+      return addMinimalSecurityHeaders(await handleCSPReportStats(request, env));
+    }
+
+    // GET /api/admin/analytics/vitals - Get Web Vitals stats (admin only)
+    if (url.pathname === '/api/admin/analytics/vitals' && request.method === 'GET') {
+      return addMinimalSecurityHeaders(await handleVitalsStats(request, env));
+    }
+
     // GET /api/manifest/:uuid - Dynamic manifest for QR shortcut
     const manifestMatch = url.pathname.match(/^\/api\/manifest\/([a-f0-9-]{36})$/);
     if (manifestMatch && request.method === 'GET') {
@@ -560,18 +712,22 @@ export default {
     return response;
   },
 
-  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+  async scheduled(event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
     // Run all cleanup tasks at 02:00 UTC
     const { handleScheduledCleanup } = await import('./scheduled-cleanup');
     const { handleScheduledLogRotation } = await import('./scheduled-log-rotation');
     const { handleScheduledKVCleanup } = await import('./scheduled-kv-cleanup');
     const { cleanupSoftDeletedAssets } = await import('./handlers/scheduled/asset-cleanup');
+    const { cleanupTempUploads } = await import('./cron/cleanup-temp-uploads');
+    const { cleanupReceivedCards } = await import('./cron/cleanup-received-cards');
 
     // Run sequentially to avoid resource contention
     await handleScheduledCleanup(env);
     await handleScheduledLogRotation(env);
     await handleScheduledKVCleanup(env);
     await cleanupSoftDeletedAssets(env);
+    await cleanupTempUploads(env);
+    await cleanupReceivedCards(env);
   }
 };
 

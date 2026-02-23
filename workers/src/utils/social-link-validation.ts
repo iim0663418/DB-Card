@@ -23,6 +23,7 @@ export function validateSocialLink(url: string | null | undefined): boolean {
 
     // Dangerous protocols
     const dangerousProtocols = [
+        // eslint-disable-next-line no-script-url -- String literal in validation list
         'javascript:',
         'data:',
         'vbscript:',
@@ -71,7 +72,7 @@ export function validateSocialLink(url: string | null | undefined): boolean {
         }
 
         return true;
-    } catch (e) {
+    } catch (_e) {
         return false;
     }
 }

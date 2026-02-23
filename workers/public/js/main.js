@@ -1,5 +1,6 @@
 import { tapCard, readCard } from './api.js';
 import { getLocalizedText, getLocalizedArray } from './utils/bilingual.js';
+// Icons now loaded via Vite bundle (/dist/icons.DTSin75g.js)
 
 const DEBUG = window.location.hostname === 'localhost';
 
@@ -29,23 +30,6 @@ let scene, camera, renderer, mesh, grid;
 let currentLanguage = 'zh';
 let typewriterTimeout = null;
 let currentCardData = null; // 儲存當前名片資料供 vCard 下載使用
-
-/**
- * Device detection function for device-aware vCard button
- * @returns {boolean} true if mobile device (iOS/Android/tablet), false for desktop
- */
-function isMobileDevice() {
-    // Method 1: User Agent detection
-    const ua = navigator.userAgent.toLowerCase();
-    const isMobileUA = /iphone|ipad|ipod|android|mobile/i.test(ua);
-
-    // Method 2: Touch capability + screen size
-    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    const isSmallScreen = window.matchMedia('(max-width: 768px)').matches;
-
-    // Return true if either UA indicates mobile OR (has touch AND small screen)
-    return isMobileUA || (hasTouch && isSmallScreen);
-}
 
 // 組織與部門雙語對照表（來自 v3 bilingual-common.js）
 const ORG_DEPT_MAPPING = {
@@ -94,8 +78,8 @@ function updateVCardButton() {
     }
 
     // Reinitialize lucide icons to apply the new icon
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
+    if (window.initIcons) {
+        window.initIcons();
     }
 }
 
@@ -201,13 +185,21 @@ const i18nTexts = {
         'zh': '查看詳細安全特性',
         'en': 'View Security Features'
     },
-    'desktop-qr-title': {
+    'desktop-hint-contacts-title': {
         'zh': '加入手機通訊錄',
         'en': 'Add to Contacts'
     },
-    'desktop-qr-desc': {
-        'zh': '掃描 QR Code 用手機開啟',
-        'en': 'Scan QR Code with your phone'
+    'desktop-hint-contacts-desc': {
+        'zh': '掃描下方 QR Code，用手機開啟此頁面',
+        'en': 'Scan the QR Code below to open on your phone'
+    },
+    'desktop-hint-qr-title': {
+        'zh': '掃描 QR Code',
+        'en': 'Scan QR Code'
+    },
+    'desktop-hint-qr-desc': {
+        'zh': '使用手機相機掃描，即可加入通訊錄',
+        'en': 'Use your phone camera to scan and add to contacts'
     }
 };
 
@@ -224,7 +216,7 @@ function showError(message) {
             </div>
         `, { ADD_ATTR: ['onclick'] });
         errorContainer.style.display = 'block';
-        lucide.createIcons();
+        if (window.initIcons) window.initIcons();
     } else {
         console.error(message);
     }
@@ -252,7 +244,7 @@ function showNotification(message, type = 'info') {
         `, { ADD_ATTR: ['onclick'] });
 
         notificationContainer.appendChild(notification);
-        lucide.createIcons();
+        if (window.initIcons) window.initIcons();
 
         // Auto remove after 5 seconds
         setTimeout(() => {
@@ -264,42 +256,12 @@ function showNotification(message, type = 'info') {
 }
 
 async function initApp() {
-    // 等待 Lucide 載入完成
-    if (typeof lucide === 'undefined') {
-        await new Promise(resolve => {
-            const checkLucide = setInterval(() => {
-                if (typeof lucide !== 'undefined') {
-                    clearInterval(checkLucide);
-                    resolve();
-                }
-            }, 50);
-        });
-    }
-
     initLoadingIcon(); // 隨機選擇載入圖示
-    lucide.createIcons();
 
-    // Conditional Three.js initialization - only on desktop (>= 1024px)
-    const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
-    if (isDesktop) {
-        if (typeof THREE !== 'undefined') {
-            setTimeout(() => initThree(), 100);
-        } else {
-            // Wait for Three.js to load (lazy loaded on desktop)
-            const waitForThree = setInterval(() => {
-                if (typeof THREE !== 'undefined') {
-                    clearInterval(waitForThree);
-                    initThree();
-                }
-            }, 100);
-            // Timeout after 5 seconds if Three.js doesn't load
-            setTimeout(() => clearInterval(waitForThree), 5000);
-        }
-    }
-
+    // 1. 載入資料
     const params = new URLSearchParams(window.location.search);
     const uuid = params.get('uuid');
-    
+
     // 自動偵測語系：URL > 瀏覽器語言 > 預設中文
     if (!params.get('lang')) {
         const browserLang = navigator.language || navigator.userLanguage;
@@ -339,6 +301,13 @@ async function initApp() {
         console.error('Initialization error:', error);
         showError(currentLanguage === 'zh' ? `載入失敗: ${error.message}` : `Load failed: ${error.message}`);
         hideLoading();
+        return;
+    }
+
+    // 2. 內容已顯示，延遲初始化特效
+    const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+    if (isDesktop && typeof THREE !== 'undefined') {
+        requestIdleCallback(() => initThree(), { timeout: 2000 });
     }
 }
 
@@ -391,7 +360,6 @@ async function loadCard(uuid) {
             const remainingText = currentLanguage === 'zh' ? `剩餘 ${sessionData.warning.remaining} 次` : `${sessionData.warning.remaining} remaining`;
             banner.innerHTML = DOMPurify.sanitize(`<i data-lucide="alert-triangle"></i><span>${sessionData.warning.message} (${remainingText})</span>`, { ADD_ATTR: ['onclick'] });
             document.body.insertBefore(banner, document.body.firstChild);
-            lucide.createIcons();
         }
     } else {
         showError(currentLanguage === 'zh' ? '無法載入名片資料' : 'Failed to load card data');
@@ -405,12 +373,17 @@ function renderCard(cardData, sessionData) {
     
     hideLoading();
     document.getElementById('main-container').classList.remove('hidden');
-    
+    if (window.reportCardReady) window.reportCardReady(performance.now());
+
+    if (window.initIcons) window.initIcons();
+
     setTimeout(matchCardHeight, 100);
-    
-    // 桌面版自動生成 QR Code
+
+    // 桌面版自動生成 QR Code - Deferred to idle time
     if (window.innerWidth >= 1024) {
-        setTimeout(() => generateQRCode('qrcode-desktop'), 200);
+        requestIdleCallback(() => {
+            generateQRCode('qrcode-desktop');
+        }, { timeout: 2000 });
     }
 }
 
@@ -473,7 +446,7 @@ function renderCardFace(cardData, sessionData, lang, suffix) {
     if (avatarUrl && avatarEl) {
         let processedUrl = avatarUrl;
 
-        const driveMatch = processedUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^\/\?&]+)/);
+        const driveMatch = processedUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^/?&]+)/);
         if (driveMatch) {
             const fileId = driveMatch[1];
             processedUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
@@ -688,8 +661,9 @@ function renderCardFace(cardData, sessionData, lang, suffix) {
 
             socialCluster.appendChild(node);
         });
-        lucide.createIcons();
         socialCluster.style.display = 'flex';
+        // Initialize icons for dynamically added elements
+        if (window.initIcons) window.initIcons();
     } else if (cardData.socialLinks && cardData.socialLinks.socialNote) {
         // 舊格式：向後相容
         parseSocialLinks(cardData.socialLinks.socialNote);
@@ -702,7 +676,6 @@ function renderCardFace(cardData, sessionData, lang, suffix) {
         socialCluster.style.display = 'none';
     }
 
-    lucide.createIcons();
 }
 
 function parseSocialLinks(socialText) {
@@ -744,42 +717,14 @@ function parseSocialLinks(socialText) {
                     break; // 每行只匹配一個平台
                 }
             }
-        } catch (e) {
+        } catch (_e) {
             // URL 解析失敗，跳過此行
             console.warn('Invalid social URL:', url);
         }
     });
 
-    lucide.createIcons();
-}
-
-function startTypewriter(phrases) {
-    // 停止之前的 typewriter
-    if (typewriterTimeout) {
-        clearTimeout(typewriterTimeout);
-        typewriterTimeout = null;
-    }
-
-    const el = document.getElementById('typewriter');
-    let i = 0, j = 0, isDeleting = false;
-
-    const type = () => {
-        const current = phrases[i];
-        el.textContent = isDeleting ? current.substring(0, j--) : current.substring(0, j++);
-
-        if (!isDeleting && j > current.length) {
-            isDeleting = true;
-            typewriterTimeout = setTimeout(type, 2000);
-        } else if (isDeleting && j === 0) {
-            isDeleting = false;
-            i = (i + 1) % phrases.length;
-            typewriterTimeout = setTimeout(type, 500);
-        } else {
-            typewriterTimeout = setTimeout(type, isDeleting ? 30 : 80);
-        }
-    };
-
-    type();
+    // Initialize icons for dynamically added elements
+    if (window.initIcons) window.initIcons();
 }
 
 function hideLoading() {
@@ -791,82 +736,218 @@ function hideLoading() {
 }
 
 function initThree() {
-    // Only initialize Three.js on desktop
     const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
     if (!isDesktop) return;
 
     const canvas = document.getElementById('three-canvas');
     if (!canvas) return;
 
-    // Show canvas (it's hidden by default via CSS)
     canvas.style.display = 'block';
 
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf4f7f9);
+    scene.background = new THREE.Color(0xf8f9fb);
+    scene.fog = new THREE.Fog(0xf8f9fb, 20, 80);
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 0, 10);
+    camera.position.set(0, 5, 50);
 
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    const gridGeo = new THREE.PlaneGeometry(150, 150, 45, 45);
+    // Ground Grid (Perspective Horizon)
+    const gridGeo = new THREE.PlaneGeometry(200, 200, 40, 40);
     const gridMat = new THREE.MeshBasicMaterial({
         color: 0x6868ac,
         wireframe: true,
         transparent: true,
-        opacity: 0.05
+        opacity: 0.1
     });
     grid = new THREE.Mesh(gridGeo, gridMat);
-    grid.rotation.x = -Math.PI / 2.2;
-    grid.position.y = -6;
+    grid.rotation.x = -Math.PI / 2;
+    grid.position.y = -15;
     scene.add(grid);
 
-    const starCount = 2000;
-    const starGeo = new THREE.BufferGeometry();
-    const starPos = new Float32Array(starCount * 3);
-    for (let i = 0; i < starCount * 3; i++) {
-        starPos[i] = (Math.random() - 0.5) * 50;
+    // Particle Network System
+    const particleCount = 120;
+    const particles = [];
+    const particleGeo = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    
+    // Create card-shaped particle clusters (3 flying cards)
+    const cardCount = 3;
+    const particlesPerCard = 20;
+    
+    for (let i = 0; i < particleCount; i++) {
+        let x, y, z, vx, vy, vz, isCard = false;
+        
+        if (i < cardCount * particlesPerCard) {
+            // Card particles - form rectangular clusters (vertical orientation)
+            const cardIndex = Math.floor(i / particlesPerCard);
+            const particleInCard = i % particlesPerCard;
+            const cardOffset = cardIndex * 40 - 40;
+            
+            x = (particleInCard % 4 - 1.5) * 2 + cardOffset;
+            y = Math.floor(particleInCard / 4) * 2.5 - 6;
+            z = -80 + cardIndex * 30;
+            vx = 0;
+            vy = 0;
+            vz = 0.15 + cardIndex * 0.05;
+            isCard = true;
+        } else {
+            // Regular network particles
+            x = (Math.random() - 0.5) * 100;
+            y = Math.random() * 40 - 10;
+            z = (Math.random() - 0.5) * 80 - 20;
+            vx = (Math.random() - 0.5) * 0.01;
+            vy = (Math.random() - 0.5) * 0.01;
+            vz = (Math.random() - 0.5) * 0.005;
+            isCard = false;
+        }
+        
+        positions[i * 3] = x;
+        positions[i * 3 + 1] = y;
+        positions[i * 3 + 2] = z;
+        
+        particles.push({ x, y, z, vx, vy, vz, isCard });
     }
-    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-    const starMat = new THREE.PointsMaterial({
-        size: 0.05,
+    
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    
+    const particleMat = new THREE.PointsMaterial({
+        size: 0.5,
         color: 0x6868ac,
         transparent: true,
-        opacity: 0.3
+        opacity: 0.4,
+        map: createCircleTexture(),
+        alphaTest: 0.01,
+        sizeAttenuation: true
     });
-    mesh = new THREE.Points(starGeo, starMat);
+    
+    mesh = new THREE.Points(particleGeo, particleMat);
     scene.add(mesh);
+
+    // Connection lines
+    const lineMat = new THREE.LineBasicMaterial({
+        color: 0x6868ac,
+        transparent: true,
+        opacity: 0.25
+    });
+    
+    const lineGeo = new THREE.BufferGeometry();
+    const maxConnections = particleCount * 5;
+    const linePositions = new Float32Array(maxConnections * 6);
+    lineGeo.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+    lineGeo.setDrawRange(0, 0);
+    
+    const lines = new THREE.LineSegments(lineGeo, lineMat);
+    scene.add(lines);
 
     handleResize();
     animate();
+
+    function animate() {
+        requestAnimationFrame(animate);
+        
+        const positions = mesh.geometry.attributes.position.array;
+        const linePositions = lines.geometry.attributes.position.array;
+        let lineIndex = 0;
+        const maxDistance = 15;
+        
+        // Update particle positions
+        for (let i = 0; i < particleCount; i++) {
+            const particle = particles[i];
+            
+            particle.x += particle.vx;
+            particle.y += particle.vy;
+            particle.z += particle.vz;
+            
+            if (particle.isCard) {
+                // Card particles fly forward and reset
+                if (particle.z > 50) {
+                    particle.z = -80;
+                }
+            } else {
+                // Regular particles bounce
+                if (Math.abs(particle.x) > 50) particle.vx *= -1;
+                if (particle.y > 30 || particle.y < -10) particle.vy *= -1;
+                if (particle.z > 20 || particle.z < -60) particle.vz *= -1;
+            }
+            
+            // Mouse attraction (only for non-card particles)
+            if (!particle.isCard && (mouseX !== 0 || mouseY !== 0)) {
+                const dx = mouseX * 50 - particle.x;
+                const dy = mouseY * 30 - particle.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist < 20) {
+                    particle.vx += dx * 0.0001;
+                    particle.vy += dy * 0.0001;
+                }
+            }
+            
+            positions[i * 3] = particle.x;
+            positions[i * 3 + 1] = particle.y;
+            positions[i * 3 + 2] = particle.z;
+            
+            // Create connections
+            for (let j = i + 1; j < particleCount; j++) {
+                const other = particles[j];
+                const dx = particle.x - other.x;
+                const dy = particle.y - other.y;
+                const dz = particle.z - other.z;
+                const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                
+                if (distance < maxDistance && lineIndex < maxConnections * 6) {
+                    linePositions[lineIndex++] = particle.x;
+                    linePositions[lineIndex++] = particle.y;
+                    linePositions[lineIndex++] = particle.z;
+                    linePositions[lineIndex++] = other.x;
+                    linePositions[lineIndex++] = other.y;
+                    linePositions[lineIndex++] = other.z;
+                }
+            }
+        }
+        
+        mesh.geometry.attributes.position.needsUpdate = true;
+        lines.geometry.attributes.position.needsUpdate = true;
+        lines.geometry.setDrawRange(0, lineIndex / 3);
+        
+        renderer.render(scene, camera);
+    }
 }
 
 let mouseX = 0, mouseY = 0;
 window.addEventListener('mousemove', (e) => {
-    mouseX = (e.clientX - window.innerWidth / 2) / 3000;
-    mouseY = (e.clientY - window.innerHeight / 2) / 3000;
+    mouseX = (e.clientX / window.innerWidth) - 0.5;
+    mouseY = -(e.clientY / window.innerHeight) + 0.5;
 });
+
+// Create circular particle texture
+function createCircleTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d');
+    
+    const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.5)');
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 32, 32);
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    return texture;
+}
 
 function handleResize() {
     if (!camera || !renderer) return;
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
-function animate() {
-    requestAnimationFrame(animate);
-    if (mesh) mesh.rotation.y += 0.0003;
-    if (grid) {
-        grid.position.z += 0.012;
-        if (grid.position.z > 5) grid.position.z = 0;
-    }
-    camera.position.x += (mouseX * 5 - camera.position.x) * 0.05;
-    camera.position.y += (-mouseY * 5 - camera.position.y) * 0.05;
-    camera.lookAt(scene.position);
-    renderer.render(scene, camera);
 }
 
 window.addEventListener('resize', handleResize);
@@ -979,7 +1060,7 @@ function generateVCard(cardData) {
     if (cardData.avatar_url || cardData.avatar) {
         let photoUrl = cardData.avatar_url || cardData.avatar;
         // 轉換 Google Drive 分享連結為直接圖片 URL
-        const driveMatch = photoUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^\/\?&]+)/);
+        const driveMatch = photoUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^/?&]+)/);
         if (driveMatch) {
             const fileId = driveMatch[1];
             // 使用 uc?export=view 格式，相容性更好
@@ -1093,7 +1174,10 @@ function generateQRCode(targetId) {
 
 // 手機版 QR Code modal
 document.getElementById('open-qr').addEventListener('click', () => {
-    generateQRCode('qrcode-target');
+    // Defer QR Code generation to idle time
+    requestIdleCallback(() => {
+        generateQRCode('qrcode-target');
+    }, { timeout: 2000 });
     document.getElementById('qr-modal').classList.remove('hidden');
 });
 
@@ -1168,11 +1252,18 @@ function initDesktopParallax() {
         if (ticking) return;
 
         requestAnimationFrame(() => {
+            // 加入 transition 讓回位動畫平滑（0.1s）
+            cardInner.style.transition = 'transform 0.1s ease';
             currentRotation = { x: 0, y: 0 };
             applyCardTransform();
             ticking = false;
         });
         ticking = true;
+    });
+
+    // mouseenter 時清除臨時 transition，保持傾斜即時響應
+    cardPerspective.addEventListener('mouseenter', () => {
+        cardInner.style.transition = '';
     });
 
     function applyCardTransform() {
@@ -1212,10 +1303,40 @@ function initHintBadge() {
     }
 }
 
+// ========================================
+// 物理互動效果（桌面版）
+// ========================================
+function initCardPhysics() {
+    if (window.innerWidth < 1024) return;
+
+    const cardPerspective = document.querySelector('.card-perspective');
+    if (!cardPerspective) return;
+
+    // Click Bounce：點擊名片時觸發彈跳動畫（與翻轉同時觸發）
+    cardPerspective.addEventListener('click', (e) => {
+        // 排除社群連結、輸入欄等可互動子元素（不排除 #card 本身）
+        const interactive = e.target.closest('a, button, input');
+        if (interactive) return;
+
+        cardPerspective.classList.remove('is-bouncing');
+        // 強制 reflow，才能重新觸發同一個 animation
+        void cardPerspective.offsetWidth;
+        cardPerspective.classList.add('is-bouncing');
+    });
+
+    // Bounce 動畫結束後移除 class，恢復浮動
+    cardPerspective.addEventListener('animationend', (e) => {
+        if (e.animationName === 'cardBounce') {
+            cardPerspective.classList.remove('is-bouncing');
+        }
+    });
+}
+
 // 初始化
 window.addEventListener('resize', matchCardHeight);
 setTimeout(() => {
     matchCardHeight();
     initHintBadge();
     initDesktopParallax();
+    initCardPhysics();
 }, 100);

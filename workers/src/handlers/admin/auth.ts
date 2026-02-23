@@ -2,7 +2,7 @@
 // Provides login/logout endpoints with HttpOnly cookie support
 
 import type { Env, AdminLoginRequest } from '../../types';
-import { jsonResponse, errorResponse, adminErrorResponse } from '../../utils/response';
+import { errorResponse, adminErrorResponse } from '../../utils/response';
 import { validateEmail } from '../../utils/validation';
 import { checkLoginRateLimit, incrementLoginAttempts, resetLoginAttempts } from '../../utils/login-rate-limit';
 import { generateCsrfToken, storeCsrfToken } from '../../utils/csrf';
@@ -111,14 +111,18 @@ export async function handleAdminLogin(request: Request, env: Env): Promise<Resp
 
     // Add CORS headers
     const origin = request.headers.get('Origin');
-    const ALLOWED_ORIGINS = [
+    const allowedOrigins = [
       'http://localhost:8788',
       'http://localhost:8787',
-      'https://db-card-staging.csw30454.workers.dev',
-      'https://db-card.moda.gov.tw'
+      env.WORKER_URL
     ];
+    
+    // Staging: support both worker and custom domain
+    if (env.ENVIRONMENT === 'staging') {
+      allowedOrigins.push('https://db-card.sfan-tech.com');
+    }
 
-    if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    if (origin && allowedOrigins.includes(origin)) {
       headers.set('Access-Control-Allow-Origin', origin);
       headers.set('Access-Control-Allow-Credentials', 'true');
     }
@@ -188,14 +192,18 @@ export async function handleAdminLogout(request: Request, env: Env): Promise<Res
 
     // Add CORS headers
     const origin = request.headers.get('Origin');
-    const ALLOWED_ORIGINS = [
+    const allowedOrigins = [
       'http://localhost:8788',
       'http://localhost:8787',
-      'https://db-card-staging.csw30454.workers.dev',
-      'https://db-card.moda.gov.tw'
+      env.WORKER_URL
     ];
+    
+    // Staging: support both worker and custom domain
+    if (env.ENVIRONMENT === 'staging') {
+      allowedOrigins.push('https://db-card.sfan-tech.com');
+    }
 
-    if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    if (origin && allowedOrigins.includes(origin)) {
       headers.set('Access-Control-Allow-Origin', origin);
       headers.set('Access-Control-Allow-Credentials', 'true');
     }

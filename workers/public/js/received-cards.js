@@ -1083,6 +1083,7 @@ const ReceivedCards = {
         ` : ''}
         ${card.note ? `<p class="text-xs text-slate-500 italic truncate px-3 py-2 rounded-xl border border-white/20" style="background: rgba(255, 255, 255, 0.4);">${this.escapeHTML(card.note)}</p>` : ''}
         <div class="pt-4 mt-4 border-t border-white/30 flex items-center justify-between gap-3">
+          ${card.source === 'own' ? `
           <label class="inline-flex items-center cursor-pointer">
             <input type="checkbox"
                    class="share-toggle"
@@ -1094,6 +1095,11 @@ const ReceivedCards = {
             </div>
             <span class="ms-3 text-sm font-medium text-gray-900" data-i18n="share-with-users">分享給其他使用者</span>
           </label>
+          ` : `
+          <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold" style="background-color: #dbeafe; color: #1e40af;">
+            分享者: ${this.escapeHTML(card.shared_by || '')}
+          </span>
+          `}
         </div>
         <div class="grid grid-cols-3 gap-2">
           <button onclick="ReceivedCards.viewCard('${card.uuid}')" class="card-action-btn py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2" style="background: var(--moda-accent); color: white;">

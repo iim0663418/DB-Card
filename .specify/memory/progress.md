@@ -1,38 +1,34 @@
-# Task: Merged Cards Display (Own + Shared)
+# Task: Hide Share Toggle for Non-Owner Cards
 ## Phase: DEPLOYED ✅
 - Status: 已部署到 Staging
-- Version: 0c126129-7eb4-4647-b571-f771a984b72f
-- Next Action: 測試「收到的名片」頁面是否顯示合併清單
+- Version: b98e55ca-2c52-4919-85c0-d8333bea0727
+- Next Action: 測試分享卡片的 UI 顯示
 
 ## Feature Implementation
-- **需求**: 在「收到的名片」混合顯示自己與別人分享的卡
-- **實作**: UNION ALL 查詢合併兩個來源
-- **新增欄位**: source ('own'/'shared'), shared_by (email/null)
+- **需求 1**: 別人分享的名片不顯示「分享」開關
+- **需求 2**: 分享的名片顯示縮圖和原圖（已驗證 ✅）
+- **實作**: 條件渲染 `card.source === 'own'`
 
-## SQL Logic
-```sql
--- Own cards (user_email = ?)
-SELECT ..., 'own' as source, NULL as shared_by
-FROM received_cards
-WHERE user_email = ? AND deleted_at IS NULL
-
-UNION ALL
-
--- Shared cards (excluding own cards)
-SELECT ..., 'shared' as source, sc.owner_email as shared_by
-FROM shared_cards sc
-INNER JOIN received_cards rc ON sc.card_uuid = rc.uuid
-WHERE rc.deleted_at IS NULL AND rc.user_email != ?
-
-ORDER BY updated_at DESC
+## UI Logic
+```javascript
+// Own cards: Show share toggle
+card.source === 'own' ? 
+  <label>分享給其他使用者 [toggle]</label>
+:
+  <span>分享者: {shared_by}</span>
 ```
 
+## Backend Security (Already Implemented)
+- share.ts: Ownership check (403 if not owner)
+- unshare.ts: Ownership check (403 if not owner)
+
 ## Files Modified
-1. src/handlers/user/received-cards/crud.ts (handleListCards)
+1. public/js/received-cards.js (renderCardHTML conditional logic)
 
 ## Testing Checklist
 - [ ] 登入任意帳號
 - [ ] 查看「收到的名片」頁面
-- [ ] 確認顯示自己的卡 (source='own')
-- [ ] 確認顯示別人分享的卡 (source='shared', shared_by=email)
-- [ ] 確認無重複卡片
+- [ ] 自己的卡：顯示分享開關 ✅
+- [ ] 別人分享的卡：顯示「分享者: {email}」徽章 ✅
+- [ ] 別人分享的卡：隱藏分享開關 ✅
+- [ ] 點擊縮圖：顯示原圖預覽 ✅

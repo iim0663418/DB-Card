@@ -1304,6 +1304,19 @@ const ReceivedCards = {
   },
 
   renderCardHTML(card, keyword = '') {
+    // Parse organization_alias if it's a JSON string
+    let aliasDisplay = '';
+    if (card.organization_alias) {
+      try {
+        const aliases = typeof card.organization_alias === 'string' && card.organization_alias.startsWith('[')
+          ? JSON.parse(card.organization_alias)
+          : card.organization_alias;
+        aliasDisplay = Array.isArray(aliases) ? aliases.join(', ') : aliases;
+      } catch {
+        aliasDisplay = card.organization_alias;
+      }
+    }
+
     return `
       <div class="received-card glass-panel p-6 rounded-[2rem] space-y-4"
            data-card-id="${card.uuid}"
@@ -1315,7 +1328,7 @@ const ReceivedCards = {
             <h3 class="text-lg font-black text-slate-900 truncate tracking-tight">${this.highlightText(card.full_name, keyword)}</h3>
             ${card.organization ? `<p class="text-sm font-bold text-slate-600 truncate">${this.highlightText(card.organization, keyword)}</p>` : ''}
             ${card.organization_en ? `<p class="text-xs text-slate-500 truncate">${this.escapeHTML(card.organization_en)}</p>` : ''}
-            ${card.organization_alias ? `<p class="text-xs text-slate-400 truncate italic">(${this.escapeHTML(card.organization_alias)})</p>` : ''}
+            ${aliasDisplay ? `<p class="text-xs text-slate-400 truncate italic">(${this.escapeHTML(aliasDisplay)})</p>` : ''}
             ${card.title ? `<p class="text-xs text-slate-500 truncate uppercase tracking-wider">${this.highlightText(card.title, keyword)}</p>` : ''}
           </div>
         </div>

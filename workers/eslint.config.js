@@ -91,6 +91,7 @@ export default [
         viewAsset: 'readonly',
         getSocialLinkError: 'readonly',
         showToast: 'readonly',
+        loadCards: 'readonly',
 
         // Functions called from HTML onclick attributes
         closeWebViewWarning: 'writable',
@@ -104,6 +105,20 @@ export default [
       'no-new-func': 'error',
       'no-script-url': 'error',
       'no-unused-vars': 'warn'
+    }
+  },
+  {
+    files: ['vite.config.js'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: {
+        require: 'readonly',
+        module: 'writable',
+        exports: 'writable',
+        process: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+      }
     }
   }
 ];

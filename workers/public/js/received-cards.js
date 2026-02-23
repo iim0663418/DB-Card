@@ -1381,7 +1381,49 @@ const ReceivedCards = {
         }
       }
 
-      // 4. 下載檔案
+      // 4. 設備檢測與平台特定處理
+      const userAgent = navigator.userAgent || '';
+      const isIOS = /(iPhone|iPad|iPod)/i.test(userAgent);
+      const isAndroid = /Android/i.test(userAgent);
+
+      // iOS: 使用 data URI 打開系統通訊錄
+      if (isIOS) {
+        const vcardText = await blob.text();
+        const dataUri = 'data:text/vcard;charset=utf-8,' + encodeURIComponent(vcardText);
+        window.open(dataUri, '_blank');
+        showToast('請選擇「加入聯絡資訊」', 'success');
+        return;
+      }
+
+      // Android: 嘗試 Contact Picker API，失敗則降級為下載
+      if (isAndroid) {
+        // 檢查 Contact Picker API 支援
+        const hasContactsAPI = 'contacts' in navigator && 'ContactsManager' in window;
+
+        if (hasContactsAPI) {
+          try {
+            // 注意：Contact Picker API 僅支援讀取，不支援寫入
+            // 因此 Android 仍然使用下載方式，但保留 API 檢測邏輯以備未來擴展
+            throw new Error('Contact Picker API does not support writing contacts');
+          } catch {
+            // 降級為下載
+          }
+        }
+
+        // Android 下載流程（與 Desktop 相同）
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('vCard 已下載', 'success');
+        return;
+      }
+
+      // Desktop: 原有下載行為
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

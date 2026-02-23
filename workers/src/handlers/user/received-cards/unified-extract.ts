@@ -73,7 +73,7 @@ async function performUnifiedExtract(
 
 **任務 2：公司資訊補全**（使用 Google Search）
 搜尋公司的以下資訊：
-- company_summary: 公司摘要（100-200字：產業、主要業務、成立年份、規模、營運狀況）
+- company_summary: 公司摘要（100-200字：產業、主要業務、成立年份、規模、營運狀況。如果名片中有部門名稱，額外查找該部門在公司中的職能與職責，並整合到摘要中）
 - organization_full: 公司完整正式名稱（工商登記全稱）
 - organization_alias: 公司常用簡稱或品牌名（陣列格式，例如：["台積電", "TSMC"]）
 - 若名片上缺少以下欄位，請從官網補全：

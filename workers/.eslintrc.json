@@ -18,7 +18,8 @@
     "Response": "readonly",
     "Headers": "readonly",
     "URL": "readonly",
-    "URLSearchParams": "readonly"
+    "URLSearchParams": "readonly",
+    "loadCards": "readonly"
   },
   "rules": {}
 }

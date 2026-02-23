@@ -4,6 +4,7 @@ const { resolve } = require('path');
 module.exports = defineConfig({
   build: {
     outDir: 'public/dist',
+    manifest: true,
     rollupOptions: {
       input: {
         icons: resolve(process.cwd(), 'src/icons.js')

@@ -154,6 +154,13 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
       now.toString()
     ).run();
 
+    if (DEBUG) console.log('[Upload] temp_uploads created:', {
+      upload_id: uploadId,
+      user_email: user.email,
+      image_url: r2Key,
+      ocr_status: 'pending'
+    });
+
     // 10. Return response
     const response = {
       upload_id: uploadId,

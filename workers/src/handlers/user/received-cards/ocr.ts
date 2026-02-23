@@ -192,12 +192,37 @@ export async function handleOCR(request: Request, env: Env): Promise<Response> {
     // 7. Perform OCR
     const ocrResult = await performOCR(imageBase64, mimeType, env.GEMINI_API_KEY);
 
-    // 8. Return result
+    // 8. Update OCR status to completed
+    await env.DB.prepare(`
+      UPDATE temp_uploads 
+      SET ocr_status = 'completed'
+      WHERE upload_id = ? AND user_email = ?
+    `).bind(body.upload_id, user.email).run();
+
+    // 9. Return result
     return jsonResponse(ocrResult);
 
   } catch (error) {
     console.error('OCR error:', error);
     const message = error instanceof Error ? error.message : 'Failed to perform OCR';
+    
+    // Update OCR status to failed
+    try {
+      const userResult = await verifyOAuth(request, env);
+      if (!(userResult instanceof Response)) {
+        const body = await request.clone().json() as OCRRequest;
+        if (body.upload_id) {
+          await env.DB.prepare(`
+            UPDATE temp_uploads 
+            SET ocr_status = 'failed', ocr_error = ?
+            WHERE upload_id = ? AND user_email = ?
+          `).bind(message.substring(0, 500), body.upload_id, userResult.email).run();
+        }
+      }
+    } catch (updateError) {
+      console.error('Failed to update OCR status:', updateError);
+    }
+    
     return errorResponse('OCR_FAILED', message, 500);
   }
 }

@@ -138,9 +138,19 @@ const ReceivedCardsAPI = {
         })
       });
 
+      if (!result || !result.upload_id) {
+        throw new Error('Upload failed: Invalid response from server');
+      }
+
+      console.log('[Upload] Success:', result.upload_id);
       return result;
+
     } catch (error) {
-      throw error;
+      console.error('[Upload] Failed:', error);
+      if (typeof showToast === 'function') {
+        showToast(`上傳失敗：${error.message}`, 'error');
+      }
+      throw error; // 確保錯誤被傳播，阻止後續流程
     }
   },
 

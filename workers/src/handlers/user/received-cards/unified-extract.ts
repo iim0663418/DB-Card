@@ -226,12 +226,37 @@ export async function handleUnifiedExtract(request: Request, env: Env): Promise<
     // 7. Perform unified extract (OCR + Enrich)
     const result = await performUnifiedExtract(imageBase64, mimeType, env.GEMINI_API_KEY);
 
-    // 8. Return result
+    // 8. Update OCR status to completed
+    await env.DB.prepare(`
+      UPDATE temp_uploads 
+      SET ocr_status = 'completed'
+      WHERE upload_id = ? AND user_email = ?
+    `).bind(body.upload_id, user.email).run();
+
+    // 9. Return result
     return jsonResponse(result);
 
   } catch (error) {
     console.error('Unified extract error:', error);
     const message = error instanceof Error ? error.message : 'Failed to extract card data';
+    
+    // Update OCR status to failed
+    try {
+      const userResult = await verifyOAuth(request, env);
+      if (!(userResult instanceof Response)) {
+        const body = await request.clone().json() as UnifiedExtractRequest;
+        if (body.upload_id) {
+          await env.DB.prepare(`
+            UPDATE temp_uploads 
+            SET ocr_status = 'failed', ocr_error = ?
+            WHERE upload_id = ? AND user_email = ?
+          `).bind(message.substring(0, 500), body.upload_id, userResult.email).run();
+        }
+      }
+    } catch (updateError) {
+      console.error('Failed to update OCR status:', updateError);
+    }
+    
     return errorResponse('EXTRACT_FAILED', message, 500);
   }
 }

@@ -80,24 +80,47 @@ export async function handleSaveCard(request: Request, env: Env): Promise<Respon
 
     // AI Flow: Process upload_id
     if (body.upload_id) {
+      // Validate upload_id existence first
+      const upload = await env.DB.prepare(`
+        SELECT upload_id, consumed, expires_at, ocr_status
+        FROM temp_uploads 
+        WHERE upload_id = ? AND user_email = ?
+      `).bind(body.upload_id, user.email).first();
+      
+      if (!upload) {
+        return errorResponse('UPLOAD_NOT_FOUND', 
+          'Upload record not found. Please re-upload the image.', 404);
+      }
+      
+      const now = Date.now();
+      if (Number(upload.expires_at) < now) {
+        return errorResponse('UPLOAD_EXPIRED', 
+          'Upload has expired. Please re-upload the image.', 410);
+      }
+      
+      if (upload.consumed === 1) {
+        return errorResponse('UPLOAD_CONSUMED', 
+          'Upload has already been used.', 409);
+      }
+
       // Atomic mark upload as consumed
       const markResult = await env.DB.prepare(`
         UPDATE temp_uploads
         SET consumed = 1
         WHERE upload_id = ? AND user_email = ? AND consumed = 0 AND expires_at > ?
-      `).bind(body.upload_id, user.email, Date.now().toString()).run();
+      `).bind(body.upload_id, user.email, now.toString()).run();
 
       if (markResult.meta.changes === 0) {
         return errorResponse('INVALID_UPLOAD', 'Upload not found, expired, or already consumed', 404);
       }
 
       // Get upload info (including thumbnail_url)
-      const upload = await env.DB.prepare(`
+      const uploadInfo = await env.DB.prepare(`
         SELECT upload_id, image_url, thumbnail_url FROM temp_uploads
         WHERE upload_id = ? AND user_email = ?
       `).bind(body.upload_id, user.email).first();
 
-      if (!upload) {
+      if (!uploadInfo) {
         // Rollback consumed flag
         await env.DB.prepare(`
           UPDATE temp_uploads SET consumed = 0
@@ -107,29 +130,29 @@ export async function handleSaveCard(request: Request, env: Env): Promise<Respon
         return errorResponse('UPLOAD_NOT_FOUND', 'Upload record not found after marking. Please retry.', 500);
       }
 
-      const fileExtension = (upload.image_url as string).endsWith('.png') ? 'png' : 'jpg';
+      const fileExtension = (uploadInfo.image_url as string).endsWith('.png') ? 'png' : 'jpg';
       permanentUrl = `received/permanent/${cardUuid}.${fileExtension}`;
 
       try {
         // Move image to permanent location
-        const tempImage = await env.PHYSICAL_CARDS.get(upload.image_url as string);
+        const tempImage = await env.PHYSICAL_CARDS.get(uploadInfo.image_url as string);
         if (tempImage) {
           await env.PHYSICAL_CARDS.put(permanentUrl, tempImage.body);
         }
 
         // Delete temp file (best-effort)
-        await env.PHYSICAL_CARDS.delete(upload.image_url as string).catch(() => {});
+        await env.PHYSICAL_CARDS.delete(uploadInfo.image_url as string).catch(() => {});
 
         // Move thumbnail to permanent location (if exists)
-        if (upload.thumbnail_url) {
+        if (uploadInfo.thumbnail_url) {
           const permanentThumbnailUrl = `received/permanent/${cardUuid}_thumb.webp`;
-          const tempThumbnail = await env.PHYSICAL_CARDS.get(upload.thumbnail_url as string);
+          const tempThumbnail = await env.PHYSICAL_CARDS.get(uploadInfo.thumbnail_url as string);
           if (tempThumbnail) {
             await env.PHYSICAL_CARDS.put(permanentThumbnailUrl, tempThumbnail.body);
             thumbnailUrl = permanentThumbnailUrl;
           }
           // Delete temp thumbnail (best-effort)
-          await env.PHYSICAL_CARDS.delete(upload.thumbnail_url as string).catch(() => {});
+          await env.PHYSICAL_CARDS.delete(uploadInfo.thumbnail_url as string).catch(() => {});
         }
 
       } catch (error) {

@@ -320,12 +320,14 @@ const ReceivedCardsAPI = {
       // 5. Upload with retry (idempotent)
       const result = await uploadWithRetry(compressedFile, signal);
 
-      if (!result || !result.upload_id) {
+      // Handle response format: { success: true, data: { upload_id, ... } }
+      const uploadData = result.data || result;
+      if (!uploadData || !uploadData.upload_id) {
         throw new Error('Upload failed: Invalid response from server');
       }
 
-      console.log('[Upload] Success:', result.upload_id);
-      return result;
+      console.log('[Upload] Success:', uploadData.upload_id);
+      return uploadData;
 
     } catch (error) {
       console.error('[Upload] Failed:', error);

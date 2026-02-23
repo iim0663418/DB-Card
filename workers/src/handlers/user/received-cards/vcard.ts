@@ -59,15 +59,6 @@ function generateNameField(card: ReceivedCard): string {
 }
 
 /**
- * Sanitize filename by removing special characters
- * Prevents file system issues on various platforms
- */
-function sanitizeFilename(name: string): string {
-  // eslint-disable-next-line no-control-regex
-  return name.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_');
-}
-
-/**
  * Generate vCard 3.0 string from ReceivedCard
  * Compliant with RFC 2426
  *

@@ -34,7 +34,7 @@ export function validateURL(url, allowedHosts = []) {
         
         // Return sanitized URL
         return urlObj.href;
-    } catch (e) {
+    } catch (_e) {
         return null;
     }
 }

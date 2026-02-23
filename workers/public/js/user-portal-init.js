@@ -730,6 +730,7 @@
           }
         }
 
+        // eslint-disable-next-line no-unused-vars -- Called from HTML onclick
         function closeWebViewWarning() {
           const modal = document.getElementById('webview-warning-modal');
           if (modal) {
@@ -737,6 +738,7 @@
           }
         }
 
+        // eslint-disable-next-line no-unused-vars -- Called from HTML onclick
         function copyCurrentURL() {
           navigator.clipboard.writeText(window.location.href).then(() => {
             alert(i18n[currentLang]['url_copied'] || 'URL copied!');
@@ -775,6 +777,7 @@
           return config;
         }
 
+        // eslint-disable-next-line no-unused-vars -- Called from HTML onclick
         async function handleGoogleLogin() {
             const errorBox = document.getElementById('login-error-box');
             errorBox.classList.add('hidden');
@@ -1172,7 +1175,7 @@
                     }
 
                     document.getElementById('form-title').innerText = i18n[currentLang]['form-title'];
-                } catch (err) {
+                } catch (_err) {
                     showToast(i18n[currentLang]['error-save-failed'] || '載入名片資料失敗');
                     return;
                 } finally {
@@ -1320,7 +1323,6 @@
             currentModalUuid = uuid;
 
             // 設定名片類型文字
-            const typeText = getCardTypeLabel(type);
             const subtitleText = i18n[currentLang]['modal-success-subtitle'];
             document.getElementById('modal-card-type').innerText = subtitleText;
 
@@ -1403,7 +1405,7 @@
                         if (window.initIcons) window.initIcons();
                     }
                 }, 2000);
-            } catch (err) {
+            } catch (_err) {
                 showToast(i18n[currentLang]['modal-copy-failed']);
             }
         }
@@ -1512,7 +1514,6 @@
 
             const email = document.getElementById('email').value || '---';
             const phone = document.getElementById('phone').value || '---';
-            const avatar = document.getElementById('avatar_url').value || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80";
 
             // 地址
             const preset = document.getElementById('address-preset').value;
@@ -1833,15 +1834,6 @@
             setTimeout(() => banner.classList.add('hidden'), 10000);
         }
 
-        function formatDuration(seconds) {
-            const hours = Math.floor(seconds / 3600);
-            const minutes = Math.ceil((seconds % 3600) / 60);
-            if (hours > 0) {
-                return `${hours} 小時 ${minutes} 分鐘`;
-            }
-            return `${minutes} 分鐘`;
-        }
-
         // ==================== Consent Management Functions ====================
 
         /**
@@ -2023,7 +2015,7 @@
             confirmBtn.textContent = i18n[currentLang]['withdraw-canceling'] || '處理中...';
 
             try {
-                const response = await apiCall('/api/consent/withdraw', {
+                await apiCall('/api/consent/withdraw', {
                     method: 'POST'
                 });
 

@@ -11,14 +11,6 @@ interface Card {
   encrypted_payload: string;
 }
 
-interface TwinStatusRecord {
-  card_uuid: string;
-  enabled: boolean;
-  status: TwinStatus;
-  last_rebuild_at: string;
-  error_message: string | null;
-}
-
 /**
  * Check if twin can be enabled
  * BDD Scenario 4: Verify at least one core asset exists

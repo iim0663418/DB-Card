@@ -4,7 +4,7 @@
 import type { Env } from '../../types';
 import { verifySetupToken } from '../../middleware/auth';
 import { verifyMagicBytes, validateFileSize, validateImageDimensions } from '../../utils/image-validator';
-import { generateR2Key, getR2TransformParams } from '../../utils/image-processor';
+import { getR2TransformParams } from '../../utils/image-processor';
 import { recordUploadMetrics, recordReadMetrics, recordRateLimitTrigger } from '../../middleware/metrics-middleware';
 import { autoEnableOnUpload, markStaleOnUpdate } from '../../utils/twin-status';
 import { anonymizeIP } from '../../utils/audit';
@@ -252,37 +252,6 @@ export async function handleAssetUpload(request: Request, env: Env): Promise<Res
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });
-  }
-}
-
-/**
- * Get card type from DB (reused from /api/read logic)
- */
-async function getCardType(
-  env: Env,
-  cardUuid: string
-): Promise<'personal' | 'event' | 'sensitive'> {
-  try {
-    const result = await env.DB.prepare(`
-      SELECT ub.type
-      FROM uuid_bindings ub
-      WHERE ub.uuid = ?
-        AND ub.status = 'bound'
-      LIMIT 1
-    `).bind(cardUuid).first<{ type: string }>();
-
-    if (!result || !result.type) {
-      return 'personal';
-    }
-
-    const cardType = result.type as 'personal' | 'event' | 'sensitive';
-    if (!['personal', 'event', 'sensitive'].includes(cardType)) {
-      return 'personal';
-    }
-
-    return cardType;
-  } catch (error) {
-    return 'personal';
   }
 }
 

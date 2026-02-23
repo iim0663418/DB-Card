@@ -717,7 +717,7 @@ function parseSocialLinks(socialText) {
                     break; // 每行只匹配一個平台
                 }
             }
-        } catch (e) {
+        } catch (_e) {
             // URL 解析失敗，跳過此行
             console.warn('Invalid social URL:', url);
         }
@@ -725,35 +725,6 @@ function parseSocialLinks(socialText) {
 
     // Initialize icons for dynamically added elements
     if (window.initIcons) window.initIcons();
-}
-
-function startTypewriter(phrases) {
-    // 停止之前的 typewriter
-    if (typewriterTimeout) {
-        clearTimeout(typewriterTimeout);
-        typewriterTimeout = null;
-    }
-
-    const el = document.getElementById('typewriter');
-    let i = 0, j = 0, isDeleting = false;
-
-    const type = () => {
-        const current = phrases[i];
-        el.textContent = isDeleting ? current.substring(0, j--) : current.substring(0, j++);
-
-        if (!isDeleting && j > current.length) {
-            isDeleting = true;
-            typewriterTimeout = setTimeout(type, 2000);
-        } else if (isDeleting && j === 0) {
-            isDeleting = false;
-            i = (i + 1) % phrases.length;
-            typewriterTimeout = setTimeout(type, 500);
-        } else {
-            typewriterTimeout = setTimeout(type, isDeleting ? 30 : 80);
-        }
-    };
-
-    type();
 }
 
 function hideLoading() {

@@ -124,7 +124,7 @@ vCard 標準辨識規則：
       ...result,
       ocr_raw_text: text
     };
-  } catch (error) {
+  } catch (_error) {
     console.error('Failed to parse OCR result:', cleanText.substring(0, 200));
     throw new Error('Invalid OCR response format');
   }

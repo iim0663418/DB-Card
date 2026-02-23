@@ -9,7 +9,6 @@ export async function handleListSharedCards(request: Request, env: Env): Promise
   try {
     const userResult = await verifyOAuth(request, env);
     if (userResult instanceof Response) return userResult;
-    const user = userResult;
 
     const sharedCards = await env.DB.prepare(`
       SELECT

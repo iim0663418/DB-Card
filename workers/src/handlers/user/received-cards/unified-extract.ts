@@ -158,7 +158,7 @@ async function performUnifiedExtract(
       ...result,
       sources
     };
-  } catch (error) {
+  } catch (_error) {
     console.error('Failed to parse unified extract result:', cleanText.substring(0, 200));
     throw new Error('Invalid response format');
   }

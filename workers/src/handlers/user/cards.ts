@@ -120,7 +120,7 @@ export async function handleUserCreateCard(request: Request, env: Env): Promise<
     let body: UserCardCreateRequest;
     try {
       body = await request.json();
-    } catch (error) {
+    } catch (_error) {
       return errorResponse('invalid_request', 'Invalid JSON format', 400, request);
     }
 
@@ -301,7 +301,7 @@ export async function handleUserUpdateCard(
     let body: UserCardUpdateRequest;
     try {
       body = await request.json();
-    } catch (error) {
+    } catch (_error) {
       return errorResponse('invalid_request', 'Invalid JSON format', 400, request);
     }
 
@@ -702,7 +702,7 @@ export async function handleUserRevokeCard(
       if (request.headers.get('content-type')?.includes('application/json')) {
         body = await request.json();
       }
-    } catch (error) {
+    } catch (_error) {
       // Optional body, continue
     }
 
@@ -714,7 +714,7 @@ export async function handleUserRevokeCard(
 
     if (!binding) {
       // Also query without email filter to see if UUID exists
-      const anyBinding = await env.DB.prepare(`
+      await env.DB.prepare(`
         SELECT uuid, bound_email, status FROM uuid_bindings WHERE uuid = ?
       `).bind(uuid).first<{ uuid: string; bound_email: string; status: string }>();
 

@@ -43,7 +43,7 @@ export async function handleVitalsReport(request: Request, env: Env): Promise<Re
     ).run();
 
     return new Response(null, { status: 204 });
-  } catch (error) {
+  } catch (_error) {
     return new Response(null, { status: 500 });
   }
 }
@@ -66,7 +66,7 @@ export async function handleVitalsStats(request: Request, env: Env): Promise<Res
     `).bind(sevenDaysAgo).first();
 
     return jsonResponse(stats, 200, request);
-  } catch (error) {
+  } catch (_error) {
     return errorResponse('internal_error', '查詢失敗', 500, request);
   }
 }

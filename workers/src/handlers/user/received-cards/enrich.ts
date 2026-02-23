@@ -118,7 +118,7 @@ async function performEnrichment(
       website: result.website || null,
       address: result.address || null
     };
-  } catch (error) {
+  } catch (_error) {
     console.error('Failed to parse enrichment result:', cleanText);
     // Return partial result with sources
     return {

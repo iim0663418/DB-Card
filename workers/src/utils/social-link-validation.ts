@@ -72,7 +72,7 @@ export function validateSocialLink(url: string | null | undefined): boolean {
         }
 
         return true;
-    } catch (e) {
+    } catch (_e) {
         return false;
     }
 }

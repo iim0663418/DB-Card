@@ -2,7 +2,7 @@
 // BDD Specification: Phase 2 Task 2.2
 // Implements secure card data reading with session validation
 
-import type { Env, ReadSession, Card, CardData } from '../types';
+import type { Env, ReadSession, CardData } from '../types';
 import { EnvelopeEncryption } from '../crypto/envelope';
 import { logEvent } from '../utils/audit';
 import { errorResponse } from '../utils/response';
@@ -82,8 +82,6 @@ async function getCachedCardData(
 }
 
 // CORS allowed origins whitelist
-import { getCorsHeaders } from '../utils/response';
-
 function getCardCorsHeaders(request: Request, env: Env): HeadersInit {
   const allowedOrigins = [
     'http://localhost:8788',

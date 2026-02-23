@@ -1,7 +1,7 @@
 // Admin Cards Handler
 // POST /api/admin/cards - Create a new business card
 
-import type { Env, CardData, CardType } from '../../types';
+import type { Env, CardType } from '../../types';
 import { CARD_POLICIES } from '../../types';
 import { verifySetupToken } from '../../middleware/auth';
 import { EnvelopeEncryption } from '../../crypto/envelope';
@@ -289,7 +289,7 @@ export async function handleCreateCard(request: Request, env: Env): Promise<Resp
     let body: any;
     try {
       body = await request.json();
-    } catch (error) {
+    } catch (_error) {
       return errorResponse('invalid_request', '無效的 JSON 格式', 400, request);
     }
 
@@ -559,7 +559,7 @@ export async function handleUpdateCard(
     let body: any;
     try {
       body = await request.json();
-    } catch (error) {
+    } catch (_error) {
       return errorResponse('invalid_request', '無效的 JSON 格式', 400, request);
     }
 

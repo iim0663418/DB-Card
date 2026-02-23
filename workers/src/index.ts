@@ -34,7 +34,7 @@ import { handleOAuthCallback } from './handlers/oauth';
 import { handleOAuthInit } from './handlers/oauth-init';
 import { handleRISCEvent } from './handlers/risc';
 import { handleManifest } from './handlers/manifest';
-import { errorResponse, publicErrorResponse } from './utils/response';
+import { publicErrorResponse } from './utils/response';
 import { initAllowedOrigins } from './utils/response';
 import { checkRateLimit } from './middleware/rate-limit';
 import { verifySetupToken } from './middleware/auth';
@@ -712,7 +712,7 @@ export default {
     return response;
   },
 
-  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+  async scheduled(event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
     // Run all cleanup tasks at 02:00 UTC
     const { handleScheduledCleanup } = await import('./scheduled-cleanup');
     const { handleScheduledLogRotation } = await import('./scheduled-log-rotation');

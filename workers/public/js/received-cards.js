@@ -889,7 +889,7 @@ const ReceivedCards = {
           resultCount.textContent = cards.length;
         }
       }
-    } catch (error) {
+    } catch (_error) {
       this.cards = [];
       this.allCards = [];
       this.renderCards([]);
@@ -1187,7 +1187,7 @@ const ReceivedCards = {
       URL.revokeObjectURL(url);
 
       showToast('vCard 已下載', 'success');
-    } catch (error) {
+    } catch (_error) {
       showToast('匯出失敗', 'error');
     }
   },
@@ -1313,7 +1313,7 @@ const ReceivedCards = {
           showToast('QR Code 已下載', 'success');
         }
       });
-    } catch (error) {
+    } catch (_error) {
       if (typeof showToast === 'function') {
         showToast('下載失敗', 'error');
       }
@@ -1347,7 +1347,7 @@ const ReceivedCards = {
       if (card.ai_sources_json && typeof card.ai_sources_json === 'string') {
         try {
           card.sources = JSON.parse(card.ai_sources_json);
-        } catch (e) {
+        } catch (_e) {
           // Silently fallback to empty array
           card.sources = [];
         }
@@ -1424,7 +1424,7 @@ const ReceivedCards = {
         window.lucide.createIcons();
       }
 
-    } catch (error) {
+    } catch (_error) {
       showToast('載入失敗', 'error');
     }
   },
@@ -1474,8 +1474,6 @@ const ReceivedCards = {
   renderCompanySummary(card) {
     const companyContainer = document.getElementById('company-summary-container');
     const companyText = document.getElementById('company-summary-text');
-    const personalContainer = document.getElementById('personal-summary-container');
-    const personalText = document.getElementById('personal-summary-text');
     const sourcesContainer = document.getElementById('sources-container');
     const sourcesList = document.getElementById('sources-list');
 
@@ -1606,7 +1604,7 @@ const ReceivedCards = {
       this.hideEnrichProgress();
       showToast('✓ AI 資訊已回填，請確認後儲存', 'success');
 
-    } catch (error) {
+    } catch (_error) {
       this.hideEnrichProgress();
       showToast('補齊失敗，請稍後再試', 'error');
     }
@@ -1926,7 +1924,7 @@ const ReceivedCards = {
       if (typeof showToast === 'function') {
         showToast('名片已更新', 'success');
       }
-    } catch (error) {
+    } catch (_error) {
       if (typeof showToast === 'function') {
         showToast('更新失敗，請稍後再試', 'error');
       }
@@ -1945,10 +1943,12 @@ const ReceivedCards = {
   }
 };
 
+// eslint-disable-next-line no-unused-vars -- Called from HTML onclick
 function showReceivedCards() {
   ReceivedCards.show();
 }
 
+// eslint-disable-next-line no-unused-vars -- Called from HTML onclick
 function backToSelection() {
   ReceivedCards.hide();
 }
@@ -2121,7 +2121,7 @@ const BatchUpload = {
         if (completed + failed >= total) {
           this.onBatchComplete(data);
         }
-      } catch (error) {
+      } catch (_error) {
         this.cancelUpload();
         if (typeof showToast === 'function') {
           showToast('無法取得上傳進度', 'error');
@@ -2182,7 +2182,7 @@ const BatchUpload = {
   },
 
   onBatchComplete(data) {
-    const { total, completed, failed } = data;
+    const { completed, failed } = data;
 
     // Stop polling
     if (this.progressInterval) {

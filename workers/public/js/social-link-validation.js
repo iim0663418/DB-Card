@@ -76,7 +76,7 @@ function validateSocialLink(url) {
         }
 
         return true;
-    } catch (e) {
+    } catch (_e) {
         // Invalid URL format
         return false;
     }
@@ -127,7 +127,7 @@ function getSocialLinkError(url) {
         }
 
         return null; // Valid
-    } catch (e) {
+    } catch (_e) {
         return '無效的 URL 格式。請輸入完整的 URL（包含 http:// 或 https://）';
     }
 }

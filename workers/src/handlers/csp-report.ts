@@ -65,7 +65,7 @@ export async function handleCSPReportStats(request: Request, env: Env): Promise<
     `).bind(oneDayAgo).all();
 
     return jsonResponse(stats.results, 200, request);
-  } catch (error) {
+  } catch (_error) {
     return errorResponse('internal_error', '查詢失敗', 500, request);
   }
 }

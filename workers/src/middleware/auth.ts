@@ -116,7 +116,7 @@ function timingSafeEqual(a: string, b: string): boolean {
 
     // crypto.subtle.timingSafeEqual is available in Cloudflare Workers
     return crypto.subtle.timingSafeEqual(aBuffer, bBuffer);
-  } catch (error) {
+  } catch (_error) {
     // Fallback to constant-time comparison if crypto.subtle.timingSafeEqual is not available
     console.warn('crypto.subtle.timingSafeEqual not available, using fallback');
     return constantTimeEqual(a, b);

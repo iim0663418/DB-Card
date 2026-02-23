@@ -95,7 +95,7 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
     let imageBytes: Uint8Array;
     try {
       imageBytes = decodeBase64Chunked(body.image_base64);
-    } catch (error) {
+    } catch (_error) {
       return errorResponse('INVALID_BASE64', 'Invalid Base64 image data', 400);
     }
 

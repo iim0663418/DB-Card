@@ -2,7 +2,7 @@
 // Provides login/logout endpoints with HttpOnly cookie support
 
 import type { Env, AdminLoginRequest } from '../../types';
-import { jsonResponse, errorResponse, adminErrorResponse } from '../../utils/response';
+import { errorResponse, adminErrorResponse } from '../../utils/response';
 import { validateEmail } from '../../utils/validation';
 import { checkLoginRateLimit, incrementLoginAttempts, resetLoginAttempts } from '../../utils/login-rate-limit';
 import { generateCsrfToken, storeCsrfToken } from '../../utils/csrf';

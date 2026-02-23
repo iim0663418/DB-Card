@@ -880,9 +880,16 @@
 
         // Render cards list (Phase 2: XSS防護 - 使用 DOM API 而非 innerHTML)
         function renderCardsList(cards) {
+            console.log('[renderCardsList] Called with', cards?.length, 'cards');
             const grid = document.getElementById('cards-grid');
 
+            if (!grid) {
+                console.error('[renderCardsList] cards-grid element not found');
+                return;
+            }
+
             if (!cards || cards.length === 0) {
+                console.log('[renderCardsList] No cards to render');
                 showEmptyState();
                 return;
             }
@@ -891,7 +898,9 @@
             grid.innerHTML = '';
 
             // 使用 DOM API 安全渲染每張卡片
-            cards.forEach(c => {
+            cards.forEach((c, index) => {
+                try {
+                    console.log(`[renderCardsList] Rendering card ${index}:`, c.uuid, c.data?.name);
                 const cardDiv = document.createElement('div');
                 cardDiv.className = 'glass-surface p-6 rounded-2xl flex flex-col lg:flex-row justify-between items-center gap-6 group hover:border-moda transition-all';
 
@@ -1043,8 +1052,12 @@
 
                 cardDiv.appendChild(actionDiv);
                 grid.appendChild(cardDiv);
+                } catch (error) {
+                    console.error(`[renderCardsList] Error rendering card ${index}:`, error, c);
+                }
             });
 
+            console.log('[renderCardsList] Finished rendering', cards.length, 'cards');
             safeInitIcons();
         }
 

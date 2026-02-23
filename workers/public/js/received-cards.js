@@ -574,11 +574,15 @@ const CardUploadStateMachine = {
     safeSetValue('preview-address', data.address);
     safeSetValue('preview-note', data.note);
     
-    if (data.company_summary) {
-      document.getElementById('preview-company-summary').textContent = data.company_summary;
-      document.getElementById('ai-summary-section').classList.remove('hidden');
-    } else {
-      document.getElementById('ai-summary-section').classList.add('hidden');
+    // Safe handling of company_summary section
+    const summaryEl = document.getElementById('preview-company-summary');
+    const sectionEl = document.getElementById('ai-summary-section');
+    
+    if (data.company_summary && summaryEl && sectionEl) {
+      summaryEl.textContent = data.company_summary;
+      sectionEl.classList.remove('hidden');
+    } else if (sectionEl) {
+      sectionEl.classList.add('hidden');
     }
     
     const saveBtn = document.getElementById('preview-save-btn');

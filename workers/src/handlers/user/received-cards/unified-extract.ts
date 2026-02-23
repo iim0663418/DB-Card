@@ -25,7 +25,7 @@ interface UnifiedExtractResult {
   address: string | null;
   
   // Enrich fields
-  organization_alias: string | null;
+  organization_alias: string[] | null;
   organization_full: string | null;
   company_summary: string | null;
   sources: Array<{ uri: string; title: string }>;
@@ -55,58 +55,88 @@ async function performUnifiedExtract(
   mimeType: string,
   apiKey: string
 ): Promise<UnifiedExtractResult> {
+  // JSON Schema for structured output
+  const responseSchema = {
+    type: "object",
+    properties: {
+      name_prefix: {
+        type: ["string", "null"],
+        description: "稱謂前綴（Dr./Prof./Mr./Mrs./Ms.），無則填 null"
+      },
+      full_name: {
+        type: "string",
+        description: "完整姓名（必填）"
+      },
+      name_suffix: {
+        type: ["string", "null"],
+        description: "學位/頭銜後綴（Ph.D./Jr./Sr./M.D./Esq.），無則填 null"
+      },
+      organization: {
+        type: "string",
+        description: "公司/組織名稱（必填）"
+      },
+      organization_en: {
+        type: ["string", "null"],
+        description: "公司英文名稱（名片上有印才填，否則從官網補全）"
+      },
+      organization_alias: {
+        type: ["array", "null"],
+        items: { type: "string" },
+        description: "組織常用簡稱或品牌名（例如：[\"台積電\", \"TSMC\"]）"
+      },
+      organization_full: {
+        type: ["string", "null"],
+        description: "組織完整正式名稱（工商登記全稱）"
+      },
+      department: {
+        type: ["string", "null"],
+        description: "部門名稱"
+      },
+      title: {
+        type: ["string", "null"],
+        description: "職稱"
+      },
+      phone: {
+        type: ["string", "null"],
+        description: "電話號碼（保留原格式含國碼，如：+886-2-1234-5678）"
+      },
+      email: {
+        type: ["string", "null"],
+        description: "電子郵件"
+      },
+      website: {
+        type: ["string", "null"],
+        description: "網站（完整 URL 含 https://，優先使用名片上的資訊）"
+      },
+      address: {
+        type: ["string", "null"],
+        description: "地址（完整地址含郵遞區號，優先使用名片上的資訊）"
+      },
+      company_summary: {
+        type: ["string", "null"],
+        description: "組織摘要（100-200字：產業、主要業務、成立年份、規模、營運狀況。如有部門名稱，額外說明該部門職能）"
+      }
+    },
+    required: ["full_name", "organization"]
+  };
+
   const prompt = `你是專業的名片辨識與資訊補全系統。請完成以下兩個任務：
 
-**任務 1：OCR 辨識**（依照 vCard RFC 6350 標準）
-從名片圖片中精確辨識以下資訊：
-- name_prefix: 稱謂前綴（Dr./Prof./Mr./Mrs./Ms.）
-- full_name: 完整姓名（必填）
-- name_suffix: 學位/頭銜後綴（Ph.D./Jr./Sr./M.D./Esq.）
-- organization: 公司名稱（必填）
-- organization_en: 公司英文名稱（名片上有印才填）
-- department: 部門
-- title: 職稱
-- phone: 電話號碼（保留原格式含國碼，如：+886-2-1234-5678）
-- email: 電子郵件
-- website: 網站（完整 URL 含 https://）
-- address: 地址（完整地址含郵遞區號）
+**任務 1：OCR 辨識**
+從名片圖片中精確辨識所有可見資訊（姓名、公司、部門、職稱、聯絡方式等）。
 
-**任務 2：公司資訊補全**（使用 Google Search）
-搜尋公司的以下資訊：
-- company_summary: 公司摘要（100-200字：產業、主要業務、成立年份、規模、營運狀況。如果名片中有部門名稱，額外查找該部門在公司中的職能與職責，並整合到摘要中）
-- organization_full: 公司完整正式名稱（工商登記全稱）
-- organization_alias: 公司常用簡稱或品牌名（陣列格式，例如：["台積電", "TSMC"]）
-- 若名片上缺少以下欄位，請從官網補全：
-  - organization_en: 公司英文正式名稱
-  - website: 官方網站（完整 URL 含 https://）
-  - address: 總部地址（完整地址含郵遞區號）
+**任務 2：組織資訊補全**
+使用 Google Search 補全組織資訊：
+- 組織完整名稱、英文名稱、常用簡稱
+- 組織摘要（產業、業務、規模、營運狀況）
+- 如有部門名稱，說明該部門在組織中的職能
+- 若名片缺少官網或地址，從官方來源補全
 
-**回傳格式**（純 JSON，不要 markdown 標記）：
-{
-  "name_prefix": "...",
-  "full_name": "...",
-  "name_suffix": "...",
-  "organization": "...",
-  "organization_en": "...",
-  "organization_alias": ["簡稱1", "簡稱2"],
-  "organization_full": "...",
-  "department": "...",
-  "title": "...",
-  "phone": "...",
-  "email": "...",
-  "website": "...",
-  "address": "...",
-  "company_summary": "..."
-}
-
-**規則**：
-1. 無法辨識的欄位填 null
-2. 優先使用官方來源（公司官網、政府登記、證交所）
-3. 使用近 2 年內資料
-4. organization_full 必須是工商登記的正式全稱
-5. 不要包含個人隱私資訊
-6. phone 保留國碼和原始格式
-7. website 和 address 優先使用名片上的資訊，缺失時才從 Web Search 補全`;
+**搜尋策略**：
+- 可使用「姓名 + 組織/部門」作為搜尋關鍵字（用於精確定位組織資訊）
+- company_summary 僅描述組織和部門，不包含個人研究領域或學術成果
+- 優先使用官方來源（組織官網、政府登記）
+- 使用近 2 年內資料`;
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`,
@@ -120,7 +150,11 @@ async function performUnifiedExtract(
             { inline_data: { mime_type: mimeType, data: imageBase64 } }
           ]
         }],
-        tools: [{ googleSearch: {} }]
+        tools: [{ googleSearch: {} }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseJsonSchema: responseSchema
+        }
       })
     }
   );
@@ -146,20 +180,15 @@ async function performUnifiedExtract(
     title: chunk.web?.title || ''
   })).filter((s: any) => s.uri) || [];
 
-  // Parse JSON (handle markdown code blocks)
-  let cleanText = text.trim();
-  cleanText = cleanText.replace(/^```(?:json)?\s*\n?/i, '');
-  cleanText = cleanText.replace(/\n?```\s*$/g, '');
-  cleanText = cleanText.trim();
-
+  // Parse JSON (Structured Output guarantees valid JSON)
   try {
-    const result = JSON.parse(cleanText);
+    const result = JSON.parse(text);
     return {
       ...result,
       sources
     };
   } catch (_error) {
-    console.error('Failed to parse unified extract result:', cleanText.substring(0, 200));
+    console.error('Failed to parse unified extract result:', text.substring(0, 200));
     throw new Error('Invalid response format');
   }
 }

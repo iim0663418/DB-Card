@@ -579,24 +579,32 @@ const CardUploadStateMachine = {
     const personalSummaryEl = document.getElementById('preview-personal-summary');
     const aiSectionEl = document.getElementById('ai-summary-section');
     
-    if ((data.company_summary || data.personal_summary) && aiSectionEl) {
-      if (data.company_summary && companySummaryEl) {
-        companySummaryEl.textContent = data.company_summary;
-        companySummaryEl.parentElement.classList.remove('hidden');
-      } else if (companySummaryEl) {
-        companySummaryEl.parentElement.classList.add('hidden');
+    let hasAnySummary = false;
+    
+    if (data.company_summary && companySummaryEl) {
+      companySummaryEl.textContent = data.company_summary;
+      const parent = companySummaryEl.parentElement;
+      if (parent) parent.classList.remove('hidden');
+      hasAnySummary = true;
+    } else if (companySummaryEl && companySummaryEl.parentElement) {
+      companySummaryEl.parentElement.classList.add('hidden');
+    }
+    
+    if (data.personal_summary && personalSummaryEl) {
+      personalSummaryEl.textContent = data.personal_summary;
+      const parent = personalSummaryEl.parentElement;
+      if (parent) parent.classList.remove('hidden');
+      hasAnySummary = true;
+    } else if (personalSummaryEl && personalSummaryEl.parentElement) {
+      personalSummaryEl.parentElement.classList.add('hidden');
+    }
+    
+    if (aiSectionEl) {
+      if (hasAnySummary) {
+        aiSectionEl.classList.remove('hidden');
+      } else {
+        aiSectionEl.classList.add('hidden');
       }
-      
-      if (data.personal_summary && personalSummaryEl) {
-        personalSummaryEl.textContent = data.personal_summary;
-        personalSummaryEl.parentElement.classList.remove('hidden');
-      } else if (personalSummaryEl) {
-        personalSummaryEl.parentElement.classList.add('hidden');
-      }
-      
-      aiSectionEl.classList.remove('hidden');
-    } else if (aiSectionEl) {
-      aiSectionEl.classList.add('hidden');
     }
     
     const saveBtn = document.getElementById('preview-save-btn');
@@ -622,7 +630,10 @@ const CardUploadStateMachine = {
           name_suffix: document.getElementById('preview-name-suffix').value,
           organization: document.getElementById('preview-organization').value,
           organization_en: document.getElementById('preview-organization-en').value,
-          organization_alias: document.getElementById('preview-organization-alias').value,
+          organization_alias: document.getElementById('preview-organization-alias').value
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s.length > 0),
           department: document.getElementById('preview-department').value,
           title: document.getElementById('preview-title').value,
           phone: document.getElementById('preview-phone').value,

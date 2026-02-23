@@ -119,7 +119,7 @@ async function performUnifiedExtract(
       },
       personal_summary: {
         type: ["string", "null"],
-        description: "個人摘要（30-50字：基於名片特徵搜尋此人，提供快速掌握個人特色的資訊。例如：專業領域、代表性成就、特殊專長等）"
+        description: "個人摘要（嚴格限制 30-50 字：一句話總結此人的專業特色或代表性成就。例如：「專精雲端架構與 AI 應用，協助企業數位轉型」）"
       }
     },
     required: ["full_name", "organization"]
@@ -135,13 +135,13 @@ async function performUnifiedExtract(
 - 組織完整名稱、英文名稱、常用簡稱
 - 組織摘要（產業、業務、規模、營運狀況）
 - 如有部門名稱，說明該部門在組織中的職能
-- 個人摘要（30-50字：基於名片特徵搜尋此人，提供快速掌握個人特色的資訊，如專業領域、代表性成就、特殊專長）
+- 個人摘要（**嚴格限制 30-50 字**：一句話總結此人的專業特色或代表性成就）
 - 若名片缺少官網或地址，從官方來源補全
 
 **搜尋策略**：
 - 可使用「姓名 + 組織/部門」作為搜尋關鍵字
 - company_summary 僅描述組織和部門
-- personal_summary 精簡且有意義，突出個人特色
+- personal_summary 必須精簡，一句話即可
 - 優先使用官方來源（組織官網、政府登記、專業檔案）`;
 
   const response = await fetch(

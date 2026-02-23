@@ -868,15 +868,7 @@
             safeInitIcons();
         }
 
-        // Load cards from API and render
-        async function loadCards() {
-            try {
-                const cards = await api.getCards();
-                renderCardsList(cards);
-            } catch (error) {
-                showLoadingError(error.message || '載入失敗');
-            }
-        }
+        // 注意：loadCards 函數定義在後面（window.loadCards）
 
         // Render cards list (Phase 2: XSS防護 - 使用 DOM API 而非 innerHTML)
         function renderCardsList(cards) {

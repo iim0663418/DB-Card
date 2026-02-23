@@ -1,6 +1,194 @@
 // Received Cards Module
 // AI-First Card Capture Feature
 
+// ==================== Mobile Upload Optimization ====================
+
+/**
+ * Generate idempotency key for upload deduplication
+ */
+function generateIdempotencyKey() {
+  return `${Date.now()}_${crypto.randomUUID()}`;
+}
+
+/**
+ * Read file magic bytes for format detection
+ */
+async function readMagicBytes(file, length = 12) {
+  const slice = file.slice(0, length);
+  const buffer = await slice.arrayBuffer();
+  return new Uint8Array(buffer);
+}
+
+/**
+ * Check if file is HEIC format (extension + MIME + magic bytes)
+ */
+async function isHEIC(file) {
+  const fileName = file.name.toLowerCase();
+  
+  // Check extension
+  if (fileName.endsWith('.heic') || fileName.endsWith('.heif')) {
+    return true;
+  }
+  
+  // Check MIME type
+  if (file.type === 'image/heic' || file.type === 'image/heif') {
+    return true;
+  }
+  
+  // Check magic bytes
+  const magicBytes = await readMagicBytes(file, 12);
+  return isHEICMagicBytes(magicBytes);
+}
+
+/**
+ * Detect HEIC magic bytes (ftyp heic/mif1/msf1/hevc)
+ */
+function isHEICMagicBytes(bytes) {
+  if (bytes.length < 12) return false;
+  
+  // Check "ftyp" (66 74 79 70)
+  if (bytes[4] === 0x66 && bytes[5] === 0x74 && 
+      bytes[6] === 0x79 && bytes[7] === 0x70) {
+    const brand = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]);
+    return ['heic', 'mif1', 'msf1', 'hevc'].includes(brand);
+  }
+  
+  return false;
+}
+
+/**
+ * Show HEIC error message with iPhone settings guide
+ */
+function showHEICError() {
+  const lang = document.documentElement.lang || 'zh';
+  
+  const messages = {
+    zh: `❌ 不支援 HEIC 格式
+
+📱 iPhone 用戶請依以下步驟設定（30 秒完成）：
+1. 開啟「設定」App
+2. 點選「相機」
+3. 點選「格式」
+4. 選擇「最相容」（而非「高效率」）
+
+✅ 設定後拍攝的照片將自動儲存為 JPG 格式`,
+    
+    en: `❌ HEIC format not supported
+
+📱 iPhone users: Change camera settings (30 seconds):
+1. Open "Settings" app
+2. Tap "Camera"
+3. Tap "Formats"
+4. Select "Most Compatible" (not "High Efficiency")
+
+✅ Photos will be saved as JPG automatically`
+  };
+  
+  const message = messages[lang] || messages.zh;
+  
+  if (typeof showToast === 'function') {
+    showToast(message, 'error', 10000);
+  } else {
+    alert(message);
+  }
+}
+
+/**
+ * Compress image with cancellation support
+ */
+async function compressImageWithCancellation(file, signal) {
+  const compressionPromise = imageCompression(file, {
+    maxSizeMB: 1,
+    maxWidthOrHeight: 1920,
+    useWebWorker: true,
+    fileType: 'image/jpeg'
+  });
+  
+  if (!signal) {
+    return await compressionPromise;
+  }
+  
+  // Simulate cancellation with Promise.race
+  const abortPromise = new Promise((_, reject) => {
+    signal.addEventListener('abort', () => {
+      reject(new Error('Compression cancelled'));
+    });
+  });
+  
+  return await Promise.race([compressionPromise, abortPromise]);
+}
+
+/**
+ * File to Base64 conversion
+ */
+async function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * Upload with exponential backoff retry
+ */
+async function uploadWithRetry(file, signal, maxRetries = 3) {
+  const idempotencyKey = generateIdempotencyKey();
+  const API_BASE = window.API_BASE || '';
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const imageBase64 = await fileToBase64(file);
+      
+      const response = await fetch(`${API_BASE}/api/user/received-cards/upload`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Idempotency-Key': idempotencyKey
+        },
+        body: JSON.stringify({
+          image_base64: imageBase64,
+          filename: file.name
+        }),
+        signal
+      });
+      
+      if (!response.ok) {
+        const error = new Error(`Upload failed: ${response.status}`);
+        error.status = response.status;
+        throw error;
+      }
+      
+      return await response.json();
+      
+    } catch (error) {
+      // Don't retry if cancelled
+      if (error.name === 'AbortError' || signal?.aborted) {
+        throw error;
+      }
+      
+      // Check if retryable
+      const isNetworkError = !error.status;
+      const isServerError = error.status >= 500;
+      const isRateLimit = error.status === 429;
+      const isRetryable = isNetworkError || isServerError || isRateLimit;
+      
+      if (!isRetryable || attempt === maxRetries) {
+        throw error;
+      }
+      
+      // Exponential backoff with jitter
+      const baseDelay = 1000 * Math.pow(2, attempt);
+      const jitter = Math.random() * 1000;
+      const delay = Math.min(baseDelay + jitter, 10000);
+      
+      console.log(`[Upload] Retry ${attempt + 1}/${maxRetries} after ${delay}ms`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+
 // ==================== Thumbnail Generator ====================
 async function generateThumbnailClient(file) {
   return new Promise((resolve, reject) => {
@@ -104,37 +292,31 @@ const ReceivedCardsAPI = {
     return await response.json();
   },
 
-  async uploadImage(file) {
+  async uploadImage(file, signal) {
     try {
-      // Generate thumbnail
-      const thumbnail = await generateThumbnailClient(file);
+      // 1. HEIC detection and blocking
+      if (await isHEIC(file)) {
+        showHEICError();
+        throw new Error('HEIC format not supported');
+      }
 
-      // Read original image
-      const imageBase64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error('Failed to read file'));
-        reader.readAsDataURL(file);
-      });
+      // 2. Check cancellation before compression
+      if (signal?.aborted) {
+        throw new Error('Upload cancelled');
+      }
 
-      // Read thumbnail
-      const thumbnailBase64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error('Failed to read thumbnail'));
-        reader.readAsDataURL(thumbnail);
-      });
+      // 3. Compress image (cancellable)
+      console.log(`[Upload] Compressing ${file.name} (${(file.size/1024/1024).toFixed(2)}MB)`);
+      const compressedFile = await compressImageWithCancellation(file, signal);
+      console.log(`[Upload] Compressed to ${(compressedFile.size/1024/1024).toFixed(2)}MB`);
 
-      // Upload both
-      const result = await this.call('/api/user/received-cards/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          image_base64: imageBase64,
-          thumbnail_base64: thumbnailBase64,
-          filename: file.name
-        })
-      });
+      // 4. Check cancellation after compression
+      if (signal?.aborted) {
+        throw new Error('Upload cancelled');
+      }
+
+      // 5. Upload with retry (idempotent)
+      const result = await uploadWithRetry(compressedFile, signal);
 
       if (!result || !result.upload_id) {
         throw new Error('Upload failed: Invalid response from server');
@@ -145,10 +327,17 @@ const ReceivedCardsAPI = {
 
     } catch (error) {
       console.error('[Upload] Failed:', error);
-      if (typeof showToast === 'function') {
+      
+      // Handle cancellation gracefully
+      if (error.message === 'Upload cancelled' || error.message === 'Compression cancelled') {
+        if (typeof showToast === 'function') {
+          showToast('上傳已取消', 'info');
+        }
+      } else if (typeof showToast === 'function') {
         showToast(`上傳失敗：${error.message}`, 'error');
       }
-      throw error; // 確保錯誤被傳播，阻止後續流程
+      
+      throw error;
     }
   },
 
@@ -289,7 +478,7 @@ const CardUploadStateMachine = {
     
     try {
       this.setState('uploading');
-      const uploadResult = await ReceivedCardsAPI.uploadImage(file);
+      const uploadResult = await ReceivedCardsAPI.uploadImage(file, this.abortController.signal);
       const uploadData = uploadResult.data || uploadResult;
       this.currentUploadId = uploadData.upload_id;
       

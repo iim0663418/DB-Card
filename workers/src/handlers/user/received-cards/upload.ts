@@ -42,16 +42,23 @@ function generateUploadId(): string {
 }
 
 /**
- * Detect image MIME type from Base64 header
+ * Detect image MIME type from Base64 header (strict - no fallback)
  */
-function detectMimeType(base64: string): string {
-  if (base64.startsWith('data:image/jpeg') || base64.startsWith('/9j/')) {
+function detectMimeTypeStrict(base64: string): string | null {
+  const base64Data = base64.replace(/^data:image\/[a-z]+;base64,/, '');
+  
+  // JPEG magic bytes: FF D8 FF
+  if (base64Data.startsWith('/9j/')) {
     return 'image/jpeg';
   }
-  if (base64.startsWith('data:image/png') || base64.startsWith('iVBORw0KGgo')) {
+  
+  // PNG magic bytes: 89 50 4E 47
+  if (base64Data.startsWith('iVBORw0KGgo')) {
     return 'image/png';
   }
-  return 'image/jpeg'; // Default
+  
+  // Strict rejection - no fallback
+  return null;
 }
 
 /**
@@ -85,10 +92,10 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
       return errorResponse('FILE_TOO_LARGE', 'Image too large (max 5MB)', 400);
     }
 
-    // 4. Validate file type
-    const mimeType = detectMimeType(body.image_base64);
-    if (!['image/jpeg', 'image/png'].includes(mimeType)) {
-      return errorResponse('INVALID_FILE_TYPE', 'Only JPG and PNG images are supported', 400);
+    // 4. Validate file type (strict - no fallback)
+    const mimeType = detectMimeTypeStrict(body.image_base64);
+    if (!mimeType) {
+      return errorResponse('INVALID_FILE_TYPE', 'Unsupported format. Only JPEG and PNG allowed.', 400);
     }
 
     // 5. Decode Base64 (chunked)
@@ -137,14 +144,67 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
       }
     }
 
-    // 9. Create temp_uploads record
+    // 9. Create temp_uploads record with idempotency support
     const now = Date.now();
     const expiresAt = now + 3600000; // 1 hour
+    const idempotencyKey = request.headers.get('X-Idempotency-Key');
 
+    // Idempotency: INSERT first, catch UNIQUE conflict, then SELECT existing
+    if (idempotencyKey) {
+      try {
+        await env.DB.prepare(`
+          INSERT INTO temp_uploads (
+            upload_id, user_email, image_url, thumbnail_url, idempotency_key,
+            consumed, expires_at, created_at, ocr_status
+          ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, 'pending')
+        `).bind(
+          uploadId,
+          user.email,
+          r2Key,
+          thumbnailUrl,
+          idempotencyKey,
+          expiresAt.toString(),
+          now.toString()
+        ).run();
+
+        if (DEBUG) console.log('[Upload] New upload created:', uploadId);
+
+        return jsonResponse({
+          upload_id: uploadId,
+          image_url: r2Key,
+          thumbnail_url: thumbnailUrl,
+          expires_at: expiresAt,
+        });
+
+      } catch (error: any) {
+        // UNIQUE constraint conflict → return existing record (idempotent)
+        if (error.message?.includes('UNIQUE constraint failed')) {
+          const existing = await env.DB.prepare(`
+            SELECT upload_id, image_url, thumbnail_url, expires_at 
+            FROM temp_uploads 
+            WHERE user_email = ? AND idempotency_key = ?
+          `).bind(user.email, idempotencyKey).first();
+
+          if (existing) {
+            if (DEBUG) console.log('[Upload] Idempotent response:', existing.upload_id);
+            return jsonResponse({
+              upload_id: existing.upload_id as string,
+              image_url: existing.image_url as string,
+              thumbnail_url: existing.thumbnail_url as string | null,
+              expires_at: parseInt(existing.expires_at as string),
+              idempotent: true,
+            });
+          }
+        }
+        throw error;
+      }
+    }
+
+    // Fallback: no idempotency key (backward compatible)
     await env.DB.prepare(`
       INSERT INTO temp_uploads (
-        upload_id, user_email, image_url, thumbnail_url, consumed, expires_at, created_at
-      ) VALUES (?, ?, ?, ?, 0, ?, ?)
+        upload_id, user_email, image_url, thumbnail_url, consumed, expires_at, created_at, ocr_status
+      ) VALUES (?, ?, ?, ?, 0, ?, ?, 'pending')
     `).bind(
       uploadId,
       user.email,

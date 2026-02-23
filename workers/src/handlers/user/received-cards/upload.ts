@@ -128,11 +128,11 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
     if (body.thumbnail_base64) {
       try {
         const thumbnailBytes = decodeBase64Chunked(body.thumbnail_base64);
-        const thumbnailKey = `received/temp/${uploadId}_thumb.webp`;
+        const thumbnailKey = `received/temp/${uploadId}_thumb.jpg`;
 
         await env.PHYSICAL_CARDS.put(thumbnailKey, thumbnailBytes, {
           httpMetadata: {
-            contentType: 'image/webp',
+            contentType: 'image/jpeg',
           },
         });
 

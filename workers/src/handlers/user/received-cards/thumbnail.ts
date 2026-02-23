@@ -59,10 +59,11 @@ export async function handleGetThumbnail(
     }
 
     // 4. Return thumbnail with cache headers
+    // Note: Thumbnails are JPEG (Safari compatibility)
     return new Response(thumbnailObj.body, {
       status: 200,
       headers: {
-        'Content-Type': 'image/webp',
+        'Content-Type': 'image/jpeg',
         'Cache-Control': 'public, max-age=31536000, immutable', // 1 year
         'Access-Control-Allow-Origin': '*',
       },

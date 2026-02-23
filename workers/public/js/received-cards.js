@@ -233,7 +233,8 @@ async function generateThumbnailClient(file) {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Convert to WebP blob with quality control
+      // Convert to JPEG blob (Safari compatible)
+      // Note: WebP not supported in Safari canvas.toBlob()
       canvas.toBlob(
         (blob) => {
           if (!blob) {
@@ -247,14 +248,14 @@ async function generateThumbnailClient(file) {
               (reducedBlob) => {
                 resolve(reducedBlob || blob);
               },
-              'image/webp',
+              'image/jpeg',
               0.6
             );
           } else {
             resolve(blob);
           }
         },
-        'image/webp',
+        'image/jpeg',
         0.8
       );
     };

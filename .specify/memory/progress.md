@@ -1,19 +1,38 @@
-# Task: Shared Cards Visibility Fix
+# Task: Merged Cards Display (Own + Shared)
 ## Phase: DEPLOYED ✅
 - Status: 已部署到 Staging
-- Version: a0f6d57a-8f11-46b9-a062-7372b6f04077
-- Next Action: 測試其他帳號是否能看到 iim0663418 分享的名片
+- Version: 0c126129-7eb4-4647-b571-f771a984b72f
+- Next Action: 測試「收到的名片」頁面是否顯示合併清單
 
-## Bug Fix
-- **問題**: list-shared.ts 錯誤過濾 `sc.owner_email != ?`
-- **修復**: 移除該條件，顯示所有 is_shared=1 的名片
-- **邏輯**: 分享清單應包含所有人分享的卡（含自己）
+## Feature Implementation
+- **需求**: 在「收到的名片」混合顯示自己與別人分享的卡
+- **實作**: UNION ALL 查詢合併兩個來源
+- **新增欄位**: source ('own'/'shared'), shared_by (email/null)
+
+## SQL Logic
+```sql
+-- Own cards (user_email = ?)
+SELECT ..., 'own' as source, NULL as shared_by
+FROM received_cards
+WHERE user_email = ? AND deleted_at IS NULL
+
+UNION ALL
+
+-- Shared cards (excluding own cards)
+SELECT ..., 'shared' as source, sc.owner_email as shared_by
+FROM shared_cards sc
+INNER JOIN received_cards rc ON sc.card_uuid = rc.uuid
+WHERE rc.deleted_at IS NULL AND rc.user_email != ?
+
+ORDER BY updated_at DESC
+```
 
 ## Files Modified
-1. src/handlers/user/received-cards/list-shared.ts (SQL 查詢簡化)
+1. src/handlers/user/received-cards/crud.ts (handleListCards)
 
 ## Testing Checklist
-- [ ] 登入非 iim0663418 帳號
-- [ ] 查看 shared-cards 頁面
-- [ ] 確認能看到 iim0663418 分享的名片
-- [ ] 確認 shared_by 欄位正確顯示
+- [ ] 登入任意帳號
+- [ ] 查看「收到的名片」頁面
+- [ ] 確認顯示自己的卡 (source='own')
+- [ ] 確認顯示別人分享的卡 (source='shared', shared_by=email)
+- [ ] 確認無重複卡片

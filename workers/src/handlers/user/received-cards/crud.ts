@@ -247,7 +247,8 @@ export async function handleSaveCard(request: Request, env: Env): Promise<Respon
 }
 
 /**
- * Handle GET /api/user/received-cards - List cards
+ * Handle GET /api/user/received-cards - List cards (own + shared)
+ * BDD: Merged Display - Own + Shared Cards
  */
 export async function handleListCards(request: Request, env: Env): Promise<Response> {
   try {
@@ -261,11 +262,29 @@ export async function handleListCards(request: Request, env: Env): Promise<Respo
         organization, organization_en, organization_alias, department, title,
         phone, email, website, address, note,
         company_summary, personal_summary, ai_sources_json, ai_status,
-        original_image_url, thumbnail_url, created_at, updated_at
+        original_image_url, thumbnail_url, created_at, updated_at,
+        'own' as source,
+        NULL as shared_by
       FROM received_cards
       WHERE user_email = ? AND deleted_at IS NULL
-      ORDER BY created_at DESC
-    `).bind(user.email).all();
+
+      UNION ALL
+
+      SELECT
+        rc.uuid, rc.name_prefix, rc.full_name, rc.first_name, rc.last_name, rc.name_suffix,
+        rc.organization, rc.organization_en, rc.organization_alias, rc.department, rc.title,
+        rc.phone, rc.email, rc.website, rc.address, rc.note,
+        rc.company_summary, rc.personal_summary, rc.ai_sources_json, rc.ai_status,
+        rc.original_image_url, rc.thumbnail_url, rc.created_at, rc.updated_at,
+        'shared' as source,
+        sc.owner_email as shared_by
+      FROM shared_cards sc
+      INNER JOIN received_cards rc ON sc.card_uuid = rc.uuid
+      WHERE rc.deleted_at IS NULL
+        AND rc.user_email != ?
+
+      ORDER BY updated_at DESC
+    `).bind(user.email, user.email).all();
 
     // Parse ai_sources_json for each card
     const cardsWithSources = cards.results.map((card: any) => ({

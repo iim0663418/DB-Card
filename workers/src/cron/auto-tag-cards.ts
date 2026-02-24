@@ -18,6 +18,9 @@ interface TagResult {
 export async function autoTagCards(env: Env): Promise<{ tagged: number }> {
   console.log('[AutoTag] Starting auto-tagging...');
 
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  console.log(`[AutoTag] Looking for cards with auto_tagged_at < ${new Date(sevenDaysAgo).toISOString()}`);
+
   // 查詢未標籤的名片（批次 20 張）
   const { results: cards } = await env.DB.prepare(`
     SELECT uuid, full_name, organization, title, company_summary, personal_summary, user_email
@@ -27,7 +30,9 @@ export async function autoTagCards(env: Env): Promise<{ tagged: number }> {
       AND (auto_tagged_at IS NULL OR auto_tagged_at < ?)
     ORDER BY created_at DESC
     LIMIT 20
-  `).bind(Date.now() - 7 * 24 * 60 * 60 * 1000).all(); // 7 天前標籤的重新標籤
+  `).bind(sevenDaysAgo).all();
+
+  console.log(`[AutoTag] Found ${cards.length} cards to process`);
 
   if (cards.length === 0) {
     console.log('[AutoTag] No cards to tag');

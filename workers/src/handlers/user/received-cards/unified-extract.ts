@@ -44,13 +44,47 @@ function arrayBufferToBase64Chunked(buffer: ArrayBuffer): string {
   const uint8Array = new Uint8Array(buffer);
   const chunkSize = 8192;
   let binaryString = '';
-  
+
   for (let i = 0; i < uint8Array.length; i += chunkSize) {
     const chunk = uint8Array.slice(i, Math.min(i + chunkSize, uint8Array.length));
     binaryString += String.fromCharCode(...chunk);
   }
-  
+
   return btoa(binaryString);
+}
+
+/**
+ * Retry function with exponential backoff and jitter
+ * Retries on QUOTA_OR_LIMIT (429) and SERVICE_UNAVAILABLE (503) errors
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3
+): Promise<T> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const shouldRetry = errorMessage.includes('QUOTA_OR_LIMIT') || errorMessage.includes('SERVICE_UNAVAILABLE');
+
+      // Don't retry if not retriable error, or if this was the last attempt
+      if (!shouldRetry || i === maxRetries - 1) {
+        throw error;
+      }
+
+      // Exponential backoff: 1s, 2s, 4s
+      const baseDelay = Math.pow(2, i) * 1000;
+      // Add jitter: ±20%
+      const jitter = baseDelay * 0.2 * (Math.random() - 0.5);
+      const delay = baseDelay + jitter;
+
+      console.log(`[Gemini Retry ${i + 1}/${maxRetries}] Waiting ${Math.round(delay)}ms (Error: ${errorMessage.substring(0, 50)})`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  throw new Error('Retry exhausted');
 }
 
 /**
@@ -308,8 +342,10 @@ export async function handleUnifiedExtract(request: Request, env: Env): Promise<
     // 6. Detect MIME type
     const mimeType = (upload.image_url as string).endsWith('.png') ? 'image/png' : 'image/jpeg';
 
-    // 7. Perform unified extract (OCR + Enrich)
-    const result = await performUnifiedExtract(imageBase64, mimeType, env.GEMINI_API_KEY);
+    // 7. Perform unified extract (OCR + Enrich) with retry on 429
+    const result = await retryWithBackoff(() =>
+      performUnifiedExtract(imageBase64, mimeType, env.GEMINI_API_KEY)
+    );
 
     // 8. Update OCR status to completed
     await env.DB.prepare(`

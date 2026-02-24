@@ -290,7 +290,9 @@ const ReceivedCardsAPI = {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP ${response.status}`);
+      const error = new Error(errorData.message || `HTTP ${response.status}`);
+      error.status = response.status;
+      throw error;
     }
 
     if (response.status === 204) {
@@ -513,7 +515,16 @@ const CardUploadStateMachine = {
       if (error.name === 'AbortError') {
         return;
       }
-      this.setState('error', { error: error.message });
+
+      // Handle 429 errors gracefully
+      if (error.status === 429) {
+        if (typeof showToast === 'function') {
+          showToast('⚠️ 系統繁忙，請稍後再試', 'warning');
+        }
+        this.setState('idle');
+      } else {
+        this.setState('error', { error: error.message });
+      }
     } finally {
       this.abortController = null;
     }

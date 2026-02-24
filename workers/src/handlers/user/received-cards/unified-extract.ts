@@ -92,11 +92,12 @@ async function retryWithBackoff<T>(
  */
 async function uploadToFileSearchStore(
   data: UnifiedExtractResult,
-  env: Env
+  apiKey: string,
+  storeName: string
 ): Promise<void> {
   // Debug logging
   console.log('[FileSearchStore] Starting upload...');
-  console.log('[FileSearchStore] storeName:', env.FILE_SEARCH_STORE_NAME);
+  console.log('[FileSearchStore] storeName:', storeName);
   console.log('[FileSearchStore] organization:', data.organization);
 
   // 組合文件內容
@@ -132,7 +133,7 @@ ${data.sources?.map(s => `- ${s.title}: ${s.uri}`).join('\n') || ''}
   formData.append('file', new Blob([content], {type: 'text/plain'}));
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/upload/v1beta/${env.FILE_SEARCH_STORE_NAME}:uploadToFileSearchStore?key=${env.GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/upload/v1beta/${storeName}:uploadToFileSearchStore?key=${apiKey}`,
     {
       method: 'POST',
       headers: {
@@ -157,7 +158,8 @@ ${data.sources?.map(s => `- ${s.title}: ${s.uri}`).join('\n') || ''}
 async function performUnifiedExtract(
   imageBase64: string,
   mimeType: string,
-  env: Env
+  apiKey: string,
+  model: string
 ): Promise<UnifiedExtractResult> {
   // JSON Schema for structured output (multilingual support)
   const responseSchema = {
@@ -254,7 +256,7 @@ Use Google Search to enrich the following information:
 - For mixed-language cards, preserve each field in its original language`;
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -463,7 +465,7 @@ export async function handleUnifiedExtract(
 
     // 7. Perform unified extract (OCR + Enrich) with retry on 429
     const result = await retryWithBackoff(() =>
-      performUnifiedExtract(imageBase64, mimeType, env)
+      performUnifiedExtract(imageBase64, mimeType, env.GEMINI_API_KEY, env.GEMINI_MODEL)
     );
 
     // 8. Update OCR status to completed
@@ -476,7 +478,7 @@ export async function handleUnifiedExtract(
     // 9. Background upload to FileSearchStore (non-blocking)
     if (env.FILE_SEARCH_STORE_NAME && result.organization) {
       ctx.waitUntil(
-        uploadToFileSearchStore(result, env)
+        uploadToFileSearchStore(result, env.GEMINI_API_KEY, env.FILE_SEARCH_STORE_NAME)
           .catch(error => {
             console.error('[FileSearchStore] Upload failed:', error instanceof Error ? error.message : String(error));
           })

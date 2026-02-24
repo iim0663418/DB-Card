@@ -47,6 +47,8 @@ export async function syncCardEmbeddings(env: Env): Promise<{ synced: number }> 
           );
 
           if (!response.ok) {
+            // Consume response body to prevent deadlock
+            await response.text().catch(() => {});
             throw new Error(`Embedding API failed: ${response.status}`);
           }
 

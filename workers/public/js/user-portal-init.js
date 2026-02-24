@@ -11,8 +11,8 @@
                 'login-restriction': '僅限授權使用者',
 
                 // 2. Card Selection (5 keys)
-                'selection-title': '我的數位名片庫',
-                'selection-subtitle': '您最多可持有三種用途的數位名片',
+                'selection-title': '我的數位名片',
+                'selection-subtitle': '管理您的數位名片，最多可建立三張不同用途的名片',
                 'card-type-personal': '個人名片',
                 'card-type-event': '活動名片',
                 'card-type-sensitive': '敏感名片',
@@ -189,8 +189,8 @@
                 'login-restriction': 'Authorized Users Only',
 
                 // 2. Card Selection (5 keys)
-                'selection-title': 'My Digital Card Library',
-                'selection-subtitle': 'You can hold up to three types of digital cards',
+                'selection-title': 'My Digital Cards',
+                'selection-subtitle': 'Manage your digital cards, create up to three cards for different purposes',
                 'card-type-personal': 'Personal Card',
                 'card-type-event': 'Event Card',
                 'card-type-sensitive': 'Sensitive Card',

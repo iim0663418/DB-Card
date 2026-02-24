@@ -625,3 +625,9 @@
 260224|Error_Handling|granular|SAFETY_FILTER_422_QUOTA_EXCEEDED_429
 260224|Logging|enhanced|Full_Response_JSON_Debugging
 260224|Deployment|staging|Gemini_412_Diagnosis_Complete
+260224|Gemini|retry_strategy|Fast_Fail_3_Attempts_7s_Max
+260224|unified_extract_ts|503_retry|SERVICE_UNAVAILABLE_Added
+260224|Performance|retry_logging|Progress_Display_Debugging
+260224|UX|fast_feedback|7s_Total_Delay_User_Friendly
+260224|Best_Practice|2026|Google_Gemini_API_Retry_Pattern
+260224|Deployment|staging|503_Retry_Complete

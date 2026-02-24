@@ -88,6 +88,71 @@ async function retryWithBackoff<T>(
 }
 
 /**
+ * Upload extracted data to FileSearchStore
+ */
+async function uploadToFileSearchStore(
+  data: UnifiedExtractResult,
+  apiKey: string,
+  storeName: string
+): Promise<void> {
+  // Debug logging
+  console.log('[FileSearchStore] Starting upload...');
+  console.log('[FileSearchStore] storeName:', storeName);
+  console.log('[FileSearchStore] organization:', data.organization);
+
+  // 組合文件內容
+  const content = `
+Organization: ${data.organization}${data.organization_en ? ` (${data.organization_en})` : ''}
+${data.organization_alias?.length ? `Aliases: ${data.organization_alias.join(', ')}` : ''}
+
+Company Summary:
+${data.company_summary || ''}
+
+${data.full_name && data.personal_summary ? `
+Professional Staff:
+- ${data.full_name}${data.department || data.title ? ` (${data.department || data.title})` : ''}: ${data.personal_summary}
+` : ''}
+
+Sources:
+${data.sources?.map(s => `- ${s.title}: ${s.uri}`).join('\n') || ''}
+  `.trim();
+
+  // 準備 metadata
+  const displayName = `${data.organization}_${new Date().toISOString().split('T')[0]}`;
+  const metadata = {
+    displayName,
+    customMetadata: [
+      {key: "organization", stringValue: data.organization},
+      {key: "organization_en", stringValue: data.organization_en || ""}
+    ]
+  };
+
+  // 上傳到 FileSearchStore
+  const formData = new FormData();
+  formData.append('metadata', JSON.stringify(metadata));
+  formData.append('file', new Blob([content], {type: 'text/plain'}));
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/upload/v1beta/${storeName}:uploadToFileSearchStore?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: {
+        'X-Goog-Upload-Protocol': 'multipart'
+      },
+      body: formData
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Upload failed (${response.status}): ${errorText}`);
+  }
+
+  // 成功日誌
+  console.log(`[FileSearchStore] Uploaded: ${displayName} (${content.length} bytes)`);
+}
+
+/**
  * Unified OCR + Enrich with Gemini Vision + Google Search
  */
 async function performUnifiedExtract(
@@ -270,14 +335,65 @@ Use Google Search to enrich the following information:
     title: chunk.web?.title || ''
   })).filter((s: any) => s.uri) || [];
 
-  // Parse JSON (Structured Output guarantees valid JSON)
+  // Parse JSON (Structured Output with robust error handling)
   try {
-    const result = JSON.parse(text);
-    return {
-      ...result,
-      sources
-    };
-  } catch (_error) {
+    let jsonString = text.trim();
+
+    // Try parsing directly first
+    try {
+      const result = JSON.parse(jsonString);
+      return { ...result, sources };
+    } catch {
+      // Look for markdown code blocks: ```json\n{...}\n```
+      const fencedMatch = jsonString.match(/```(?:json)?\s*\r?\n([\s\S]*?)\r?\n?```/);
+      if (fencedMatch) {
+        jsonString = fencedMatch[1].trim();
+      } else {
+        // Extract first top-level JSON object by balancing braces
+        const firstBraceIndex = jsonString.indexOf('{');
+        if (firstBraceIndex !== -1) {
+          let braceDepth = 0;
+          let inString = false;
+          let stringQuote = '';
+          let isEscaped = false;
+          let endIndex = firstBraceIndex;
+
+          for (; endIndex < jsonString.length; endIndex++) {
+            const ch = jsonString[endIndex];
+            if (inString) {
+              if (isEscaped) {
+                isEscaped = false;
+              } else if (ch === '\\') {
+                isEscaped = true;
+              } else if (ch === stringQuote) {
+                inString = false;
+              }
+            } else {
+              if (ch === '"' || ch === "'") {
+                inString = true;
+                stringQuote = ch;
+              } else if (ch === '{') {
+                braceDepth++;
+              } else if (ch === '}') {
+                braceDepth--;
+                if (braceDepth === 0) {
+                  endIndex++;
+                  break;
+                }
+              }
+            }
+          }
+          jsonString = jsonString.slice(firstBraceIndex, endIndex).trim();
+        }
+      }
+
+      // Clean common LLM errors: escaped single quotes
+      jsonString = jsonString.replace(/\\'/g, "'");
+
+      const result = JSON.parse(jsonString);
+      return { ...result, sources };
+    }
+  } catch (error) {
     console.error('Failed to parse unified extract result:', text.substring(0, 200));
     throw new Error('Invalid response format');
   }
@@ -286,7 +402,11 @@ Use Google Search to enrich the following information:
 /**
  * Handle POST /api/user/received-cards/unified-extract
  */
-export async function handleUnifiedExtract(request: Request, env: Env): Promise<Response> {
+export async function handleUnifiedExtract(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext
+): Promise<Response> {
   const DEBUG = env.ENVIRONMENT === 'staging';
   try {
     if (DEBUG) console.log('[UnifiedExtract] Request received');
@@ -349,12 +469,22 @@ export async function handleUnifiedExtract(request: Request, env: Env): Promise<
 
     // 8. Update OCR status to completed
     await env.DB.prepare(`
-      UPDATE temp_uploads 
+      UPDATE temp_uploads
       SET ocr_status = 'completed'
       WHERE upload_id = ? AND user_email = ?
     `).bind(body.upload_id, user.email).run();
 
-    // 9. Return result
+    // 9. Background upload to FileSearchStore (non-blocking)
+    if (env.FILE_SEARCH_STORE_NAME && result.organization) {
+      ctx.waitUntil(
+        uploadToFileSearchStore(result, env.GEMINI_API_KEY, env.FILE_SEARCH_STORE_NAME)
+          .catch(error => {
+            console.error('[FileSearchStore] Upload failed:', error instanceof Error ? error.message : String(error));
+          })
+      );
+    }
+
+    // 10. Return result
     return jsonResponse(result);
 
   } catch (error) {

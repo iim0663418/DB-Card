@@ -345,7 +345,7 @@ export default {
     }
 
     if (url.pathname === '/api/user/received-cards/unified-extract' && request.method === 'POST') {
-      return addMinimalSecurityHeaders(await handleUnifiedExtract(request, env));
+      return addMinimalSecurityHeaders(await handleUnifiedExtract(request, env, ctx));
     }
 
     if (url.pathname === '/api/user/received-cards/ocr' && request.method === 'POST') {
@@ -720,6 +720,7 @@ export default {
     const { cleanupSoftDeletedAssets } = await import('./handlers/scheduled/asset-cleanup');
     const { cleanupTempUploads } = await import('./cron/cleanup-temp-uploads');
     const { cleanupReceivedCards } = await import('./cron/cleanup-received-cards');
+    const { cleanupFileSearchStore } = await import('./cron/cleanup-filesearchstore');
 
     // Run sequentially to avoid resource contention
     await handleScheduledCleanup(env);
@@ -728,6 +729,7 @@ export default {
     await cleanupSoftDeletedAssets(env);
     await cleanupTempUploads(env);
     await cleanupReceivedCards(env);
+    await cleanupFileSearchStore(env);
   }
 };
 

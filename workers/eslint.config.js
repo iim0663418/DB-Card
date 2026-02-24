@@ -48,6 +48,7 @@ export default [
         Request: 'readonly',
         Response: 'readonly',
         Headers: 'readonly',
+        Blob: 'readonly',
         HeadersInit: 'readonly',
         ExecutionContext: 'readonly',
         D1Database: 'readonly',

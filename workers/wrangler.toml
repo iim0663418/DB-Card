@@ -8,6 +8,7 @@ compatibility_date = "2024-04-03"  # Enable Durable Objects RPC
 ENVIRONMENT = "staging"
 WORKER_URL = "https://db-card-staging.csw30454.workers.dev"
 GOOGLE_CLIENT_ID = "675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com"
+FILE_SEARCH_STORE_NAME = "fileSearchStores/dbcard-knowledge-base-fpyodw69c4ua"
 
 # Static Assets
 [assets]
@@ -52,7 +53,7 @@ crons = ["0 2 * * *"]  # Daily maintenance: cleanup (02:00) + log rotation (02:0
 # Production Environment
 [env.production]
 name = "db-card-api-prod"
-vars = { ENVIRONMENT = "production", WORKER_URL = "https://db-card.example.com", GOOGLE_CLIENT_ID = "675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com" }
+vars = { ENVIRONMENT = "production", WORKER_URL = "https://db-card.example.com", GOOGLE_CLIENT_ID = "675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com", FILE_SEARCH_STORE_NAME = "fileSearchStores/dbcard-knowledge-base-fpyodw69c4ua" }
 
 [[env.production.d1_databases]]
 binding = "DB"

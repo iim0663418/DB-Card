@@ -232,18 +232,18 @@ async function performUnifiedExtract(
 
   const prompt = `Extract business card information and enrich with web search.
 
-**OCR Task**: Extract all visible text (preserve original language).
+**OCR Task**: Extract all visible information (name, company, department, title, contact details, address, etc.). Preserve original language.
 
 **Enrichment Task**:
 - Organization: full name, English name, aliases
-- company_summary (100-200 chars): industry, business, founding, scale, status
-- If department exists: explain its function
-- personal_summary (30-50 chars): one-sentence expertise/achievement
+- company_summary (100-200 chars): industry, main business, founding year, scale, operational status. Describes only the organization and department.
+- If department exists: explain its function within the organization
+- personal_summary (strictly 30-50 chars): one concise sentence summarizing expertise or achievements
 - Supplement missing website/address from official sources
 
-**Search Strategy**: Use "name + organization" as keywords. Prioritize official sources.
+**Search Strategy**: Use "name + organization/department" as keywords. Prioritize official sources (organization website, government registration, professional profiles).
 
-**Language**: Keep card text in original language. Summaries can be same language or English.`;
+**Language**: Keep all card text in original language (names, titles, addresses). For mixed-language cards, preserve each field in its original language. Summaries can be same language or English.`;
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,

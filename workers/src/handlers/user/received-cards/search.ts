@@ -32,7 +32,7 @@ interface SimpleContext {
 }
 
 /**
- * Search FileSearchStore for semantic matches
+ * Search using Vectorize for semantic matches
  */
 async function semanticSearch(
   env: Env,
@@ -40,13 +40,14 @@ async function semanticSearch(
   query: string,
   limit: number
 ): Promise<SearchResult[]> {
-  if (!env.FILE_SEARCH_STORE_NAME || !env.GEMINI_API_KEY) {
+  if (!env.VECTORIZE || !env.GEMINI_API_KEY) {
     return [];
   }
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/${env.FILE_SEARCH_STORE_NAME}:query`,
+    // Generate embedding for query
+    const embeddingResponse = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent',
       {
         method: 'POST',
         headers: {
@@ -54,43 +55,41 @@ async function semanticSearch(
           'x-goog-api-key': env.GEMINI_API_KEY,
         },
         body: JSON.stringify({
-          query,
-          pageSize: limit,
+          model: 'models/text-embedding-004',
+          content: { parts: [{ text: query }] },
         }),
-        signal: AbortSignal.timeout(2000), // 2s timeout
+        signal: AbortSignal.timeout(2000),
       }
     );
 
-    if (!response.ok) {
-      console.error('FileSearchStore error:', response.status);
+    if (!embeddingResponse.ok) {
+      console.error('Embedding generation failed:', embeddingResponse.status);
       return [];
     }
 
-    const data = await response.json() as {
-      relevantChunks?: Array<{
-        text?: string;
-        chunkRelevanceScore?: {
-          score?: number;
-          metadata?: {
-            user_email?: string;
-            card_uuid?: string;
-          };
-        };
-      }>;
+    const embeddingData = await embeddingResponse.json() as {
+      embedding?: { values?: number[] };
     };
+    const queryVector = embeddingData.embedding?.values;
+
+    if (!queryVector || queryVector.length !== 768) {
+      console.error('Invalid embedding dimension');
+      return [];
+    }
+
+    // Query Vectorize with multi-tenant filter
+    const matches = await env.VECTORIZE.query(queryVector, {
+      topK: limit,
+      returnMetadata: 'all',
+      filter: { user_email: userEmail },
+    });
+
     const results: SearchResult[] = [];
 
-    // Extract card UUIDs from metadata
-    for (const chunk of data.relevantChunks || []) {
-      const metadata = chunk.chunkRelevanceScore?.metadata || {};
-      
-      // Multi-tenant filter
-      if (metadata.user_email !== userEmail) continue;
+    // Fetch card details for each match
+    for (const match of matches.matches) {
+      const cardUuid = match.id;
 
-      const cardUuid = metadata.card_uuid;
-      if (!cardUuid) continue;
-
-      // Fetch card details from D1
       const card = await env.DB.prepare(
         `SELECT uuid, full_name, organization, title, email, phone
          FROM received_cards
@@ -107,8 +106,8 @@ async function semanticSearch(
           title: card.title as string,
           email: card.email as string,
           phone: card.phone as string,
-          score: chunk.chunkRelevanceScore?.score || 0.8,
-          match_reason: `semantic: ${chunk.text?.substring(0, 50)}...`,
+          score: match.score,
+          match_reason: `semantic: score ${match.score.toFixed(3)}`,
         });
       }
     }

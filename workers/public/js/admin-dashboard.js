@@ -3167,7 +3167,7 @@ window.triggerCron = async function() {
         // Show loading state
         statusEl.classList.remove('hidden');
         btnEl.disabled = true;
-        btnEl.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> 執行中...';
+        btnEl.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 animate-spin"></i> 執行中...';
         if (window.initIcons) window.initIcons();
 
         const response = await fetch(`${window.API_BASE || ''}/api/admin/trigger-cron`, {
@@ -3204,7 +3204,7 @@ window.triggerCron = async function() {
         if (window.initIcons) window.initIcons();
     } finally {
         btnEl.disabled = false;
-        btnEl.innerHTML = '<i data-lucide="play" class="w-4 h-4"></i> 立即執行排程';
+        btnEl.innerHTML = '<i data-lucide="zap" class="w-4 h-4"></i> 立即執行排程';
         if (window.initIcons) window.initIcons();
     }
 };

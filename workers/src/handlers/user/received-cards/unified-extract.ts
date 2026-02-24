@@ -230,30 +230,20 @@ async function performUnifiedExtract(
     required: ["full_name", "organization"]
   };
 
-  const prompt = `You are a professional business card OCR and information enrichment system. Complete the following tasks:
+  const prompt = `Extract business card information and enrich with web search.
 
-**Task 1: OCR Recognition**
-Extract all visible information from the business card image (name, company, department, title, contact details, etc.).
-**IMPORTANT**: Preserve the original language of the card (Chinese/Japanese/Korean/English).
+**OCR Task**: Extract all visible text (preserve original language).
 
-**Task 2: Information Enrichment**
-Use Google Search to enrich the following information:
-- Organization's full name, English name, common abbreviations
-- Organization summary (100-200 chars: industry, main business, founding year, scale, operational status)
-- If department name exists, explain the department's function within the organization
-- Personal summary (**strictly 30-50 chars**: one sentence summarizing this person's expertise or representative achievements)
-- If the card lacks official website or address, supplement from official sources
+**Enrichment Task**:
+- Organization: full name, English name, aliases
+- company_summary (100-200 chars): industry, business, founding, scale, status
+- If department exists: explain its function
+- personal_summary (30-50 chars): one-sentence expertise/achievement
+- Supplement missing website/address from official sources
 
-**Search Strategy**:
-- Can use "name + organization/department" as search keywords
-- company_summary describes only the organization and department
-- personal_summary must be concise, one sentence is sufficient
-- Prioritize official sources (organization website, government registration, professional profiles)
+**Search Strategy**: Use "name + organization" as keywords. Prioritize official sources.
 
-**Language Handling**:
-- Keep all card text in its original language (names, titles, addresses)
-- company_summary and personal_summary can be in the same language as the card or English
-- For mixed-language cards, preserve each field in its original language`;
+**Language**: Keep card text in original language. Summaries can be same language or English.`;
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -270,7 +260,8 @@ Use Google Search to enrich the following information:
         tools: [{ googleSearch: {} }],
         generationConfig: {
           responseMimeType: "application/json",
-          responseJsonSchema: responseSchema
+          responseJsonSchema: responseSchema,
+          maxOutputTokens: 2048
         },
         safetySettings: [
           { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },

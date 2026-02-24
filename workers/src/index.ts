@@ -713,7 +713,17 @@ export default {
   },
 
   async scheduled(event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
-    // Run all cleanup tasks at 02:00 UTC
+    // Run all tasks at 02:00 UTC (single cron, sequential execution)
+    
+    // 1. Sync card embeddings to Vectorize (1-2 min)
+    const { syncCardEmbeddings } = await import('./cron/sync-card-embeddings');
+    await syncCardEmbeddings(env);
+
+    // 2. Deduplicate cards using funnel approach (2-3 min)
+    const { deduplicateCards } = await import('./cron/deduplicate-cards');
+    await deduplicateCards(env);
+
+    // 3. Existing cleanup tasks
     const { handleScheduledCleanup } = await import('./scheduled-cleanup');
     const { handleScheduledLogRotation } = await import('./scheduled-log-rotation');
     const { handleScheduledKVCleanup } = await import('./scheduled-kv-cleanup');
@@ -722,7 +732,6 @@ export default {
     const { cleanupReceivedCards } = await import('./cron/cleanup-received-cards');
     const { cleanupFileSearchStore } = await import('./cron/cleanup-filesearchstore');
 
-    // Run sequentially to avoid resource contention
     await handleScheduledCleanup(env);
     await handleScheduledLogRotation(env);
     await handleScheduledKVCleanup(env);

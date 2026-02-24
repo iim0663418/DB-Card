@@ -26,6 +26,11 @@ database_id = "d31b5e42-d8bf-4044-9744-4aff5669de4b"
 binding = "KV"
 id = "87221de061f049d3a4c976b7b5092dd9"
 
+# Vectorize Index for Card Embeddings
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "card-embeddings"
+
 # Durable Objects
 [[durable_objects.bindings]]
 name = "RATE_LIMITER"

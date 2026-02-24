@@ -6,6 +6,7 @@ export interface Env {
   KV: KVNamespace;
   RATE_LIMITER: DurableObjectNamespace;
   PHYSICAL_CARDS: R2Bucket;
+  VECTORIZE: Vectorize;  // Vectorize 綁定
   KEK: string;
   OLD_KEK?: string;
   SETUP_TOKEN?: string;

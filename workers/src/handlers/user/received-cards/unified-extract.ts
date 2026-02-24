@@ -346,7 +346,17 @@ Use Google Search to enrich the following information:
       jsonString = fencedMatch[1].trim();
     }
 
-    // Step 2: Extract valid JSON by brace balancing (handles trailing garbage)
+    // Step 2: Escape unescaped control characters in strings
+    // Replace unescaped newlines, tabs, etc. (common AI output issue)
+    jsonString = jsonString.replace(/([^\\])(\\n|\\t|\\r)/g, '$1\\\\$2');
+
+    // Step 3: Fix invalid backslash sequences (e.g., \' → ')
+    jsonString = jsonString.replace(/\\'/g, "'");
+
+    // Step 4: Remove trailing commas (before } or ])
+    jsonString = jsonString.replace(/,(\s*[}\]])/g, '$1');
+
+    // Step 5: Extract valid JSON by brace balancing (handles trailing garbage)
     const firstBraceIndex = jsonString.indexOf('{');
     if (firstBraceIndex !== -1) {
       let braceDepth = 0;
@@ -357,6 +367,7 @@ Use Google Search to enrich the following information:
 
       for (; endIndex < jsonString.length; endIndex++) {
         const ch = jsonString[endIndex];
+        
         if (inString) {
           if (isEscaped) {
             isEscaped = false;
@@ -380,18 +391,16 @@ Use Google Search to enrich the following information:
           }
         }
       }
+      
       jsonString = jsonString.slice(firstBraceIndex, endIndex).trim();
     }
 
-    // Step 3: Clean common LLM errors (escaped single quotes)
-    jsonString = jsonString.replace(/\\'/g, "'");
-
-    // Step 4: Parse JSON
+    // Step 6: Parse JSON
     const result = JSON.parse(jsonString);
     return { ...result, sources };
   } catch (error) {
     console.error('[UnifiedExtract] JSON parse failed:', error);
-    console.error('[UnifiedExtract] Text sample:', text.substring(0, 200));
+    console.error('[UnifiedExtract] Text sample:', text.substring(0, 300));
     throw new Error('Invalid response format');
   }
 }

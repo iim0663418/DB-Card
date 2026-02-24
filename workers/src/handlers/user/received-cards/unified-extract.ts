@@ -171,7 +171,13 @@ Use Google Search to enrich the following information:
         generationConfig: {
           responseMimeType: "application/json",
           responseJsonSchema: responseSchema
-        }
+        },
+        safetySettings: [
+          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+        ]
       })
     }
   );
@@ -193,7 +199,34 @@ Use Google Search to enrich the following information:
   const text = candidate?.content?.parts?.[0]?.text;
   const metadata = candidate?.groundingMetadata;
 
+  // Diagnose 412 errors: Check promptFeedback for block reasons
   if (!text) {
+    const promptFeedback = data.promptFeedback;
+
+    // Log full response for diagnosis
+    console.error('[Gemini 412 Diagnosis] Full response:', JSON.stringify({
+      promptFeedback,
+      candidates: data.candidates,
+      usageMetadata: data.usageMetadata
+    }, null, 2));
+
+    // Analyze blockReason
+    if (promptFeedback?.blockReason) {
+      const blockReason = promptFeedback.blockReason;
+      console.error(`[Gemini 412 Diagnosis] Block reason: ${blockReason}`);
+
+      // Map block reasons to specific errors
+      if (blockReason === 'SAFETY') {
+        throw new Error('SAFETY_FILTER: Content blocked by safety filters');
+      } else if (blockReason === 'OTHER') {
+        const safetyRatings = promptFeedback.safetyRatings || [];
+        console.error('[Gemini 412 Diagnosis] Safety ratings:', JSON.stringify(safetyRatings, null, 2));
+        throw new Error('QUOTA_OR_LIMIT: Request blocked due to API quota, rate limit, or image quality issues');
+      } else {
+        throw new Error(`UNKNOWN_BLOCK: Request blocked with reason: ${blockReason}`);
+      }
+    }
+
     throw new Error('No result from Gemini');
   }
 
@@ -292,13 +325,29 @@ export async function handleUnifiedExtract(request: Request, env: Env): Promise<
     console.error('Unified extract error:', error);
     const message = error instanceof Error ? error.message : 'Failed to extract card data';
 
-    // Check if this is a 412 safety filter error
-    const is412Error = message.includes('Content blocked by safety filters or image quality too low');
-    const statusCode = is412Error ? 422 : 500;
-    const errorCode = is412Error ? 'CONTENT_BLOCKED' : 'EXTRACT_FAILED';
-    const userMessage = is412Error
-      ? '圖片內容無法辨識，請確認圖片清晰且不包含敏感內容 / Image content cannot be recognized. Please ensure the image is clear and does not contain sensitive content.'
-      : message;
+    // Parse specific error types from enhanced diagnosis
+    let errorCode = 'EXTRACT_FAILED';
+    let statusCode = 500;
+    let userMessage = message;
+
+    if (message.startsWith('SAFETY_FILTER:')) {
+      errorCode = 'SAFETY_FILTER';
+      statusCode = 422;
+      userMessage = '圖片內容被安全過濾器阻擋 / Image content blocked by safety filters';
+    } else if (message.startsWith('QUOTA_OR_LIMIT:')) {
+      errorCode = 'QUOTA_EXCEEDED';
+      statusCode = 429;
+      userMessage = 'API 配額已達上限或圖片解析度異常，請稍後再試 / API quota exceeded or image resolution issue. Please try again later.';
+    } else if (message.startsWith('UNKNOWN_BLOCK:')) {
+      errorCode = 'CONTENT_BLOCKED';
+      statusCode = 422;
+      userMessage = '圖片無法處理，原因未知 / Image cannot be processed due to unknown reason';
+    } else if (message.includes('Content blocked by safety filters or image quality too low')) {
+      // Fallback for legacy 412 errors
+      errorCode = 'CONTENT_BLOCKED';
+      statusCode = 422;
+      userMessage = '圖片內容無法辨識，請確認圖片清晰且不包含敏感內容 / Image content cannot be recognized. Please ensure the image is clear and does not contain sensitive content.';
+    }
 
     // Update OCR status to failed
     try {

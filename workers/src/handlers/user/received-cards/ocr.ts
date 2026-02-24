@@ -48,7 +48,7 @@ function arrayBufferToBase64Chunked(buffer: ArrayBuffer): string {
 async function performOCR(
   imageBase64: string,
   mimeType: string,
-  apiKey: string
+  env: Env
 ): Promise<OCRResult> {
   const prompt = `你是專業的名片 OCR 辨識系統。請依照 vCard (RFC 6350) 標準精確辨識名片資訊。
 
@@ -82,7 +82,7 @@ vCard 標準辨識規則：
 10. 不要添加解釋文字或 markdown 標記`;
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -190,7 +190,7 @@ export async function handleOCR(request: Request, env: Env): Promise<Response> {
     const mimeType = (upload.image_url as string).endsWith('.png') ? 'image/png' : 'image/jpeg';
 
     // 7. Perform OCR
-    const ocrResult = await performOCR(imageBase64, mimeType, env.GEMINI_API_KEY);
+    const ocrResult = await performOCR(imageBase64, mimeType, env);
 
     // 8. Update OCR status to completed
     await env.DB.prepare(`

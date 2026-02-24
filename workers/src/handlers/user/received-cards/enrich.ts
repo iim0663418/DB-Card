@@ -32,7 +32,7 @@ async function performEnrichment(
   organization: string,
   fullName: string,
   title: string | undefined,
-  apiKey: string
+  env: Env
 ): Promise<EnrichResult> {
   const prompt = `請搜尋以下公司的詳細資訊：
 公司：${organization}
@@ -57,7 +57,7 @@ async function performEnrichment(
 - 不要添加解釋文字`;
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -196,7 +196,7 @@ export async function handleEnrich(request: Request, env: Env): Promise<Response
         body.organization,
         body.full_name,
         body.title,
-        env.GEMINI_API_KEY
+        env
       );
     } catch (error) {
       console.error('Enrichment error (non-fatal):', error);

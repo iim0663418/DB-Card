@@ -20,6 +20,8 @@ export interface Env {
   GOOGLE_CLIENT_SECRET: string;
   JWT_SECRET: string;
   GEMINI_API_KEY: string;
+  GEMINI_MODEL: string;  // gemini-3-flash-preview
+  GEMINI_EMBEDDING_MODEL: string;  // text-embedding-004
   FILE_SEARCH_STORE_NAME?: string;
 }
 

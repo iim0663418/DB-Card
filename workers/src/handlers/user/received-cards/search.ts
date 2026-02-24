@@ -47,7 +47,7 @@ async function semanticSearch(
   try {
     // Generate embedding for query
     const embeddingResponse = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent',
+      `https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_EMBEDDING_MODEL}:embedContent`,
       {
         method: 'POST',
         headers: {
@@ -55,7 +55,7 @@ async function semanticSearch(
           'x-goog-api-key': env.GEMINI_API_KEY,
         },
         body: JSON.stringify({
-          model: 'models/text-embedding-004',
+          model: `models/${env.GEMINI_EMBEDDING_MODEL}`,
           content: { parts: [{ text: query }] },
         }),
         signal: AbortSignal.timeout(2000),

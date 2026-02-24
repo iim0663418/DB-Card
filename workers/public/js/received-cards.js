@@ -1133,62 +1133,113 @@ const ReceivedCards = {
   },
 
   initTagFilters() {
-    // 從所有名片中提取唯一標籤並計算數量
-    const tagCounts = {};
+    // 從所有名片中提取標籤並按類別分組
+    const tagsByCategory = {
+      industry: new Map(),
+      location: new Map(),
+      expertise: new Map(),
+      seniority: new Map()
+    };
+
     this.allCards.forEach(card => {
       card.tags?.forEach(tag => {
-        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+        const [category, value] = tag.split(':');
+        if (tagsByCategory[category]) {
+          const count = tagsByCategory[category].get(value) || 0;
+          tagsByCategory[category].set(value, count + 1);
+        }
       });
     });
 
-    // 渲染標籤按鈕
-    const tagFilters = document.getElementById('tagFilters');
-    if (!tagFilters) return;
+    // 渲染各類別標籤
+    this.renderCategoryTags('industry', tagsByCategory.industry);
+    this.renderCategoryTags('location', tagsByCategory.location);
+    this.renderCategoryTags('expertise', tagsByCategory.expertise);
+    this.renderCategoryTags('seniority', tagsByCategory.seniority);
 
-    if (Object.keys(tagCounts).length === 0) {
-      tagFilters.innerHTML = '<span class="text-sm text-slate-400">暫無標籤</span>';
+    // Accordion toggle
+    const toggle = document.getElementById('tagFilterToggle');
+    const content = document.getElementById('tagFilterContent');
+    const chevron = document.getElementById('tagFilterChevron');
+
+    toggle?.addEventListener('click', () => {
+      const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+      toggle.setAttribute('aria-expanded', !isExpanded);
+      content?.classList.toggle('hidden');
+      chevron?.classList.toggle('rotate-180');
+    });
+
+    // Clear filters
+    document.getElementById('clearFilters')?.addEventListener('click', () => {
+      this.selectedTags = [];
+      document.querySelectorAll('.tag-filter').forEach(btn => {
+        btn.classList.remove('bg-blue-500', 'text-white', 'border-blue-500');
+        btn.classList.add('border-slate-300', 'text-slate-700');
+      });
+      this.updateActiveFilterCount();
+      this.filterCards();
+    });
+  },
+
+  renderCategoryTags(category, tagsMap) {
+    const container = document.getElementById(`${category}Tags`);
+    if (!container) return;
+
+    if (tagsMap.size === 0) {
+      container.innerHTML = '<span class="text-xs text-slate-400">無資料</span>';
       return;
     }
 
-    tagFilters.innerHTML = Object.entries(tagCounts).map(([tag, count]) => `
-      <button
-        class="tag-filter px-3 py-1.5 rounded-full text-sm font-bold border-2 border-gray-300 text-gray-700 hover:border-blue-500 hover:text-blue-600 transition-all"
-        data-tag="${this.escapeHTML(tag)}"
-      >
-        ${this.getTagLabel(tag)} <span class="text-xs opacity-75">(${count})</span>
-      </button>
-    `).join('');
+    container.innerHTML = Array.from(tagsMap.entries())
+      .sort((a, b) => b[1] - a[1]) // 按數量排序
+      .map(([value, count]) => `
+        <button
+          class="tag-filter px-3 py-1.5 rounded-full text-sm font-medium border-2 border-slate-300 text-slate-700 hover:border-blue-500 hover:text-blue-600 transition-all"
+          data-tag="${category}:${this.escapeHTML(value)}"
+        >
+          ${this.escapeHTML(value)} <span class="text-xs opacity-60">(${count})</span>
+        </button>
+      `).join('');
 
     // 綁定點擊事件
-    document.querySelectorAll('.tag-filter').forEach(btn => {
+    container.querySelectorAll('.tag-filter').forEach(btn => {
       btn.addEventListener('click', () => {
         const tag = btn.dataset.tag;
 
-        // 切換選中狀態
         if (this.selectedTags.includes(tag)) {
           this.selectedTags = this.selectedTags.filter(t => t !== tag);
           btn.classList.remove('bg-blue-500', 'text-white', 'border-blue-500');
-          btn.classList.add('border-gray-300', 'text-gray-700');
+          btn.classList.add('border-slate-300', 'text-slate-700');
         } else {
           this.selectedTags.push(tag);
           btn.classList.add('bg-blue-500', 'text-white', 'border-blue-500');
-          btn.classList.remove('border-gray-300', 'text-gray-700');
+          btn.classList.remove('border-slate-300', 'text-slate-700');
         }
 
-        // 更新篩選
+        this.updateActiveFilterCount();
         this.filterCards();
       });
     });
   },
 
+  updateActiveFilterCount() {
+    const countBadge = document.getElementById('activeFilterCount');
+    const clearBtn = document.getElementById('clearFilters');
+
+    if (this.selectedTags.length > 0) {
+      countBadge.textContent = this.selectedTags.length;
+      countBadge.classList.remove('hidden');
+      clearBtn?.classList.remove('hidden');
+    } else {
+      countBadge.classList.add('hidden');
+      clearBtn?.classList.add('hidden');
+    }
+  },
+
   getTagLabel(tag) {
-    const labels = {
-      'government': '政府機關',
-      'listed': '上市公司',
-      'startup': '新創公司',
-      'ngo': '非營利組織'
-    };
-    return labels[tag] || tag;
+    // 標籤格式: "category:value"
+    const [category, value] = tag.split(':');
+    return value || tag;
   },
 
   highlightText(text, keyword) {

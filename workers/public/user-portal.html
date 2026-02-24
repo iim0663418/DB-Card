@@ -435,18 +435,59 @@
                     </button>
                 </div>
 
-                <!-- Tag Filters -->
-                <div class="flex flex-wrap items-center gap-2">
-                    <span class="text-sm font-bold text-slate-600" data-i18n="tag-filter-label">標籤篩選：</span>
-                    <div id="tagFilters" class="flex flex-wrap gap-2">
-                        <!-- 動態生成標籤按鈕 -->
-                    </div>
+                <!-- Tag Filters (Accordion) -->
+                <div class="border-2 border-slate-200 rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm">
+                    <!-- Accordion Header -->
                     <button
-                        id="clearFilters"
-                        class="text-sm text-blue-600 hover:text-blue-800 font-bold transition-colors hidden ml-2"
+                        id="tagFilterToggle"
+                        class="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                        aria-expanded="false"
                     >
-                        清除篩選
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="filter" class="w-5 h-5 text-slate-600"></i>
+                            <span class="text-sm font-bold text-slate-700" data-i18n="tag-filter-label">標籤篩選</span>
+                            <span id="activeFilterCount" class="hidden px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-full"></span>
+                        </div>
+                        <i data-lucide="chevron-down" id="tagFilterChevron" class="w-5 h-5 text-slate-400 transition-transform"></i>
                     </button>
+
+                    <!-- Accordion Content -->
+                    <div id="tagFilterContent" class="hidden border-t border-slate-200">
+                        <div class="p-4 space-y-4">
+                            <!-- Industry -->
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-500 uppercase mb-2" data-i18n="filter-industry">產業</h4>
+                                <div id="industryTags" class="flex flex-wrap gap-2"></div>
+                            </div>
+
+                            <!-- Location -->
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-500 uppercase mb-2" data-i18n="filter-location">地區</h4>
+                                <div id="locationTags" class="flex flex-wrap gap-2"></div>
+                            </div>
+
+                            <!-- Expertise -->
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-500 uppercase mb-2" data-i18n="filter-expertise">專長</h4>
+                                <div id="expertiseTags" class="flex flex-wrap gap-2"></div>
+                            </div>
+
+                            <!-- Seniority -->
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-500 uppercase mb-2" data-i18n="filter-seniority">職級</h4>
+                                <div id="seniorityTags" class="flex flex-wrap gap-2"></div>
+                            </div>
+
+                            <!-- Clear Button -->
+                            <button
+                                id="clearFilters"
+                                class="w-full px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition-colors hidden"
+                            >
+                                <i data-lucide="x" class="w-4 h-4 inline-block mr-1"></i>
+                                <span data-i18n="clear-filters">清除所有篩選</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Result Count -->

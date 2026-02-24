@@ -29,6 +29,7 @@ import { handleGetVCard } from './handlers/user/received-cards/vcard';
 import { handleShareCard } from './handlers/user/received-cards/share';
 import { handleUnshareCard } from './handlers/user/received-cards/unshare';
 import { handleListSharedCards } from './handlers/user/received-cards/list-shared';
+import { handleTriggerCron } from './handlers/admin/trigger-cron';
 import { handleGetOAuthUserInfo } from './handlers/user/oauth-user-info';
 import { handleConsentCheck, handleConsentAccept, handleConsentWithdraw, handleConsentRestore, handleConsentHistory, handleDataExport, handlePrivacyPolicyCurrent } from './handlers/consent';
 import { handleOAuthCallback } from './handlers/oauth';
@@ -576,6 +577,11 @@ export default {
     // GET /api/admin/kek/status - KEK status monitoring
     if (url.pathname === '/api/admin/kek/status' && request.method === 'GET') {
       return addMinimalSecurityHeaders(await handleKekStatus(request, env));
+    }
+
+    // POST /api/admin/trigger-cron - Manual cron execution (admin only)
+    if (url.pathname === '/api/admin/trigger-cron' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleTriggerCron(request, env, ctx));
     }
 
     // GET /api/admin/security/stats - Security statistics

@@ -22,6 +22,7 @@ import { handleOCR } from './handlers/user/received-cards/ocr';
 import { handleEnrich } from './handlers/user/received-cards/enrich';
 import { handleUnifiedExtract } from './handlers/user/received-cards/unified-extract';
 import { handleSaveCard, handleListCards as handleListReceivedCards, handleUpdateCard as handleUpdateReceivedCard, handleDeleteCard as handleDeleteReceivedCard, handlePatchCard as handlePatchReceivedCard } from './handlers/user/received-cards/crud';
+import { searchCards } from './handlers/user/received-cards/search';
 import { handleGetThumbnail } from './handlers/user/received-cards/thumbnail';
 import { handleGetImage } from './handlers/user/received-cards/image';
 import { handleGetVCard } from './handlers/user/received-cards/vcard';
@@ -362,6 +363,43 @@ export default {
 
     if (url.pathname === '/api/user/received-cards' && request.method === 'GET') {
       return addMinimalSecurityHeaders(await handleListReceivedCards(request, env));
+    }
+
+    // GET /api/user/received-cards/search - Smart search
+    if (url.pathname === '/api/user/received-cards/search' && request.method === 'GET') {
+      // Convert Request to Hono Context
+      const c = {
+        req: {
+          query: (key: string) => url.searchParams.get(key) || undefined,
+        },
+        env,
+        get: (key: string) => {
+          if (key === 'userEmail') {
+            // Extract from cookie (same as handleListReceivedCards)
+            const cookie = request.headers.get('Cookie') || '';
+            const sessionMatch = cookie.match(/session=([^;]+)/);
+            if (!sessionMatch) return null;
+            
+            // Decode JWT to get userEmail (simplified)
+            try {
+              const payload = sessionMatch[1].split('.')[1];
+              const decoded = JSON.parse(atob(payload));
+              return decoded.email;
+            } catch {
+              return null;
+            }
+          }
+          return undefined;
+        },
+        json: (data: unknown, status?: number) => {
+          return new Response(JSON.stringify(data), {
+            status: status || 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        },
+      } as any;
+      
+      return addMinimalSecurityHeaders(await searchCards(c));
     }
 
     // PUT /api/user/received-cards/:uuid - Update received card (full update)

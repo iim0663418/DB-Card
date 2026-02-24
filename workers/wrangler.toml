@@ -54,8 +54,9 @@ bucket_name = "db-card-physical-images-staging"
 preview_bucket_name = "db-card-physical-images-preview"
 
 # Cron Triggers
+# Taiwan Time 02:00 = UTC 18:00 (previous day)
 [triggers]
-crons = ["0 2 * * *"]  # Daily maintenance: cleanup (02:00) + log rotation (02:05)
+crons = ["0 18 * * *"]  # Daily maintenance at 02:00 Taiwan Time (UTC+8)
 
 # Production Environment
 [env.production]

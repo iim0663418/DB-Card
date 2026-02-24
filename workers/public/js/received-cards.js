@@ -502,6 +502,63 @@ const CardUploadStateMachine = {
     }
   },
 
+  // Schema validator for extract result
+  validateExtractResult(data) {
+    const schema = {
+      full_name: v => typeof v === 'string',
+      organization: v => typeof v === 'string',
+      organization_en: v => typeof v === 'string' || v === null,
+      organization_alias: v => Array.isArray(v),
+      organization_full: v => typeof v === 'string' || v === null,
+      department: v => typeof v === 'string' || v === null,
+      title: v => typeof v === 'string' || v === null,
+      phone: v => typeof v === 'string' || v === null,
+      email: v => typeof v === 'string' || v === null,
+      website: v => typeof v === 'string' || v === null,
+      address: v => typeof v === 'string' || v === null,
+      company_summary: v => typeof v === 'string' || v === null,
+      personal_summary: v => typeof v === 'string' || v === null,
+      sources: v => Array.isArray(v)
+    };
+
+    const errors = [];
+    for (const [key, validator] of Object.entries(schema)) {
+      if (!validator(data[key])) {
+        errors.push(`Invalid ${key}: ${typeof data[key]}`);
+      }
+    }
+
+    return errors.length === 0 ? { ok: true } : { ok: false, errors };
+  },
+
+  // Safe data extraction with validation
+  safeExtractData(rawData) {
+    // Validate schema
+    const validation = this.validateExtractResult(rawData);
+    if (!validation.ok) {
+      console.error('[Schema Validation Failed]', validation.errors);
+      throw new Error('Invalid API response format');
+    }
+
+    // Extract with defensive defaults
+    return {
+      full_name: rawData.full_name || '',
+      organization: rawData.organization || '',
+      organization_en: rawData.organization_en || '',
+      organization_alias: Array.isArray(rawData.organization_alias) ? rawData.organization_alias : [],
+      organization_full: rawData.organization_full || '',
+      department: rawData.department || '',
+      title: rawData.title || '',
+      phone: rawData.phone || '',
+      email: rawData.email || '',
+      website: rawData.website || '',
+      address: rawData.address || '',
+      company_summary: rawData.company_summary || '',
+      personal_summary: rawData.personal_summary || '',
+      sources: Array.isArray(rawData.sources) ? rawData.sources : []
+    };
+  },
+
   async processCard(file) {
     this.abortController = new AbortController();
     
@@ -517,7 +574,9 @@ const CardUploadStateMachine = {
         this.timeout(20000, 'Extract timeout')
       ]);
       
-      const extractData = extractResult.data || extractResult;
+      // Safe extraction with schema validation
+      const rawData = extractResult.data || extractResult;
+      const extractData = this.safeExtractData(rawData);
       
       this.currentData = {
         ...extractData,

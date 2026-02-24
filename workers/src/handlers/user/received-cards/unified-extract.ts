@@ -179,6 +179,12 @@ Use Google Search to enrich the following information:
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Gemini API error:', errorText);
+
+    // Handle 412 FAILED_PRECONDITION (safety filters or image quality issues)
+    if (response.status === 412) {
+      throw new Error('Content blocked by safety filters or image quality too low');
+    }
+
     throw new Error('Gemini API request failed');
   }
 
@@ -285,7 +291,15 @@ export async function handleUnifiedExtract(request: Request, env: Env): Promise<
   } catch (error) {
     console.error('Unified extract error:', error);
     const message = error instanceof Error ? error.message : 'Failed to extract card data';
-    
+
+    // Check if this is a 412 safety filter error
+    const is412Error = message.includes('Content blocked by safety filters or image quality too low');
+    const statusCode = is412Error ? 422 : 500;
+    const errorCode = is412Error ? 'CONTENT_BLOCKED' : 'EXTRACT_FAILED';
+    const userMessage = is412Error
+      ? '圖片內容無法辨識，請確認圖片清晰且不包含敏感內容 / Image content cannot be recognized. Please ensure the image is clear and does not contain sensitive content.'
+      : message;
+
     // Update OCR status to failed
     try {
       const userResult = await verifyOAuth(request, env);
@@ -293,7 +307,7 @@ export async function handleUnifiedExtract(request: Request, env: Env): Promise<
         const body = await request.clone().json() as UnifiedExtractRequest;
         if (body.upload_id) {
           await env.DB.prepare(`
-            UPDATE temp_uploads 
+            UPDATE temp_uploads
             SET ocr_status = 'failed', ocr_error = ?
             WHERE upload_id = ? AND user_email = ?
           `).bind(message.substring(0, 500), body.upload_id, userResult.email).run();
@@ -302,7 +316,7 @@ export async function handleUnifiedExtract(request: Request, env: Env): Promise<
     } catch (updateError) {
       console.error('Failed to update OCR status:', updateError);
     }
-    
-    return errorResponse('EXTRACT_FAILED', message, 500);
+
+    return errorResponse(errorCode, userMessage, statusCode);
   }
 }

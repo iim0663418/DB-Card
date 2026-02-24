@@ -616,3 +616,7 @@
 260224|Testing|required|Japanese_Korean_Cards_Validation
 260224|Deployment|staging|2b97400f_Multilingual_Support
 260224|Documentation|design|multilingual_support_design_md_Created
+260224|Gemini|safety_filters|412_FAILED_PRECONDITION_Handled
+260224|unified_extract_ts|error_handling|Content_Blocked_User_Friendly_Message
+260224|Bug_Fix|gemini_412|HTTP_422_Bilingual_Error_Response
+260224|Deployment|staging|Gemini_412_Handling_Complete

@@ -289,8 +289,20 @@ const ReceivedCardsAPI = {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const error = new Error(errorData.message || `HTTP ${response.status}`);
+      let errorMessage = `HTTP ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+      } catch {
+        // If response is not JSON, try to read as text
+        try {
+          const text = await response.text();
+          if (text) errorMessage = text;
+        } catch {
+          // Ignore text parsing errors
+        }
+      }
+      const error = new Error(errorMessage);
       error.status = response.status;
       throw error;
     }

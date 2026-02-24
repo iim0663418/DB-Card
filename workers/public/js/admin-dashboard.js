@@ -3157,3 +3157,63 @@
                 handlers[action](e, btn);
             }
         });
+
+// Trigger Cron Jobs Manually
+window.triggerCron = async function() {
+    const statusEl = document.getElementById('cron-status');
+    const btnEl = document.querySelector('[data-action="triggerCron"]');
+    
+    try {
+        // Show loading state
+        statusEl.classList.remove('hidden');
+        btnEl.disabled = true;
+        btnEl.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> 執行中...';
+        if (window.initIcons) window.initIcons();
+
+        const response = await fetch(`${window.API_BASE || ''}/api/admin/trigger-cron`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'X-CSRF-Token': sessionStorage.getItem('csrfToken') || '' }
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        
+        // Show results
+        const successCount = data.results.filter(r => r.status === 'success').length;
+        const totalCount = data.results.length;
+        
+        statusEl.className = 'p-3 rounded-xl';
+        if (successCount === totalCount) {
+            statusEl.className += ' bg-green-50';
+            statusEl.innerHTML = `<p class="text-xs text-green-700"><i data-lucide="check-circle" class="w-3 h-3 inline"></i> 全部完成 (${successCount}/${totalCount})</p>`;
+        } else {
+            statusEl.className += ' bg-yellow-50';
+            statusEl.innerHTML = `<p class="text-xs text-yellow-700"><i data-lucide="alert-triangle" class="w-3 h-3 inline"></i> 部分失敗 (${successCount}/${totalCount})</p>`;
+        }
+        
+        if (window.initIcons) window.initIcons();
+        console.log('[Cron Results]', data.results);
+        setTimeout(() => statusEl.classList.add('hidden'), 5000);
+
+    } catch (error) {
+        console.error('[Cron Error]', error);
+        statusEl.className = 'p-3 bg-red-50 rounded-xl';
+        statusEl.innerHTML = `<p class="text-xs text-red-700"><i data-lucide="x-circle" class="w-3 h-3 inline"></i> 執行失敗: ${error.message}</p>`;
+        if (window.initIcons) window.initIcons();
+    } finally {
+        btnEl.disabled = false;
+        btnEl.innerHTML = '<i data-lucide="play" class="w-4 h-4"></i> 立即執行排程';
+        if (window.initIcons) window.initIcons();
+    }
+};
+
+// Bind triggerCron to data-action
+document.addEventListener('click', (e) => {
+    const target = e.target.closest('[data-action="triggerCron"]');
+    if (target) {
+        e.preventDefault();
+        window.triggerCron();
+    }
+});

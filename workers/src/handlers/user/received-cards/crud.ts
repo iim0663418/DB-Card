@@ -315,6 +315,34 @@ export async function handleListCards(request: Request, env: Env): Promise<Respo
       sources: card.ai_sources_json ? JSON.parse(card.ai_sources_json) : []
     }));
 
+    // Fetch tags for all cards
+    if (cardsWithSources.length > 0) {
+      const cardUuids = cardsWithSources.map((c: any) => c.uuid);
+      const placeholders = cardUuids.map(() => '?').join(',');
+      
+      const tagsResult = await env.DB.prepare(`
+        SELECT card_uuid, tag, tag_source
+        FROM card_tags
+        WHERE card_uuid IN (${placeholders})
+        ORDER BY created_at ASC
+      `).bind(...cardUuids).all();
+
+      // Group tags by card_uuid
+      const tagsByCard = new Map<string, string[]>();
+      for (const row of tagsResult.results) {
+        const r = row as any;
+        if (!tagsByCard.has(r.card_uuid)) {
+          tagsByCard.set(r.card_uuid, []);
+        }
+        tagsByCard.get(r.card_uuid)!.push(r.tag);
+      }
+
+      // Add tags to cards
+      for (const card of cardsWithSources) {
+        card.tags = tagsByCard.get(card.uuid) || [];
+      }
+    }
+
     return jsonResponse(cardsWithSources);
 
   } catch (error) {

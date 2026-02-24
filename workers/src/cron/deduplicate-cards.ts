@@ -53,6 +53,26 @@ export async function deduplicateCards(env: Env): Promise<{ merged: number }> {
 
           if (stringSimilarity.score < 60) continue;
 
+          // 階段 2.5: FileSearchStore 上下文增強（60-85 分數區間）
+          if (stringSimilarity.score >= 60 && stringSimilarity.score <= 85) {
+            const contextResult = await checkCompanyRelationship(
+              env,
+              cardA.organization || '',
+              cardB.organization || ''
+            );
+
+            if (contextResult.isSameCompany) {
+              // FileSearchStore 確認為同一公司，提升信心度
+              await mergeCards(env, cardA, cardB, {
+                score: 90, // 提升到高信心度
+                reason: `context: ${contextResult.reason}`
+              });
+              mergedCards.add(cardB.uuid);
+              merged++;
+              continue;
+            }
+          }
+
           // 階段 3: Vectorize Similarity
           const vectorSimilarity = await queryVectorizeSimilarity(
             env, 
@@ -260,6 +280,81 @@ async function geminiDuplicateCheck(env: Env, cardA: any, cardB: any): Promise<{
   } catch (error) {
     console.error('[Gemini] Duplicate check failed:', error);
     return { isDuplicate: false, confidence: 0, reason: 'LLM error' };
+  }
+}
+
+/**
+ * 查詢 FileSearchStore 確認公司關係
+ */
+async function checkCompanyRelationship(
+  env: Env,
+  orgA: string,
+  orgB: string
+): Promise<{ isSameCompany: boolean; reason: string }> {
+  if (!env.FILE_SEARCH_STORE_NAME || !env.GEMINI_API_KEY) {
+    return { isSameCompany: false, reason: 'FileSearchStore not configured' };
+  }
+
+  if (!orgA || !orgB) {
+    return { isSameCompany: false, reason: 'Missing organization name' };
+  }
+
+  try {
+    const query = `${orgA} 和 ${orgB} 是否為同一家公司？請確認公司別名、英文名、簡稱。`;
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/${env.FILE_SEARCH_STORE_NAME}:query`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': env.GEMINI_API_KEY,
+        },
+        body: JSON.stringify({
+          query,
+          pageSize: 3,
+        }),
+        signal: AbortSignal.timeout(2000), // 2s timeout
+      }
+    );
+
+    if (!response.ok) {
+      console.error('[Context] FileSearchStore error:', response.status);
+      return { isSameCompany: false, reason: 'API error' };
+    }
+
+    const data = await response.json() as {
+      relevantChunks?: Array<{
+        text?: string;
+        chunkRelevanceScore?: { score?: number };
+      }>;
+    };
+
+    // 檢查是否有高相關性的結果
+    const topChunk = data.relevantChunks?.[0];
+    if (!topChunk || !topChunk.chunkRelevanceScore?.score) {
+      return { isSameCompany: false, reason: 'No relevant context' };
+    }
+
+    const score = topChunk.chunkRelevanceScore.score;
+    const text = topChunk.text || '';
+
+    // 檢查文本是否同時包含兩個組織名（表示它們在同一文件中）
+    const containsBoth = text.includes(orgA) || text.includes(orgB);
+    const hasAlias = text.toLowerCase().includes('alias') || text.includes('別名');
+
+    if (score > 0.8 && (containsBoth || hasAlias)) {
+      return {
+        isSameCompany: true,
+        reason: `FileSearchStore confirmed (score: ${score.toFixed(2)})`
+      };
+    }
+
+    return { isSameCompany: false, reason: 'Low confidence' };
+  } catch (error) {
+    // Fail-open: 外部查詢失敗不阻斷去重流程
+    console.error('[Context] Company relationship check failed:', error);
+    return { isSameCompany: false, reason: 'Timeout or error' };
   }
 }
 

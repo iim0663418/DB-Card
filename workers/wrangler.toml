@@ -9,7 +9,7 @@ ENVIRONMENT = "staging"
 WORKER_URL = "https://db-card-staging.csw30454.workers.dev"
 GOOGLE_CLIENT_ID = "675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com"
 GEMINI_MODEL = "gemini-3-flash-preview"
-GEMINI_EMBEDDING_MODEL = "models/text-embedding-004"
+GEMINI_EMBEDDING_MODEL = "text-embedding-004"
 FILE_SEARCH_STORE_NAME = "fileSearchStores/dbcard-knowledge-base-fpyodw69c4ua"
 
 # Static Assets

@@ -397,6 +397,11 @@ const ReceivedCardsAPI = {
     return await this.call('/api/user/received-cards');
   },
 
+  async searchCards(query, page = 1, limit = 100) {
+    const params = new URLSearchParams({ q: query, page: page.toString(), limit: limit.toString() });
+    return await this.call(`/api/user/received-cards/search?${params}`);
+  },
+
   async updateCard(uuid, data) {
     return await this.call(`/api/user/received-cards/${uuid}`, {
       method: 'PATCH',
@@ -893,7 +898,39 @@ const ReceivedCards = {
     });
   },
 
-  filterCards() {
+  async filterCards() {
+    // 如果有搜尋關鍵字，使用智慧搜尋 API
+    if (this.currentKeyword && this.currentKeyword.trim().length > 0) {
+      try {
+        const response = await API.searchCards(this.currentKeyword.trim());
+        
+        if (response && response.results) {
+          // 套用標籤過濾
+          const filtered = response.results.filter(card => {
+            const matchTags = this.selectedTags.length === 0 ||
+              this.selectedTags.some(tag => card.tags?.includes(tag));
+            return matchTags;
+          });
+
+          // 更新結果數量
+          const resultCount = document.getElementById('resultCount');
+          if (resultCount) {
+            resultCount.textContent = `${filtered.length} (智慧搜尋)`;
+          }
+
+          // 渲染名片（帶高亮）
+          this.renderCards(filtered, this.currentKeyword);
+          this.updateClearFiltersButton();
+          this.updateURL();
+          return;
+        }
+      } catch (error) {
+        console.error('Smart search failed, fallback to client-side filter:', error);
+        // 失敗時回退到客戶端過濾
+      }
+    }
+
+    // 客戶端過濾（無搜尋或 API 失敗時）
     const filtered = this.allCards.filter(card => {
       // 搜尋過濾（擴展到新欄位）
       const matchKeyword = !this.currentKeyword ||

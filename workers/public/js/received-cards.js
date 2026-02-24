@@ -811,9 +811,27 @@ const ReceivedCards = {
       en: 'Enjoying this feature? Consider <a href="https://github.com/sponsors/iim0663418" target="_blank" class="underline font-semibold">sponsoring the developer</a> to support the project!'
     };
     
-    if (typeof showToast === 'function') {
-      showToast(messages[lang] || messages.zh, 'info', 8000);
-    }
+    // Use custom toast for HTML content
+    this.showHTMLToast(messages[lang] || messages.zh, 'info', 8000);
+  },
+
+  // Custom toast that supports HTML content
+  showHTMLToast(html, type = 'info', duration = 3000) {
+    const toast = document.createElement('div');
+    toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white z-50 max-w-md ${
+      type === 'info' ? 'bg-blue-500' : 
+      type === 'success' ? 'bg-green-500' : 
+      type === 'warning' ? 'bg-yellow-500' : 
+      'bg-red-500'
+    }`;
+    toast.innerHTML = html;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transition = 'opacity 0.3s';
+      setTimeout(() => toast.remove(), 300);
+    }, duration);
   },
   
   bindEvents() {

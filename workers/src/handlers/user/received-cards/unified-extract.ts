@@ -340,62 +340,58 @@ Use Google Search to enrich the following information:
   try {
     let jsonString = text.trim();
 
-    // Try parsing directly first
-    try {
-      const result = JSON.parse(jsonString);
-      return { ...result, sources };
-    } catch {
-      // Look for markdown code blocks: ```json\n{...}\n```
-      const fencedMatch = jsonString.match(/```(?:json)?\s*\r?\n([\s\S]*?)\r?\n?```/);
-      if (fencedMatch) {
-        jsonString = fencedMatch[1].trim();
-      } else {
-        // Extract first top-level JSON object by balancing braces
-        const firstBraceIndex = jsonString.indexOf('{');
-        if (firstBraceIndex !== -1) {
-          let braceDepth = 0;
-          let inString = false;
-          let stringQuote = '';
-          let isEscaped = false;
-          let endIndex = firstBraceIndex;
+    // Step 1: Remove markdown code blocks (```json ... ```)
+    const fencedMatch = jsonString.match(/```(?:json)?\s*\r?\n([\s\S]*?)\r?\n?```/);
+    if (fencedMatch) {
+      jsonString = fencedMatch[1].trim();
+    }
 
-          for (; endIndex < jsonString.length; endIndex++) {
-            const ch = jsonString[endIndex];
-            if (inString) {
-              if (isEscaped) {
-                isEscaped = false;
-              } else if (ch === '\\') {
-                isEscaped = true;
-              } else if (ch === stringQuote) {
-                inString = false;
-              }
-            } else {
-              if (ch === '"' || ch === "'") {
-                inString = true;
-                stringQuote = ch;
-              } else if (ch === '{') {
-                braceDepth++;
-              } else if (ch === '}') {
-                braceDepth--;
-                if (braceDepth === 0) {
-                  endIndex++;
-                  break;
-                }
-              }
+    // Step 2: Extract valid JSON by brace balancing (handles trailing garbage)
+    const firstBraceIndex = jsonString.indexOf('{');
+    if (firstBraceIndex !== -1) {
+      let braceDepth = 0;
+      let inString = false;
+      let stringQuote = '';
+      let isEscaped = false;
+      let endIndex = firstBraceIndex;
+
+      for (; endIndex < jsonString.length; endIndex++) {
+        const ch = jsonString[endIndex];
+        if (inString) {
+          if (isEscaped) {
+            isEscaped = false;
+          } else if (ch === '\\') {
+            isEscaped = true;
+          } else if (ch === stringQuote) {
+            inString = false;
+          }
+        } else {
+          if (ch === '"' || ch === "'") {
+            inString = true;
+            stringQuote = ch;
+          } else if (ch === '{') {
+            braceDepth++;
+          } else if (ch === '}') {
+            braceDepth--;
+            if (braceDepth === 0) {
+              endIndex++;
+              break;
             }
           }
-          jsonString = jsonString.slice(firstBraceIndex, endIndex).trim();
         }
       }
-
-      // Clean common LLM errors: escaped single quotes
-      jsonString = jsonString.replace(/\\'/g, "'");
-
-      const result = JSON.parse(jsonString);
-      return { ...result, sources };
+      jsonString = jsonString.slice(firstBraceIndex, endIndex).trim();
     }
+
+    // Step 3: Clean common LLM errors (escaped single quotes)
+    jsonString = jsonString.replace(/\\'/g, "'");
+
+    // Step 4: Parse JSON
+    const result = JSON.parse(jsonString);
+    return { ...result, sources };
   } catch (error) {
-    console.error('Failed to parse unified extract result:', text.substring(0, 200));
+    console.error('[UnifiedExtract] JSON parse failed:', error);
+    console.error('[UnifiedExtract] Text sample:', text.substring(0, 200));
     throw new Error('Invalid response format');
   }
 }

@@ -30,7 +30,7 @@ interface SaveCardRequest {
   personal_summary?: string;
   sources?: Array<{ uri: string; title: string }>;
   ai_status?: string;
-  ocr_raw_text?: string;
+  ocr_raw_text?: string;  // NOTE: Not populated by unified-extract (see unified-extract.ts)
 }
 
 interface UpdateCardRequest {

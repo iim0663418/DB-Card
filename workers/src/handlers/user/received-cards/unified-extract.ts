@@ -30,6 +30,11 @@ interface UnifiedExtractResult {
   company_summary: string | null;
   personal_summary: string | null;
   sources: Array<{ uri: string; title: string }>;
+  
+  // TODO: ocr_raw_text field exists in DB but not populated by unified-extract
+  // Reason: Gemini Structured Output doesn't return raw OCR text
+  // Future use cases: full-text search, OCR accuracy validation, audit trail
+  // Decision (2026-02-24): Keep DB field for backward compatibility, but not actively used
 }
 
 /**
@@ -56,93 +61,99 @@ async function performUnifiedExtract(
   mimeType: string,
   apiKey: string
 ): Promise<UnifiedExtractResult> {
-  // JSON Schema for structured output
+  // JSON Schema for structured output (multilingual support)
   const responseSchema = {
     type: "object",
     properties: {
       name_prefix: {
         type: ["string", "null"],
-        description: "稱謂前綴（Dr./Prof./Mr./Mrs./Ms.），無則填 null"
+        description: "Name prefix (Dr./Prof./Mr./Mrs./Ms.), null if not present"
       },
       full_name: {
         type: "string",
-        description: "完整姓名（必填）"
+        description: "Full name (required, preserve original language)"
       },
       name_suffix: {
         type: ["string", "null"],
-        description: "學位/頭銜後綴（Ph.D./Jr./Sr./M.D./Esq.），無則填 null"
+        description: "Name suffix (Ph.D./Jr./Sr./M.D./Esq.), null if not present"
       },
       organization: {
         type: "string",
-        description: "公司/組織名稱（必填）"
+        description: "Company/organization name (required, preserve original language)"
       },
       organization_en: {
         type: ["string", "null"],
-        description: "公司英文名稱（名片上有印才填，否則從官網補全）"
+        description: "English name of organization (from card if printed, otherwise from official website)"
       },
       organization_alias: {
         type: ["array", "null"],
         items: { type: "string" },
-        description: "組織常用簡稱或品牌名（例如：[\"台積電\", \"TSMC\"]）"
+        description: "Common abbreviations or brand names (e.g., [\"TSMC\", \"台積電\"])"
       },
       organization_full: {
         type: ["string", "null"],
-        description: "組織完整正式名稱（工商登記全稱）"
+        description: "Full official name of organization (business registration name)"
       },
       department: {
         type: ["string", "null"],
-        description: "部門名稱"
+        description: "Department name (preserve original language)"
       },
       title: {
         type: ["string", "null"],
-        description: "職稱"
+        description: "Job title (preserve original language)"
       },
       phone: {
         type: ["string", "null"],
-        description: "電話號碼（保留原格式含國碼，如：+886-2-1234-5678）"
+        description: "Phone number (preserve original format with country code, e.g., +886-2-1234-5678)"
       },
       email: {
         type: ["string", "null"],
-        description: "電子郵件"
+        description: "Email address"
       },
       website: {
         type: ["string", "null"],
-        description: "網站（完整 URL 含 https://，優先使用名片上的資訊）"
+        description: "Website (full URL with https://, prioritize card information)"
       },
       address: {
         type: ["string", "null"],
-        description: "地址（完整地址含郵遞區號，優先使用名片上的資訊）"
+        description: "Address (full address with postal code, prioritize card information, preserve original language)"
       },
       company_summary: {
         type: ["string", "null"],
-        description: "組織摘要（100-200字：產業、主要業務、成立年份、規模、營運狀況。如有部門名稱，額外說明該部門職能）"
+        description: "Organization summary (100-200 chars: industry, main business, founding year, scale, operational status. If department exists, explain its function)"
       },
       personal_summary: {
         type: ["string", "null"],
-        description: "個人摘要（嚴格限制 30-50 字：一句話總結此人的專業特色或代表性成就。例如：「專精雲端架構與 AI 應用，協助企業數位轉型」）"
+        description: "Personal summary (strictly 30-50 chars: one sentence summarizing expertise or achievements)"
       }
     },
     required: ["full_name", "organization"]
   };
 
-  const prompt = `你是專業的名片辨識與資訊補全系統。請完成以下任務：
+  const prompt = `You are a professional business card OCR and information enrichment system. Complete the following tasks:
 
-**任務 1：OCR 辨識**
-從名片圖片中精確辨識所有可見資訊（姓名、公司、部門、職稱、聯絡方式等）。
+**Task 1: OCR Recognition**
+Extract all visible information from the business card image (name, company, department, title, contact details, etc.).
+**IMPORTANT**: Preserve the original language of the card (Chinese/Japanese/Korean/English).
 
-**任務 2：資訊補全**
-使用 Google Search 補全以下資訊：
-- 組織完整名稱、英文名稱、常用簡稱
-- 組織摘要（產業、業務、規模、營運狀況）
-- 如有部門名稱，說明該部門在組織中的職能
-- 個人摘要（**嚴格限制 30-50 字**：一句話總結此人的專業特色或代表性成就）
-- 若名片缺少官網或地址，從官方來源補全
+**Task 2: Information Enrichment**
+Use Google Search to enrich the following information:
+- Organization's full name, English name, common abbreviations
+- Organization summary (100-200 chars: industry, main business, founding year, scale, operational status)
+- If department name exists, explain the department's function within the organization
+- Personal summary (**strictly 30-50 chars**: one sentence summarizing this person's expertise or representative achievements)
+- If the card lacks official website or address, supplement from official sources
 
-**搜尋策略**：
-- 可使用「姓名 + 組織/部門」作為搜尋關鍵字
-- company_summary 僅描述組織和部門
-- personal_summary 必須精簡，一句話即可
-- 優先使用官方來源（組織官網、政府登記、專業檔案）`;
+**Search Strategy**:
+- Can use "name + organization/department" as search keywords
+- company_summary describes only the organization and department
+- personal_summary must be concise, one sentence is sufficient
+- Prioritize official sources (organization website, government registration, professional profiles)
+
+**Language Handling**:
+- Keep all card text in its original language (names, titles, addresses)
+- company_summary and personal_summary can be in the same language as the card or English
+- For mixed-language cards, preserve each field in its original language`;
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`,

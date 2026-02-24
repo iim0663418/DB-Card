@@ -191,7 +191,6 @@ async function uploadWithRetry(file, thumbnail, signal, maxRetries = 3) {
       const jitter = Math.random() * 1000;
       const delay = Math.min(baseDelay + jitter, 10000);
       
-      console.log(`[Upload] Retry ${attempt + 1}/${maxRetries} after ${delay}ms`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -315,14 +314,10 @@ const ReceivedCardsAPI = {
       }
 
       // 3. Compress image (cancellable)
-      console.log(`[Upload] Compressing ${file.name} (${(file.size/1024/1024).toFixed(2)}MB)`);
       const compressedFile = await compressImageWithCancellation(file, signal);
-      console.log(`[Upload] Compressed to ${(compressedFile.size/1024/1024).toFixed(2)}MB`);
 
       // 4. Generate thumbnail (parallel with upload preparation)
-      console.log('[Upload] Generating thumbnail...');
       const thumbnail = await generateThumbnailClient(compressedFile);
-      console.log('[Upload] Thumbnail generated');
 
       // 5. Check cancellation after compression
       if (signal?.aborted) {
@@ -338,7 +333,6 @@ const ReceivedCardsAPI = {
         throw new Error('Upload failed: Invalid response from server');
       }
 
-      console.log('[Upload] Success:', uploadData.upload_id);
       return uploadData;
 
     } catch (error) {

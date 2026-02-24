@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS received_cards (
   
   -- Original data
   original_image_url TEXT,
-  ocr_raw_text TEXT,
+  ocr_raw_text TEXT,  -- NOTE (2026-02-24): Not populated by unified-extract flow. Reserved for future use (full-text search, audit trail).
   
   -- Timestamps
   created_at INTEGER NOT NULL,

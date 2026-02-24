@@ -688,13 +688,13 @@
                 if (!res.ok) {
                     const error = await res.json().catch(() => ({ message: 'Request failed' }));
 
-                    // Handle token expiration
+                    // Handle token expiration (silent logout)
                     if (res.status === 401) {
                         state.isLoggedIn = false;
                         state.authToken = null;
                         state.currentUser = null;
                         showView('login');
-                        showToast(i18n[currentLang]['error-unauthorized'] || '登入已過期，請重新登入');
+                        // Silent logout - no toast for normal session expiration
                     }
 
                     // Extract error details (support nested error object)
@@ -1676,10 +1676,9 @@
             console.error('[API Error]', err);
 
             if (err.status === 401 || err.status === 403) {
-                // Token 過期或無權限,返回登入頁
+                // Silent logout for token expiration
                 state.isLoggedIn = false;
                 showView('login');
-                showToast(i18n[currentLang]['error-unauthorized'] || '登入已過期,請重新登入');
             } else if (err.status === 429) {
                 showToast(i18n[currentLang]['error-rate-limit'] || '操作過於頻繁,請稍後再試');
             } else {
@@ -2527,12 +2526,11 @@
                         }
                     } catch (err) {
                         console.error('Failed to load cards:', err);
-                        // Session 無效或過期，清除並顯示登入頁
+                        // Session expired - silent logout
                         sessionStorage.removeItem('auth_user');
                         state.isLoggedIn = false;
                         state.currentUser = null;
                         showView('login');
-                        showToast('登入已過期，請重新登入');
                     } finally {
                         // 隱藏載入中
                         document.getElementById('global-loading').classList.add('hidden');

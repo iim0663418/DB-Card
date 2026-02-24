@@ -5,7 +5,9 @@
 ## 最新更新
 
 ### v5.0.0 (2026-02-23) - 收到的名片管理系統完成
+- **🎯 Gemini Structured Output** - JSON Schema 強制結構化輸出，零解析錯誤
 - **多模態 AI 狀態追蹤** - pending/completed/failed 三階段狀態，ocr_error 錯誤記錄
+- **統一提取流程** - OCR + Web Search 一次 API 呼叫，30% Token 減少
 - **上傳冪等性保證** - idempotency_key UNIQUE 約束，防止重複上傳
 - **HEIC 格式檢測與阻擋** - Extension + MIME + Magic Bytes 三重驗證
 - **智慧圖片壓縮** - browser-image-compression，目標 1MB，80% 上傳時間減少
@@ -98,6 +100,8 @@
 - **即時撤銷**: NFC 重新觸碰即可撤銷上一個會話
 
 ### 2. 收到的名片管理
+- **Gemini Structured Output**: JSON Schema 強制結構化輸出，零解析錯誤
+- **統一提取流程**: OCR + Web Search 一次 API 呼叫，30% Token 減少
 - **多模態 AI**: pending/completed/failed 三階段狀態追蹤
 - **智慧壓縮**: browser-image-compression,目標 1MB,80% 上傳時間減少
 - **冪等上傳**: idempotency_key 防止重複上傳

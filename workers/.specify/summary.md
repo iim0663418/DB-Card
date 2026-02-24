@@ -126,9 +126,9 @@
 - 文件: 3 個（持續累積）
 
 ### Gemini API
-- 模型: gemini-2.0-flash-exp
+- 模型: **gemini-3-flash-preview** (統一使用)
 - 功能: Structured Output (JSON Schema)
-- 用途: 去重判斷 + 自動標籤
+- 用途: OCR + 去重判斷 + 自動標籤
 
 ---
 

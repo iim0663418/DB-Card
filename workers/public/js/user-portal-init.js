@@ -137,7 +137,7 @@
                 // Received Cards (40 keys)
                 'received-cards-title': '收到的名片',
                 'received-cards-subtitle': 'AI-First Card Capture',
-                'received-cards-description': '拍照上傳名片，AI 自動辨識並整理',
+                'received-cards-description': '拍照上傳名片，AI 自動辨識並整理。管理您收到的所有名片',
                 'received-cards-open': '開啟名片夾',
                 'upload-title': '拍照或上傳名片',
                 'upload-subtitle': '支援 JPG/PNG，最大 5MB',
@@ -315,7 +315,7 @@
                 // Received Cards (40 keys)
                 'received-cards-title': 'Received Cards',
                 'received-cards-subtitle': 'AI-First Card Capture',
-                'received-cards-description': 'Take a photo and let AI organize your cards',
+                'received-cards-description': 'Take a photo and let AI organize your cards. Manage all received cards',
                 'received-cards-open': 'Open Card Holder',
                 'upload-title': 'Take Photo or Upload Card',
                 'upload-subtitle': 'Supports JPG/PNG, max 5MB',

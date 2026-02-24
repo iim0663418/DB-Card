@@ -72,24 +72,24 @@ export async function autoTagCards(env: Env): Promise<{ tagged: number }> {
 async function generateTags(env: Env, card: any): Promise<TagResult | null> {
   if (!env.GEMINI_API_KEY) return null;
 
-  const prompt = `根據以下名片資訊，生成標籤：
+  const prompt = `Generate tags based on the following business card information:
 
-姓名：${card.full_name || 'N/A'}
-組織：${card.organization || 'N/A'}
-職稱：${card.title || 'N/A'}
-公司摘要：${card.company_summary || 'N/A'}
-個人摘要：${card.personal_summary || 'N/A'}
+Name: ${card.full_name || 'N/A'}
+Organization: ${card.organization || 'N/A'}
+Title: ${card.title || 'N/A'}
+Company Summary: ${card.company_summary || 'N/A'}
+Personal Summary: ${card.personal_summary || 'N/A'}
 
-請生成以下標籤（使用繁體中文）：
-1. industry: 產業分類（單一標籤，例如：會計師事務所、科技業、金融業）
-2. location: 地區（單一標籤，例如：台北、新竹、台中）
-3. expertise: 專長領域（最多 3 個，例如：稅務諮詢、審計、雲端架構）
-4. seniority: 職級（單一標籤，例如：高階主管、中階主管、專業人員）
+Generate the following tags (use the same language as the card):
+1. industry: Industry classification (single tag, e.g., accounting firm, technology, finance)
+2. location: Location (single tag, e.g., city or region name)
+3. expertise: Areas of expertise (max 3, e.g., tax consulting, auditing, cloud architecture)
+4. seniority: Job level (single tag, e.g., executive, manager, specialist)
 
-注意：
-- 如果資訊不足，該欄位回傳 null
-- expertise 是陣列，其他是字串
-- 使用繁體中文`;
+Notes:
+- If information is insufficient, return null for that field
+- expertise is an array, others are strings
+- Use the same language as the original card content`;
 
   try {
     const response = await fetch(

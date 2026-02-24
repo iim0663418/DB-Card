@@ -761,7 +761,11 @@ export default {
     const { deduplicateCards } = await import('./cron/deduplicate-cards');
     await deduplicateCards(env);
 
-    // 3. Existing cleanup tasks
+    // 3. Auto-tag cards (1-2 min)
+    const { autoTagCards } = await import('./cron/auto-tag-cards');
+    await autoTagCards(env);
+
+    // 4. Existing cleanup tasks
     const { handleScheduledCleanup } = await import('./scheduled-cleanup');
     const { handleScheduledLogRotation } = await import('./scheduled-log-rotation');
     const { handleScheduledKVCleanup } = await import('./scheduled-kv-cleanup');

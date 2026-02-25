@@ -30,12 +30,37 @@ export async function fetchWithRetry(fetchFn, options = {}) {
       // Store last status for error reporting
       lastStatus = response.status;
 
-      // Non-retryable error
+      // Non-retryable error (4xx except 408, 429)
       if (!isRetryableStatus(response.status)) {
         return response;
       }
 
-      // Retry
+      // Special handling for 429 Rate Limited (max 2 retries)
+      if (response.status === 429) {
+        const retryAfterMs = parseRetryAfter(response);
+
+        if (retryAfterMs !== null) {
+          // Respect Retry-After header
+          if (attempt < 2) {
+            if (onRetry) onRetry(attempt, 2, retryAfterMs, response.status);
+            await sleep(retryAfterMs);
+            continue;
+          }
+        } else {
+          // No Retry-After, use backoff (max 2 attempts)
+          if (attempt < 2) {
+            const delay = calculateBackoff(attempt, baseDelayMs, maxDelayMs);
+            if (onRetry) onRetry(attempt, 2, delay, response.status);
+            await sleep(delay);
+            continue;
+          }
+        }
+
+        // Exhausted 429 retries
+        return response;
+      }
+
+      // 5xx or 408: Use normal retry logic (max 3 attempts)
       if (attempt < maxAttempts) {
         const delay = calculateBackoff(attempt, baseDelayMs, maxDelayMs);
         if (onRetry) onRetry(attempt, maxAttempts, delay, response.status);
@@ -51,7 +76,7 @@ export async function fetchWithRetry(fetchFn, options = {}) {
         throw error;
       }
 
-      // Retry
+      // Network error retry (max 3 attempts)
       const delay = calculateBackoff(attempt, baseDelayMs, maxDelayMs);
       if (onRetry) onRetry(attempt, maxAttempts, delay, null);
       await sleep(delay);
@@ -66,10 +91,31 @@ export async function fetchWithRetry(fetchFn, options = {}) {
   throw error;
 }
 
+function parseRetryAfter(response) {
+  const retryAfter = response.headers.get('Retry-After');
+  if (!retryAfter) return null;
+
+  // Try parsing as seconds (integer)
+  const seconds = parseInt(retryAfter, 10);
+  if (!isNaN(seconds)) {
+    return seconds * 1000; // Convert to milliseconds
+  }
+
+  // Try parsing as HTTP date
+  const date = new Date(retryAfter);
+  if (!isNaN(date.getTime())) {
+    return Math.max(0, date.getTime() - Date.now());
+  }
+
+  return null;
+}
+
 function isRetryableStatus(status) {
   // 408: Request Timeout (server-side timeout, retryable)
+  // 429: Rate Limited (retryable with Retry-After)
+  // 5xx: Server errors (transient, retryable)
   // Note: Different from client-side AbortError (not retryable)
-  return [408, 429, 500, 502, 503, 504].includes(status);
+  return status === 408 || status === 429 || (status >= 500 && status < 600);
 }
 
 function isRetryableError(error) {
@@ -82,9 +128,14 @@ function isRetryableError(error) {
 }
 
 function calculateBackoff(attempt, baseMs, maxMs) {
-  const exponential = baseMs * Math.pow(2, attempt - 1);
-  const jitter = Math.random() * baseMs;
-  return Math.min(maxMs, exponential + jitter);
+  // Exponential: attempt^2 × base
+  const exponential = Math.pow(attempt, 2) * baseMs;
+
+  // Add jitter: ±20% (prevents thundering herd)
+  const jitter = exponential * 0.2 * (Math.random() * 2 - 1);
+
+  // Cap at max
+  return Math.min(exponential + jitter, maxMs);
 }
 
 function sleep(ms) {

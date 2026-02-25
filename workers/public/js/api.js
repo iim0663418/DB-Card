@@ -1,6 +1,9 @@
 import { API_BASE } from './config.js';
 import { fetchWithRetry } from './api-retry.js';
 
+// Track pending requests to prevent duplicate concurrent requests
+const pendingRequests = new Map();
+
 /**
  * Tap a card to initiate a session
  * @param {string} uuid - Card UUID
@@ -8,6 +11,18 @@ import { fetchWithRetry } from './api-retry.js';
  * @returns {Promise<{session_id: string, expires_at: string, reads_remaining: number}>}
  */
 export async function tapCard(uuid, signal = null) {
+  const requestKey = `tap:${uuid}`;
+
+  // Return existing pending request if one exists
+  if (pendingRequests.has(requestKey)) {
+    return pendingRequests.get(requestKey);
+  }
+
+  // Create new request promise
+  const requestPromise = (async () => {
+  // Generate idempotency key only when making a new request
+  const idempotencyKey = crypto.randomUUID();
+
   const response = await fetchWithRetry(
     (internalSignal) => {
       // Combine external signal with internal signal (timeout)
@@ -30,6 +45,7 @@ export async function tapCard(uuid, signal = null) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Idempotency-Key': idempotencyKey,
         },
         body: JSON.stringify({ card_uuid: uuid }),
         signal: combinedSignal,
@@ -37,7 +53,7 @@ export async function tapCard(uuid, signal = null) {
     },
     {
       maxAttempts: 3,
-      timeoutMs: 4000,
+      timeoutMs: 10000,
     }
   );
 
@@ -60,8 +76,15 @@ export async function tapCard(uuid, signal = null) {
     throw error;
   }
 
-  const result = await response.json();
-  return result.data || result;
+    const result = await response.json();
+    return result.data || result;
+  })();
+
+  // Store in map and clean up when done
+  pendingRequests.set(requestKey, requestPromise);
+  requestPromise.finally(() => pendingRequests.delete(requestKey));
+
+  return requestPromise;
 }
 
 /**
@@ -72,10 +95,19 @@ export async function tapCard(uuid, signal = null) {
  * @returns {Promise<{data: object, session_info: object}>}
  */
 export async function readCard(uuid, sessionId, externalSignal = null) {
-  const CACHE_TTL = 3600000; // 1 hour in milliseconds (aligned with ReadSession TTL)
-  const cacheKey = `card:${uuid}`;
+  const requestKey = `read:${uuid}:${sessionId}`;
 
-  // Scenario 1 & 2: Check cache validity
+  // Return existing pending request if one exists
+  if (pendingRequests.has(requestKey)) {
+    return pendingRequests.get(requestKey);
+  }
+
+  // Create new request promise
+  const requestPromise = (async () => {
+    const CACHE_TTL = 3600000; // 1 hour in milliseconds (aligned with ReadSession TTL)
+    const cacheKey = `card:${uuid}`;
+
+    // Scenario 1 & 2: Check cache validity
   try {
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) {
@@ -118,7 +150,7 @@ export async function readCard(uuid, sessionId, externalSignal = null) {
     },
     {
       maxAttempts: 3,
-      timeoutMs: 4000,
+      timeoutMs: 10000,
       onRetry: (attempt, max, delay, status) => {
         if (window.DEBUG) {
           console.log(`[Retry] ${attempt}/${max} after ${delay}ms${status ? ` (HTTP ${status})` : ''}`);
@@ -152,8 +184,15 @@ export async function readCard(uuid, sessionId, externalSignal = null) {
     // sessionStorage full or unavailable, continue without caching
   }
 
-  // Return full result with data and session_info
-  return result;
+    // Return full result with data and session_info
+    return result;
+  })();
+
+  // Store in map and clean up when done
+  pendingRequests.set(requestKey, requestPromise);
+  requestPromise.finally(() => pendingRequests.delete(requestKey));
+
+  return requestPromise;
 }
 
 /**

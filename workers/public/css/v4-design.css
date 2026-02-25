@@ -169,14 +169,38 @@ body {
     background: white;
     border: 2px solid #ef4444;
     border-radius: 1rem;
-    padding: 2rem;
+    padding: 2.5rem;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
+    gap: 1.5rem;
     color: #ef4444;
     font-weight: 700;
-    max-width: 400px;
+    max-width: 90%;
+    width: 400px;
+    box-sizing: border-box;
+}
+
+.error-message button {
+    min-width: 120px;
+    min-height: 44px;
+    padding: 0.75rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 640px) {
+    .error-message {
+        padding: 2rem 1.5rem;
+        max-width: 95%;
+        width: auto;
+    }
+
+    .error-message button {
+        width: 100%;
+        min-height: 48px;
+    }
 }
 
 #notification-container {

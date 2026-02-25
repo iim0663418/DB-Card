@@ -254,19 +254,19 @@ const i18nTexts = {
 function showError(message, retryable = false) {
     const errorContainer = document.getElementById('error-container');
     if (errorContainer) {
-        const retryButton = retryable 
-            ? `<button onclick="location.reload()" class="mt-4 px-4 py-2 bg-moda text-white rounded-lg hover:bg-moda/90 transition-colors inline-flex items-center gap-2">
-                 <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+        const retryButton = retryable
+            ? `<button onclick="location.reload()" class="px-4 py-2 bg-moda text-white rounded-lg hover:bg-moda/90 transition-colors inline-flex items-center justify-center gap-2">
+                 <i data-lucide="refresh-cw" class="w-5 h-5"></i>
                  <span>${currentLanguage === 'zh' ? '重試' : 'Retry'}</span>
                </button>`
             : '';
-        
+
         errorContainer.innerHTML = DOMPurify.sanitize(`
             <div class="error-message">
-                <i data-lucide="alert-circle"></i>
+                <i data-lucide="alert-circle" class="w-12 h-12"></i>
                 <span>${message}</span>
+                ${retryButton}
             </div>
-            ${retryButton}
         `, { ADD_ATTR: ['onclick'] });
         errorContainer.style.display = 'block';
         if (window.initIcons) window.initIcons();
@@ -368,29 +368,29 @@ async function initApp() {
 let loadingTimer = null;
 let loadingStage = 0;
 let loadingAbortController = null;
+let userCancelledLoading = false;
 
 function showProgressiveLoading() {
     const loadingText = document.getElementById('loading-text');
+    const loadingIcon = document.getElementById('loading-icon');
     const cancelBtn = document.getElementById('loading-cancel-btn');
     if (!loadingText) return;
 
     // Create abort controller for cancellation
     loadingAbortController = new AbortController();
+    userCancelledLoading = false;
 
-    // Show cancel button after 4s (timeout threshold)
-    loadingTimer = setTimeout(() => {
-        if (cancelBtn && loadingStage === 1) {
-            cancelBtn.style.display = 'block';
-            loadingText.textContent = currentLanguage === 'zh'
-                ? '連線逾時，請稍候...'
-                : 'Connection timeout, please wait...';
-        }
-    }, 4000);
+    // Stage 1: Brand message (0-3s)
+    loadingStage = 1;
+    loadingText.textContent = currentLanguage === 'zh'
+        ? '雲端資料解密中...'
+        : 'Decrypting cloud data...';
 
     // Setup cancel button
     if (cancelBtn) {
         cancelBtn.onclick = () => {
             if (loadingAbortController) {
+                userCancelledLoading = true;
                 loadingAbortController.abort();
                 clearLoadingTimer();
                 showError(
@@ -402,9 +402,33 @@ function showProgressiveLoading() {
         };
     }
 
-    // Stage 1: 0-4s (normal case)
-    loadingStage = 1;
-    loadingText.textContent = currentLanguage === 'zh' ? '雲端資料解密中...' : 'Decrypting data...';
+    // Stage 2: Loading (3-7s)
+    setTimeout(() => {
+        if (loadingStage === 1) {
+            loadingStage = 2;
+            loadingText.textContent = currentLanguage === 'zh'
+                ? '正在載入名片...'
+                : 'Loading card...';
+        }
+    }, 3000);
+
+    // Stage 3: Slow network warning (7-10s)
+    loadingTimer = setTimeout(() => {
+        if (loadingStage <= 2 && cancelBtn) {
+            loadingStage = 3;
+            loadingText.textContent = currentLanguage === 'zh'
+                ? '網路較慢，請稍候...'
+                : 'Slow network, please wait...';
+
+            // Change icon to wifi-off
+            if (loadingIcon) {
+                loadingIcon.innerHTML = '<i data-lucide="wifi-off" class="w-10 h-10 animate-pulse" aria-hidden="true"></i>';
+                if (window.initIcons) window.initIcons();
+            }
+
+            cancelBtn.style.display = 'block';
+        }
+    }, 7000);
 }
 
 window.updateRetryProgress = function(attempt, max) {
@@ -424,7 +448,8 @@ function clearLoadingTimer() {
     }
     loadingStage = 0;
     loadingAbortController = null;
-    
+    userCancelledLoading = false;
+
     // Hide cancel button
     const cancelBtn = document.getElementById('loading-cancel-btn');
     if (cancelBtn) {
@@ -462,27 +487,33 @@ async function loadCard(uuid) {
         };
 
     } catch (error) {
-        console.error('Error loading card:', error);
-
         // Check user cancellation BEFORE clearing
-        const wasCancelled = loadingAbortController?.signal.aborted;
+        const wasCancelledByUser = userCancelledLoading;
         clearLoadingTimer();
-        
-        // Handle user cancellation
-        if (error.name === 'AbortError' && wasCancelled) {
+
+        // Handle user cancellation: silently return without logging
+        if (error.name === 'AbortError' && wasCancelledByUser) {
             return; // Already handled in showProgressiveLoading
         }
+
+        // Handle timeout abort: show message but don't log (expected behavior)
+        if (error.name === 'AbortError') {
+            const errorMessage = currentLanguage === 'zh'
+                ? '連線逾時，請檢查網路後重試'
+                : 'Connection timeout, please check network and retry';
+            showError(errorMessage, true);
+            hideLoading();
+            return;
+        }
+
+        // Log unexpected errors only
+        console.error('Error loading card:', error);
 
         // User-friendly error message with retry context
         let errorMessage = error.message;
         let retryable = false;
-        
-        if (error.name === 'AbortError') {
-            errorMessage = currentLanguage === 'zh'
-                ? '連線逾時，請檢查網路後重試'
-                : 'Connection timeout, please check network and retry';
-            retryable = true;
-        } else if (error.name === 'RetryExhaustedError') {
+
+        if (error.name === 'RetryExhaustedError') {
             const statusMsg = error.lastStatus ? ` (HTTP ${error.lastStatus})` : '';
             errorMessage = currentLanguage === 'zh'
                 ? `連線失敗，已重試 3 次${statusMsg}`

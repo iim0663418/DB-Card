@@ -3,7 +3,7 @@
 
 export interface Env {
   DB: D1Database;
-  KV: KVNamespace;
+  KV: KVNamespace;  // Used for rate limiting, card type cache, and idempotency cache
   RATE_LIMITER: DurableObjectNamespace;
   PHYSICAL_CARDS: R2Bucket;
   VECTORIZE: VectorizeIndex;  // Vectorize 綁定

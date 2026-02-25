@@ -168,6 +168,14 @@ const i18nTexts = {
         'zh': '數位名片系統 Digital Business Card',
         'en': 'Digital Business Card System'
     },
+    'design_concept_title': {
+        'zh': '設計理念',
+        'en': 'Design Concept'
+    },
+    'design_concept_desc': {
+        'zh': '由虛到實的數位名片成形',
+        'en': 'From virtual to physical digital card'
+    },
     'desktop-hint': {
         'zh': '移動滑鼠體驗 3D 視差效果',
         'en': 'Move mouse to experience 3D parallax effect'

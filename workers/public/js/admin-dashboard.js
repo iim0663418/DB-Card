@@ -32,7 +32,19 @@
             animate();
         }
 
-        // Safe icon initialization with retry mechanism (fixes race condition)
+        // Production-safe logging
+const DEBUG = window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1');
+window.DEBUG = DEBUG; // Expose for other modules
+
+const logger = {
+    debug: (...args) => { if (DEBUG) console.debug(...args); },
+    log: (...args) => { if (DEBUG) console.log(...args); },
+    info: (...args) => { if (DEBUG) console.info(...args); },
+    warn: (...args) => console.warn(...args),
+    error: (...args) => console.error(...args)
+};
+
+// Safe icon initialization with retry mechanism (fixes race condition)
         function safeInitIcons(retries = 3) {
             if (typeof window.initIcons === 'function') {
                 window.initIcons();
@@ -348,7 +360,7 @@
                 }
             } catch (error) {
                 // 網路錯誤或其他問題，靜默處理
-                console.debug('Check auth status:', error.message);
+                logger.debug('Check auth status:', error.message);
             }
         }
 
@@ -872,7 +884,7 @@
 
         // Render cards list (Phase 2: XSS防護 - 使用 DOM API 而非 innerHTML)
         function renderCardsList(cards) {
-            console.log('[renderCardsList] Called with', cards?.length, 'cards');
+            logger.log('[renderCardsList] Called with', cards?.length, 'cards');
             const grid = document.getElementById('cards-grid');
 
             if (!grid) {
@@ -881,7 +893,7 @@
             }
 
             if (!cards || cards.length === 0) {
-                console.log('[renderCardsList] No cards to render');
+                logger.log('[renderCardsList] No cards to render');
                 showEmptyState();
                 return;
             }
@@ -892,7 +904,7 @@
             // 使用 DOM API 安全渲染每張卡片
             cards.forEach((c, index) => {
                 try {
-                    console.log(`[renderCardsList] Rendering card ${index}:`, c.uuid, c.data?.name);
+                    logger.log(`[renderCardsList] Rendering card ${index}:`, c.uuid, c.data?.name);
                 const cardDiv = document.createElement('div');
                 cardDiv.className = 'glass-surface p-6 rounded-2xl flex flex-col lg:flex-row justify-between items-center gap-6 group hover:border-moda transition-all';
 
@@ -1049,7 +1061,7 @@
                 }
             });
 
-            console.log('[renderCardsList] Finished rendering', cards.length, 'cards');
+            logger.log('[renderCardsList] Finished rendering', cards.length, 'cards');
             safeInitIcons();
         }
 
@@ -2964,7 +2976,7 @@
 
             try {
                 const url = `${API_BASE}/api/admin/cards/${cardUuid}/assets`;
-                console.log('Fetching assets from:', url); // Debug log
+                logger.log('Fetching assets from:', url); // Debug log
                 
                 const response = await fetch(url, {
                     credentials: 'include'
@@ -3211,7 +3223,7 @@ window.triggerCron = async function() {
         statusEl.innerHTML += `<div class="mt-2 pt-2 border-t border-slate-200">${detailsHtml}</div>`;
         
         if (window.initIcons) window.initIcons();
-        console.log('[Cron Results]', data.results);
+        logger.log('[Cron Results]', data.results);
         setTimeout(() => statusEl.classList.add('hidden'), 10000); // 10s to read details
 
     } catch (error) {

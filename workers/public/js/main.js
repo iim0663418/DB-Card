@@ -2,7 +2,8 @@ import { tapCard, readCard } from './api.js';
 import { getLocalizedText, getLocalizedArray } from './utils/bilingual.js';
 // Icons now loaded via Vite bundle (/dist/icons.DTSin75g.js)
 
-const DEBUG = window.location.hostname === 'localhost';
+const DEBUG = window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1');
+window.DEBUG = DEBUG; // Expose for other modules
 
 // Error message constants for v4.1.0 & v4.2.0
 const ERROR_MESSAGES = {

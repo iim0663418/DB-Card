@@ -83,7 +83,9 @@ export async function readCard(uuid, sessionId, externalSignal = null) {
       maxAttempts: 3,
       timeoutMs: 4000,
       onRetry: (attempt, max, delay, status) => {
-        console.log(`[Retry] ${attempt}/${max} after ${delay}ms${status ? ` (HTTP ${status})` : ''}`);
+        if (window.DEBUG) {
+          console.log(`[Retry] ${attempt}/${max} after ${delay}ms${status ? ` (HTTP ${status})` : ''}`);
+        }
         if (window.updateRetryProgress) {
           window.updateRetryProgress(attempt, max);
         }

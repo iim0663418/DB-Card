@@ -396,7 +396,11 @@ async function performUnifiedExtract(
 
     // Step 6: Parse JSON
     const result = JSON.parse(jsonString);
-    return { ...result, sources };
+    return { 
+      ...result, 
+      sources,
+      ocr_raw_text: text  // Store full Gemini response for audit/search
+    };
   } catch (error) {
     console.error('[UnifiedExtract] JSON parse failed:', error);
     console.error('[UnifiedExtract] Text sample:', text.substring(0, 300));

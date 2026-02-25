@@ -448,9 +448,9 @@ const CardUploadStateMachine = {
   updateUI() {
     const states = {
       idle: { show: ['upload-area'], hide: ['ai-processing', 'preview-modal', 'error-message'] },
-      uploading: { show: ['ai-processing'], hide: ['upload-area', 'preview-modal'], step: 0 },
-      ocr: { show: ['ai-processing'], hide: ['upload-area', 'preview-modal'], step: 1 },
-      preview: { show: ['preview-modal'], hide: ['ai-processing', 'upload-area', 'skip-ai-button'] },
+      uploading: { show: ['ai-processing'], hide: ['upload-area', 'preview-modal', 'error-message'], step: 0 },
+      ocr: { show: ['ai-processing'], hide: ['upload-area', 'preview-modal', 'error-message'], step: 1 },
+      preview: { show: ['preview-modal'], hide: ['ai-processing', 'upload-area', 'skip-ai-button', 'error-message'] },
       error: { show: ['error-message'], hide: ['ai-processing', 'upload-area', 'preview-modal'] }
     };
 
@@ -466,6 +466,14 @@ const CardUploadStateMachine = {
       const el = document.getElementById(id);
       if (el) el.classList.add('hidden');
     });
+
+    // Update error message
+    if (this.state === 'error' && this.currentData?.error) {
+      const errorText = document.getElementById('error-text');
+      if (errorText) {
+        errorText.textContent = this.currentData.error;
+      }
+    }
 
     if (config.step !== undefined) {
       this.updateAIStep(config.step);

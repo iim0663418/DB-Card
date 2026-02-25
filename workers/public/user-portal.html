@@ -411,6 +411,32 @@
                 </div>
             </div>
 
+            <!-- Error Message -->
+            <div id="error-message" class="hidden glass-panel p-8 rounded-[2rem] border-2 border-red-300 bg-red-50/80 space-y-4">
+                <div class="flex items-start gap-4">
+                    <i data-lucide="alert-circle" class="w-8 h-8 text-red-600 flex-shrink-0"></i>
+                    <div class="flex-1 space-y-3">
+                        <h3 class="text-lg font-bold text-red-900" data-i18n="error-title">處理失敗</h3>
+                        <p id="error-text" class="text-red-800 leading-relaxed"></p>
+                        <div class="flex gap-3">
+                            <button
+                                onclick="ReceivedCardsManager.setState('idle')"
+                                class="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-colors"
+                            >
+                                <i data-lucide="refresh-cw" class="w-4 h-4 inline-block mr-2"></i>
+                                <span data-i18n="retry">重試</span>
+                            </button>
+                            <button
+                                onclick="ReceivedCardsManager.setState('idle')"
+                                class="px-6 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition-colors"
+                            >
+                                <span data-i18n="cancel">取消</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Search and Filter Section -->
             <div class="space-y-4">
                 <!-- Search Box -->

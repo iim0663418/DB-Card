@@ -3180,6 +3180,11 @@ window.triggerCron = async function() {
 
         const data = await response.json();
         
+        // Handle response format
+        if (!data || !data.results || !Array.isArray(data.results)) {
+            throw new Error('Invalid response format');
+        }
+        
         // Show results
         const successCount = data.results.filter(r => r.status === 'success').length;
         const totalCount = data.results.length;
@@ -3193,9 +3198,21 @@ window.triggerCron = async function() {
             statusEl.innerHTML = `<p class="text-xs text-yellow-700"><i data-lucide="alert-triangle" class="w-3 h-3 inline"></i> 部分失敗 (${successCount}/${totalCount})</p>`;
         }
         
+        // Show detailed results
+        const detailsHtml = data.results.map(r => {
+            const icon = r.status === 'success' ? 'check-circle' : 'x-circle';
+            const color = r.status === 'success' ? 'text-green-600' : 'text-red-600';
+            return `<div class="flex items-center justify-between text-xs py-1">
+                <span class="${color}"><i data-lucide="${icon}" class="w-3 h-3 inline"></i> ${r.task}</span>
+                <span class="text-slate-500">${r.duration}ms</span>
+            </div>`;
+        }).join('');
+        
+        statusEl.innerHTML += `<div class="mt-2 pt-2 border-t border-slate-200">${detailsHtml}</div>`;
+        
         if (window.initIcons) window.initIcons();
         console.log('[Cron Results]', data.results);
-        setTimeout(() => statusEl.classList.add('hidden'), 5000);
+        setTimeout(() => statusEl.classList.add('hidden'), 10000); // 10s to read details
 
     } catch (error) {
         console.error('[Cron Error]', error);

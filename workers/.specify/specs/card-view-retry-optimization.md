@@ -9,15 +9,16 @@
 4. **錯誤處理不完整** - 無法區分可重試 vs 不可重試錯誤
 
 ### 實測數據
-- 後端最長回應時間: **10 秒**
+- 後端實際回應時間: **~4 秒**
+- 後端最長容忍時間: **10 秒**（異常情況）
 - Loading 動畫週期: **2 秒** (pulse animation: "雲端資料解密中...")
-- **調整**: Timeout 設為 **12 秒**（10 秒後端 + 2 秒動畫完整週期）
+- **調整**: Timeout 設為 **10 秒**（2.5 倍安全邊際 + 動畫對齊）
 
 ---
 
 ## 🎯 優化目標
 
-1. **12 秒 Timeout** - 符合後端實測數據 + 動畫週期
+1. **10 秒 Timeout** - 後端 4s 實測 + 2.5x 安全邊際
 2. **指數退避重試** - 最多 3 次，間隔 1s/2s/4s
 3. **進度式 Loading** - 5 秒後顯示提示，10 秒後顯示重試
 4. **智慧錯誤處理** - 區分可重試 vs 不可重試錯誤
@@ -91,16 +92,16 @@ const calculateBackoff = (attempt, baseMs = 1000, maxMs = 5000) => {
 
 **進度式反饋**:
 ```
-0-6s:   旋轉 spinner + "雲端資料解密中..."（3 個動畫週期）
-6-12s:  spinner + "正在連線，請稍候..."
-12s+:   spinner + "連線逾時，正在重試 (1/3)..."
+0-6s:   旋轉 spinner + "雲端資料解密中..."（3 個動畫週期，涵蓋正常 4s）
+6-10s:  spinner + "正在連線，請稍候..."（異常情況）
+10s+:   spinner + "連線逾時，正在重試 (1/3)..."（timeout 後重試）
 失敗:   錯誤訊息 + "重試" 按鈕
 ```
 
 **關鍵點**:
 - 1 秒後顯示 spinner
-- 6 秒後更新文字（降低焦慮，3 個動畫週期）
-- 12 秒後顯示重試進度（動畫完整週期後）
+- 6 秒後更新文字（涵蓋正常 4s + 50% 緩衝）
+- 10 秒後顯示重試進度（timeout 觸發）
 - 永遠提供取消選項
 
 ---
@@ -120,7 +121,7 @@ const calculateBackoff = (attempt, baseMs = 1000, maxMs = 5000) => {
 export async function fetchWithRetry(fetchFn, options = {}) {
   const {
     maxAttempts = 3,
-    timeoutMs = 12000,
+    timeoutMs = 10000,
     baseDelayMs = 1000,
     maxDelayMs = 5000,
     onRetry = null
@@ -217,7 +218,7 @@ export async function readCard(uuid, sessionId) {
     ),
     {
       maxAttempts: 3,
-      timeoutMs: 12000,
+      timeoutMs: 10000,
       onRetry: (attempt, max, delay) => {
         console.log(`Retry ${attempt}/${max} after ${delay}ms`);
         // Update UI (Phase 3)
@@ -260,11 +261,11 @@ function showProgressiveLoading() {
   const loadingText = document.getElementById('loading-text');
   if (!loadingText) return;
 
-  // Stage 1: 0-6s (3 animation cycles)
+  // Stage 1: 0-6s (covers normal 4s + buffer)
   loadingStage = 1;
   loadingText.textContent = currentLanguage === 'zh' ? '雲端資料解密中...' : 'Decrypting data...';
 
-  // Stage 2: 6-12s
+  // Stage 2: 6-10s (abnormal case)
   loadingTimer = setTimeout(() => {
     loadingStage = 2;
     loadingText.textContent = currentLanguage === 'zh' 
@@ -272,7 +273,7 @@ function showProgressiveLoading() {
       : 'Connecting, please wait...';
   }, 6000);
 
-  // Stage 3: 12s+
+  // Stage 3: 10s+ (timeout triggered)
   setTimeout(() => {
     if (loadingStage === 2) {
       loadingStage = 3;
@@ -280,7 +281,7 @@ function showProgressiveLoading() {
         ? '連線逾時，正在重試...'
         : 'Connection timeout, retrying...';
     }
-  }, 12000);
+  }, 10000);
 }
 
 function updateRetryProgress(attempt, max) {
@@ -373,13 +374,13 @@ function showError(message, retryable = false) {
 ## 📊 預期效果
 
 ### 效能改善
-- ✅ **Timeout 保護**: 最長等待 12 秒（後端 10s + 動畫 2s）
+- ✅ **Timeout 保護**: 最長等待 10 秒（實測 4s + 2.5x 安全邊際）
 - ✅ **自動重試**: 暫時性錯誤自動恢復（成功率提升 30-50%）
 - ✅ **降低焦慮**: 進度式反饋（使用者願意等待時間 +3 倍）
 
 ### UX 改善
 - ✅ **5 秒提示**: 降低不確定性
-- ✅ **12 秒重試**: 明確告知狀態（動畫完整週期後）
+- ✅ **10 秒重試**: 明確告知狀態（異常情況處理）
 - ✅ **智慧錯誤**: 區分可重試 vs 不可重試
 
 ### 技術改善
@@ -396,7 +397,7 @@ function showError(message, retryable = false) {
 // api-retry.test.js
 test('timeout after 10s', async () => {
   const slowFetch = () => new Promise(resolve => setTimeout(resolve, 15000));
-  await expect(fetchWithRetry(slowFetch, { timeoutMs: 12000 }))
+  await expect(fetchWithRetry(slowFetch, { timeoutMs: 10000 }))
     .rejects.toThrow('AbortError');
 });
 
@@ -463,10 +464,10 @@ test('no retry on 404', async () => {
 
 ## ✅ 驗收標準
 
-1. ✅ 12 秒 timeout 生效（後端 10s + 動畫 2s）
+1. ✅ 10 秒 timeout 生效（實測 4s + 2.5x 安全邊際）
 2. ✅ 暫時性錯誤自動重試 3 次
-3. ✅ 6 秒後顯示「正在連線」（3 個動畫週期）
-4. ✅ 12 秒後顯示「正在重試」（動畫完整週期後）
+3. ✅ 6 秒後顯示「正在連線」（涵蓋正常 4s + 50% 緩衝）
+4. ✅ 10 秒後顯示「正在重試」（timeout 觸發）
 5. ✅ 404/403 不重試
 6. ✅ 429/503 重試
 7. ✅ 錯誤訊息清楚易懂

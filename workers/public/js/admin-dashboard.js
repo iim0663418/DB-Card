@@ -320,6 +320,7 @@ const logger = {
         // 統一處理授權過期
         function handleAuthExpired() {
             isVerified = false;
+            sessionStorage.removeItem('csrfToken');  // Clear CSRF token
             document.getElementById('token-section').classList.remove('hidden');
             document.getElementById('auth-status').classList.add('hidden');
             document.getElementById('admin-nav').classList.add('hidden');

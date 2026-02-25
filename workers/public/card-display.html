@@ -641,11 +641,8 @@ body {
         if (currentLang === 'en') {
             loadingText.textContent = 'Decrypting cloud data...';
         }
-        
-        // Fallback text after 3 seconds
-        setTimeout(() => {
-            loadingText.textContent = currentLang === 'zh' ? '處理中，請稍候...' : 'Processing, please wait...';
-        }, 3000);
+        // Note: Progressive loading text is now managed by main.js showProgressiveLoading()
+        // Timeline: 0-4s: "雲端資料解密中..." → 4s+: "連線逾時，請稍候..."
     }
 
     // Handle email click (mobile: copy, desktop: mailto)

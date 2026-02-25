@@ -308,6 +308,14 @@ async function initApp() {
 
     try {
         await loadCard(uuid);
+        
+        // Show skeleton after loading starts
+        setTimeout(() => {
+            const skeleton = document.getElementById('skeleton-loader');
+            if (skeleton && document.getElementById('loading').style.opacity === '0') {
+                skeleton.style.display = 'block';
+            }
+        }, 100);
     } catch (error) {
         console.error('Initialization error:', error);
         showError(currentLanguage === 'zh' ? `載入失敗: ${error.message}` : `Load failed: ${error.message}`);
@@ -477,6 +485,10 @@ async function loadCard(uuid) {
 }
 
 function renderCard(cardData, sessionData) {
+    // Hide skeleton, show actual content
+    const skeleton = document.getElementById('skeleton-loader');
+    if (skeleton) skeleton.style.display = 'none';
+    
     renderCardFace(cardData, sessionData, 'zh', '');
     renderCardFace(cardData, sessionData, 'en', '-en');
     

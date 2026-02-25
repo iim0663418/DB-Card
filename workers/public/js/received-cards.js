@@ -281,12 +281,54 @@ const ReceivedCardsAPI = {
       ...(csrfToken && { 'X-CSRF-Token': csrfToken })
     };
 
-    const response = await fetch(endpoint, {
-      ...options,
-      headers,
-      credentials: 'include',
-      signal: options.signal
-    });
+    // Create timeout controller
+    const timeoutMs = options.timeoutMs ?? 30000;  // Default 30 seconds
+    const timeoutController = new AbortController();
+    const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs);
+
+    // Combine external signal + timeout signal
+    let combinedSignal;
+    if (options.signal) {
+      // Use AbortSignal.any() if available (modern browsers), otherwise fallback
+      if (typeof AbortSignal.any === 'function') {
+        combinedSignal = AbortSignal.any([options.signal, timeoutController.signal]);
+      } else {
+        // Manual fallback: listen to both signals
+        combinedSignal = timeoutController.signal;
+        if (options.signal.aborted) {
+          clearTimeout(timeoutId);
+          // eslint-disable-next-line no-undef
+          throw new DOMException('Request aborted', 'AbortError');
+        }
+        options.signal.addEventListener('abort', () => {
+          clearTimeout(timeoutId);
+          timeoutController.abort();
+        });
+      }
+    } else {
+      combinedSignal = timeoutController.signal;
+    }
+
+    let response;
+    try {
+      response = await fetch(endpoint, {
+        ...options,
+        headers,
+        credentials: 'include',
+        signal: combinedSignal
+      });
+      clearTimeout(timeoutId);
+    } catch (error) {
+      clearTimeout(timeoutId);
+      
+      // User-friendly timeout error
+      if (error.name === 'AbortError' && timeoutController.signal.aborted) {
+        const timeoutError = new Error('請求超時，請稍後再試');
+        timeoutError.name = 'TimeoutError';
+        throw timeoutError;
+      }
+      throw error;
+    }
 
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`;
@@ -379,7 +421,8 @@ const ReceivedCardsAPI = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ upload_id: uploadId }),
-      signal
+      signal,
+      timeoutMs: 240000  // 4 minutes for Gemini API + Google Search
     });
   },
 
@@ -434,6 +477,7 @@ const CardUploadStateMachine = {
   state: 'idle',
   currentData: null,
   currentUploadId: null,
+  currentFile: null,
   abortController: null,
   skipAITimer: null,
 
@@ -577,10 +621,7 @@ const CardUploadStateMachine = {
       this.currentUploadId = uploadData.upload_id;
       
       this.setState('ocr');
-      const extractResult = await Promise.race([
-        ReceivedCardsAPI.unifiedExtract(this.currentUploadId, this.abortController.signal),
-        this.timeout(20000, 'Extract timeout')
-      ]);
+      const extractResult = await ReceivedCardsAPI.unifiedExtract(this.currentUploadId, this.abortController.signal);
       
       // Safe extraction with schema validation
       const rawData = extractResult.data || extractResult;
@@ -1245,7 +1286,7 @@ const ReceivedCards = {
   },
 
   getTagLabel(tag) {
-    // 標籤格式: "category:value"
+    // 標籤格式: "_category:value"
     const [category, value] = tag.split(':');
     return value || tag;
   },
@@ -1261,6 +1302,7 @@ const ReceivedCards = {
   },
   
   async handleFileUpload(file) {
+    this.currentFile = file;
     if (file.size > 5 * 1024 * 1024) {
       if (typeof showToast === 'function') {
         showToast('檔案大小不可超過 5MB', 'error');
@@ -1269,6 +1311,16 @@ const ReceivedCards = {
     }
     
     await CardUploadStateMachine.processCard(file);
+  },
+  
+  retryUpload() {
+    if (!this.currentFile) {
+      if (typeof showToast === 'function') {
+        showToast('無法重試：檔案已遺失', 'error');
+      }
+      return;
+    }
+    CardUploadStateMachine.processCard(this.currentFile);
   },
   
   async loadCards() {
@@ -2483,291 +2535,3 @@ function backToSelection() {
   ReceivedCards.hide();
 }
 
-// ==================== Batch Upload Module ====================
-const BatchUpload = {
-  currentBatchId: null,
-  progressInterval: null,
-
-  init() {
-    this.bindBatchEvents();
-  },
-
-  bindBatchEvents() {
-    const dropZone = document.getElementById('batch-drop-zone');
-    const fileInput = document.getElementById('batch-file-input');
-    const cancelBtn = document.getElementById('cancel-batch-upload');
-
-    if (!dropZone || !fileInput) return;
-
-    // Click to select files
-    dropZone.addEventListener('click', () => fileInput.click());
-
-    // File input change
-    fileInput.addEventListener('change', (e) => {
-      const files = Array.from(e.target.files);
-      if (files.length > 0) {
-        this.handleBatchUpload(files);
-      }
-      // Reset file input
-      e.target.value = '';
-    });
-
-    // Drag & Drop events
-    dropZone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropZone.style.borderColor = '#3b82f6';
-      dropZone.style.backgroundColor = '#eff6ff';
-    });
-
-    dropZone.addEventListener('dragleave', (e) => {
-      e.preventDefault();
-      dropZone.style.borderColor = '';
-      dropZone.style.backgroundColor = '';
-    });
-
-    dropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropZone.style.borderColor = '';
-      dropZone.style.backgroundColor = '';
-
-      const files = Array.from(e.dataTransfer.files);
-      this.handleBatchUpload(files);
-    });
-
-    // Cancel upload
-    if (cancelBtn) {
-      cancelBtn.addEventListener('click', () => this.cancelUpload());
-    }
-  },
-
-  validateFiles(files) {
-    const MAX_FILES = 20;
-    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-    const VALID_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-
-    // Check file count
-    if (files.length > MAX_FILES) {
-      if (typeof showToast === 'function') {
-        showToast(`最多只能上傳 ${MAX_FILES} 張圖片`, 'error');
-      }
-      return false;
-    }
-
-    // Check each file
-    for (const file of files) {
-      // Check file size
-      if (file.size > MAX_FILE_SIZE) {
-        if (typeof showToast === 'function') {
-          showToast(`檔案 ${file.name} 超過 10MB 限制`, 'error');
-        }
-        return false;
-      }
-
-      // Check file type
-      if (!VALID_TYPES.includes(file.type)) {
-        if (typeof showToast === 'function') {
-          showToast(`檔案 ${file.name} 不是有效的圖片格式`, 'error');
-        }
-        return false;
-      }
-    }
-
-    return true;
-  },
-
-  async handleBatchUpload(files) {
-    try {
-      // Validate files
-      if (!this.validateFiles(files)) {
-        return;
-      }
-
-      // Show progress UI
-      this.showProgressUI();
-
-      // Create FormData
-      const formData = new FormData();
-      files.forEach(file => {
-        formData.append('images', file);
-      });
-
-      // Upload
-      const response = await ReceivedCardsAPI.call('/api/user/received-cards/batch-upload', {
-        method: 'POST',
-        body: formData
-      });
-
-      const data = response.data || response;
-      this.currentBatchId = data.batch_id;
-
-      // Start progress polling
-      this.startProgressPolling();
-
-    } catch (error) {
-      if (typeof showToast === 'function') {
-        showToast(`上傳失敗：${error.message}`, 'error');
-      }
-      this.hideProgressUI();
-    }
-  },
-
-  showProgressUI() {
-    const dropZone = document.getElementById('batch-drop-zone');
-    const progressContainer = document.getElementById('batch-progress-container');
-
-    if (dropZone) dropZone.classList.add('hidden');
-    if (progressContainer) progressContainer.classList.remove('hidden');
-  },
-
-  hideProgressUI() {
-    const dropZone = document.getElementById('batch-drop-zone');
-    const progressContainer = document.getElementById('batch-progress-container');
-
-    if (dropZone) dropZone.classList.remove('hidden');
-    if (progressContainer) progressContainer.classList.add('hidden');
-
-    // Reset progress
-    this.updateProgress({ total: 0, completed: 0, failed: 0, results: [] });
-  },
-
-  startProgressPolling() {
-    // Clear existing interval
-    if (this.progressInterval) {
-      clearInterval(this.progressInterval);
-    }
-
-    // Poll every 2 seconds
-    this.progressInterval = setInterval(async () => {
-      try {
-        const response = await ReceivedCardsAPI.call(
-          `/api/user/received-cards/batch/${this.currentBatchId}`
-        );
-        const data = response.data || response;
-
-        this.updateProgress(data);
-
-        // Check if complete
-        const { total, completed, failed } = data;
-        if (completed + failed >= total) {
-          this.onBatchComplete(data);
-        }
-      } catch (_error) {
-        this.cancelUpload();
-        if (typeof showToast === 'function') {
-          showToast('無法取得上傳進度', 'error');
-        }
-      }
-    }, 2000);
-  },
-
-  updateProgress(data) {
-    const { total, completed, failed, results } = data;
-    const percentage = total > 0 ? Math.round((completed + failed) / total * 100) : 0;
-
-    // Update progress bar
-    const progressBar = document.getElementById('batch-progress-bar');
-    if (progressBar) {
-      progressBar.style.width = `${percentage}%`;
-    }
-
-    // Update progress text
-    const progressText = document.getElementById('batch-progress-text');
-    if (progressText) {
-      progressText.textContent = `${completed + failed} / ${total}`;
-    }
-
-    // Update status list
-    const statusList = document.getElementById('batch-status-list');
-    if (statusList && results) {
-      statusList.innerHTML = results.map(result => {
-        const statusColor = this.getStatusColor(result.status);
-        const statusText = this.getStatusText(result.status);
-
-        return `
-          <div class="flex items-center justify-between p-3 bg-white/60 rounded-xl border border-white/40">
-            <span class="text-sm font-bold text-slate-700 truncate flex-1">${this.escapeHTML(result.filename)}</span>
-            <span class="text-xs font-bold ${statusColor} ml-3">${statusText}</span>
-          </div>
-        `;
-      }).join('');
-    }
-  },
-
-  getStatusColor(status) {
-    switch (status) {
-      case 'completed': return 'text-green-600';
-      case 'failed': return 'text-red-600';
-      case 'processing': return 'text-blue-600';
-      default: return 'text-slate-400';
-    }
-  },
-
-  getStatusText(status) {
-    switch (status) {
-      case 'completed': return '✓ 完成';
-      case 'failed': return '✗ 失敗';
-      case 'processing': return '⏳ 處理中';
-      default: return '等待中';
-    }
-  },
-
-  onBatchComplete(data) {
-    const { completed, failed } = data;
-
-    // Stop polling
-    if (this.progressInterval) {
-      clearInterval(this.progressInterval);
-      this.progressInterval = null;
-    }
-
-    // Show completion message
-    if (failed === 0) {
-      if (typeof showToast === 'function') {
-        showToast(`成功上傳 ${completed} 張名片！`, 'success');
-      }
-    } else {
-      if (typeof showToast === 'function') {
-        showToast(`上傳完成：${completed} 成功，${failed} 失敗`, 'warning');
-      }
-    }
-
-    // Reload cards
-    ReceivedCards.loadCards();
-
-    // Reset UI after 3 seconds
-    setTimeout(() => {
-      this.hideProgressUI();
-      this.currentBatchId = null;
-    }, 3000);
-  },
-
-  cancelUpload() {
-    // Stop polling
-    if (this.progressInterval) {
-      clearInterval(this.progressInterval);
-      this.progressInterval = null;
-    }
-
-    // Reset UI
-    this.hideProgressUI();
-    this.currentBatchId = null;
-
-    if (typeof showToast === 'function') {
-      showToast('已取消上傳', 'info');
-    }
-  },
-
-  escapeHTML(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
-};
-
-// Initialize batch upload when ReceivedCards is shown
-const originalReceivedCardsShow = ReceivedCards.show;
-ReceivedCards.show = function() {
-  originalReceivedCardsShow.call(this);
-  BatchUpload.init();
-};

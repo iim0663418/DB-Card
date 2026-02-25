@@ -4,20 +4,57 @@ import { fetchWithRetry } from './api-retry.js';
 /**
  * Tap a card to initiate a session
  * @param {string} uuid - Card UUID
+ * @param {AbortSignal} signal - Optional abort signal
  * @returns {Promise<{session_id: string, expires_at: string, reads_remaining: number}>}
  */
-export async function tapCard(uuid) {
-  const response = await fetch(`${API_BASE}/api/nfc/tap`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+export async function tapCard(uuid, signal = null) {
+  const response = await fetchWithRetry(
+    (internalSignal) => {
+      // Combine external signal with internal signal (timeout)
+      let combinedSignal = internalSignal;
+
+      if (signal) {
+        if (AbortSignal.any) {
+          combinedSignal = AbortSignal.any([internalSignal, signal]);
+        } else {
+          // Fallback: manual combination
+          const controller = new AbortController();
+          const onAbort = () => controller.abort();
+          internalSignal.addEventListener('abort', onAbort, { once: true });
+          signal.addEventListener('abort', onAbort, { once: true });
+          combinedSignal = controller.signal;
+        }
+      }
+
+      return fetch(`${API_BASE}/api/nfc/tap`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ card_uuid: uuid }),
+        signal: combinedSignal,
+      });
     },
-    body: JSON.stringify({ card_uuid: uuid }),
-  });
+    {
+      maxAttempts: 3,
+      timeoutMs: 4000,
+    }
+  );
 
   if (!response.ok) {
-    const errorData = await response.json();
-    const error = new Error(errorData.error?.message || errorData.message || 'Failed to tap card');
+    // Check content-type before parsing JSON
+    const contentType = response.headers.get('content-type');
+    let errorData;
+
+    if (contentType?.includes('application/json')) {
+      errorData = await response.json();
+    } else {
+      // Non-JSON response (502, Cloudflare error, etc.)
+      const text = await response.text();
+      errorData = { error: text || 'Network error, please try again' };
+    }
+
+    const error = new Error(errorData.error?.message || errorData.message || errorData.error || 'Failed to tap card');
     error.code = errorData.error?.code;
     error.data = errorData;
     throw error;

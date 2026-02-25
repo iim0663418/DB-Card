@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <!-- Resource Hints for Performance Optimization -->
     <link rel="dns-prefetch" href="https://db-card-staging.csw30454.workers.dev">
     <link rel="preconnect" href="https://db-card-staging.csw30454.workers.dev">
@@ -36,6 +36,11 @@ body {
     background-color: #f8fafd;
     margin: 0;
     padding: 0;
+}
+
+/* iPhone Safe Area Support */
+#ui-header {
+    padding-top: max(1.5rem, env(safe-area-inset-top));
 }
 
 /* 深色模式支援 */
@@ -681,18 +686,56 @@ body {
     window.copyEmailWithToast = async (event, elementId) => {
         const emailEl = document.getElementById(elementId);
         const email = emailEl.textContent.trim();
-        
+
         if (email === '---') return;
-        
-        try {
-            await navigator.clipboard.writeText(email);
+
+        const success = await copyToClipboard(email);
+        if (success) {
             const message = currentLang === 'zh' ? '已複製電子郵件' : 'Email copied';
             showToast(message);
-        } catch (err) {
-            console.error('Failed to copy email:', err);
+        } else {
             const message = currentLang === 'zh' ? '複製失敗' : 'Copy failed';
             showToast(message, true);
         }
+    };
+
+    // 3-stage clipboard fallback for iOS Safari compatibility
+    window.copyToClipboard = async (text) => {
+        // Stage 1: Try Clipboard API
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            try {
+                await navigator.clipboard.writeText(text);
+                return true;
+            } catch (err) {
+                console.warn('Clipboard API failed, trying execCommand:', err);
+            }
+        }
+
+        // Stage 2: Try document.execCommand with temporary textarea
+        try {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'absolute';
+            textarea.style.left = '-9999px';
+            textarea.readOnly = true;
+            document.body.appendChild(textarea);
+
+            textarea.select();
+            textarea.setSelectionRange(0, text.length);
+
+            const success = document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            if (success) {
+                return true;
+            }
+        } catch (err) {
+            console.warn('execCommand failed:', err);
+        }
+
+        // Stage 3: Show alert with selectable text
+        alert(text);
+        return false;
     };
 
     // Show toast notification
@@ -712,22 +755,22 @@ body {
     window.copyEmail = async (event, elementId) => {
         event.preventDefault();
         event.stopPropagation();
-        
+
         const emailEl = document.getElementById(elementId);
         const email = emailEl.textContent.trim();
-        
+
         if (email === '---') return;
-        
-        try {
-            await navigator.clipboard.writeText(email);
-            
-            // Visual feedback
-            const button = event.target.closest('button');
-            if (!button) return;
 
-            const icon = button.querySelector('i');
-            if (!icon) return;
+        const success = await copyToClipboard(email);
 
+        // Visual feedback
+        const button = event.target.closest('button');
+        if (!button) return;
+
+        const icon = button.querySelector('i');
+        if (!icon) return;
+
+        if (success) {
             // Use Unicode fallback for check icon
             const originalIcon = icon.getAttribute('data-lucide');
             icon.setAttribute('data-lucide', 'check');
@@ -739,8 +782,8 @@ body {
                 icon.textContent = '⧉'; // copy icon
                 button.classList.remove('text-green-600');
             }, 2000);
-        } catch (err) {
-            console.error('Failed to copy email:', err);
+        } else {
+            console.error('Failed to copy email');
         }
     };
 

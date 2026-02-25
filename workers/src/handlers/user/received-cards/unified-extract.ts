@@ -159,7 +159,8 @@ async function performUnifiedExtract(
   imageBase64: string,
   mimeType: string,
   apiKey: string,
-  model: string
+  model: string,
+  DEBUG: boolean = false
 ): Promise<UnifiedExtractResult> {
   // JSON Schema for structured output (multilingual support)
   const responseSchema = {
@@ -245,6 +246,9 @@ async function performUnifiedExtract(
 
 **Language**: Keep all card text in original language (names, titles, addresses). For mixed-language cards, preserve each field in its original language. Summaries can be same language or English.`;
 
+  if (DEBUG) console.log('[UnifiedExtract] Calling Gemini API at', new Date().toISOString());
+  const geminiStartTime = Date.now();
+
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
@@ -272,6 +276,9 @@ async function performUnifiedExtract(
       })
     }
   );
+
+  const geminiDuration = Date.now() - geminiStartTime;
+  if (DEBUG) console.log(`[UnifiedExtract] Gemini API completed in ${geminiDuration}ms at`, new Date().toISOString());
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -417,8 +424,10 @@ export async function handleUnifiedExtract(
   ctx: ExecutionContext
 ): Promise<Response> {
   const DEBUG = env.ENVIRONMENT === 'staging';
+  const startTime = Date.now();
+  
   try {
-    if (DEBUG) console.log('[UnifiedExtract] Request received');
+    if (DEBUG) console.log('[UnifiedExtract] Request received at', new Date().toISOString());
     
     // 1. Verify OAuth
     const userResult = await verifyOAuth(request, env);
@@ -473,7 +482,7 @@ export async function handleUnifiedExtract(
 
     // 7. Perform unified extract (OCR + Enrich) with retry on 429
     const result = await retryWithBackoff(() =>
-      performUnifiedExtract(imageBase64, mimeType, env.GEMINI_API_KEY, env.GEMINI_MODEL)
+      performUnifiedExtract(imageBase64, mimeType, env.GEMINI_API_KEY, env.GEMINI_MODEL, DEBUG)
     );
 
     // 8. Update OCR status to completed
@@ -494,6 +503,9 @@ export async function handleUnifiedExtract(
     }
 
     // 10. Return result
+    const totalDuration = Date.now() - startTime;
+    if (DEBUG) console.log(`[UnifiedExtract] Total processing time: ${totalDuration}ms`);
+    
     return jsonResponse(result);
 
   } catch (error) {

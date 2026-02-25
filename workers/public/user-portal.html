@@ -420,14 +420,14 @@
                         <p id="error-text" class="text-red-800 leading-relaxed"></p>
                         <div class="flex gap-3">
                             <button
-                                onclick="ReceivedCardsManager.setState('idle')"
+                                onclick="ReceivedCards.retryUpload()"
                                 class="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-colors"
                             >
                                 <i data-lucide="refresh-cw" class="w-4 h-4 inline-block mr-2"></i>
                                 <span data-i18n="retry">重試</span>
                             </button>
                             <button
-                                onclick="ReceivedCardsManager.setState('idle')"
+                                onclick="CardUploadStateMachine.setState('idle')"
                                 class="px-6 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition-colors"
                             >
                                 <span data-i18n="cancel">取消</span>

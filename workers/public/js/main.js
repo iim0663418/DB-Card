@@ -27,6 +27,40 @@ function validateQRInput(text) {
     }
 }
 
+/**
+ * iOS-compatible requestIdleCallback fallback
+ * @param {Function} fn - Function to execute
+ */
+window.safeIdle = function(fn) {
+    if (typeof window.requestIdleCallback !== 'undefined') {
+        window.requestIdleCallback(fn, { timeout: 2000 });
+    } else {
+        setTimeout(fn, 0);
+    }
+};
+
+/**
+ * Wait for QrCreator library to load (retry mechanism)
+ * @param {number} maxRetries - Maximum retry attempts
+ * @returns {Promise<boolean>} - True if QrCreator is available
+ */
+async function waitForQrCreator(maxRetries = 2) {
+    if (typeof window.QrCreator !== 'undefined') {
+        return true;
+    }
+
+    for (let i = 0; i < maxRetries; i++) {
+        const delay = (i + 1) * 100; // 100ms, 200ms
+        await new Promise(resolve => setTimeout(resolve, delay));
+
+        if (typeof window.QrCreator !== 'undefined') {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 let scene, camera, renderer, mesh, grid;
 let currentLanguage = 'zh';
 let typewriterTimeout = null;
@@ -326,7 +360,7 @@ async function initApp() {
     // 2. 內容已顯示，延遲初始化特效
     const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
     if (isDesktop && typeof THREE !== 'undefined') {
-        requestIdleCallback(() => initThree(), { timeout: 2000 });
+        window.safeIdle(() => initThree());
     }
 }
 
@@ -414,7 +448,7 @@ async function loadCard(uuid) {
             sessionId = urlSessionId;
         } else {
             // 需要新建 session
-            const tapResult = await tapCard(uuid);
+            const tapResult = await tapCard(uuid, loadingAbortController?.signal);
             sessionId = tapResult.session_id;
         }
 
@@ -498,9 +532,9 @@ function renderCard(cardData, sessionData) {
 
     // 桌面版自動生成 QR Code - Deferred to idle time
     if (window.innerWidth >= 1024) {
-        requestIdleCallback(() => {
+        window.safeIdle(() => {
             generateQRCode('qrcode-desktop');
-        }, { timeout: 2000 });
+        });
     }
 }
 
@@ -1261,22 +1295,35 @@ document.getElementById('save-vcard').addEventListener('click', () => {
 });
 
 // QR Code 生成函數
-function generateQRCode(targetId) {
+async function generateQRCode(targetId) {
     const params = new URLSearchParams(window.location.search);
     const uuid = params.get('uuid');
     const qrContainer = document.getElementById(targetId);
-    
+
     if (!qrContainer) return;
-    
+
     qrContainer.innerHTML = '';
     const cardUrl = `${window.location.origin}/card-display?uuid=${uuid}`;
-    
+
     try {
         validateQRInput(cardUrl);
+
+        // Wait for QrCreator library to load
+        const qrCreatorReady = await waitForQrCreator(2);
+
+        if (!qrCreatorReady || typeof window.QrCreator === 'undefined') {
+            // Show bilingual error message
+            const errorMsg = currentLanguage === 'zh'
+                ? 'QR Code 功能載入中，請稍後再試'
+                : 'QR Code loading, please try again';
+            qrContainer.innerHTML = `<div style="padding: 16px; text-align: center; color: #666;">${errorMsg}</div>`;
+            return;
+        }
+
         const canvas = document.createElement('canvas');
         qrContainer.appendChild(canvas);
-        
-        QrCreator.render({
+
+        window.QrCreator.render({
             text: cardUrl,
             radius: 0,
             ecLevel: 'H',
@@ -1292,11 +1339,13 @@ function generateQRCode(targetId) {
 
 // 手機版 QR Code modal
 document.getElementById('open-qr').addEventListener('click', () => {
-    // Defer QR Code generation to idle time
-    requestIdleCallback(() => {
-        generateQRCode('qrcode-target');
-    }, { timeout: 2000 });
+    // Show modal immediately (decouple from QR generation)
     document.getElementById('qr-modal').classList.remove('hidden');
+
+    // Generate QR Code asynchronously
+    window.safeIdle(() => {
+        generateQRCode('qrcode-target');
+    });
 });
 
 document.getElementById('close-qr').addEventListener('click', () => {

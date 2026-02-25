@@ -201,6 +201,14 @@ const i18nTexts = {
     'desktop-hint-qr-desc': {
         'zh': '使用手機相機掃描，即可加入通訊錄',
         'en': 'Use your phone camera to scan and add to contacts'
+    },
+    'desktop-hint-mobile-title': {
+        'zh': '點擊加入聯絡人',
+        'en': 'Tap to Add Contact'
+    },
+    'desktop-hint-mobile-desc': {
+        'zh': '即可儲存到手機通訊錄',
+        'en': 'Save to your phone contacts'
     }
 };
 

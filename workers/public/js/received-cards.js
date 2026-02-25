@@ -999,7 +999,7 @@ const ReceivedCards = {
     // 如果有搜尋關鍵字，使用智慧搜尋 API
     if (this.currentKeyword && this.currentKeyword.trim().length > 0) {
       try {
-        const response = await API.searchCards(this.currentKeyword.trim());
+        const response = await ReceivedCardsAPI.searchCards(this.currentKeyword.trim());
         
         if (response && response.results) {
           // 套用標籤過濾

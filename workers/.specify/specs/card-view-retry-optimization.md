@@ -22,6 +22,11 @@
 3. **進度式 Loading** - 4 秒後顯示重試（timeout 觸發）
 4. **智慧錯誤處理** - Timeout 不重試，網路錯誤才重試
 
+**重要區分**:
+- **Client Timeout (AbortError)**: 不重試（4 秒無回應，快速失敗）
+- **Server 408 (Request Timeout)**: 重試（伺服器端超時，可能恢復）
+- **Network Errors**: 重試（ECONNRESET, ETIMEDOUT, network failure）
+
 ---
 
 ## 📚 外部最佳實踐
@@ -32,7 +37,7 @@
 ```typescript
 // 使用 AbortSignal.timeout (標準 API)
 const controller = new AbortController();
-const timeoutId = setTimeout(() => controller.abort(), 10000);
+const timeoutId = setTimeout(() => controller.abort(), 4000);
 
 fetch(url, { signal: controller.signal })
   .finally(() => clearTimeout(timeoutId));
@@ -40,7 +45,7 @@ fetch(url, { signal: controller.signal })
 
 **關鍵點**:
 - 使用 `AbortController` 實現 timeout
-- 10 秒符合後端實測數據
+- 4 秒符合後端實測數據
 - 支援外部 signal 整合
 
 ---
@@ -86,8 +91,8 @@ const calculateBackoff = (attempt, baseMs = 1000, maxMs = 5000) => {
 | 時長 | 指示器類型 | 說明 |
 |------|-----------|------|
 | < 1s | 無 | 太快不需要 |
-| 1-10s | **Looped Spinner** | 旋轉動畫 |
-| > 10s | **Percent-done** | 進度百分比 |
+| 1-4s | **Looped Spinner** | 旋轉動畫 |
+| > 4s | **Cancel Button** | 取消按鈕 |
 
 **進度式反饋**:
 ```
@@ -180,6 +185,8 @@ export async function fetchWithRetry(fetchFn, options = {}) {
 }
 
 function isRetryableStatus(status) {
+  // 408: Request Timeout (server-side timeout, retryable)
+  // Note: Different from client-side AbortError (not retryable)
   return [408, 429, 500, 502, 503, 504].includes(status);
 }
 
@@ -230,9 +237,20 @@ export async function readCard(uuid, sessionId, externalSignal = null) {
   const response = await fetchWithRetry(
     (signal) => {
       // Combine external signal (cancel button) with internal signal (timeout)
-      const combinedSignal = externalSignal 
-        ? AbortSignal.any ? AbortSignal.any([signal, externalSignal]) : signal
-        : signal;
+      let combinedSignal = signal;
+      
+      if (externalSignal) {
+        if (AbortSignal.any) {
+          combinedSignal = AbortSignal.any([signal, externalSignal]);
+        } else {
+          // Fallback: manual combination
+          const controller = new AbortController();
+          const onAbort = () => controller.abort();
+          signal.addEventListener('abort', onAbort, { once: true });
+          externalSignal.addEventListener('abort', onAbort, { once: true });
+          combinedSignal = controller.signal;
+        }
+      }
       
       return fetch(
         `${API_BASE}/api/read?uuid=${encodeURIComponent(uuid)}&session=${encodeURIComponent(sessionId)}`,
@@ -356,10 +374,12 @@ async function loadCard(uuid) {
     clearLoadingTimer();
     renderCard(readResult.data, sessionData);
   } catch (error) {
+    // Check user cancellation BEFORE clearing
+    const wasCancelled = loadingAbortController?.signal.aborted;
     clearLoadingTimer();
     
     // Handle user cancellation
-    if (error.name === 'AbortError' && loadingAbortController?.signal.aborted) {
+    if (error.name === 'AbortError' && wasCancelled) {
       return; // Already handled in showProgressiveLoading
     }
     
@@ -451,8 +471,8 @@ function showError(message, retryable = false) {
 - ✅ **Timeout 不重試**: 快速失敗，使用者可手動重試
 
 ### UX 改善
-- ✅ **6 秒提示**: 降低不確定性（涵蓋正常 4s + 50% 緩衝）
-- ✅ **10 秒重試**: 明確告知狀態（異常情況處理）
+- ✅ **4 秒快速失敗**: Timeout 不重試，使用者可手動重試
+- ✅ **網路錯誤重試**: 暫時性網路問題自動恢復
 - ✅ **智慧錯誤**: 區分可重試 vs 不可重試
 
 ### 技術改善
@@ -503,7 +523,8 @@ test('retry 3 times on 503', async () => {
     return Promise.resolve({ ok: false, status: 503 });
   };
   
-  await fetchWithRetry(fetch503, { maxAttempts: 3 });
+  await expect(fetchWithRetry(fetch503, { maxAttempts: 3 }))
+    .rejects.toThrow('Max retry attempts reached');
   expect(attempts).toBe(3);
 });
 
@@ -525,8 +546,8 @@ test('no retry on 404', async () => {
 - 模擬 timeout（後端延遲 15 秒）
 
 ### 3. 使用者測試
-- 觀察 6 秒提示是否降低焦慮
-- 觀察 10 秒重試是否清楚
+- 觀察 4 秒 timeout 是否合適
+- 觀察取消按鈕是否清楚
 - 收集錯誤訊息可讀性反饋
 
 ---

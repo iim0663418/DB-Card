@@ -10,18 +10,17 @@
 
 ### 實測數據
 - 後端實際回應時間: **~4 秒**
-- 後端最長容忍時間: **10 秒**（異常情況）
+- **調整**: Timeout 設為 **4 秒**（符合實測，快速失敗）
 - Loading 動畫週期: **2 秒** (pulse animation: "雲端資料解密中...")
-- **調整**: Timeout 設為 **10 秒**（2.5 倍安全邊際 + 動畫對齊）
 
 ---
 
 ## 🎯 優化目標
 
-1. **10 秒 Timeout** - 後端 4s 實測 + 2.5x 安全邊際
+1. **4 秒 Timeout** - 符合後端實測，快速失敗
 2. **指數退避重試** - 最多 3 次，間隔 1s/2s/4s
-3. **進度式 Loading** - 6 秒後顯示提示，10 秒後顯示重試
-4. **智慧錯誤處理** - 區分可重試 vs 不可重試錯誤
+3. **進度式 Loading** - 4 秒後顯示重試（timeout 觸發）
+4. **智慧錯誤處理** - Timeout 不重試，網路錯誤才重試
 
 ---
 
@@ -92,16 +91,16 @@ const calculateBackoff = (attempt, baseMs = 1000, maxMs = 5000) => {
 
 **進度式反饋**:
 ```
-0-6s:   旋轉 spinner + "雲端資料解密中..."（3 個動畫週期，涵蓋正常 4s）
-6-10s:  spinner + "正在連線，請稍候..."（異常情況）
-10s+:   spinner + "連線逾時，正在重試 (1/3)..."（timeout 後重試）
+0-4s:   旋轉 spinner + "雲端資料解密中..."（2 個動畫週期，正常情況）
+4s+:    spinner + "連線逾時，請稍候..."（timeout 觸發，顯示取消按鈕）
 失敗:   錯誤訊息 + "重試" 按鈕
 ```
 
 **關鍵點**:
 - 1 秒後顯示 spinner
-- 6 秒後更新文字（涵蓋正常 4s + 50% 緩衝）
-- 10 秒後顯示重試進度（timeout 觸發）
+- 4 秒 timeout（符合實測）
+- **Timeout 不重試**（快速失敗，使用者可手動重試）
+- **網路錯誤才重試**（ECONNRESET, network failure）
 - 提供取消按鈕（Phase 4 實作）
 
 ---
@@ -121,7 +120,7 @@ const calculateBackoff = (attempt, baseMs = 1000, maxMs = 5000) => {
 export async function fetchWithRetry(fetchFn, options = {}) {
   const {
     maxAttempts = 3,
-    timeoutMs = 10000,
+    timeoutMs = 4000,
     baseDelayMs = 1000,
     maxDelayMs = 5000,
     onRetry = null
@@ -185,9 +184,12 @@ function isRetryableStatus(status) {
 }
 
 function isRetryableError(error) {
-  return error.name === 'AbortError' || 
-         error.message.includes('network') ||
-         error.message.includes('fetch');
+  // Timeout 不重試（使用者可手動重試）
+  // 只重試網路暫時性錯誤
+  return error.message.includes('network') ||
+         error.message.includes('fetch') ||
+         error.message.includes('ECONNRESET') ||
+         error.message.includes('ETIMEDOUT');
 }
 
 function calculateBackoff(attempt, baseMs, maxMs) {
@@ -239,7 +241,7 @@ export async function readCard(uuid, sessionId, externalSignal = null) {
     },
     {
       maxAttempts: 3,
-      timeoutMs: 10000,
+      timeoutMs: 4000,
       onRetry: (attempt, max, delay, status) => {
         console.log(`Retry ${attempt}/${max} after ${delay}ms${status ? ` (status: ${status})` : ''}`);
         if (window.updateRetryProgress) {
@@ -278,7 +280,6 @@ export async function readCard(uuid, sessionId, externalSignal = null) {
 
 ```typescript
 let loadingTimer = null;
-let loadingTimer2 = null;
 let loadingStage = 0;
 let loadingAbortController = null;
 
@@ -290,9 +291,18 @@ function showProgressiveLoading() {
   // Create abort controller for cancellation
   loadingAbortController = new AbortController();
 
-  // Show cancel button
+  // Show cancel button after 4s (timeout threshold)
+  loadingTimer = setTimeout(() => {
+    if (cancelBtn && loadingStage === 1) {
+      cancelBtn.style.display = 'block';
+      loadingText.textContent = currentLanguage === 'zh'
+        ? '連線逾時，請稍候...'
+        : 'Connection timeout, please wait...';
+    }
+  }, 4000);
+
+  // Setup cancel button
   if (cancelBtn) {
-    cancelBtn.style.display = 'block';
     cancelBtn.onclick = () => {
       if (loadingAbortController) {
         loadingAbortController.abort();
@@ -306,29 +316,9 @@ function showProgressiveLoading() {
     };
   }
 
-  // Stage 1: 0-6s (covers normal 4s + buffer)
+  // Stage 1: 0-4s (normal case)
   loadingStage = 1;
   loadingText.textContent = currentLanguage === 'zh' ? '雲端資料解密中...' : 'Decrypting data...';
-
-  // Stage 2: 6-10s (abnormal case)
-  loadingTimer = setTimeout(() => {
-    if (loadingStage === 1) {
-      loadingStage = 2;
-      loadingText.textContent = currentLanguage === 'zh' 
-        ? '正在連線，請稍候...' 
-        : 'Connecting, please wait...';
-    }
-  }, 6000);
-
-  // Stage 3: 10s+ (timeout triggered)
-  loadingTimer2 = setTimeout(() => {
-    if (loadingStage === 2) {
-      loadingStage = 3;
-      loadingText.textContent = currentLanguage === 'zh'
-        ? '連線逾時，正在重試...'
-        : 'Connection timeout, retrying...';
-    }
-  }, 10000);
 }
 
 function updateRetryProgress(attempt, max) {
@@ -345,10 +335,6 @@ function clearLoadingTimer() {
   if (loadingTimer) {
     clearTimeout(loadingTimer);
     loadingTimer = null;
-  }
-  if (loadingTimer2) {
-    clearTimeout(loadingTimer2);
-    loadingTimer2 = null;
   }
   loadingStage = 0;
   loadingAbortController = null;
@@ -460,9 +446,9 @@ function showError(message, retryable = false) {
 ## 📊 預期效果
 
 ### 效能改善
-- ✅ **Timeout 保護**: 最長等待 10 秒（實測 4s + 2.5x 安全邊際）
-- ✅ **自動重試**: 暫時性錯誤自動恢復（成功率提升 30-50%）
-- ✅ **降低焦慮**: 進度式反饋（使用者願意等待時間 +3 倍）
+- ✅ **Timeout 保護**: 4 秒快速失敗（符合實測）
+- ✅ **網路錯誤重試**: 成功率 +30-50%（ECONNRESET, network failure）
+- ✅ **Timeout 不重試**: 快速失敗，使用者可手動重試
 
 ### UX 改善
 - ✅ **6 秒提示**: 降低不確定性（涵蓋正常 4s + 50% 緩衝）
@@ -481,7 +467,7 @@ function showError(message, retryable = false) {
 ### 1. 單元測試
 ```javascript
 // api-retry.test.js
-test('timeout after 10s', async () => {
+test('timeout after 4s', async () => {
   const slowFetch = (signal) => new Promise((resolve, reject) => {
     const timer = setTimeout(() => resolve({ ok: true }), 15000);
     signal.addEventListener('abort', () => {
@@ -490,8 +476,24 @@ test('timeout after 10s', async () => {
     });
   });
   
-  await expect(fetchWithRetry(slowFetch, { timeoutMs: 10000 }))
+  await expect(fetchWithRetry(slowFetch, { timeoutMs: 4000 }))
     .rejects.toThrow('AbortError');
+});
+
+test('timeout does not retry', async () => {
+  let attempts = 0;
+  const timeoutFetch = (signal) => new Promise((resolve, reject) => {
+    attempts++;
+    const timer = setTimeout(() => resolve({ ok: true }), 15000);
+    signal.addEventListener('abort', () => {
+      clearTimeout(timer);
+      reject(new DOMException('Aborted', 'AbortError'));
+    });
+  });
+  
+  await expect(fetchWithRetry(timeoutFetch, { maxAttempts: 3, timeoutMs: 4000 }))
+    .rejects.toThrow('AbortError');
+  expect(attempts).toBe(1); // No retry
 });
 
 test('retry 3 times on 503', async () => {
@@ -557,10 +559,10 @@ test('no retry on 404', async () => {
 
 ## ✅ 驗收標準
 
-1. ✅ 10 秒 timeout 生效（實測 4s + 2.5x 安全邊際）
-2. ✅ 暫時性錯誤自動重試 3 次
-3. ✅ 6 秒後顯示「正在連線」（涵蓋正常 4s + 50% 緩衝）
-4. ✅ 10 秒後顯示「正在重試」（timeout 觸發）
+1. ✅ 4 秒 timeout 生效（符合實測）
+2. ✅ 網路錯誤自動重試 3 次（ECONNRESET, network failure）
+3. ✅ Timeout 不重試（快速失敗）
+4. ✅ 4 秒後顯示取消按鈕
 5. ✅ 404/403 不重試
 6. ✅ 429/503 重試
 7. ✅ 錯誤訊息清楚易懂（含 HTTP 狀態）

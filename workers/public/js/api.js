@@ -1,4 +1,5 @@
 import { API_BASE } from './config.js';
+import { fetchWithRetry } from './api-retry.js';
 
 /**
  * Tap a card to initiate a session
@@ -30,9 +31,10 @@ export async function tapCard(uuid) {
  * Read card data using session ID
  * @param {string} uuid - Card UUID
  * @param {string} sessionId - Session ID from tap
+ * @param {AbortSignal} externalSignal - Optional external abort signal (e.g., cancel button)
  * @returns {Promise<{data: object, session_info: object}>}
  */
-export async function readCard(uuid, sessionId) {
+export async function readCard(uuid, sessionId, externalSignal = null) {
   const CACHE_TTL = 3600000; // 1 hour in milliseconds (aligned with ReadSession TTL)
   const cacheKey = `card:${uuid}`;
 
@@ -53,14 +55,48 @@ export async function readCard(uuid, sessionId) {
     // Invalid cache data, continue to fetch
   }
 
-  // Scenario 3: No cache or expired - fetch from API
-  const response = await fetch(`${API_BASE}/api/read?uuid=${encodeURIComponent(uuid)}&session=${encodeURIComponent(sessionId)}`);
+  // Scenario 3: No cache or expired - fetch from API with retry
+  const response = await fetchWithRetry(
+    (signal) => {
+      // Combine external signal (cancel button) with internal signal (timeout)
+      let combinedSignal = signal;
+      
+      if (externalSignal) {
+        if (AbortSignal.any) {
+          combinedSignal = AbortSignal.any([signal, externalSignal]);
+        } else {
+          // Fallback: manual combination
+          const controller = new AbortController();
+          const onAbort = () => controller.abort();
+          signal.addEventListener('abort', onAbort, { once: true });
+          externalSignal.addEventListener('abort', onAbort, { once: true });
+          combinedSignal = controller.signal;
+        }
+      }
+      
+      return fetch(
+        `${API_BASE}/api/read?uuid=${encodeURIComponent(uuid)}&session=${encodeURIComponent(sessionId)}`,
+        { signal: combinedSignal }
+      );
+    },
+    {
+      maxAttempts: 3,
+      timeoutMs: 4000,
+      onRetry: (attempt, max, delay, status) => {
+        console.log(`[Retry] ${attempt}/${max} after ${delay}ms${status ? ` (HTTP ${status})` : ''}`);
+        if (window.updateRetryProgress) {
+          window.updateRetryProgress(attempt, max);
+        }
+      }
+    }
+  );
 
   if (!response.ok) {
     // Scenario 4: API error - don't cache error responses
     const errorData = await response.json();
     const error = new Error(errorData.error?.message || errorData.message || 'Failed to read card');
     error.code = errorData.error?.code;
+    error.status = response.status;
     error.data = errorData;
     throw error;
   }

@@ -205,15 +205,25 @@ const i18nTexts = {
 
 /**
  * 顯示錯誤訊息
+ * @param {string} message - 錯誤訊息
+ * @param {boolean} retryable - 是否可重試（顯示重試按鈕）
  */
-function showError(message) {
+function showError(message, retryable = false) {
     const errorContainer = document.getElementById('error-container');
     if (errorContainer) {
+        const retryButton = retryable 
+            ? `<button onclick="location.reload()" class="mt-4 px-4 py-2 bg-moda text-white rounded-lg hover:bg-moda/90 transition-colors inline-flex items-center gap-2">
+                 <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                 <span>${currentLanguage === 'zh' ? '重試' : 'Retry'}</span>
+               </button>`
+            : '';
+        
         errorContainer.innerHTML = DOMPurify.sanitize(`
             <div class="error-message">
                 <i data-lucide="alert-circle"></i>
                 <span>${message}</span>
             </div>
+            ${retryButton}
         `, { ADD_ATTR: ['onclick'] });
         errorContainer.style.display = 'block';
         if (window.initIcons) window.initIcons();
@@ -311,7 +321,77 @@ async function initApp() {
     }
 }
 
+// Loading state management
+let loadingTimer = null;
+let loadingStage = 0;
+let loadingAbortController = null;
+
+function showProgressiveLoading() {
+    const loadingText = document.getElementById('loading-text');
+    const cancelBtn = document.getElementById('loading-cancel-btn');
+    if (!loadingText) return;
+
+    // Create abort controller for cancellation
+    loadingAbortController = new AbortController();
+
+    // Show cancel button after 4s (timeout threshold)
+    loadingTimer = setTimeout(() => {
+        if (cancelBtn && loadingStage === 1) {
+            cancelBtn.style.display = 'block';
+            loadingText.textContent = currentLanguage === 'zh'
+                ? '連線逾時，請稍候...'
+                : 'Connection timeout, please wait...';
+        }
+    }, 4000);
+
+    // Setup cancel button
+    if (cancelBtn) {
+        cancelBtn.onclick = () => {
+            if (loadingAbortController) {
+                loadingAbortController.abort();
+                clearLoadingTimer();
+                showError(
+                    currentLanguage === 'zh' ? '已取消載入' : 'Loading cancelled',
+                    true
+                );
+                hideLoading();
+            }
+        };
+    }
+
+    // Stage 1: 0-4s (normal case)
+    loadingStage = 1;
+    loadingText.textContent = currentLanguage === 'zh' ? '雲端資料解密中...' : 'Decrypting data...';
+}
+
+window.updateRetryProgress = function(attempt, max) {
+    const loadingText = document.getElementById('loading-text');
+    if (!loadingText) return;
+
+    loadingStage = 2;
+    loadingText.textContent = currentLanguage === 'zh'
+        ? `正在重試 (${attempt}/${max})...`
+        : `Retrying (${attempt}/${max})...`;
+};
+
+function clearLoadingTimer() {
+    if (loadingTimer) {
+        clearTimeout(loadingTimer);
+        loadingTimer = null;
+    }
+    loadingStage = 0;
+    loadingAbortController = null;
+    
+    // Hide cancel button
+    const cancelBtn = document.getElementById('loading-cancel-btn');
+    if (cancelBtn) {
+        cancelBtn.style.display = 'none';
+    }
+}
+
 async function loadCard(uuid) {
+    showProgressiveLoading();
+
     let sessionId = null;
     let cardData = null;
     let sessionData = null;
@@ -329,8 +409,8 @@ async function loadCard(uuid) {
             sessionId = tapResult.session_id;
         }
 
-        // 讀取名片資料 (readCard 內部處理快取)
-        const readResult = await readCard(uuid, sessionId);
+        // 讀取名片資料 (readCard 內部處理快取和重試)
+        const readResult = await readCard(uuid, sessionId, loadingAbortController?.signal);
         cardData = readResult.data;
         sessionData = {
             session_id: sessionId,
@@ -341,13 +421,41 @@ async function loadCard(uuid) {
     } catch (error) {
         console.error('Error loading card:', error);
 
-        // Use ERROR_MESSAGES for known error codes
-        const errorMessage = ERROR_MESSAGES[error.code] || error.message || '載入失敗';
-        showError(errorMessage);
+        // Check user cancellation BEFORE clearing
+        const wasCancelled = loadingAbortController?.signal.aborted;
+        clearLoadingTimer();
+        
+        // Handle user cancellation
+        if (error.name === 'AbortError' && wasCancelled) {
+            return; // Already handled in showProgressiveLoading
+        }
 
+        // User-friendly error message with retry context
+        let errorMessage = error.message;
+        let retryable = false;
+        
+        if (error.name === 'AbortError') {
+            errorMessage = currentLanguage === 'zh'
+                ? '連線逾時，請檢查網路後重試'
+                : 'Connection timeout, please check network and retry';
+            retryable = true;
+        } else if (error.name === 'RetryExhaustedError') {
+            const statusMsg = error.lastStatus ? ` (HTTP ${error.lastStatus})` : '';
+            errorMessage = currentLanguage === 'zh'
+                ? `連線失敗，已重試 3 次${statusMsg}`
+                : `Connection failed after 3 retries${statusMsg}`;
+            retryable = error.lastStatus && [429, 503].includes(error.lastStatus);
+        } else {
+            // Use ERROR_MESSAGES for known error codes
+            errorMessage = ERROR_MESSAGES[error.code] || error.message || '載入失敗';
+        }
+
+        showError(errorMessage, retryable);
         hideLoading();
         return;
     }
+
+    clearLoadingTimer();
 
     if (cardData) {
         currentCardData = cardData; // 儲存供 vCard 下載使用

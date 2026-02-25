@@ -59,6 +59,8 @@ export default [
         Fetcher: 'readonly',
         ScheduledEvent: 'readonly',
         Env: 'readonly',
+        VectorizeIndex: 'readonly',
+        VectorizeVector: 'readonly',
 
         // Web APIs
         URL: 'readonly',

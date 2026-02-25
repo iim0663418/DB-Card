@@ -45,6 +45,19 @@ body {
     }
 }
 
+/* Desktop hint - No layout shift */
+#desktop-hint {
+    visibility: hidden;
+    opacity: 0;
+}
+
+@media (min-width: 768px) {
+    #desktop-hint {
+        visibility: visible;
+        /* opacity controlled by JS */
+    }
+}
+
 /* 桌面版隱藏元素 */
 @media (min-width: 1024px) {
     .lg\:hidden {
@@ -347,7 +360,7 @@ body {
     </div>
 
     <!-- 桌面版互動提示 -->
-    <div id="desktop-hint" class="hidden md:block fixed bottom-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0" style="transition: opacity 0.5s ease-out;">
+    <div id="desktop-hint" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0" style="transition: opacity 0.5s ease-out;">
         <div class="bg-slate-900/90 backdrop-blur-sm text-white px-6 py-3 rounded-full shadow-2xl border border-white/10 animate-bounce">
             <p class="text-sm font-medium flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

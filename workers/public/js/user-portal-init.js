@@ -693,6 +693,8 @@
                         state.isLoggedIn = false;
                         state.authToken = null;
                         state.currentUser = null;
+                        sessionStorage.removeItem('auth_user');  // Clear sessionStorage
+                        sessionStorage.removeItem('csrfToken');  // Clear CSRF token
                         showView('login');
                         // Silent logout - no toast for normal session expiration
                     }

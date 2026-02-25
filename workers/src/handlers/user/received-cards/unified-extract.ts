@@ -261,7 +261,7 @@ async function performUnifiedExtract(
         generationConfig: {
           responseMimeType: "application/json",
           responseJsonSchema: responseSchema,
-          maxOutputTokens: 4096  // Increased to prevent truncation
+          maxOutputTokens: 8192  // Maximum allowed by Gemini API
         },
         safetySettings: [
           { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },

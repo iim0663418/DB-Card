@@ -20,7 +20,7 @@
 
 1. **10 秒 Timeout** - 後端 4s 實測 + 2.5x 安全邊際
 2. **指數退避重試** - 最多 3 次，間隔 1s/2s/4s
-3. **進度式 Loading** - 5 秒後顯示提示，10 秒後顯示重試
+3. **進度式 Loading** - 6 秒後顯示提示，10 秒後顯示重試
 4. **智慧錯誤處理** - 區分可重試 vs 不可重試錯誤
 
 ---
@@ -102,7 +102,7 @@ const calculateBackoff = (attempt, baseMs = 1000, maxMs = 5000) => {
 - 1 秒後顯示 spinner
 - 6 秒後更新文字（涵蓋正常 4s + 50% 緩衝）
 - 10 秒後顯示重試進度（timeout 觸發）
-- 永遠提供取消選項
+- 提供取消按鈕（Phase 4 實作）
 
 ---
 
@@ -127,6 +127,9 @@ export async function fetchWithRetry(fetchFn, options = {}) {
     onRetry = null
   } = options;
 
+  let lastError = null;
+  let lastStatus = null;
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -138,18 +141,24 @@ export async function fetchWithRetry(fetchFn, options = {}) {
       // Success
       if (response.ok) return response;
 
+      // Store last status for error reporting
+      lastStatus = response.status;
+
       // Non-retryable error
-      if (!isRetryableStatus(response.status)) return response;
+      if (!isRetryableStatus(response.status)) {
+        return response;
+      }
 
       // Retry
       if (attempt < maxAttempts) {
         const delay = calculateBackoff(attempt, baseDelayMs, maxDelayMs);
-        if (onRetry) onRetry(attempt, maxAttempts, delay);
+        if (onRetry) onRetry(attempt, maxAttempts, delay, response.status);
         await sleep(delay);
       }
 
     } catch (error) {
       clearTimeout(timeoutId);
+      lastError = error;
 
       // Non-retryable error
       if (!isRetryableError(error) || attempt >= maxAttempts) {
@@ -158,12 +167,17 @@ export async function fetchWithRetry(fetchFn, options = {}) {
 
       // Retry
       const delay = calculateBackoff(attempt, baseDelayMs, maxDelayMs);
-      if (onRetry) onRetry(attempt, maxAttempts, delay);
+      if (onRetry) onRetry(attempt, maxAttempts, delay, null);
       await sleep(delay);
     }
   }
 
-  throw new Error('Max retry attempts reached');
+  // Max retries exhausted - throw with context
+  const error = new Error('Max retry attempts reached');
+  error.name = 'RetryExhaustedError';
+  error.lastStatus = lastStatus;
+  error.lastError = lastError;
+  throw error;
 }
 
 function isRetryableStatus(status) {
@@ -195,7 +209,7 @@ function sleep(ms) {
 ```typescript
 import { fetchWithRetry } from './api-retry.js';
 
-export async function readCard(uuid, sessionId) {
+export async function readCard(uuid, sessionId, externalSignal = null) {
   const CACHE_TTL = 3600000;
   const cacheKey = `card:${uuid}`;
 
@@ -212,16 +226,25 @@ export async function readCard(uuid, sessionId) {
 
   // Fetch with retry
   const response = await fetchWithRetry(
-    (signal) => fetch(
-      `${API_BASE}/api/read?uuid=${encodeURIComponent(uuid)}&session=${encodeURIComponent(sessionId)}`,
-      { signal }
-    ),
+    (signal) => {
+      // Combine external signal (cancel button) with internal signal (timeout)
+      const combinedSignal = externalSignal 
+        ? AbortSignal.any ? AbortSignal.any([signal, externalSignal]) : signal
+        : signal;
+      
+      return fetch(
+        `${API_BASE}/api/read?uuid=${encodeURIComponent(uuid)}&session=${encodeURIComponent(sessionId)}`,
+        { signal: combinedSignal }
+      );
+    },
     {
       maxAttempts: 3,
       timeoutMs: 10000,
-      onRetry: (attempt, max, delay) => {
-        console.log(`Retry ${attempt}/${max} after ${delay}ms`);
-        // Update UI (Phase 3)
+      onRetry: (attempt, max, delay, status) => {
+        console.log(`Retry ${attempt}/${max} after ${delay}ms${status ? ` (status: ${status})` : ''}`);
+        if (window.updateRetryProgress) {
+          window.updateRetryProgress(attempt, max);
+        }
       }
     }
   );
@@ -255,11 +278,33 @@ export async function readCard(uuid, sessionId) {
 
 ```typescript
 let loadingTimer = null;
+let loadingTimer2 = null;
 let loadingStage = 0;
+let loadingAbortController = null;
 
 function showProgressiveLoading() {
   const loadingText = document.getElementById('loading-text');
+  const cancelBtn = document.getElementById('loading-cancel-btn');
   if (!loadingText) return;
+
+  // Create abort controller for cancellation
+  loadingAbortController = new AbortController();
+
+  // Show cancel button
+  if (cancelBtn) {
+    cancelBtn.style.display = 'block';
+    cancelBtn.onclick = () => {
+      if (loadingAbortController) {
+        loadingAbortController.abort();
+        clearLoadingTimer();
+        showError(
+          currentLanguage === 'zh' ? '已取消載入' : 'Loading cancelled',
+          true
+        );
+        hideLoading();
+      }
+    };
+  }
 
   // Stage 1: 0-6s (covers normal 4s + buffer)
   loadingStage = 1;
@@ -267,14 +312,16 @@ function showProgressiveLoading() {
 
   // Stage 2: 6-10s (abnormal case)
   loadingTimer = setTimeout(() => {
-    loadingStage = 2;
-    loadingText.textContent = currentLanguage === 'zh' 
-      ? '正在連線，請稍候...' 
-      : 'Connecting, please wait...';
+    if (loadingStage === 1) {
+      loadingStage = 2;
+      loadingText.textContent = currentLanguage === 'zh' 
+        ? '正在連線，請稍候...' 
+        : 'Connecting, please wait...';
+    }
   }, 6000);
 
   // Stage 3: 10s+ (timeout triggered)
-  setTimeout(() => {
+  loadingTimer2 = setTimeout(() => {
     if (loadingStage === 2) {
       loadingStage = 3;
       loadingText.textContent = currentLanguage === 'zh'
@@ -288,6 +335,7 @@ function updateRetryProgress(attempt, max) {
   const loadingText = document.getElementById('loading-text');
   if (!loadingText) return;
 
+  loadingStage = 3;
   loadingText.textContent = currentLanguage === 'zh'
     ? `正在重試 (${attempt}/${max})...`
     : `Retrying (${attempt}/${max})...`;
@@ -298,7 +346,18 @@ function clearLoadingTimer() {
     clearTimeout(loadingTimer);
     loadingTimer = null;
   }
+  if (loadingTimer2) {
+    clearTimeout(loadingTimer2);
+    loadingTimer2 = null;
+  }
   loadingStage = 0;
+  loadingAbortController = null;
+  
+  // Hide cancel button
+  const cancelBtn = document.getElementById('loading-cancel-btn');
+  if (cancelBtn) {
+    cancelBtn.style.display = 'none';
+  }
 }
 
 async function loadCard(uuid) {
@@ -306,68 +365,95 @@ async function loadCard(uuid) {
 
   try {
     // ... existing code with retry callback
-    const readResult = await readCard(uuid, sessionId);
+    const readResult = await readCard(uuid, sessionId, loadingAbortController?.signal);
     // Success
     clearLoadingTimer();
     renderCard(readResult.data, sessionData);
   } catch (error) {
     clearLoadingTimer();
     
-    // User-friendly error message
+    // Handle user cancellation
+    if (error.name === 'AbortError' && loadingAbortController?.signal.aborted) {
+      return; // Already handled in showProgressiveLoading
+    }
+    
+    // User-friendly error message with retry context
     let errorMessage = error.message;
+    let retryable = false;
+    
     if (error.name === 'AbortError') {
       errorMessage = currentLanguage === 'zh'
         ? '連線逾時，請檢查網路後重試'
         : 'Connection timeout, please check network and retry';
+      retryable = true;
+    } else if (error.name === 'RetryExhaustedError') {
+      const statusMsg = error.lastStatus ? ` (HTTP ${error.lastStatus})` : '';
+      errorMessage = currentLanguage === 'zh'
+        ? `連線失敗，已重試 3 次${statusMsg}`
+        : `Connection failed after 3 retries${statusMsg}`;
+      retryable = error.lastStatus && [429, 503].includes(error.lastStatus);
     }
     
-    showError(errorMessage);
+    showError(errorMessage, retryable);
     hideLoading();
   }
 }
 ```
 
+**HTML 修改** (`public/card-display.html`):
+```html
+<!-- 載入動畫 -->
+<div id="loading" class="...">
+    <div class="relative w-32 h-32">
+        <!-- ... existing spinner ... -->
+    </div>
+    <p id="loading-text" class="mt-8 hud-text animate-pulse">雲端資料解密中...</p>
+    <button id="loading-cancel-btn" style="display: none;" class="mt-4 px-4 py-2 text-sm text-slate-600 hover:text-slate-900 transition-colors">
+        <i data-lucide="x-circle" class="w-4 h-4 inline"></i>
+        <span id="loading-cancel-text">取消</span>
+    </button>
+</div>
+```
+
 ---
 
 ### Phase 4: 錯誤處理優化 (20 分鐘)
-**檔案**: `public/card-display.html` (修改)
+**檔案**: `public/js/main.js` (修改現有 showError)
 
-```html
-<!-- Error container with retry button -->
-<div id="error-container" style="display: none;">
-  <div class="error-message">
-    <i data-lucide="alert-circle"></i>
-    <span id="error-text"></span>
-  </div>
-  <button id="retry-button" class="retry-btn" style="display: none;">
-    <i data-lucide="refresh-cw"></i>
-    <span id="retry-text">重試</span>
-  </button>
-</div>
-```
+**注意**: 保留現有 `error-container` 結構，只增強 `showError` 函數
 
 ```javascript
 function showError(message, retryable = false) {
   const errorContainer = document.getElementById('error-container');
-  const errorText = document.getElementById('error-text');
-  const retryButton = document.getElementById('retry-button');
+  if (!errorContainer) return;
   
-  errorText.textContent = message;
+  // 使用現有 DOMPurify 注入機制
+  const retryButton = retryable 
+    ? `<button onclick="location.reload()" class="mt-4 px-4 py-2 bg-moda text-white rounded-lg hover:bg-moda/90 transition-colors">
+         <i data-lucide="refresh-cw"></i>
+         <span>${currentLanguage === 'zh' ? '重試' : 'Retry'}</span>
+       </button>`
+    : '';
+  
+  errorContainer.innerHTML = DOMPurify.sanitize(`
+    <div class="error-message">
+      <i data-lucide="alert-circle"></i>
+      <span>${message}</span>
+    </div>
+    ${retryButton}
+  `, { ADD_ATTR: ['onclick'] });
+  
   errorContainer.style.display = 'block';
-  
-  if (retryable) {
-    retryButton.style.display = 'inline-flex';
-    retryButton.onclick = () => {
-      errorContainer.style.display = 'none';
-      location.reload();
-    };
-  } else {
-    retryButton.style.display = 'none';
-  }
   
   if (window.initIcons) window.initIcons();
 }
 ```
+
+**變更說明**:
+- ✅ 保留現有 `error-container` 結構（不新增 HTML）
+- ✅ 保留 DOMPurify 注入機制
+- ✅ 增加 `retryable` 參數控制重試按鈕顯示
+- ✅ 向後相容（retryable 預設 false）
 
 ---
 
@@ -379,7 +465,7 @@ function showError(message, retryable = false) {
 - ✅ **降低焦慮**: 進度式反饋（使用者願意等待時間 +3 倍）
 
 ### UX 改善
-- ✅ **5 秒提示**: 降低不確定性
+- ✅ **6 秒提示**: 降低不確定性（涵蓋正常 4s + 50% 緩衝）
 - ✅ **10 秒重試**: 明確告知狀態（異常情況處理）
 - ✅ **智慧錯誤**: 區分可重試 vs 不可重試
 
@@ -396,7 +482,14 @@ function showError(message, retryable = false) {
 ```javascript
 // api-retry.test.js
 test('timeout after 10s', async () => {
-  const slowFetch = () => new Promise(resolve => setTimeout(resolve, 15000));
+  const slowFetch = (signal) => new Promise((resolve, reject) => {
+    const timer = setTimeout(() => resolve({ ok: true }), 15000);
+    signal.addEventListener('abort', () => {
+      clearTimeout(timer);
+      reject(new DOMException('Aborted', 'AbortError'));
+    });
+  });
+  
   await expect(fetchWithRetry(slowFetch, { timeoutMs: 10000 }))
     .rejects.toThrow('AbortError');
 });
@@ -430,7 +523,7 @@ test('no retry on 404', async () => {
 - 模擬 timeout（後端延遲 15 秒）
 
 ### 3. 使用者測試
-- 觀察 5 秒提示是否降低焦慮
+- 觀察 6 秒提示是否降低焦慮
 - 觀察 10 秒重試是否清楚
 - 收集錯誤訊息可讀性反饋
 
@@ -470,10 +563,11 @@ test('no retry on 404', async () => {
 4. ✅ 10 秒後顯示「正在重試」（timeout 觸發）
 5. ✅ 404/403 不重試
 6. ✅ 429/503 重試
-7. ✅ 錯誤訊息清楚易懂
-8. ✅ TypeScript 零錯誤
+7. ✅ 錯誤訊息清楚易懂（含 HTTP 狀態）
+8. ✅ ESLint 零錯誤（JavaScript 專案）
 9. ✅ 單元測試覆蓋率 > 80%
 10. ✅ 使用者測試滿意度 > 4/5
+11. ✅ 取消按鈕功能正常（AbortController）
 
 ---
 

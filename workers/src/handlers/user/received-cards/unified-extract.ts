@@ -261,7 +261,7 @@ async function performUnifiedExtract(
         generationConfig: {
           responseMimeType: "application/json",
           responseJsonSchema: responseSchema,
-          maxOutputTokens: 2048
+          maxOutputTokens: 4096  // Increased to prevent truncation
         },
         safetySettings: [
           { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
@@ -288,7 +288,15 @@ async function performUnifiedExtract(
   const data = await response.json() as any;
   const candidate = data.candidates?.[0];
   const text = candidate?.content?.parts?.[0]?.text;
+  const finishReason = candidate?.finishReason;
   const metadata = candidate?.groundingMetadata;
+
+  // Check for incomplete response (MAX_TOKENS)
+  if (finishReason === 'MAX_TOKENS') {
+    console.error('[UnifiedExtract] Response truncated (MAX_TOKENS)');
+    console.error('[UnifiedExtract] Partial text:', text?.substring(0, 200));
+    throw new Error('Response truncated due to token limit. Please try again or use a simpler image.');
+  }
 
   // Diagnose 412 errors: Check promptFeedback for block reasons
   if (!text) {

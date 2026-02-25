@@ -840,7 +840,8 @@ function hideLoading() {
     const loading = document.getElementById('loading');
     loading.style.opacity = '0';
     setTimeout(() => {
-        loading.style.display = 'none';
+        loading.style.visibility = 'hidden';
+        loading.style.pointerEvents = 'none';
     }, 1000);
 }
 

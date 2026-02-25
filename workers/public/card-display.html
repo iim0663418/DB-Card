@@ -61,6 +61,15 @@ body {
     }
 }
 
+/* Card container - Reserve space to prevent layout shift */
+.card-perspective {
+    min-height: 600px;
+}
+
+#card {
+    min-height: 500px;
+}
+
 /* Loading animation critical styles */
 #loading {
     position: fixed;
@@ -155,7 +164,9 @@ body {
 }
 
 [data-lucide] {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     /* Size controlled by Tailwind classes (w-3, w-4, w-5, w-6, w-10) */
     flex-shrink: 0;
 }

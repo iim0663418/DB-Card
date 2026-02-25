@@ -61,15 +61,6 @@ body {
     }
 }
 
-/* Card container - Reserve space to prevent layout shift */
-.card-perspective {
-    min-height: 600px;
-}
-
-#card {
-    min-height: 500px;
-}
-
 /* Loading animation critical styles */
 #loading {
     position: fixed;
@@ -624,7 +615,10 @@ body {
         if (hint) {
             hint.style.transition = 'opacity 0.5s ease-out';
             hint.style.opacity = '0';
-            setTimeout(() => hint.remove(), 500);
+            setTimeout(() => {
+                hint.style.visibility = 'hidden';
+                hint.style.pointerEvents = 'none';
+            }, 500);
         }
     }, 5000);
 

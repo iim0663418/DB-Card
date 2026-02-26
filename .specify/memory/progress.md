@@ -167,3 +167,39 @@ if (!this.allCards || this.allCards.length === 0) {
 - **部署**: 3b9f95fb-2425-44ba-bd9a-2bf5465888c3
 - **Git**: d278934
 
+
+## ✅ 搜尋欄位涵蓋擴充 (13:05)
+
+### Phase 1 完成：P0 欄位涵蓋擴充
+
+**1. Vectorize Embedding (4 → 10 欄位, +150%)**
+- 新增: organization_en, organization_alias, company_summary, personal_summary, email, phone
+- 涵蓋率: 20% → 50%
+
+**2. 後端關鍵字搜尋 (4 → 10 欄位, +150%)**
+- 新增: organization_en, organization_alias, department, personal_summary, email, phone
+- 涵蓋率: 20% → 50%
+
+**3. 前端客戶端過濾 (8 → 12 欄位, +50%)**
+- 新增: company_summary, personal_summary, website, address
+- 涵蓋率: 40% → 60%
+
+### 效果
+- ✅ 可搜尋 personal_summary（如「稅務專家」）
+- ✅ 可搜尋 website 域名（如「example.com」）
+- ✅ 可搜尋 address 城市（如「台北」）
+- ✅ 前後端一致性提升
+
+### 技術細節
+- Embedding 長度增加 2.5 倍（仍在 Gemini 限制內）
+- SQL 查詢綁定 10 個參數（COUNT + SELECT 各 10 個）
+- 前端過濾邏輯擴充 4 個欄位
+
+### 後續
+- Cron job 會自動重新同步所有名片的 Embeddings
+- 或手動觸發: POST /api/admin/trigger-cron
+
+- **部署**: 693d7353-f3a6-482e-a9ab-22b415494dd3
+- **Git**: a55d454
+- **文檔**: docs/search_field_coverage_analysis.md
+

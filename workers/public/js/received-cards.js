@@ -1106,6 +1106,12 @@ const ReceivedCards = {
       }
     }
 
+    // 無搜尋關鍵字時，確保使用最新的完整清單
+    // 如果 allCards 為空或可能過期，重新載入
+    if (!this.allCards || this.allCards.length === 0) {
+      await this.loadCards();
+    }
+
     // 客戶端過濾（無搜尋或 API 失敗時）
     const filtered = this.allCards.filter(card => {
       // 搜尋過濾（擴展到新欄位）

@@ -975,8 +975,6 @@ const ReceivedCards = {
           this.filterCards(searchAbortController.signal);
         }, 300);
       });
-        }
-      });
     }
 
     // 清除搜尋按鈕

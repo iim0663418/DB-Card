@@ -118,3 +118,26 @@
 - **部署**: 0dbafdee-cf13-429d-bc33-15c0139ca94a
 - **Git**: 548c5ad
 
+
+## ✅ 搜尋防抖優化 (10:40)
+
+### 搜尋 Debounce 實作
+- **延遲**: 300ms（業界最佳實踐）
+- **請求取消**: AbortController 取消前一個請求
+- **即時清除**: 搜尋框清空時立即執行
+- **錯誤處理**: 忽略 AbortError（用戶取消）
+
+### 參考最佳實踐
+- Algolia search UX guidelines
+- React Query request cancellation pattern
+- Google Search debounce behavior
+
+### 效能改善
+- ✅ 避免持續輸入時的重複請求
+- ✅ 減少伺服器負載
+- ✅ 提升用戶體驗（更流暢）
+- ✅ 防止競態條件（race condition）
+
+- **部署**: 7d6f926c-6baf-4344-9fca-9d75c404ec4b
+- **Git**: 9680a81
+

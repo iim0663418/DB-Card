@@ -171,6 +171,53 @@ async function semanticSearch(
 }
 
 /**
+ * Reciprocal Rank Fusion (RRF)
+ * Combines semantic and keyword search results using rank-based scoring
+ * Reference: ACM SIGIR 2009 - "Reciprocal Rank Fusion outperforms Condorcet and individual systems"
+ */
+function reciprocalRankFusion(
+  semanticResults: SearchResult[],
+  keywordResults: SearchResult[],
+  k: number = 60
+): SearchResult[] {
+  const rrfScores = new Map<string, { result: SearchResult; score: number }>();
+  
+  // Process semantic results
+  semanticResults.forEach((result, index) => {
+    const rank = index + 1;
+    const rrfScore = 1 / (k + rank);
+    
+    rrfScores.set(result.uuid, {
+      result: { ...result, match_reason: 'semantic' },
+      score: rrfScore
+    });
+  });
+  
+  // Process keyword results
+  keywordResults.forEach((result, index) => {
+    const rank = index + 1;
+    const rrfScore = 1 / (k + rank);
+    
+    const existing = rrfScores.get(result.uuid);
+    if (existing) {
+      // Accumulate RRF scores for documents in both lists
+      existing.score += rrfScore;
+      existing.result.match_reason = 'hybrid';
+    } else {
+      rrfScores.set(result.uuid, {
+        result: { ...result, match_reason: 'keyword' },
+        score: rrfScore
+      });
+    }
+  });
+  
+  // Sort by RRF score and return
+  return Array.from(rrfScores.values())
+    .sort((a, b) => b.score - a.score)
+    .map(item => ({ ...item.result, score: item.score }));
+}
+
+/**
  * Keyword search fallback (D1 LIKE)
  */
 async function keywordSearch(
@@ -281,37 +328,21 @@ export async function searchCards(request: Request, env: Env): Promise<Response>
     const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
     const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '20', 10)));
 
-    // Try semantic search first with 2x limit for better recall
-    // Vectorize supports topK up to 100 with returnMetadata='indexed'
-    let results = await semanticSearch(env, userEmail, query, Math.min(100, limit * 2));
+    // Parallel execution: semantic + keyword search (Hybrid Search)
+    const [semanticResults, keywordResults] = await Promise.all([
+      semanticSearch(env, userEmail, query, Math.min(100, limit * 2)),
+      keywordSearch(env, userEmail, query, 1, Math.min(100, limit * 2))
+    ]);
 
-    // Fallback to keyword search if semantic fails
-    if (results.length === 0) {
-      const keywordResults = await keywordSearch(env, userEmail, query, page, limit);
+    // Merge results using Reciprocal Rank Fusion (RRF)
+    const merged = reciprocalRankFusion(semanticResults, keywordResults.results);
 
-      // Enrich keyword search results
-      const enrichedKeywordResults = await Promise.all(
-        keywordResults.results.map(result => enrichSearchResult(env, userEmail, result))
-      );
-
-      return new Response(JSON.stringify({
-        results: enrichedKeywordResults,
-        total: keywordResults.total,
-        page,
-        limit,
-        hasMore: keywordResults.total > page * limit,
-      } as SearchResponse), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Paginate semantic results
-    const total = results.length;
+    // Paginate
+    const total = merged.length;
     const start = (page - 1) * limit;
-    const paginatedResults = results.slice(start, start + limit);
+    const paginatedResults = merged.slice(start, start + limit);
 
-    // Enrich semantic search results
+    // Enrich results
     const enrichedResults = await Promise.all(
       paginatedResults.map(result => enrichSearchResult(env, userEmail, result))
     );

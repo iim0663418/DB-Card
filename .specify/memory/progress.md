@@ -2,15 +2,66 @@
 
 ## 🎯 當前 Staging 版本
 
-**Version ID**: cf3be505-29fb-4a3c-b4d2-5882dcb4a925
-**部署時間**: 2026-02-26 10:24 GMT+8
+**Version ID**: d771aa48-05c7-4fd5-b558-64d7333e82da
+**部署時間**: 2026-02-26 13:52 GMT+8
 **包含功能**:
+- 搜尋欄位擴充 P0 + P1（website, address, note）
 - API 三階段優化（Idempotency DO 遷移）
 - 搜尋結果增強（前端顯示 + 認證修復 + 縮圖）
 - 搜尋優化（Score Threshold + Loading UX）
 - 搜尋架構優化（遵循 Algolia 最佳實踐）
 - Vectorize 動態策略（保持 limit * 2 精準度）
 - P0 + P1 安全性修復（XSS 風險消除）
+
+## ✅ 搜尋欄位擴充 P0 + P1 完成 (13:52)
+
+### 新增欄位
+- **website** - 網站域名
+- **address** - 地址
+- **note** - 備註
+
+### 修改範圍
+
+**1. Vectorize Embedding (10 → 13 欄位, +30%)**
+```javascript
+[
+  full_name, organization, organization_en, organization_alias,
+  department, title, company_summary, personal_summary,
+  email, phone,
+  website, address, note  // 新增
+]
+```
+
+**2. 後端關鍵字搜尋 (10 → 13 欄位, +30%)**
+```sql
+WHERE (
+  full_name LIKE ? OR ... phone LIKE ? OR
+  website LIKE ? OR address LIKE ? OR note LIKE ?  -- 新增
+)
+```
+
+**3. 前端客戶端過濾 (12 → 13 欄位, +8%)**
+```javascript
+card.note?.toLowerCase().includes(this.currentKeyword)  // 新增
+```
+
+### 效果
+- ✅ 搜尋「延平」可以找到地址
+- ✅ 搜尋「example.com」可以找到網站
+- ✅ 搜尋備註內容可以找到名片
+- ✅ 涵蓋率: 50% → 65% (+30%)
+
+### 技術細節
+- Embedding 長度增加 30%
+- SQL 參數: 11 → 14 (user_email + 13 個 searchPattern)
+- 前端過濾: 12 → 13 個條件
+- 已清空 30 張名片的 embedding_synced_at
+
+### 部署
+- **Version ID**: d771aa48-05c7-4fd5-b558-64d7333e82da
+- **Git**: 6539a13
+
+---
 
 ## ✅ 安全性優化完成 (10:24)
 

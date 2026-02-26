@@ -287,6 +287,12 @@ const logger = {
             // Clear CSRF token from sessionStorage
             sessionStorage.removeItem('csrfToken');
 
+            // 清除自動刷新間隔
+            if (securityStatsInterval) {
+                clearInterval(securityStatsInterval);
+                securityStatsInterval = null;
+            }
+
             // 清除狀態並顯示登入頁面
             isVerified = false;
             
@@ -307,8 +313,6 @@ const logger = {
             if (passkeyBtn) {
                 passkeyBtn.disabled = false;
                 passkeyBtn.innerHTML = '<i data-lucide="fingerprint" class="w-4 h-4 text-slate-700"></i><span class="text-xs font-bold text-slate-700">Passkey</span>';
-                // 重新初始化 Lucide icon
-                lucide.createIcons({ nameAttr: 'data-lucide' });
             }
             
             // 重新檢查 Passkey 可用性
@@ -319,6 +323,12 @@ const logger = {
 
         // 統一處理授權過期
         function handleAuthExpired() {
+            // 清除自動刷新間隔
+            if (securityStatsInterval) {
+                clearInterval(securityStatsInterval);
+                securityStatsInterval = null;
+            }
+
             isVerified = false;
             sessionStorage.removeItem('csrfToken');  // Clear CSRF token
             document.getElementById('token-section').classList.remove('hidden');

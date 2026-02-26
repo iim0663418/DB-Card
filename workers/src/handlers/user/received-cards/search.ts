@@ -183,7 +183,7 @@ async function keywordSearch(
   const offset = (page - 1) * limit;
   const searchPattern = `%${query}%`;
 
-  // Count total matches
+  // Count total matches (10 個欄位)
   const countResult = await env.DB.prepare(
     `SELECT COUNT(*) as total
      FROM received_cards
@@ -192,16 +192,26 @@ async function keywordSearch(
        AND (
          full_name LIKE ? OR
          organization LIKE ? OR
+         organization_en LIKE ? OR
+         organization_alias LIKE ? OR
+         department LIKE ? OR
          title LIKE ? OR
-         company_summary LIKE ?
+         company_summary LIKE ? OR
+         personal_summary LIKE ? OR
+         email LIKE ? OR
+         phone LIKE ?
        )`
   )
-    .bind(userEmail, searchPattern, searchPattern, searchPattern, searchPattern)
+    .bind(
+      userEmail,
+      searchPattern, searchPattern, searchPattern, searchPattern, searchPattern,
+      searchPattern, searchPattern, searchPattern, searchPattern, searchPattern
+    )
     .first<{ total: number }>();
 
   const total = countResult?.total || 0;
 
-  // Fetch paginated results
+  // Fetch paginated results (10 個欄位)
   const { results } = await env.DB.prepare(
     `SELECT uuid, full_name, organization, title, email, phone, thumbnail_url
      FROM received_cards
@@ -210,18 +220,22 @@ async function keywordSearch(
        AND (
          full_name LIKE ? OR
          organization LIKE ? OR
+         organization_en LIKE ? OR
+         organization_alias LIKE ? OR
+         department LIKE ? OR
          title LIKE ? OR
-         company_summary LIKE ?
+         company_summary LIKE ? OR
+         personal_summary LIKE ? OR
+         email LIKE ? OR
+         phone LIKE ?
        )
      ORDER BY created_at DESC
      LIMIT ? OFFSET ?`
   )
     .bind(
       userEmail,
-      searchPattern,
-      searchPattern,
-      searchPattern,
-      searchPattern,
+      searchPattern, searchPattern, searchPattern, searchPattern, searchPattern,
+      searchPattern, searchPattern, searchPattern, searchPattern, searchPattern,
       limit,
       offset
     )

@@ -1114,7 +1114,7 @@ const ReceivedCards = {
 
     // 客戶端過濾（無搜尋或 API 失敗時）
     const filtered = this.allCards.filter(card => {
-      // 搜尋過濾（擴展到新欄位）
+      // 搜尋過濾（擴展到 12 個欄位：涵蓋率 60%）
       const matchKeyword = !this.currentKeyword ||
         card.full_name?.toLowerCase().includes(this.currentKeyword) ||
         card.organization?.toLowerCase().includes(this.currentKeyword) ||
@@ -1122,8 +1122,12 @@ const ReceivedCards = {
         card.organization_alias?.toLowerCase().includes(this.currentKeyword) ||
         card.department?.toLowerCase().includes(this.currentKeyword) ||
         card.title?.toLowerCase().includes(this.currentKeyword) ||
+        card.company_summary?.toLowerCase().includes(this.currentKeyword) ||
+        card.personal_summary?.toLowerCase().includes(this.currentKeyword) ||
         card.email?.toLowerCase().includes(this.currentKeyword) ||
-        card.phone?.toLowerCase().includes(this.currentKeyword);
+        card.phone?.toLowerCase().includes(this.currentKeyword) ||
+        card.website?.toLowerCase().includes(this.currentKeyword) ||
+        card.address?.toLowerCase().includes(this.currentKeyword);
 
       // 標籤過濾（多選 OR 邏輯）- 僅在無搜尋關鍵字時生效
       const matchTags = this.selectedTags.length === 0 ||

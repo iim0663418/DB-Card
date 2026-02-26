@@ -1010,3 +1010,20 @@
 260226|user_portal_init_js|security|1_ADD_ATTR_Documented_Low_Risk
 260226|Documentation|security|Safety_Comments_Added
 260226|Deployment|staging|cf3be505_Security_Optimization_Complete
+
+# Dual Tagging System (2026-02-26)
+260226|Tagging_System|architecture|Dual_Complementary_Design
+260226|Keyword_Tags|source|auto_keyword_Rule_Based
+260226|Keyword_Tags|types|government_listed_startup_ngo
+260226|Keyword_Tags|trigger|Instant_On_Card_Save
+260226|Keyword_Tags|accuracy|100_Percent_Rule_Match
+260226|Keyword_Tags|cost|Zero
+260226|Keyword_Tags|usage|Frontend_Tag_Filter
+260226|Smart_Tags|source|auto_Gemini_AI
+260226|Smart_Tags|types|industry_location_expertise_seniority
+260226|Smart_Tags|trigger|Cron_Daily_18_00
+260226|Smart_Tags|accuracy|90_Percent_Plus_AI_Inference
+260226|Smart_Tags|cost|Gemini_API
+260226|Smart_Tags|usage|Search_Result_Enhancement
+260226|ADR_005|decision|Keep_Both_Systems_Complementary
+260226|ADR_005|rationale|Different_Dimensions_Cost_Control_Accuracy_Balance

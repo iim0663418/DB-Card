@@ -61,10 +61,16 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
     const idempotencyKey = request.headers.get('X-Idempotency-Key');
 
     if (idempotencyKey) {
-      const cacheKey = `idempotency:${idempotencyKey}`;
-      const cached = await env.KV.get(cacheKey);
+      // Use Durable Object for idempotency (no KV writes limit)
+      const doId = env.RATE_LIMITER.idFromName('idempotency');
+      const doStub = env.RATE_LIMITER.get(doId);
+      const response = await doStub.fetch('https://fake-host/idempotency/get', {
+        method: 'POST',
+        body: JSON.stringify({ key: idempotencyKey })
+      });
 
-      if (cached) {
+      if (response.ok) {
+        const cached = await response.text();
         // Cache HIT - return immediately (skip rate limit and all processing)
         return new Response(cached, {
           status: 200,
@@ -408,11 +414,15 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
       }
     });
 
-    // Cache response if idempotency key is present (1 hour TTL)
+    // Cache response if idempotency key is present (Durable Object, no KV writes limit)
     if (idempotencyKey) {
-      const cacheKey = `idempotency:${idempotencyKey}`;
+      const doId = env.RATE_LIMITER.idFromName('idempotency');
+      const doStub = env.RATE_LIMITER.get(doId);
       ctx.waitUntil(
-        env.KV.put(cacheKey, responseBody, { expirationTtl: 3600 })
+        doStub.fetch('https://fake-host/idempotency/set', {
+          method: 'POST',
+          body: JSON.stringify({ key: idempotencyKey, response: responseBody, ttl: 3600 })
+        })
       );
     }
 

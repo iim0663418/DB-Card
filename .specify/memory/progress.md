@@ -1,5 +1,63 @@
 # 今晚完成的工作 (2026-02-26)
 
+## ✅ 最新完成 (08:33)
+
+### 重複名片智慧合併 - 完整實作
+- **Phase 1**: Migration 0033 - job_history 欄位
+- **Phase 2**: checkPersonIdentity() - 人名變體識別
+- **Phase 3**: mergeCardsWithHistory() - 職位歷史追蹤
+- **Phase 4**: 擴展查詢範圍 (50-90%)
+- **部署**: staging (6961df72-78c2-4768-971d-7e0a2760226d)
+- **待驗證**: 明天檢討 cron job log
+
+### 搜尋結果增強 (P0) (08:22)
+
+### JSON Parser 增強 - Unterminated String Repair
+- **問題**: Gemini API 返回截斷的 JSON (`"title": "資深商務開發協理` 缺少結束引號)
+- **錯誤**: `SyntaxError: Unterminated string in JSON at position 366`
+- **優化**: 添加 Step 5.5 和 5.6 到 robust JSON parser
+  - Step 5.5: 自動關閉未終止的字串 (添加缺少的引號)
+  - Step 5.6: 自動關閉未關閉的大括號
+- **部署**: staging (4a4a681d-9831-427b-ba8d-cd7fbc3bf632)
+
+## ✅ ReadableStream Locked Error 修復 (07:56)
+
+### ReadableStream Locked Error 修復
+- **問題**: `TypeError: This ReadableStream is currently locked to a reader`
+- **根因**: 在錯誤處理中嘗試 `request.clone().json()`，但 request body 已被 `request.text()` 消費
+- **最佳實踐**: request.clone() 必須在 body 被消費之前調用
+- **解決方案**: 將 body 和 user 變數提升到函數作用域，錯誤處理中直接使用
+- **部署**: staging (dc7cdda5-d98c-4f7b-9ab7-4f4cfff1d85a)
+
+## ✅ OAuth 日誌級別優化 (07:55)
+
+### OAuth 日誌級別優化
+- **問題**: 正常的認證失敗被記錄為 "error" level，產生噪音日誌
+- **修改**: 將 `console.error` 改為 `console.warn`
+- **影響**: 2 個日誌點（missing token + token verification failed）
+- **部署**: staging (78374585-715d-42a0-a200-4e426c13f8e0)
+
+## ✅ 自訂域名登入支援 (07:54)
+
+### 自訂域名登入重定向
+- **問題**: 用戶在 `db-card.sfan-tech.com` 嘗試登入時 cookie 無法讀取
+- **根因**: 自訂域名 CNAME 到 staging worker，但 OAuth cookie 綁定到 workers.dev 域名
+- **解決方案**: 在自訂域名下點擊登入時，自動重定向到 `db-card-staging.csw30454.workers.dev`
+- **實作**: 前端檢測 hostname，非 staging worker 域名時重定向
+- **部署**: staging (5b2ddd70-68ad-48ac-8731-66dcc12010ee)
+
+## ✅ Vectorize Dimension Mismatch 修復 (07:40)
+
+### Vectorize Dimension Mismatch 修復
+- **問題**: Cron job 報錯 `expected 768 dimensions, got 3072 dimensions`
+- **根因**: gemini-embedding-001 預設輸出 3072 維度，但 Vectorize Index 配置為 768
+- **解決方案**: 添加 `outputDimensionality: 768` 參數到所有 embedding API 呼叫
+- **修改文件**:
+  - `src/cron/sync-card-embeddings.ts`
+  - `src/handlers/user/received-cards/search.ts`
+  - `src/cron/deduplicate-cards.ts`
+- **部署**: staging (65b905ed-1ee3-4540-b45c-bf0c2d99d992)
+
 ## ✅ 已部署到 Staging 的優化
 
 ### 1. API 三階段優化
@@ -87,3 +145,23 @@
 ## 💤 休息時間
 
 今晚工作完成，明天繼續！
+
+**明天待辦**：
+- [ ] 檢查 cron job log (0 18 * * * - 每天 18:00 UTC)
+- [ ] 驗證 FileSearchStore 查詢效果
+- [ ] 檢查 job_history 數據完整性
+- [ ] 評估去重準確率改善
+
+**Cron Job 時間**：
+- Staging: 每天 18:00 UTC (02:00 GMT+8)
+- 下次執行: 2026-02-27 02:00 GMT+8
+
+**檢查指令**：
+```bash
+# 查看 cron job log
+wrangler tail --env="" | grep -E "Deduplicate|FileSearchStore|checkPerson"
+
+# 手動觸發測試
+curl -X POST "https://db-card-staging.csw30454.workers.dev/api/admin/trigger-cron?job=deduplicate" \
+  -H "Cookie: admin_token=YOUR_TOKEN"
+```

@@ -14,6 +14,9 @@ interface SearchResult {
   phone: string;
   score: number;
   match_reason: string;
+  // Enrichment data
+  related_contacts?: number;
+  tags?: string[];
 }
 
 interface SearchResponse {
@@ -29,6 +32,47 @@ interface SimpleContext {
   env: Env;
   get: (key: string) => string | null;
   json: (data: unknown, status?: number) => Response;
+}
+
+/**
+ * Enrich search result with related contacts and tags
+ */
+async function enrichSearchResult(
+  env: Env,
+  userEmail: string,
+  result: SearchResult
+): Promise<SearchResult> {
+  // 1. Count related contacts in same organization
+  let relatedContacts = 0;
+  if (result.organization) {
+    const countResult = await env.DB.prepare(`
+      SELECT COUNT(*) as count
+      FROM received_cards
+      WHERE user_email = ?
+        AND organization = ?
+        AND deleted_at IS NULL
+        AND uuid != ?
+    `).bind(userEmail, result.organization, result.uuid).first<{ count: number }>();
+    
+    relatedContacts = countResult?.count || 0;
+  }
+
+  // 2. Get auto-generated tags (industry, location)
+  const { results: tagRows } = await env.DB.prepare(`
+    SELECT tag FROM card_tags
+    WHERE card_uuid = ?
+      AND tag_source LIKE 'auto%'
+      AND (tag LIKE 'industry:%' OR tag LIKE 'location:%')
+    LIMIT 3
+  `).bind(result.uuid).all();
+  
+  const tags = tagRows.map(t => (t.tag as string).split(':')[1]).filter(Boolean);
+
+  return {
+    ...result,
+    related_contacts: relatedContacts > 0 ? relatedContacts : undefined,
+    tags: tags.length > 0 ? tags : undefined,
+  };
 }
 
 /**
@@ -57,6 +101,7 @@ async function semanticSearch(
         body: JSON.stringify({
           model: `models/${env.GEMINI_EMBEDDING_MODEL}`,
           content: { parts: [{ text: query }] },
+          outputDimensionality: 768
         }),
         signal: AbortSignal.timeout(2000),
       }
@@ -216,8 +261,13 @@ export async function searchCards(c: SimpleContext): Promise<Response> {
   if (results.length === 0) {
     const keywordResults = await keywordSearch(c.env, userEmail, query, page, limit);
     
+    // Enrich keyword search results
+    const enrichedKeywordResults = await Promise.all(
+      keywordResults.results.map(result => enrichSearchResult(c.env, userEmail, result))
+    );
+    
     return c.json({
-      results: keywordResults.results,
+      results: enrichedKeywordResults,
       total: keywordResults.total,
       page,
       limit,
@@ -230,8 +280,13 @@ export async function searchCards(c: SimpleContext): Promise<Response> {
   const start = (page - 1) * limit;
   const paginatedResults = results.slice(start, start + limit);
 
+  // Enrich semantic search results
+  const enrichedResults = await Promise.all(
+    paginatedResults.map(result => enrichSearchResult(c.env, userEmail, result))
+  );
+
   return c.json({
-    results: paginatedResults,
+    results: enrichedResults,
     total,
     page,
     limit,

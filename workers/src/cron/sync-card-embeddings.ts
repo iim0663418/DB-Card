@@ -41,7 +41,8 @@ export async function syncCardEmbeddings(env: Env): Promise<{ synced: number }> 
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                content: { parts: [{ text }] }
+                content: { parts: [{ text }] },
+                outputDimensionality: 768
               })
             }
           );

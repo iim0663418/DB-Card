@@ -98,7 +98,7 @@ export async function verifyOAuth(
   }
 
   if (!token) {
-    console.error('[OAuth] FAILED: No token available from Cookie or Authorization header');
+    console.warn('[OAuth] No token available from Cookie or Authorization header');
     return errorResponse('unauthorized', 'Missing or invalid authorization', 401, request);
   }
 
@@ -106,7 +106,7 @@ export async function verifyOAuth(
   const email = await verifyOAuthToken(token, env);
 
   if (!email) {
-    console.error('[OAuth] FAILED: Token verification returned null');
+    console.warn('[OAuth] Token verification failed - invalid or expired token');
     return errorResponse('unauthorized', 'Invalid or expired token', 401, request);
   }
 

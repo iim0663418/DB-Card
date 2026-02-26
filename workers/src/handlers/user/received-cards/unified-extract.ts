@@ -399,6 +399,17 @@ async function performUnifiedExtract(
       }
       
       jsonString = jsonString.slice(firstBraceIndex, endIndex).trim();
+      
+      // Step 5.5: Repair unterminated string (if still in string at end)
+      if (inString) {
+        jsonString += stringQuote; // Close the unterminated string
+      }
+      
+      // Step 5.6: Close unclosed braces/brackets
+      while (braceDepth > 0) {
+        jsonString += '}';
+        braceDepth--;
+      }
     }
 
     // Step 6: Parse JSON
@@ -425,6 +436,8 @@ export async function handleUnifiedExtract(
 ): Promise<Response> {
   const DEBUG = env.ENVIRONMENT === 'staging';
   const startTime = Date.now();
+  let body: UnifiedExtractRequest | null = null;
+  let user: { email: string } | null = null;
   
   try {
     if (DEBUG) console.log('[UnifiedExtract] Request received at', new Date().toISOString());
@@ -435,11 +448,10 @@ export async function handleUnifiedExtract(
       if (DEBUG) console.log('[UnifiedExtract] OAuth verification failed');
       return userResult;
     }
-    const user = userResult;
+    user = userResult;
     if (DEBUG) console.log('[UnifiedExtract] OAuth verified for user:', user.email);
 
     // 2. Parse request body
-    let body: UnifiedExtractRequest;
     try {
       const rawBody = await request.text();
       if (DEBUG) console.log('[UnifiedExtract] Raw body:', rawBody);
@@ -537,20 +549,16 @@ export async function handleUnifiedExtract(
     }
 
     // Update OCR status to failed
-    try {
-      const userResult = await verifyOAuth(request, env);
-      if (!(userResult instanceof Response)) {
-        const body = await request.clone().json() as UnifiedExtractRequest;
-        if (body.upload_id) {
-          await env.DB.prepare(`
-            UPDATE temp_uploads
-            SET ocr_status = 'failed', ocr_error = ?
-            WHERE upload_id = ? AND user_email = ?
-          `).bind(message.substring(0, 500), body.upload_id, userResult.email).run();
-        }
+    if (body?.upload_id && user?.email) {
+      try {
+        await env.DB.prepare(`
+          UPDATE temp_uploads
+          SET ocr_status = 'failed', ocr_error = ?
+          WHERE upload_id = ? AND user_email = ?
+        `).bind(message.substring(0, 500), body.upload_id, user.email).run();
+      } catch (updateError) {
+        console.error('Failed to update OCR status:', updateError);
       }
-    } catch (updateError) {
-      console.error('Failed to update OCR status:', updateError);
     }
 
     return errorResponse(errorCode, userMessage, statusCode);

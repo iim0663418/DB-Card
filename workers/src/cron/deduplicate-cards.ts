@@ -51,21 +51,48 @@ export async function deduplicateCards(env: Env): Promise<{ merged: number }> {
             continue;
           }
 
-          if (stringSimilarity.score < 60) continue;
+          if (stringSimilarity.score < 50) continue;
 
-          // 階段 2.5: FileSearchStore 上下文增強（60-85 分數區間）
-          if (stringSimilarity.score >= 60 && stringSimilarity.score <= 85) {
-            const contextResult = await checkCompanyRelationship(
+          // 階段 2.5: FileSearchStore 上下文增強（50-90 分數區間）
+          if (stringSimilarity.score >= 50 && stringSimilarity.score <= 90) {
+            // 1. 查詢公司關係
+            const companyResult = await checkCompanyRelationship(
               env,
               cardA.organization || '',
               cardB.organization || ''
             );
 
-            if (contextResult.isSameCompany) {
-              // FileSearchStore 確認為同一公司，提升信心度
+            // 2. 查詢人名變體
+            const personResult = await checkPersonIdentity(env, cardA, cardB);
+
+            // 3. 綜合判斷
+            if (companyResult.isSameCompany && personResult.isSamePerson) {
+              // 同公司 + 同人 = 高信心度合併
               await mergeCards(env, cardA, cardB, {
-                score: 90, // 提升到高信心度
-                reason: `context: ${contextResult.reason}`
+                score: Math.max(95, personResult.confidence),
+                reason: `FileSearchStore: same person, same company (${personResult.reason})`
+              });
+              mergedCards.add(cardB.uuid);
+              merged++;
+              continue;
+            }
+
+            if (personResult.isSamePerson && personResult.confidence > 85) {
+              // 高信心度人名匹配（可能轉職）
+              await mergeCards(env, cardA, cardB, {
+                score: personResult.confidence,
+                reason: `FileSearchStore: same person (${personResult.reason})`
+              });
+              mergedCards.add(cardB.uuid);
+              merged++;
+              continue;
+            }
+
+            if (companyResult.isSameCompany && stringSimilarity.score > 70) {
+              // 同公司 + 中等字串相似度
+              await mergeCards(env, cardA, cardB, {
+                score: 90,
+                reason: `FileSearchStore: same company + string match (${stringSimilarity.score})`
               });
               mergedCards.add(cardB.uuid);
               merged++;
@@ -213,7 +240,8 @@ async function getCardEmbedding(env: Env, uuid: string): Promise<number[]> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        content: { parts: [{ text }] }
+        content: { parts: [{ text }] },
+        outputDimensionality: 768
       })
     }
   );
@@ -352,16 +380,119 @@ async function checkCompanyRelationship(
 
     return { isSameCompany: false, reason: 'Low confidence' };
   } catch (error) {
-    // Fail-open: 外部查詢失敗不阻斷去重流程
-    console.error('[Context] Company relationship check failed:', error);
-    return { isSameCompany: false, reason: 'Timeout or error' };
+    console.error('[Context] FileSearchStore query failed:', error);
+    return { isSameCompany: false, reason: 'Query error' };
   }
 }
 
 /**
- * 合併名片
+ * 查詢 FileSearchStore 確認人名變體
  */
-async function mergeCards(
+async function checkPersonIdentity(
+  env: Env,
+  cardA: any,
+  cardB: any
+): Promise<{ isSamePerson: boolean; reason: string; confidence: number }> {
+  if (!env.FILE_SEARCH_STORE_NAME || !env.GEMINI_API_KEY) {
+    return { isSamePerson: false, reason: 'Not configured', confidence: 0 };
+  }
+
+  if (!cardA.full_name || !cardB.full_name) {
+    return { isSamePerson: false, reason: 'Missing name', confidence: 0 };
+  }
+
+  try {
+    const query = `
+      ${cardA.full_name} 和 ${cardB.full_name} 是否為同一人？
+      背景資訊：
+      - A: ${cardA.organization || 'N/A'} ${cardA.title || 'N/A'}
+      - B: ${cardB.organization || 'N/A'} ${cardB.title || 'N/A'}
+      
+      考慮：中英文名對應、姓名變體、職位變動、公司轉職
+    `.trim();
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/${env.FILE_SEARCH_STORE_NAME}:query`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': env.GEMINI_API_KEY,
+        },
+        body: JSON.stringify({
+          query,
+          pageSize: 5,
+        }),
+        signal: AbortSignal.timeout(3000),
+      }
+    );
+
+    if (!response.ok) {
+      return { isSamePerson: false, reason: 'API error', confidence: 0 };
+    }
+
+    const data = await response.json() as {
+      relevantChunks?: Array<{
+        text?: string;
+        chunkRelevanceScore?: { score?: number };
+      }>;
+    };
+
+    // 分析結果
+    const chunks = data.relevantChunks || [];
+    let maxScore = 0;
+
+    for (const chunk of chunks) {
+      const score = chunk.chunkRelevanceScore?.score || 0;
+      const text = chunk.text || '';
+
+      // 檢查是否同時提到兩個名字或組織
+      const mentionsNameA = text.includes(cardA.full_name);
+      const mentionsNameB = text.includes(cardB.full_name);
+      const mentionsOrgA = cardA.organization && text.includes(cardA.organization);
+      const mentionsOrgB = cardB.organization && text.includes(cardB.organization);
+
+      const hasEvidence = (mentionsNameA || mentionsNameB) && (mentionsOrgA || mentionsOrgB);
+
+      if (hasEvidence && score > maxScore) {
+        maxScore = score;
+      }
+    }
+
+    // 判斷邏輯
+    const confidence = Math.round(maxScore * 100);
+
+    if (maxScore > 0.85) {
+      return {
+        isSamePerson: true,
+        reason: `High confidence (${maxScore.toFixed(2)})`,
+        confidence
+      };
+    }
+
+    if (maxScore > 0.70) {
+      return {
+        isSamePerson: true,
+        reason: `Probable match (${maxScore.toFixed(2)})`,
+        confidence
+      };
+    }
+
+    return {
+      isSamePerson: false,
+      reason: 'Insufficient evidence',
+      confidence
+    };
+  } catch (error) {
+    console.error('[Context] Person identity check failed:', error);
+    return { isSamePerson: false, reason: 'Query error', confidence: 0 };
+  }
+}
+
+/**
+ * 合併名片（保留職位歷史）
+ */
+async function mergeCardsWithHistory(
   env: Env, 
   cardA: any, 
   cardB: any, 
@@ -369,23 +500,63 @@ async function mergeCards(
 ) {
   const [newer, older] = cardA.created_at > cardB.created_at ? [cardA, cardB] : [cardB, cardA];
 
+  // 判斷變動類型
+  let changeType: 'promotion' | 'transfer' | 'duplicate' = 'duplicate';
+  
+  if (newer.organization === older.organization && newer.title !== older.title) {
+    changeType = 'promotion'; // 同公司職位變動
+  } else if (newer.organization !== older.organization) {
+    changeType = 'transfer'; // 公司轉職
+  }
+
+  // 解析現有職位歷史
+  let jobHistory: Array<{
+    organization: string;
+    title: string;
+    department?: string;
+    date: number;
+    type: string;
+  }> = [];
+
+  try {
+    if (newer.job_history) {
+      jobHistory = JSON.parse(newer.job_history);
+    }
+  } catch (error) {
+    console.error('[Merge] Failed to parse job_history:', error);
+  }
+
+  // 添加舊名片的職位記錄
+  jobHistory.push({
+    organization: older.organization || '',
+    title: older.title || '',
+    department: older.department || undefined,
+    date: older.created_at,
+    type: changeType
+  });
+
+  // 按時間排序（最新的在前）
+  jobHistory.sort((a, b) => b.date - a.date);
+
   // 補充舊名片的資訊到新名片
-  const updates: Record<string, any> = {};
+  const updates: Record<string, any> = {
+    job_history: JSON.stringify(jobHistory)
+  };
+
   for (const field of ['phone', 'email', 'website', 'address']) {
     if (!newer[field] && older[field]) {
       updates[field] = older[field];
     }
   }
 
-  if (Object.keys(updates).length > 0) {
-    const setClause = Object.keys(updates).map(k => `${k} = ?`).join(', ');
-    const values = Object.values(updates);
-    await env.DB.prepare(`
-      UPDATE received_cards 
-      SET ${setClause}, updated_at = ?
-      WHERE uuid = ?
-    `).bind(...values, Date.now(), newer.uuid).run();
-  }
+  // 更新新名片
+  const setClause = Object.keys(updates).map(k => `${k} = ?`).join(', ');
+  const values = Object.values(updates);
+  await env.DB.prepare(`
+    UPDATE received_cards 
+    SET ${setClause}, updated_at = ?
+    WHERE uuid = ?
+  `).bind(...values, Date.now(), newer.uuid).run();
 
   // 標記舊名片為已合併
   await env.DB.prepare(`
@@ -399,4 +570,19 @@ async function mergeCards(
     Date.now(),
     older.uuid
   ).run();
+
+  console.log(`[Merge] ${older.uuid} → ${newer.uuid} (${changeType}, confidence: ${result.score})`);
+}
+
+/**
+ * 合併名片（舊版，向後相容）
+ */
+async function mergeCards(
+  env: Env, 
+  cardA: any, 
+  cardB: any, 
+  result: { score: number; reason: string }
+) {
+  // 直接調用新版函數
+  return mergeCardsWithHistory(env, cardA, cardB, result);
 }

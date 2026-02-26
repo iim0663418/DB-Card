@@ -1040,24 +1040,27 @@ const ReceivedCards = {
     // 如果有搜尋關鍵字，使用智慧搜尋 API
     if (this.currentKeyword && this.currentKeyword.trim().length > 0) {
       try {
+        // 顯示智慧搜尋中的提示
+        const resultCount = document.getElementById('resultCount');
+        if (resultCount) {
+          resultCount.textContent = '智慧搜尋中...';
+          resultCount.className = 'text-blue-600 animate-pulse';
+        }
+
         const response = await ReceivedCardsAPI.searchCards(this.currentKeyword.trim());
         
         if (response && response.results) {
-          // 套用標籤過濾
-          const filtered = response.results.filter(card => {
-            const matchTags = this.selectedTags.length === 0 ||
-              this.selectedTags.some(tag => card.tags?.includes(tag));
-            return matchTags;
-          });
-
+          // 智慧搜尋結果不再套用標籤過濾（後端已優化排序）
+          // 標籤過濾僅在無搜尋關鍵字時生效
+          
           // 更新結果數量
-          const resultCount = document.getElementById('resultCount');
           if (resultCount) {
-            resultCount.textContent = `${filtered.length} (智慧搜尋)`;
+            resultCount.textContent = `${response.results.length} (智慧搜尋)`;
+            resultCount.className = ''; // 恢復原始樣式
           }
 
           // 渲染名片（帶高亮）
-          this.renderCards(filtered, this.currentKeyword);
+          this.renderCards(response.results, this.currentKeyword);
           this.updateClearFiltersButton();
           this.updateURL();
           return;
@@ -1081,7 +1084,7 @@ const ReceivedCards = {
         card.email?.toLowerCase().includes(this.currentKeyword) ||
         card.phone?.toLowerCase().includes(this.currentKeyword);
 
-      // 標籤過濾（多選 OR 邏輯）
+      // 標籤過濾（多選 OR 邏輯）- 僅在無搜尋關鍵字時生效
       const matchTags = this.selectedTags.length === 0 ||
         this.selectedTags.some(tag => card.tags?.includes(tag));
 
@@ -1235,20 +1238,31 @@ const ReceivedCards = {
     if (!container) return;
 
     if (tagsMap.size === 0) {
-      container.innerHTML = '<span class="text-xs text-slate-400">無資料</span>';
+      container.textContent = '無資料';
+      container.className = 'text-xs text-slate-400';
       return;
     }
 
-    container.innerHTML = Array.from(tagsMap.entries())
+    // 清空容器
+    container.innerHTML = '';
+    
+    // 使用 DOM 操作創建按鈕
+    Array.from(tagsMap.entries())
       .sort((a, b) => b[1] - a[1]) // 按數量排序
-      .map(([value, count]) => `
-        <button
-          class="tag-filter px-3 py-1.5 rounded-full text-sm font-medium border-2 border-slate-300 text-slate-700 hover:border-blue-500 hover:text-blue-600 transition-all"
-          data-tag="${category}:${this.escapeHTML(value)}"
-        >
-          ${this.escapeHTML(value)} <span class="text-xs opacity-60">(${count})</span>
-        </button>
-      `).join('');
+      .forEach(([value, count]) => {
+        const button = document.createElement('button');
+        button.className = 'tag-filter px-3 py-1.5 rounded-full text-sm font-medium border-2 border-slate-300 text-slate-700 hover:border-blue-500 hover:text-blue-600 transition-all';
+        button.dataset.tag = `${category}:${value}`;
+        
+        const text = document.createTextNode(`${value} `);
+        const countSpan = document.createElement('span');
+        countSpan.className = 'text-xs opacity-60';
+        countSpan.textContent = `(${count})`;
+        
+        button.appendChild(text);
+        button.appendChild(countSpan);
+        container.appendChild(button);
+      });
 
     // 綁定點擊事件
     container.querySelectorAll('.tag-filter').forEach(btn => {
@@ -1582,6 +1596,12 @@ const ReceivedCards = {
         </div>
         ` : ''}
         ${card.note ? `<p class="text-xs text-slate-500 italic truncate px-3 py-2 rounded-xl border border-white/20" style="background: rgba(255, 255, 255, 0.4);">${this.escapeHTML(card.note)}</p>` : ''}
+        ${card.tags && card.tags.length > 0 || card.related_contacts > 0 ? `
+        <div class="flex flex-wrap gap-2">
+          ${card.related_contacts > 0 ? `<span class="px-2 py-1 rounded-full text-xs font-medium" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">相關聯絡人: ${card.related_contacts} 人</span>` : ''}
+          ${card.tags && card.tags.length > 0 ? card.tags.map(tag => `<span class="px-2 py-1 rounded-full text-xs font-medium" style="background: rgba(104, 104, 172, 0.1); color: var(--moda-accent);">${this.escapeHTML(tag)}</span>`).join('') : ''}
+        </div>
+        ` : ''}
         <div class="pt-4 mt-4 border-t border-white/30 flex items-center justify-between gap-3">
           ${card.source === 'own' ? `
           <label class="inline-flex items-center cursor-pointer">

@@ -4,6 +4,7 @@
  */
 
 import { Env } from '../../../types';
+import { verifyOAuth } from '../../../middleware/oauth';
 
 interface SearchResult {
   uuid: string;
@@ -12,6 +13,7 @@ interface SearchResult {
   title: string;
   email: string;
   phone: string;
+  thumbnail_url?: string;
   score: number;
   match_reason: string;
   // Enrichment data
@@ -25,13 +27,6 @@ interface SearchResponse {
   page: number;
   limit: number;
   hasMore: boolean;
-}
-
-interface SimpleContext {
-  req: { query: (key: string) => string | undefined };
-  env: Env;
-  get: (key: string) => string | null;
-  json: (data: unknown, status?: number) => Response;
 }
 
 /**
@@ -123,9 +118,15 @@ async function semanticSearch(
     }
 
     // Query Vectorize with multi-tenant filter
+    // Dynamic strategy based on limit:
+    // - returnMetadata='all' supports topK up to 50
+    // - returnMetadata='indexed' supports topK up to 100
+    const desiredTopK = Math.min(100, limit);
+    const useAllMetadata = desiredTopK <= 50;
+    
     const matches = await env.VECTORIZE.query(queryVector, {
-      topK: limit,
-      returnMetadata: 'all',
+      topK: desiredTopK,
+      returnMetadata: useAllMetadata ? 'all' : 'indexed',
       filter: { user_email: userEmail },
     });
 
@@ -136,7 +137,7 @@ async function semanticSearch(
       const cardUuid = match.id;
 
       const card = await env.DB.prepare(
-        `SELECT uuid, full_name, organization, title, email, phone
+        `SELECT uuid, full_name, organization, title, email, phone, thumbnail_url
          FROM received_cards
          WHERE uuid = ? AND user_email = ? AND deleted_at IS NULL`
       )
@@ -151,13 +152,18 @@ async function semanticSearch(
           title: card.title as string,
           email: card.email as string,
           phone: card.phone as string,
+          thumbnail_url: card.thumbnail_url as string | undefined,
           score: match.score,
           match_reason: `semantic: score ${match.score.toFixed(3)}`,
         });
       }
     }
 
-    return results;
+    // Filter low-relevance results (score < 0.7)
+    const SCORE_THRESHOLD = 0.7;
+    const filteredResults = results.filter(r => r.score >= SCORE_THRESHOLD);
+
+    return filteredResults;
   } catch (error) {
     console.error('Semantic search failed:', error);
     return [];
@@ -197,7 +203,7 @@ async function keywordSearch(
 
   // Fetch paginated results
   const { results } = await env.DB.prepare(
-    `SELECT uuid, full_name, organization, title, email, phone
+    `SELECT uuid, full_name, organization, title, email, phone, thumbnail_url
      FROM received_cards
      WHERE user_email = ?
        AND deleted_at IS NULL
@@ -229,6 +235,7 @@ async function keywordSearch(
       title: card.title as string,
       email: card.email as string,
       phone: card.phone as string,
+      thumbnail_url: card.thumbnail_url as string | undefined,
       score: 0.5, // Default score for keyword match
       match_reason: 'keyword',
     })),
@@ -239,57 +246,77 @@ async function keywordSearch(
 /**
  * Main search handler
  */
-export async function searchCards(c: SimpleContext): Promise<Response> {
-  const userEmail = c.get('userEmail');
-  if (!userEmail) {
-    return c.json({ error: 'Unauthorized' }, 401);
-  }
+export async function searchCards(request: Request, env: Env): Promise<Response> {
+  try {
+    const userResult = await verifyOAuth(request, env);
+    if (userResult instanceof Response) return userResult;
+    const user = userResult;
 
-  // Parse query parameters
-  const query = c.req.query('q');
-  if (!query || query.trim().length === 0) {
-    return c.json({ error: 'Query parameter "q" is required' }, 400);
-  }
+    const userEmail = user.email;
 
-  const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
-  const limit = Math.min(100, Math.max(1, parseInt(c.req.query('limit') || '20', 10)));
+    // Parse query parameters
+    const url = new URL(request.url);
+    const query = url.searchParams.get('q');
+    if (!query || query.trim().length === 0) {
+      return new Response(JSON.stringify({ error: 'Query parameter "q" is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
 
-  // Try semantic search first
-  let results = await semanticSearch(c.env, userEmail, query, limit * 2);
+    const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
+    const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '20', 10)));
 
-  // Fallback to keyword search if semantic fails
-  if (results.length === 0) {
-    const keywordResults = await keywordSearch(c.env, userEmail, query, page, limit);
-    
-    // Enrich keyword search results
-    const enrichedKeywordResults = await Promise.all(
-      keywordResults.results.map(result => enrichSearchResult(c.env, userEmail, result))
+    // Try semantic search first with 2x limit for better recall
+    // Vectorize supports topK up to 100 with returnMetadata='indexed'
+    let results = await semanticSearch(env, userEmail, query, Math.min(100, limit * 2));
+
+    // Fallback to keyword search if semantic fails
+    if (results.length === 0) {
+      const keywordResults = await keywordSearch(env, userEmail, query, page, limit);
+
+      // Enrich keyword search results
+      const enrichedKeywordResults = await Promise.all(
+        keywordResults.results.map(result => enrichSearchResult(env, userEmail, result))
+      );
+
+      return new Response(JSON.stringify({
+        results: enrichedKeywordResults,
+        total: keywordResults.total,
+        page,
+        limit,
+        hasMore: keywordResults.total > page * limit,
+      } as SearchResponse), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Paginate semantic results
+    const total = results.length;
+    const start = (page - 1) * limit;
+    const paginatedResults = results.slice(start, start + limit);
+
+    // Enrich semantic search results
+    const enrichedResults = await Promise.all(
+      paginatedResults.map(result => enrichSearchResult(env, userEmail, result))
     );
-    
-    return c.json({
-      results: enrichedKeywordResults,
-      total: keywordResults.total,
+
+    return new Response(JSON.stringify({
+      results: enrichedResults,
+      total,
       page,
       limit,
-      hasMore: keywordResults.total > page * limit,
-    } as SearchResponse);
+      hasMore: total > page * limit,
+    } as SearchResponse), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('Search error:', error);
+    return new Response(JSON.stringify({ error: 'Failed to search cards' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
-
-  // Paginate semantic results
-  const total = results.length;
-  const start = (page - 1) * limit;
-  const paginatedResults = results.slice(start, start + limit);
-
-  // Enrich semantic search results
-  const enrichedResults = await Promise.all(
-    paginatedResults.map(result => enrichSearchResult(c.env, userEmail, result))
-  );
-
-  return c.json({
-    results: enrichedResults,
-    total,
-    page,
-    limit,
-    hasMore: total > page * limit,
-  } as SearchResponse);
 }

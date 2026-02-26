@@ -116,7 +116,7 @@ const i18n={
 'success-text':{'zh':'您現在可以從主畫面開啟 QR Code 了','en':'You can now open QR Code from home screen'},
 'back-to-portal':{'zh':'返回名片列表','en':'Back to Card List'}
 };
-document.querySelectorAll('[data-i18n]').forEach(el=>{const key=el.getAttribute('data-i18n');if(i18n[key])el.innerHTML=i18n[key][lang]});
+document.querySelectorAll('[data-i18n]').forEach(el=>{const key=el.getAttribute('data-i18n');if(i18n[key])el.textContent=i18n[key][lang]});
 
 let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e});
@@ -126,7 +126,16 @@ const uuid=params.get('uuid');
 const name=params.get('name')||'數位名片';
 const type=params.get('type')||'personal';
 
-if(!uuid){document.body.innerHTML='<div class="card"><p>錯誤：缺少名片 ID</p></div>';throw new Error('Missing uuid');}
+if(!uuid){
+  const card = document.createElement('div');
+  card.className = 'card';
+  const p = document.createElement('p');
+  p.textContent = '錯誤：缺少名片 ID';
+  card.appendChild(p);
+  document.body.innerHTML = '';
+  document.body.appendChild(card);
+  throw new Error('Missing uuid');
+}
 
 // Add type suffix for title
 const typeSuffix = type === 'personal' ? '' : 

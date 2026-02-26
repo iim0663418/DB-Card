@@ -331,6 +331,12 @@ const ReceivedCardsAPI = {
     }
 
     if (!response.ok) {
+      // Handle 401 Unauthorized - token expired
+      if (response.status === 401) {
+        window.location.href = '/user-portal.html';
+        throw new Error('Session expired');
+      }
+
       let errorMessage = `HTTP ${response.status}`;
       try {
         const errorData = await response.json();

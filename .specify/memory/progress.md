@@ -2,8 +2,8 @@
 
 ## 🎯 當前 Staging 版本
 
-**Version ID**: d771aa48-05c7-4fd5-b558-64d7333e82da
-**部署時間**: 2026-02-26 13:52 GMT+8
+**Version ID**: 1f16836d-f0b3-4d3d-8993-86d7873a6d07
+**部署時間**: 2026-02-26 14:15 GMT+8
 **包含功能**:
 - 搜尋欄位擴充 P0 + P1（website, address, note）
 - API 三階段優化（Idempotency DO 遷移）
@@ -12,54 +12,28 @@
 - 搜尋架構優化（遵循 Algolia 最佳實踐）
 - Vectorize 動態策略（保持 limit * 2 精準度）
 - P0 + P1 安全性修復（XSS 風險消除）
+- Admin 登出行為修復（lucide 錯誤 + 401 請求）
 
-## ✅ 搜尋欄位擴充 P0 + P1 完成 (13:52)
+## ✅ Admin 登出行為修復完成 (14:15)
 
-### 新增欄位
-- **website** - 網站域名
-- **address** - 地址
-- **note** - 備註
+### 問題 1: lucide is not defined
+- **根因**: handleLogout() 中直接調用 `lucide.createIcons()`
+- **修復**: 移除該行代碼（icon 已在頁面載入時初始化）
+- **效果**: ✅ 無 JavaScript 錯誤
 
-### 修改範圍
-
-**1. Vectorize Embedding (10 → 13 欄位, +30%)**
-```javascript
-[
-  full_name, organization, organization_en, organization_alias,
-  department, title, company_summary, personal_summary,
-  email, phone,
-  website, address, note  // 新增
-]
-```
-
-**2. 後端關鍵字搜尋 (10 → 13 欄位, +30%)**
-```sql
-WHERE (
-  full_name LIKE ? OR ... phone LIKE ? OR
-  website LIKE ? OR address LIKE ? OR note LIKE ?  -- 新增
-)
-```
-
-**3. 前端客戶端過濾 (12 → 13 欄位, +8%)**
-```javascript
-card.note?.toLowerCase().includes(this.currentKeyword)  // 新增
-```
-
-### 效果
-- ✅ 搜尋「延平」可以找到地址
-- ✅ 搜尋「example.com」可以找到網站
-- ✅ 搜尋備註內容可以找到名片
-- ✅ 涵蓋率: 50% → 65% (+30%)
+### 問題 2: 登出後 401 錯誤
+- **根因**: `securityStatsInterval` 每 60 秒刷新監控數據，登出時未清除
+- **修復**: 在 `handleLogout()` 和 `handleAuthExpired()` 中清除 interval
+- **效果**: ✅ 無 401 API 請求
 
 ### 技術細節
-- Embedding 長度增加 30%
-- SQL 參數: 11 → 14 (user_email + 13 個 searchPattern)
-- 前端過濾: 12 → 13 個條件
-- 已清空 30 張名片的 embedding_synced_at
+- **變更文件**: public/js/admin-dashboard.js
+- **變更行數**: 3 行（1 刪除 + 2 新增清理邏輯）
+- **最小化原則**: 只修改必要代碼，保持簡潔
 
 ### 部署
-- **Version ID**: d771aa48-05c7-4fd5-b558-64d7333e82da
-- **Git**: 6539a13
+- **Version ID**: 1f16836d-f0b3-4d3d-8993-86d7873a6d07
+- **Git**: 5b6d1b8
 
 ---
 

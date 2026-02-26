@@ -107,3 +107,14 @@
 - **部署**: 191473bc-6852-44fe-a1e7-4b925cb4c1db
 - **狀態**: ✅ 已修復
 
+
+## ✅ 自動登出修復 (10:36)
+
+### Token 過期自動登出
+- **問題**: JWT token 過期時沒有自動登出
+- **修復**: 在 received-cards.js 添加 401 處理
+- **行為**: 401 錯誤時自動重定向到 /user-portal.html
+- **一致性**: 與 user-portal-init.js 行為一致
+- **部署**: 0dbafdee-cf13-429d-bc33-15c0139ca94a
+- **Git**: 548c5ad
+

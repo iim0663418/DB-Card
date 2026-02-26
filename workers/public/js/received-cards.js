@@ -458,9 +458,9 @@ const ReceivedCardsAPI = {
     return await this.call('/api/user/received-cards');
   },
 
-  async searchCards(query, page = 1, limit = 100) {
+  async searchCards(query, page = 1, limit = 100, signal = null) {
     const params = new URLSearchParams({ q: query, page: page.toString(), limit: limit.toString() });
-    return await this.call(`/api/user/received-cards/search?${params}`);
+    return await this.call(`/api/user/received-cards/search?${params}`, { signal });
   },
 
   async updateCard(uuid, data) {
@@ -933,12 +933,15 @@ const ReceivedCards = {
   },
 
   bindSearchEvents() {
-    // 搜尋框輸入事件
+    // Debounce timer and abort controller for search
+    let searchDebounceTimer = null;
+    let searchAbortController = null;
+
+    // 搜尋框輸入事件（帶 debounce）
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
         this.currentKeyword = e.target.value.toLowerCase().trim();
-        this.filterCards();
 
         // 顯示/隱藏清除按鈕
         const clearBtn = document.getElementById('clearSearch');
@@ -948,6 +951,30 @@ const ReceivedCards = {
           } else {
             clearBtn.classList.add('hidden');
           }
+        }
+
+        // 取消前一個搜尋請求
+        if (searchAbortController) {
+          searchAbortController.abort();
+        }
+
+        // 清除前一個 debounce timer
+        if (searchDebounceTimer) {
+          clearTimeout(searchDebounceTimer);
+        }
+
+        // 如果搜尋框為空，立即執行
+        if (!this.currentKeyword) {
+          this.filterCards();
+          return;
+        }
+
+        // 300ms debounce（業界最佳實踐）
+        searchDebounceTimer = setTimeout(() => {
+          searchAbortController = new AbortController();
+          this.filterCards(searchAbortController.signal);
+        }, 300);
+      });
         }
       });
     }
@@ -1042,7 +1069,7 @@ const ReceivedCards = {
     });
   },
 
-  async filterCards() {
+  async filterCards(signal = null) {
     // 如果有搜尋關鍵字，使用智慧搜尋 API
     if (this.currentKeyword && this.currentKeyword.trim().length > 0) {
       try {
@@ -1053,7 +1080,7 @@ const ReceivedCards = {
           resultCount.className = 'text-blue-600 animate-pulse';
         }
 
-        const response = await ReceivedCardsAPI.searchCards(this.currentKeyword.trim());
+        const response = await ReceivedCardsAPI.searchCards(this.currentKeyword.trim(), 1, 100, signal);
         
         if (response && response.results) {
           // 智慧搜尋結果不再套用標籤過濾（後端已優化排序）
@@ -1072,6 +1099,10 @@ const ReceivedCards = {
           return;
         }
       } catch (error) {
+        // 忽略 AbortError（用戶取消）
+        if (error.name === 'AbortError') {
+          return;
+        }
         console.error('Smart search failed, fallback to client-side filter:', error);
         // 失敗時回退到客戶端過濾
       }

@@ -14,7 +14,49 @@
 - P0 + P1 安全性修復（XSS 風險消除）
 - Admin 登出行為修復（lucide 錯誤 + 401 請求）
 
-## ✅ Admin 登出行為修復完成 (14:15)
+## ✅ Embedding 模型性價比研究完成 (16:13)
+
+### 研究範圍
+- 比較 Mistral, Voyage, Gemini, Snowflake, OpenAI, Cohere
+- 基於 AIMultiple 494K Amazon 評論基準測試
+- 加入 Cloudflare Vectorize 維度限制考量
+
+### 關鍵發現
+
+**Cloudflare Vectorize 限制**:
+- Free Plan: 最大 768 維
+- Paid Plan: 最大 1536 維 (+$5/月)
+
+**Top 3 模型**:
+1. **Mistral Embed**: 77.8% 準確度, $0.10, 1024 維 (需 Paid)
+2. **Voyage 3.5 Lite**: 66.1% 準確度, $0.03, 512 維 (Free 可用)
+3. **Gemini (當前)**: 71.5% 準確度, $0.15, 768 維 (Free 上限)
+
+**成本分析 (每月 10K 名片)**:
+- Gemini (Free): $0.75/月
+- Voyage Lite (Free): $0.15/月 (-80%)
+- Mistral (Paid): $5.50/月 (+633%, 含 Workers Paid)
+
+### 建議
+
+**短期**: 保持 Gemini
+- 768 維剛好符合 Free Plan 限制
+- 穩定可靠，準確度足夠
+
+**中期**: 評估 Voyage 3.5 Lite
+- 成本降低 80%
+- 準確度略降 5.4%
+- 仍在 Free Plan 內
+
+**長期**: 如升級 Paid Plan，考慮 Mistral
+- 準確度提升 8.8%
+- 但需額外 $5/月
+
+### 文檔
+- 完整報告: `.specify/research/embedding_model_cost_benefit_analysis_2026.md`
+- Git: 6d0788a
+
+---
 
 ### 問題 1: lucide is not defined
 - **根因**: handleLogout() 中直接調用 `lucide.createIcons()`

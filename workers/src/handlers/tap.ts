@@ -408,11 +408,11 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
       }
     });
 
-    // Cache response if idempotency key is present
+    // Cache response if idempotency key is present (1 hour TTL)
     if (idempotencyKey) {
       const cacheKey = `idempotency:${idempotencyKey}`;
       ctx.waitUntil(
-        env.KV.put(cacheKey, responseBody, { expirationTtl: 86400 })
+        env.KV.put(cacheKey, responseBody, { expirationTtl: 3600 })
       );
     }
 

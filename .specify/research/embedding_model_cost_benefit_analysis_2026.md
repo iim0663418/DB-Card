@@ -8,22 +8,48 @@
 
 ## 性價比排名 (Top 5)
 
-| 排名 | 模型 | 準確度 | 價格 ($/1M tokens) | 性價比分數 | 維度 | CF Vectorize | 多語言 |
-|------|------|--------|-------------------|-----------|------|--------------|--------|
-| 🥇 1 | **Mistral Embed** | 77.8% | $0.10 | ⭐⭐⭐⭐⭐ | 1024 | ✅ | ✅ |
-| 🥈 2 | **Voyage 3.5 Lite** | 66.1% | $0.03 | ⭐⭐⭐⭐⭐ | 512 | ✅ | ✅ |
-| 🥉 3 | **Voyage 4** | 68.6% | $0.06 | ⭐⭐⭐⭐ | 1024 | ✅ | ✅ |
-| 4 | **Snowflake Arctic** | 66.6% | $0.10 | ⭐⭐⭐⭐ | 1024 | ✅ | ✅ |
-| 5 | **Gemini Embedding 001** | 71.5% | $0.15 | ⭐⭐⭐ | 768 | ✅ | ✅ |
+| 排名 | 模型 | 準確度 | 價格 ($/1M tokens) | 性價比分數 | 維度 | CF Free | CF Paid | 多語言 |
+|------|------|--------|-------------------|-----------|------|---------|---------|--------|
+| 🥇 1 | **Mistral Embed** | 77.8% | $0.10 | ⭐⭐⭐⭐⭐ | 1024 | ❌ | ✅ | ✅ |
+| 🥈 2 | **Voyage 3.5 Lite** | 66.1% | $0.03 | ⭐⭐⭐⭐⭐ | 512 | ✅ | ✅ | ✅ |
+| 🥉 3 | **Voyage 4** | 68.6% | $0.06 | ⭐⭐⭐⭐ | 1024 | ❌ | ✅ | ✅ |
+| 4 | **Snowflake Arctic** | 66.6% | $0.10 | ⭐⭐⭐⭐ | 1024 | ❌ | ✅ | ✅ |
+| 5 | **Gemini Embedding 001** | 71.5% | $0.15 | ⭐⭐⭐ | 768 | ✅ | ✅ | ✅ |
+
+### 💡 關鍵發現
+
+**Free Plan 用戶 (≤768 維)**:
+- ✅ **Gemini 768 維** - 剛好符合限制 (當前使用)
+- ✅ **Voyage 3.5 Lite 512 維** - 唯一更便宜的選擇
+- ❌ 所有 1024 維模型需要 Paid Plan
+
+**Paid Plan 用戶 (≤1536 維)**:
+- ✅ 所有推薦模型均可用
+- 需額外支付 $5/月 Workers Paid 費用
 
 ### ⚠️ Cloudflare Vectorize 限制
 
-**最大維度**: 1536 dimensions (32-bit precision)
+**Paid Plan (Workers Paid $5/月)**:
+- 最大維度: 1536 dimensions (32-bit precision)
+- 儲存: 10 million stored vector dimensions (included)
+- 查詢: 50 million queried vector dimensions/month (included)
 
-**影響**:
-- ✅ **所有推薦模型均符合限制**
-- ❌ **OpenAI text-embedding-3-large (3072 維) 不相容**
-- ❌ **E5 Mistral (4096 維) 不相容**
+**Free Plan (Workers Free)**:
+- 最大維度: **768 dimensions**
+- 儲存: 5 million stored vector dimensions
+- 查詢: 30 million queried vector dimensions/month
+
+**影響 (Free Plan)**:
+- ✅ **Gemini 768 維剛好符合限制** (當前使用)
+- ❌ **Mistral 1024 維超過限制** (需 Paid Plan)
+- ❌ **Voyage 4 1024 維超過限制** (需 Paid Plan)
+- ❌ **Snowflake 1024 維超過限制** (需 Paid Plan)
+- ✅ **Voyage 3.5 Lite 512 維符合限制**
+
+**影響 (Paid Plan)**:
+- ✅ **所有推薦模型 (512-1024 維) 均符合限制**
+- ❌ **OpenAI 3-large (3072 維) 超過限制**
+- ❌ **E5 Mistral 7B (4096 維) 超過限制**
 
 ## 詳細分析
 
@@ -163,20 +189,21 @@
 ## 技術考量
 
 ### 1. Cloudflare Vectorize 限制 ⚠️
-**最大維度**: 1536 dimensions (32-bit float)
+**Free Plan**: 最大 768 dimensions
+**Paid Plan**: 最大 1536 dimensions (32-bit float)
 **最大向量數**: 10,000,000 per index
 **精度**: 32-bit (float32)
 
 **相容性檢查**:
-| 模型 | 維度 | 相容性 | 備註 |
-|------|------|--------|------|
-| Gemini Embedding 001 | 768 | ✅ | 當前使用 |
-| Mistral Embed | 1024 | ✅ | 推薦 |
-| Voyage 3.5 Lite | 512 | ✅ | 最省 |
-| Voyage 4 | 1024 | ✅ | 平衡 |
-| Snowflake Arctic | 1024 | ✅ | 可用 |
-| OpenAI 3-large | 3072 | ❌ | **超過限制** |
-| E5 Mistral 7B | 4096 | ❌ | **超過限制** |
+| 模型 | 維度 | Free Plan | Paid Plan | 備註 |
+|------|------|-----------|-----------|------|
+| Voyage 3.5 Lite | 512 | ✅ | ✅ | Free 唯一便宜選擇 |
+| Gemini Embedding 001 | 768 | ✅ | ✅ | Free 上限，當前使用 |
+| Mistral Embed | 1024 | ❌ | ✅ | 需 Paid Plan |
+| Voyage 4 | 1024 | ❌ | ✅ | 需 Paid Plan |
+| Snowflake Arctic | 1024 | ❌ | ✅ | 需 Paid Plan |
+| OpenAI 3-large | 3072 | ❌ | ❌ | **超過 Paid 限制** |
+| E5 Mistral 7B | 4096 | ❌ | ❌ | **超過 Paid 限制** |
 
 ### 2. 維度選擇
 - **512 (Voyage Lite)**: 成本優化，語義略損，最小儲存

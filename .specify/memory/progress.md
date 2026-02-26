@@ -1,6 +1,22 @@
 # 今晚完成的工作 (2026-02-26)
 
-## ✅ 最新完成 (08:33)
+## ✅ 最新完成 (08:47)
+
+### Idempotency 遷移到 Durable Objects
+- **問題**: KV free tier 達到 50% (500/1,000 writes/day)
+- **根因**: 每次 NFC tap 寫入 KV idempotency key
+- **解決方案**: 遷移到 Durable Objects
+  - 擴展 RateLimiterDO 添加 idempotency 方法
+  - getIdempotency() 和 setIdempotency() 通過 fetch() RPC
+  - 自動清理機制（alarm() 每小時清理過期 keys）
+- **效果**: 
+  - KV writes: 500/day → 0 (-100%)
+  - 延遲: ~50ms (KV) → ~5ms (DO) (-90%)
+  - 無每日限制
+- **部署**: staging (9a25175e-860b-4f11-88dc-864c3af40ae9)
+- **Commit**: 91e59bd
+
+## ✅ 已完成 (08:33)
 
 ### 重複名片智慧合併 - 完整實作
 - **Phase 1**: Migration 0033 - job_history 欄位

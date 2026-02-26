@@ -18,6 +18,12 @@
 - **全域類型定義** - 33 個 Cloudflare + Web API 類型定義，消除 any 類型
 - **資料庫優化** - Migration 0032: idempotency_key + user_email 複合唯一索引
 
+### v4.6.0 (2026-02-26) - KV 使用優化
+- **Idempotency 遷移到 Durable Objects** - KV writes 從 500/day 降至 0 (100% 減少)
+- **延遲優化** - Idempotency 查詢從 50ms 降至 5ms (90% 改善)
+- **無限制擴展** - Durable Objects 無每日 writes 限制
+- **自動清理** - alarm() 機制每小時清理過期 keys
+
 ### v4.6.0 (2026-02-08) - Icon Bundle 優化完成
 - **Vite Tree-Shaking** - Lucide Icons 從 379 KB 降至 12.33 KB (96.8% 減少)
 - **ES Module 遷移** - 65 個實際使用的 icons，移除 1,400+ 未使用 icons

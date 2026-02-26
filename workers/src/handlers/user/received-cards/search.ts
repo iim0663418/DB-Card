@@ -230,7 +230,7 @@ async function keywordSearch(
   const offset = (page - 1) * limit;
   const searchPattern = `%${query}%`;
 
-  // Count total matches (10 個欄位)
+  // Count total matches (13 個欄位)
   const countResult = await env.DB.prepare(
     `SELECT COUNT(*) as total
      FROM received_cards
@@ -246,19 +246,23 @@ async function keywordSearch(
          company_summary LIKE ? OR
          personal_summary LIKE ? OR
          email LIKE ? OR
-         phone LIKE ?
+         phone LIKE ? OR
+         website LIKE ? OR
+         address LIKE ? OR
+         note LIKE ?
        )`
   )
     .bind(
       userEmail,
       searchPattern, searchPattern, searchPattern, searchPattern, searchPattern,
-      searchPattern, searchPattern, searchPattern, searchPattern, searchPattern
+      searchPattern, searchPattern, searchPattern, searchPattern, searchPattern,
+      searchPattern, searchPattern, searchPattern
     )
     .first<{ total: number }>();
 
   const total = countResult?.total || 0;
 
-  // Fetch paginated results (10 個欄位)
+  // Fetch paginated results (13 個欄位)
   const { results } = await env.DB.prepare(
     `SELECT uuid, full_name, organization, title, email, phone, thumbnail_url
      FROM received_cards
@@ -274,7 +278,10 @@ async function keywordSearch(
          company_summary LIKE ? OR
          personal_summary LIKE ? OR
          email LIKE ? OR
-         phone LIKE ?
+         phone LIKE ? OR
+         website LIKE ? OR
+         address LIKE ? OR
+         note LIKE ?
        )
      ORDER BY created_at DESC
      LIMIT ? OFFSET ?`
@@ -283,6 +290,7 @@ async function keywordSearch(
       userEmail,
       searchPattern, searchPattern, searchPattern, searchPattern, searchPattern,
       searchPattern, searchPattern, searchPattern, searchPattern, searchPattern,
+      searchPattern, searchPattern, searchPattern,
       limit,
       offset
     )

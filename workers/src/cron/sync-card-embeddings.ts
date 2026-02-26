@@ -12,7 +12,8 @@ export async function syncCardEmbeddings(env: Env): Promise<{ synced: number }> 
   while (hasMore) {
     const cards = await env.DB.prepare(`
       SELECT uuid, user_email, full_name, organization, organization_en, organization_alias, 
-             title, department, company_summary, personal_summary, email, phone
+             title, department, company_summary, personal_summary, email, phone,
+             website, address, note
       FROM received_cards
       WHERE deleted_at IS NULL 
         AND merged_to IS NULL
@@ -33,7 +34,7 @@ export async function syncCardEmbeddings(env: Env): Promise<{ synced: number }> 
       
       // 並行生成 embeddings
       const embeddingPromises = batch.map(async (card: any) => {
-        // 擴充到 10 個欄位：涵蓋率從 20% 提升到 50%
+        // 擴充到 13 個欄位：涵蓋率從 50% 提升到 65%
         const text = [
           card.full_name,
           card.organization,
@@ -44,7 +45,10 @@ export async function syncCardEmbeddings(env: Env): Promise<{ synced: number }> 
           card.company_summary,
           card.personal_summary,
           card.email,
-          card.phone
+          card.phone,
+          card.website,
+          card.address,
+          card.note
         ].filter(Boolean).join(' ').trim();
         
         try {

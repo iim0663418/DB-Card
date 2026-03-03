@@ -796,6 +796,10 @@ const CardUploadStateMachine = {
 
         await ReceivedCards.loadCards();
 
+        // 恢復按鈕狀態
+        saveBtn.disabled = false;
+        saveBtn.textContent = originalText || '確認儲存';
+
         this.reset();
 
       } catch (error) {
@@ -805,7 +809,10 @@ const CardUploadStateMachine = {
 
         // 錯誤時恢復按鈕狀態
         saveBtn.disabled = false;
-        saveBtn.innerHTML = originalText || '確認儲存';
+        saveBtn.textContent = originalText || '確認儲存';
+        
+        // 重置狀態以允許重新上傳
+        this.reset();
       } finally {
         saveBtn.removeEventListener('click', handleSave);
       }

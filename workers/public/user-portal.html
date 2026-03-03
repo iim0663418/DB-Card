@@ -318,6 +318,32 @@
             </div>
         </section>
 
+        <!-- WebView Error Modal -->
+        <div id="webview-error-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="alert-circle" class="w-8 h-8 text-red-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">無法使用應用程式內建瀏覽器登入</h3>
+                    <p class="text-sm text-gray-600 mb-4">
+                        根據 Google 安全政策，OAuth 登入不支援應用程式內建瀏覽器（如 LINE、Facebook、Instagram 等）。
+                    </p>
+                </div>
+                <div class="bg-blue-50 rounded-2xl p-4 mb-6">
+                    <p class="text-sm font-bold text-blue-900 mb-2">📱 請使用系統瀏覽器開啟：</p>
+                    <ul class="text-xs text-blue-800 space-y-1 list-disc list-inside">
+                        <li>iOS: 點擊右上角「...」→「在 Safari 中開啟」</li>
+                        <li>Android: 點擊右上角「⋮」→「在瀏覽器中開啟」</li>
+                    </ul>
+                </div>
+                <button onclick="document.getElementById('webview-error-modal').classList.add('hidden')" 
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-2xl transition-colors">
+                    我知道了
+                </button>
+            </div>
+        </div>
+
         <!-- 2. 卡片選擇頁 -->
         <section id="view-selection" class="hidden space-y-12 fade-in">
             <div class="flex flex-col items-center text-center space-y-2">

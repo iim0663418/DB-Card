@@ -792,6 +792,14 @@
                 });
 
                 if (!stateResponse.ok) {
+                    // Check for WebView blocking (403)
+                    if (stateResponse.status === 403) {
+                        const errorData = await stateResponse.json();
+                        if (errorData.error === 'webview_not_allowed') {
+                            showWebViewError();
+                            return;
+                        }
+                    }
                     throw new Error('Failed to initialize OAuth');
                 }
 
@@ -826,6 +834,13 @@
                 console.error('OAuth init error:', error);
                 errorBox.innerText = i18n[currentLang]['error-login-failed'] || '登入初始化失敗，請重試';
                 errorBox.classList.remove('hidden');
+            }
+        }
+
+        function showWebViewError() {
+            const modal = document.getElementById('webview-error-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
             }
         }
 

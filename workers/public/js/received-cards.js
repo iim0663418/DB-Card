@@ -2434,6 +2434,14 @@ const ReceivedCards = {
     form.elements.website.value = card.website || '';
     form.elements.address.value = card.address || '';
     form.elements.notes.value = card.note || '';
+    
+    // AI 生成的摘要欄位
+    if (form.elements.company_summary) {
+      form.elements.company_summary.value = card.company_summary || '';
+    }
+    if (form.elements.personal_summary) {
+      form.elements.personal_summary.value = card.personal_summary || '';
+    }
 
     // 儲存 card_uuid
     form.dataset.cardUuid = cardUuid;

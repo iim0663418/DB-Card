@@ -92,17 +92,17 @@ export async function handleListCandidates(
     const { results } = await env.DB.prepare(`
       SELECT 
         person_pair_key,
-        person_a_uuid,
-        person_b_uuid,
+        card_a_uuid as person_a_uuid,
+        card_b_uuid as person_b_uuid,
         match_confidence,
         match_method,
         match_evidence,
         validation_status,
-        created_at,
+        detected_at as created_at,
         validated_at
       FROM cross_user_match_candidates
       WHERE validation_status = ?
-      ORDER BY match_confidence DESC, created_at DESC
+      ORDER BY match_confidence DESC, detected_at DESC
       LIMIT ? OFFSET ?
     `).bind(status, limit, offset).all();
     
@@ -113,7 +113,6 @@ export async function handleListCandidates(
       offset
     });
   } catch (error) {
-    console.error('[List Candidates Error]', error);
-    return errorResponse('DATABASE_ERROR', 'Failed to list candidates', 500);
+    return errorResponse('DATABASE_ERROR', `Failed to list candidates: ${error}`, 500);
   }
 }

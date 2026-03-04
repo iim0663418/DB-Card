@@ -101,19 +101,23 @@ export async function findCrossUserCandidates(env: Env): Promise<{
           await env.DB.prepare(`
             INSERT INTO cross_user_match_candidates (
               person_pair_key,
-              person_a_uuid,
-              person_b_uuid,
+              card_a_uuid,
+              card_a_user,
+              card_b_uuid,
+              card_b_user,
               match_confidence,
               match_method,
               match_evidence,
               validation_status,
-              created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
+              detected_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
             ON CONFLICT(person_pair_key) DO NOTHING
           `).bind(
             pairKey,
             cardA.card_uuid,
+            userEmail,
             cardB.card_uuid,
+            match.userEmail,
             confidence,
             result.method,
             JSON.stringify(result.evidence),

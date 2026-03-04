@@ -225,7 +225,7 @@ async function performUnifiedExtract(
       },
       personal_summary: {
         type: ["string", "null"],
-        description: "Personal summary (strictly 30-50 chars: one sentence summarizing expertise or achievements)"
+        description: "Personal summary (30-80 chars: one sentence summarizing expertise, achievements, or professional background, in the same language as the card)"
       }
     },
     required: ["full_name", "organization"]
@@ -239,12 +239,18 @@ async function performUnifiedExtract(
 - Organization: full name, English name, aliases
 - company_summary (100-200 chars): industry, main business, founding year, scale, operational status. Describes only the organization and department.
 - If department exists: explain its function within the organization
-- personal_summary (strictly 30-50 chars): one concise sentence summarizing expertise or achievements
+- personal_summary (30-80 chars): one concise sentence summarizing the person's expertise, achievements, or professional background
 - Supplement missing website/address from official sources
 
 **Search Strategy**: Use "name + organization/department" as keywords. Prioritize official sources (organization website, government registration, professional profiles).
 
-**Language**: Keep all card text in original language (names, titles, addresses). For mixed-language cards, preserve each field in its original language. Summaries can be same language or English.`;
+**Language Rules**:
+- Card fields (name, title, address, etc.): preserve original language exactly as shown
+- Summaries (company_summary, personal_summary): MUST use the SAME language as the card's primary language
+  * If card is Chinese → summaries in Chinese
+  * If card is English → summaries in English
+  * If card is mixed languages → use the language of the person's name
+- Do NOT translate or mix languages in summaries`;
 
   if (DEBUG) console.log('[UnifiedExtract] Calling Gemini API at', new Date().toISOString());
   const geminiStartTime = Date.now();

@@ -2234,10 +2234,15 @@ const ReceivedCards = {
         form.elements.address.value = enrichData.address;
       }
       
-      // 儲存 AI 摘要到表單 dataset（供儲存時使用）
-      if (enrichData.company_summary) {
-        form.dataset.companySummary = enrichData.company_summary;
+      // AI 摘要欄位（總是回填，因為是 AI 生成的核心價值）
+      if (enrichData.company_summary && form.elements.company_summary) {
+        form.elements.company_summary.value = enrichData.company_summary;
       }
+      if (enrichData.personal_summary && form.elements.personal_summary) {
+        form.elements.personal_summary.value = enrichData.personal_summary;
+      }
+      
+      // 儲存 AI 來源到表單 dataset（供儲存時使用）
       if (enrichData.sources) {
         form.dataset.aiSources = JSON.stringify(enrichData.sources);
       }
@@ -2522,7 +2527,9 @@ const ReceivedCards = {
       phone: form.elements.phone.value.trim(),
       website: form.elements.website.value.trim(),
       address: form.elements.address.value.trim(),
-      notes: form.elements.notes.value.trim()
+      notes: form.elements.notes.value.trim(),
+      company_summary: form.elements.company_summary?.value.trim() || '',
+      personal_summary: form.elements.personal_summary?.value.trim() || ''
     };
 
     // 驗證
@@ -2549,7 +2556,9 @@ const ReceivedCards = {
         phone: formData.phone,
         website: formData.website,
         address: formData.address,
-        note: formData.notes
+        note: formData.notes,
+        company_summary: formData.company_summary || null,
+        personal_summary: formData.personal_summary || null
       };
       
       // 如果有 AI 補齊的資料，一併更新

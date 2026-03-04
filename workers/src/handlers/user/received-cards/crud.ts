@@ -50,11 +50,11 @@ interface UpdateCardRequest {
   website?: string;
   address?: string;
   note?: string;
+  company_summary?: string;
+  personal_summary?: string;
 }
 
 interface PatchCardRequest extends UpdateCardRequest {
-  company_summary?: string;
-  personal_summary?: string;
   ai_sources_json?: string;
   ai_status?: string;
 }
@@ -387,6 +387,8 @@ export async function handleUpdateCard(request: Request, env: Env, uuid: string)
     if (body.website !== undefined) { updates.push('website = ?'); values.push(body.website); }
     if (body.address !== undefined) { updates.push('address = ?'); values.push(body.address); }
     if (body.note !== undefined) { updates.push('note = ?'); values.push(body.note); }
+    if (body.company_summary !== undefined) { updates.push('company_summary = ?'); values.push(body.company_summary); }
+    if (body.personal_summary !== undefined) { updates.push('personal_summary = ?'); values.push(body.personal_summary); }
 
     if (updates.length === 0) {
       return errorResponse('NO_UPDATES', 'No fields to update', 400);

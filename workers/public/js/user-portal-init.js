@@ -158,6 +158,15 @@
                 'enrich-card-time': '(約需 10-30 秒)',
                 'card-detail-title': '名片詳情',
                 
+                // AI Summary Fields (6 keys)
+                'company-summary': '公司摘要',
+                'personal-summary': '個人摘要',
+                'ai-generated': 'AI 生成',
+                'company-summary-placeholder': 'AI 會自動生成公司簡介，包含產業、業務、規模等資訊...',
+                'personal-summary-placeholder': 'AI 會自動生成個人簡介，包含專長、成就、經歷等...',
+                'company-summary-hint': '建議 100-200 字，描述組織的產業、主要業務、成立年份、規模等',
+                'personal-summary-hint': '建議 30-80 字，總結專業背景、核心專長或主要成就',
+                
                 // Field Labels (13 keys)
                 'field-name-prefix': '稱謂',
                 'field-full-name': '姓名 *',
@@ -335,6 +344,15 @@
                 'enrich-card-btn': 'Enrich Card Info',
                 'enrich-card-time': '(10-30 seconds)',
                 'card-detail-title': 'Card Details',
+                
+                // AI Summary Fields (6 keys)
+                'company-summary': 'Company Summary',
+                'personal-summary': 'Personal Summary',
+                'ai-generated': 'AI Generated',
+                'company-summary-placeholder': 'AI will generate company profile including industry, business, scale...',
+                'personal-summary-placeholder': 'AI will generate personal profile including expertise, achievements...',
+                'company-summary-hint': 'Recommended 100-200 chars: industry, business, founding year, scale, etc.',
+                'personal-summary-hint': 'Recommended 30-80 chars: professional background, expertise, achievements',
                 
                 // Field Labels (13 keys)
                 'field-name-prefix': 'Prefix',

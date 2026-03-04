@@ -278,16 +278,15 @@ async function performUnifiedExtract(
             { inline_data: { mime_type: mimeType, data: imageBase64 } }
           ]
         }],
-        tools: [
-          // Priority 1: Check FileSearchStore for existing knowledge
-          ...(env.FILE_SEARCH_STORE_NAME ? [{ 
-            file_search: { 
-              file_search_store_names: [env.FILE_SEARCH_STORE_NAME]
-            } 
-          }] : []),
-          // Priority 2: Web search for new information
-          { google_search: {} }
-        ],
+        // Gemini API limitation: cannot combine file_search and google_search
+        // Priority: FileSearchStore > Google Search
+        tools: env.FILE_SEARCH_STORE_NAME 
+          ? [{ 
+              file_search: { 
+                file_search_store_names: [env.FILE_SEARCH_STORE_NAME]
+              } 
+            }]
+          : [{ google_search: {} }],
         generationConfig: {
           responseMimeType: "application/json",
           responseJsonSchema: responseSchema,

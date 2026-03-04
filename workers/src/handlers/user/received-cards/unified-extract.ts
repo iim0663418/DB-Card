@@ -281,12 +281,12 @@ async function performUnifiedExtract(
         tools: [
           // Priority 1: Check FileSearchStore for existing knowledge
           ...(env.FILE_SEARCH_STORE_NAME ? [{ 
-            fileSearch: { 
-              fileSearchStoreNames: [env.FILE_SEARCH_STORE_NAME]
+            file_search: { 
+              file_search_store_names: [env.FILE_SEARCH_STORE_NAME]
             } 
           }] : []),
           // Priority 2: Web search for new information
-          { googleSearch: {} }
+          { google_search: {} }
         ],
         generationConfig: {
           responseMimeType: "application/json",

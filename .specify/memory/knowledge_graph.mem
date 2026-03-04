@@ -1134,3 +1134,7 @@
 260304|Features|deployed|FileSearchStore_AI_Summary_ESLint
 260304|Features|excluded|CSRF_Synchronizer_IP_Blacklist
 260304|Health|status|OK_v5_0_0_28_Cards_KEK_v4
+260304|Bug_Fix|gemini_api|FileSearchStore_Parameter_Format_Corrected
+260304|Gemini|file_search|fileSearchStoreNames_Array_Not_Object
+260304|Deployment|staging|856451b8_Gemini_API_Fix
+260304|Git|commit|8f97724_FileSearchStore_Fix

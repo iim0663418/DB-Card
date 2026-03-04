@@ -1,5 +1,17 @@
 # 當前開發狀態 (2026-03-04)
 
+## 🎯 Rate Limiting 策略評估 ✅
+
+**評估時間**: 2026-03-04 23:55
+**決策**: 保持現有 Durable Objects 方案，不遷移到官方 API
+**文檔**: ADR-006
+
+### 評估結論
+
+官方 Cloudflare Workers Rate Limiting API 的 `period` 限制（僅 10s/60s）無法滿足專案需求（1h/24h window）。現有 Durable Objects 方案已優化（5ms 延遲，idempotency 整合），保持現狀。
+
+---
+
 ## 🎯 Phase A: 完成並修正 ✅
 
 **階段**: COMPLETED (Phase A) 🚀

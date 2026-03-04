@@ -1,3 +1,12 @@
+/**
+ * Cleanup FileSearchStore documents older than 2 years (Cron Job)
+ *
+ * @deprecated Since 2026-03-05 - Disabled
+ * @reason FileSearchStore upload disabled due to Gemini API limitation
+ * @alternative Vectorize cleanup (see src/cron/cleanup-received-cards.ts)
+ * @todo Re-enable when FileSearchStore is re-activated
+ */
+
 import type { Env } from '../types';
 
 /**

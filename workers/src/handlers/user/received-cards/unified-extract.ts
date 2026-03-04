@@ -89,6 +89,11 @@ async function retryWithBackoff<T>(
 
 /**
  * Upload extracted data to FileSearchStore
+ *
+ * @deprecated Since 2026-03-05 - Disabled due to Gemini API limitation
+ * @reason Cannot combine file_search + google_search in same request
+ * @alternative Vectorize (see src/cron/sync-card-embeddings.ts)
+ * @todo Re-enable when Gemini API supports both tools
  */
 async function uploadToFileSearchStore(
   data: UnifiedExtractResult,
@@ -522,7 +527,11 @@ export async function handleUnifiedExtract(
       WHERE upload_id = ? AND user_email = ?
     `).bind(body.upload_id, user.email).run();
 
-    // 9. Background upload to FileSearchStore (non-blocking)
+    // 9. Background upload to FileSearchStore (DISABLED 2026-03-05)
+    // Reason: Gemini API cannot combine file_search + google_search
+    // Alternative: Vectorize (implemented)
+    // TODO: Re-enable when Gemini API supports both tools simultaneously
+    /*
     if (env.FILE_SEARCH_STORE_NAME && result.organization) {
       ctx.waitUntil(
         uploadToFileSearchStore(result, env.GEMINI_API_KEY, env.FILE_SEARCH_STORE_NAME)
@@ -531,6 +540,7 @@ export async function handleUnifiedExtract(
           })
       );
     }
+    */
 
     // 10. Return result
     const totalDuration = Date.now() - startTime;

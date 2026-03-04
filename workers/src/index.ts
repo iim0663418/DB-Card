@@ -772,7 +772,10 @@ export default {
     const { cleanupSoftDeletedAssets } = await import('./handlers/scheduled/asset-cleanup');
     const { cleanupTempUploads } = await import('./cron/cleanup-temp-uploads');
     const { cleanupReceivedCards } = await import('./cron/cleanup-received-cards');
-    const { cleanupFileSearchStore } = await import('./cron/cleanup-filesearchstore');
+    // FileSearchStore cleanup (DISABLED 2026-03-05)
+    // Reason: FileSearchStore upload disabled, no new documents
+    // TODO: Re-enable when FileSearchStore is re-activated
+    // const { cleanupFileSearchStore } = await import('./cron/cleanup-filesearchstore');
 
     await handleScheduledCleanup(env);
     await handleScheduledLogRotation(env);
@@ -780,7 +783,7 @@ export default {
     await cleanupSoftDeletedAssets(env);
     await cleanupTempUploads(env);
     await cleanupReceivedCards(env);
-    await cleanupFileSearchStore(env);
+    // await cleanupFileSearchStore(env);
   }
 };
 

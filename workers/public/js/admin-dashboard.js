@@ -3269,6 +3269,7 @@ document.addEventListener('click', (e) => {
 window.loadPrecisionStats = async function() {
     try {
         const response = await fetch(`${API_BASE}/api/admin/candidates/precision`, {
+            credentials: 'include',
             headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
         });
         
@@ -3307,6 +3308,7 @@ window.loadCandidates = async function() {
     
     try {
         const response = await fetch(`${API_BASE}/api/admin/candidates?status=${status}&limit=50`, {
+            credentials: 'include',
             headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
         });
         
@@ -3379,6 +3381,7 @@ window.validateCandidate = async function(pairKey, status) {
     try {
         const response = await fetch(`${API_BASE}/api/admin/candidates/${pairKey}`, {
             method: 'PUT',
+            credentials: 'include',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('admin_token')}`,
                 'Content-Type': 'application/json'

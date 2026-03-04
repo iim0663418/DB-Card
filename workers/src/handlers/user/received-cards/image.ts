@@ -13,14 +13,10 @@ export async function handleGetImage(
   env: Env,
   uuid: string
 ): Promise<Response> {
-  const DEBUG = env.ENVIRONMENT === 'staging';
   try {
-    if (DEBUG) console.log('[Image] Request for card:', uuid);
-
     // 1. Verify OAuth
     const userResult = await verifyOAuth(request, env);
     if (userResult instanceof Response) {
-      if (DEBUG) console.log('[Image] OAuth verification failed');
       return userResult;
     }
     const user = userResult;
@@ -41,12 +37,10 @@ export async function handleGetImage(
       .first();
 
     if (!card) {
-      if (DEBUG) console.log('[Image] Card not found or access denied');
       return errorResponse('NOT_FOUND', 'Card not found', 404);
     }
 
     if (!card.original_image_url) {
-      if (DEBUG) console.log('[Image] No image available');
       return errorResponse('NOT_FOUND', 'Image not available', 404);
     }
 
@@ -54,7 +48,6 @@ export async function handleGetImage(
     const imageObj = await env.PHYSICAL_CARDS.get(card.original_image_url as string);
 
     if (!imageObj) {
-      if (DEBUG) console.log('[Image] Image not found in R2');
       return errorResponse('NOT_FOUND', 'Image not found in storage', 404);
     }
 

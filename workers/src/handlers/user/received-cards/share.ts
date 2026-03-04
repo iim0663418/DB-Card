@@ -35,9 +35,6 @@ export async function handleShareCard(request: Request, env: Env): Promise<Respo
     }
 
     // Check ownership
-    console.log('[SHARE DEBUG] Card owner:', card.user_email);
-    console.log('[SHARE DEBUG] Current user:', user.email);
-    console.log('[SHARE DEBUG] Match:', card.user_email === user.email);
     if (card.user_email !== user.email) {
       return errorResponse('FORBIDDEN', 'You do not own this card', 403);
     }

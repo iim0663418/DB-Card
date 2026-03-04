@@ -13,14 +13,10 @@ export async function handleGetThumbnail(
   env: Env,
   uuid: string
 ): Promise<Response> {
-  const DEBUG = env.ENVIRONMENT === 'staging';
   try {
-    if (DEBUG) console.log('[Thumbnail] Request for card:', uuid);
-
     // 1. Verify OAuth
     const userResult = await verifyOAuth(request, env);
     if (userResult instanceof Response) {
-      if (DEBUG) console.log('[Thumbnail] OAuth verification failed');
       return userResult;
     }
     const user = userResult;
@@ -41,12 +37,10 @@ export async function handleGetThumbnail(
       .first();
 
     if (!card) {
-      if (DEBUG) console.log('[Thumbnail] Card not found or access denied');
       return errorResponse('NOT_FOUND', 'Card not found', 404);
     }
 
     if (!card.thumbnail_url) {
-      if (DEBUG) console.log('[Thumbnail] No thumbnail available');
       return errorResponse('NOT_FOUND', 'Thumbnail not available', 404);
     }
 
@@ -54,7 +48,6 @@ export async function handleGetThumbnail(
     const thumbnailObj = await env.PHYSICAL_CARDS.get(card.thumbnail_url as string);
 
     if (!thumbnailObj) {
-      if (DEBUG) console.log('[Thumbnail] Thumbnail not found in R2');
       return errorResponse('NOT_FOUND', 'Thumbnail not found in storage', 404);
     }
 

@@ -37,10 +37,7 @@ export async function autoTagCards(env: Env): Promise<{ tagged: number }> {
       LIMIT 20
     `).all();
 
-    console.log(`[AutoTag] Batch ${batchCount}: Found ${cards.length} cards to process`);
-
     if (cards.length === 0) {
-      console.log('[AutoTag] No more cards to tag');
       break;
     }
 
@@ -72,8 +69,7 @@ export async function autoTagCards(env: Env): Promise<{ tagged: number }> {
     }
 
     totalTagged += tagged;
-    console.log(`[AutoTag] Batch ${batchCount}: Tagged ${tagged}/${cards.length} cards`);
-    
+
     // 如果這批少於 20 張，表示已經處理完所有卡片
     if (cards.length < 20) {
       break;
@@ -180,7 +176,6 @@ Notes:
       return result || null;
     });
 
-    console.log(`[AutoTag] Batch processed ${results.length}/${cards.length} cards`);
     return orderedResults;
 
   } catch (error) {

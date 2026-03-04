@@ -15,7 +15,6 @@ import type { Env } from '../types';
  */
 export async function cleanupFileSearchStore(env: Env): Promise<{ deleted: number }> {
   if (!env.FILE_SEARCH_STORE_NAME) {
-    console.log('[FileSearchStore Cleanup] Skipped: FILE_SEARCH_STORE_NAME not configured');
     return { deleted: 0 };
   }
 
@@ -41,7 +40,6 @@ export async function cleanupFileSearchStore(env: Env): Promise<{ deleted: numbe
     });
 
     if (oldDocuments.length === 0) {
-      console.log('[FileSearchStore Cleanup] No documents older than 2 years');
       return { deleted: 0 };
     }
 
@@ -57,7 +55,6 @@ export async function cleanupFileSearchStore(env: Env): Promise<{ deleted: numbe
       }
     }
 
-    console.log(`[FileSearchStore Cleanup] Deleted ${deleted}/${oldDocuments.length} documents`);
     return { deleted };
   } catch (error) {
     console.error('[FileSearchStore Cleanup] Error:', error instanceof Error ? error.message : 'Unknown error');

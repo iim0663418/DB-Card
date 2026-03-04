@@ -79,7 +79,6 @@ async function retryWithBackoff<T>(
       const jitter = baseDelay * 0.2 * (Math.random() - 0.5);
       const delay = baseDelay + jitter;
 
-      console.log(`[Gemini Retry ${i + 1}/${maxRetries}] Waiting ${Math.round(delay)}ms (Error: ${errorMessage.substring(0, 50)})`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -100,11 +99,6 @@ async function uploadToFileSearchStore(
   apiKey: string,
   storeName: string
 ): Promise<void> {
-  // Debug logging
-  console.log('[FileSearchStore] Starting upload...');
-  console.log('[FileSearchStore] storeName:', storeName);
-  console.log('[FileSearchStore] organization:', data.organization);
-
   // 組合文件內容
   const content = `
 Organization: ${data.organization}${data.organization_en ? ` (${data.organization_en})` : ''}
@@ -153,8 +147,6 @@ ${data.sources?.map(s => `- ${s.title}: ${s.uri}`).join('\n') || ''}
     throw new Error(`Upload failed (${response.status}): ${errorText}`);
   }
 
-  // 成功日誌
-  console.log(`[FileSearchStore] Uploaded: ${displayName} (${content.length} bytes)`);
 }
 
 /**
@@ -165,8 +157,7 @@ async function performUnifiedExtract(
   mimeType: string,
   apiKey: string,
   model: string,
-  env: Env,
-  DEBUG: boolean = false
+  env: Env
 ): Promise<UnifiedExtractResult> {
   // JSON Schema for structured output (multilingual support)
   const responseSchema = {
@@ -268,9 +259,6 @@ async function performUnifiedExtract(
   * If card is mixed languages → use the language of the person's name
 - Do NOT translate or mix languages in summaries`;
 
-  if (DEBUG) console.log('[UnifiedExtract] Calling Gemini API at', new Date().toISOString());
-  const geminiStartTime = Date.now();
-
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
@@ -299,9 +287,6 @@ async function performUnifiedExtract(
       })
     }
   );
-
-  const geminiDuration = Date.now() - geminiStartTime;
-  if (DEBUG) console.log(`[UnifiedExtract] Gemini API completed in ${geminiDuration}ms at`, new Date().toISOString());
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -457,36 +442,26 @@ export async function handleUnifiedExtract(
   env: Env,
   ctx: ExecutionContext
 ): Promise<Response> {
-  const DEBUG = env.ENVIRONMENT === 'staging';
-  const startTime = Date.now();
   let body: UnifiedExtractRequest | null = null;
   let user: { email: string } | null = null;
-  
+
   try {
-    if (DEBUG) console.log('[UnifiedExtract] Request received at', new Date().toISOString());
-    
     // 1. Verify OAuth
     const userResult = await verifyOAuth(request, env);
     if (userResult instanceof Response) {
-      if (DEBUG) console.log('[UnifiedExtract] OAuth verification failed');
       return userResult;
     }
     user = userResult;
-    if (DEBUG) console.log('[UnifiedExtract] OAuth verified for user:', user.email);
 
     // 2. Parse request body
     try {
       const rawBody = await request.text();
-      if (DEBUG) console.log('[UnifiedExtract] Raw body:', rawBody);
       body = JSON.parse(rawBody) as UnifiedExtractRequest;
-      if (DEBUG) console.log('[UnifiedExtract] Parsed body:', body);
     } catch (error) {
-      if (DEBUG) console.error('[UnifiedExtract] JSON parse error:', error);
       return errorResponse('INVALID_JSON', 'Invalid JSON in request body', 400);
     }
-    
+
     if (!body.upload_id) {
-      if (DEBUG) console.error('[UnifiedExtract] Missing upload_id');
       return errorResponse('INVALID_REQUEST', 'upload_id is required', 400);
     }
 
@@ -517,7 +492,7 @@ export async function handleUnifiedExtract(
 
     // 7. Perform unified extract (OCR + Enrich) with retry on 429
     const result = await retryWithBackoff(() =>
-      performUnifiedExtract(imageBase64, mimeType, env.GEMINI_API_KEY, env.GEMINI_MODEL, env, DEBUG)
+      performUnifiedExtract(imageBase64, mimeType, env.GEMINI_API_KEY, env.GEMINI_MODEL, env)
     );
 
     // 8. Update OCR status to completed
@@ -543,9 +518,6 @@ export async function handleUnifiedExtract(
     */
 
     // 10. Return result
-    const totalDuration = Date.now() - startTime;
-    if (DEBUG) console.log(`[UnifiedExtract] Total processing time: ${totalDuration}ms`);
-    
     return jsonResponse(result);
 
   } catch (error) {

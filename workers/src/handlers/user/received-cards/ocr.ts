@@ -33,12 +33,12 @@ function arrayBufferToBase64Chunked(buffer: ArrayBuffer): string {
   const uint8Array = new Uint8Array(buffer);
   const chunkSize = 8192; // 8KB chunks
   let binaryString = '';
-  
+
   for (let i = 0; i < uint8Array.length; i += chunkSize) {
     const chunk = uint8Array.slice(i, Math.min(i + chunkSize, uint8Array.length));
     binaryString += String.fromCharCode(...chunk);
   }
-  
+
   return btoa(binaryString);
 }
 
@@ -113,7 +113,7 @@ vCard 標準辨識規則：
 
   // Parse JSON (handle markdown code blocks)
   let cleanText = text.trim();
-  
+
   // Remove markdown code blocks (more robust)
   cleanText = cleanText.replace(/^```(?:json)?\s*\n?/i, '');  // Remove opening ```json or ```
   cleanText = cleanText.replace(/\n?```\s*$/g, '');           // Remove closing ```
@@ -135,33 +135,24 @@ vCard 標準辨識規則：
  * Handle POST /api/user/received-cards/ocr
  */
 export async function handleOCR(request: Request, env: Env): Promise<Response> {
-  const DEBUG = env.ENVIRONMENT === 'staging';
   try {
-    if (DEBUG) console.log('[OCR] Request received');
-    
     // 1. Verify OAuth
     const userResult = await verifyOAuth(request, env);
     if (userResult instanceof Response) {
-      if (DEBUG) console.log('[OCR] OAuth verification failed');
       return userResult;
     }
     const user = userResult;
-    if (DEBUG) console.log('[OCR] OAuth verified for user:', user.email);
 
     // 2. Parse request body
     let body: OCRRequest;
     try {
       const rawBody = await request.text();
-      if (DEBUG) console.log('[OCR] Raw body:', rawBody);
       body = JSON.parse(rawBody) as OCRRequest;
-      if (DEBUG) console.log('[OCR] Parsed body:', body);
     } catch (error) {
-      if (DEBUG) console.error('[OCR] JSON parse error:', error);
       return errorResponse('INVALID_JSON', 'Invalid JSON in request body', 400);
     }
-    
+
     if (!body.upload_id) {
-      if (DEBUG) console.error('[OCR] Missing upload_id');
       return errorResponse('INVALID_REQUEST', 'upload_id is required', 400);
     }
 
@@ -195,7 +186,7 @@ export async function handleOCR(request: Request, env: Env): Promise<Response> {
 
     // 8. Update OCR status to completed
     await env.DB.prepare(`
-      UPDATE temp_uploads 
+      UPDATE temp_uploads
       SET ocr_status = 'completed'
       WHERE upload_id = ? AND user_email = ?
     `).bind(body.upload_id, user.email).run();
@@ -206,7 +197,7 @@ export async function handleOCR(request: Request, env: Env): Promise<Response> {
   } catch (error) {
     console.error('OCR error:', error);
     const message = error instanceof Error ? error.message : 'Failed to perform OCR';
-    
+
     // Update OCR status to failed
     try {
       const userResult = await verifyOAuth(request, env);
@@ -214,7 +205,7 @@ export async function handleOCR(request: Request, env: Env): Promise<Response> {
         const body = await request.clone().json() as OCRRequest;
         if (body.upload_id) {
           await env.DB.prepare(`
-            UPDATE temp_uploads 
+            UPDATE temp_uploads
             SET ocr_status = 'failed', ocr_error = ?
             WHERE upload_id = ? AND user_email = ?
           `).bind(message.substring(0, 500), body.upload_id, userResult.email).run();
@@ -223,7 +214,7 @@ export async function handleOCR(request: Request, env: Env): Promise<Response> {
     } catch (updateError) {
       console.error('Failed to update OCR status:', updateError);
     }
-    
+
     return errorResponse('OCR_FAILED', message, 500);
   }
 }

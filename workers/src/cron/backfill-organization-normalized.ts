@@ -26,10 +26,7 @@ export async function backfillOrganizationNormalized(env: Env): Promise<{ update
       LIMIT 20
     `).all();
 
-    console.log(`[Backfill] Batch ${batchCount}: Found ${cards.length} cards to normalize`);
-
     if (cards.length === 0) {
-      console.log('[Backfill] No more cards to process');
       break;
     }
 
@@ -52,8 +49,6 @@ export async function backfillOrganizationNormalized(env: Env): Promise<{ update
         console.error(`[Backfill] Failed to normalize card ${card.uuid}:`, error);
       }
     }
-
-    console.log(`[Backfill] Batch ${batchCount}: Updated ${cards.length} cards`);
 
     // If less than 20, we're done
     if (cards.length < 20) {

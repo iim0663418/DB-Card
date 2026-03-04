@@ -17,11 +17,11 @@ interface UploadRequest {
 function decodeBase64Chunked(base64: string): Uint8Array {
   // Remove data URL prefix if present
   const base64Data = base64.replace(/^data:image\/[a-z]+;base64,/, '');
-  
+
   // Decode using atob (browser-compatible)
   const binaryString = atob(base64Data);
   const bytes = new Uint8Array(binaryString.length);
-  
+
   // Process in 8KB chunks
   const chunkSize = 8192;
   for (let i = 0; i < binaryString.length; i += chunkSize) {
@@ -30,7 +30,7 @@ function decodeBase64Chunked(base64: string): Uint8Array {
       bytes[i + j] = chunk.charCodeAt(j);
     }
   }
-  
+
   return bytes;
 }
 
@@ -46,17 +46,17 @@ function generateUploadId(): string {
  */
 function detectMimeTypeStrict(base64: string): string | null {
   const base64Data = base64.replace(/^data:image\/[a-z]+;base64,/, '');
-  
+
   // JPEG magic bytes: FF D8 FF
   if (base64Data.startsWith('/9j/')) {
     return 'image/jpeg';
   }
-  
+
   // PNG magic bytes: 89 50 4E 47
   if (base64Data.startsWith('iVBORw0KGgo')) {
     return 'image/png';
   }
-  
+
   // Strict rejection - no fallback
   return null;
 }
@@ -65,25 +65,18 @@ function detectMimeTypeStrict(base64: string): string | null {
  * Handle POST /api/user/received-cards/upload
  */
 export async function handleUpload(request: Request, env: Env): Promise<Response> {
-  const DEBUG = env.ENVIRONMENT === 'staging';
   try {
-    if (DEBUG) console.log('[Upload] Request received');
-    
     // 1. Verify OAuth
     const userResult = await verifyOAuth(request, env);
     if (userResult instanceof Response) {
-      if (DEBUG) console.log('[Upload] OAuth verification failed');
       return userResult;
     }
     const user = userResult;
-    if (DEBUG) console.log('[Upload] OAuth verified for user:', user.email);
 
     // 2. Parse request body
     const body = await request.json() as UploadRequest;
-    if (DEBUG) console.log('[Upload] Body parsed, filename:', body.filename);
-    
+
     if (!body.image_base64 || !body.filename) {
-      if (DEBUG) console.error('[Upload] Missing required fields');
       return errorResponse('INVALID_REQUEST', 'image_base64 and filename are required', 400);
     }
 
@@ -137,7 +130,6 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
         });
 
         thumbnailUrl = thumbnailKey;
-        if (DEBUG) console.log('[Upload] Thumbnail uploaded:', thumbnailKey);
       } catch (error) {
         console.warn('[Upload] Failed to upload thumbnail:', error);
         // Continue without thumbnail
@@ -167,8 +159,6 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
           now.toString()
         ).run();
 
-        if (DEBUG) console.log('[Upload] New upload created:', uploadId);
-
         return jsonResponse({
           upload_id: uploadId,
           image_url: r2Key,
@@ -180,13 +170,12 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
         // UNIQUE constraint conflict → return existing record (idempotent)
         if (error.message?.includes('UNIQUE constraint failed')) {
           const existing = await env.DB.prepare(`
-            SELECT upload_id, image_url, thumbnail_url, expires_at 
-            FROM temp_uploads 
+            SELECT upload_id, image_url, thumbnail_url, expires_at
+            FROM temp_uploads
             WHERE user_email = ? AND idempotency_key = ?
           `).bind(user.email, idempotencyKey).first();
 
           if (existing) {
-            if (DEBUG) console.log('[Upload] Idempotent response:', existing.upload_id);
             return jsonResponse({
               upload_id: existing.upload_id as string,
               image_url: existing.image_url as string,
@@ -214,22 +203,13 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
       now.toString()
     ).run();
 
-    if (DEBUG) console.log('[Upload] temp_uploads created:', {
-      upload_id: uploadId,
-      user_email: user.email,
-      image_url: r2Key,
-      ocr_status: 'pending'
-    });
-
     // 10. Return response
-    const response = {
+    return jsonResponse({
       upload_id: uploadId,
       image_url: r2Key,
       thumbnail_url: thumbnailUrl,
       expires_at: expiresAt,
-    };
-    if (DEBUG) console.log('[Upload] Success, returning:', response);
-    return jsonResponse(response);
+    });
 
   } catch (error) {
     console.error('[Upload] Error:', error);

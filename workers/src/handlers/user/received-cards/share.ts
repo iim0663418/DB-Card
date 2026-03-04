@@ -27,7 +27,7 @@ export async function handleShareCard(request: Request, env: Env): Promise<Respo
     // Check if card exists and not deleted
     const card = await env.DB.prepare(`
       SELECT uuid, user_email FROM received_cards
-      WHERE uuid = ? AND deleted_at IS NULL
+      WHERE uuid = ? AND deleted_at IS NULL AND merged_to IS NULL
     `).bind(uuid).first<{ uuid: string; user_email: string }>();
 
     if (!card) {

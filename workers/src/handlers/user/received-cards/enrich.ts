@@ -164,7 +164,7 @@ export async function handleEnrich(request: Request, env: Env): Promise<Response
       // Post-enrichment: verify card ownership
       const card = await env.DB.prepare(`
         SELECT uuid FROM received_cards 
-        WHERE uuid = ? AND user_email = ? AND deleted_at IS NULL
+        WHERE uuid = ? AND user_email = ? AND deleted_at IS NULL AND merged_to IS NULL
       `).bind(body.card_uuid, user.email).first();
       
       if (!card) {

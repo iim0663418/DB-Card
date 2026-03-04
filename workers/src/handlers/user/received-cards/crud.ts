@@ -295,7 +295,7 @@ export async function handleListCards(request: Request, env: Env): Promise<Respo
         'own' as source,
         NULL as shared_by
       FROM received_cards
-      WHERE user_email = ? AND deleted_at IS NULL
+      WHERE user_email = ? AND deleted_at IS NULL AND merged_to IS NULL
 
       UNION ALL
 
@@ -309,7 +309,7 @@ export async function handleListCards(request: Request, env: Env): Promise<Respo
         sc.owner_email as shared_by
       FROM shared_cards sc
       INNER JOIN received_cards rc ON sc.card_uuid = rc.uuid
-      WHERE rc.deleted_at IS NULL
+      WHERE rc.deleted_at IS NULL AND rc.merged_to IS NULL
         AND rc.user_email != ?
 
       ORDER BY updated_at DESC

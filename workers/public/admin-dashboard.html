@@ -325,6 +325,9 @@
             <button data-action="switchTab" data-tab="security" id="tab-security" class="tab-btn flex items-center gap-2">
                 <i data-lucide="shield-alert" class="w-4 h-4"></i> 安全監控
             </button>
+            <button data-action="switchTab" data-tab="candidates" id="tab-candidates" class="tab-btn flex items-center gap-2">
+                <i data-lucide="users" class="w-4 h-4"></i> 候選配對
+            </button>
             <button data-action="switchTab" data-tab="tools" id="tab-tools" class="tab-btn flex items-center gap-2">
                 <i data-lucide="settings" class="w-4 h-4"></i> 系統工具
             </button>
@@ -950,7 +953,67 @@
 
             </section>
 
-            <!-- Tab 3: 系統工具 -->
+            <!-- Tab 4: 候選配對 (Phase A) -->
+            <section id="section-candidates" class="hidden space-y-6 fade-in">
+                
+                <!-- 精確度統計 -->
+                <div class="glass-surface p-6 rounded-2xl">
+                    <h2 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                        <i data-lucide="bar-chart-3" class="w-5 h-5 text-moda-accent"></i>
+                        精確度統計
+                    </h2>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <div class="text-center">
+                            <p class="text-xs text-slate-500 mb-1">總候選數</p>
+                            <p id="precision-total" class="text-2xl font-bold text-slate-900">--</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-xs text-slate-500 mb-1">待驗證</p>
+                            <p id="precision-pending" class="text-2xl font-bold text-amber-600">--</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-xs text-slate-500 mb-1">已確認</p>
+                            <p id="precision-confirmed" class="text-2xl font-bold text-green-600">--</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-xs text-slate-500 mb-1">已拒絕</p>
+                            <p id="precision-rejected" class="text-2xl font-bold text-red-600">--</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-xs text-slate-500 mb-1">精確度</p>
+                            <p id="precision-value" class="text-2xl font-bold text-moda-accent">--%</p>
+                            <p id="precision-target" class="text-xs text-slate-400 mt-1">目標: ≥90%</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 候選配對列表 -->
+                <div class="glass-surface p-6 rounded-2xl">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="users" class="w-5 h-5 text-moda-accent"></i>
+                            候選配對列表
+                        </h2>
+                        <div class="flex gap-2">
+                            <select id="candidate-status-filter" class="px-3 py-1 text-sm border border-slate-200 rounded-lg">
+                                <option value="pending">待驗證</option>
+                                <option value="confirmed">已確認</option>
+                                <option value="rejected">已拒絕</option>
+                            </select>
+                            <button onclick="loadCandidates()" class="px-3 py-1 text-sm bg-moda-accent text-white rounded-lg hover:opacity-80">
+                                <i data-lucide="refresh-cw" class="w-4 h-4 inline"></i> 重新載入
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="candidates-list" class="space-y-3 max-h-[600px] overflow-y-auto">
+                        <p class="text-center text-slate-400 py-8">載入中...</p>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- Tab 5: 系統工具 -->
             <section id="section-tools" class="hidden space-y-6 fade-in">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <!-- KEK 密鑰監控 -->

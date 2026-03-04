@@ -163,7 +163,7 @@ function groupByBlocking(cards: any[]): any[][] {
 /**
  * String Similarity (簡化版 Levenshtein)
  */
-function calculateStringSimilarity(cardA: any, cardB: any): { score: number; reason: string } {
+export function calculateStringSimilarity(cardA: any, cardB: any): { score: number; reason: string } {
   const emailMatch = cardA.email === cardB.email ? 100 : 0;
   const phoneMatch = cardA.phone === cardB.phone ? 100 : 0;
   
@@ -314,7 +314,7 @@ async function geminiDuplicateCheck(env: Env, cardA: any, cardB: any): Promise<{
 /**
  * 查詢 FileSearchStore 確認公司關係
  */
-async function checkCompanyRelationship(
+export async function checkCompanyRelationship(
   env: Env,
   orgA: string,
   orgB: string
@@ -388,7 +388,7 @@ async function checkCompanyRelationship(
 /**
  * 查詢 FileSearchStore 確認人名變體
  */
-async function checkPersonIdentity(
+export async function checkPersonIdentity(
   env: Env,
   cardA: any,
   cardB: any

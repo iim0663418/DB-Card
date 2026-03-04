@@ -3257,3 +3257,159 @@ document.addEventListener('click', (e) => {
         window.triggerCron();
     }
 });
+
+
+// ============================================
+// Phase A: Candidate Matching Functions
+// ============================================
+
+/**
+ * Load precision statistics
+ */
+window.loadPrecisionStats = async function() {
+    try {
+        const response = await fetch(`${API_BASE}/api/admin/candidates/precision`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
+        });
+        
+        if (!response.ok) throw new Error('Failed to load precision stats');
+        
+        const data = await response.json();
+        const stats = data.data || data;
+        
+        document.getElementById('precision-total').textContent = stats.total || 0;
+        document.getElementById('precision-pending').textContent = stats.pending || 0;
+        document.getElementById('precision-confirmed').textContent = stats.confirmed || 0;
+        document.getElementById('precision-rejected').textContent = stats.rejected || 0;
+        document.getElementById('precision-value').textContent = `${stats.precision || 0}%`;
+        
+        const targetEl = document.getElementById('precision-target');
+        if (stats.meets_target) {
+            targetEl.textContent = '✓ 達標';
+            targetEl.className = 'text-xs text-green-600 mt-1 font-bold';
+        } else {
+            targetEl.textContent = '目標: ≥90%';
+            targetEl.className = 'text-xs text-slate-400 mt-1';
+        }
+    } catch (error) {
+        console.error('[Precision Stats Error]', error);
+    }
+};
+
+/**
+ * Load candidates list
+ */
+window.loadCandidates = async function() {
+    const listEl = document.getElementById('candidates-list');
+    const status = document.getElementById('candidate-status-filter').value;
+    
+    listEl.innerHTML = '<p class="text-center text-slate-400 py-8">載入中...</p>';
+    
+    try {
+        const response = await fetch(`${API_BASE}/api/admin/candidates?status=${status}&limit=50`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
+        });
+        
+        if (!response.ok) throw new Error('Failed to load candidates');
+        
+        const data = await response.json();
+        const candidates = data.data?.candidates || data.candidates || [];
+        
+        if (candidates.length === 0) {
+            listEl.innerHTML = '<p class="text-center text-slate-400 py-8">無候選配對</p>';
+            return;
+        }
+        
+        listEl.innerHTML = candidates.map(c => `
+            <div class="bg-white border border-slate-200 rounded-xl p-4">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex-1">
+                        <p class="text-xs text-slate-500 mb-1">配對 Key</p>
+                        <p class="text-sm font-mono text-slate-700">${c.person_pair_key}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-block px-2 py-1 text-xs font-bold rounded ${
+                            c.match_confidence >= 95 ? 'bg-green-100 text-green-700' :
+                            c.match_confidence >= 85 ? 'bg-amber-100 text-amber-700' :
+                            'bg-slate-100 text-slate-700'
+                        }">${c.match_confidence}%</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-3 text-xs">
+                    <div>
+                        <p class="text-slate-500">Person A</p>
+                        <p class="font-mono text-slate-700">${c.person_a_uuid.substring(0, 8)}...</p>
+                    </div>
+                    <div>
+                        <p class="text-slate-500">Person B</p>
+                        <p class="font-mono text-slate-700">${c.person_b_uuid.substring(0, 8)}...</p>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <p class="text-xs text-slate-500 mb-1">匹配方法</p>
+                    <span class="inline-block px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded">${c.match_method}</span>
+                </div>
+                ${status === 'pending' ? `
+                <div class="flex gap-2">
+                    <button onclick="validateCandidate('${c.person_pair_key}', 'confirmed')" 
+                            class="flex-1 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700">
+                        <i data-lucide="check" class="w-4 h-4 inline"></i> 確認
+                    </button>
+                    <button onclick="validateCandidate('${c.person_pair_key}', 'rejected')" 
+                            class="flex-1 py-2 bg-red-600 text-white text-sm font-bold rounded-lg hover:bg-red-700">
+                        <i data-lucide="x" class="w-4 h-4 inline"></i> 拒絕
+                    </button>
+                </div>
+                ` : ''}
+            </div>
+        `).join('');
+        
+        if (window.initIcons) window.initIcons();
+        
+    } catch (error) {
+        console.error('[Load Candidates Error]', error);
+        listEl.innerHTML = '<p class="text-center text-red-500 py-8">載入失敗</p>';
+    }
+};
+
+/**
+ * Validate a candidate
+ */
+window.validateCandidate = async function(pairKey, status) {
+    try {
+        const response = await fetch(`${API_BASE}/api/admin/candidates/${pairKey}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status })
+        });
+        
+        if (!response.ok) throw new Error('Failed to validate candidate');
+        
+        // Reload data
+        await loadPrecisionStats();
+        await loadCandidates();
+        
+    } catch (error) {
+        console.error('[Validate Candidate Error]', error);
+        alert('驗證失敗: ' + error.message);
+    }
+};
+
+// Auto-load when switching to candidates tab
+document.addEventListener('click', (e) => {
+    const target = e.target.closest('[data-tab="candidates"]');
+    if (target) {
+        setTimeout(() => {
+            loadPrecisionStats();
+            loadCandidates();
+        }, 100);
+    }
+});
+
+// Auto-reload on filter change
+document.getElementById('candidate-status-filter')?.addEventListener('change', () => {
+    loadCandidates();
+});

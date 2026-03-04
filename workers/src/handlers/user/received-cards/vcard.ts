@@ -140,10 +140,24 @@ export async function handleGetVCard(
         organization, title, phone, email, website, address, note,
         created_at, updated_at
       FROM received_cards
-      WHERE uuid = ? AND user_email = ? AND deleted_at IS NULL
+      WHERE uuid = ? AND user_email = ? AND deleted_at IS NULL AND merged_to IS NULL
     `).bind(uuid, user.email).first<ReceivedCard>();
 
     if (!card) {
+      // Check if card was merged
+      const merged = await env.DB.prepare(`
+        SELECT merged_to FROM received_cards
+        WHERE uuid = ? AND deleted_at IS NULL
+      `).bind(uuid).first();
+      
+      if (merged?.merged_to) {
+        return errorResponse(
+          'CARD_MERGED',
+          `This card has been merged to ${merged.merged_to}`,
+          410  // Gone
+        );
+      }
+      
       // Return 404 without revealing card existence (tenant isolation)
       return errorResponse('CARD_NOT_FOUND', 'Card not found or not authorized', 404);
     }

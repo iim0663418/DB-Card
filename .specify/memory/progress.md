@@ -1,37 +1,69 @@
-# 當前部署狀態 (2026-03-03)
+# 當前開發狀態 (2026-03-04)
 
-## 🎯 當前 Staging 版本
+## 🎯 Phase A: Week 2 完成 ✅
 
-**Version ID**: 952d2dc8-d840-4509-974c-0cbf584bad74 ✅
-**部署時間**: 2026-03-03 16:50 GMT+8
-**Git Commit**: WebView OAuth 阻擋 + XSS 修復
-**Health Check**: ✅ OK (v5.0.0, 28 active cards, KEK v4)
+**階段**: IMPLEMENTATION (Phase A - Week 2) 🚀
+**完成時間**: 2026-03-04 15:23
+**進度**: 驗證 API + 管理後台 UI 完成
 
-**包含功能**:
-- 🛡️ **WebView OAuth 阻擋** - 符合 Google OAuth 政策，10 種 WebView 檢測
-- 🛡️ **XSS 安全修復** - Button text innerHTML → textContent (2 處)
-- 🔍 **搜尋功能完整** - RRF 混合搜尋、欄位擴充、防抖優化
-- 🏷️ **雙標籤系統** - Keyword Tags + Smart Tags
-- 📊 **效能監控** - Web Vitals、Icon Tree-Shaking
+### ✅ Week 2 Day 6-7: 驗證 API + UI 完成
 
-## 📦 本次部署內容
+#### 後端 API 實作
+- ✅ **handleValidateCandidate()** - PUT /api/admin/candidates/:pairKey
+- ✅ **handleGetPrecision()** - GET /api/admin/candidates/precision
+- ✅ **handleListCandidates()** - GET /api/admin/candidates
 
-### WebView OAuth 阻擋
-- **文件**: `src/handlers/oauth-init.ts`
-- **功能**: 檢測 10 種 WebView (LINE, Facebook, Instagram, Twitter, WeChat, Snapchat, TikTok, 通用 WebView)
-- **回應**: 403 + `webview_not_allowed` 錯誤
-- **前端**: Modal 顯示友善錯誤訊息與操作指引
-- **合規**: Google OAuth 2.0 Policy + RFC 8252 Section 8.12
+#### 前端 UI 實作
+- ✅ **新增「候選配對」Tab** - admin-dashboard.html
+- ✅ **精確度統計面板** - 5 個指標顯示
+- ✅ **候選配對列表** - 分頁、篩選、驗證按鈕
+- ✅ **JavaScript 函數** - loadPrecisionStats(), loadCandidates(), validateCandidate()
 
-### 部署統計
-- **上傳資源**: 2 個修改檔案 (44 個快取)
-- **Bundle Size**: 1026.27 KiB / gzip: 190.96 KiB
-- **Worker Startup**: 13 ms
-- **部署時間**: 16.13 秒
+#### UI 功能
+1. **精確度統計**
+   - 總候選數、待驗證、已確認、已拒絕
+   - 精確度百分比 + 達標指示器
 
-## ✅ 驗證完成
-- TypeScript 檢查: ✅ 通過
-- 部署狀態: ✅ 成功
-- 健康檢查: ✅ OK
-- 資料庫連線: ✅ Connected
-- KEK 狀態: ✅ Configured (v4)
+2. **候選配對列表**
+   - 狀態篩選 (pending/confirmed/rejected)
+   - 信心度顏色標示 (≥95% 綠色, ≥85% 黃色)
+   - 配對 Key、UUID、匹配方法顯示
+   - 確認/拒絕按鈕 (僅 pending 狀態)
+
+3. **自動載入**
+   - 切換到 Tab 自動載入數據
+   - 篩選器變更自動重新載入
+
+#### 部署結果
+- ✅ TypeScript 編譯: 零錯誤
+- ✅ 部署版本: 8da17e07-d49e-4605-a822-523bd76ebd29
+- ✅ URL: https://db-card-staging.csw30454.workers.dev/admin-dashboard.html
+
+### 📋 下一步：Day 8-9 手動驗證
+
+**任務**:
+1. 等待 Cron Job 執行 (每日 18:00 UTC)
+2. 或手動觸發 Cron 生成候選配對
+3. 使用管理後台驗證 50+ 候選配對
+4. 檢查精確度是否 >= 90%
+
+**驗證流程**:
+1. 登入管理後台
+2. 切換到「候選配對」Tab
+3. 查看精確度統計
+4. 逐一驗證候選配對 (確認/拒絕)
+5. 達到 50+ 驗證後檢查精確度
+
+**預計時間**: 2 天
+
+---
+
+## 📝 相關文檔
+
+- **Phase A 規劃**: `.specify/specs/phase_a_candidate_matching.md`
+- **Week 2 規格**: `.specify/specs/phase_a_week2_implementation.md`
+- **Migration 0036**: `migrations/0036_cross_user_candidates.sql`
+
+---
+
+**Phase A Week 2 完成！等待 Cron 執行並開始手動驗證** 🚀

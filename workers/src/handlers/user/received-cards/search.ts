@@ -47,6 +47,7 @@ async function enrichSearchResult(
       WHERE user_email = ?
         AND organization = ?
         AND deleted_at IS NULL
+        AND merged_to IS NULL
         AND uuid != ?
     `).bind(userEmail, result.organization, result.uuid).first<{ count: number }>();
     
@@ -140,7 +141,7 @@ async function semanticSearch(
       const card = await env.DB.prepare(
         `SELECT uuid, full_name, organization, title, email, phone, thumbnail_url
          FROM received_cards
-         WHERE uuid = ? AND user_email = ? AND deleted_at IS NULL`
+         WHERE uuid = ? AND user_email = ? AND deleted_at IS NULL AND merged_to IS NULL`
       )
         .bind(cardUuid, userEmail)
         .first();
@@ -240,6 +241,7 @@ async function keywordSearch(
      FROM received_cards
      WHERE user_email = ?
        AND deleted_at IS NULL
+       AND merged_to IS NULL
        AND (
          full_name LIKE ? OR
          organization_normalized LIKE ? OR
@@ -272,6 +274,7 @@ async function keywordSearch(
      FROM received_cards
      WHERE user_email = ?
        AND deleted_at IS NULL
+       AND merged_to IS NULL
        AND (
          full_name LIKE ? OR
          organization_normalized LIKE ? OR

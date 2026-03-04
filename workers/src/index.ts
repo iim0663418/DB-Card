@@ -36,7 +36,7 @@ import { handleOAuthCallback } from './handlers/oauth';
 import { handleOAuthInit } from './handlers/oauth-init';
 import { handleRISCEvent } from './handlers/risc';
 import { handleManifest } from './handlers/manifest';
-import { publicErrorResponse } from './utils/response';
+import { publicErrorResponse, errorResponse } from './utils/response';
 import { initAllowedOrigins } from './utils/response';
 import { checkRateLimit } from './middleware/rate-limit';
 import { verifySetupToken } from './middleware/auth';
@@ -552,6 +552,28 @@ export default {
       return addMinimalSecurityHeaders(await handleTriggerCron(request, env, ctx));
     }
 
+    // GET /api/admin/candidates/precision - Get precision statistics
+    if (url.pathname === '/api/admin/candidates/precision' && request.method === 'GET') {
+      const { handleGetPrecision } = await import('./handlers/admin/candidates');
+      return addMinimalSecurityHeaders(await handleGetPrecision(env));
+    }
+
+    // GET /api/admin/candidates - List candidates
+    if (url.pathname === '/api/admin/candidates' && request.method === 'GET') {
+      const { handleListCandidates } = await import('./handlers/admin/candidates');
+      return addMinimalSecurityHeaders(await handleListCandidates(request, env));
+    }
+
+    // PUT /api/admin/candidates/:pairKey - Validate candidate
+    if (url.pathname.startsWith('/api/admin/candidates/') && request.method === 'PUT') {
+      const pairKey = url.pathname.split('/').pop();
+      if (!pairKey || pairKey === 'precision') {
+        return errorResponse('INVALID_PAIR_KEY', 'Invalid pair key', 400);
+      }
+      const { handleValidateCandidate } = await import('./handlers/admin/candidates');
+      return addMinimalSecurityHeaders(await handleValidateCandidate(request, env, pairKey));
+    }
+
     // GET /api/admin/security/stats - Security statistics
     if (url.pathname === '/api/admin/security/stats' && request.method === 'GET') {
       return addMinimalSecurityHeaders(await handleSecurityStats(request, env));
@@ -739,7 +761,11 @@ export default {
     const { autoTagCards } = await import('./cron/auto-tag-cards');
     await autoTagCards(env);
 
-    // 4. Existing cleanup tasks
+    // 4. Find cross-user candidate matches (Phase A) (2-3 min)
+    const { findCrossUserCandidates } = await import('./cron/find-candidates');
+    await findCrossUserCandidates(env);
+
+    // 5. Existing cleanup tasks
     const { handleScheduledCleanup } = await import('./scheduled-cleanup');
     const { handleScheduledLogRotation } = await import('./scheduled-log-rotation');
     const { handleScheduledKVCleanup } = await import('./scheduled-kv-cleanup');

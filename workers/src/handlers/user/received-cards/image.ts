@@ -29,7 +29,7 @@ export async function handleGetImage(
     const card = await env.DB.prepare(`
       SELECT original_image_url
       FROM received_cards
-      WHERE uuid = ? AND deleted_at IS NULL
+      WHERE uuid = ? AND deleted_at IS NULL AND merged_to IS NULL
         AND (
           user_email = ?
           OR EXISTS (

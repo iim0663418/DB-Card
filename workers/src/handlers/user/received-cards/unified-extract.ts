@@ -278,15 +278,8 @@ async function performUnifiedExtract(
             { inline_data: { mime_type: mimeType, data: imageBase64 } }
           ]
         }],
-        // Gemini API limitation: cannot combine file_search and google_search
-        // Priority: FileSearchStore > Google Search
-        tools: env.FILE_SEARCH_STORE_NAME 
-          ? [{ 
-              file_search: { 
-                file_search_store_names: [env.FILE_SEARCH_STORE_NAME]
-              } 
-            }]
-          : [{ google_search: {} }],
+        // Use Google Search for web enrichment
+        tools: [{ google_search: {} }],
         generationConfig: {
           responseMimeType: "application/json",
           responseJsonSchema: responseSchema,

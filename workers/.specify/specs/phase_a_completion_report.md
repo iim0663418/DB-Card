@@ -2,8 +2,8 @@
 
 ## 📅 實作時間
 - **開始**: 2026-03-04 14:30
-- **完成**: 2026-03-04 15:23
-- **總耗時**: 53 分鐘
+- **完成**: 2026-03-04 19:20
+- **總耗時**: 4 小時 50 分鐘
 
 ## ✅ 完成項目
 
@@ -52,6 +52,31 @@
   - `loadCandidates()`
   - `validateCandidate()`
 
+### Bug 修正 (Day 7 晚上)
+
+#### 1. Icon 警告修正 (3e09f89)
+- 移除 users, bar-chart-3, list-checks, activity icons
+- 保留純文字標籤
+
+#### 2. API 500 錯誤修正 (e511a8e)
+- 修正資料庫欄位名稱對齊
+  - person_a_uuid → card_a_uuid
+  - person_b_uuid → card_b_uuid
+  - created_at → detected_at
+- 新增 card_a_user, card_b_user
+
+#### 3. Upload 401 錯誤修正 (55ec9e2)
+- 加入 credentials: 'include' 到 upload API
+- 確保 OAuth cookie 正確傳遞
+
+#### 4. API 一致性修正 (3cde9dd)
+- 所有 candidates API 加入 credentials: 'include'
+- 與其他 API 調用保持一致
+
+#### 5. ESLint 錯誤修正 (680a538)
+- 使用 window 前綴調用全域函數
+- 修正 no-undef 錯誤
+
 ## 📊 技術細節
 
 ### 匹配策略
@@ -79,8 +104,8 @@
 
 ## 🚀 部署記錄
 
-### Staging 部署
-- **版本**: 8da17e07-d49e-4605-a822-523bd76ebd29
+### 最終部署
+- **版本**: 779c6fc9-d1be-40bf-833c-4ad2a86329e9
 - **URL**: https://db-card-staging.csw30454.workers.dev
 - **健康檢查**: ✅ OK (v5.0.0, 28 cards, KEK v4)
 - **Cron 設定**: 每日 18:00 UTC (台灣時間 02:00)
@@ -123,12 +148,14 @@
 - `.specify/specs/phase_a_day3_4_implementation.md`
 - `.specify/specs/phase_a_day5_implementation.md`
 - `.specify/specs/phase_a_week2_implementation.md`
+- `.specify/specs/phase_a_completion_report.md`
 
 ### 修改文件
 - `src/cron/deduplicate-cards.ts` (導出 3 個函數)
 - `src/index.ts` (Cron + 路由整合)
 - `public/admin-dashboard.html` (新增 Tab)
 - `public/js/admin-dashboard.js` (新增函數)
+- `public/js/received-cards.js` (credentials fix)
 
 ## 🎯 成果總結
 
@@ -142,9 +169,11 @@
 
 ### 代碼品質
 - ✅ TypeScript 零錯誤
+- ✅ ESLint 零錯誤
 - ✅ 最小化實作 (minimal code)
 - ✅ 完整錯誤處理
 - ✅ 管理後台 UI 整合
+- ✅ API 一致性 (credentials: 'include')
 
 ### 架構優勢
 - ✅ 可擴展 (支援未來 Phase B)
@@ -166,6 +195,20 @@
 - Phase B: 自動更新 (待 Phase A 驗證通過)
 - 分階段降低風險
 
+## 📊 Git 提交記錄
+
+```
+bc1336d - feat: Phase A - Cross-User Candidate Matching Complete (30 files, 5705 insertions)
+53794a4 - fix: Replace non-existent icons and add error handling
+3e09f89 - fix: Remove all non-existent icons from candidates UI
+e511a8e - fix: Correct database column names for candidates API
+55ec9e2 - fix: Add credentials include to upload API request
+3cde9dd - fix: Add credentials include to all candidates API calls
+680a538 - fix: Add window prefix to avoid ESLint no-undef errors
+```
+
+**總計**: 7 個 commits, 30+ 文件變更
+
 ## 🔗 相關資源
 
 ### 文檔
@@ -180,4 +223,4 @@
 
 ---
 
-**Phase A 完成！等待 Cron 執行並開始驗證** 🚀
+**Phase A 完成並修正！等待 Cron 執行並開始驗證** 🚀

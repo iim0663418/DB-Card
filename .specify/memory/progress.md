@@ -1,69 +1,96 @@
 # 當前開發狀態 (2026-03-04)
 
-## 🎯 Phase A: Week 2 完成 ✅
+## 🎯 Phase A: 完成並修正 ✅
 
-**階段**: IMPLEMENTATION (Phase A - Week 2) 🚀
-**完成時間**: 2026-03-04 15:23
-**進度**: 驗證 API + 管理後台 UI 完成
+**階段**: COMPLETED (Phase A) 🚀
+**完成時間**: 2026-03-04 19:20
+**進度**: 完整實作 + Bug 修正完成
 
-### ✅ Week 2 Day 6-7: 驗證 API + UI 完成
+### ✅ Phase A 完整實作
 
-#### 後端 API 實作
-- ✅ **handleValidateCandidate()** - PUT /api/admin/candidates/:pairKey
-- ✅ **handleGetPrecision()** - GET /api/admin/candidates/precision
-- ✅ **handleListCandidates()** - GET /api/admin/candidates
+#### Week 1: 核心實作 (Day 1-5)
+- ✅ Day 1-2: 資料庫設計 (Migration 0036)
+- ✅ Day 3-4: 身份解析 (identity-resolution.ts)
+- ✅ Day 5: Cron Job (find-candidates.ts)
 
-#### 前端 UI 實作
-- ✅ **新增「候選配對」Tab** - admin-dashboard.html
-- ✅ **精確度統計面板** - 5 個指標顯示
-- ✅ **候選配對列表** - 分頁、篩選、驗證按鈕
-- ✅ **JavaScript 函數** - loadPrecisionStats(), loadCandidates(), validateCandidate()
+#### Week 2: 驗證系統 (Day 6-7)
+- ✅ 後端 API (candidates.ts)
+- ✅ 管理後台 UI (admin-dashboard.html)
+- ✅ JavaScript 函數 (admin-dashboard.js)
 
-#### UI 功能
-1. **精確度統計**
-   - 總候選數、待驗證、已確認、已拒絕
-   - 精確度百分比 + 達標指示器
+### 🔧 Bug 修正記錄
 
-2. **候選配對列表**
-   - 狀態篩選 (pending/confirmed/rejected)
-   - 信心度顏色標示 (≥95% 綠色, ≥85% 黃色)
-   - 配對 Key、UUID、匹配方法顯示
-   - 確認/拒絕按鈕 (僅 pending 狀態)
+#### 1. Icon 警告修正
+- **問題**: users, bar-chart-3, list-checks, activity icons 不存在
+- **解決**: 移除所有不存在的 icons，保留純文字
+- **Commit**: 3e09f89
 
-3. **自動載入**
-   - 切換到 Tab 自動載入數據
-   - 篩選器變更自動重新載入
+#### 2. API 500 錯誤修正
+- **問題**: 資料庫欄位名稱不一致
+- **解決**: 
+  - person_a_uuid → card_a_uuid (alias)
+  - person_b_uuid → card_b_uuid (alias)
+  - created_at → detected_at (alias)
+  - 新增 card_a_user, card_b_user
+- **Commit**: e511a8e
 
-#### 部署結果
-- ✅ TypeScript 編譯: 零錯誤
-- ✅ 部署版本: 8da17e07-d49e-4605-a822-523bd76ebd29
-- ✅ URL: https://db-card-staging.csw30454.workers.dev/admin-dashboard.html
+#### 3. Upload 401 錯誤修正
+- **問題**: OAuth cookie 未傳遞
+- **解決**: 加入 credentials: 'include' 到 upload API
+- **Commit**: 55ec9e2
 
-### 📋 下一步：Day 8-9 手動驗證
+#### 4. API 一致性修正
+- **問題**: candidates API 缺少 credentials
+- **解決**: 所有 API 調用統一加入 credentials: 'include'
+- **Commit**: 3cde9dd
 
-**任務**:
-1. 等待 Cron Job 執行 (每日 18:00 UTC)
-2. 或手動觸發 Cron 生成候選配對
-3. 使用管理後台驗證 50+ 候選配對
-4. 檢查精確度是否 >= 90%
+#### 5. ESLint 錯誤修正
+- **問題**: loadPrecisionStats, loadCandidates 未定義
+- **解決**: 使用 window 前綴調用全域函數
+- **Commit**: 680a538
 
-**驗證流程**:
-1. 登入管理後台
-2. 切換到「候選配對」Tab
-3. 查看精確度統計
-4. 逐一驗證候選配對 (確認/拒絕)
-5. 達到 50+ 驗證後檢查精確度
+### 📦 最終部署
 
-**預計時間**: 2 天
+- **版本**: 779c6fc9-d1be-40bf-833c-4ad2a86329e9
+- **URL**: https://db-card-staging.csw30454.workers.dev
+- **狀態**: ✅ 所有功能正常運作
+
+### 📋 後續工作
+
+#### Week 2 Day 8-9: 手動驗證 (待執行)
+1. **等待 Cron 執行** (每日 18:00 UTC)
+2. **手動驗證 50+ 候選配對**
+   - 登入管理後台
+   - 切換到「候選配對」Tab
+   - 逐一驗證 (確認/拒絕)
+3. **精確度評估** (目標 >= 90%)
+
+#### Week 2 Day 10: 決策點
+- Precision >= 90% → 進入 Phase B
+- Precision < 90% → 調整並重新驗證
+
+### 📊 Git 提交記錄
+
+```
+bc1336d - Phase A Complete (30 files, 5705 insertions)
+53794a4 - Icon + Error Handling Fix
+3e09f89 - Remove Non-existent Icons
+e511a8e - Database Column Names Fix
+55ec9e2 - Upload Credentials Fix
+3cde9dd - API Credentials Consistency
+680a538 - ESLint Fix
+```
+
+### 🎯 技術成就
+
+- ✅ 事件溯源架構 (append-only)
+- ✅ Canonicalized pair keys (方向無關)
+- ✅ SQLite-safe SQL
+- ✅ 完整錯誤處理
+- ✅ API 一致性
+- ✅ TypeScript 零錯誤
+- ✅ ESLint 零錯誤
 
 ---
 
-## 📝 相關文檔
-
-- **Phase A 規劃**: `.specify/specs/phase_a_candidate_matching.md`
-- **Week 2 規格**: `.specify/specs/phase_a_week2_implementation.md`
-- **Migration 0036**: `migrations/0036_cross_user_candidates.sql`
-
----
-
-**Phase A Week 2 完成！等待 Cron 執行並開始手動驗證** 🚀
+**Phase A 完成並修正！等待 Cron 執行並開始驗證** 🚀

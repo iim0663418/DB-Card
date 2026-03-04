@@ -3392,8 +3392,8 @@ window.validateCandidate = async function(pairKey, status) {
         if (!response.ok) throw new Error('Failed to validate candidate');
         
         // Reload data
-        await loadPrecisionStats();
-        await loadCandidates();
+        await window.loadPrecisionStats();
+        await window.loadCandidates();
         
     } catch (error) {
         console.error('[Validate Candidate Error]', error);
@@ -3406,13 +3406,13 @@ document.addEventListener('click', (e) => {
     const target = e.target.closest('[data-tab="candidates"]');
     if (target) {
         setTimeout(() => {
-            loadPrecisionStats();
-            loadCandidates();
+            window.loadPrecisionStats();
+            window.loadCandidates();
         }, 100);
     }
 });
 
 // Auto-reload on filter change
 document.getElementById('candidate-status-filter')?.addEventListener('change', () => {
-    loadCandidates();
+    window.loadCandidates();
 });

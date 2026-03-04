@@ -5,6 +5,7 @@
 
 import { Env } from '../../../types';
 import { verifyOAuth } from '../../../middleware/oauth';
+import { normalizeToTraditional } from '../../../utils/chinese-converter';
 
 interface SearchResult {
   uuid: string;
@@ -228,9 +229,12 @@ async function keywordSearch(
   limit: number
 ): Promise<{ results: SearchResult[]; total: number }> {
   const offset = (page - 1) * limit;
-  const searchPattern = `%${query}%`;
+  
+  // Normalize query to traditional Chinese for consistent search
+  const normalizedQuery = await normalizeToTraditional(query, env);
+  const searchPattern = `%${normalizedQuery}%`;
 
-  // Count total matches (13 個欄位)
+  // Count total matches (use organization_normalized for Chinese search)
   const countResult = await env.DB.prepare(
     `SELECT COUNT(*) as total
      FROM received_cards
@@ -238,7 +242,7 @@ async function keywordSearch(
        AND deleted_at IS NULL
        AND (
          full_name LIKE ? OR
-         organization LIKE ? OR
+         organization_normalized LIKE ? OR
          organization_en LIKE ? OR
          organization_alias LIKE ? OR
          department LIKE ? OR
@@ -262,7 +266,7 @@ async function keywordSearch(
 
   const total = countResult?.total || 0;
 
-  // Fetch paginated results (13 個欄位)
+  // Fetch paginated results (use organization_normalized)
   const { results } = await env.DB.prepare(
     `SELECT uuid, full_name, organization, title, email, phone, thumbnail_url
      FROM received_cards
@@ -270,7 +274,7 @@ async function keywordSearch(
        AND deleted_at IS NULL
        AND (
          full_name LIKE ? OR
-         organization LIKE ? OR
+         organization_normalized LIKE ? OR
          organization_en LIKE ? OR
          organization_alias LIKE ? OR
          department LIKE ? OR

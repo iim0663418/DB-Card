@@ -359,7 +359,7 @@ export default {
     }
 
     if (url.pathname === '/api/user/received-cards' && request.method === 'POST') {
-      return addMinimalSecurityHeaders(await handleSaveCard(request, env));
+      return addMinimalSecurityHeaders(await handleSaveCard(request, env, ctx));
     }
 
     if (url.pathname === '/api/user/received-cards' && request.method === 'GET') {

@@ -23,6 +23,7 @@ export interface Env {
   GEMINI_MODEL: string;  // gemini-3-flash-preview
   GEMINI_EMBEDDING_MODEL: string;  // text-embedding-004
   FILE_SEARCH_STORE_NAME?: string;
+  ctx?: ExecutionContext;  // For waitUntil in auto-learning
 }
 
 // Bilingual support types

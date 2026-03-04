@@ -8,6 +8,7 @@ import type { Env } from '../../../types';
 import { verifyOAuth } from '../../../middleware/oauth';
 import { jsonResponse, errorResponse } from '../../../utils/response';
 import { extractTagsFromOrganization } from '../../../utils/tags';
+import { normalizeToTraditional } from '../../../utils/chinese-converter';
 
 interface SaveCardRequest {
   upload_id?: string;  // Optional for manual add
@@ -62,7 +63,7 @@ interface PatchCardRequest extends UpdateCardRequest {
  * Handle POST /api/user/received-cards - Save card
  * Supports both AI flow (with upload_id) and manual add (without upload_id)
  */
-export async function handleSaveCard(request: Request, env: Env): Promise<Response> {
+export async function handleSaveCard(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   try {
     const userResult = await verifyOAuth(request, env);
     if (userResult instanceof Response) return userResult;
@@ -187,19 +188,24 @@ export async function handleSaveCard(request: Request, env: Env): Promise<Respon
             : body.organization_alias)
         : null;
       
+      // Normalize organization to traditional Chinese for search
+      const organizationNormalized = body.organization 
+        ? await normalizeToTraditional(body.organization, { ...env, ctx })
+        : null;
+      
       const now = Date.now();
 
       await env.DB.prepare(`
         INSERT INTO received_cards (
           uuid, user_email, name_prefix, full_name, first_name, last_name, name_suffix,
-          organization, organization_en, organization_alias, department, title, 
+          organization, organization_en, organization_alias, organization_normalized, department, title, 
           phone, email, website, address, note,
           company_summary, personal_summary, ai_sources_json, ai_status,
           original_image_url, thumbnail_url, ocr_raw_text, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         cardUuid, user.email, body.name_prefix || null, body.full_name, body.first_name || null, body.last_name || null, body.name_suffix || null,
-        body.organization || null, body.organization_en || null, organizationAlias, body.department || null, body.title || null,
+        body.organization || null, body.organization_en || null, organizationAlias, organizationNormalized, body.department || null, body.title || null,
         body.phone || null, body.email || null, body.website || null, body.address || null, body.note || null,
         body.company_summary || null, body.personal_summary || null, aiSourcesJson, aiStatus,
         permanentUrl, thumbnailUrl, body.ocr_raw_text || null, now.toString()

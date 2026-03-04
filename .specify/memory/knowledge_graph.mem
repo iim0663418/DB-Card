@@ -1138,3 +1138,7 @@
 260304|Gemini|file_search|fileSearchStoreNames_Array_Not_Object
 260304|Deployment|staging|856451b8_Gemini_API_Fix
 260304|Git|commit|8f97724_FileSearchStore_Fix
+260304|Bug_Fix|gemini_api|snake_case_REST_API_Format
+260304|Gemini|naming|file_search_Not_fileSearch
+260304|Deployment|staging|983bb8c0_REST_API_Fix
+260304|Git|commit|4e8a17d_snake_case_Fix

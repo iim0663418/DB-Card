@@ -25,6 +25,7 @@ export default [
         window: 'readonly',
         document: 'readonly',
         navigator: 'readonly',
+        location: 'readonly',
         fetch: 'readonly',
         crypto: 'readonly',
         btoa: 'readonly',

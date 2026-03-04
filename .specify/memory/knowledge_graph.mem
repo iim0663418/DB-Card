@@ -1122,5 +1122,4 @@
 260304|Performance|optimal|Memory_Cache_After_First_Learn
 260304|Cost|low|Only_Unknown_Chars_Trigger_API
 260304|Reliability|high|Graceful_Fallback_If_Gemini_Fails
-260304|Git|reset|Rollback_To_bcc380e_Before_Merge
-260304|Git|status|Behind_Origin_9_Commits
+260304|ESLint|globals|location_Added_Browser_Global

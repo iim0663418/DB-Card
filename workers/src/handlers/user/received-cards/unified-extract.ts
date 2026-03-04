@@ -282,7 +282,7 @@ async function performUnifiedExtract(
           // Priority 1: Check FileSearchStore for existing knowledge
           ...(env.FILE_SEARCH_STORE_NAME ? [{ 
             fileSearch: { 
-              fileSearchStore: { name: env.FILE_SEARCH_STORE_NAME }
+              fileSearchStoreNames: [env.FILE_SEARCH_STORE_NAME]
             } 
           }] : []),
           // Priority 2: Web search for new information

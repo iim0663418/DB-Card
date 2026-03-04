@@ -53,7 +53,7 @@ export async function deduplicateCards(env: Env): Promise<{ merged: number }> {
 
           if (stringSimilarity.score < 50) continue;
 
-          // 階段 2.5: FileSearchStore 上下文增強（50-90 分數區間）
+          // 階段 2.5: Vectorize 上下文增強（50-90 分數區間）
           if (stringSimilarity.score >= 50 && stringSimilarity.score <= 90) {
             // 1. 查詢公司關係
             const companyResult = await checkCompanyRelationship(
@@ -70,7 +70,7 @@ export async function deduplicateCards(env: Env): Promise<{ merged: number }> {
               // 同公司 + 同人 = 高信心度合併
               await mergeCards(env, cardA, cardB, {
                 score: Math.max(95, personResult.confidence),
-                reason: `FileSearchStore: same person, same company (${personResult.reason})`
+                reason: `Vectorize: same person, same company (${personResult.reason})`
               });
               mergedCards.add(cardB.uuid);
               merged++;
@@ -81,7 +81,7 @@ export async function deduplicateCards(env: Env): Promise<{ merged: number }> {
               // 高信心度人名匹配（可能轉職）
               await mergeCards(env, cardA, cardB, {
                 score: personResult.confidence,
-                reason: `FileSearchStore: same person (${personResult.reason})`
+                reason: `Vectorize: same person (${personResult.reason})`
               });
               mergedCards.add(cardB.uuid);
               merged++;
@@ -92,7 +92,7 @@ export async function deduplicateCards(env: Env): Promise<{ merged: number }> {
               // 同公司 + 中等字串相似度
               await mergeCards(env, cardA, cardB, {
                 score: 90,
-                reason: `FileSearchStore: same company + string match (${stringSimilarity.score})`
+                reason: `Vectorize: same company + string match (${stringSimilarity.score})`
               });
               mergedCards.add(cardB.uuid);
               merged++;
@@ -251,6 +251,26 @@ async function getCardEmbedding(env: Env, uuid: string): Promise<number[]> {
 }
 
 /**
+ * 生成文字的 Embedding（用於組織名稱查詢）
+ */
+async function generateTextEmbedding(env: Env, text: string): Promise<number[]> {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_EMBEDDING_MODEL}:embedContent?key=${env.GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: { parts: [{ text }] },
+        outputDimensionality: 768
+      })
+    }
+  );
+
+  const data = await response.json() as { embedding: { values: number[] } };
+  return data.embedding.values;
+}
+
+/**
  * Gemini LLM 判斷重複
  */
 async function geminiDuplicateCheck(env: Env, cardA: any, cardB: any): Promise<{ isDuplicate: boolean; confidence: number; reason: string }> {
@@ -312,15 +332,15 @@ async function geminiDuplicateCheck(env: Env, cardA: any, cardB: any): Promise<{
 }
 
 /**
- * 查詢 FileSearchStore 確認公司關係
+ * 使用 Vectorize 判斷公司關係
  */
 export async function checkCompanyRelationship(
   env: Env,
   orgA: string,
   orgB: string
 ): Promise<{ isSameCompany: boolean; reason: string }> {
-  if (!env.FILE_SEARCH_STORE_NAME || !env.GEMINI_API_KEY) {
-    return { isSameCompany: false, reason: 'FileSearchStore not configured' };
+  if (!env.VECTORIZE || !env.GEMINI_API_KEY) {
+    return { isSameCompany: false, reason: 'Vectorize not configured' };
   }
 
   if (!orgA || !orgB) {
@@ -328,179 +348,76 @@ export async function checkCompanyRelationship(
   }
 
   try {
-    const query = `${orgA} 和 ${orgB} 是否為同一家公司？請確認公司別名、英文名、簡稱。`;
+    // 生成 orgA 的 embedding
+    const embeddingA = await generateTextEmbedding(env, orgA);
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: query }]
-          }],
-          tools: [{
-            file_search: {
-              file_search_store_names: [env.FILE_SEARCH_STORE_NAME]
-            }
-          }]
-        }),
-        signal: AbortSignal.timeout(5000), // 5s timeout (generateContent needs more time)
-      }
-    );
+    // 查詢 Vectorize 找相似組織
+    const matches = await env.VECTORIZE.query(embeddingA, {
+      topK: 10,
+      returnMetadata: 'all'
+    });
 
-    if (!response.ok) {
-      console.error('[Context] FileSearchStore error:', response.status);
-      return { isSameCompany: false, reason: 'API error' };
-    }
+    // 檢查 orgB 是否在結果中
+    const match = matches.matches.find(m => {
+      const org = m.metadata?.organization as string;
+      return org && (org.includes(orgB) || orgB.includes(org));
+    });
 
-    const data = await response.json() as {
-      candidates?: Array<{
-        content?: {
-          parts?: Array<{ text?: string }>;
-        };
-      }>;
-    };
-
-    // 提取 AI 回應文本
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    
-    if (!text) {
-      return { isSameCompany: false, reason: 'No response from AI' };
-    }
-
-    // 檢查 AI 回應是否確認為同一家公司
-    const affirmative = /是|same|yes|相同|一致|別名|alias/i.test(text);
-    const negative = /否|not|no|不同|不是|different/i.test(text);
-
-    if (affirmative && !negative) {
+    if (match && match.score > 0.85) {
       return {
         isSameCompany: true,
-        reason: `FileSearchStore confirmed via AI`
+        reason: `Vectorize similarity: ${match.score.toFixed(3)}`
       };
     }
 
-    return { isSameCompany: false, reason: 'Low confidence' };
+    return { isSameCompany: false, reason: 'Low similarity' };
+
   } catch (error) {
-    console.error('[Context] FileSearchStore query failed:', error);
+    console.error('[Vectorize] Company check failed:', error);
     return { isSameCompany: false, reason: 'Query error' };
   }
 }
 
 /**
- * 查詢 FileSearchStore 確認人名變體
+ * 使用 Vectorize 判斷人名變體
  */
 export async function checkPersonIdentity(
   env: Env,
   cardA: any,
   cardB: any
 ): Promise<{ isSamePerson: boolean; reason: string; confidence: number }> {
-  if (!env.FILE_SEARCH_STORE_NAME || !env.GEMINI_API_KEY) {
-    return { isSamePerson: false, reason: 'Not configured', confidence: 0 };
-  }
-
-  if (!cardA.full_name || !cardB.full_name) {
-    return { isSamePerson: false, reason: 'Missing name', confidence: 0 };
+  if (!env.VECTORIZE || !env.GEMINI_API_KEY) {
+    return { isSamePerson: false, reason: 'Vectorize not configured', confidence: 0 };
   }
 
   try {
-    const query = `
-      ${cardA.full_name} 和 ${cardB.full_name} 是否為同一人？
-      背景資訊：
-      - A: ${cardA.organization || 'N/A'} ${cardA.title || 'N/A'}
-      - B: ${cardB.organization || 'N/A'} ${cardB.title || 'N/A'}
-      
-      考慮：中英文名對應、姓名變體、職位變動、公司轉職
-    `.trim();
+    // 查詢 Vectorize 找 cardA 的相似名片
+    const embeddingA = await getCardEmbedding(env, cardA.uuid);
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: query }]
-          }],
-          tools: [{
-            file_search: {
-              file_search_store_names: [env.FILE_SEARCH_STORE_NAME]
-            }
-          }]
-        }),
-        signal: AbortSignal.timeout(5000),
-      }
-    );
+    const matches = await env.VECTORIZE.query(embeddingA, {
+      topK: 10,
+      returnMetadata: 'all'
+    });
 
-    if (!response.ok) {
-      return { isSamePerson: false, reason: 'API error', confidence: 0 };
-    }
+    // 檢查 cardB 是否在結果中
+    const match = matches.matches.find(m => m.id === cardB.uuid);
 
-    const data = await response.json() as {
-      candidates?: Array<{
-        content?: {
-          parts?: Array<{ text?: string }>;
-        };
-      }>;
-    };
-
-    // 提取 AI 回應文本
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    
-    if (!text) {
-      return { isSamePerson: false, reason: 'No response', confidence: 0 };
-    }
-
-    // 分析 AI 回應的信心度
-    const affirmative = /是|same|yes|相同|一致|同一人/i.test(text);
-    const negative = /否|not|no|不同|不是|different/i.test(text);
-    const uncertain = /可能|maybe|perhaps|不確定|unclear/i.test(text);
-
-    let confidence = 0;
-    let isSamePerson = false;
-    let reason = 'AI analysis';
-
-    if (affirmative && !negative) {
-      confidence = uncertain ? 70 : 90;
-      isSamePerson = true;
-      reason = 'FileSearchStore confirmed';
-    } else if (negative && !affirmative) {
-      confidence = 10;
-      isSamePerson = false;
-      reason = 'FileSearchStore rejected';
-    } else {
-      confidence = 50;
-      isSamePerson = false;
-      reason = 'Inconclusive';
-    }
-
-    if (confidence > 85) {
+    if (match && match.score > 0.90) {
       return {
         isSamePerson: true,
-        reason: `High confidence (${confidence}%)`,
-        confidence
-      };
-    }
-
-    if (confidence > 70) {
-      return {
-        isSamePerson: true,
-        reason: `Probable match (${confidence}%)`,
-        confidence
+        confidence: Math.round(match.score * 100),
+        reason: `Vectorize similarity: ${match.score.toFixed(3)}`
       };
     }
 
     return {
       isSamePerson: false,
-      reason: 'Insufficient evidence',
-      confidence
+      confidence: match ? Math.round(match.score * 100) : 0,
+      reason: 'Low similarity'
     };
+
   } catch (error) {
-    console.error('[Context] Person identity check failed:', error);
+    console.error('[Vectorize] Person check failed:', error);
     return { isSamePerson: false, reason: 'Query error', confidence: 0 };
   }
 }

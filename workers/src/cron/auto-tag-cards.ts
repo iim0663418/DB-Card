@@ -17,10 +17,7 @@ interface TagResult {
  * Main auto-tagging function (Process ALL untagged cards)
  */
 export async function autoTagCards(env: Env): Promise<{ tagged: number }> {
-  console.log('[AutoTag] Starting auto-tagging...');
-
-  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  console.log(`[AutoTag] Looking for cards with auto_tagged_at < ${new Date(sevenDaysAgo).toISOString()}`);
+  console.log('[AutoTag] Starting auto-tagging (one-time only)...');
 
   let totalTagged = 0;
   let batchCount = 0;
@@ -35,10 +32,10 @@ export async function autoTagCards(env: Env): Promise<{ tagged: number }> {
       FROM received_cards
       WHERE deleted_at IS NULL
         AND merged_to IS NULL
-        AND (auto_tagged_at IS NULL OR auto_tagged_at < ?)
+        AND auto_tagged_at IS NULL
       ORDER BY created_at DESC
       LIMIT 20
-    `).bind(sevenDaysAgo).all();
+    `).all();
 
     console.log(`[AutoTag] Batch ${batchCount}: Found ${cards.length} cards to process`);
 

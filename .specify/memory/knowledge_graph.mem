@@ -1123,3 +1123,6 @@
 260304|Cost|low|Only_Unknown_Chars_Trigger_API
 260304|Reliability|high|Graceful_Fallback_If_Gemini_Fails
 260304|ESLint|globals|location_Added_Browser_Global
+260304|Git|cherry_pick|Selective_Feature_Restoration_Complete
+260304|Features|restored|FileSearchStore_AI_Summary_ESLint_Fix
+260304|Features|excluded|CSRF_Synchronizer_Token_Pattern

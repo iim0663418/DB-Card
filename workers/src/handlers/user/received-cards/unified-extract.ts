@@ -160,6 +160,7 @@ async function performUnifiedExtract(
   mimeType: string,
   apiKey: string,
   model: string,
+  env: Env,
   DEBUG: boolean = false
 ): Promise<UnifiedExtractResult> {
   // JSON Schema for structured output (multilingual support)
@@ -242,7 +243,17 @@ async function performUnifiedExtract(
 - personal_summary (30-80 chars): one concise sentence summarizing the person's expertise, achievements, or professional background
 - Supplement missing website/address from official sources
 
-**Search Strategy**: Use "name + organization/department" as keywords. Prioritize official sources (organization website, government registration, professional profiles).
+**Search Strategy**: 
+1. First check FileSearchStore for existing information about this person or organization
+2. Use "name + organization/department" as keywords for web search
+3. Prioritize official sources (organization website, government registration, professional profiles)
+
+**Identity Verification (CRITICAL)**:
+- For personal_summary: ONLY include information that explicitly mentions BOTH the person's name AND their current organization
+- For previous work experience: require the source to clearly link this person to their current role
+- If you find someone with the same name but NO clear connection to the current organization, ASSUME it's a different person
+- When uncertain about identity (common name, no verification), focus on current role only
+- DO NOT mix information from different people with the same name
 
 **Language Rules**:
 - Card fields (name, title, address, etc.): preserve original language exactly as shown
@@ -267,7 +278,16 @@ async function performUnifiedExtract(
             { inline_data: { mime_type: mimeType, data: imageBase64 } }
           ]
         }],
-        tools: [{ googleSearch: {} }],
+        tools: [
+          // Priority 1: Check FileSearchStore for existing knowledge
+          ...(env.FILE_SEARCH_STORE_NAME ? [{ 
+            fileSearch: { 
+              fileSearchStore: { name: env.FILE_SEARCH_STORE_NAME }
+            } 
+          }] : []),
+          // Priority 2: Web search for new information
+          { googleSearch: {} }
+        ],
         generationConfig: {
           responseMimeType: "application/json",
           responseJsonSchema: responseSchema,
@@ -500,7 +520,7 @@ export async function handleUnifiedExtract(
 
     // 7. Perform unified extract (OCR + Enrich) with retry on 429
     const result = await retryWithBackoff(() =>
-      performUnifiedExtract(imageBase64, mimeType, env.GEMINI_API_KEY, env.GEMINI_MODEL, DEBUG)
+      performUnifiedExtract(imageBase64, mimeType, env.GEMINI_API_KEY, env.GEMINI_MODEL, env, DEBUG)
     );
 
     // 8. Update OCR status to completed

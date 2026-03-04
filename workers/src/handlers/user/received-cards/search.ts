@@ -38,20 +38,48 @@ async function enrichSearchResult(
   userEmail: string,
   result: SearchResult
 ): Promise<SearchResult> {
-  // 1. Count related contacts in same organization
+  // 1. Count related contacts in same organization (use normalized + alias)
   let relatedContacts = 0;
   if (result.organization) {
-    const countResult = await env.DB.prepare(`
-      SELECT COUNT(*) as count
-      FROM received_cards
-      WHERE user_email = ?
-        AND organization = ?
-        AND deleted_at IS NULL
-        AND merged_to IS NULL
-        AND uuid != ?
-    `).bind(userEmail, result.organization, result.uuid).first<{ count: number }>();
-    
-    relatedContacts = countResult?.count || 0;
+    // Get normalized organization name and aliases for the current card
+    const cardInfo = await env.DB.prepare(`
+      SELECT organization_normalized, organization_alias FROM received_cards WHERE uuid = ?
+    `).bind(result.uuid).first<{ organization_normalized: string | null; organization_alias: string | null }>();
+
+    if (cardInfo?.organization_normalized) {
+      // Parse aliases (stored as JSON array)
+      const aliases: string[] = cardInfo.organization_alias 
+        ? JSON.parse(cardInfo.organization_alias) 
+        : [];
+      
+      // Build search terms: normalized name + all aliases
+      const searchTerms = [cardInfo.organization_normalized, ...aliases];
+      
+      // Build OR conditions: each search term matches organization_normalized OR in organization_alias
+      const conditions: string[] = [];
+      const params = [userEmail];
+      
+      for (const term of searchTerms) {
+        // Match organization_normalized
+        conditions.push('organization_normalized = ?');
+        params.push(term);
+        // Match in organization_alias JSON array
+        conditions.push('organization_alias LIKE ?');
+        params.push(`%"${term}"%`);
+      }
+      
+      const countResult = await env.DB.prepare(`
+        SELECT COUNT(*) as count
+        FROM received_cards
+        WHERE user_email = ?
+          AND (${conditions.join(' OR ')})
+          AND deleted_at IS NULL
+          AND merged_to IS NULL
+          AND uuid != ?
+      `).bind(...params, result.uuid).first<{ count: number }>();
+      
+      relatedContacts = countResult?.count || 0;
+    }
   }
 
   // 2. Get auto-generated tags (industry, location)

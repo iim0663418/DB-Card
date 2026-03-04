@@ -1211,6 +1211,27 @@
 260304|Deployment|final|779c6fc9_All_Fixes_Complete
 260304|Phase_A|status|Complete_With_Fixes_Ready_For_Validation
 
+# Cron Job SQL Fix (2026-03-05)
+260305|Bug_Fix|find_candidates|card_uuid_To_uuid_Column_Name_Fixed
+260305|Cron|0_18|SQL_Error_Resolved_SQLITE_ERROR
+260305|find_candidates_ts|fix|6_Occurrences_card_uuid_To_uuid
+260305|SQL|column_name|received_cards_uuid_Not_card_uuid
+260305|Deployment|staging|e1bafd34_SQL_Fix_Complete
+260305|TypeScript|verification|Zero_Errors
+260305|Cron|next_run|18_00_UTC_Validation_Pending
+
+# AutoTag Batch Processing Optimization (2026-03-05)
+260305|Bug_Fix|auto_tag|Batch_Processing_Implemented
+260305|Performance|gemini_api|20_Calls_To_1_Call_95_Percent_Reduction
+260305|auto_tag_cards_ts|refactor|generateTagsBatch_Single_API_Call
+260305|Gemini|prompt|Batch_Format_Card_Index_Mapping
+260305|Gemini|response|JSON_Array_With_card_index
+260305|Gemini|timeout|30s_Batch_Processing
+260305|Error_Handling|graceful|Null_Fallback_For_Failed_Cards
+260305|Deployment|staging|456a30c0_Batch_Optimization_Complete
+260305|TypeScript|verification|Zero_Errors
+260305|Expected|subrequests|Less_Than_10_Well_Below_50_Limit
+
 # Rate Limiting Strategy Decision (2026-03-04)
 260304|Rate_Limiting|decision|Keep_Durable_Objects_Not_Migrate_To_Official_API
 260304|Cloudflare_Rate_Limiting_API|limitation|Period_Only_10s_60s_Not_Support_1h_24h
@@ -1226,3 +1247,18 @@
 260304|Rate_Limiting|performance|5ms_Latency_Optimized
 260304|Rate_Limiting|windows|60s_3600s_86400s_Multiple_Support
 260304|Rate_Limiting|review|2026_Q3_If_Official_API_Supports_Longer_Period
+
+# FileSearchStore API 修正 (2026-03-05)
+260305|Bug_Fix|filesearchstore|Query_Endpoint_Deprecated_404
+260305|FileSearchStore|api_migration|Query_To_GenerateContent
+260305|Gemini|api_format|generateContent_Plus_Tools_File_Search
+260305|Gemini|model|gemini_2_5_flash_Latest_Model
+260305|checkCompanyRelationship|fix|Chunk_Score_To_AI_Text_Analysis
+260305|checkPersonIdentity|fix|Chunk_Score_To_AI_Confidence
+260305|API|timeout|2s_3s_To_5s_GenerateContent_Needs_More_Time
+260305|Deployment|staging|24581a42_FileSearchStore_Fix_Complete
+260305|Health_Check|status|OK_v5_0_0_28_Cards_KEK_v4
+260305|Bundle_Size|total|1045_19_KiB_Gzip_195_35_KiB
+260305|TypeScript|verification|Zero_Errors_All_Pass
+260305|FileSearchStore|store_status|62_Documents_170_KB_Active
+260305|Test|verification|Query_奧義智慧科技_Success_Full_Info

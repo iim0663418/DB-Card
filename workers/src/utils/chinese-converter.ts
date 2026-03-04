@@ -53,15 +53,14 @@ function findUnknownChars(text: string): string[] {
 }
 
 /**
- * Learn new character mappings via Gemini AI
+ * Learn new character mappings via Gemini AI with Context Caching
  */
 async function learnNewChars(
   chars: string[],
   env: Env
 ): Promise<Record<string, string>> {
-  const prompt = `你是簡繁體轉換專家。請將以下字元轉換為繁體字（如果已是繁體則保持不變）：
-
-字元：${chars.join(', ')}
+  // System instruction (cacheable)
+  const systemInstruction = `你是簡繁體轉換專家。
 
 要求：
 1. 只轉換簡體字，繁體字保持不變
@@ -72,13 +71,22 @@ async function learnNewChars(
 輸入：["软", "件", "開"]
 輸出：{"软": "軟", "件": "件", "開": "開"}`;
 
+  // User query (variable)
+  const userQuery = `請將以下字元轉換為繁體字（如果已是繁體則保持不變）：\n\n字元：${chars.join(', ')}`;
+
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${env.GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
+        system_instruction: {
+          parts: [{ text: systemInstruction }]
+        },
+        contents: [{ 
+          parts: [{ text: userQuery }],
+          role: 'user'
+        }],
         generationConfig: {
           response_mime_type: 'application/json'
         }

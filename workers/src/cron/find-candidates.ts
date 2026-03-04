@@ -12,7 +12,7 @@ async function findPotentialMatches(
   
   const stmt = env.DB.prepare(`
     SELECT 
-      card_uuid,
+      uuid,
       user_email,
       name,
       email,
@@ -63,7 +63,7 @@ export async function findCrossUserCandidates(env: Env): Promise<{
     
     const cardsStmt = env.DB.prepare(`
       SELECT 
-        card_uuid,
+        uuid,
         name,
         email,
         phone,
@@ -86,7 +86,7 @@ export async function findCrossUserCandidates(env: Env): Promise<{
         const cardA = card as any;
         const cardB = match.card;
         
-        const isBlacklistedPair = await isBlacklisted(env, cardA.card_uuid, cardB.card_uuid);
+        const isBlacklistedPair = await isBlacklisted(env, cardA.uuid, cardB.uuid);
         if (isBlacklistedPair) {
           blacklisted++;
           continue;
@@ -95,7 +95,7 @@ export async function findCrossUserCandidates(env: Env): Promise<{
         const result = await resolveIdentity(env, cardA, cardB);
         
         if (result.isSamePerson && result.confidence >= 0.85) {
-          const pairKey = generatePairKey(cardA.card_uuid, cardB.card_uuid);
+          const pairKey = generatePairKey(cardA.uuid, cardB.uuid);
           const confidence = Math.round(result.confidence * 100);
           
           await env.DB.prepare(`
@@ -114,9 +114,9 @@ export async function findCrossUserCandidates(env: Env): Promise<{
             ON CONFLICT(person_pair_key) DO NOTHING
           `).bind(
             pairKey,
-            cardA.card_uuid,
+            cardA.uuid,
             userEmail,
-            cardB.card_uuid,
+            cardB.uuid,
             match.userEmail,
             confidence,
             result.method,

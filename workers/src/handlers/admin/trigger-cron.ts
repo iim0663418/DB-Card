@@ -50,7 +50,11 @@ export async function handleTriggerCron(request: Request, env: Env, ctx: Executi
       { name: 'FileSearchStore Cleanup', fn: async () => {
         const { cleanupFileSearchStore } = await import('../../cron/cleanup-filesearchstore');
         await cleanupFileSearchStore(env);
-      }}
+      }},
+      { name: 'Backfill Organization Normalized', fn: async () => {
+        const { backfillOrganizationNormalized } = await import('../../cron/backfill-organization-normalized');
+        await backfillOrganizationNormalized(env);
+      }},
     ];
 
     const results = [];

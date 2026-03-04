@@ -331,18 +331,23 @@ export async function checkCompanyRelationship(
     const query = `${orgA} 和 ${orgB} 是否為同一家公司？請確認公司別名、英文名、簡稱。`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/${env.FILE_SEARCH_STORE_NAME}:query`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-goog-api-key': env.GEMINI_API_KEY,
         },
         body: JSON.stringify({
-          query,
-          pageSize: 3,
+          contents: [{
+            parts: [{ text: query }]
+          }],
+          tools: [{
+            file_search: {
+              file_search_store_names: [env.FILE_SEARCH_STORE_NAME]
+            }
+          }]
         }),
-        signal: AbortSignal.timeout(2000), // 2s timeout
+        signal: AbortSignal.timeout(5000), // 5s timeout (generateContent needs more time)
       }
     );
 
@@ -352,29 +357,28 @@ export async function checkCompanyRelationship(
     }
 
     const data = await response.json() as {
-      relevantChunks?: Array<{
-        text?: string;
-        chunkRelevanceScore?: { score?: number };
+      candidates?: Array<{
+        content?: {
+          parts?: Array<{ text?: string }>;
+        };
       }>;
     };
 
-    // 檢查是否有高相關性的結果
-    const topChunk = data.relevantChunks?.[0];
-    if (!topChunk || !topChunk.chunkRelevanceScore?.score) {
-      return { isSameCompany: false, reason: 'No relevant context' };
+    // 提取 AI 回應文本
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    
+    if (!text) {
+      return { isSameCompany: false, reason: 'No response from AI' };
     }
 
-    const score = topChunk.chunkRelevanceScore.score;
-    const text = topChunk.text || '';
+    // 檢查 AI 回應是否確認為同一家公司
+    const affirmative = /是|same|yes|相同|一致|別名|alias/i.test(text);
+    const negative = /否|not|no|不同|不是|different/i.test(text);
 
-    // 檢查文本是否同時包含兩個組織名（表示它們在同一文件中）
-    const containsBoth = text.includes(orgA) || text.includes(orgB);
-    const hasAlias = text.toLowerCase().includes('alias') || text.includes('別名');
-
-    if (score > 0.8 && (containsBoth || hasAlias)) {
+    if (affirmative && !negative) {
       return {
         isSameCompany: true,
-        reason: `FileSearchStore confirmed (score: ${score.toFixed(2)})`
+        reason: `FileSearchStore confirmed via AI`
       };
     }
 
@@ -412,18 +416,23 @@ export async function checkPersonIdentity(
     `.trim();
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/${env.FILE_SEARCH_STORE_NAME}:query`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-goog-api-key': env.GEMINI_API_KEY,
         },
         body: JSON.stringify({
-          query,
-          pageSize: 5,
+          contents: [{
+            parts: [{ text: query }]
+          }],
+          tools: [{
+            file_search: {
+              file_search_store_names: [env.FILE_SEARCH_STORE_NAME]
+            }
+          }]
         }),
-        signal: AbortSignal.timeout(3000),
+        signal: AbortSignal.timeout(5000),
       }
     );
 
@@ -432,48 +441,55 @@ export async function checkPersonIdentity(
     }
 
     const data = await response.json() as {
-      relevantChunks?: Array<{
-        text?: string;
-        chunkRelevanceScore?: { score?: number };
+      candidates?: Array<{
+        content?: {
+          parts?: Array<{ text?: string }>;
+        };
       }>;
     };
 
-    // 分析結果
-    const chunks = data.relevantChunks || [];
-    let maxScore = 0;
-
-    for (const chunk of chunks) {
-      const score = chunk.chunkRelevanceScore?.score || 0;
-      const text = chunk.text || '';
-
-      // 檢查是否同時提到兩個名字或組織
-      const mentionsNameA = text.includes(cardA.full_name);
-      const mentionsNameB = text.includes(cardB.full_name);
-      const mentionsOrgA = cardA.organization && text.includes(cardA.organization);
-      const mentionsOrgB = cardB.organization && text.includes(cardB.organization);
-
-      const hasEvidence = (mentionsNameA || mentionsNameB) && (mentionsOrgA || mentionsOrgB);
-
-      if (hasEvidence && score > maxScore) {
-        maxScore = score;
-      }
+    // 提取 AI 回應文本
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    
+    if (!text) {
+      return { isSamePerson: false, reason: 'No response', confidence: 0 };
     }
 
-    // 判斷邏輯
-    const confidence = Math.round(maxScore * 100);
+    // 分析 AI 回應的信心度
+    const affirmative = /是|same|yes|相同|一致|同一人/i.test(text);
+    const negative = /否|not|no|不同|不是|different/i.test(text);
+    const uncertain = /可能|maybe|perhaps|不確定|unclear/i.test(text);
 
-    if (maxScore > 0.85) {
+    let confidence = 0;
+    let isSamePerson = false;
+    let reason = 'AI analysis';
+
+    if (affirmative && !negative) {
+      confidence = uncertain ? 70 : 90;
+      isSamePerson = true;
+      reason = 'FileSearchStore confirmed';
+    } else if (negative && !affirmative) {
+      confidence = 10;
+      isSamePerson = false;
+      reason = 'FileSearchStore rejected';
+    } else {
+      confidence = 50;
+      isSamePerson = false;
+      reason = 'Inconclusive';
+    }
+
+    if (confidence > 85) {
       return {
         isSamePerson: true,
-        reason: `High confidence (${maxScore.toFixed(2)})`,
+        reason: `High confidence (${confidence}%)`,
         confidence
       };
     }
 
-    if (maxScore > 0.70) {
+    if (confidence > 70) {
       return {
         isSamePerson: true,
-        reason: `Probable match (${maxScore.toFixed(2)})`,
+        reason: `Probable match (${confidence}%)`,
         confidence
       };
     }

@@ -149,6 +149,7 @@ async function uploadWithRetry(file, thumbnail, signal, maxRetries = 3) {
       
       const response = await fetch(`${API_BASE}/api/user/received-cards/upload`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'X-Idempotency-Key': idempotencyKey,

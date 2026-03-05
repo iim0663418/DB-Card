@@ -47,9 +47,9 @@ async function enrichSearchResult(
     `).bind(result.uuid).first<{ organization_normalized: string | null; organization_alias: string | null }>();
 
     if (cardInfo?.organization_normalized) {
-      // Parse aliases (stored as JSON array)
+      // Parse aliases (stored as plain text string, e.g., "零曜科技, Zeroflare")
       const aliases: string[] = cardInfo.organization_alias 
-        ? JSON.parse(cardInfo.organization_alias) 
+        ? cardInfo.organization_alias.split(',').map(s => s.trim()).filter(Boolean)
         : [];
       
       // Build search terms: normalized name + all aliases

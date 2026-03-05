@@ -746,36 +746,26 @@ export default {
     return response;
   },
 
-  async scheduled(event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
-    // Run all tasks at 02:00 UTC (single cron, sequential execution)
-    
-    // 1. Sync card embeddings to Vectorize (1-2 min)
+  async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
+    // Single Cron: 02:00 台灣時間 - All Tasks
     const { syncCardEmbeddings } = await import('./cron/sync-card-embeddings');
     await syncCardEmbeddings(env);
 
-    // 2. Deduplicate cards using funnel approach (2-3 min)
     const { deduplicateCards } = await import('./cron/deduplicate-cards');
     await deduplicateCards(env);
 
-    // 3. Auto-tag cards (1-2 min)
     const { autoTagCards } = await import('./cron/auto-tag-cards');
     await autoTagCards(env);
 
-    // 4. Find cross-user candidate matches (Phase A) (2-3 min)
     const { findCrossUserCandidates } = await import('./cron/find-candidates');
     await findCrossUserCandidates(env);
 
-    // 5. Existing cleanup tasks
     const { handleScheduledCleanup } = await import('./scheduled-cleanup');
     const { handleScheduledLogRotation } = await import('./scheduled-log-rotation');
     const { handleScheduledKVCleanup } = await import('./scheduled-kv-cleanup');
     const { cleanupSoftDeletedAssets } = await import('./handlers/scheduled/asset-cleanup');
     const { cleanupTempUploads } = await import('./cron/cleanup-temp-uploads');
     const { cleanupReceivedCards } = await import('./cron/cleanup-received-cards');
-    // FileSearchStore cleanup (DISABLED 2026-03-05)
-    // Reason: FileSearchStore upload disabled, no new documents
-    // TODO: Re-enable when FileSearchStore is re-activated
-    // const { cleanupFileSearchStore } = await import('./cron/cleanup-filesearchstore');
 
     await handleScheduledCleanup(env);
     await handleScheduledLogRotation(env);
@@ -783,7 +773,6 @@ export default {
     await cleanupSoftDeletedAssets(env);
     await cleanupTempUploads(env);
     await cleanupReceivedCards(env);
-    // await cleanupFileSearchStore(env);
   }
 };
 

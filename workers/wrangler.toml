@@ -53,10 +53,11 @@ binding = "PHYSICAL_CARDS"
 bucket_name = "db-card-physical-images-staging"
 preview_bucket_name = "db-card-physical-images-preview"
 
-# Cron Triggers
-# Taiwan Time 02:00 = UTC 18:00 (previous day)
+# Cron Triggers (免費版限制：單一 Cron 回退)
+# Taiwan Time (UTC+8):
+#   02:00 = UTC 18:00 - All Tasks (Sync + Deduplicate + AutoTag + Candidates + Cleanup)
 [triggers]
-crons = ["0 18 * * *"]  # Daily maintenance at 02:00 Taiwan Time (UTC+8)
+crons = ["0 18 * * *"]
 
 # Production Environment
 [env.production]

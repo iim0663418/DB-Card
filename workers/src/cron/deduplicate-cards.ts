@@ -1,4 +1,5 @@
 import type { Env } from '../types';
+import { cosineSimilarity, getVectorsByIds } from '../utils/vector-similarity';
 
 /**
  * 漏斗式名片去重（每日 02:00 UTC 執行）
@@ -102,10 +103,9 @@ export async function deduplicateCards(env: Env): Promise<{ merged: number }> {
 
           // 階段 3: Vectorize Similarity
           const vectorSimilarity = await queryVectorizeSimilarity(
-            env, 
-            cardA.uuid, 
-            cardB.uuid,
-            cardA.user_email
+            env,
+            cardA.uuid,
+            cardB.uuid
           );
 
           if (vectorSimilarity.score > 0.85) {
@@ -186,88 +186,25 @@ export function calculateStringSimilarity(cardA: any, cardB: any): { score: numb
 }
 
 /**
- * 查詢 Vectorize 相似度（含 Multi-tenant 隔離）
+ * 查詢 Vectorize 相似度（使用 getByIds + 本地計算，零 Gemini API 呼叫）
  */
 async function queryVectorizeSimilarity(
-  env: Env, 
+  env: Env,
   uuidA: string,
-  uuidB: string,
-  userEmail: string
+  uuidB: string
 ): Promise<{ score: number; reason: string }> {
-  try {
-    const matches = await env.VECTORIZE.query(await getCardEmbedding(env, uuidA), {
-      topK: 10,
-      returnMetadata: 'all',
-      filter: { user_email: userEmail }
-    });
+  const vectors = await getVectorsByIds(env, [uuidA, uuidB]);
 
-    const match = matches.matches.find(m => m.id === uuidB);
-
-    if (match) {
-      return {
-        score: match.score,  // Vectorize score 是 similarity (0-1)
-        reason: `Vectorize cosine similarity: ${match.score.toFixed(3)}`
-      };
-    }
-
-    return {
-      score: 0,
-      reason: 'Not in top-10 similar vectors'
-    };
-  } catch (error) {
-    console.error('[Vectorize] Query failed:', error);
-    return { score: 0, reason: 'Vectorize query error' };
+  if (vectors.length !== 2) {
+    return { score: 0, reason: 'Vector not found in Vectorize' };
   }
-}
 
-/**
- * 取得名片的 Embedding
- */
-async function getCardEmbedding(env: Env, uuid: string): Promise<number[]> {
-  const card = await env.DB.prepare(`
-    SELECT full_name, organization, title, department
-    FROM received_cards
-    WHERE uuid = ?
-  `).bind(uuid).first();
+  const similarity = cosineSimilarity(vectors[0].values, vectors[1].values);
 
-  if (!card) throw new Error(`Card ${uuid} not found`);
-
-  const text = `${(card as any).full_name} ${(card as any).organization} ${(card as any).title} ${(card as any).department || ''}`.trim();
-  
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_EMBEDDING_MODEL}:embedContent?key=${env.GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        content: { parts: [{ text }] },
-        outputDimensionality: 768
-      })
-    }
-  );
-
-  const data = await response.json() as { embedding: { values: number[] } };
-  return data.embedding.values;
-}
-
-/**
- * 生成文字的 Embedding（用於組織名稱查詢）
- */
-async function generateTextEmbedding(env: Env, text: string): Promise<number[]> {
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_EMBEDDING_MODEL}:embedContent?key=${env.GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        content: { parts: [{ text }] },
-        outputDimensionality: 768
-      })
-    }
-  );
-
-  const data = await response.json() as { embedding: { values: number[] } };
-  return data.embedding.values;
+  return {
+    score: similarity,
+    reason: `Local cosine: ${similarity.toFixed(3)}`
+  };
 }
 
 /**
@@ -332,92 +269,85 @@ async function geminiDuplicateCheck(env: Env, cardA: any, cardB: any): Promise<{
 }
 
 /**
- * 使用 Vectorize 判斷公司關係
+ * 使用 Vectorize 判斷公司關係（metadata filter，零 Gemini API 呼叫）
  */
 export async function checkCompanyRelationship(
   env: Env,
   orgA: string,
   orgB: string
 ): Promise<{ isSameCompany: boolean; reason: string }> {
-  if (!env.VECTORIZE || !env.GEMINI_API_KEY) {
-    return { isSameCompany: false, reason: 'Vectorize not configured' };
-  }
-
-  if (!orgA || !orgB) {
-    return { isSameCompany: false, reason: 'Missing organization name' };
+  if (!env.VECTORIZE || !orgA || !orgB) {
+    return { isSameCompany: false, reason: 'Missing data' };
   }
 
   try {
-    // 生成 orgA 的 embedding
-    const embeddingA = await generateTextEmbedding(env, orgA);
+    const matches = await env.VECTORIZE.query(
+      [],
+      {
+        topK: 50,
+        returnMetadata: 'all',
+        filter: { organization_normalized: orgA }
+      }
+    );
 
-    // 查詢 Vectorize 找相似組織
-    const matches = await env.VECTORIZE.query(embeddingA, {
-      topK: 10,
-      returnMetadata: 'all'
+    const hasOrgB = matches.matches.some(m => {
+      const org = m.metadata?.organization_normalized as string;
+      return org === orgB || org?.includes(orgB) || orgB.includes(org);
     });
 
-    // 檢查 orgB 是否在結果中
-    const match = matches.matches.find(m => {
-      const org = m.metadata?.organization as string;
-      return org && (org.includes(orgB) || orgB.includes(org));
-    });
-
-    if (match && match.score > 0.85) {
+    if (hasOrgB) {
       return {
         isSameCompany: true,
-        reason: `Vectorize similarity: ${match.score.toFixed(3)}`
+        reason: 'Found in same organization cluster'
       };
     }
 
-    return { isSameCompany: false, reason: 'Low similarity' };
+    return { isSameCompany: false, reason: 'Different organizations' };
 
   } catch (error) {
-    console.error('[Vectorize] Company check failed:', error);
+    console.error('[checkCompanyRelationship] Failed:', error);
     return { isSameCompany: false, reason: 'Query error' };
   }
 }
 
 /**
- * 使用 Vectorize 判斷人名變體
+ * 使用 Vectorize 判斷人名變體（getByIds + 本地計算，零 Gemini API 呼叫）
  */
 export async function checkPersonIdentity(
   env: Env,
   cardA: any,
   cardB: any
 ): Promise<{ isSamePerson: boolean; reason: string; confidence: number }> {
-  if (!env.VECTORIZE || !env.GEMINI_API_KEY) {
+  if (!env.VECTORIZE) {
     return { isSamePerson: false, reason: 'Vectorize not configured', confidence: 0 };
   }
 
   try {
-    // 查詢 Vectorize 找 cardA 的相似名片
-    const embeddingA = await getCardEmbedding(env, cardA.uuid);
+    const vectors = await getVectorsByIds(env, [cardA.uuid, cardB.uuid]);
 
-    const matches = await env.VECTORIZE.query(embeddingA, {
-      topK: 10,
-      returnMetadata: 'all'
-    });
+    if (vectors.length !== 2) {
+      return { isSamePerson: false, reason: 'Vector not found', confidence: 0 };
+    }
 
-    // 檢查 cardB 是否在結果中
-    const match = matches.matches.find(m => m.id === cardB.uuid);
+    const similarity = cosineSimilarity(vectors[0].values, vectors[1].values);
+    const confidence = Math.round(similarity * 100);
 
-    if (match && match.score > 0.90) {
+    if (similarity > 0.90) {
       return {
         isSamePerson: true,
-        confidence: Math.round(match.score * 100),
-        reason: `Vectorize similarity: ${match.score.toFixed(3)}`
+        confidence,
+        reason: `High similarity: ${similarity.toFixed(3)}`
       };
     }
 
     return {
       isSamePerson: false,
-      confidence: match ? Math.round(match.score * 100) : 0,
-      reason: 'Low similarity'
+      confidence,
+      reason: `Low similarity: ${similarity.toFixed(3)}`
     };
 
   } catch (error) {
-    console.error('[Vectorize] Person check failed:', error);
+    console.error('[checkPersonIdentity] Failed:', error);
     return { isSamePerson: false, reason: 'Query error', confidence: 0 };
   }
 }

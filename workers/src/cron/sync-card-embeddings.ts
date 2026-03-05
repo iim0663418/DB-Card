@@ -1,4 +1,5 @@
-import type { Env } from '../types';
+import type { Env, ReceivedCardData, VectorMetadata } from '../types';
+import { generateCardText, generateEmbedding } from '../utils/embedding';
 
 /**
  * 同步名片到 Vectorize（每日 02:00 UTC）
@@ -11,11 +12,11 @@ export async function syncCardEmbeddings(env: Env): Promise<{ synced: number }> 
   // 分頁迴圈處理
   while (hasMore) {
     const cards = await env.DB.prepare(`
-      SELECT uuid, user_email, full_name, organization, organization_en, organization_alias, 
-             title, department, company_summary, personal_summary, email, phone,
-             website, address, note
+      SELECT uuid, user_email, full_name, organization, organization_en, organization_alias,
+             organization_normalized, title, department, company_summary, personal_summary,
+             email, phone, website, address, note, created_at, updated_at
       FROM received_cards
-      WHERE deleted_at IS NULL 
+      WHERE deleted_at IS NULL
         AND merged_to IS NULL
         AND (embedding_synced_at IS NULL OR updated_at > embedding_synced_at)
       ORDER BY created_at ASC
@@ -27,59 +28,46 @@ export async function syncCardEmbeddings(env: Env): Promise<{ synced: number }> 
       break;
     }
 
-    // 批次生成 Embeddings（20 張一批）
-    const batchSize = 20;
+    // 批次生成 Embeddings（10 張一批，每張 1 subrequest：10 × 1 = 10，安全範圍）
+    const batchSize = 10;
     for (let i = 0; i < cards.results.length; i += batchSize) {
       const batch = cards.results.slice(i, i + batchSize);
-      
+
       // 並行生成 embeddings
-      const embeddingPromises = batch.map(async (card: any) => {
-        // 擴充到 13 個欄位：涵蓋率從 50% 提升到 65%
-        const text = [
-          card.full_name,
-          card.organization,
-          card.organization_en,
-          card.organization_alias,
-          card.department,
-          card.title,
-          card.company_summary,
-          card.personal_summary,
-          card.email,
-          card.phone,
-          card.website,
-          card.address,
-          card.note
-        ].filter(Boolean).join(' ').trim();
-        
+      const embeddingPromises = batch.map(async (row: any) => {
+        const card = row as ReceivedCardData;
+
+        const text = generateCardText(card);
+
         try {
-          const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_EMBEDDING_MODEL}:embedContent?key=${env.GEMINI_API_KEY}`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                content: { parts: [{ text }] },
-                outputDimensionality: 768
-              })
-            }
-          );
+          const values = await generateEmbedding(env, text);
 
-          if (!response.ok) {
-            // Consume response body to prevent deadlock
-            await response.text().catch(() => {});
-            throw new Error(`Embedding API failed: ${response.status}`);
-          }
+          // industry/location 暫時停用（節省 subrequests）
+          const industry = undefined;
+          const location = undefined;
 
-          const data = await response.json() as { embedding: { values: number[] } };
+          const metadata: VectorMetadata = {
+            // Filter 層 (用於 pre-filtering)
+            user_email: card.user_email!,
+            organization_normalized: card.organization_normalized || card.organization || '',
+            industry,
+            location,
+
+            // Display 層 (用於結果顯示)
+            full_name: card.full_name,
+            organization: card.organization || '',
+            title: card.title || '',
+            department: card.department || undefined,
+
+            // Timestamp 層 (用於 recency filtering)
+            created_at: card.created_at!,
+            updated_at: card.updated_at!,
+          };
+
           return {
-            id: card.uuid,
-            values: data.embedding.values,
-            metadata: {
-              user_email: card.user_email,
-              card_uuid: card.uuid,
-              full_name: card.full_name,
-              organization: card.organization
-            }
+            id: card.uuid!,
+            values,
+            metadata,
           };
         } catch (error) {
           console.error(`[Vectorize Sync] Failed to embed card ${card.uuid}:`, error);
@@ -87,7 +75,7 @@ export async function syncCardEmbeddings(env: Env): Promise<{ synced: number }> 
         }
       });
 
-      const vectors = (await Promise.all(embeddingPromises)).filter(v => v !== null) as VectorizeVector[];
+      const vectors = (await Promise.all(embeddingPromises)).filter(v => v !== null) as unknown as VectorizeVector[];
 
       if (vectors.length > 0) {
         // 批次插入 Vectorize
@@ -95,10 +83,10 @@ export async function syncCardEmbeddings(env: Env): Promise<{ synced: number }> 
 
         // 批次更新同步時間
         const now = Date.now();
-        const updatePromises = vectors.map(v => 
+        const updatePromises = vectors.map(v =>
           env.DB.prepare(`
-            UPDATE received_cards 
-            SET embedding_synced_at = ? 
+            UPDATE received_cards
+            SET embedding_synced_at = ?
             WHERE uuid = ?
           `).bind(now, v.id).run()
         );

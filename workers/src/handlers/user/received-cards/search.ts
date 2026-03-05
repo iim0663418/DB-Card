@@ -201,46 +201,46 @@ async function semanticSearch(
 }
 
 /**
- * Reciprocal Rank Fusion (RRF)
- * Combines semantic and keyword search results using rank-based scoring
+ * Merge and re-rank results using Reciprocal Rank Fusion (RRF)
+ * RRF formula: score = Σ(1 / (k + rank)), k = 60 (standard constant)
  * Reference: ACM SIGIR 2009 - "Reciprocal Rank Fusion outperforms Condorcet and individual systems"
  */
-function reciprocalRankFusion(
+function mergeAndRerank(
   semanticResults: SearchResult[],
   keywordResults: SearchResult[],
   k: number = 60
 ): SearchResult[] {
   const rrfScores = new Map<string, { result: SearchResult; score: number }>();
-  
+
   // Process semantic results
   semanticResults.forEach((result, index) => {
     const rank = index + 1;
     const rrfScore = 1 / (k + rank);
-    
+
     rrfScores.set(result.uuid, {
       result: { ...result, match_reason: 'semantic' },
       score: rrfScore
     });
   });
-  
+
   // Process keyword results
   keywordResults.forEach((result, index) => {
     const rank = index + 1;
     const rrfScore = 1 / (k + rank);
-    
+
     const existing = rrfScores.get(result.uuid);
     if (existing) {
       // Accumulate RRF scores for documents in both lists
       existing.score += rrfScore;
-      existing.result.match_reason = 'hybrid';
+      existing.result.match_reason = 'semantic + keyword';
     } else {
       rrfScores.set(result.uuid, {
-        result: { ...result, match_reason: 'keyword' },
+        result: { ...result, match_reason: 'keyword match' },
         score: rrfScore
       });
     }
   });
-  
+
   // Sort by RRF score and return
   return Array.from(rrfScores.values())
     .sort((a, b) => b.score - a.score)
@@ -248,103 +248,102 @@ function reciprocalRankFusion(
 }
 
 /**
- * Keyword search fallback (D1 LIKE)
+ * Keyword search - FTS5 does not support Chinese tokenization,
+ * so we delegate directly to the LIKE-based fallback.
  */
 async function keywordSearch(
   env: Env,
   userEmail: string,
   query: string,
-  page: number,
   limit: number
-): Promise<{ results: SearchResult[]; total: number }> {
-  const offset = (page - 1) * limit;
-  
-  // Normalize query to traditional Chinese for consistent search
-  const normalizedQuery = await normalizeToTraditional(query, env);
-  const searchPattern = `%${normalizedQuery}%`;
+): Promise<SearchResult[]> {
+  // FTS5 default tokenizer does not support Chinese; use LIKE fallback instead.
+  // Original FTS5 implementation commented out below.
+  //
+  // const normalizedQuery = (await normalizeToTraditional(query, env)) ?? query;
+  // const ftsQuery = normalizedQuery.trim().replace(/\s+/g, ' OR ');
+  // const { results } = await env.DB.prepare(`
+  //   SELECT rc.uuid, rc.full_name, rc.organization, rc.title,
+  //          rc.email, rc.phone, rc.thumbnail_url, fts.rank
+  //   FROM received_cards_fts fts
+  //   JOIN received_cards rc ON fts.uuid = rc.uuid
+  //   WHERE fts.received_cards_fts MATCH ?
+  //     AND rc.user_email = ?
+  //     AND rc.deleted_at IS NULL
+  //     AND rc.merged_to IS NULL
+  //   ORDER BY fts.rank
+  //   LIMIT ?
+  // `).bind(ftsQuery, userEmail, limit).all();
+  return keywordSearchFallback(env, userEmail, query, limit);
+}
 
-  // Count total matches (use organization_normalized for Chinese search)
-  const countResult = await env.DB.prepare(
-    `SELECT COUNT(*) as total
-     FROM received_cards
-     WHERE user_email = ?
-       AND deleted_at IS NULL
-       AND merged_to IS NULL
-       AND (
-         full_name LIKE ? OR
-         organization_normalized LIKE ? OR
-         organization_en LIKE ? OR
-         organization_alias LIKE ? OR
-         department LIKE ? OR
-         title LIKE ? OR
-         company_summary LIKE ? OR
-         personal_summary LIKE ? OR
-         email LIKE ? OR
-         phone LIKE ? OR
-         website LIKE ? OR
-         address LIKE ? OR
-         note LIKE ?
-       )`
-  )
-    .bind(
-      userEmail,
-      searchPattern, searchPattern, searchPattern, searchPattern, searchPattern,
-      searchPattern, searchPattern, searchPattern, searchPattern, searchPattern,
-      searchPattern, searchPattern, searchPattern
-    )
-    .first<{ total: number }>();
+/**
+ * Fallback keyword search using LIKE (if FTS fails)
+ */
+async function keywordSearchFallback(
+  env: Env,
+  userEmail: string,
+  query: string,
+  limit: number
+): Promise<SearchResult[]> {
+  const normalizedQuery = (await normalizeToTraditional(query, env)) ?? query;
+  const pattern = `%${normalizedQuery}%`;
 
-  const total = countResult?.total || 0;
+  const { results } = await env.DB.prepare(`
+    SELECT uuid, full_name, organization, title, email, phone, thumbnail_url
+    FROM received_cards
+    WHERE user_email = ?
+      AND deleted_at IS NULL
+      AND merged_to IS NULL
+      AND (
+        full_name LIKE ? OR
+        organization LIKE ? OR
+        organization_en LIKE ? OR
+        organization_alias LIKE ? OR
+        title LIKE ? OR
+        department LIKE ? OR
+        company_summary LIKE ? OR
+        personal_summary LIKE ? OR
+        email LIKE ? OR
+        phone LIKE ? OR
+        address LIKE ? OR
+        website LIKE ? OR
+        note LIKE ?
+      )
+    ORDER BY updated_at DESC
+    LIMIT ?
+  `).bind(userEmail, pattern, pattern, pattern, pattern, pattern, pattern, pattern, pattern, pattern, pattern, pattern, pattern, pattern, limit).all();
 
-  // Fetch paginated results (use organization_normalized)
-  const { results } = await env.DB.prepare(
-    `SELECT uuid, full_name, organization, title, email, phone, thumbnail_url
-     FROM received_cards
-     WHERE user_email = ?
-       AND deleted_at IS NULL
-       AND merged_to IS NULL
-       AND (
-         full_name LIKE ? OR
-         organization_normalized LIKE ? OR
-         organization_en LIKE ? OR
-         organization_alias LIKE ? OR
-         department LIKE ? OR
-         title LIKE ? OR
-         company_summary LIKE ? OR
-         personal_summary LIKE ? OR
-         email LIKE ? OR
-         phone LIKE ? OR
-         website LIKE ? OR
-         address LIKE ? OR
-         note LIKE ?
-       )
-     ORDER BY created_at DESC
-     LIMIT ? OFFSET ?`
-  )
-    .bind(
-      userEmail,
-      searchPattern, searchPattern, searchPattern, searchPattern, searchPattern,
-      searchPattern, searchPattern, searchPattern, searchPattern, searchPattern,
-      searchPattern, searchPattern, searchPattern,
-      limit,
-      offset
-    )
-    .all();
+  return results.map((card: any) => ({
+    uuid: card.uuid as string,
+    full_name: card.full_name as string,
+    organization: card.organization as string,
+    title: card.title as string,
+    email: card.email as string,
+    phone: card.phone as string,
+    thumbnail_url: card.thumbnail_url as string | undefined,
+    score: 1.0,
+    match_reason: 'keyword match',
+  }));
+}
 
-  return {
-    results: results.map((card) => ({
-      uuid: card.uuid as string,
-      full_name: card.full_name as string,
-      organization: card.organization as string,
-      title: card.title as string,
-      email: card.email as string,
-      phone: card.phone as string,
-      thumbnail_url: card.thumbnail_url as string | undefined,
-      score: 0.5, // Default score for keyword match
-      match_reason: 'keyword',
-    })),
-    total,
-  };
+/**
+ * Hybrid Search: Semantic (Vectorize) + Keyword (D1) with RRF Re-ranking
+ */
+async function hybridSearch(
+  env: Env,
+  userEmail: string,
+  query: string,
+  limit: number
+): Promise<SearchResult[]> {
+  // Run both searches in parallel; errors in either do not block the other
+  const [semanticResults, keywordResults] = await Promise.all([
+    semanticSearch(env, userEmail, query, 50).catch(() => [] as SearchResult[]),
+    keywordSearch(env, userEmail, query, 50).catch(() => [] as SearchResult[]),
+  ]);
+
+  const merged = mergeAndRerank(semanticResults, keywordResults);
+  return merged.slice(0, limit);
 }
 
 /**
@@ -371,14 +370,8 @@ export async function searchCards(request: Request, env: Env): Promise<Response>
     const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
     const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '20', 10)));
 
-    // Parallel execution: semantic + keyword search (Hybrid Search)
-    const [semanticResults, keywordResults] = await Promise.all([
-      semanticSearch(env, userEmail, query, Math.min(100, limit * 2)),
-      keywordSearch(env, userEmail, query, 1, Math.min(100, limit * 2))
-    ]);
-
-    // Merge results using Reciprocal Rank Fusion (RRF)
-    const merged = reciprocalRankFusion(semanticResults, keywordResults.results);
+    // Hybrid Search: Semantic + Keyword with RRF Re-ranking
+    const merged = await hybridSearch(env, userEmail, query, limit);
 
     // Paginate
     const total = merged.length;

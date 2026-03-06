@@ -23,6 +23,10 @@ export async function handleTriggerCron(request: Request, env: Env, ctx: Executi
         const { autoTagCards } = await import('../../cron/auto-tag-cards');
         await autoTagCards(env);
       }},
+      { name: 'Find Cross-User Candidates', fn: async () => {
+        const { findCrossUserCandidates } = await import('../../cron/find-candidates');
+        await findCrossUserCandidates(env);
+      }},
       { name: 'Cleanup Sessions', fn: async () => {
         const { handleScheduledCleanup } = await import('../../scheduled-cleanup');
         await handleScheduledCleanup(env);
@@ -47,6 +51,9 @@ export async function handleTriggerCron(request: Request, env: Env, ctx: Executi
         const { cleanupReceivedCards } = await import('../../cron/cleanup-received-cards');
         await cleanupReceivedCards(env);
       }},
+      // FileSearchStore Cleanup: Manual trigger only (auto-schedule disabled 2026-03-06)
+      // Reason: FileSearchStore upload disabled since 2026-03-05 (Gemini API limitation)
+      // No new documents → No cleanup needed → Avoid wasting Workers quota
       { name: 'FileSearchStore Cleanup', fn: async () => {
         const { cleanupFileSearchStore } = await import('../../cron/cleanup-filesearchstore');
         await cleanupFileSearchStore(env);

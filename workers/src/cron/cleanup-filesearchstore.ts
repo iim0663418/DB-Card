@@ -1,17 +1,18 @@
 /**
  * Cleanup FileSearchStore documents older than 2 years (Cron Job)
  *
- * @deprecated Since 2026-03-05 - Disabled
+ * @deprecated Since 2026-03-05 - Auto-schedule disabled 2026-03-06
  * @reason FileSearchStore upload disabled due to Gemini API limitation
  * @alternative Vectorize cleanup (see src/cron/cleanup-received-cards.ts)
+ * @status Manual trigger only (preserved for future re-activation)
  * @todo Re-enable when FileSearchStore is re-activated
  */
 
 import type { Env } from '../types';
 
 /**
- * Cleanup FileSearchStore documents older than 2 years (Cron Job)
- * Runs daily at 02:00 UTC
+ * Cleanup FileSearchStore documents older than 2 years
+ * Manual trigger only (auto-schedule disabled)
  */
 export async function cleanupFileSearchStore(env: Env): Promise<{ deleted: number }> {
   if (!env.FILE_SEARCH_STORE_NAME) {

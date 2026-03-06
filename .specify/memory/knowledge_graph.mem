@@ -1290,3 +1290,6 @@
 260306|trigger_cron|enhancement|Find_Cross_User_Candidates_Added
 260306|Deployment|staging|29551fe2_Manual_Trigger_Complete
 260306|Version|staging|29551fe2_d008_485f_8f02_e537a4e78e24
+260306|UI|candidates_tab|user_plus_Icon_Added
+260306|Deployment|staging|226baee4_Candidates_Icon
+260306|Version|staging|226baee4_9c27_4239_b02f_ac8889c4e2b7

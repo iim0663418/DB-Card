@@ -1,6 +1,8 @@
 // Received Cards Module
 // AI-First Card Capture Feature
 
+/* global FeatureAPI */
+
 // ==================== Mobile Upload Optimization ====================
 
 /**
@@ -270,97 +272,7 @@ async function generateThumbnailClient(file) {
 // ==================== API Helper ====================
 const ReceivedCardsAPI = {
   async call(endpoint, options = {}) {
-    const csrfToken = sessionStorage.getItem('csrfToken');
-
-    // Debug: log CSRF token status
-    if (!csrfToken) {
-      // CSRF token not found - request will proceed without it
-    }
-
-    const headers = {
-      ...options.headers,
-      ...(csrfToken && { 'X-CSRF-Token': csrfToken })
-    };
-
-    // Create timeout controller
-    const timeoutMs = options.timeoutMs ?? 30000;  // Default 30 seconds
-    const timeoutController = new AbortController();
-    const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs);
-
-    // Combine external signal + timeout signal
-    let combinedSignal;
-    if (options.signal) {
-      // Use AbortSignal.any() if available (modern browsers), otherwise fallback
-      if (typeof AbortSignal.any === 'function') {
-        combinedSignal = AbortSignal.any([options.signal, timeoutController.signal]);
-      } else {
-        // Manual fallback: listen to both signals
-        combinedSignal = timeoutController.signal;
-        if (options.signal.aborted) {
-          clearTimeout(timeoutId);
-          // eslint-disable-next-line no-undef
-          throw new DOMException('Request aborted', 'AbortError');
-        }
-        options.signal.addEventListener('abort', () => {
-          clearTimeout(timeoutId);
-          timeoutController.abort();
-        });
-      }
-    } else {
-      combinedSignal = timeoutController.signal;
-    }
-
-    let response;
-    try {
-      response = await fetch(endpoint, {
-        ...options,
-        headers,
-        credentials: 'include',
-        signal: combinedSignal
-      });
-      clearTimeout(timeoutId);
-    } catch (error) {
-      clearTimeout(timeoutId);
-      
-      // User-friendly timeout error
-      if (error.name === 'AbortError' && timeoutController.signal.aborted) {
-        const timeoutError = new Error('請求超時，請稍後再試');
-        timeoutError.name = 'TimeoutError';
-        throw timeoutError;
-      }
-      throw error;
-    }
-
-    if (!response.ok) {
-      // Handle 401 Unauthorized - token expired
-      if (response.status === 401) {
-        window.location.href = '/user-portal.html';
-        throw new Error('Session expired');
-      }
-
-      let errorMessage = `HTTP ${response.status}`;
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorData.error || errorMessage;
-      } catch {
-        // If response is not JSON, try to read as text
-        try {
-          const text = await response.text();
-          if (text) errorMessage = text;
-        } catch {
-          // Ignore text parsing errors
-        }
-      }
-      const error = new Error(errorMessage);
-      error.status = response.status;
-      throw error;
-    }
-
-    if (response.status === 204) {
-      return null;
-    }
-
-    return await response.json();
+    return await FeatureAPI.call(endpoint, options, 'api');
   },
 
   async uploadImage(file, signal) {

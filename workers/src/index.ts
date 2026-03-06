@@ -552,6 +552,12 @@ export default {
       return addMinimalSecurityHeaders(await handleTriggerCron(request, env, ctx));
     }
 
+    // GET /api/admin/test-batch-api - Test Batch API (admin only)
+    if (url.pathname === '/api/admin/test-batch-api' && request.method === 'GET') {
+      const { handleTestBatchAPI } = await import('./handlers/admin/test-batch-api');
+      return addMinimalSecurityHeaders(await handleTestBatchAPI(request, env));
+    }
+
     // GET /api/admin/candidates/precision - Get precision statistics
     if (url.pathname === '/api/admin/candidates/precision' && request.method === 'GET') {
       const { handleGetPrecision } = await import('./handlers/admin/candidates');
@@ -748,18 +754,25 @@ export default {
 
   async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
     // Single Cron: 02:00 台灣時間 - All Tasks
+    
+    // Phase 1: Batch API Jobs (Priority - Poll existing jobs first)
+    console.log('[Cron] Phase 1: Batch API Jobs');
+    const { autoTagCardsBatch } = await import('./cron/auto-tag-cards-batch');
+    await autoTagCardsBatch(env);
+
+    // Phase 2: Vectorize & Other Sync Tasks
+    console.log('[Cron] Phase 2: Vectorize & Sync');
     const { syncCardEmbeddings } = await import('./cron/sync-card-embeddings');
     await syncCardEmbeddings(env);
 
     const { deduplicateCards } = await import('./cron/deduplicate-cards');
     await deduplicateCards(env);
 
-    const { autoTagCards } = await import('./cron/auto-tag-cards');
-    await autoTagCards(env);
-
     const { findCrossUserCandidates } = await import('./cron/find-candidates');
     await findCrossUserCandidates(env);
 
+    // Phase 3: Cleanup Tasks
+    console.log('[Cron] Phase 3: Cleanup');
     const { handleScheduledCleanup } = await import('./scheduled-cleanup');
     const { handleScheduledLogRotation } = await import('./scheduled-log-rotation');
     const { handleScheduledKVCleanup } = await import('./scheduled-kv-cleanup');

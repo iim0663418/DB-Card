@@ -14,7 +14,7 @@ async function findPotentialMatches(
     SELECT 
       uuid,
       user_email,
-      name,
+      full_name,
       email,
       phone,
       organization,
@@ -64,7 +64,7 @@ export async function findCrossUserCandidates(env: Env): Promise<{
     const cardsStmt = env.DB.prepare(`
       SELECT 
         uuid,
-        name,
+        full_name,
         email,
         phone,
         organization,

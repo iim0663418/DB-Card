@@ -73,6 +73,7 @@ export default [
         Image: 'readonly',
         AbortController: 'readonly',
         AbortSignal: 'readonly',
+        DOMException: 'readonly',
         PerformanceObserver: 'readonly',
         performance: 'readonly',
 
@@ -88,6 +89,11 @@ export default [
         SimpleWebAuthnBrowser: 'readonly',
         API_BASE: 'readonly',
 
+        // Application Classes
+        APIClient: 'readonly',
+        ErrorPolicy: 'readonly',
+        SearchOrchestrator: 'readonly',
+
         // Global Functions
         api: 'readonly',
         clearPreview: 'readonly',
@@ -96,6 +102,7 @@ export default [
         getSocialLinkError: 'readonly',
         showToast: 'readonly',
         loadCards: 'readonly',
+        showWebViewErrorModal: 'readonly',
 
         // Functions called from HTML onclick attributes
         closeWebViewWarning: 'writable',

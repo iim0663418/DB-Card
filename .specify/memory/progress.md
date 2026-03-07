@@ -1,39 +1,41 @@
-# Batch API 止血完成
+# Cron Subrequest 限制修復
 
-## Status: ✅ 統一路徑 + 標記 Deprecated
+## Status: ✅ 優先與背景任務分離
 
-### 執行內容
+### 問題診斷
+- **錯誤**: "Too many API requests by single Worker invocation"
+- **原因**: 12 個任務同步執行，超過 50 subrequest 限制
+- **影響**: 後半段任務全部失敗
 
-1. **Migration 0041**: 清理卡住的 Batch Jobs
-   - 標記超過 48 小時的 job 為 `dead_letter`
-   - 釋放卡住的 queue entries
-   - 保留審計記錄（不刪除）
+### 解決方案
 
-2. **統一 Cron 路徑**: 
-   - `scheduled()` 改用簡單版 `autoTagCards()`
-   - `trigger-cron` 已經是簡單版
-   - 行為一致性恢復
+#### 優先任務（阻塞執行）
+1. Auto-tag Cards
+2. Find Cross-User Candidates
+3. Sync Embeddings
+4. Deduplicate Cards
 
-3. **標記 Deprecated**:
-   - `auto-tag-cards-batch.ts` 加入 @deprecated
-   - 決策文件：`docs/decisions/batch-api-decision.md`
-   - 評估日期：2026-03-21（2 週後）
+#### 背景任務（ctx.waitUntil）
+1. Cleanup Sessions
+2. Log Rotation
+3. KV Cleanup
+4. Asset Cleanup
+5. Temp Uploads Cleanup
+6. Received Cards Cleanup
+7. FileSearchStore Cleanup
+8. Backfill Organization Normalized
 
 ### 部署狀態
 - Version: v5.0.0
-- Bundle: 1059.06 KiB / gzip: 198.70 KiB
-- Startup: 25ms
+- Bundle: 1059.26 KiB / gzip: 198.63 KiB
+- Startup: 12ms
 - Health: ✅ OK
 
-### 監控指標（2 週）
-- Auto-tag 成功率
-- 處理卡片數量
-- Gemini API 配額使用
+### 效益
+- 優先任務：立即回應，不超過 subrequest 限制
+- 背景任務：非阻塞執行，不影響回應時間
+- 總任務數：12 個（4 優先 + 8 背景）
 
-### 決策點（2026-03-21）
-- 如果簡單版滿足需求 → 移除 Batch API
-- 如果需要更大規模 → 修復 Batch API
-
-### 技術債務
-- 保留：batch_jobs 表（審計）
-- 待移除：auto-tag-cards-batch.ts, batch-manager.ts
+### 測試
+- 重新觸發 Admin Cron
+- 預期：優先任務成功，背景任務排程執行

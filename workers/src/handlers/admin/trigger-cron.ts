@@ -9,16 +9,8 @@ export async function handleTriggerCron(request: Request, env: Env, ctx: Executi
   try {
     console.log('[Manual Cron] Starting manual execution...');
 
-    // Execute all cron tasks (same as scheduled())
-    const tasks = [
-      { name: 'Sync Embeddings', fn: async () => {
-        const { syncCardEmbeddings } = await import('../../cron/sync-card-embeddings');
-        await syncCardEmbeddings(env);
-      }},
-      { name: 'Deduplicate Cards', fn: async () => {
-        const { deduplicateCards } = await import('../../cron/deduplicate-cards');
-        await deduplicateCards(env);
-      }},
+    // Priority tasks (blocking - must complete)
+    const priorityTasks = [
       { name: 'Auto-tag Cards', fn: async () => {
         const { autoTagCards } = await import('../../cron/auto-tag-cards');
         await autoTagCards(env);
@@ -27,6 +19,18 @@ export async function handleTriggerCron(request: Request, env: Env, ctx: Executi
         const { findCrossUserCandidates } = await import('../../cron/find-candidates');
         await findCrossUserCandidates(env);
       }},
+      { name: 'Sync Embeddings', fn: async () => {
+        const { syncCardEmbeddings } = await import('../../cron/sync-card-embeddings');
+        await syncCardEmbeddings(env);
+      }},
+      { name: 'Deduplicate Cards', fn: async () => {
+        const { deduplicateCards } = await import('../../cron/deduplicate-cards');
+        await deduplicateCards(env);
+      }},
+    ];
+
+    // Background tasks (non-blocking - use waitUntil)
+    const backgroundTasks = [
       { name: 'Cleanup Sessions', fn: async () => {
         const { handleScheduledCleanup } = await import('../../scheduled-cleanup');
         await handleScheduledCleanup(env);
@@ -51,9 +55,6 @@ export async function handleTriggerCron(request: Request, env: Env, ctx: Executi
         const { cleanupReceivedCards } = await import('../../cron/cleanup-received-cards');
         await cleanupReceivedCards(env);
       }},
-      // FileSearchStore Cleanup: Manual trigger only (auto-schedule disabled 2026-03-06)
-      // Reason: FileSearchStore upload disabled since 2026-03-05 (Gemini API limitation)
-      // No new documents → No cleanup needed → Avoid wasting Workers quota
       { name: 'FileSearchStore Cleanup', fn: async () => {
         const { cleanupFileSearchStore } = await import('../../cron/cleanup-filesearchstore');
         await cleanupFileSearchStore(env);
@@ -64,8 +65,9 @@ export async function handleTriggerCron(request: Request, env: Env, ctx: Executi
       }},
     ];
 
+    // Execute priority tasks (blocking)
     const results = [];
-    for (const task of tasks) {
+    for (const task of priorityTasks) {
       const startTime = Date.now();
       try {
         await task.fn();
@@ -79,6 +81,20 @@ export async function handleTriggerCron(request: Request, env: Env, ctx: Executi
         console.error(`[Manual Cron] ${task.name}: ❌ ${errorMsg}`);
       }
     }
+
+    // Execute background tasks (non-blocking)
+    ctx.waitUntil((async () => {
+      for (const task of backgroundTasks) {
+        try {
+          await task.fn();
+          console.log(`[Manual Cron] ${task.name}: ✅ (background)`);
+        } catch (error) {
+          console.error(`[Manual Cron] ${task.name}: ❌ ${error}`);
+        }
+      }
+    })());
+
+    results.push({ task: 'Background Tasks', status: 'scheduled', count: backgroundTasks.length });
 
     return new Response(JSON.stringify({
       success: true,

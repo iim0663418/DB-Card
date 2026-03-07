@@ -65,7 +65,10 @@ function normalizeIndustry(raw: string): string {
 }
 
 function normalizeLocation(raw: string): string {
-  // 提取城市名稱
+  // 統一繁簡體（臺→台）
+  const normalized = raw.replace(/臺/g, '台');
+  
+  // 城市映射（支援完整名稱和簡稱）
   const cityMappings: Record<string, string> = {
     '台北市': '台北',
     '新北市': '新北',
@@ -77,12 +80,12 @@ function normalizeLocation(raw: string): string {
     'Taiwan': '其他',
   };
 
-  const mapped = cityMappings[raw];
+  const mapped = cityMappings[normalized];
   if (mapped) return mapped;
 
-  // 檢查是否包含城市名
+  // 檢查是否包含城市名（支援區域，如"台北市信義區"）
   for (const city of LOCATION_CATEGORIES) {
-    if (raw.includes(city)) {
+    if (normalized.includes(city)) {
       return city;
     }
   }

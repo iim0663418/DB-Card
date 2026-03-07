@@ -3,9 +3,10 @@
 
 export interface Env {
   DB: D1Database;
-  KV: KVNamespace;
+  KV: KVNamespace;  // Used for card type cache only (idempotency moved to DO)
   RATE_LIMITER: DurableObjectNamespace;
   PHYSICAL_CARDS: R2Bucket;
+  VECTORIZE: VectorizeIndex;  // Vectorize 綁定
   KEK: string;
   OLD_KEK?: string;
   SETUP_TOKEN?: string;
@@ -19,6 +20,10 @@ export interface Env {
   GOOGLE_CLIENT_SECRET: string;
   JWT_SECRET: string;
   GEMINI_API_KEY: string;
+  GEMINI_MODEL: string;  // gemini-3-flash-preview
+  GEMINI_EMBEDDING_MODEL: string;  // text-embedding-004
+  FILE_SEARCH_STORE_NAME?: string;
+  ctx?: ExecutionContext;  // For waitUntil in auto-learning
 }
 
 // Bilingual support types
@@ -386,4 +391,61 @@ export interface HealthResponse {
   };
   alerts: AlertItem[];
   timestamp: number;
+}
+
+// ── RAG / Vectorize Types ─────────────────────────────────────────────────────
+
+/**
+ * Flat representation of a row from the `received_cards` table, used by
+ * embedding generation, deduplication, and search modules.
+ *
+ * 13 content fields + identity/timestamp fields.
+ */
+export interface ReceivedCardData {
+  uuid?: string;
+  user_email?: string;
+  // Content fields (13)
+  full_name: string;
+  organization?: string;
+  organization_en?: string;
+  organization_alias?: string;
+  organization_normalized?: string;
+  title?: string;
+  department?: string;
+  company_summary?: string;
+  personal_summary?: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  address?: string;
+  note?: string;
+  // Timestamps
+  created_at?: number;
+  updated_at?: number;
+}
+
+/**
+ * Metadata stored alongside each Vectorize vector.
+ *
+ * Organised into three conceptual layers:
+ *   - **Filter** — used for pre-filtering to narrow the ANN search space.
+ *   - **Display** — returned with results for UI rendering.
+ *   - **Timestamp** — used for recency-based filtering / sorting.
+ */
+export interface VectorMetadata {
+  // Filter layer (pre-filtering, reduces ANN latency 30-50%)
+  user_email: string;
+  organization_normalized: string;
+  industry?: string;
+  location?: string;
+
+  // Display layer (returned in search results)
+  full_name: string;
+  organization: string;
+  title: string;
+  department?: string;
+
+  // Timestamp layer (recency filtering)
+  created_at: number;
+  updated_at: number;
 }

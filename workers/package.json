@@ -1,6 +1,6 @@
 {
 	"name": "db-card",
-	"version": "5.0.0",
+	"version": "5.0.1",
 	"description": "DB-Card NFC Digital Business Card System with Dual-Layer Cache",
 	"license": "Apache-2.0",
 	"private": true,

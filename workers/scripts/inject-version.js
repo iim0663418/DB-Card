@@ -9,7 +9,7 @@ const version = pkg.version;
 
 console.log(`📦 Injecting version: ${version}`);
 
-// 1. Update config.js
+// 1. Update frontend config.js
 const configPath = path.join(__dirname, '../public/js/config.js');
 const configContent = fs.readFileSync(configPath, 'utf8');
 const updatedConfig = configContent.replace(
@@ -18,6 +18,16 @@ const updatedConfig = configContent.replace(
 );
 fs.writeFileSync(configPath, updatedConfig, 'utf8');
 console.log('✓ Updated public/js/config.js');
+
+// 2. Update backend config.ts
+const backendConfigPath = path.join(__dirname, '../src/config.ts');
+const backendConfigContent = fs.readFileSync(backendConfigPath, 'utf8');
+const updatedBackendConfig = backendConfigContent.replace(
+  /export const APP_VERSION = 'v[^']+';/,
+  `export const APP_VERSION = 'v${version}';`
+);
+fs.writeFileSync(backendConfigPath, updatedBackendConfig, 'utf8');
+console.log('✓ Updated src/config.ts');
 
 // 2. Update wrangler.toml
 const wranglerPath = path.join(__dirname, '../wrangler.toml');

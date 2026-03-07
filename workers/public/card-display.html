@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <!-- Resource Hints for Performance Optimization -->
     <link rel="dns-prefetch" href="https://db-card-staging.csw30454.workers.dev">
     <link rel="preconnect" href="https://db-card-staging.csw30454.workers.dev">
@@ -38,10 +38,28 @@ body {
     padding: 0;
 }
 
+/* iPhone Safe Area Support */
+#ui-header {
+    padding-top: max(1.5rem, env(safe-area-inset-top));
+}
+
 /* 深色模式支援 */
 @media (prefers-color-scheme: dark) {
     body {
         background-color: #1a1a1a;
+    }
+}
+
+/* Desktop hint - No layout shift */
+#desktop-hint {
+    visibility: hidden;
+    opacity: 0;
+}
+
+@media (min-width: 768px) {
+    #desktop-hint {
+        visibility: visible;
+        /* opacity controlled by JS */
     }
 }
 
@@ -155,7 +173,9 @@ body {
 }
 
 [data-lucide] {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     /* Size controlled by Tailwind classes (w-3, w-4, w-5, w-6, w-10) */
     flex-shrink: 0;
 }
@@ -233,8 +253,8 @@ body {
     })();
     </script>
 
-    <!-- Vite Icon Bundle (Tree-shaken: 11.62 KB, 96.9% reduction) -->
-    <script type="module" src="/dist/icons.sS1r72aF.js"></script>
+    <!-- Vite Icon Bundle (Tree-shaken: 11.62 KB, 96.9% reduction) - Dynamic Loading -->
+    <script src="/js/manifest-loader.js"></script>
 
     <!-- Optimized: Async loading for independent scripts -->
     <script src="/vendor/qr-creator.min.js" 
@@ -295,6 +315,10 @@ body {
             </div>
         </div>
         <p id="loading-text" class="mt-8 hud-text animate-pulse">雲端資料解密中...</p>
+        <button id="loading-cancel-btn" style="display: none;" class="mt-4 px-4 py-2 text-sm text-slate-600 hover:text-slate-900 transition-colors inline-flex items-center gap-2">
+            <i data-lucide="x-circle" class="w-4 h-4"></i>
+            <span>取消</span>
+        </button>
     </div>
 
 
@@ -307,7 +331,7 @@ body {
     <!-- UI 工具列 -->
     <header id="ui-header" class="fixed top-0 left-0 right-0 z-50 p-6 flex justify-between items-start pointer-events-none">
         <div class="space-y-1">
-            <p class="hud-text opacity-40" aria-hidden="true">DB_CARD_V4</p>
+            <p class="hud-text opacity-40" aria-hidden="true">DB_CARD</p>
             <div class="flex items-center gap-2">
                 <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse" aria-hidden="true"></div>
                 <span class="text-[9px] font-bold tracking-widest text-slate-500 uppercase" data-i18n="session-status">名片已開啟</span>
@@ -341,7 +365,7 @@ body {
     </div>
 
     <!-- 桌面版互動提示 -->
-    <div id="desktop-hint" class="hidden md:block fixed bottom-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+    <div id="desktop-hint" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0" style="transition: opacity 0.5s ease-out;">
         <div class="bg-slate-900/90 backdrop-blur-sm text-white px-6 py-3 rounded-full shadow-2xl border border-white/10 animate-bounce">
             <p class="text-sm font-medium flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -353,6 +377,8 @@ body {
     </div>
 
     <div id="main-container" class="relative z-10 w-full max-w-4xl px-4 py-24 hidden reveal">
+        
+        <!-- Actual card content -->
 
         <div class="card-perspective">
             <div id="card" class="card-inner" tabindex="0" role="button" aria-label="點擊翻面切換語言" onclick="toggleFlip(event)">
@@ -558,9 +584,9 @@ body {
 
             <!-- 設計理念 -->
             <div class="mb-8 text-center space-y-1.5 opacity-70 hover:opacity-100 transition-opacity duration-300">
-                <p class="text-xs text-slate-400 font-medium tracking-wider uppercase">Design Concept</p>
+                <p class="text-xs text-slate-400 font-medium tracking-wider uppercase" data-i18n="design_concept_title">Design Concept</p>
                 <p class="text-sm text-slate-600 leading-relaxed">
-                    由虛到實的數位名片成形
+                    <span data-i18n="design_concept_desc">由虛到實的數位名片成形</span>
                 </p>
             </div>
 
@@ -603,15 +629,19 @@ body {
 
     <script type="module" src="js/main.js"></script>
     <script>
-    // 桌面版互動提示自動隱藏
-    setTimeout(() => {
-        const hint = document.getElementById('desktop-hint');
-        if (hint) {
-            hint.style.transition = 'opacity 0.5s ease-out';
+    // 桌面版互動提示：淡入 → 淡出
+    const hint = document.getElementById('desktop-hint');
+    if (hint && window.matchMedia('(min-width: 768px)').matches) {
+        // Fade in after 100ms
+        setTimeout(() => {
+            hint.style.opacity = '1';
+        }, 100);
+        
+        // Fade out after 5s
+        setTimeout(() => {
             hint.style.opacity = '0';
-            setTimeout(() => hint.remove(), 500);
-        }
-    }, 5000);
+        }, 5000);
+    }
 
     // 自動偵測使用者語系
     // 載入動畫：兩階段文字變化
@@ -637,11 +667,8 @@ body {
         if (currentLang === 'en') {
             loadingText.textContent = 'Decrypting cloud data...';
         }
-        
-        // Fallback text after 3 seconds
-        setTimeout(() => {
-            loadingText.textContent = currentLang === 'zh' ? '處理中，請稍候...' : 'Processing, please wait...';
-        }, 3000);
+        // Note: Progressive loading text is now managed by main.js showProgressiveLoading()
+        // Timeline: 0-4s: "雲端資料解密中..." → 4s+: "連線逾時，請稍候..."
     }
 
     // Handle email click (mobile: copy, desktop: mailto)
@@ -659,18 +686,56 @@ body {
     window.copyEmailWithToast = async (event, elementId) => {
         const emailEl = document.getElementById(elementId);
         const email = emailEl.textContent.trim();
-        
+
         if (email === '---') return;
-        
-        try {
-            await navigator.clipboard.writeText(email);
+
+        const success = await copyToClipboard(email);
+        if (success) {
             const message = currentLang === 'zh' ? '已複製電子郵件' : 'Email copied';
             showToast(message);
-        } catch (err) {
-            console.error('Failed to copy email:', err);
+        } else {
             const message = currentLang === 'zh' ? '複製失敗' : 'Copy failed';
             showToast(message, true);
         }
+    };
+
+    // 3-stage clipboard fallback for iOS Safari compatibility
+    window.copyToClipboard = async (text) => {
+        // Stage 1: Try Clipboard API
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            try {
+                await navigator.clipboard.writeText(text);
+                return true;
+            } catch (err) {
+                console.warn('Clipboard API failed, trying execCommand:', err);
+            }
+        }
+
+        // Stage 2: Try document.execCommand with temporary textarea
+        try {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'absolute';
+            textarea.style.left = '-9999px';
+            textarea.readOnly = true;
+            document.body.appendChild(textarea);
+
+            textarea.select();
+            textarea.setSelectionRange(0, text.length);
+
+            const success = document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            if (success) {
+                return true;
+            }
+        } catch (err) {
+            console.warn('execCommand failed:', err);
+        }
+
+        // Stage 3: Show alert with selectable text
+        alert(text);
+        return false;
     };
 
     // Show toast notification
@@ -690,22 +755,22 @@ body {
     window.copyEmail = async (event, elementId) => {
         event.preventDefault();
         event.stopPropagation();
-        
+
         const emailEl = document.getElementById(elementId);
         const email = emailEl.textContent.trim();
-        
+
         if (email === '---') return;
-        
-        try {
-            await navigator.clipboard.writeText(email);
-            
-            // Visual feedback
-            const button = event.target.closest('button');
-            if (!button) return;
 
-            const icon = button.querySelector('i');
-            if (!icon) return;
+        const success = await copyToClipboard(email);
 
+        // Visual feedback
+        const button = event.target.closest('button');
+        if (!button) return;
+
+        const icon = button.querySelector('i');
+        if (!icon) return;
+
+        if (success) {
             // Use Unicode fallback for check icon
             const originalIcon = icon.getAttribute('data-lucide');
             icon.setAttribute('data-lucide', 'check');
@@ -717,8 +782,8 @@ body {
                 icon.textContent = '⧉'; // copy icon
                 button.classList.remove('text-green-600');
             }, 2000);
-        } catch (err) {
-            console.error('Failed to copy email:', err);
+        } else {
+            console.error('Failed to copy email');
         }
     };
 

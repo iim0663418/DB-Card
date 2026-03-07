@@ -1,6 +1,8 @@
 // Received Cards Module
 // AI-First Card Capture Feature
 
+/* global FeatureAPI */
+
 // ==================== Mobile Upload Optimization ====================
 
 /**
@@ -149,6 +151,7 @@ async function uploadWithRetry(file, thumbnail, signal, maxRetries = 3) {
       
       const response = await fetch(`${API_BASE}/api/user/received-cards/upload`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'X-Idempotency-Key': idempotencyKey,
@@ -191,7 +194,6 @@ async function uploadWithRetry(file, thumbnail, signal, maxRetries = 3) {
       const jitter = Math.random() * 1000;
       const delay = Math.min(baseDelay + jitter, 10000);
       
-      console.log(`[Upload] Retry ${attempt + 1}/${maxRetries} after ${delay}ms`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -270,35 +272,7 @@ async function generateThumbnailClient(file) {
 // ==================== API Helper ====================
 const ReceivedCardsAPI = {
   async call(endpoint, options = {}) {
-    const csrfToken = sessionStorage.getItem('csrfToken');
-
-    // Debug: log CSRF token status
-    if (!csrfToken) {
-      // CSRF token not found - request will proceed without it
-    }
-
-    const headers = {
-      ...options.headers,
-      ...(csrfToken && { 'X-CSRF-Token': csrfToken })
-    };
-
-    const response = await fetch(endpoint, {
-      ...options,
-      headers,
-      credentials: 'include',
-      signal: options.signal
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP ${response.status}`);
-    }
-
-    if (response.status === 204) {
-      return null;
-    }
-
-    return await response.json();
+    return await FeatureAPI.call(endpoint, options, 'api');
   },
 
   async uploadImage(file, signal) {
@@ -315,14 +289,10 @@ const ReceivedCardsAPI = {
       }
 
       // 3. Compress image (cancellable)
-      console.log(`[Upload] Compressing ${file.name} (${(file.size/1024/1024).toFixed(2)}MB)`);
       const compressedFile = await compressImageWithCancellation(file, signal);
-      console.log(`[Upload] Compressed to ${(compressedFile.size/1024/1024).toFixed(2)}MB`);
 
       // 4. Generate thumbnail (parallel with upload preparation)
-      console.log('[Upload] Generating thumbnail...');
       const thumbnail = await generateThumbnailClient(compressedFile);
-      console.log('[Upload] Thumbnail generated');
 
       // 5. Check cancellation after compression
       if (signal?.aborted) {
@@ -338,7 +308,6 @@ const ReceivedCardsAPI = {
         throw new Error('Upload failed: Invalid response from server');
       }
 
-      console.log('[Upload] Success:', uploadData.upload_id);
       return uploadData;
 
     } catch (error) {
@@ -371,7 +340,8 @@ const ReceivedCardsAPI = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ upload_id: uploadId }),
-      signal
+      signal,
+      timeoutMs: 240000  // 4 minutes for Gemini API + Google Search
     });
   },
 
@@ -401,6 +371,11 @@ const ReceivedCardsAPI = {
     return await this.call('/api/user/received-cards');
   },
 
+  async searchCards(query, page = 1, limit = 100, signal = null) {
+    const params = new URLSearchParams({ q: query, page: page.toString(), limit: limit.toString() });
+    return await this.call(`/api/user/received-cards/search?${params}`, { signal });
+  },
+
   async updateCard(uuid, data) {
     return await this.call(`/api/user/received-cards/${uuid}`, {
       method: 'PATCH',
@@ -421,6 +396,7 @@ const CardUploadStateMachine = {
   state: 'idle',
   currentData: null,
   currentUploadId: null,
+  currentFile: null,
   abortController: null,
   skipAITimer: null,
 
@@ -435,9 +411,9 @@ const CardUploadStateMachine = {
   updateUI() {
     const states = {
       idle: { show: ['upload-area'], hide: ['ai-processing', 'preview-modal', 'error-message'] },
-      uploading: { show: ['ai-processing'], hide: ['upload-area', 'preview-modal'], step: 0 },
-      ocr: { show: ['ai-processing'], hide: ['upload-area', 'preview-modal'], step: 1 },
-      preview: { show: ['preview-modal'], hide: ['ai-processing', 'upload-area', 'skip-ai-button'] },
+      uploading: { show: ['ai-processing'], hide: ['upload-area', 'preview-modal', 'error-message'], step: 0 },
+      ocr: { show: ['ai-processing'], hide: ['upload-area', 'preview-modal', 'error-message'], step: 1 },
+      preview: { show: ['preview-modal'], hide: ['ai-processing', 'upload-area', 'skip-ai-button', 'error-message'] },
       error: { show: ['error-message'], hide: ['ai-processing', 'upload-area', 'preview-modal'] }
     };
 
@@ -453,6 +429,14 @@ const CardUploadStateMachine = {
       const el = document.getElementById(id);
       if (el) el.classList.add('hidden');
     });
+
+    // Update error message
+    if (this.state === 'error' && this.currentData?.error) {
+      const errorText = document.getElementById('error-text');
+      if (errorText) {
+        errorText.textContent = this.currentData.error;
+      }
+    }
 
     if (config.step !== undefined) {
       this.updateAIStep(config.step);
@@ -489,6 +473,63 @@ const CardUploadStateMachine = {
     }
   },
 
+  // Schema validator for extract result
+  validateExtractResult(data) {
+    const schema = {
+      full_name: v => typeof v === 'string',
+      organization: v => typeof v === 'string',
+      organization_en: v => typeof v === 'string' || v === null,
+      organization_alias: v => Array.isArray(v),
+      organization_full: v => typeof v === 'string' || v === null,
+      department: v => typeof v === 'string' || v === null,
+      title: v => typeof v === 'string' || v === null,
+      phone: v => typeof v === 'string' || v === null,
+      email: v => typeof v === 'string' || v === null,
+      website: v => typeof v === 'string' || v === null,
+      address: v => typeof v === 'string' || v === null,
+      company_summary: v => typeof v === 'string' || v === null,
+      personal_summary: v => typeof v === 'string' || v === null,
+      sources: v => Array.isArray(v)
+    };
+
+    const errors = [];
+    for (const [key, validator] of Object.entries(schema)) {
+      if (!validator(data[key])) {
+        errors.push(`Invalid ${key}: ${typeof data[key]}`);
+      }
+    }
+
+    return errors.length === 0 ? { ok: true } : { ok: false, errors };
+  },
+
+  // Safe data extraction with validation
+  safeExtractData(rawData) {
+    // Validate schema
+    const validation = this.validateExtractResult(rawData);
+    if (!validation.ok) {
+      console.error('[Schema Validation Failed]', validation.errors);
+      throw new Error('Invalid API response format');
+    }
+
+    // Extract with defensive defaults
+    return {
+      full_name: rawData.full_name || '',
+      organization: rawData.organization || '',
+      organization_en: rawData.organization_en || '',
+      organization_alias: Array.isArray(rawData.organization_alias) ? rawData.organization_alias : [],
+      organization_full: rawData.organization_full || '',
+      department: rawData.department || '',
+      title: rawData.title || '',
+      phone: rawData.phone || '',
+      email: rawData.email || '',
+      website: rawData.website || '',
+      address: rawData.address || '',
+      company_summary: rawData.company_summary || '',
+      personal_summary: rawData.personal_summary || '',
+      sources: Array.isArray(rawData.sources) ? rawData.sources : []
+    };
+  },
+
   async processCard(file) {
     this.abortController = new AbortController();
     
@@ -499,12 +540,11 @@ const CardUploadStateMachine = {
       this.currentUploadId = uploadData.upload_id;
       
       this.setState('ocr');
-      const extractResult = await Promise.race([
-        ReceivedCardsAPI.unifiedExtract(this.currentUploadId, this.abortController.signal),
-        this.timeout(20000, 'Extract timeout')
-      ]);
+      const extractResult = await ReceivedCardsAPI.unifiedExtract(this.currentUploadId, this.abortController.signal);
       
-      const extractData = extractResult.data || extractResult;
+      // Safe extraction with schema validation
+      const rawData = extractResult.data || extractResult;
+      const extractData = this.safeExtractData(rawData);
       
       this.currentData = {
         ...extractData,
@@ -519,7 +559,16 @@ const CardUploadStateMachine = {
       if (error.name === 'AbortError') {
         return;
       }
-      this.setState('error', { error: error.message });
+
+      // Handle 429 errors gracefully
+      if (error.status === 429) {
+        if (typeof showToast === 'function') {
+          showToast('⚠️ 系統繁忙，請稍後再試', 'warning');
+        }
+        this.setState('idle');
+      } else {
+        this.setState('error', { error: error.message });
+      }
     } finally {
       this.abortController = null;
     }
@@ -574,11 +623,37 @@ const CardUploadStateMachine = {
     safeSetValue('preview-address', data.address);
     safeSetValue('preview-note', data.note);
     
-    if (data.company_summary) {
-      document.getElementById('preview-company-summary').textContent = data.company_summary;
-      document.getElementById('ai-summary-section').classList.remove('hidden');
-    } else {
-      document.getElementById('ai-summary-section').classList.add('hidden');
+    // Safe handling of AI summaries
+    const companySummaryEl = document.getElementById('preview-company-summary');
+    const personalSummaryEl = document.getElementById('preview-personal-summary');
+    const aiSectionEl = document.getElementById('ai-summary-section');
+    
+    let hasAnySummary = false;
+    
+    if (data.company_summary && companySummaryEl) {
+      companySummaryEl.textContent = data.company_summary;
+      const parent = companySummaryEl.parentElement;
+      if (parent) parent.classList.remove('hidden');
+      hasAnySummary = true;
+    } else if (companySummaryEl && companySummaryEl.parentElement) {
+      companySummaryEl.parentElement.classList.add('hidden');
+    }
+    
+    if (data.personal_summary && personalSummaryEl) {
+      personalSummaryEl.textContent = data.personal_summary;
+      const parent = personalSummaryEl.parentElement;
+      if (parent) parent.classList.remove('hidden');
+      hasAnySummary = true;
+    } else if (personalSummaryEl && personalSummaryEl.parentElement) {
+      personalSummaryEl.parentElement.classList.add('hidden');
+    }
+    
+    if (aiSectionEl) {
+      if (hasAnySummary) {
+        aiSectionEl.classList.remove('hidden');
+      } else {
+        aiSectionEl.classList.add('hidden');
+      }
     }
     
     const saveBtn = document.getElementById('preview-save-btn');
@@ -604,7 +679,10 @@ const CardUploadStateMachine = {
           name_suffix: document.getElementById('preview-name-suffix').value,
           organization: document.getElementById('preview-organization').value,
           organization_en: document.getElementById('preview-organization-en').value,
-          organization_alias: document.getElementById('preview-organization-alias').value,
+          organization_alias: document.getElementById('preview-organization-alias').value
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s.length > 0),
           department: document.getElementById('preview-department').value,
           title: document.getElementById('preview-title').value,
           phone: document.getElementById('preview-phone').value,
@@ -613,6 +691,7 @@ const CardUploadStateMachine = {
           address: document.getElementById('preview-address').value,
           note: document.getElementById('preview-note').value,
           company_summary: data.company_summary,
+          personal_summary: data.personal_summary,
           sources: data.sources,
           ai_status: aiStatus,
           ocr_raw_text: data.ocr_raw_text
@@ -630,6 +709,10 @@ const CardUploadStateMachine = {
 
         await ReceivedCards.loadCards();
 
+        // 恢復按鈕狀態
+        saveBtn.disabled = false;
+        saveBtn.textContent = originalText || '確認儲存';
+
         this.reset();
 
       } catch (error) {
@@ -639,7 +722,10 @@ const CardUploadStateMachine = {
 
         // 錯誤時恢復按鈕狀態
         saveBtn.disabled = false;
-        saveBtn.innerHTML = originalText || '確認儲存';
+        saveBtn.textContent = originalText || '確認儲存';
+        
+        // 重置狀態以允許重新上傳
+        this.reset();
       } finally {
         saveBtn.removeEventListener('click', handleSave);
       }
@@ -700,9 +786,27 @@ const ReceivedCards = {
       en: 'Enjoying this feature? Consider <a href="https://github.com/sponsors/iim0663418" target="_blank" class="underline font-semibold">sponsoring the developer</a> to support the project!'
     };
     
-    if (typeof showToast === 'function') {
-      showToast(messages[lang] || messages.zh, 'info', 8000);
-    }
+    // Use custom toast for HTML content
+    this.showHTMLToast(messages[lang] || messages.zh, 'info', 8000);
+  },
+
+  // Custom toast that supports HTML content
+  showHTMLToast(html, type = 'info', duration = 3000) {
+    const toast = document.createElement('div');
+    toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white z-50 max-w-md ${
+      type === 'info' ? 'bg-blue-500' : 
+      type === 'success' ? 'bg-green-500' : 
+      type === 'warning' ? 'bg-yellow-500' : 
+      'bg-red-500'
+    }`;
+    toast.innerHTML = html;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transition = 'opacity 0.3s';
+      setTimeout(() => toast.remove(), 300);
+    }, duration);
   },
   
   bindEvents() {
@@ -749,12 +853,15 @@ const ReceivedCards = {
   },
 
   bindSearchEvents() {
-    // 搜尋框輸入事件
+    // Debounce timer and abort controller for search
+    let searchDebounceTimer = null;
+    let searchAbortController = null;
+
+    // 搜尋框輸入事件（帶 debounce）
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
         this.currentKeyword = e.target.value.toLowerCase().trim();
-        this.filterCards();
 
         // 顯示/隱藏清除按鈕
         const clearBtn = document.getElementById('clearSearch');
@@ -765,6 +872,28 @@ const ReceivedCards = {
             clearBtn.classList.add('hidden');
           }
         }
+
+        // 取消前一個搜尋請求
+        if (searchAbortController) {
+          searchAbortController.abort('New search initiated');
+        }
+
+        // 清除前一個 debounce timer
+        if (searchDebounceTimer) {
+          clearTimeout(searchDebounceTimer);
+        }
+
+        // 如果搜尋框為空，立即執行
+        if (!this.currentKeyword) {
+          this.filterCards();
+          return;
+        }
+
+        // 300ms debounce（業界最佳實踐）
+        searchDebounceTimer = setTimeout(() => {
+          searchAbortController = new AbortController();
+          this.filterCards(searchAbortController.signal);
+        }, 300);
       });
     }
 
@@ -858,9 +987,54 @@ const ReceivedCards = {
     });
   },
 
-  filterCards() {
+  async filterCards(signal = null) {
+    // 如果有搜尋關鍵字，使用智慧搜尋 API
+    if (this.currentKeyword && this.currentKeyword.trim().length > 0) {
+      try {
+        // 顯示智慧搜尋中的提示
+        const resultCount = document.getElementById('resultCount');
+        if (resultCount) {
+          resultCount.textContent = '智慧搜尋中...';
+          resultCount.className = 'text-blue-600 animate-pulse';
+        }
+
+        const response = await ReceivedCardsAPI.searchCards(this.currentKeyword.trim(), 1, 100, signal);
+        
+        if (response && response.results) {
+          // 智慧搜尋結果不再套用標籤過濾（後端已優化排序）
+          // 標籤過濾僅在無搜尋關鍵字時生效
+          
+          // 更新結果數量
+          if (resultCount) {
+            resultCount.textContent = `${response.results.length} (智慧搜尋)`;
+            resultCount.className = ''; // 恢復原始樣式
+          }
+
+          // 渲染名片（帶高亮）
+          this.renderCards(response.results, this.currentKeyword);
+          this.updateClearFiltersButton();
+          this.updateURL();
+          return;
+        }
+      } catch (error) {
+        // Ignore user cancellation (new search initiated)
+        if (error.name === 'AbortError' || error.code === 'CANCELLED') {
+          return;
+        }
+        console.error('Smart search failed, fallback to client-side filter:', error);
+        // 失敗時回退到客戶端過濾
+      }
+    }
+
+    // 無搜尋關鍵字時，確保使用最新的完整清單
+    // 如果 allCards 為空或可能過期，重新載入
+    if (!this.allCards || this.allCards.length === 0) {
+      await this.loadCards();
+    }
+
+    // 客戶端過濾（無搜尋或 API 失敗時）
     const filtered = this.allCards.filter(card => {
-      // 搜尋過濾（擴展到新欄位）
+      // 搜尋過濾（擴展到 13 個欄位：涵蓋率 65%）
       const matchKeyword = !this.currentKeyword ||
         card.full_name?.toLowerCase().includes(this.currentKeyword) ||
         card.organization?.toLowerCase().includes(this.currentKeyword) ||
@@ -868,10 +1042,15 @@ const ReceivedCards = {
         card.organization_alias?.toLowerCase().includes(this.currentKeyword) ||
         card.department?.toLowerCase().includes(this.currentKeyword) ||
         card.title?.toLowerCase().includes(this.currentKeyword) ||
+        card.company_summary?.toLowerCase().includes(this.currentKeyword) ||
+        card.personal_summary?.toLowerCase().includes(this.currentKeyword) ||
         card.email?.toLowerCase().includes(this.currentKeyword) ||
-        card.phone?.toLowerCase().includes(this.currentKeyword);
+        card.phone?.toLowerCase().includes(this.currentKeyword) ||
+        card.website?.toLowerCase().includes(this.currentKeyword) ||
+        card.address?.toLowerCase().includes(this.currentKeyword) ||
+        card.note?.toLowerCase().includes(this.currentKeyword);
 
-      // 標籤過濾（多選 OR 邏輯）
+      // 標籤過濾（多選 OR 邏輯）- 僅在無搜尋關鍵字時生效
       const matchTags = this.selectedTags.length === 0 ||
         this.selectedTags.some(tag => card.tags?.includes(tag));
 
@@ -972,62 +1151,139 @@ const ReceivedCards = {
   },
 
   initTagFilters() {
-    // 從所有名片中提取唯一標籤並計算數量
-    const tagCounts = {};
+    // 從所有名片中提取標籤並按類別分組（新格式：物件陣列）
+    const tagsByCategory = {
+      industry: new Map(),
+      location: new Map(),
+      expertise: new Map(),
+      seniority: new Map()
+    };
+
     this.allCards.forEach(card => {
-      card.tags?.forEach(tag => {
-        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+      if (!card.tags) return;
+      
+      card.tags.forEach(tag => {
+        // 新格式：{ category, raw, normalized }
+        if (typeof tag === 'object' && tag.category && tag.normalized) {
+          const category = tag.category;
+          const normalized = tag.normalized;
+          
+          if (tagsByCategory[category]) {
+            const count = tagsByCategory[category].get(normalized) || 0;
+            tagsByCategory[category].set(normalized, count + 1);
+          }
+        }
+        // 向後相容：舊格式 "category:value"
+        else if (typeof tag === 'string') {
+          const [category, value] = tag.split(':');
+          if (tagsByCategory[category]) {
+            const count = tagsByCategory[category].get(value) || 0;
+            tagsByCategory[category].set(value, count + 1);
+          }
+        }
       });
     });
 
-    // 渲染標籤按鈕
-    const tagFilters = document.getElementById('tagFilters');
-    if (!tagFilters) return;
+    // 渲染各類別標籤
+    this.renderCategoryTags('industry', tagsByCategory.industry);
+    this.renderCategoryTags('location', tagsByCategory.location);
+    this.renderCategoryTags('expertise', tagsByCategory.expertise);
+    this.renderCategoryTags('seniority', tagsByCategory.seniority);
 
-    if (Object.keys(tagCounts).length === 0) {
-      tagFilters.innerHTML = '<span class="text-sm text-slate-400">暫無標籤</span>';
+    // Accordion toggle
+    const toggle = document.getElementById('tagFilterToggle');
+    const content = document.getElementById('tagFilterContent');
+    const chevron = document.getElementById('tagFilterChevron');
+
+    toggle?.addEventListener('click', () => {
+      const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+      toggle.setAttribute('aria-expanded', !isExpanded);
+      content?.classList.toggle('hidden');
+      chevron?.classList.toggle('rotate-180');
+    });
+
+    // Clear filters
+    document.getElementById('clearFilters')?.addEventListener('click', () => {
+      this.selectedTags = [];
+      document.querySelectorAll('.tag-filter').forEach(btn => {
+        btn.classList.remove('bg-blue-500', 'text-white', 'border-blue-500');
+        btn.classList.add('border-slate-300', 'text-slate-700');
+      });
+      this.updateActiveFilterCount();
+      this.filterCards();
+    });
+  },
+
+  renderCategoryTags(category, tagsMap) {
+    const container = document.getElementById(`${category}Tags`);
+    if (!container) return;
+
+    if (tagsMap.size === 0) {
+      container.textContent = '無資料';
+      container.className = 'text-xs text-slate-400';
       return;
     }
 
-    tagFilters.innerHTML = Object.entries(tagCounts).map(([tag, count]) => `
-      <button
-        class="tag-filter px-3 py-1.5 rounded-full text-sm font-bold border-2 border-gray-300 text-gray-700 hover:border-blue-500 hover:text-blue-600 transition-all"
-        data-tag="${this.escapeHTML(tag)}"
-      >
-        ${this.getTagLabel(tag)} <span class="text-xs opacity-75">(${count})</span>
-      </button>
-    `).join('');
+    // 清空容器
+    container.innerHTML = '';
+    
+    // 使用 DOM 操作創建按鈕
+    Array.from(tagsMap.entries())
+      .sort((a, b) => b[1] - a[1]) // 按數量排序
+      .forEach(([value, count]) => {
+        const button = document.createElement('button');
+        button.className = 'tag-filter px-3 py-1.5 rounded-full text-sm font-medium border-2 border-slate-300 text-slate-700 hover:border-blue-500 hover:text-blue-600 transition-all';
+        button.dataset.tag = `${category}:${value}`;
+        
+        const text = document.createTextNode(`${value} `);
+        const countSpan = document.createElement('span');
+        countSpan.className = 'text-xs opacity-60';
+        countSpan.textContent = `(${count})`;
+        
+        button.appendChild(text);
+        button.appendChild(countSpan);
+        container.appendChild(button);
+      });
 
     // 綁定點擊事件
-    document.querySelectorAll('.tag-filter').forEach(btn => {
+    container.querySelectorAll('.tag-filter').forEach(btn => {
       btn.addEventListener('click', () => {
         const tag = btn.dataset.tag;
 
-        // 切換選中狀態
         if (this.selectedTags.includes(tag)) {
           this.selectedTags = this.selectedTags.filter(t => t !== tag);
           btn.classList.remove('bg-blue-500', 'text-white', 'border-blue-500');
-          btn.classList.add('border-gray-300', 'text-gray-700');
+          btn.classList.add('border-slate-300', 'text-slate-700');
         } else {
           this.selectedTags.push(tag);
           btn.classList.add('bg-blue-500', 'text-white', 'border-blue-500');
-          btn.classList.remove('border-gray-300', 'text-gray-700');
+          btn.classList.remove('border-slate-300', 'text-slate-700');
         }
 
-        // 更新篩選
+        this.updateActiveFilterCount();
         this.filterCards();
       });
     });
   },
 
+  updateActiveFilterCount() {
+    const countBadge = document.getElementById('activeFilterCount');
+    const clearBtn = document.getElementById('clearFilters');
+
+    if (this.selectedTags.length > 0) {
+      countBadge.textContent = this.selectedTags.length;
+      countBadge.classList.remove('hidden');
+      clearBtn?.classList.remove('hidden');
+    } else {
+      countBadge.classList.add('hidden');
+      clearBtn?.classList.add('hidden');
+    }
+  },
+
   getTagLabel(tag) {
-    const labels = {
-      'government': '政府機關',
-      'listed': '上市公司',
-      'startup': '新創公司',
-      'ngo': '非營利組織'
-    };
-    return labels[tag] || tag;
+    // 標籤格式: "_category:value"
+    const [category, value] = tag.split(':');
+    return value || tag;
   },
 
   highlightText(text, keyword) {
@@ -1041,6 +1297,7 @@ const ReceivedCards = {
   },
   
   async handleFileUpload(file) {
+    this.currentFile = file;
     if (file.size > 5 * 1024 * 1024) {
       if (typeof showToast === 'function') {
         showToast('檔案大小不可超過 5MB', 'error');
@@ -1049,6 +1306,16 @@ const ReceivedCards = {
     }
     
     await CardUploadStateMachine.processCard(file);
+  },
+  
+  retryUpload() {
+    if (!this.currentFile) {
+      if (typeof showToast === 'function') {
+        showToast('無法重試：檔案已遺失', 'error');
+      }
+      return;
+    }
+    CardUploadStateMachine.processCard(this.currentFile);
   },
   
   async loadCards() {
@@ -1274,6 +1541,19 @@ const ReceivedCards = {
   },
 
   renderCardHTML(card, keyword = '') {
+    // Parse organization_alias if it's a JSON string
+    let aliasDisplay = '';
+    if (card.organization_alias) {
+      try {
+        const aliases = typeof card.organization_alias === 'string' && card.organization_alias.startsWith('[')
+          ? JSON.parse(card.organization_alias)
+          : card.organization_alias;
+        aliasDisplay = Array.isArray(aliases) ? aliases.join(', ') : aliases;
+      } catch {
+        aliasDisplay = card.organization_alias;
+      }
+    }
+
     return `
       <div class="received-card glass-panel p-6 rounded-[2rem] space-y-4"
            data-card-id="${card.uuid}"
@@ -1285,7 +1565,7 @@ const ReceivedCards = {
             <h3 class="text-lg font-black text-slate-900 truncate tracking-tight">${this.highlightText(card.full_name, keyword)}</h3>
             ${card.organization ? `<p class="text-sm font-bold text-slate-600 truncate">${this.highlightText(card.organization, keyword)}</p>` : ''}
             ${card.organization_en ? `<p class="text-xs text-slate-500 truncate">${this.escapeHTML(card.organization_en)}</p>` : ''}
-            ${card.organization_alias ? `<p class="text-xs text-slate-400 truncate italic">(${this.escapeHTML(card.organization_alias)})</p>` : ''}
+            ${aliasDisplay ? `<p class="text-xs text-slate-400 truncate italic">(${this.escapeHTML(aliasDisplay)})</p>` : ''}
             ${card.title ? `<p class="text-xs text-slate-500 truncate uppercase tracking-wider">${this.highlightText(card.title, keyword)}</p>` : ''}
           </div>
         </div>
@@ -1297,6 +1577,16 @@ const ReceivedCards = {
         </div>
         ` : ''}
         ${card.note ? `<p class="text-xs text-slate-500 italic truncate px-3 py-2 rounded-xl border border-white/20" style="background: rgba(255, 255, 255, 0.4);">${this.escapeHTML(card.note)}</p>` : ''}
+        ${card.tags && card.tags.length > 0 || card.related_contacts > 0 ? `
+        <div class="flex flex-wrap gap-2">
+          ${card.related_contacts > 0 ? `<span class="px-2 py-1 rounded-full text-xs font-medium" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">相關聯絡人: ${card.related_contacts} 人</span>` : ''}
+          ${card.tags && card.tags.length > 0 ? card.tags.map(tag => {
+            // 向後相容：支援舊格式 string 和新格式 object
+            const displayText = typeof tag === 'string' ? tag : tag.raw || tag.normalized;
+            return `<span class="px-2 py-1 rounded-full text-xs font-medium" style="background: rgba(104, 104, 172, 0.1); color: var(--moda-accent);">${this.escapeHTML(displayText)}</span>`;
+          }).join('') : ''}
+        </div>
+        ` : ''}
         <div class="pt-4 mt-4 border-t border-white/30 flex items-center justify-between gap-3">
           ${card.source === 'own' ? `
           <label class="inline-flex items-center cursor-pointer">
@@ -1381,7 +1671,49 @@ const ReceivedCards = {
         }
       }
 
-      // 4. 下載檔案
+      // 4. 設備檢測與平台特定處理
+      const userAgent = navigator.userAgent || '';
+      const isIOS = /(iPhone|iPad|iPod)/i.test(userAgent);
+      const isAndroid = /Android/i.test(userAgent);
+
+      // iOS: 使用 data URI 打開系統通訊錄
+      if (isIOS) {
+        const vcardText = await blob.text();
+        const dataUri = 'data:text/vcard;charset=utf-8,' + encodeURIComponent(vcardText);
+        window.open(dataUri, '_blank');
+        showToast('請選擇「加入聯絡資訊」', 'success');
+        return;
+      }
+
+      // Android: 嘗試 Contact Picker API，失敗則降級為下載
+      if (isAndroid) {
+        // 檢查 Contact Picker API 支援
+        const hasContactsAPI = 'contacts' in navigator && 'ContactsManager' in window;
+
+        if (hasContactsAPI) {
+          try {
+            // 注意：Contact Picker API 僅支援讀取，不支援寫入
+            // 因此 Android 仍然使用下載方式，但保留 API 檢測邏輯以備未來擴展
+            throw new Error('Contact Picker API does not support writing contacts');
+          } catch {
+            // 降級為下載
+          }
+        }
+
+        // Android 下載流程（與 Desktop 相同）
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('vCard 已下載', 'success');
+        return;
+      }
+
+      // Desktop: 原有下載行為
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -1566,11 +1898,24 @@ const ReceivedCards = {
       if (card.name_suffix) fullName = fullName + ', ' + card.name_suffix;
       document.getElementById('detail-name').textContent = fullName;
       
+      // Parse organization_alias
+      let aliasDisplay = '';
+      if (card.organization_alias) {
+        try {
+          const aliases = typeof card.organization_alias === 'string' && card.organization_alias.startsWith('[')
+            ? JSON.parse(card.organization_alias)
+            : card.organization_alias;
+          aliasDisplay = Array.isArray(aliases) ? aliases.join(', ') : aliases;
+        } catch {
+          aliasDisplay = card.organization_alias;
+        }
+      }
+      
       // 公司和部門並存顯示（含雙語和別名）
       let orgParts = [];
       if (card.organization) orgParts.push(card.organization);
       if (card.organization_en) orgParts.push(`(${card.organization_en})`);
-      if (card.organization_alias) orgParts.push(`[${card.organization_alias}]`);
+      if (aliasDisplay) orgParts.push(`(${aliasDisplay})`);
       if (card.department) orgParts.push(`- ${card.department}`);
       document.getElementById('detail-org').textContent = orgParts.join(' ');
 
@@ -1599,7 +1944,7 @@ const ReceivedCards = {
       this.renderAIStatus(card);
 
       // 渲染公司摘要
-      this.renderCompanySummary(card);
+      this.renderAISummaries(card);
 
       // 綁定按鈕事件
       const editBtn = document.getElementById('detail-edit-btn');
@@ -1676,22 +2021,46 @@ const ReceivedCards = {
     container.appendChild(badge);
   },
 
-  renderCompanySummary(card) {
-    const companyContainer = document.getElementById('company-summary-container');
+  renderAISummaries(card) {
+    const aiContainer = document.getElementById('ai-summaries-container');
+    const companySection = document.getElementById('company-summary-section');
     const companyText = document.getElementById('company-summary-text');
+    const personalSection = document.getElementById('personal-summary-section');
+    const personalText = document.getElementById('personal-summary-text');
     const sourcesContainer = document.getElementById('sources-container');
     const sourcesList = document.getElementById('sources-list');
 
-    // 顯示公司摘要
-    if (card.company_summary && companyContainer && companyText) {
+    let hasAnySummary = false;
+
+    // 顯示組織摘要
+    if (card.company_summary && companySection && companyText) {
       companyText.textContent = card.company_summary;
-      companyContainer.classList.remove('hidden');
-    } else if (companyContainer) {
-      companyContainer.classList.add('hidden');
+      companySection.classList.remove('hidden');
+      hasAnySummary = true;
+    } else if (companySection) {
+      companySection.classList.add('hidden');
     }
 
-    // 顯示參考來源（如果有公司摘要）
-    if (card.company_summary && card.sources && card.sources.length > 0) {
+    // 顯示個人摘要
+    if (card.personal_summary && personalSection && personalText) {
+      personalText.textContent = card.personal_summary;
+      personalSection.classList.remove('hidden');
+      hasAnySummary = true;
+    } else if (personalSection) {
+      personalSection.classList.add('hidden');
+    }
+
+    // 顯示 AI 摘要容器
+    if (aiContainer) {
+      if (hasAnySummary) {
+        aiContainer.classList.remove('hidden');
+      } else {
+        aiContainer.classList.add('hidden');
+      }
+    }
+
+    // 顯示參考來源（如果有任何摘要）
+    if (hasAnySummary && card.sources && card.sources.length > 0) {
       if (sourcesList) {
         sourcesList.innerHTML = '';
 
@@ -1797,10 +2166,15 @@ const ReceivedCards = {
         form.elements.address.value = enrichData.address;
       }
       
-      // 儲存 AI 摘要到表單 dataset（供儲存時使用）
-      if (enrichData.company_summary) {
-        form.dataset.companySummary = enrichData.company_summary;
+      // AI 摘要欄位（總是回填，因為是 AI 生成的核心價值）
+      if (enrichData.company_summary && form.elements.company_summary) {
+        form.elements.company_summary.value = enrichData.company_summary;
       }
+      if (enrichData.personal_summary && form.elements.personal_summary) {
+        form.elements.personal_summary.value = enrichData.personal_summary;
+      }
+      
+      // 儲存 AI 來源到表單 dataset（供儲存時使用）
       if (enrichData.sources) {
         form.dataset.aiSources = JSON.stringify(enrichData.sources);
       }
@@ -1965,13 +2339,26 @@ const ReceivedCards = {
       return;
     }
 
+    // Parse organization_alias for editing
+    let aliasValue = '';
+    if (card.organization_alias) {
+      try {
+        const aliases = typeof card.organization_alias === 'string' && card.organization_alias.startsWith('[')
+          ? JSON.parse(card.organization_alias)
+          : card.organization_alias;
+        aliasValue = Array.isArray(aliases) ? aliases.join(', ') : aliases;
+      } catch {
+        aliasValue = card.organization_alias;
+      }
+    }
+
     // 填充表單
     form.elements.name_prefix.value = card.name_prefix || '';
     form.elements.name.value = card.full_name || '';
     form.elements.name_suffix.value = card.name_suffix || '';
     form.elements.organization.value = card.organization || '';
     form.elements.organization_en.value = card.organization_en || '';
-    form.elements.organization_alias.value = card.organization_alias || '';
+    form.elements.organization_alias.value = aliasValue;
     form.elements.department.value = card.department || '';
     form.elements.title.value = card.title || '';
     form.elements.email.value = card.email || '';
@@ -1979,6 +2366,14 @@ const ReceivedCards = {
     form.elements.website.value = card.website || '';
     form.elements.address.value = card.address || '';
     form.elements.notes.value = card.note || '';
+    
+    // AI 生成的摘要欄位
+    if (form.elements.company_summary) {
+      form.elements.company_summary.value = card.company_summary || '';
+    }
+    if (form.elements.personal_summary) {
+      form.elements.personal_summary.value = card.personal_summary || '';
+    }
 
     // 儲存 card_uuid
     form.dataset.cardUuid = cardUuid;
@@ -2072,7 +2467,9 @@ const ReceivedCards = {
       phone: form.elements.phone.value.trim(),
       website: form.elements.website.value.trim(),
       address: form.elements.address.value.trim(),
-      notes: form.elements.notes.value.trim()
+      notes: form.elements.notes.value.trim(),
+      company_summary: form.elements.company_summary?.value.trim() || '',
+      personal_summary: form.elements.personal_summary?.value.trim() || ''
     };
 
     // 驗證
@@ -2099,7 +2496,9 @@ const ReceivedCards = {
         phone: formData.phone,
         website: formData.website,
         address: formData.address,
-        note: formData.notes
+        note: formData.notes,
+        company_summary: formData.company_summary || null,
+        personal_summary: formData.personal_summary || null
       };
       
       // 如果有 AI 補齊的資料，一併更新
@@ -2158,291 +2557,3 @@ function backToSelection() {
   ReceivedCards.hide();
 }
 
-// ==================== Batch Upload Module ====================
-const BatchUpload = {
-  currentBatchId: null,
-  progressInterval: null,
-
-  init() {
-    this.bindBatchEvents();
-  },
-
-  bindBatchEvents() {
-    const dropZone = document.getElementById('batch-drop-zone');
-    const fileInput = document.getElementById('batch-file-input');
-    const cancelBtn = document.getElementById('cancel-batch-upload');
-
-    if (!dropZone || !fileInput) return;
-
-    // Click to select files
-    dropZone.addEventListener('click', () => fileInput.click());
-
-    // File input change
-    fileInput.addEventListener('change', (e) => {
-      const files = Array.from(e.target.files);
-      if (files.length > 0) {
-        this.handleBatchUpload(files);
-      }
-      // Reset file input
-      e.target.value = '';
-    });
-
-    // Drag & Drop events
-    dropZone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropZone.style.borderColor = '#3b82f6';
-      dropZone.style.backgroundColor = '#eff6ff';
-    });
-
-    dropZone.addEventListener('dragleave', (e) => {
-      e.preventDefault();
-      dropZone.style.borderColor = '';
-      dropZone.style.backgroundColor = '';
-    });
-
-    dropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropZone.style.borderColor = '';
-      dropZone.style.backgroundColor = '';
-
-      const files = Array.from(e.dataTransfer.files);
-      this.handleBatchUpload(files);
-    });
-
-    // Cancel upload
-    if (cancelBtn) {
-      cancelBtn.addEventListener('click', () => this.cancelUpload());
-    }
-  },
-
-  validateFiles(files) {
-    const MAX_FILES = 20;
-    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-    const VALID_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-
-    // Check file count
-    if (files.length > MAX_FILES) {
-      if (typeof showToast === 'function') {
-        showToast(`最多只能上傳 ${MAX_FILES} 張圖片`, 'error');
-      }
-      return false;
-    }
-
-    // Check each file
-    for (const file of files) {
-      // Check file size
-      if (file.size > MAX_FILE_SIZE) {
-        if (typeof showToast === 'function') {
-          showToast(`檔案 ${file.name} 超過 10MB 限制`, 'error');
-        }
-        return false;
-      }
-
-      // Check file type
-      if (!VALID_TYPES.includes(file.type)) {
-        if (typeof showToast === 'function') {
-          showToast(`檔案 ${file.name} 不是有效的圖片格式`, 'error');
-        }
-        return false;
-      }
-    }
-
-    return true;
-  },
-
-  async handleBatchUpload(files) {
-    try {
-      // Validate files
-      if (!this.validateFiles(files)) {
-        return;
-      }
-
-      // Show progress UI
-      this.showProgressUI();
-
-      // Create FormData
-      const formData = new FormData();
-      files.forEach(file => {
-        formData.append('images', file);
-      });
-
-      // Upload
-      const response = await ReceivedCardsAPI.call('/api/user/received-cards/batch-upload', {
-        method: 'POST',
-        body: formData
-      });
-
-      const data = response.data || response;
-      this.currentBatchId = data.batch_id;
-
-      // Start progress polling
-      this.startProgressPolling();
-
-    } catch (error) {
-      if (typeof showToast === 'function') {
-        showToast(`上傳失敗：${error.message}`, 'error');
-      }
-      this.hideProgressUI();
-    }
-  },
-
-  showProgressUI() {
-    const dropZone = document.getElementById('batch-drop-zone');
-    const progressContainer = document.getElementById('batch-progress-container');
-
-    if (dropZone) dropZone.classList.add('hidden');
-    if (progressContainer) progressContainer.classList.remove('hidden');
-  },
-
-  hideProgressUI() {
-    const dropZone = document.getElementById('batch-drop-zone');
-    const progressContainer = document.getElementById('batch-progress-container');
-
-    if (dropZone) dropZone.classList.remove('hidden');
-    if (progressContainer) progressContainer.classList.add('hidden');
-
-    // Reset progress
-    this.updateProgress({ total: 0, completed: 0, failed: 0, results: [] });
-  },
-
-  startProgressPolling() {
-    // Clear existing interval
-    if (this.progressInterval) {
-      clearInterval(this.progressInterval);
-    }
-
-    // Poll every 2 seconds
-    this.progressInterval = setInterval(async () => {
-      try {
-        const response = await ReceivedCardsAPI.call(
-          `/api/user/received-cards/batch/${this.currentBatchId}`
-        );
-        const data = response.data || response;
-
-        this.updateProgress(data);
-
-        // Check if complete
-        const { total, completed, failed } = data;
-        if (completed + failed >= total) {
-          this.onBatchComplete(data);
-        }
-      } catch (_error) {
-        this.cancelUpload();
-        if (typeof showToast === 'function') {
-          showToast('無法取得上傳進度', 'error');
-        }
-      }
-    }, 2000);
-  },
-
-  updateProgress(data) {
-    const { total, completed, failed, results } = data;
-    const percentage = total > 0 ? Math.round((completed + failed) / total * 100) : 0;
-
-    // Update progress bar
-    const progressBar = document.getElementById('batch-progress-bar');
-    if (progressBar) {
-      progressBar.style.width = `${percentage}%`;
-    }
-
-    // Update progress text
-    const progressText = document.getElementById('batch-progress-text');
-    if (progressText) {
-      progressText.textContent = `${completed + failed} / ${total}`;
-    }
-
-    // Update status list
-    const statusList = document.getElementById('batch-status-list');
-    if (statusList && results) {
-      statusList.innerHTML = results.map(result => {
-        const statusColor = this.getStatusColor(result.status);
-        const statusText = this.getStatusText(result.status);
-
-        return `
-          <div class="flex items-center justify-between p-3 bg-white/60 rounded-xl border border-white/40">
-            <span class="text-sm font-bold text-slate-700 truncate flex-1">${this.escapeHTML(result.filename)}</span>
-            <span class="text-xs font-bold ${statusColor} ml-3">${statusText}</span>
-          </div>
-        `;
-      }).join('');
-    }
-  },
-
-  getStatusColor(status) {
-    switch (status) {
-      case 'completed': return 'text-green-600';
-      case 'failed': return 'text-red-600';
-      case 'processing': return 'text-blue-600';
-      default: return 'text-slate-400';
-    }
-  },
-
-  getStatusText(status) {
-    switch (status) {
-      case 'completed': return '✓ 完成';
-      case 'failed': return '✗ 失敗';
-      case 'processing': return '⏳ 處理中';
-      default: return '等待中';
-    }
-  },
-
-  onBatchComplete(data) {
-    const { completed, failed } = data;
-
-    // Stop polling
-    if (this.progressInterval) {
-      clearInterval(this.progressInterval);
-      this.progressInterval = null;
-    }
-
-    // Show completion message
-    if (failed === 0) {
-      if (typeof showToast === 'function') {
-        showToast(`成功上傳 ${completed} 張名片！`, 'success');
-      }
-    } else {
-      if (typeof showToast === 'function') {
-        showToast(`上傳完成：${completed} 成功，${failed} 失敗`, 'warning');
-      }
-    }
-
-    // Reload cards
-    ReceivedCards.loadCards();
-
-    // Reset UI after 3 seconds
-    setTimeout(() => {
-      this.hideProgressUI();
-      this.currentBatchId = null;
-    }, 3000);
-  },
-
-  cancelUpload() {
-    // Stop polling
-    if (this.progressInterval) {
-      clearInterval(this.progressInterval);
-      this.progressInterval = null;
-    }
-
-    // Reset UI
-    this.hideProgressUI();
-    this.currentBatchId = null;
-
-    if (typeof showToast === 'function') {
-      showToast('已取消上傳', 'info');
-    }
-  },
-
-  escapeHTML(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
-};
-
-// Initialize batch upload when ReceivedCards is shown
-const originalReceivedCardsShow = ReceivedCards.show;
-ReceivedCards.show = function() {
-  originalReceivedCardsShow.call(this);
-  BatchUpload.init();
-};

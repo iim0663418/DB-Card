@@ -1,9 +1,9 @@
 import { tapCard, readCard } from './api.js';
 import { getLocalizedText, getLocalizedArray } from './utils/bilingual.js';
-import { APP_VERSION } from './config.js';
 // Icons now loaded via Vite bundle (/dist/icons.DTSin75g.js)
 
-const DEBUG = window.location.hostname === 'localhost';
+const DEBUG = window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1');
+window.DEBUG = DEBUG; // Expose for other modules
 
 // Error message constants for v4.1.0 & v4.2.0
 const ERROR_MESSAGES = {
@@ -25,6 +25,40 @@ function validateQRInput(text) {
     if (text.length > 2953) {
         throw new Error('QR Code text too long (max 2953 characters)');
     }
+}
+
+/**
+ * iOS-compatible requestIdleCallback fallback
+ * @param {Function} fn - Function to execute
+ */
+window.safeIdle = function(fn) {
+    if (typeof window.requestIdleCallback !== 'undefined') {
+        window.requestIdleCallback(fn, { timeout: 2000 });
+    } else {
+        setTimeout(fn, 0);
+    }
+};
+
+/**
+ * Wait for QrCreator library to load (retry mechanism)
+ * @param {number} maxRetries - Maximum retry attempts
+ * @returns {Promise<boolean>} - True if QrCreator is available
+ */
+async function waitForQrCreator(maxRetries = 2) {
+    if (typeof window.QrCreator !== 'undefined') {
+        return true;
+    }
+
+    for (let i = 0; i < maxRetries; i++) {
+        const delay = (i + 1) * 100; // 100ms, 200ms
+        await new Promise(resolve => setTimeout(resolve, delay));
+
+        if (typeof window.QrCreator !== 'undefined') {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 let scene, camera, renderer, mesh, grid;
@@ -134,6 +168,14 @@ const i18nTexts = {
         'zh': '數位名片系統 Digital Business Card',
         'en': 'Digital Business Card System'
     },
+    'design_concept_title': {
+        'zh': '設計理念',
+        'en': 'Design Concept'
+    },
+    'design_concept_desc': {
+        'zh': '由虛到實的數位名片成形',
+        'en': 'From virtual to physical digital card'
+    },
     'desktop-hint': {
         'zh': '移動滑鼠體驗 3D 視差效果',
         'en': 'Move mouse to experience 3D parallax effect'
@@ -201,22 +243,49 @@ const i18nTexts = {
     'desktop-hint-qr-desc': {
         'zh': '使用手機相機掃描，即可加入通訊錄',
         'en': 'Use your phone camera to scan and add to contacts'
+    },
+    'desktop-hint-mobile-title': {
+        'zh': '點擊加入聯絡人',
+        'en': 'Tap to Add Contact'
+    },
+    'desktop-hint-mobile-desc': {
+        'zh': '即可儲存到手機通訊錄',
+        'en': 'Save to your phone contacts'
     }
 };
 
 /**
  * 顯示錯誤訊息
+ * @param {string} message - 錯誤訊息
+ * @param {boolean} retryable - 是否可重試（顯示重試按鈕）
  */
-function showError(message) {
+function showError(message, retryable = false) {
     const errorContainer = document.getElementById('error-container');
     if (errorContainer) {
+        const retryButton = retryable
+            ? `<button data-action="retry" class="px-4 py-2 bg-moda text-white rounded-lg hover:bg-moda/90 transition-colors inline-flex items-center justify-center gap-2">
+                 <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                 <span>${currentLanguage === 'zh' ? '重試' : 'Retry'}</span>
+               </button>`
+            : '';
+
         errorContainer.innerHTML = DOMPurify.sanitize(`
             <div class="error-message">
-                <i data-lucide="alert-circle"></i>
+                <i data-lucide="alert-circle" class="w-12 h-12"></i>
                 <span>${message}</span>
+                ${retryButton}
             </div>
-        `, { ADD_ATTR: ['onclick'] });
+        `);
         errorContainer.style.display = 'block';
+        
+        // Add event listener for retry button
+        if (retryable) {
+            const retryBtn = errorContainer.querySelector('[data-action="retry"]');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', () => location.reload());
+            }
+        }
+        
         if (window.initIcons) window.initIcons();
     } else {
         console.error(message);
@@ -242,7 +311,7 @@ function showNotification(message, type = 'info') {
         notification.innerHTML = DOMPurify.sanitize(`
             <i data-lucide="${icons[type] || 'info'}"></i>
             <span>${message}</span>
-        `, { ADD_ATTR: ['onclick'] });
+        `);
 
         notificationContainer.appendChild(notification);
         if (window.initIcons) window.initIcons();
@@ -308,11 +377,106 @@ async function initApp() {
     // 2. 內容已顯示，延遲初始化特效
     const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
     if (isDesktop && typeof THREE !== 'undefined') {
-        requestIdleCallback(() => initThree(), { timeout: 2000 });
+        window.safeIdle(() => initThree());
+    }
+}
+
+// Loading state management
+let loadingTimer = null;
+let loadingStage = 0;
+let loadingAbortController = null;
+let userCancelledLoading = false;
+
+function showProgressiveLoading() {
+    const loadingText = document.getElementById('loading-text');
+    const loadingIcon = document.getElementById('loading-icon');
+    const cancelBtn = document.getElementById('loading-cancel-btn');
+    if (!loadingText) return;
+
+    // Create abort controller for cancellation
+    loadingAbortController = new AbortController();
+    userCancelledLoading = false;
+
+    // Stage 1: Brand message (0-3s)
+    loadingStage = 1;
+    loadingText.textContent = currentLanguage === 'zh'
+        ? '雲端資料解密中...'
+        : 'Decrypting cloud data...';
+
+    // Setup cancel button
+    if (cancelBtn) {
+        cancelBtn.onclick = () => {
+            if (loadingAbortController) {
+                userCancelledLoading = true;
+                loadingAbortController.abort();
+                clearLoadingTimer();
+                showError(
+                    currentLanguage === 'zh' ? '已取消載入' : 'Loading cancelled',
+                    true
+                );
+                hideLoading();
+            }
+        };
+    }
+
+    // Stage 2: Loading (3-7s)
+    setTimeout(() => {
+        if (loadingStage === 1) {
+            loadingStage = 2;
+            loadingText.textContent = currentLanguage === 'zh'
+                ? '正在載入名片...'
+                : 'Loading card...';
+        }
+    }, 3000);
+
+    // Stage 3: Slow network warning (7-10s)
+    loadingTimer = setTimeout(() => {
+        if (loadingStage <= 2 && cancelBtn) {
+            loadingStage = 3;
+            loadingText.textContent = currentLanguage === 'zh'
+                ? '網路較慢，請稍候...'
+                : 'Slow network, please wait...';
+
+            // Change icon to wifi-off
+            if (loadingIcon) {
+                loadingIcon.innerHTML = '<i data-lucide="wifi-off" class="w-10 h-10 animate-pulse" aria-hidden="true"></i>';
+                if (window.initIcons) window.initIcons();
+            }
+
+            cancelBtn.style.display = 'block';
+        }
+    }, 7000);
+}
+
+window.updateRetryProgress = function(attempt, max) {
+    const loadingText = document.getElementById('loading-text');
+    if (!loadingText) return;
+
+    loadingStage = 2;
+    loadingText.textContent = currentLanguage === 'zh'
+        ? `正在重試 (${attempt}/${max})...`
+        : `Retrying (${attempt}/${max})...`;
+};
+
+function clearLoadingTimer() {
+    if (loadingTimer) {
+        clearTimeout(loadingTimer);
+        loadingTimer = null;
+    }
+    loadingStage = 0;
+    loadingAbortController = null;
+    userCancelledLoading = false;
+
+    // Hide cancel button
+    const cancelBtn = document.getElementById('loading-cancel-btn');
+    if (cancelBtn) {
+        cancelBtn.style.display = 'none';
     }
 }
 
 async function loadCard(uuid) {
+    showProgressiveLoading();
+
     let sessionId = null;
     let cardData = null;
     let sessionData = null;
@@ -326,12 +490,12 @@ async function loadCard(uuid) {
             sessionId = urlSessionId;
         } else {
             // 需要新建 session
-            const tapResult = await tapCard(uuid);
+            const tapResult = await tapCard(uuid, loadingAbortController?.signal);
             sessionId = tapResult.session_id;
         }
 
-        // 讀取名片資料 (readCard 內部處理快取)
-        const readResult = await readCard(uuid, sessionId);
+        // 讀取名片資料 (readCard 內部處理快取和重試)
+        const readResult = await readCard(uuid, sessionId, loadingAbortController?.signal);
         cardData = readResult.data;
         sessionData = {
             session_id: sessionId,
@@ -340,15 +504,49 @@ async function loadCard(uuid) {
         };
 
     } catch (error) {
+        // Check user cancellation BEFORE clearing
+        const wasCancelledByUser = userCancelledLoading;
+        clearLoadingTimer();
+
+        // Handle user cancellation: silently return without logging
+        if (error.name === 'AbortError' && wasCancelledByUser) {
+            return; // Already handled in showProgressiveLoading
+        }
+
+        // Handle timeout abort: show message but don't log (expected behavior)
+        if (error.name === 'AbortError') {
+            const errorMessage = currentLanguage === 'zh'
+                ? '連線逾時，請檢查網路後重試'
+                : 'Connection timeout, please check network and retry';
+            showError(errorMessage, true);
+            hideLoading();
+            return;
+        }
+
+        // Log unexpected errors only
         console.error('Error loading card:', error);
 
-        // Use ERROR_MESSAGES for known error codes
-        const errorMessage = ERROR_MESSAGES[error.code] || error.message || '載入失敗';
-        showError(errorMessage);
+        // User-friendly error message with retry context
+        let errorMessage = error.message;
+        let retryable = false;
 
+        if (error.name === 'RetryExhaustedError') {
+            const statusMsg = error.lastStatus ? ` (HTTP ${error.lastStatus})` : '';
+            errorMessage = currentLanguage === 'zh'
+                ? `連線失敗，已重試 3 次${statusMsg}`
+                : `Connection failed after 3 retries${statusMsg}`;
+            retryable = error.lastStatus && [429, 503].includes(error.lastStatus);
+        } else {
+            // Use ERROR_MESSAGES for known error codes
+            errorMessage = ERROR_MESSAGES[error.code] || error.message || '載入失敗';
+        }
+
+        showError(errorMessage, retryable);
         hideLoading();
         return;
     }
+
+    clearLoadingTimer();
 
     if (cardData) {
         currentCardData = cardData; // 儲存供 vCard 下載使用
@@ -359,7 +557,7 @@ async function loadCard(uuid) {
             const banner = document.createElement('div');
             banner.className = 'warning-banner';
             const remainingText = currentLanguage === 'zh' ? `剩餘 ${sessionData.warning.remaining} 次` : `${sessionData.warning.remaining} remaining`;
-            banner.innerHTML = DOMPurify.sanitize(`<i data-lucide="alert-triangle"></i><span>${sessionData.warning.message} (${remainingText})</span>`, { ADD_ATTR: ['onclick'] });
+            banner.innerHTML = DOMPurify.sanitize(`<i data-lucide="alert-triangle"></i><span>${sessionData.warning.message} (${remainingText})</span>`);
             document.body.insertBefore(banner, document.body.firstChild);
         }
     } else {
@@ -382,9 +580,9 @@ function renderCard(cardData, sessionData) {
 
     // 桌面版自動生成 QR Code - Deferred to idle time
     if (window.innerWidth >= 1024) {
-        requestIdleCallback(() => {
+        window.safeIdle(() => {
             generateQRCode('qrcode-desktop');
-        }, { timeout: 2000 });
+        });
     }
 }
 
@@ -653,11 +851,11 @@ function renderCardFace(cardData, sessionData, lang, suffix) {
 
             // LINE 和 Signal 使用 SVG，其他使用 lucide icon
             if (link.icon === 'line') {
-                node.innerHTML = DOMPurify.sanitize(`<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>`, { ADD_ATTR: ['onclick'] });
+                node.innerHTML = DOMPurify.sanitize(`<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>`);
             } else if (link.icon === 'signal') {
-                node.innerHTML = DOMPurify.sanitize(`<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0q-.934 0-1.83.139l.17 1.111a11 11 0 0 1 3.32 0l.172-1.111A12 12 0 0 0 12 0M9.152.34A12 12 0 0 0 5.77 1.742l.584.961a10.8 10.8 0 0 1 3.066-1.27zm5.696 0-.268 1.094a10.8 10.8 0 0 1 3.066 1.27l.584-.962A12 12 0 0 0 14.848.34M12 2.25a9.75 9.75 0 0 0-8.539 14.459c.074.134.1.292.064.441l-1.013 4.338 4.338-1.013a.62.62 0 0 1 .441.064A9.7 9.7 0 0 0 12 21.75c5.385 0 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25m-7.092.068a12 12 0 0 0-2.59 2.59l.909.664a11 11 0 0 1 2.345-2.345zm14.184 0-.664.909a11 11 0 0 1 2.345 2.345l.909-.664a12 12 0 0 0-2.59-2.59M1.742 5.77A12 12 0 0 0 .34 9.152l1.094.268a10.8 10.8 0 0 1 1.269-3.066zm20.516 0-.961.584a10.8 10.8 0 0 1 1.27 3.066l1.093-.268a12 12 0 0 0-1.402-3.383M.138 10.168A12 12 0 0 0 0 12q0 .934.139 1.83l1.111-.17A11 11 0 0 1 1.125 12q0-.848.125-1.66zm23.723.002-1.111.17q.125.812.125 1.66c0 .848-.042 1.12-.125 1.66l1.111.172a12.1 12.1 0 0 0 0-3.662M1.434 14.58l-1.094.268a12 12 0 0 0 .96 2.591l-.265 1.14 1.096.255.36-1.539-.188-.365a10.8 10.8 0 0 1-.87-2.35m21.133 0a10.8 10.8 0 0 1-1.27 3.067l.962.584a12 12 0 0 0 1.402-3.383zm-1.793 3.848a11 11 0 0 1-2.345 2.345l.664.909a12 12 0 0 0 2.59-2.59zm-19.959 1.1L.357 21.48a1.8 1.8 0 0 0 2.162 2.161l1.954-.455-.256-1.095-1.953.455a.675.675 0 0 1-.81-.81l.454-1.954zm16.832 1.769a10.8 10.8 0 0 1-3.066 1.27l.268 1.093a12 12 0 0 0 3.382-1.402zm-10.94.213-1.54.36.256 1.095 1.139-.266c.814.415 1.683.74 2.591.961l.268-1.094a10.8 10.8 0 0 1-2.35-.869zm3.634 1.24-.172 1.111a12.1 12.1 0 0 0 3.662 0l-.17-1.111q-.812.125-1.66.125a11 11 0 0 1-1.66-.125"/></svg>`, { ADD_ATTR: ['onclick'] });
+                node.innerHTML = DOMPurify.sanitize(`<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0q-.934 0-1.83.139l.17 1.111a11 11 0 0 1 3.32 0l.172-1.111A12 12 0 0 0 12 0M9.152.34A12 12 0 0 0 5.77 1.742l.584.961a10.8 10.8 0 0 1 3.066-1.27zm5.696 0-.268 1.094a10.8 10.8 0 0 1 3.066 1.27l.584-.962A12 12 0 0 0 14.848.34M12 2.25a9.75 9.75 0 0 0-8.539 14.459c.074.134.1.292.064.441l-1.013 4.338 4.338-1.013a.62.62 0 0 1 .441.064A9.7 9.7 0 0 0 12 21.75c5.385 0 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25m-7.092.068a12 12 0 0 0-2.59 2.59l.909.664a11 11 0 0 1 2.345-2.345zm14.184 0-.664.909a11 11 0 0 1 2.345 2.345l.909-.664a12 12 0 0 0-2.59-2.59M1.742 5.77A12 12 0 0 0 .34 9.152l1.094.268a10.8 10.8 0 0 1 1.269-3.066zm20.516 0-.961.584a10.8 10.8 0 0 1 1.27 3.066l1.093-.268a12 12 0 0 0-1.402-3.383M.138 10.168A12 12 0 0 0 0 12q0 .934.139 1.83l1.111-.17A11 11 0 0 1 1.125 12q0-.848.125-1.66zm23.723.002-1.111.17q.125.812.125 1.66c0 .848-.042 1.12-.125 1.66l1.111.172a12.1 12.1 0 0 0 0-3.662M1.434 14.58l-1.094.268a12 12 0 0 0 .96 2.591l-.265 1.14 1.096.255.36-1.539-.188-.365a10.8 10.8 0 0 1-.87-2.35m21.133 0a10.8 10.8 0 0 1-1.27 3.067l.962.584a12 12 0 0 0 1.402-3.383zm-1.793 3.848a11 11 0 0 1-2.345 2.345l.664.909a12 12 0 0 0 2.59-2.59zm-19.959 1.1L.357 21.48a1.8 1.8 0 0 0 2.162 2.161l1.954-.455-.256-1.095-1.953.455a.675.675 0 0 1-.81-.81l.454-1.954zm16.832 1.769a10.8 10.8 0 0 1-3.066 1.27l.268 1.093a12 12 0 0 0 3.382-1.402zm-10.94.213-1.54.36.256 1.095 1.139-.266c.814.415 1.683.74 2.591.961l.268-1.094a10.8 10.8 0 0 1-2.35-.869zm3.634 1.24-.172 1.111a12.1 12.1 0 0 0 3.662 0l-.17-1.111q-.812.125-1.66.125a11 11 0 0 1-1.66-.125"/></svg>`);
             } else {
-                node.innerHTML = DOMPurify.sanitize(`<i data-lucide="${link.icon}" class="w-5 h-5"></i>`, { ADD_ATTR: ['onclick'] });
+                node.innerHTML = DOMPurify.sanitize(`<i data-lucide="${link.icon}" class="w-5 h-5"></i>`);
             }
 
             socialCluster.appendChild(node);
@@ -713,7 +911,7 @@ function parseSocialLinks(socialText) {
                     node.target = '_blank';
                     node.rel = 'noopener noreferrer';
                     node.className = 'social-node w-12 h-12 flex items-center justify-center rounded-xl';
-                    node.innerHTML = DOMPurify.sanitize(`<i data-lucide="${platform.icon}" class="w-5 h-5"></i>`, { ADD_ATTR: ['onclick'] });
+                    node.innerHTML = DOMPurify.sanitize(`<i data-lucide="${platform.icon}" class="w-5 h-5"></i>`);
                     cluster.appendChild(node);
                     break; // 每行只匹配一個平台
                 }
@@ -732,7 +930,8 @@ function hideLoading() {
     const loading = document.getElementById('loading');
     loading.style.opacity = '0';
     setTimeout(() => {
-        loading.style.display = 'none';
+        loading.style.visibility = 'hidden';
+        loading.style.pointerEvents = 'none';
     }, 1000);
 }
 
@@ -1144,22 +1343,35 @@ document.getElementById('save-vcard').addEventListener('click', () => {
 });
 
 // QR Code 生成函數
-function generateQRCode(targetId) {
+async function generateQRCode(targetId) {
     const params = new URLSearchParams(window.location.search);
     const uuid = params.get('uuid');
     const qrContainer = document.getElementById(targetId);
-    
+
     if (!qrContainer) return;
-    
+
     qrContainer.innerHTML = '';
     const cardUrl = `${window.location.origin}/card-display?uuid=${uuid}`;
-    
+
     try {
         validateQRInput(cardUrl);
+
+        // Wait for QrCreator library to load
+        const qrCreatorReady = await waitForQrCreator(2);
+
+        if (!qrCreatorReady || typeof window.QrCreator === 'undefined') {
+            // Show bilingual error message
+            const errorMsg = currentLanguage === 'zh'
+                ? 'QR Code 功能載入中，請稍後再試'
+                : 'QR Code loading, please try again';
+            qrContainer.innerHTML = `<div style="padding: 16px; text-align: center; color: #666;">${errorMsg}</div>`;
+            return;
+        }
+
         const canvas = document.createElement('canvas');
         qrContainer.appendChild(canvas);
-        
-        QrCreator.render({
+
+        window.QrCreator.render({
             text: cardUrl,
             radius: 0,
             ecLevel: 'H',
@@ -1175,11 +1387,13 @@ function generateQRCode(targetId) {
 
 // 手機版 QR Code modal
 document.getElementById('open-qr').addEventListener('click', () => {
-    // Defer QR Code generation to idle time
-    requestIdleCallback(() => {
-        generateQRCode('qrcode-target');
-    }, { timeout: 2000 });
+    // Show modal immediately (decouple from QR generation)
     document.getElementById('qr-modal').classList.remove('hidden');
+
+    // Generate QR Code asynchronously
+    window.safeIdle(() => {
+        generateQRCode('qrcode-target');
+    });
 });
 
 document.getElementById('close-qr').addEventListener('click', () => {
@@ -1191,18 +1405,11 @@ function initLoadingIcon() {
     const randomIcon = icons[Math.floor(Math.random() * icons.length)];
     const iconContainer = document.getElementById('loading-icon');
     if (iconContainer) {
-        iconContainer.innerHTML = DOMPurify.sanitize(`<i data-lucide="${randomIcon}" class="w-10 h-10 animate-pulse" aria-hidden="true"></i>`, { ADD_ATTR: ['onclick'] });
+        iconContainer.innerHTML = DOMPurify.sanitize(`<i data-lucide="${randomIcon}" class="w-10 h-10 animate-pulse" aria-hidden="true"></i>`);
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Display APP_VERSION
-    const appVersionEl = document.getElementById('app-version');
-    const footerVersionEl = document.getElementById('footer-version');
-    if (appVersionEl) appVersionEl.textContent = `v${APP_VERSION}`;
-    if (footerVersionEl) footerVersionEl.textContent = `DB-Card v${APP_VERSION} | Apache License 2.0`;
-    window.APP_VERSION = APP_VERSION;
-
     initApp();
 });
 

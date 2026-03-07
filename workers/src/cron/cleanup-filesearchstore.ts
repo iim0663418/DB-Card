@@ -1,0 +1,64 @@
+/**
+ * Cleanup FileSearchStore documents older than 2 years (Cron Job)
+ *
+ * @deprecated Since 2026-03-05 - Auto-schedule disabled 2026-03-06
+ * @reason FileSearchStore upload disabled due to Gemini API limitation
+ * @alternative Vectorize cleanup (see src/cron/cleanup-received-cards.ts)
+ * @status Manual trigger only (preserved for future re-activation)
+ * @todo Re-enable when FileSearchStore is re-activated
+ */
+
+import type { Env } from '../types';
+
+/**
+ * Cleanup FileSearchStore documents older than 2 years
+ * Manual trigger only (auto-schedule disabled)
+ */
+export async function cleanupFileSearchStore(env: Env): Promise<{ deleted: number }> {
+  if (!env.FILE_SEARCH_STORE_NAME) {
+    return { deleted: 0 };
+  }
+
+  const twoYearsAgo = Date.now() - (2 * 365 * 24 * 60 * 60 * 1000);
+  let deleted = 0;
+
+  try {
+    // List all documents
+    const listUrl = `https://generativelanguage.googleapis.com/v1beta/${env.FILE_SEARCH_STORE_NAME}/documents?key=${env.GEMINI_API_KEY}`;
+    const listResponse = await fetch(listUrl);
+
+    if (!listResponse.ok) {
+      throw new Error(`List failed (${listResponse.status})`);
+    }
+
+    const data = await listResponse.json() as { documents?: Array<{ name: string; createTime: string }> };
+    const documents = data.documents || [];
+
+    // Filter documents older than 2 years
+    const oldDocuments = documents.filter(doc => {
+      const createTime = new Date(doc.createTime).getTime();
+      return createTime < twoYearsAgo;
+    });
+
+    if (oldDocuments.length === 0) {
+      return { deleted: 0 };
+    }
+
+    // Delete old documents
+    for (const doc of oldDocuments) {
+      const deleteUrl = `https://generativelanguage.googleapis.com/v1beta/${doc.name}?force=true&key=${env.GEMINI_API_KEY}`;
+      const deleteResponse = await fetch(deleteUrl, { method: 'DELETE' });
+
+      if (deleteResponse.ok) {
+        deleted++;
+      } else {
+        console.error(`[FileSearchStore Cleanup] Failed to delete ${doc.name}: ${deleteResponse.status}`);
+      }
+    }
+
+    return { deleted };
+  } catch (error) {
+    console.error('[FileSearchStore Cleanup] Error:', error instanceof Error ? error.message : 'Unknown error');
+    return { deleted };
+  }
+}

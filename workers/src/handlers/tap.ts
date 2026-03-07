@@ -55,6 +55,34 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
     }
 
     // ============================================================
+    // STEP 0.5: Idempotency Check (BEFORE rate limit)
+    // ============================================================
+
+    const idempotencyKey = request.headers.get('X-Idempotency-Key');
+
+    if (idempotencyKey) {
+      // Use Durable Object for idempotency (no KV writes limit)
+      const doId = env.RATE_LIMITER.idFromName('idempotency');
+      const doStub = env.RATE_LIMITER.get(doId);
+      const response = await doStub.fetch('https://fake-host/idempotency/get', {
+        method: 'POST',
+        body: JSON.stringify({ key: idempotencyKey })
+      });
+
+      if (response.ok) {
+        const cached = await response.text();
+        // Cache HIT - return immediately (skip rate limit and all processing)
+        return new Response(cached, {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Cache': 'HIT'
+          }
+        });
+      }
+    }
+
+    // ============================================================
     // STEP 1: Rate Limit Check (Durable Objects)
     // ============================================================
 
@@ -195,44 +223,121 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
 
     // ============================================================
     // STEP 2: Validate Card (BDD Scenario 6, 7)
+    // Phase 2: KV Cache for Card Metadata
     // ============================================================
 
-    // Use D1 batch to split queries (avoid JOIN overhead)
-    // If we have cached type, only fetch status; otherwise fetch both
-    const [cardResult, bindingResult] = await env.DB.batch([
-      env.DB.prepare(`
-        SELECT uuid, encrypted_payload, wrapped_dek, key_version, created_at, updated_at
-        FROM cards WHERE uuid = ?
-      `).bind(card_uuid),
+    // Check KV cache first (Phase 2)
+    const metaCacheKey = `card:meta:${card_uuid}`;
+    interface CardMetadata {
+      type: string;
+      status: string;
+      key_version: number;
+      exists: boolean;
+    }
 
-      cachedType
-        ? env.DB.prepare(`SELECT status FROM uuid_bindings WHERE uuid = ?`).bind(card_uuid)
-        : env.DB.prepare(`SELECT type, status FROM uuid_bindings WHERE uuid = ?`).bind(card_uuid)
-    ]);
-
-    const card = cardResult.results[0] as {
+    let cardMeta = await env.KV.get<CardMetadata>(metaCacheKey, 'json');
+    let result: {
       uuid: string;
       encrypted_payload: string;
       wrapped_dek: string;
       key_version: number;
       created_at: number;
       updated_at: number;
-    } | undefined;
+      card_type: string | null;
+      binding_status: string | null;
+    } | null = null;
 
-    const bindingData = bindingResult.results[0] as
-      | { type?: string; status: string }
-      | undefined;
+    if (cardMeta) {
+      // Cache HIT - use cached metadata (skip D1 queries)
+      if (!cardMeta.exists) {
+        ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, undefined, {
+          error: 'card_not_found'
+        }));
+        return errorResponse('card_not_found', '名片不存在', 404, request);
+      }
 
-    const binding = cachedType
-      ? { type: cachedType, status: bindingData?.status || 'active' }
-      : (bindingData as { type: string; status: string } | undefined);
+      if (cardMeta.status === 'revoked') {
+        ctx.waitUntil(logEvent(env, 'tap', request, card_uuid, undefined, {
+          error: 'card_revoked',
+          status: cardMeta.status
+        }));
+        return errorResponse('card_revoked', '名片已撤銷', 403, request);
+      }
 
-    // Reconstruct result object
-    const result = card ? {
-      ...card,
-      card_type: binding?.type || null,
-      binding_status: binding?.status || null
-    } : null;
+      // For cache hit, we still need to fetch card data for session creation
+      // But we skip binding validation
+      const cardResult = await env.DB.prepare(`
+        SELECT uuid, encrypted_payload, wrapped_dek, key_version, created_at, updated_at
+        FROM cards WHERE uuid = ?
+      `).bind(card_uuid).first<{
+        uuid: string;
+        encrypted_payload: string;
+        wrapped_dek: string;
+        key_version: number;
+        created_at: number;
+        updated_at: number;
+      }>();
+
+      if (cardResult) {
+        result = {
+          ...cardResult,
+          card_type: cardMeta.type,
+          binding_status: cardMeta.status
+        };
+      }
+    } else {
+      // Cache MISS - query D1 and populate cache
+      // Use D1 batch to split queries (avoid JOIN overhead)
+      // If we have cached type, only fetch status; otherwise fetch both
+      const [cardResult, bindingResult] = await env.DB.batch([
+        env.DB.prepare(`
+          SELECT uuid, encrypted_payload, wrapped_dek, key_version, created_at, updated_at
+          FROM cards WHERE uuid = ?
+        `).bind(card_uuid),
+
+        cachedType
+          ? env.DB.prepare(`SELECT status FROM uuid_bindings WHERE uuid = ?`).bind(card_uuid)
+          : env.DB.prepare(`SELECT type, status FROM uuid_bindings WHERE uuid = ?`).bind(card_uuid)
+      ]);
+
+      const card = cardResult.results[0] as {
+        uuid: string;
+        encrypted_payload: string;
+        wrapped_dek: string;
+        key_version: number;
+        created_at: number;
+        updated_at: number;
+      } | undefined;
+
+      const bindingData = bindingResult.results[0] as
+        | { type?: string; status: string }
+        | undefined;
+
+      const binding = cachedType
+        ? { type: cachedType, status: bindingData?.status || 'active' }
+        : (bindingData as { type: string; status: string } | undefined);
+
+      // Reconstruct result object
+      result = card ? {
+        ...card,
+        card_type: binding?.type || null,
+        binding_status: binding?.status || null
+      } : null;
+
+      // Store in KV cache (async)
+      const cacheData: CardMetadata = {
+        type: binding?.type || '',
+        status: binding?.status || 'active',
+        key_version: card?.key_version || 0,
+        exists: !!card
+      };
+
+      ctx.waitUntil(
+        env.KV.put(metaCacheKey, JSON.stringify(cacheData), {
+          expirationTtl: 3600 // 1 hour TTL
+        })
+      );
+    }
 
     // Scenario 6: Card not found
     if (!result) {
@@ -293,15 +398,42 @@ export async function handleTap(request: Request, env: Env, ctx: ExecutionContex
       revoked_previous
     }));
 
+    // ============================================================
+    // STEP 5: Cache Response (if idempotency key present)
+    // ============================================================
+
+    const responseBody = JSON.stringify({
+      success: true,
+      data: {
+        session_id: newSession.session_id,
+        expires_at: newSession.expires_at,
+        max_reads: newSession.max_reads,
+        reads_used: newSession.reads_used,
+        revoked_previous,
+        ...(budgetResult.warning && { warning: budgetResult.warning })
+      }
+    });
+
+    // Cache response if idempotency key is present (Durable Object, no KV writes limit)
+    if (idempotencyKey) {
+      const doId = env.RATE_LIMITER.idFromName('idempotency');
+      const doStub = env.RATE_LIMITER.get(doId);
+      ctx.waitUntil(
+        doStub.fetch('https://fake-host/idempotency/set', {
+          method: 'POST',
+          body: JSON.stringify({ key: idempotencyKey, response: responseBody, ttl: 3600 })
+        })
+      );
+    }
+
     // Return successful response (Scenario 1)
-    return jsonResponse({
-      session_id: newSession.session_id,
-      expires_at: newSession.expires_at,
-      max_reads: newSession.max_reads,
-      reads_used: newSession.reads_used,
-      revoked_previous,
-      ...(budgetResult.warning && { warning: budgetResult.warning })
-    }, 200, request);
+    return new Response(responseBody, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Cache': 'MISS'
+      }
+    });
 
   } catch (error) {
     ctx.waitUntil(logEvent(env, 'tap', request, undefined, undefined, {

@@ -11,8 +11,8 @@
                 'login-restriction': '僅限授權使用者',
 
                 // 2. Card Selection (5 keys)
-                'selection-title': '我的數位名片庫',
-                'selection-subtitle': '您最多可持有三種用途的數位名片',
+                'selection-title': '我的數位名片',
+                'selection-subtitle': '管理您的數位名片，最多可建立三張不同用途的名片',
                 'card-type-personal': '個人名片',
                 'card-type-event': '活動名片',
                 'card-type-sensitive': '敏感名片',
@@ -137,7 +137,7 @@
                 // Received Cards (40 keys)
                 'received-cards-title': '收到的名片',
                 'received-cards-subtitle': 'AI-First Card Capture',
-                'received-cards-description': '拍照上傳名片，AI 自動辨識並整理',
+                'received-cards-description': '拍照上傳名片，AI 自動辨識並整理。管理您收到的所有名片',
                 'received-cards-open': '開啟名片夾',
                 'upload-title': '拍照或上傳名片',
                 'upload-subtitle': '支援 JPG/PNG，最大 5MB',
@@ -157,6 +157,15 @@
                 'enrich-card-btn': '補充名片資訊',
                 'enrich-card-time': '(約需 10-30 秒)',
                 'card-detail-title': '名片詳情',
+                
+                // AI Summary Fields (6 keys)
+                'company-summary': '公司摘要',
+                'personal-summary': '個人摘要',
+                'ai-generated': 'AI 生成',
+                'company-summary-placeholder': 'AI 會自動生成公司簡介，包含產業、業務、規模等資訊...',
+                'personal-summary-placeholder': 'AI 會自動生成個人簡介，包含專長、成就、經歷等...',
+                'company-summary-hint': '建議 100-200 字，描述組織的產業、主要業務、成立年份、規模等',
+                'personal-summary-hint': '建議 30-80 字，總結專業背景、核心專長或主要成就',
                 
                 // Field Labels (13 keys)
                 'field-name-prefix': '稱謂',
@@ -189,8 +198,8 @@
                 'login-restriction': 'Authorized Users Only',
 
                 // 2. Card Selection (5 keys)
-                'selection-title': 'My Digital Card Library',
-                'selection-subtitle': 'You can hold up to three types of digital cards',
+                'selection-title': 'My Digital Cards',
+                'selection-subtitle': 'Manage your digital cards, create up to three cards for different purposes',
                 'card-type-personal': 'Personal Card',
                 'card-type-event': 'Event Card',
                 'card-type-sensitive': 'Sensitive Card',
@@ -315,7 +324,7 @@
                 // Received Cards (40 keys)
                 'received-cards-title': 'Received Cards',
                 'received-cards-subtitle': 'AI-First Card Capture',
-                'received-cards-description': 'Take a photo and let AI organize your cards',
+                'received-cards-description': 'Take a photo and let AI organize your cards. Manage all received cards',
                 'received-cards-open': 'Open Card Holder',
                 'upload-title': 'Take Photo or Upload Card',
                 'upload-subtitle': 'Supports JPG/PNG, max 5MB',
@@ -335,6 +344,15 @@
                 'enrich-card-btn': 'Enrich Card Info',
                 'enrich-card-time': '(10-30 seconds)',
                 'card-detail-title': 'Card Details',
+                
+                // AI Summary Fields (6 keys)
+                'company-summary': 'Company Summary',
+                'personal-summary': 'Personal Summary',
+                'ai-generated': 'AI Generated',
+                'company-summary-placeholder': 'AI will generate company profile including industry, business, scale...',
+                'personal-summary-placeholder': 'AI will generate personal profile including expertise, achievements...',
+                'company-summary-hint': 'Recommended 100-200 chars: industry, business, founding year, scale, etc.',
+                'personal-summary-hint': 'Recommended 30-80 chars: professional background, expertise, achievements',
                 
                 // Field Labels (13 keys)
                 'field-name-prefix': 'Prefix',
@@ -688,13 +706,15 @@
                 if (!res.ok) {
                     const error = await res.json().catch(() => ({ message: 'Request failed' }));
 
-                    // Handle token expiration
+                    // Handle token expiration (silent logout)
                     if (res.status === 401) {
                         state.isLoggedIn = false;
                         state.authToken = null;
                         state.currentUser = null;
+                        sessionStorage.removeItem('auth_user');  // Clear sessionStorage
+                        sessionStorage.removeItem('csrfToken');  // Clear CSRF token
                         showView('login');
-                        showToast(i18n[currentLang]['error-unauthorized'] || '登入已過期，請重新登入');
+                        // Silent logout - no toast for normal session expiration
                     }
 
                     // Extract error details (support nested error object)
@@ -790,6 +810,14 @@
                 });
 
                 if (!stateResponse.ok) {
+                    // Check for WebView blocking (403)
+                    if (stateResponse.status === 403) {
+                        const errorData = await stateResponse.json();
+                        if (errorData.error === 'webview_not_allowed') {
+                            showWebViewError();
+                            return;
+                        }
+                    }
                     throw new Error('Failed to initialize OAuth');
                 }
 
@@ -824,6 +852,13 @@
                 console.error('OAuth init error:', error);
                 errorBox.innerText = i18n[currentLang]['error-login-failed'] || '登入初始化失敗，請重試';
                 errorBox.classList.remove('hidden');
+            }
+        }
+
+        function showWebViewError() {
+            const modal = document.getElementById('webview-error-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
             }
         }
 
@@ -1304,6 +1339,10 @@
                         `)}
                     </div>
                 `;
+            // Security Note: ADD_ATTR is required here because onclick handlers are used
+            // for card operations (handleRestoreCard, viewCard, createQRShortcut, etc.)
+            // All parameters are server-controlled (UUID, type), not user input.
+            // Future: Consider migrating to event delegation pattern.
             }).join(''), { ADD_ATTR: ['onclick'] });
             if (window.initIcons) window.initIcons();
 
@@ -1651,11 +1690,11 @@
 
                 // LINE 和 Signal 使用 SVG，其他使用 Lucide
                 if (icon === 'line') {
-                    node.innerHTML = DOMPurify.sanitize(`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>`, { ADD_ATTR: ['onclick'] });
+                    node.innerHTML = DOMPurify.sanitize(`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>`);
                 } else if (icon === 'signal') {
-                    node.innerHTML = DOMPurify.sanitize(`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0q-.934 0-1.83.139l.17 1.111a11 11 0 0 1 3.32 0l.172-1.111A12 12 0 0 0 12 0M9.152.34A12 12 0 0 0 5.77 1.742l.584.961a10.8 10.8 0 0 1 3.066-1.27zm5.696 0-.268 1.094a10.8 10.8 0 0 1 3.066 1.27l.584-.962A12 12 0 0 0 14.848.34M12 2.25a9.75 9.75 0 0 0-8.539 14.459c.074.134.1.292.064.441l-1.013 4.338 4.338-1.013a.62.62 0 0 1 .441.064A9.7 9.7 0 0 0 12 21.75c5.385 0 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25m-7.092.068a12 12 0 0 0-2.59 2.59l.909.664a11 11 0 0 1 2.345-2.345zm14.184 0-.664.909a11 11 0 0 1 2.345 2.345l.909-.664a12 12 0 0 0-2.59-2.59M1.742 5.77A12 12 0 0 0 .34 9.152l1.094.268a10.8 10.8 0 0 1 1.269-3.066zm20.516 0-.961.584a10.8 10.8 0 0 1 1.27 3.066l1.093-.268a12 12 0 0 0-1.402-3.383M.138 10.168A12 12 0 0 0 0 12q0 .934.139 1.83l1.111-.17A11 11 0 0 1 1.125 12q0-.848.125-1.66zm23.723.002-1.111.17q.125.812.125 1.66c0 .848-.042 1.12-.125 1.66l1.111.172a12.1 12.1 0 0 0 0-3.662M1.434 14.58l-1.094.268a12 12 0 0 0 .96 2.591l-.265 1.14 1.096.255.36-1.539-.188-.365a10.8 10.8 0 0 1-.87-2.35m21.133 0a10.8 10.8 0 0 1-1.27 3.067l.962.584a12 12 0 0 0 1.402-3.383zm-1.793 3.848a11 11 0 0 1-2.345 2.345l.664.909a12 12 0 0 0 2.59-2.59zm-19.959 1.1L.357 21.48a1.8 1.8 0 0 0 2.162 2.161l1.954-.455-.256-1.095-1.953.455a.675.675 0 0 1-.81-.81l.454-1.954zm16.832 1.769a10.8 10.8 0 0 1-3.066 1.27l.268 1.093a12 12 0 0 0 3.382-1.402zm-10.94.213-1.54.36.256 1.095 1.139-.266c.814.415 1.683.74 2.591.961l.268-1.094a10.8 10.8 0 0 1-2.35-.869zm3.634 1.24-.172 1.111a12.1 12.1 0 0 0 3.662 0l-.17-1.111q-.812.125-1.66.125a11 11 0 0 1-1.66-.125"/></svg>`, { ADD_ATTR: ['onclick'] });
+                    node.innerHTML = DOMPurify.sanitize(`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0q-.934 0-1.83.139l.17 1.111a11 11 0 0 1 3.32 0l.172-1.111A12 12 0 0 0 12 0M9.152.34A12 12 0 0 0 5.77 1.742l.584.961a10.8 10.8 0 0 1 3.066-1.27zm5.696 0-.268 1.094a10.8 10.8 0 0 1 3.066 1.27l.584-.962A12 12 0 0 0 14.848.34M12 2.25a9.75 9.75 0 0 0-8.539 14.459c.074.134.1.292.064.441l-1.013 4.338 4.338-1.013a.62.62 0 0 1 .441.064A9.7 9.7 0 0 0 12 21.75c5.385 0 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25m-7.092.068a12 12 0 0 0-2.59 2.59l.909.664a11 11 0 0 1 2.345-2.345zm14.184 0-.664.909a11 11 0 0 1 2.345 2.345l.909-.664a12 12 0 0 0-2.59-2.59M1.742 5.77A12 12 0 0 0 .34 9.152l1.094.268a10.8 10.8 0 0 1 1.269-3.066zm20.516 0-.961.584a10.8 10.8 0 0 1 1.27 3.066l1.093-.268a12 12 0 0 0-1.402-3.383M.138 10.168A12 12 0 0 0 0 12q0 .934.139 1.83l1.111-.17A11 11 0 0 1 1.125 12q0-.848.125-1.66zm23.723.002-1.111.17q.125.812.125 1.66c0 .848-.042 1.12-.125 1.66l1.111.172a12.1 12.1 0 0 0 0-3.662M1.434 14.58l-1.094.268a12 12 0 0 0 .96 2.591l-.265 1.14 1.096.255.36-1.539-.188-.365a10.8 10.8 0 0 1-.87-2.35m21.133 0a10.8 10.8 0 0 1-1.27 3.067l.962.584a12 12 0 0 0 1.402-3.383zm-1.793 3.848a11 11 0 0 1-2.345 2.345l.664.909a12 12 0 0 0 2.59-2.59zm-19.959 1.1L.357 21.48a1.8 1.8 0 0 0 2.162 2.161l1.954-.455-.256-1.095-1.953.455a.675.675 0 0 1-.81-.81l.454-1.954zm16.832 1.769a10.8 10.8 0 0 1-3.066 1.27l.268 1.093a12 12 0 0 0 3.382-1.402zm-10.94.213-1.54.36.256 1.095 1.139-.266c.814.415 1.683.74 2.591.961l.268-1.094a10.8 10.8 0 0 1-2.35-.869zm3.634 1.24-.172 1.111a12.1 12.1 0 0 0 3.662 0l-.17-1.111q-.812.125-1.66.125a11 11 0 0 1-1.66-.125"/></svg>`);
                 } else {
-                    node.innerHTML = DOMPurify.sanitize(`<i data-lucide="${icon}" class="w-4 h-4"></i>`, { ADD_ATTR: ['onclick'] });
+                    node.innerHTML = DOMPurify.sanitize(`<i data-lucide="${icon}" class="w-4 h-4"></i>`);
                 }
 
                 cluster.appendChild(node);
@@ -1676,10 +1715,9 @@
             console.error('[API Error]', err);
 
             if (err.status === 401 || err.status === 403) {
-                // Token 過期或無權限,返回登入頁
+                // Silent logout for token expiration
                 state.isLoggedIn = false;
                 showView('login');
-                showToast(i18n[currentLang]['error-unauthorized'] || '登入已過期,請重新登入');
             } else if (err.status === 429) {
                 showToast(i18n[currentLang]['error-rate-limit'] || '操作過於頻繁,請稍後再試');
             } else {
@@ -2151,7 +2189,7 @@
                                 </div>` : ''}
                             </div>
                         </div>
-                    `}).join(''), { ADD_ATTR: ['onclick'] });
+                    `}).join(''));
                 }
 
                 if (window.initIcons) window.initIcons();
@@ -2527,12 +2565,11 @@
                         }
                     } catch (err) {
                         console.error('Failed to load cards:', err);
-                        // Session 無效或過期，清除並顯示登入頁
+                        // Session expired - silent logout
                         sessionStorage.removeItem('auth_user');
                         state.isLoggedIn = false;
                         state.currentUser = null;
                         showView('login');
-                        showToast('登入已過期，請重新登入');
                     } finally {
                         // 隱藏載入中
                         document.getElementById('global-loading').classList.add('hidden');

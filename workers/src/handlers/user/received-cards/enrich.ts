@@ -32,7 +32,8 @@ async function performEnrichment(
   organization: string,
   fullName: string,
   title: string | undefined,
-  apiKey: string
+  apiKey: string,
+  model: string
 ): Promise<EnrichResult> {
   const prompt = `請搜尋以下公司的詳細資訊：
 公司：${organization}
@@ -57,13 +58,13 @@ async function performEnrichment(
 - 不要添加解釋文字`;
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        tools: [{ googleSearch: {} }]
+        tools: [{ google_search: {} }]
       })
     }
   );
@@ -163,7 +164,7 @@ export async function handleEnrich(request: Request, env: Env): Promise<Response
       // Post-enrichment: verify card ownership
       const card = await env.DB.prepare(`
         SELECT uuid FROM received_cards 
-        WHERE uuid = ? AND user_email = ? AND deleted_at IS NULL
+        WHERE uuid = ? AND user_email = ? AND deleted_at IS NULL AND merged_to IS NULL
       `).bind(body.card_uuid, user.email).first();
       
       if (!card) {
@@ -196,7 +197,8 @@ export async function handleEnrich(request: Request, env: Env): Promise<Response
         body.organization,
         body.full_name,
         body.title,
-        env.GEMINI_API_KEY
+        env.GEMINI_API_KEY,
+        env.GEMINI_MODEL
       );
     } catch (error) {
       console.error('Enrichment error (non-fatal):', error);

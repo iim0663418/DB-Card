@@ -27,7 +27,7 @@ export async function handleShareCard(request: Request, env: Env): Promise<Respo
     // Check if card exists and not deleted
     const card = await env.DB.prepare(`
       SELECT uuid, user_email FROM received_cards
-      WHERE uuid = ? AND deleted_at IS NULL
+      WHERE uuid = ? AND deleted_at IS NULL AND merged_to IS NULL
     `).bind(uuid).first<{ uuid: string; user_email: string }>();
 
     if (!card) {
@@ -35,9 +35,6 @@ export async function handleShareCard(request: Request, env: Env): Promise<Respo
     }
 
     // Check ownership
-    console.log('[SHARE DEBUG] Card owner:', card.user_email);
-    console.log('[SHARE DEBUG] Current user:', user.email);
-    console.log('[SHARE DEBUG] Match:', card.user_email === user.email);
     if (card.user_email !== user.email) {
       return errorResponse('FORBIDDEN', 'You do not own this card', 403);
     }

@@ -12,8 +12,8 @@
     <link rel="stylesheet" href="/css/tailwind.css">
     <link rel="stylesheet" href="/css/v4-design.css">
     <script src="/js/tailwind-suppress.js"></script>
-    <!-- Vite Icon Bundle (Tree-shaken: 13.01 KB, 96.6% reduction) -->
-    <script type="module" src="/dist/icons.sS1r72aF.js"></script>
+    <!-- Vite Icon Bundle (Tree-shaken: 13.01 KB, 96.6% reduction) - Dynamic Loading -->
+    <script src="/js/manifest-loader.js"></script>
     <script src="/vendor/three.min.js"
             integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu"
             crossorigin="anonymous"
@@ -318,11 +318,37 @@
             </div>
         </section>
 
+        <!-- WebView Error Modal -->
+        <div id="webview-error-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="alert-circle" class="w-8 h-8 text-red-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">無法使用應用程式內建瀏覽器登入</h3>
+                    <p class="text-sm text-gray-600 mb-4">
+                        根據 Google 安全政策，OAuth 登入不支援應用程式內建瀏覽器（如 LINE、Facebook、Instagram 等）。
+                    </p>
+                </div>
+                <div class="bg-blue-50 rounded-2xl p-4 mb-6">
+                    <p class="text-sm font-bold text-blue-900 mb-2">📱 請使用系統瀏覽器開啟：</p>
+                    <ul class="text-xs text-blue-800 space-y-1 list-disc list-inside">
+                        <li>iOS: 點擊右上角「...」→「在 Safari 中開啟」</li>
+                        <li>Android: 點擊右上角「⋮」→「在瀏覽器中開啟」</li>
+                    </ul>
+                </div>
+                <button onclick="document.getElementById('webview-error-modal').classList.add('hidden')" 
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-2xl transition-colors">
+                    我知道了
+                </button>
+            </div>
+        </div>
+
         <!-- 2. 卡片選擇頁 -->
         <section id="view-selection" class="hidden space-y-12 fade-in">
             <div class="flex flex-col items-center text-center space-y-2">
-                <h2 class="text-3xl font-black tracking-tight" data-i18n="selection-title">我的數位名片庫</h2>
-                <p class="text-slate-400 font-medium text-sm leading-relaxed" data-i18n="selection-subtitle">您最多可持有三種用途的數位名片</p>
+                <h2 class="text-3xl font-black tracking-tight" data-i18n="selection-title">我的數位名片</h2>
+                <p class="text-slate-400 font-medium text-sm leading-relaxed" data-i18n="selection-subtitle">管理您的數位名片，最多可建立三張不同用途的名片</p>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8" id="card-slots-container">
@@ -361,7 +387,7 @@
                     </div>
                     <h3 class="text-lg font-black text-slate-900" data-i18n="received-cards-title">收到的名片</h3>
                 </div>
-                <p class="text-sm text-slate-600" data-i18n="received-cards-description">拍照上傳名片，AI 自動辨識並整理</p>
+                <p class="text-sm text-slate-600" data-i18n="received-cards-description">拍照上傳名片，AI 自動辨識並整理。管理您收到的所有名片</p>
                 <button onclick="showReceivedCards()" class="w-full py-4 text-white rounded-xl font-bold hover:shadow-lg transition-all text-sm flex items-center justify-center gap-2" style="background: linear-gradient(135deg, var(--moda-accent) 0%, #8b8bc8 100%);">
                     <i data-lucide="camera" class="w-4 h-4"></i>
                     <span data-i18n="received-cards-open">開啟名片夾</span>
@@ -411,6 +437,32 @@
                 </div>
             </div>
 
+            <!-- Error Message -->
+            <div id="error-message" class="hidden glass-panel p-8 rounded-[2rem] border-2 border-red-300 bg-red-50/80 space-y-4">
+                <div class="flex items-start gap-4">
+                    <i data-lucide="alert-circle" class="w-8 h-8 text-red-600 flex-shrink-0"></i>
+                    <div class="flex-1 space-y-3">
+                        <h3 class="text-lg font-bold text-red-900" data-i18n="error-title">處理失敗</h3>
+                        <p id="error-text" class="text-red-800 leading-relaxed"></p>
+                        <div class="flex gap-3">
+                            <button
+                                onclick="ReceivedCards.retryUpload()"
+                                class="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-colors"
+                            >
+                                <i data-lucide="refresh-cw" class="w-4 h-4 inline-block mr-2"></i>
+                                <span data-i18n="retry">重試</span>
+                            </button>
+                            <button
+                                onclick="CardUploadStateMachine.setState('idle')"
+                                class="px-6 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition-colors"
+                            >
+                                <span data-i18n="cancel">取消</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Search and Filter Section -->
             <div class="space-y-4">
                 <!-- Search Box -->
@@ -418,7 +470,7 @@
                     <input
                         type="text"
                         id="searchInput"
-                        placeholder="搜尋姓名、公司、部門、職稱、電話、Email..."
+                        placeholder="智慧搜尋：姓名、公司、職稱、地址、網站、備註..."
                         class="w-full px-4 py-3 pl-11 pr-11 border-2 border-slate-200 rounded-2xl focus:ring-2 focus:ring-[var(--moda-accent)] focus:border-transparent transition-all text-slate-900 placeholder-slate-400 font-medium"
                     >
                     <svg class="absolute left-3 top-3.5 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -435,18 +487,58 @@
                     </button>
                 </div>
 
-                <!-- Tag Filters -->
-                <div class="flex flex-wrap items-center gap-2">
-                    <span class="text-sm font-bold text-slate-600" data-i18n="tag-filter-label">標籤篩選：</span>
-                    <div id="tagFilters" class="flex flex-wrap gap-2">
-                        <!-- 動態生成標籤按鈕 -->
-                    </div>
+                <!-- Tag Filters (Accordion) -->
+                <div class="border-2 border-slate-200 rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm">
+                    <!-- Accordion Header -->
                     <button
-                        id="clearFilters"
-                        class="text-sm text-blue-600 hover:text-blue-800 font-bold transition-colors hidden ml-2"
+                        id="tagFilterToggle"
+                        class="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                        aria-expanded="false"
                     >
-                        清除篩選
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-bold text-slate-700" data-i18n="tag-filter-label">🏷️ 標籤篩選</span>
+                            <span id="activeFilterCount" class="hidden px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-full"></span>
+                        </div>
+                        <i data-lucide="chevron-down" id="tagFilterChevron" class="w-5 h-5 text-slate-400 transition-transform"></i>
                     </button>
+
+                    <!-- Accordion Content -->
+                    <div id="tagFilterContent" class="hidden border-t border-slate-200">
+                        <div class="p-4 space-y-4">
+                            <!-- Industry -->
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-500 uppercase mb-2" data-i18n="filter-industry">產業</h4>
+                                <div id="industryTags" class="flex flex-wrap gap-2"></div>
+                            </div>
+
+                            <!-- Location -->
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-500 uppercase mb-2" data-i18n="filter-location">地區</h4>
+                                <div id="locationTags" class="flex flex-wrap gap-2"></div>
+                            </div>
+
+                            <!-- Expertise -->
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-500 uppercase mb-2" data-i18n="filter-expertise">專長</h4>
+                                <div id="expertiseTags" class="flex flex-wrap gap-2"></div>
+                            </div>
+
+                            <!-- Seniority -->
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-500 uppercase mb-2" data-i18n="filter-seniority">職級</h4>
+                                <div id="seniorityTags" class="flex flex-wrap gap-2"></div>
+                            </div>
+
+                            <!-- Clear Button -->
+                            <button
+                                id="clearFilters"
+                                class="w-full px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition-colors hidden"
+                            >
+                                <i data-lucide="x" class="w-4 h-4 inline-block mr-1"></i>
+                                <span data-i18n="clear-filters">清除所有篩選</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Result Count -->
@@ -463,7 +555,7 @@
 
         <!-- Preview Modal (Global) -->
         <div id="preview-modal" class="modal-backdrop hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div class="modal-content p-8 rounded-[2rem] max-w-2xl w-full max-h-[90vh] overflow-y-auto space-y-6">
+            <div class="modal-content p-4 sm:p-8 rounded-2xl sm:rounded-[2rem] max-w-2xl w-full max-h-[90vh] overflow-y-auto space-y-4 sm:space-y-6">
                 <div class="flex items-center gap-3">
                     <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background: var(--moda-glow);">
                         <i data-lucide="check-circle" class="w-6 h-6" style="color: var(--moda-accent);"></i>
@@ -500,9 +592,16 @@
                     <textarea id="preview-note" data-i18n-placeholder="field-note" placeholder="備註" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors" rows="3"></textarea>
                 </div>
 
-                <div id="ai-summary-section" class="hidden p-4 rounded-2xl space-y-2" style="background: var(--moda-glow);">
+                <div id="ai-summary-section" class="hidden p-4 rounded-2xl space-y-3" style="background: var(--moda-glow);">
                     <p class="text-xs font-black uppercase tracking-widest" style="color: var(--moda-accent);">AI 生成摘要</p>
-                    <p id="preview-company-summary" class="text-sm text-slate-700"></p>
+                    <div>
+                        <p class="text-xs font-bold text-slate-500 mb-1">組織介紹</p>
+                        <p id="preview-company-summary" class="text-sm text-slate-700"></p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-500 mb-1">個人簡介</p>
+                        <p id="preview-personal-summary" class="text-sm text-slate-700"></p>
+                    </div>
                 </div>
 
                 <div class="flex gap-3">
@@ -514,7 +613,7 @@
 
         <!-- Delete Confirm Modal (Global) -->
         <div id="delete-confirm-modal" class="modal-backdrop hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div class="modal-content p-8 rounded-[2rem] max-w-md w-full space-y-6">
+            <div class="modal-content p-4 sm:p-8 rounded-2xl sm:rounded-[2rem] max-w-md w-full space-y-4 sm:space-y-6">
                 <div class="flex items-center gap-3">
                     <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
                         <i data-lucide="alert-triangle" class="w-6 h-6 text-red-600"></i>
@@ -532,7 +631,7 @@
 
         <!-- QR Code Modal -->
         <div id="qrCodeModal" class="modal-backdrop hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div class="modal-content p-8 rounded-[2rem] max-w-md w-full space-y-6">
+            <div class="modal-content p-4 sm:p-8 rounded-2xl sm:rounded-[2rem] max-w-md w-full space-y-4 sm:space-y-6">
                 <div class="flex items-center gap-3">
                     <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background: var(--moda-glow);">
                         <i data-lucide="qr-code" class="w-6 h-6" style="color: var(--moda-accent);"></i>
@@ -601,10 +700,16 @@
                     </div>
                 </div>
 
-                <!-- Company Summary -->
-                <div id="company-summary-container" class="hidden space-y-3">
-                    <h4 class="text-lg font-black">公司摘要</h4>
-                    <p id="company-summary-text" class="text-slate-700 leading-relaxed"></p>
+                <!-- AI Summaries -->
+                <div id="ai-summaries-container" class="hidden space-y-4">
+                    <div id="company-summary-section" class="hidden">
+                        <h4 class="text-sm font-bold text-slate-500 mb-2">組織介紹</h4>
+                        <p id="company-summary-text" class="text-slate-700 leading-relaxed text-sm"></p>
+                    </div>
+                    <div id="personal-summary-section" class="hidden">
+                        <h4 class="text-sm font-bold text-slate-500 mb-2">個人簡介</h4>
+                        <p id="personal-summary-text" class="text-slate-700 leading-relaxed text-sm"></p>
+                    </div>
                 </div>
 
                 <!-- Sources -->
@@ -629,7 +734,7 @@
 
         <!-- Edit Card Modal -->
         <div id="editCardModal" class="modal-backdrop hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div class="modal-content p-8 rounded-[2rem] max-w-2xl w-full max-h-[90vh] overflow-y-auto space-y-6">
+            <div class="modal-content p-4 sm:p-8 rounded-2xl sm:rounded-[2rem] max-w-2xl w-full max-h-[90vh] overflow-y-auto space-y-4 sm:space-y-6">
                 <div class="flex items-center gap-3">
                     <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background: var(--moda-glow);">
                         <i data-lucide="edit" class="w-6 h-6" style="color: var(--moda-accent);"></i>
@@ -728,6 +833,42 @@
                             <label class="block text-sm font-medium text-slate-700 mb-1">備註</label>
                             <textarea name="notes" rows="3"
                                       class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                        </div>
+
+                        <!-- 公司摘要 (AI 生成) -->
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
+                                <span data-i18n="company-summary">公司摘要</span>
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-600 text-xs rounded-full">
+                                    <i data-lucide="sparkles" class="w-3 h-3"></i>
+                                    <span data-i18n="ai-generated">AI 生成</span>
+                                </span>
+                            </label>
+                            <textarea name="company_summary" rows="3" 
+                                      data-i18n-placeholder="company-summary-placeholder"
+                                      class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"></textarea>
+                            <p class="mt-1 text-xs text-slate-500">
+                                <i data-lucide="info" class="w-3 h-3 inline"></i>
+                                <span data-i18n="company-summary-hint">建議 100-200 字，描述組織的產業、主要業務、成立年份、規模等</span>
+                            </p>
+                        </div>
+
+                        <!-- 個人摘要 (AI 生成) -->
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
+                                <span data-i18n="personal-summary">個人摘要</span>
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-600 text-xs rounded-full">
+                                    <i data-lucide="sparkles" class="w-3 h-3"></i>
+                                    <span data-i18n="ai-generated">AI 生成</span>
+                                </span>
+                            </label>
+                            <textarea name="personal_summary" rows="2" 
+                                      data-i18n-placeholder="personal-summary-placeholder"
+                                      class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"></textarea>
+                            <p class="mt-1 text-xs text-slate-500">
+                                <i data-lucide="info" class="w-3 h-3 inline"></i>
+                                <span data-i18n="personal-summary-hint">建議 30-80 字，總結專業背景、核心專長或主要成就</span>
+                            </p>
                         </div>
                     </div>
 
@@ -1377,6 +1518,9 @@
     <script src="/vendor/browser-image-compression.min.js"
             integrity="sha384-dHP9fwqd9BAiDh9uJ0p10khgbbcFMh34bVEiCnJ1Ah/AT2T2k4t572VEo3WXzxXp"
             crossorigin="anonymous"></script>
+    <script src="/js/api-client.js"></script>
+    <script src="/js/error-policy.js"></script>
+    <script src="/js/feature-api.js"></script>
     <script src="/js/received-cards.js"></script>
     <script>
         function createQRShortcut(uuid, cardName, cardType) {

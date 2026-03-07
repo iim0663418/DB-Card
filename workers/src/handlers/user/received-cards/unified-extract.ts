@@ -25,10 +25,16 @@ interface UnifiedExtractResult {
   address: string | null;
   
   // Enrich fields
-  organization_alias: string | null;
+  organization_alias: string[] | null;
   organization_full: string | null;
   company_summary: string | null;
+  personal_summary: string | null;
   sources: Array<{ uri: string; title: string }>;
+  
+  // TODO: ocr_raw_text field exists in DB but not populated by unified-extract
+  // Reason: Gemini Structured Output doesn't return raw OCR text
+  // Future use cases: full-text search, OCR accuracy validation, audit trail
+  // Decision (2026-02-24): Keep DB field for backward compatibility, but not actively used
 }
 
 /**
@@ -38,13 +44,109 @@ function arrayBufferToBase64Chunked(buffer: ArrayBuffer): string {
   const uint8Array = new Uint8Array(buffer);
   const chunkSize = 8192;
   let binaryString = '';
-  
+
   for (let i = 0; i < uint8Array.length; i += chunkSize) {
     const chunk = uint8Array.slice(i, Math.min(i + chunkSize, uint8Array.length));
     binaryString += String.fromCharCode(...chunk);
   }
-  
+
   return btoa(binaryString);
+}
+
+/**
+ * Retry function with exponential backoff and jitter
+ * Retries on QUOTA_OR_LIMIT (429) and SERVICE_UNAVAILABLE (503) errors
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3
+): Promise<T> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const shouldRetry = errorMessage.includes('QUOTA_OR_LIMIT') || errorMessage.includes('SERVICE_UNAVAILABLE');
+
+      // Don't retry if not retriable error, or if this was the last attempt
+      if (!shouldRetry || i === maxRetries - 1) {
+        throw error;
+      }
+
+      // Exponential backoff: 1s, 2s, 4s
+      const baseDelay = Math.pow(2, i) * 1000;
+      // Add jitter: ±20%
+      const jitter = baseDelay * 0.2 * (Math.random() - 0.5);
+      const delay = baseDelay + jitter;
+
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  throw new Error('Retry exhausted');
+}
+
+/**
+ * Upload extracted data to FileSearchStore
+ *
+ * @deprecated Since 2026-03-05 - Disabled due to Gemini API limitation
+ * @reason Cannot combine file_search + google_search in same request
+ * @alternative Vectorize (see src/cron/sync-card-embeddings.ts)
+ * @todo Re-enable when Gemini API supports both tools
+ */
+async function uploadToFileSearchStore(
+  data: UnifiedExtractResult,
+  apiKey: string,
+  storeName: string
+): Promise<void> {
+  // 組合文件內容
+  const content = `
+Organization: ${data.organization}${data.organization_en ? ` (${data.organization_en})` : ''}
+${data.organization_alias?.length ? `Aliases: ${data.organization_alias.join(', ')}` : ''}
+
+Company Summary:
+${data.company_summary || ''}
+
+${data.full_name && data.personal_summary ? `
+Professional Staff:
+- ${data.full_name}${data.department || data.title ? ` (${data.department || data.title})` : ''}: ${data.personal_summary}
+` : ''}
+
+Sources:
+${data.sources?.map(s => `- ${s.title}: ${s.uri}`).join('\n') || ''}
+  `.trim();
+
+  // 準備 metadata
+  const displayName = `${data.organization}_${new Date().toISOString().split('T')[0]}`;
+  const metadata = {
+    displayName,
+    customMetadata: [
+      {key: "organization", stringValue: data.organization},
+      {key: "organization_en", stringValue: data.organization_en || ""}
+    ]
+  };
+
+  // 上傳到 FileSearchStore
+  const formData = new FormData();
+  formData.append('metadata', JSON.stringify(metadata));
+  formData.append('file', new Blob([content], {type: 'text/plain'}));
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/upload/v1beta/${storeName}:uploadToFileSearchStore?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: {
+        'X-Goog-Upload-Protocol': 'multipart'
+      },
+      body: formData
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Upload failed (${response.status}): ${errorText}`);
+  }
+
 }
 
 /**
@@ -53,63 +155,112 @@ function arrayBufferToBase64Chunked(buffer: ArrayBuffer): string {
 async function performUnifiedExtract(
   imageBase64: string,
   mimeType: string,
-  apiKey: string
+  apiKey: string,
+  model: string,
+  env: Env
 ): Promise<UnifiedExtractResult> {
-  const prompt = `你是專業的名片辨識與資訊補全系統。請完成以下兩個任務：
+  // JSON Schema for structured output (multilingual support)
+  const responseSchema = {
+    type: "object",
+    properties: {
+      name_prefix: {
+        type: ["string", "null"],
+        description: "Name prefix (Dr./Prof./Mr./Mrs./Ms.), null if not present"
+      },
+      full_name: {
+        type: "string",
+        description: "Full name (required, preserve original language)"
+      },
+      name_suffix: {
+        type: ["string", "null"],
+        description: "Name suffix (Ph.D./Jr./Sr./M.D./Esq.), null if not present"
+      },
+      organization: {
+        type: "string",
+        description: "Company/organization name (required, preserve original language)"
+      },
+      organization_en: {
+        type: ["string", "null"],
+        description: "English name of organization (from card if printed, otherwise from official website)"
+      },
+      organization_alias: {
+        type: ["array", "null"],
+        items: { type: "string" },
+        description: "Common abbreviations or brand names (e.g., [\"TSMC\", \"台積電\"])"
+      },
+      organization_full: {
+        type: ["string", "null"],
+        description: "Full official name of organization (business registration name)"
+      },
+      department: {
+        type: ["string", "null"],
+        description: "Department name (preserve original language)"
+      },
+      title: {
+        type: ["string", "null"],
+        description: "Job title (preserve original language)"
+      },
+      phone: {
+        type: ["string", "null"],
+        description: "Phone number (preserve original format with country code, e.g., +886-2-1234-5678)"
+      },
+      email: {
+        type: ["string", "null"],
+        description: "Email address"
+      },
+      website: {
+        type: ["string", "null"],
+        description: "Website (full URL with https://, prioritize card information)"
+      },
+      address: {
+        type: ["string", "null"],
+        description: "Address (full address with postal code, prioritize card information, preserve original language)"
+      },
+      company_summary: {
+        type: ["string", "null"],
+        description: "Organization summary (100-200 chars: industry, main business, founding year, scale, operational status. If department exists, explain its function)"
+      },
+      personal_summary: {
+        type: ["string", "null"],
+        description: "Personal summary (30-80 chars: one sentence summarizing expertise, achievements, or professional background, in the same language as the card)"
+      }
+    },
+    required: ["full_name", "organization"]
+  };
 
-**任務 1：OCR 辨識**（依照 vCard RFC 6350 標準）
-從名片圖片中精確辨識以下資訊：
-- name_prefix: 稱謂前綴（Dr./Prof./Mr./Mrs./Ms.）
-- full_name: 完整姓名（必填）
-- name_suffix: 學位/頭銜後綴（Ph.D./Jr./Sr./M.D./Esq.）
-- organization: 公司名稱（必填）
-- organization_en: 公司英文名稱（名片上有印才填）
-- department: 部門
-- title: 職稱
-- phone: 電話號碼（保留原格式含國碼，如：+886-2-1234-5678）
-- email: 電子郵件
-- website: 網站（完整 URL 含 https://）
-- address: 地址（完整地址含郵遞區號）
+  const prompt = `Extract business card information and enrich with web search.
 
-**任務 2：公司資訊補全**（使用 Google Search）
-搜尋公司的以下資訊：
-- company_summary: 公司摘要（100-200字：產業、主要業務、成立年份、規模、營運狀況）
-- organization_full: 公司完整正式名稱（工商登記全稱）
-- organization_alias: 公司常用簡稱或品牌名（陣列格式，例如：["台積電", "TSMC"]）
-- 若名片上缺少以下欄位，請從官網補全：
-  - organization_en: 公司英文正式名稱
-  - website: 官方網站（完整 URL 含 https://）
-  - address: 總部地址（完整地址含郵遞區號）
+**OCR Task**: Extract all visible information (name, company, department, title, contact details, address, etc.). Preserve original language.
 
-**回傳格式**（純 JSON，不要 markdown 標記）：
-{
-  "name_prefix": "...",
-  "full_name": "...",
-  "name_suffix": "...",
-  "organization": "...",
-  "organization_en": "...",
-  "organization_alias": ["簡稱1", "簡稱2"],
-  "organization_full": "...",
-  "department": "...",
-  "title": "...",
-  "phone": "...",
-  "email": "...",
-  "website": "...",
-  "address": "...",
-  "company_summary": "..."
-}
+**Enrichment Task**:
+- Organization: full name, English name, aliases
+- company_summary (100-200 chars): industry, main business, founding year, scale, operational status. Describes only the organization and department.
+- If department exists: explain its function within the organization
+- personal_summary (30-80 chars): one concise sentence summarizing the person's expertise, achievements, or professional background
+- Supplement missing website/address from official sources
 
-**規則**：
-1. 無法辨識的欄位填 null
-2. 優先使用官方來源（公司官網、政府登記、證交所）
-3. 使用近 2 年內資料
-4. organization_full 必須是工商登記的正式全稱
-5. 不要包含個人隱私資訊
-6. phone 保留國碼和原始格式
-7. website 和 address 優先使用名片上的資訊，缺失時才從 Web Search 補全`;
+**Search Strategy**: 
+1. First check FileSearchStore for existing information about this person or organization
+2. Use "name + organization/department" as keywords for web search
+3. Prioritize official sources (organization website, government registration, professional profiles)
+
+**Identity Verification (CRITICAL)**:
+- For personal_summary: ONLY include information that explicitly mentions BOTH the person's name AND their current organization
+- For previous work experience: require the source to clearly link this person to their current role
+- If you find someone with the same name but NO clear connection to the current organization, ASSUME it's a different person
+- When uncertain about identity (common name, no verification), focus on current role only
+- DO NOT mix information from different people with the same name
+
+**Language Rules**:
+- Card fields (name, title, address, etc.): preserve original language exactly as shown
+- Summaries (company_summary, personal_summary): MUST use the SAME language as the card's primary language
+  * If card is Chinese → summaries in Chinese
+  * If card is English → summaries in English
+  * If card is mixed languages → use the language of the person's name
+- Do NOT translate or mix languages in summaries`;
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -120,7 +271,19 @@ async function performUnifiedExtract(
             { inline_data: { mime_type: mimeType, data: imageBase64 } }
           ]
         }],
-        tools: [{ googleSearch: {} }]
+        // Use Google Search for web enrichment
+        tools: [{ google_search: {} }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseJsonSchema: responseSchema,
+          maxOutputTokens: 8192  // Maximum allowed by Gemini API
+        },
+        safetySettings: [
+          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+        ]
       })
     }
   );
@@ -128,15 +291,56 @@ async function performUnifiedExtract(
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Gemini API error:', errorText);
+
+    // Handle 412 FAILED_PRECONDITION (safety filters or image quality issues)
+    if (response.status === 412) {
+      throw new Error('Content blocked by safety filters or image quality too low');
+    }
+
     throw new Error('Gemini API request failed');
   }
 
   const data = await response.json() as any;
   const candidate = data.candidates?.[0];
   const text = candidate?.content?.parts?.[0]?.text;
+  const finishReason = candidate?.finishReason;
   const metadata = candidate?.groundingMetadata;
 
+  // Check for incomplete response (MAX_TOKENS)
+  if (finishReason === 'MAX_TOKENS') {
+    console.error('[UnifiedExtract] Response truncated (MAX_TOKENS)');
+    console.error('[UnifiedExtract] Partial text:', text?.substring(0, 200));
+    throw new Error('Response truncated due to token limit. Please try again or use a simpler image.');
+  }
+
+  // Diagnose 412 errors: Check promptFeedback for block reasons
   if (!text) {
+    const promptFeedback = data.promptFeedback;
+
+    // Log full response for diagnosis
+    console.error('[Gemini 412 Diagnosis] Full response:', JSON.stringify({
+      promptFeedback,
+      candidates: data.candidates,
+      usageMetadata: data.usageMetadata
+    }, null, 2));
+
+    // Analyze blockReason
+    if (promptFeedback?.blockReason) {
+      const blockReason = promptFeedback.blockReason;
+      console.error(`[Gemini 412 Diagnosis] Block reason: ${blockReason}`);
+
+      // Map block reasons to specific errors
+      if (blockReason === 'SAFETY') {
+        throw new Error('SAFETY_FILTER: Content blocked by safety filters');
+      } else if (blockReason === 'OTHER') {
+        const safetyRatings = promptFeedback.safetyRatings || [];
+        console.error('[Gemini 412 Diagnosis] Safety ratings:', JSON.stringify(safetyRatings, null, 2));
+        throw new Error('QUOTA_OR_LIMIT: Request blocked due to API quota, rate limit, or image quality issues');
+      } else {
+        throw new Error(`UNKNOWN_BLOCK: Request blocked with reason: ${blockReason}`);
+      }
+    }
+
     throw new Error('No result from Gemini');
   }
 
@@ -146,20 +350,86 @@ async function performUnifiedExtract(
     title: chunk.web?.title || ''
   })).filter((s: any) => s.uri) || [];
 
-  // Parse JSON (handle markdown code blocks)
-  let cleanText = text.trim();
-  cleanText = cleanText.replace(/^```(?:json)?\s*\n?/i, '');
-  cleanText = cleanText.replace(/\n?```\s*$/g, '');
-  cleanText = cleanText.trim();
-
+  // Parse JSON (Structured Output with robust error handling)
   try {
-    const result = JSON.parse(cleanText);
-    return {
-      ...result,
-      sources
+    let jsonString = text.trim();
+
+    // Step 1: Remove markdown code blocks (```json ... ```)
+    const fencedMatch = jsonString.match(/```(?:json)?\s*\r?\n([\s\S]*?)\r?\n?```/);
+    if (fencedMatch) {
+      jsonString = fencedMatch[1].trim();
+    }
+
+    // Step 2: Escape unescaped control characters in strings
+    // Replace unescaped newlines, tabs, etc. (common AI output issue)
+    jsonString = jsonString.replace(/([^\\])(\\n|\\t|\\r)/g, '$1\\\\$2');
+
+    // Step 3: Fix invalid backslash sequences (e.g., \' → ')
+    jsonString = jsonString.replace(/\\'/g, "'");
+
+    // Step 4: Remove trailing commas (before } or ])
+    jsonString = jsonString.replace(/,(\s*[}\]])/g, '$1');
+
+    // Step 5: Extract valid JSON by brace balancing (handles trailing garbage)
+    const firstBraceIndex = jsonString.indexOf('{');
+    if (firstBraceIndex !== -1) {
+      let braceDepth = 0;
+      let inString = false;
+      let stringQuote = '';
+      let isEscaped = false;
+      let endIndex = firstBraceIndex;
+
+      for (; endIndex < jsonString.length; endIndex++) {
+        const ch = jsonString[endIndex];
+        
+        if (inString) {
+          if (isEscaped) {
+            isEscaped = false;
+          } else if (ch === '\\') {
+            isEscaped = true;
+          } else if (ch === stringQuote) {
+            inString = false;
+          }
+        } else {
+          if (ch === '"' || ch === "'") {
+            inString = true;
+            stringQuote = ch;
+          } else if (ch === '{') {
+            braceDepth++;
+          } else if (ch === '}') {
+            braceDepth--;
+            if (braceDepth === 0) {
+              endIndex++;
+              break;
+            }
+          }
+        }
+      }
+      
+      jsonString = jsonString.slice(firstBraceIndex, endIndex).trim();
+      
+      // Step 5.5: Repair unterminated string (if still in string at end)
+      if (inString) {
+        jsonString += stringQuote; // Close the unterminated string
+      }
+      
+      // Step 5.6: Close unclosed braces/brackets
+      while (braceDepth > 0) {
+        jsonString += '}';
+        braceDepth--;
+      }
+    }
+
+    // Step 6: Parse JSON
+    const result = JSON.parse(jsonString);
+    return { 
+      ...result, 
+      sources,
+      ocr_raw_text: text  // Store full Gemini response for audit/search
     };
-  } catch (_error) {
-    console.error('Failed to parse unified extract result:', cleanText.substring(0, 200));
+  } catch (error) {
+    console.error('[UnifiedExtract] JSON parse failed:', error);
+    console.error('[UnifiedExtract] Text sample:', text.substring(0, 300));
     throw new Error('Invalid response format');
   }
 }
@@ -167,34 +437,31 @@ async function performUnifiedExtract(
 /**
  * Handle POST /api/user/received-cards/unified-extract
  */
-export async function handleUnifiedExtract(request: Request, env: Env): Promise<Response> {
-  const DEBUG = env.ENVIRONMENT === 'staging';
+export async function handleUnifiedExtract(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext
+): Promise<Response> {
+  let body: UnifiedExtractRequest | null = null;
+  let user: { email: string } | null = null;
+
   try {
-    if (DEBUG) console.log('[UnifiedExtract] Request received');
-    
     // 1. Verify OAuth
     const userResult = await verifyOAuth(request, env);
     if (userResult instanceof Response) {
-      if (DEBUG) console.log('[UnifiedExtract] OAuth verification failed');
       return userResult;
     }
-    const user = userResult;
-    if (DEBUG) console.log('[UnifiedExtract] OAuth verified for user:', user.email);
+    user = userResult;
 
     // 2. Parse request body
-    let body: UnifiedExtractRequest;
     try {
       const rawBody = await request.text();
-      if (DEBUG) console.log('[UnifiedExtract] Raw body:', rawBody);
       body = JSON.parse(rawBody) as UnifiedExtractRequest;
-      if (DEBUG) console.log('[UnifiedExtract] Parsed body:', body);
     } catch (error) {
-      if (DEBUG) console.error('[UnifiedExtract] JSON parse error:', error);
       return errorResponse('INVALID_JSON', 'Invalid JSON in request body', 400);
     }
-    
+
     if (!body.upload_id) {
-      if (DEBUG) console.error('[UnifiedExtract] Missing upload_id');
       return errorResponse('INVALID_REQUEST', 'upload_id is required', 400);
     }
 
@@ -223,40 +490,77 @@ export async function handleUnifiedExtract(request: Request, env: Env): Promise<
     // 6. Detect MIME type
     const mimeType = (upload.image_url as string).endsWith('.png') ? 'image/png' : 'image/jpeg';
 
-    // 7. Perform unified extract (OCR + Enrich)
-    const result = await performUnifiedExtract(imageBase64, mimeType, env.GEMINI_API_KEY);
+    // 7. Perform unified extract (OCR + Enrich) with retry on 429
+    const result = await retryWithBackoff(() =>
+      performUnifiedExtract(imageBase64, mimeType, env.GEMINI_API_KEY, env.GEMINI_MODEL, env)
+    );
 
     // 8. Update OCR status to completed
     await env.DB.prepare(`
-      UPDATE temp_uploads 
+      UPDATE temp_uploads
       SET ocr_status = 'completed'
       WHERE upload_id = ? AND user_email = ?
     `).bind(body.upload_id, user.email).run();
 
-    // 9. Return result
+    // 9. Background upload to FileSearchStore (DISABLED 2026-03-05)
+    // Reason: Gemini API cannot combine file_search + google_search
+    // Alternative: Vectorize (implemented)
+    // TODO: Re-enable when Gemini API supports both tools simultaneously
+    /*
+    if (env.FILE_SEARCH_STORE_NAME && result.organization) {
+      ctx.waitUntil(
+        uploadToFileSearchStore(result, env.GEMINI_API_KEY, env.FILE_SEARCH_STORE_NAME)
+          .catch(error => {
+            console.error('[FileSearchStore] Upload failed:', error instanceof Error ? error.message : String(error));
+          })
+      );
+    }
+    */
+
+    // 10. Return result
     return jsonResponse(result);
 
   } catch (error) {
     console.error('Unified extract error:', error);
     const message = error instanceof Error ? error.message : 'Failed to extract card data';
-    
-    // Update OCR status to failed
-    try {
-      const userResult = await verifyOAuth(request, env);
-      if (!(userResult instanceof Response)) {
-        const body = await request.clone().json() as UnifiedExtractRequest;
-        if (body.upload_id) {
-          await env.DB.prepare(`
-            UPDATE temp_uploads 
-            SET ocr_status = 'failed', ocr_error = ?
-            WHERE upload_id = ? AND user_email = ?
-          `).bind(message.substring(0, 500), body.upload_id, userResult.email).run();
-        }
-      }
-    } catch (updateError) {
-      console.error('Failed to update OCR status:', updateError);
+
+    // Parse specific error types from enhanced diagnosis
+    let errorCode = 'EXTRACT_FAILED';
+    let statusCode = 500;
+    let userMessage = message;
+
+    if (message.startsWith('SAFETY_FILTER:')) {
+      errorCode = 'SAFETY_FILTER';
+      statusCode = 422;
+      userMessage = '圖片內容被安全過濾器阻擋 / Image content blocked by safety filters';
+    } else if (message.startsWith('QUOTA_OR_LIMIT:')) {
+      errorCode = 'QUOTA_EXCEEDED';
+      statusCode = 429;
+      userMessage = 'API 配額已達上限或圖片解析度異常，請稍後再試 / API quota exceeded or image resolution issue. Please try again later.';
+    } else if (message.startsWith('UNKNOWN_BLOCK:')) {
+      errorCode = 'CONTENT_BLOCKED';
+      statusCode = 422;
+      userMessage = '圖片無法處理，原因未知 / Image cannot be processed due to unknown reason';
+    } else if (message.includes('Content blocked by safety filters or image quality too low')) {
+      // Fallback for legacy 412 errors
+      errorCode = 'CONTENT_BLOCKED';
+      statusCode = 422;
+      userMessage = '圖片內容無法辨識，請確認圖片清晰且不包含敏感內容 / Image content cannot be recognized. Please ensure the image is clear and does not contain sensitive content.';
     }
-    
-    return errorResponse('EXTRACT_FAILED', message, 500);
+
+    // Update OCR status to failed
+    if (body?.upload_id && user?.email) {
+      try {
+        await env.DB.prepare(`
+          UPDATE temp_uploads
+          SET ocr_status = 'failed', ocr_error = ?
+          WHERE upload_id = ? AND user_email = ?
+        `).bind(message.substring(0, 500), body.upload_id, user.email).run();
+      } catch (updateError) {
+        console.error('Failed to update OCR status:', updateError);
+      }
+    }
+
+    return errorResponse(errorCode, userMessage, statusCode);
   }
 }

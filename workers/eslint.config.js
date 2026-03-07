@@ -25,6 +25,7 @@ export default [
         window: 'readonly',
         document: 'readonly',
         navigator: 'readonly',
+        location: 'readonly',
         fetch: 'readonly',
         crypto: 'readonly',
         btoa: 'readonly',
@@ -48,6 +49,7 @@ export default [
         Request: 'readonly',
         Response: 'readonly',
         Headers: 'readonly',
+        Blob: 'readonly',
         HeadersInit: 'readonly',
         ExecutionContext: 'readonly',
         D1Database: 'readonly',
@@ -58,6 +60,8 @@ export default [
         Fetcher: 'readonly',
         ScheduledEvent: 'readonly',
         Env: 'readonly',
+        VectorizeIndex: 'readonly',
+        VectorizeVector: 'readonly',
 
         // Web APIs
         URL: 'readonly',
@@ -91,6 +95,7 @@ export default [
         viewAsset: 'readonly',
         getSocialLinkError: 'readonly',
         showToast: 'readonly',
+        loadCards: 'readonly',
 
         // Functions called from HTML onclick attributes
         closeWebViewWarning: 'writable',
@@ -104,6 +109,20 @@ export default [
       'no-new-func': 'error',
       'no-script-url': 'error',
       'no-unused-vars': 'warn'
+    }
+  },
+  {
+    files: ['vite.config.js'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: {
+        require: 'readonly',
+        module: 'writable',
+        exports: 'writable',
+        process: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+      }
     }
   }
 ];

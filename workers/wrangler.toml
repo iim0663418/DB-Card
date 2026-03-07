@@ -1,13 +1,16 @@
 name = "db-card-staging"
 main = "src/index.ts"
 compatibility_date = "2024-04-03"  # Enable Durable Objects RPC
-# Version: v5.0.0
+# Version: v5.0.1
 
 # Environment Variables
 [vars]
 ENVIRONMENT = "staging"
 WORKER_URL = "https://db-card-staging.csw30454.workers.dev"
 GOOGLE_CLIENT_ID = "675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com"
+GEMINI_MODEL = "gemini-3-flash-preview"
+GEMINI_EMBEDDING_MODEL = "gemini-embedding-001"
+FILE_SEARCH_STORE_NAME = "fileSearchStores/dbcard-knowledge-base-fpyodw69c4ua"
 
 # Static Assets
 [assets]
@@ -24,6 +27,11 @@ database_id = "d31b5e42-d8bf-4044-9744-4aff5669de4b"
 [[kv_namespaces]]
 binding = "KV"
 id = "87221de061f049d3a4c976b7b5092dd9"
+
+# Vectorize Index for Card Embeddings
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "card-embeddings"
 
 # Durable Objects
 [[durable_objects.bindings]]
@@ -45,14 +53,16 @@ binding = "PHYSICAL_CARDS"
 bucket_name = "db-card-physical-images-staging"
 preview_bucket_name = "db-card-physical-images-preview"
 
-# Cron Triggers
+# Cron Triggers (免費版限制：單一 Cron 回退)
+# Taiwan Time (UTC+8):
+#   02:00 = UTC 18:00 - All Tasks (Sync + Deduplicate + AutoTag + Candidates + Cleanup)
 [triggers]
-crons = ["0 2 * * *"]  # Daily maintenance: cleanup (02:00) + log rotation (02:05)
+crons = ["0 18 * * *"]
 
 # Production Environment
 [env.production]
 name = "db-card-api-prod"
-vars = { ENVIRONMENT = "production", WORKER_URL = "https://db-card.example.com", GOOGLE_CLIENT_ID = "675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com" }
+vars = { ENVIRONMENT = "production", WORKER_URL = "https://db-card.example.com", GOOGLE_CLIENT_ID = "675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com", FILE_SEARCH_STORE_NAME = "fileSearchStores/dbcard-knowledge-base-fpyodw69c4ua" }
 
 [[env.production.d1_databases]]
 binding = "DB"

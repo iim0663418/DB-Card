@@ -8,6 +8,7 @@ import type { Env } from '../../../types';
 import { verifyOAuth } from '../../../middleware/oauth';
 import { jsonResponse, errorResponse } from '../../../utils/response';
 import { extractTagsFromOrganization } from '../../../utils/tags';
+import { normalizeToTraditional } from '../../../utils/chinese-converter';
 
 interface SaveCardRequest {
   upload_id?: string;  // Optional for manual add
@@ -30,7 +31,7 @@ interface SaveCardRequest {
   personal_summary?: string;
   sources?: Array<{ uri: string; title: string }>;
   ai_status?: string;
-  ocr_raw_text?: string;
+  ocr_raw_text?: string;  // NOTE: Not populated by unified-extract (see unified-extract.ts)
 }
 
 interface UpdateCardRequest {
@@ -49,11 +50,11 @@ interface UpdateCardRequest {
   website?: string;
   address?: string;
   note?: string;
+  company_summary?: string;
+  personal_summary?: string;
 }
 
 interface PatchCardRequest extends UpdateCardRequest {
-  company_summary?: string;
-  personal_summary?: string;
   ai_sources_json?: string;
   ai_status?: string;
 }
@@ -62,7 +63,7 @@ interface PatchCardRequest extends UpdateCardRequest {
  * Handle POST /api/user/received-cards - Save card
  * Supports both AI flow (with upload_id) and manual add (without upload_id)
  */
-export async function handleSaveCard(request: Request, env: Env): Promise<Response> {
+export async function handleSaveCard(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   try {
     const userResult = await verifyOAuth(request, env);
     if (userResult instanceof Response) return userResult;
@@ -187,19 +188,24 @@ export async function handleSaveCard(request: Request, env: Env): Promise<Respon
             : body.organization_alias)
         : null;
       
+      // Normalize organization to traditional Chinese for search
+      const organizationNormalized = body.organization 
+        ? await normalizeToTraditional(body.organization, { ...env, ctx })
+        : null;
+      
       const now = Date.now();
 
       await env.DB.prepare(`
         INSERT INTO received_cards (
           uuid, user_email, name_prefix, full_name, first_name, last_name, name_suffix,
-          organization, organization_en, organization_alias, department, title, 
+          organization, organization_en, organization_alias, organization_normalized, department, title, 
           phone, email, website, address, note,
           company_summary, personal_summary, ai_sources_json, ai_status,
           original_image_url, thumbnail_url, ocr_raw_text, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         cardUuid, user.email, body.name_prefix || null, body.full_name, body.first_name || null, body.last_name || null, body.name_suffix || null,
-        body.organization || null, body.organization_en || null, organizationAlias, body.department || null, body.title || null,
+        body.organization || null, body.organization_en || null, organizationAlias, organizationNormalized, body.department || null, body.title || null,
         body.phone || null, body.email || null, body.website || null, body.address || null, body.note || null,
         body.company_summary || null, body.personal_summary || null, aiSourcesJson, aiStatus,
         permanentUrl, thumbnailUrl, body.ocr_raw_text || null, now.toString()
@@ -289,7 +295,7 @@ export async function handleListCards(request: Request, env: Env): Promise<Respo
         'own' as source,
         NULL as shared_by
       FROM received_cards
-      WHERE user_email = ? AND deleted_at IS NULL
+      WHERE user_email = ? AND deleted_at IS NULL AND merged_to IS NULL
 
       UNION ALL
 
@@ -303,10 +309,10 @@ export async function handleListCards(request: Request, env: Env): Promise<Respo
         sc.owner_email as shared_by
       FROM shared_cards sc
       INNER JOIN received_cards rc ON sc.card_uuid = rc.uuid
-      WHERE rc.deleted_at IS NULL
+      WHERE rc.deleted_at IS NULL AND rc.merged_to IS NULL
         AND rc.user_email != ?
 
-      ORDER BY updated_at DESC
+      ORDER BY COALESCE(updated_at, created_at) DESC
     `).bind(user.email, user.email).all();
 
     // Parse ai_sources_json for each card
@@ -314,6 +320,38 @@ export async function handleListCards(request: Request, env: Env): Promise<Respo
       ...card,
       sources: card.ai_sources_json ? JSON.parse(card.ai_sources_json) : []
     }));
+
+    // Fetch tags for all cards
+    if (cardsWithSources.length > 0) {
+      const cardUuids = cardsWithSources.map((c: any) => c.uuid);
+      const placeholders = cardUuids.map(() => '?').join(',');
+      
+      const tagsResult = await env.DB.prepare(`
+        SELECT card_uuid, category, raw_value, normalized_value, tag_source
+        FROM card_tags
+        WHERE card_uuid IN (${placeholders})
+        ORDER BY created_at ASC
+      `).bind(...cardUuids).all();
+
+      // Group tags by card_uuid (new format with objects)
+      const tagsByCard = new Map<string, Array<{ category: string; raw: string; normalized: string }>>();
+      for (const row of tagsResult.results) {
+        const r = row as any;
+        if (!tagsByCard.has(r.card_uuid)) {
+          tagsByCard.set(r.card_uuid, []);
+        }
+        tagsByCard.get(r.card_uuid)!.push({
+          category: r.category,
+          raw: r.raw_value,
+          normalized: r.normalized_value
+        });
+      }
+
+      // Add tags to cards
+      for (const card of cardsWithSources) {
+        card.tags = tagsByCard.get(card.uuid) || [];
+      }
+    }
 
     return jsonResponse(cardsWithSources);
 
@@ -353,6 +391,8 @@ export async function handleUpdateCard(request: Request, env: Env, uuid: string)
     if (body.website !== undefined) { updates.push('website = ?'); values.push(body.website); }
     if (body.address !== undefined) { updates.push('address = ?'); values.push(body.address); }
     if (body.note !== undefined) { updates.push('note = ?'); values.push(body.note); }
+    if (body.company_summary !== undefined) { updates.push('company_summary = ?'); values.push(body.company_summary); }
+    if (body.personal_summary !== undefined) { updates.push('personal_summary = ?'); values.push(body.personal_summary); }
 
     if (updates.length === 0) {
       return errorResponse('NO_UPDATES', 'No fields to update', 400);

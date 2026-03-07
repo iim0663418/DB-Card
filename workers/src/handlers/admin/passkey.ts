@@ -20,6 +20,31 @@ import type {
   AuthenticatorTransport
 } from '@simplewebauthn/server';
 
+// Passkey 安全驗證輔助函數
+function validatePasskeyRequest(request: Request): { rpID: string; origin: string } | Response {
+  const url = new URL(request.url);
+  
+  // HTTPS 強制檢查（localhost 除外）
+  if (url.protocol !== 'https:' && url.hostname !== 'localhost') {
+    return errorResponse('insecure_origin', 'HTTPS required for Passkey', 400, request);
+  }
+  
+  // RP ID 白名單驗證
+  const allowedRPIDs = [
+    'db-card-staging.csw30454.workers.dev',
+    'db-card.sfan-tech.com',
+    'localhost'
+  ];
+  if (!allowedRPIDs.includes(url.hostname)) {
+    return errorResponse('invalid_rp_id', 'RP ID not allowed', 403, request);
+  }
+  
+  return {
+    rpID: url.hostname,
+    origin: url.origin
+  };
+}
+
 // Base64URL encoding/decoding utilities for Cloudflare Workers
 function base64UrlEncode(buffer: Uint8Array): string {
   const base64 = btoa(String.fromCharCode(...buffer));
@@ -49,7 +74,10 @@ export async function handlePasskeyRegisterStart(request: Request, env: Env): Pr
       return errorResponse('not_found', 'User not found or inactive', 404, request);
     }
 
-    const rpID = env.RP_ID || 'localhost';
+    // 安全驗證
+    const validation = validatePasskeyRequest(request);
+    if (validation instanceof Response) return validation;
+    const { rpID, origin } = validation;
     const rpName = 'DB-Card Admin';
     const userID = new TextEncoder().encode(String(user.id)) as ReturnType<Uint8Array['slice']>;
 
@@ -105,8 +133,10 @@ export async function handlePasskeyRegisterFinish(request: Request, env: Env): P
       return errorResponse('invalid_challenge', 'Challenge expired or not found', 400, request);
     }
 
-    const rpID = env.RP_ID || 'localhost';
-    const origin = env.ORIGIN || 'http://localhost:8788';
+    // 安全驗證
+    const validation = validatePasskeyRequest(request);
+    if (validation instanceof Response) return validation;
+    const { rpID, origin } = validation;
 
     const opts: VerifyRegistrationResponseOpts = {
       response: registrationCredential,
@@ -157,7 +187,10 @@ export async function handlePasskeyRegisterFinish(request: Request, env: Env): P
 
 export async function handlePasskeyLoginStart(request: Request, env: Env): Promise<Response> {
   try {
-    const rpID = env.RP_ID || 'localhost';
+    // 安全驗證
+    const validation = validatePasskeyRequest(request);
+    if (validation instanceof Response) return validation;
+    const { rpID, origin } = validation;
 
     // 查詢所有已註冊的 Passkey credentials
     const credentials = await env.DB.prepare(
@@ -203,7 +236,10 @@ export async function handlePasskeyLoginFinish(request: Request, env: Env): Prom
       return errorResponse('invalid_request', 'Credential required', 400, request);
     }
 
-    const rpID = env.RP_ID || 'localhost';
+    // 安全驗證
+    const validation = validatePasskeyRequest(request);
+    if (validation instanceof Response) return validation;
+    const { rpID, origin } = validation;
 
     // 從 credential ID 查找用戶
     const user = await env.DB.prepare(`
@@ -247,7 +283,6 @@ export async function handlePasskeyLoginFinish(request: Request, env: Env): Prom
       return errorResponse('invalid_challenge', 'Challenge expired or not found', 400, request);
     }
 
-    const origin = env.ORIGIN || 'http://localhost:8788';
 
     const opts: VerifyAuthenticationResponseOpts = {
       response: credential,

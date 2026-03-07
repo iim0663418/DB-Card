@@ -22,19 +22,21 @@ import { handleOCR } from './handlers/user/received-cards/ocr';
 import { handleEnrich } from './handlers/user/received-cards/enrich';
 import { handleUnifiedExtract } from './handlers/user/received-cards/unified-extract';
 import { handleSaveCard, handleListCards as handleListReceivedCards, handleUpdateCard as handleUpdateReceivedCard, handleDeleteCard as handleDeleteReceivedCard, handlePatchCard as handlePatchReceivedCard } from './handlers/user/received-cards/crud';
+import { searchCards } from './handlers/user/received-cards/search';
 import { handleGetThumbnail } from './handlers/user/received-cards/thumbnail';
 import { handleGetImage } from './handlers/user/received-cards/image';
 import { handleGetVCard } from './handlers/user/received-cards/vcard';
 import { handleShareCard } from './handlers/user/received-cards/share';
 import { handleUnshareCard } from './handlers/user/received-cards/unshare';
 import { handleListSharedCards } from './handlers/user/received-cards/list-shared';
+import { handleTriggerCron } from './handlers/admin/trigger-cron';
 import { handleGetOAuthUserInfo } from './handlers/user/oauth-user-info';
 import { handleConsentCheck, handleConsentAccept, handleConsentWithdraw, handleConsentRestore, handleConsentHistory, handleDataExport, handlePrivacyPolicyCurrent } from './handlers/consent';
 import { handleOAuthCallback } from './handlers/oauth';
 import { handleOAuthInit } from './handlers/oauth-init';
 import { handleRISCEvent } from './handlers/risc';
 import { handleManifest } from './handlers/manifest';
-import { publicErrorResponse } from './utils/response';
+import { publicErrorResponse, errorResponse } from './utils/response';
 import { initAllowedOrigins } from './utils/response';
 import { checkRateLimit } from './middleware/rate-limit';
 import { verifySetupToken } from './middleware/auth';
@@ -345,7 +347,7 @@ export default {
     }
 
     if (url.pathname === '/api/user/received-cards/unified-extract' && request.method === 'POST') {
-      return addMinimalSecurityHeaders(await handleUnifiedExtract(request, env));
+      return addMinimalSecurityHeaders(await handleUnifiedExtract(request, env, ctx));
     }
 
     if (url.pathname === '/api/user/received-cards/ocr' && request.method === 'POST') {
@@ -357,11 +359,16 @@ export default {
     }
 
     if (url.pathname === '/api/user/received-cards' && request.method === 'POST') {
-      return addMinimalSecurityHeaders(await handleSaveCard(request, env));
+      return addMinimalSecurityHeaders(await handleSaveCard(request, env, ctx));
     }
 
     if (url.pathname === '/api/user/received-cards' && request.method === 'GET') {
       return addMinimalSecurityHeaders(await handleListReceivedCards(request, env));
+    }
+
+    // GET /api/user/received-cards/search - Smart search
+    if (url.pathname === '/api/user/received-cards/search' && request.method === 'GET') {
+      return addMinimalSecurityHeaders(await searchCards(request, env));
     }
 
     // PUT /api/user/received-cards/:uuid - Update received card (full update)
@@ -540,6 +547,39 @@ export default {
       return addMinimalSecurityHeaders(await handleKekStatus(request, env));
     }
 
+    // POST /api/admin/trigger-cron - Manual cron execution (admin only)
+    if (url.pathname === '/api/admin/trigger-cron' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleTriggerCron(request, env, ctx));
+    }
+
+    // GET /api/admin/test-batch-api - Test Batch API (admin only)
+    if (url.pathname === '/api/admin/test-batch-api' && request.method === 'GET') {
+      const { handleTestBatchAPI } = await import('./handlers/admin/test-batch-api');
+      return addMinimalSecurityHeaders(await handleTestBatchAPI(request, env));
+    }
+
+    // GET /api/admin/candidates/precision - Get precision statistics
+    if (url.pathname === '/api/admin/candidates/precision' && request.method === 'GET') {
+      const { handleGetPrecision } = await import('./handlers/admin/candidates');
+      return addMinimalSecurityHeaders(await handleGetPrecision(env));
+    }
+
+    // GET /api/admin/candidates - List candidates
+    if (url.pathname === '/api/admin/candidates' && request.method === 'GET') {
+      const { handleListCandidates } = await import('./handlers/admin/candidates');
+      return addMinimalSecurityHeaders(await handleListCandidates(request, env));
+    }
+
+    // PUT /api/admin/candidates/:pairKey - Validate candidate
+    if (url.pathname.startsWith('/api/admin/candidates/') && request.method === 'PUT') {
+      const pairKey = url.pathname.split('/').pop();
+      if (!pairKey || pairKey === 'precision') {
+        return errorResponse('INVALID_PAIR_KEY', 'Invalid pair key', 400);
+      }
+      const { handleValidateCandidate } = await import('./handlers/admin/candidates');
+      return addMinimalSecurityHeaders(await handleValidateCandidate(request, env, pairKey));
+    }
+
     // GET /api/admin/security/stats - Security statistics
     if (url.pathname === '/api/admin/security/stats' && request.method === 'GET') {
       return addMinimalSecurityHeaders(await handleSecurityStats(request, env));
@@ -712,8 +752,27 @@ export default {
     return response;
   },
 
-  async scheduled(event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
-    // Run all cleanup tasks at 02:00 UTC
+  async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
+    // Single Cron: 02:00 台灣時間 - All Tasks
+    
+    // Phase 1: Auto-tag Cards (Simple Version - Unified Path)
+    console.log('[Cron] Phase 1: Auto-tag Cards');
+    const { autoTagCards } = await import('./cron/auto-tag-cards');
+    await autoTagCards(env);
+
+    // Phase 2: Vectorize & Other Sync Tasks
+    console.log('[Cron] Phase 2: Vectorize & Sync');
+    const { syncCardEmbeddings } = await import('./cron/sync-card-embeddings');
+    await syncCardEmbeddings(env);
+
+    const { deduplicateCards } = await import('./cron/deduplicate-cards');
+    await deduplicateCards(env);
+
+    const { findCrossUserCandidates } = await import('./cron/find-candidates');
+    await findCrossUserCandidates(env);
+
+    // Phase 3: Cleanup Tasks
+    console.log('[Cron] Phase 3: Cleanup');
     const { handleScheduledCleanup } = await import('./scheduled-cleanup');
     const { handleScheduledLogRotation } = await import('./scheduled-log-rotation');
     const { handleScheduledKVCleanup } = await import('./scheduled-kv-cleanup');
@@ -721,7 +780,6 @@ export default {
     const { cleanupTempUploads } = await import('./cron/cleanup-temp-uploads');
     const { cleanupReceivedCards } = await import('./cron/cleanup-received-cards');
 
-    // Run sequentially to avoid resource contention
     await handleScheduledCleanup(env);
     await handleScheduledLogRotation(env);
     await handleScheduledKVCleanup(env);

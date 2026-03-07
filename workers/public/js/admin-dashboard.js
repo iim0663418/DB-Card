@@ -32,7 +32,19 @@
             animate();
         }
 
-        // Safe icon initialization with retry mechanism (fixes race condition)
+        // Production-safe logging
+const DEBUG = window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1');
+window.DEBUG = DEBUG; // Expose for other modules
+
+const logger = {
+    debug: (...args) => { if (DEBUG) console.debug(...args); },
+    log: (...args) => { if (DEBUG) console.log(...args); },
+    info: (...args) => { if (DEBUG) console.info(...args); },
+    warn: (...args) => console.warn(...args),
+    error: (...args) => console.error(...args)
+};
+
+// Safe icon initialization with retry mechanism (fixes race condition)
         function safeInitIcons(retries = 3) {
             if (typeof window.initIcons === 'function') {
                 window.initIcons();
@@ -275,6 +287,12 @@
             // Clear CSRF token from sessionStorage
             sessionStorage.removeItem('csrfToken');
 
+            // 清除自動刷新間隔
+            if (securityStatsInterval) {
+                clearInterval(securityStatsInterval);
+                securityStatsInterval = null;
+            }
+
             // 清除狀態並顯示登入頁面
             isVerified = false;
             
@@ -295,8 +313,6 @@
             if (passkeyBtn) {
                 passkeyBtn.disabled = false;
                 passkeyBtn.innerHTML = '<i data-lucide="fingerprint" class="w-4 h-4 text-slate-700"></i><span class="text-xs font-bold text-slate-700">Passkey</span>';
-                // 重新初始化 Lucide icon
-                lucide.createIcons({ nameAttr: 'data-lucide' });
             }
             
             // 重新檢查 Passkey 可用性
@@ -307,7 +323,14 @@
 
         // 統一處理授權過期
         function handleAuthExpired() {
+            // 清除自動刷新間隔
+            if (securityStatsInterval) {
+                clearInterval(securityStatsInterval);
+                securityStatsInterval = null;
+            }
+
             isVerified = false;
+            sessionStorage.removeItem('csrfToken');  // Clear CSRF token
             document.getElementById('token-section').classList.remove('hidden');
             document.getElementById('auth-status').classList.add('hidden');
             document.getElementById('admin-nav').classList.add('hidden');
@@ -348,7 +371,7 @@
                 }
             } catch (error) {
                 // 網路錯誤或其他問題，靜默處理
-                console.debug('Check auth status:', error.message);
+                logger.debug('Check auth status:', error.message);
             }
         }
 
@@ -868,21 +891,20 @@
             safeInitIcons();
         }
 
-        // Load cards from API and render
-        async function loadCards() {
-            try {
-                const cards = await api.getCards();
-                renderCardsList(cards);
-            } catch (error) {
-                showLoadingError(error.message || '載入失敗');
-            }
-        }
+        // 注意：loadCards 函數定義在後面（window.loadCards）
 
         // Render cards list (Phase 2: XSS防護 - 使用 DOM API 而非 innerHTML)
         function renderCardsList(cards) {
+            logger.log('[renderCardsList] Called with', cards?.length, 'cards');
             const grid = document.getElementById('cards-grid');
 
+            if (!grid) {
+                console.error('[renderCardsList] cards-grid element not found');
+                return;
+            }
+
             if (!cards || cards.length === 0) {
+                logger.log('[renderCardsList] No cards to render');
                 showEmptyState();
                 return;
             }
@@ -891,7 +913,9 @@
             grid.innerHTML = '';
 
             // 使用 DOM API 安全渲染每張卡片
-            cards.forEach(c => {
+            cards.forEach((c, index) => {
+                try {
+                    logger.log(`[renderCardsList] Rendering card ${index}:`, c.uuid, c.data?.name);
                 const cardDiv = document.createElement('div');
                 cardDiv.className = 'glass-surface p-6 rounded-2xl flex flex-col lg:flex-row justify-between items-center gap-6 group hover:border-moda transition-all';
 
@@ -1043,8 +1067,12 @@
 
                 cardDiv.appendChild(actionDiv);
                 grid.appendChild(cardDiv);
+                } catch (error) {
+                    console.error(`[renderCardsList] Error rendering card ${index}:`, error, c);
+                }
             });
 
+            logger.log('[renderCardsList] Finished rendering', cards.length, 'cards');
             safeInitIcons();
         }
 
@@ -2644,8 +2672,12 @@
                 });
             }
 
-            const verifyBtn = document.getElementById('verify-btn');
-            verifyBtn.onclick = verifyToken;
+            // Token 登入表單
+            const tokenForm = document.getElementById('token-login-form');
+            tokenForm.onsubmit = async (e) => {
+                e.preventDefault();
+                await verifyToken();
+            };
 
             const cardForm = document.getElementById('card-form');
             cardForm.onsubmit = handleCreateCard;
@@ -2955,7 +2987,7 @@
 
             try {
                 const url = `${API_BASE}/api/admin/cards/${cardUuid}/assets`;
-                console.log('Fetching assets from:', url); // Debug log
+                logger.log('Fetching assets from:', url); // Debug log
                 
                 const response = await fetch(url, {
                     credentials: 'include'
@@ -3148,3 +3180,239 @@
                 handlers[action](e, btn);
             }
         });
+
+// Trigger Cron Jobs Manually
+window.triggerCron = async function() {
+    const statusEl = document.getElementById('cron-status');
+    const btnEl = document.querySelector('[data-action="triggerCron"]');
+    
+    try {
+        // Show loading state
+        statusEl.classList.remove('hidden');
+        btnEl.disabled = true;
+        btnEl.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 animate-spin"></i> 執行中...';
+        if (window.initIcons) window.initIcons();
+
+        const response = await fetch(`${window.API_BASE || ''}/api/admin/trigger-cron`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'X-CSRF-Token': sessionStorage.getItem('csrfToken') || '' }
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        
+        // Handle response format
+        if (!data || !data.results || !Array.isArray(data.results)) {
+            throw new Error('Invalid response format');
+        }
+        
+        // Show results
+        const successCount = data.results.filter(r => r.status === 'success').length;
+        const totalCount = data.results.length;
+        
+        statusEl.className = 'p-3 rounded-xl';
+        if (successCount === totalCount) {
+            statusEl.className += ' bg-green-50';
+            statusEl.innerHTML = `<p class="text-xs text-green-700"><i data-lucide="check-circle" class="w-3 h-3 inline"></i> 全部完成 (${successCount}/${totalCount})</p>`;
+        } else {
+            statusEl.className += ' bg-yellow-50';
+            statusEl.innerHTML = `<p class="text-xs text-yellow-700"><i data-lucide="alert-triangle" class="w-3 h-3 inline"></i> 部分失敗 (${successCount}/${totalCount})</p>`;
+        }
+        
+        // Show detailed results
+        const detailsHtml = data.results.map(r => {
+            const icon = r.status === 'success' ? 'check-circle' : 'x-circle';
+            const color = r.status === 'success' ? 'text-green-600' : 'text-red-600';
+            return `<div class="flex items-center justify-between text-xs py-1">
+                <span class="${color}"><i data-lucide="${icon}" class="w-3 h-3 inline"></i> ${r.task}</span>
+                <span class="text-slate-500">${r.duration}ms</span>
+            </div>`;
+        }).join('');
+        
+        statusEl.innerHTML += `<div class="mt-2 pt-2 border-t border-slate-200">${detailsHtml}</div>`;
+        
+        if (window.initIcons) window.initIcons();
+        logger.log('[Cron Results]', data.results);
+        setTimeout(() => statusEl.classList.add('hidden'), 10000); // 10s to read details
+
+    } catch (error) {
+        console.error('[Cron Error]', error);
+        statusEl.className = 'p-3 bg-red-50 rounded-xl';
+        statusEl.innerHTML = `<p class="text-xs text-red-700"><i data-lucide="x-circle" class="w-3 h-3 inline"></i> 執行失敗: ${error.message}</p>`;
+        if (window.initIcons) window.initIcons();
+    } finally {
+        btnEl.disabled = false;
+        btnEl.innerHTML = '<i data-lucide="zap" class="w-4 h-4"></i> 立即執行排程';
+        if (window.initIcons) window.initIcons();
+    }
+};
+
+// Bind triggerCron to data-action
+document.addEventListener('click', (e) => {
+    const target = e.target.closest('[data-action="triggerCron"]');
+    if (target) {
+        e.preventDefault();
+        window.triggerCron();
+    }
+});
+
+
+// ============================================
+// Phase A: Candidate Matching Functions
+// ============================================
+
+/**
+ * Load precision statistics
+ */
+window.loadPrecisionStats = async function() {
+    try {
+        const response = await fetch(`${API_BASE}/api/admin/candidates/precision`, {
+            credentials: 'include',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
+        });
+        
+        if (!response.ok) throw new Error('Failed to load precision stats');
+        
+        const data = await response.json();
+        const stats = data.data || data;
+        
+        document.getElementById('precision-total').textContent = stats.total || 0;
+        document.getElementById('precision-pending').textContent = stats.pending || 0;
+        document.getElementById('precision-confirmed').textContent = stats.confirmed || 0;
+        document.getElementById('precision-rejected').textContent = stats.rejected || 0;
+        document.getElementById('precision-value').textContent = `${stats.precision || 0}%`;
+        
+        const targetEl = document.getElementById('precision-target');
+        if (stats.meets_target) {
+            targetEl.textContent = '✓ 達標';
+            targetEl.className = 'text-xs text-green-600 mt-1 font-bold';
+        } else {
+            targetEl.textContent = '目標: ≥90%';
+            targetEl.className = 'text-xs text-slate-400 mt-1';
+        }
+    } catch (error) {
+        console.error('[Precision Stats Error]', error);
+    }
+};
+
+/**
+ * Load candidates list
+ */
+window.loadCandidates = async function() {
+    const listEl = document.getElementById('candidates-list');
+    const status = document.getElementById('candidate-status-filter').value;
+    
+    listEl.innerHTML = '<p class="text-center text-slate-400 py-8">載入中...</p>';
+    
+    try {
+        const response = await fetch(`${API_BASE}/api/admin/candidates?status=${status}&limit=50`, {
+            credentials: 'include',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
+        });
+        
+        if (!response.ok) throw new Error('Failed to load candidates');
+        
+        const data = await response.json();
+        const candidates = data.data?.candidates || data.candidates || [];
+        
+        if (candidates.length === 0) {
+            listEl.innerHTML = '<p class="text-center text-slate-400 py-8">無候選配對</p>';
+            return;
+        }
+        
+        listEl.innerHTML = candidates.map(c => `
+            <div class="bg-white border border-slate-200 rounded-xl p-4">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex-1">
+                        <p class="text-xs text-slate-500 mb-1">配對 Key</p>
+                        <p class="text-sm font-mono text-slate-700">${c.person_pair_key}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-block px-2 py-1 text-xs font-bold rounded ${
+                            c.match_confidence >= 95 ? 'bg-green-100 text-green-700' :
+                            c.match_confidence >= 85 ? 'bg-amber-100 text-amber-700' :
+                            'bg-slate-100 text-slate-700'
+                        }">${c.match_confidence}%</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-3 text-xs">
+                    <div>
+                        <p class="text-slate-500">Person A</p>
+                        <p class="font-mono text-slate-700">${c.person_a_uuid.substring(0, 8)}...</p>
+                    </div>
+                    <div>
+                        <p class="text-slate-500">Person B</p>
+                        <p class="font-mono text-slate-700">${c.person_b_uuid.substring(0, 8)}...</p>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <p class="text-xs text-slate-500 mb-1">匹配方法</p>
+                    <span class="inline-block px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded">${c.match_method}</span>
+                </div>
+                ${status === 'pending' ? `
+                <div class="flex gap-2">
+                    <button onclick="validateCandidate('${c.person_pair_key}', 'confirmed')" 
+                            class="flex-1 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700">
+                        <i data-lucide="check" class="w-4 h-4 inline"></i> 確認
+                    </button>
+                    <button onclick="validateCandidate('${c.person_pair_key}', 'rejected')" 
+                            class="flex-1 py-2 bg-red-600 text-white text-sm font-bold rounded-lg hover:bg-red-700">
+                        <i data-lucide="x" class="w-4 h-4 inline"></i> 拒絕
+                    </button>
+                </div>
+                ` : ''}
+            </div>
+        `).join('');
+        
+        if (window.initIcons) window.initIcons();
+        
+    } catch (error) {
+        console.error('[Load Candidates Error]', error);
+        listEl.innerHTML = '<p class="text-center text-red-500 py-8">載入失敗</p>';
+    }
+};
+
+/**
+ * Validate a candidate
+ */
+window.validateCandidate = async function(pairKey, status) {
+    try {
+        const response = await fetch(`${API_BASE}/api/admin/candidates/${pairKey}`, {
+            method: 'PUT',
+            credentials: 'include',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status })
+        });
+        
+        if (!response.ok) throw new Error('Failed to validate candidate');
+        
+        // Reload data
+        await window.loadPrecisionStats();
+        await window.loadCandidates();
+        
+    } catch (error) {
+        console.error('[Validate Candidate Error]', error);
+        alert('驗證失敗: ' + error.message);
+    }
+};
+
+// Auto-load when switching to candidates tab
+document.addEventListener('click', (e) => {
+    const target = e.target.closest('[data-tab="candidates"]');
+    if (target) {
+        setTimeout(() => {
+            window.loadPrecisionStats();
+            window.loadCandidates();
+        }, 100);
+    }
+});
+
+// Auto-reload on filter change
+document.getElementById('candidate-status-filter')?.addEventListener('change', () => {
+    window.loadCandidates();
+});

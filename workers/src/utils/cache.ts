@@ -3,13 +3,14 @@ import type { Env } from '../types';
 
 /**
  * Invalidate all caches related to a card
- * Includes: card data, card type, session responses, last session
+ * Includes: card data, card type, session responses, last session, card metadata (Phase 2)
  */
 export async function invalidateCardCaches(env: Env, uuid: string): Promise<void> {
   const invalidations = [
     env.KV.delete(`card:${uuid}`),
     env.KV.delete(`card_type:${uuid}`),
-    env.KV.delete(`last_session:${uuid}`)
+    env.KV.delete(`last_session:${uuid}`),
+    env.KV.delete(`card:meta:${uuid}`) // Phase 2: Card metadata cache
   ];
 
   // Get all active sessions for this card

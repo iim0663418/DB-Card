@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [5.0.0] - 2026-02-23
 
 ### Added
+- **🎯 Gemini Structured Output (核心技術升級)**
+  - JSON Schema 強制結構化輸出：零 JSON 解析錯誤
+  - 統一提取流程：OCR + Web Search 一次 API 呼叫
+  - Token 減少 30%：1,300 → 900 tokens/card
+  - 可靠性提升：解析成功率 90% → 100%
+  - 維護成本降低 67%：錯誤處理代碼 150 → 50 行
+  - 詳見：`docs/adr/ADR-004-gemini-structured-output.md`
+
 - **收到的名片管理系統 (Received Cards Management)**
   - OCR 狀態追蹤機制：三階段狀態管理 (pending/completed/failed)
   - `ocr_error` 欄位：記錄 OCR 處理錯誤詳情

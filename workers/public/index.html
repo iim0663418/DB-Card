@@ -47,8 +47,8 @@
     <script src="/js/tailwind-suppress.js"></script>
     <link rel="stylesheet" href="/css/tailwind.css">
     <link rel="stylesheet" href="/css/v4-design.css">
-    <!-- Vite Icon Bundle (Tree-shaken: 11.62 KB, 96.9% reduction) -->
-    <script type="module" src="/dist/icons.sS1r72aF.js"></script>
+    <!-- Vite Icon Bundle (Tree-shaken: 11.62 KB, 96.9% reduction) - Dynamic Loading -->
+    <script src="/js/manifest-loader.js"></script>
     <script src="/vendor/three.min.js"
             integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu"
             crossorigin="anonymous"
@@ -660,7 +660,7 @@
         </footer>
     </div>
 
-    <script src="/js/page-init.js" defer></script>
+    <script type="module" src="/js/page-init.js"></script>
     <script>
         // Load version from API
         fetch('/health')

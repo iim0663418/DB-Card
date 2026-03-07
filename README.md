@@ -1,11 +1,38 @@
-# DB-Card - NFC 數位名片系統 v5.0.0
+# DB-Card - NFC 數位名片系統 v5.0.1
 
 安全預設 NFC 數位名片系統 | 隱私優先 · 安全至上 · OIDC 認證 · GDPR 合規
 
 ## 最新更新
 
+### v5.0.1 (2026-03-07) - 標籤系統與排序修復
+- **🏷️ 標籤標準化系統** - 抽取與標準化分離架構，支援篩選與多樣性
+  - Schema: category, raw_value, normalized_value 三欄位設計
+  - 統一寫入層: tag-service.ts 單一入口，可重建快取
+  - AI 抽取: 保留原始語言，後端標準化（台灣市場優化）
+  - 前端相容: 篩選用 normalized，顯示用 raw
+  - Migration 0039/0040: 446 tags 遷移，85 cards 重新標籤
+- **🔧 Batch API 穩定化** - 統一 Cron 路徑，止血卡住的 jobs
+  - Migration 0041: 清理超過 48 小時的 stale jobs
+  - 簡單版 auto-tag: 20 張/批，單次 Gemini API 呼叫
+  - Deprecated: auto-tag-cards-batch.ts（評估期 2 週）
+- **📊 Cron Subrequest 優化** - 分離優先與背景任務
+  - 優先任務: Auto-tag, Find Candidates, Sync Embeddings, Deduplicate（阻塞執行）
+  - 背景任務: 8 個清理任務（ctx.waitUntil 非阻塞）
+  - 修復: "Too many API requests" 錯誤
+- **🐛 關鍵修復**
+  - 排序邏輯: COALESCE(updated_at, created_at) 修復 87% 新卡片排序問題
+  - Location 標準化: 支援繁簡體（臺→台），修復台北地區標籤
+  - 標籤顯示: 修復 [object Object] 顯示問題，支援物件格式
+  - 搜尋 Abort: 區分 timeout vs 用戶取消，消除錯誤訊息
+- **📚 文檔完善**
+  - 標籤系統架構總覽（4 categories, 標準化規則）
+  - 國際化分析（台灣中心設計，擴展路徑）
+  - Batch API 決策記錄（2 週評估期）
+
 ### v5.0.0 (2026-02-23) - 收到的名片管理系統完成
+- **🎯 Gemini Structured Output** - JSON Schema 強制結構化輸出，零解析錯誤
 - **多模態 AI 狀態追蹤** - pending/completed/failed 三階段狀態，ocr_error 錯誤記錄
+- **統一提取流程** - OCR + Web Search 一次 API 呼叫，30% Token 減少
 - **上傳冪等性保證** - idempotency_key UNIQUE 約束，防止重複上傳
 - **HEIC 格式檢測與阻擋** - Extension + MIME + Magic Bytes 三重驗證
 - **智慧圖片壓縮** - browser-image-compression，目標 1MB，80% 上傳時間減少
@@ -15,6 +42,12 @@
 - **代碼品質** - ESLint warnings 547→44 (87% 改善)，TypeScript 零錯誤
 - **全域類型定義** - 33 個 Cloudflare + Web API 類型定義，消除 any 類型
 - **資料庫優化** - Migration 0032: idempotency_key + user_email 複合唯一索引
+
+### v4.6.0 (2026-02-26) - KV 使用優化
+- **Idempotency 遷移到 Durable Objects** - KV writes 從 500/day 降至 0 (100% 減少)
+- **延遲優化** - Idempotency 查詢從 50ms 降至 5ms (90% 改善)
+- **無限制擴展** - Durable Objects 無每日 writes 限制
+- **自動清理** - alarm() 機制每小時清理過期 keys
 
 ### v4.6.0 (2026-02-08) - Icon Bundle 優化完成
 - **Vite Tree-Shaking** - Lucide Icons 從 379 KB 降至 12.33 KB (96.8% 減少)
@@ -98,6 +131,8 @@
 - **即時撤銷**: NFC 重新觸碰即可撤銷上一個會話
 
 ### 2. 收到的名片管理
+- **Gemini Structured Output**: JSON Schema 強制結構化輸出，零解析錯誤
+- **統一提取流程**: OCR + Web Search 一次 API 呼叫，30% Token 減少
 - **多模態 AI**: pending/completed/failed 三階段狀態追蹤
 - **智慧壓縮**: browser-image-compression,目標 1MB,80% 上傳時間減少
 - **冪等上傳**: idempotency_key 防止重複上傳

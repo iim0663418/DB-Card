@@ -144,9 +144,21 @@ const ErrorPolicy = {
   },
 
   /**
-   * Log error for monitoring
+   * Log error for monitoring (with throttling)
    */
   logError(status, errorData, context, method, endpoint) {
+    // Throttle NETWORK_ERROR and TIMEOUT (10s window)
+    if (errorData.code === 'NETWORK_ERROR' || errorData.code === 'TIMEOUT') {
+      if (!this.shouldLogThrottled(endpoint, errorData.code)) {
+        return; // Skip logging
+      }
+    }
+
+    // Skip CANCELLED errors (user initiated)
+    if (errorData.code === 'CANCELLED') {
+      return;
+    }
+
     const logData = {
       timestamp: new Date().toISOString(),
       status,
@@ -166,5 +178,23 @@ const ErrorPolicy = {
     // if (window.analytics) {
     //   window.analytics.track('api_error', logData);
     // }
+  },
+
+  /**
+   * Error throttling - only log once per 10s for same endpoint+error
+   */
+  _throttleMap: new Map(),
+  _throttleWindow: 10000, // 10 seconds
+
+  shouldLogThrottled(endpoint, errorCode) {
+    const key = `${endpoint}:${errorCode}`;
+    const now = Date.now();
+    const lastLog = this._throttleMap.get(key) || 0;
+
+    if (now - lastLog > this._throttleWindow) {
+      this._throttleMap.set(key, now);
+      return true;
+    }
+    return false;
   }
 };

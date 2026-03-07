@@ -64,7 +64,7 @@ function addSecurityHeaders(response: Response, nonce: string): Response {
     `script-src 'self' 'nonce-${nonce}' cdn.tailwindcss.com cdn.jsdelivr.net static.cloudflareinsights.com; ` +
     "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.tailwindcss.com; " +
     "font-src 'self' fonts.gstatic.com; " +
-    "img-src 'self' data: https://cdn.jsdelivr.net https://static.cloudflareinsights.com https://*.googleusercontent.com https://*.r2.cloudflarestorage.com; " +
+    "img-src 'self' data: https://cdn.jsdelivr.net https://static.cloudflareinsights.com https://*.googleusercontent.com https://*.r2.cloudflarestorage.com https://www.gstatic.com; " +
     "connect-src 'self' https://oauth2.googleapis.com https://www.googleapis.com accounts.google.com cloudflareinsights.com; " +
     "object-src 'none'; " +
     "base-uri 'self'; " +

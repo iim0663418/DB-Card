@@ -371,7 +371,7 @@ const ReceivedCardsAPI = {
     return await this.call('/api/user/received-cards');
   },
 
-  async searchCards(query, page = 1, limit = 100, signal = null) {
+  async searchCards(query, page = 1, limit = 20, signal = null) {
     const params = new URLSearchParams({ q: query, page: page.toString(), limit: limit.toString() });
     return await this.call(`/api/user/received-cards/search?${params}`, { signal });
   },
@@ -752,8 +752,10 @@ const ReceivedCards = {
   allCards: [], // Store all cards for filtering
   selectedTags: [], // Store selected tags
   currentKeyword: '', // Store current search keyword
+  searchOrchestrator: null, // SearchOrchestrator instance
 
   init() {
+    this.searchOrchestrator = new SearchOrchestrator({ debounceDelay: 300, threshold: 3 });
     this.bindEvents();
     this.bindSearchEvents();
     this.bindEditModalEvents();
@@ -853,14 +855,22 @@ const ReceivedCards = {
   },
 
   bindSearchEvents() {
-    // Debounce timer and abort controller for search
-    let searchDebounceTimer = null;
-    let searchAbortController = null;
-
-    // 搜尋框輸入事件（帶 debounce）
+    // 搜尋框輸入事件（帶 IME 保護）
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
+      let isComposing = false;
+      searchInput.addEventListener('compositionstart', () => { isComposing = true; });
+      searchInput.addEventListener('compositionend', (e) => {
+        isComposing = false;
+        // Trigger search after IME commit
+        this.currentKeyword = e.target.value.toLowerCase().trim();
+        this._triggerSearch();
+      });
+
       searchInput.addEventListener('input', (e) => {
+        // Skip mid-IME composition
+        if (isComposing) return;
+
         this.currentKeyword = e.target.value.toLowerCase().trim();
 
         // 顯示/隱藏清除按鈕
@@ -873,27 +883,13 @@ const ReceivedCards = {
           }
         }
 
-        // 取消前一個搜尋請求
-        if (searchAbortController) {
-          searchAbortController.abort('New search initiated');
-        }
-
-        // 清除前一個 debounce timer
-        if (searchDebounceTimer) {
-          clearTimeout(searchDebounceTimer);
-        }
-
         // 如果搜尋框為空，立即執行
         if (!this.currentKeyword) {
           this.filterCards();
           return;
         }
 
-        // 300ms debounce（業界最佳實踐）
-        searchDebounceTimer = setTimeout(() => {
-          searchAbortController = new AbortController();
-          this.filterCards(searchAbortController.signal);
-        }, 300);
+        this._triggerSearch();
       });
     }
 
@@ -987,43 +983,50 @@ const ReceivedCards = {
     });
   },
 
-  async filterCards(signal = null) {
-    // 如果有搜尋關鍵字，使用智慧搜尋 API
-    if (this.currentKeyword && this.currentKeyword.trim().length > 0) {
-      try {
-        // 顯示智慧搜尋中的提示
-        const resultCount = document.getElementById('resultCount');
-        if (resultCount) {
-          resultCount.textContent = '智慧搜尋中...';
-          resultCount.className = 'text-blue-600 animate-pulse';
-        }
+  _triggerSearch() {
+    const keyword = this.currentKeyword;
+    const searchFn = (query, signal) => ReceivedCardsAPI.searchCards(query.trim(), 1, 20, signal);
+    const fallbackFn = (query) => {
+      const results = this.allCards.filter(card =>
+        card.full_name?.toLowerCase().includes(query) ||
+        card.full_name_en?.toLowerCase().includes(query) ||
+        card.organization?.toLowerCase().includes(query) ||
+        card.email?.toLowerCase().includes(query) ||
+        card.phone?.toLowerCase().includes(query)
+      );
+      return Promise.resolve({ results });
+    };
 
-        const response = await ReceivedCardsAPI.searchCards(this.currentKeyword.trim(), 1, 100, signal);
-        
-        if (response && response.results) {
-          // 智慧搜尋結果不再套用標籤過濾（後端已優化排序）
-          // 標籤過濾僅在無搜尋關鍵字時生效
-          
-          // 更新結果數量
-          if (resultCount) {
-            resultCount.textContent = `${response.results.length} (智慧搜尋)`;
-            resultCount.className = ''; // 恢復原始樣式
-          }
-
-          // 渲染名片（帶高亮）
-          this.renderCards(response.results, this.currentKeyword);
-          this.updateClearFiltersButton();
-          this.updateURL();
-          return;
-        }
-      } catch (error) {
-        // Ignore user cancellation (new search initiated)
-        if (error.name === 'AbortError' || error.code === 'CANCELLED') {
-          return;
-        }
-        console.error('Smart search failed, fallback to client-side filter:', error);
-        // 失敗時回退到客戶端過濾
+    this.searchOrchestrator.search(keyword, searchFn, fallbackFn).then(result => {
+      if (result.cancelled || result.deduplicated) return;
+      if (result.results) {
+        this._applySearchResults(result.results, result.degraded);
       }
+    });
+  },
+
+  _applySearchResults(results, degraded = false) {
+    const resultCount = document.getElementById('resultCount');
+    if (resultCount) {
+      const label = degraded ? '本地搜尋' : '智慧搜尋';
+      resultCount.textContent = `${results.length} (${label})`;
+      resultCount.className = degraded ? 'text-yellow-600' : '';
+    }
+    this.renderCards(results, this.currentKeyword);
+    this.updateClearFiltersButton();
+    this.updateURL();
+  },
+
+  async filterCards() {
+    // 如果有搜尋關鍵字，使用智慧搜尋 API（透過 orchestrator）
+    if (this.currentKeyword && this.currentKeyword.trim().length > 0) {
+      const resultCount = document.getElementById('resultCount');
+      if (resultCount) {
+        resultCount.textContent = '智慧搜尋中...';
+        resultCount.className = 'text-blue-600 animate-pulse';
+      }
+      this._triggerSearch();
+      return;
     }
 
     // 無搜尋關鍵字時，確保使用最新的完整清單

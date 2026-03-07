@@ -70,7 +70,12 @@ export async function syncCardEmbeddings(env: Env): Promise<{ synced: number }> 
             metadata,
           };
         } catch (error) {
-          console.error(`[Vectorize Sync] Failed to embed card ${card.uuid}:`, error);
+          console.error(`[Vectorize Sync] Failed to embed card:`, {
+            uuid: card.uuid,
+            full_name: card.full_name,
+            organization: card.organization,
+            error: error instanceof Error ? error.message : String(error),
+          });
           return null;
         }
       });

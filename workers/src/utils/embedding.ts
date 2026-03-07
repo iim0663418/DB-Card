@@ -66,7 +66,15 @@ export async function generateEmbedding(env: Env, text: string): Promise<number[
   );
 
   if (!response.ok) {
-    await response.text().catch(() => {});
+    const errorBody = await response.text().catch(() => 'Unable to read response');
+    console.error('[Embedding API Error]', {
+      status: response.status,
+      statusText: response.statusText,
+      errorBody,
+      model: env.GEMINI_EMBEDDING_MODEL,
+      inputTextLength: text.length,
+      inputTextPreview: text.substring(0, 200),
+    });
     throw new Error(`Embedding API failed: ${response.status}`);
   }
 

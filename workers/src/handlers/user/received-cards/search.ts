@@ -19,7 +19,7 @@ interface SearchResult {
   match_reason: string;
   // Enrichment data
   related_contacts?: number;
-  tags?: string[];
+  tags?: Array<{ category: string; raw: string; normalized: string }>;
 }
 
 interface SearchResponse {
@@ -82,16 +82,21 @@ async function enrichSearchResult(
     }
   }
 
-  // 2. Get auto-generated tags (industry, location)
+  // 2. Get auto-generated tags (industry, location) - new format
   const { results: tagRows } = await env.DB.prepare(`
-    SELECT tag FROM card_tags
+    SELECT category, raw_value, normalized_value 
+    FROM card_tags
     WHERE card_uuid = ?
       AND tag_source LIKE 'auto%'
-      AND (tag LIKE 'industry:%' OR tag LIKE 'location:%')
+      AND category IN ('industry', 'location')
     LIMIT 3
   `).bind(result.uuid).all();
   
-  const tags = tagRows.map(t => (t.tag as string).split(':')[1]).filter(Boolean);
+  const tags = tagRows.map(t => ({
+    category: (t as any).category,
+    raw: (t as any).raw_value,
+    normalized: (t as any).normalized_value
+  }));
 
   return {
     ...result,

@@ -1,94 +1,20 @@
 /**
- * Auto-tagging Cron Job
- * Generates tags for received cards using Gemini (Batch Processing)
+ * Auto-tagging with Simple Extraction (No Normalization in AI)
+ * AI 只負責抽取，標準化由後端處理
  */
 
 import { Env } from '../types';
-
-interface TagResult {
-  card_index: number;
-  industry?: string;
-  location?: string;
-  expertise?: string[];
-  seniority?: string;
-}
+import { TagExtractionResult } from '../types/tags';
+import { saveTags } from '../services/tag-service';
 
 /**
- * Main auto-tagging function (Process ALL untagged cards)
+ * Generate tags using Gemini (extraction only, no normalization)
  */
-export async function autoTagCards(env: Env): Promise<{ tagged: number }> {
-  console.log('[AutoTag] Starting auto-tagging (one-time only)...');
-
-  let totalTagged = 0;
-  let batchCount = 0;
-
-  // 循環處理，每次 20 張，直到全部完成
-  while (true) {
-    batchCount++;
-    
-    // 查詢未標籤的名片（批次 20 張）
-    const { results: cards } = await env.DB.prepare(`
-      SELECT uuid, full_name, organization, title, company_summary, personal_summary, user_email
-      FROM received_cards
-      WHERE deleted_at IS NULL
-        AND merged_to IS NULL
-        AND auto_tagged_at IS NULL
-      ORDER BY created_at DESC
-      LIMIT 20
-    `).all();
-
-    if (cards.length === 0) {
-      break;
-    }
-
-    // 批次處理：單次 Gemini 調用
-    const batchResults = await generateTagsBatch(env, cards);
-    
-    let tagged = 0;
-
-    for (let i = 0; i < cards.length; i++) {
-      const card = cards[i];
-      const tags = batchResults[i];
-
-      if (tags) {
-        try {
-          await saveTags(env, card.uuid as string, tags);
-          
-          // 更新 auto_tagged_at
-          await env.DB.prepare(`
-            UPDATE received_cards
-            SET auto_tagged_at = ?
-            WHERE uuid = ?
-          `).bind(Date.now(), card.uuid).run();
-
-          tagged++;
-        } catch (error) {
-          console.error(`[AutoTag] Failed to save tags for card ${card.uuid}:`, error);
-        }
-      }
-    }
-
-    totalTagged += tagged;
-
-    // 如果這批少於 20 張，表示已經處理完所有卡片
-    if (cards.length < 20) {
-      break;
-    }
-  }
-
-  console.log(`[AutoTag] Completed: ${totalTagged} cards tagged in ${batchCount} batches`);
-  return { tagged: totalTagged };
-}
-
-/**
- * Generate tags using Gemini Structured Output (Batch Processing)
- */
-async function generateTagsBatch(env: Env, cards: any[]): Promise<Array<TagResult | null>> {
+async function generateTagsBatch(env: Env, cards: any[]): Promise<Array<TagExtractionResult | null>> {
   if (!env.GEMINI_API_KEY) {
     return cards.map(() => null);
   }
 
-  // 構建批次 prompt
   const cardPrompts = cards.map((card, index) => `
 Card ${index + 1}:
 - Name: ${card.full_name || 'N/A'}
@@ -98,21 +24,21 @@ Card ${index + 1}:
 - Personal Summary: ${card.personal_summary || 'N/A'}
 `).join('\n');
 
-  const prompt = `Generate tags for the following ${cards.length} business cards.
+  const prompt = `Extract tags from the following ${cards.length} business cards.
 
 ${cardPrompts}
 
-For each card, generate:
-1. industry: Industry classification (single tag, e.g., accounting firm, technology, finance)
-2. location: Location (single tag, e.g., city or region name)
-3. expertise: Areas of expertise (max 3, e.g., tax consulting, auditing, cloud architecture)
-4. seniority: Job level (single tag, e.g., executive, manager, specialist)
+For each card, extract:
+1. industry: Industry/sector (be specific, e.g., "軟體與資訊服務業", "資訊安全")
+2. location: Location (be specific, e.g., "台北市內湖區", "新北市")
+3. expertise: Areas of expertise (max 3, e.g., ["雲端架構", "DevOps", "容器化"])
+4. seniority: Job level (be specific, e.g., "資深副總經理", "技術經理")
 
-Notes:
-- If information is insufficient, return null for that field
-- expertise is an array, others are strings
-- Use the same language as the original card content
-- Return array with card_index matching the card number (1-based)`;
+Guidelines:
+- Extract as-is from the card, don't normalize or categorize
+- Use the same language as the original card
+- If information is insufficient, return null
+- Return array with card_index (1-based)`;
 
   try {
     const response = await fetch(
@@ -138,16 +64,17 @@ Notes:
                   expertise: {
                     type: 'array',
                     items: { type: 'string' },
-                    nullable: true,
+                    maxItems: 3,
+                    nullable: true
                   },
-                  seniority: { type: 'string', nullable: true },
+                  seniority: { type: 'string', nullable: true }
                 },
-                required: ['card_index'],
-              },
-            },
-          },
+                required: ['card_index']
+              }
+            }
+          }
         }),
-        signal: AbortSignal.timeout(30000), // 30s timeout for batch
+        signal: AbortSignal.timeout(30000)
       }
     );
 
@@ -168,10 +95,9 @@ Notes:
       return cards.map(() => null);
     }
 
-    const results = JSON.parse(text) as TagResult[];
+    const results = JSON.parse(text) as TagExtractionResult[];
     
-    // 將結果映射回原始順序（card_index 是 1-based）
-    const orderedResults: Array<TagResult | null> = cards.map((_, index) => {
+    const orderedResults: Array<TagExtractionResult | null> = cards.map((_, index) => {
       const result = results.find(r => r.card_index === index + 1);
       return result || null;
     });
@@ -185,56 +111,51 @@ Notes:
 }
 
 /**
- * Save tags to database
+ * Main auto-tagging function
  */
-async function saveTags(env: Env, cardUuid: string, tags: TagResult): Promise<void> {
-  const now = Date.now();
-  const tagEntries: Array<{ tag: string; source: string }> = [];
+export async function autoTagCards(env: Env): Promise<{ tagged: number }> {
+  console.log('[AutoTag] Starting auto-tagging...');
 
-  // Industry (高信心度)
-  if (tags.industry) {
-    tagEntries.push({ tag: `industry:${tags.industry}`, source: 'auto' });
-  }
+  let totalTagged = 0;
 
-  // Location (高信心度)
-  if (tags.location) {
-    tagEntries.push({ tag: `location:${tags.location}`, source: 'auto' });
-  }
+  while (true) {
+    const { results: cards } = await env.DB.prepare(`
+      SELECT uuid, full_name, organization, title, company_summary, personal_summary, user_email
+      FROM received_cards
+      WHERE deleted_at IS NULL
+        AND merged_to IS NULL
+        AND auto_tagged_at IS NULL
+      ORDER BY created_at DESC
+      LIMIT 20
+    `).all();
 
-  // Expertise (低信心度)
-  if (tags.expertise && tags.expertise.length > 0) {
-    for (const exp of tags.expertise.slice(0, 3)) {
-      tagEntries.push({ tag: `expertise:${exp}`, source: 'auto-low-confidence' });
+    if (cards.length === 0) break;
+
+    const batchResults = await generateTagsBatch(env, cards);
+    
+    for (let i = 0; i < cards.length; i++) {
+      const card = cards[i];
+      const tags = batchResults[i];
+
+      if (tags) {
+        try {
+          // 使用統一服務寫入（包含標準化）
+          await saveTags(env, card.uuid as string, card.user_email as string, tags);
+          
+          await env.DB.prepare(`
+            UPDATE received_cards SET auto_tagged_at = ? WHERE uuid = ?
+          `).bind(Date.now(), card.uuid).run();
+
+          totalTagged++;
+        } catch (error) {
+          console.error(`[AutoTag] Failed to save tags for card ${card.uuid}:`, error);
+        }
+      }
     }
+
+    if (cards.length < 20) break;
   }
 
-  // Seniority (低信心度)
-  if (tags.seniority) {
-    tagEntries.push({ tag: `seniority:${tags.seniority}`, source: 'auto-low-confidence' });
-  }
-
-  // 批次插入（使用 INSERT OR IGNORE 避免重複）
-  for (const entry of tagEntries) {
-    await env.DB.prepare(`
-      INSERT OR IGNORE INTO card_tags (card_uuid, tag, tag_source, created_at)
-      VALUES (?, ?, ?, ?)
-    `).bind(cardUuid, entry.tag, entry.source, now).run();
-  }
-
-  // 更新 tag_stats（快取）
-  const card = await env.DB.prepare(`
-    SELECT user_email FROM received_cards WHERE uuid = ?
-  `).bind(cardUuid).first<{ user_email: string }>();
-
-  if (card) {
-    for (const entry of tagEntries) {
-      await env.DB.prepare(`
-        INSERT INTO tag_stats (user_email, tag, count, last_updated)
-        VALUES (?, ?, 1, ?)
-        ON CONFLICT(user_email, tag) DO UPDATE SET
-          count = count + 1,
-          last_updated = ?
-      `).bind(card.user_email, entry.tag, now, now).run();
-    }
-  }
+  console.log(`[AutoTag] Completed: ${totalTagged} cards tagged`);
+  return { tagged: totalTagged };
 }

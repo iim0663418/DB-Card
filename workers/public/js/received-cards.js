@@ -1151,7 +1151,7 @@ const ReceivedCards = {
   },
 
   initTagFilters() {
-    // 從所有名片中提取標籤並按類別分組
+    // 從所有名片中提取標籤並按類別分組（新格式：物件陣列）
     const tagsByCategory = {
       industry: new Map(),
       location: new Map(),
@@ -1160,11 +1160,26 @@ const ReceivedCards = {
     };
 
     this.allCards.forEach(card => {
-      card.tags?.forEach(tag => {
-        const [category, value] = tag.split(':');
-        if (tagsByCategory[category]) {
-          const count = tagsByCategory[category].get(value) || 0;
-          tagsByCategory[category].set(value, count + 1);
+      if (!card.tags) return;
+      
+      card.tags.forEach(tag => {
+        // 新格式：{ category, raw, normalized }
+        if (typeof tag === 'object' && tag.category && tag.normalized) {
+          const category = tag.category;
+          const normalized = tag.normalized;
+          
+          if (tagsByCategory[category]) {
+            const count = tagsByCategory[category].get(normalized) || 0;
+            tagsByCategory[category].set(normalized, count + 1);
+          }
+        }
+        // 向後相容：舊格式 "category:value"
+        else if (typeof tag === 'string') {
+          const [category, value] = tag.split(':');
+          if (tagsByCategory[category]) {
+            const count = tagsByCategory[category].get(value) || 0;
+            tagsByCategory[category].set(value, count + 1);
+          }
         }
       });
     });

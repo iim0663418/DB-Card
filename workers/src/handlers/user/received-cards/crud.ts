@@ -327,20 +327,24 @@ export async function handleListCards(request: Request, env: Env): Promise<Respo
       const placeholders = cardUuids.map(() => '?').join(',');
       
       const tagsResult = await env.DB.prepare(`
-        SELECT card_uuid, tag, tag_source
+        SELECT card_uuid, category, raw_value, normalized_value, tag_source
         FROM card_tags
         WHERE card_uuid IN (${placeholders})
         ORDER BY created_at ASC
       `).bind(...cardUuids).all();
 
-      // Group tags by card_uuid
-      const tagsByCard = new Map<string, string[]>();
+      // Group tags by card_uuid (new format with objects)
+      const tagsByCard = new Map<string, Array<{ category: string; raw: string; normalized: string }>>();
       for (const row of tagsResult.results) {
         const r = row as any;
         if (!tagsByCard.has(r.card_uuid)) {
           tagsByCard.set(r.card_uuid, []);
         }
-        tagsByCard.get(r.card_uuid)!.push(r.tag);
+        tagsByCard.get(r.card_uuid)!.push({
+          category: r.category,
+          raw: r.raw_value,
+          normalized: r.normalized_value
+        });
       }
 
       // Add tags to cards

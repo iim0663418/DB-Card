@@ -705,10 +705,10 @@ export default {
             let html = await asset.text();
             // Add nonce to all script tags
             html = html.replace(/<script/g, `<script nonce="${nonce}"`);
+            // Create new response WITHOUT original headers (to avoid ASSETS CSP override)
             asset = new Response(html, {
               status: asset.status,
-              statusText: asset.statusText,
-              headers: asset.headers
+              statusText: asset.statusText
             });
             return addSecurityHeaders(asset, nonce);
           }

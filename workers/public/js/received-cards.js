@@ -1580,7 +1580,11 @@ const ReceivedCards = {
         ${card.tags && card.tags.length > 0 || card.related_contacts > 0 ? `
         <div class="flex flex-wrap gap-2">
           ${card.related_contacts > 0 ? `<span class="px-2 py-1 rounded-full text-xs font-medium" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">相關聯絡人: ${card.related_contacts} 人</span>` : ''}
-          ${card.tags && card.tags.length > 0 ? card.tags.map(tag => `<span class="px-2 py-1 rounded-full text-xs font-medium" style="background: rgba(104, 104, 172, 0.1); color: var(--moda-accent);">${this.escapeHTML(tag)}</span>`).join('') : ''}
+          ${card.tags && card.tags.length > 0 ? card.tags.map(tag => {
+            // 向後相容：支援舊格式 string 和新格式 object
+            const displayText = typeof tag === 'string' ? tag : tag.raw || tag.normalized;
+            return `<span class="px-2 py-1 rounded-full text-xs font-medium" style="background: rgba(104, 104, 172, 0.1); color: var(--moda-accent);">${this.escapeHTML(displayText)}</span>`;
+          }).join('') : ''}
         </div>
         ` : ''}
         <div class="pt-4 mt-4 border-t border-white/30 flex items-center justify-between gap-3">

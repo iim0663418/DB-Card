@@ -312,7 +312,7 @@ export async function handleListCards(request: Request, env: Env): Promise<Respo
       WHERE rc.deleted_at IS NULL AND rc.merged_to IS NULL
         AND rc.user_email != ?
 
-      ORDER BY COALESCE(updated_at, created_at) DESC
+      ORDER BY COALESCE(rc.updated_at, rc.created_at) DESC
     `).bind(user.email, user.email).all();
 
     // Parse ai_sources_json for each card

@@ -1,41 +1,56 @@
-# Cron Subrequest 限制修復
+# v5.0.1 Release Complete
 
-## Status: ✅ 優先與背景任務分離
+## Status: ✅ Deployed to Staging
 
-### 問題診斷
-- **錯誤**: "Too many API requests by single Worker invocation"
-- **原因**: 12 個任務同步執行，超過 50 subrequest 限制
-- **影響**: 後半段任務全部失敗
-
-### 解決方案
-
-#### 優先任務（阻塞執行）
-1. Auto-tag Cards
-2. Find Cross-User Candidates
-3. Sync Embeddings
-4. Deduplicate Cards
-
-#### 背景任務（ctx.waitUntil）
-1. Cleanup Sessions
-2. Log Rotation
-3. KV Cleanup
-4. Asset Cleanup
-5. Temp Uploads Cleanup
-6. Received Cards Cleanup
-7. FileSearchStore Cleanup
-8. Backfill Organization Normalized
-
-### 部署狀態
-- Version: v5.0.0
-- Bundle: 1059.26 KiB / gzip: 198.63 KiB
-- Startup: 12ms
+### Version Info
+- Version: v5.0.1
+- Bundle: 1059.35 KiB / gzip: 198.67 KiB
+- Startup: 15ms
 - Health: ✅ OK
 
-### 效益
-- 優先任務：立即回應，不超過 subrequest 限制
-- 背景任務：非阻塞執行，不影響回應時間
-- 總任務數：12 個（4 優先 + 8 背景）
+### Release Highlights
 
-### 測試
-- 重新觸發 Admin Cron
-- 預期：優先任務成功，背景任務排程執行
+#### 1. Tag Normalization System
+- Schema: category, raw_value, normalized_value
+- Service: unified write layer (tag-service.ts)
+- AI: language-neutral extraction
+- Frontend: filter by normalized, display raw
+- Migrations: 0039 (schema), 0040 (re-tag 85 cards)
+
+#### 2. Batch API Stabilization
+- Migration 0041: cleanup stale jobs (>48h)
+- Unified cron path: simple auto-tag (20 cards/batch)
+- Deprecated: auto-tag-cards-batch.ts (2-week review)
+
+#### 3. Cron Subrequest Optimization
+- Priority tasks: 4 blocking
+- Background tasks: 8 non-blocking (ctx.waitUntil)
+- Fix: "Too many API requests" error
+
+#### 4. Critical Fixes
+- Sorting: COALESCE(updated_at, created_at) - 87% cards fixed
+- Location: traditional Chinese support (臺→台)
+- Tag display: object format support
+- Search abort: distinguish timeout vs cancellation
+
+#### 5. Documentation
+- Tag system architecture overview
+- Internationalization analysis (TW-centric)
+- Batch API decision record
+
+### Commits (10)
+- b1e41e7 chore: release v5.0.1
+- f306781 fix: card sorting - use COALESCE for updated_at
+- 62a2b45 fix: search abort error handling
+- c7fd789 fix: tag display - support object format
+- 76e0603 docs: tag system internationalization analysis
+- 9b5e2de fix: location normalization - support traditional Chinese
+- 20dbb2a fix: batch API stabilization - unified cron path
+- 97656b0 feat: tag normalization system
+- dd7099a feat: 403 Error Handling Architecture
+- 8141086 feat: Batch API Migration
+
+### Next Steps
+- Monitor tag normalization accuracy
+- Evaluate Batch API after 2 weeks (2026-03-21)
+- Consider user sorting preferences (if requested)

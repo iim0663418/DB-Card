@@ -58,13 +58,13 @@ function generateNonce(): string {
 function addSecurityHeaders(response: Response, nonce: string): Response {
   const headers = new Headers(response.headers);
 
-  // Content Security Policy (with nonce, no unsafe-inline for scripts)
+  // Content Security Policy (with nonce for scripts, unsafe-inline for styles due to static HTML)
   headers.set('Content-Security-Policy',
     "default-src 'self'; " +
     `script-src 'self' 'nonce-${nonce}' cdn.tailwindcss.com cdn.jsdelivr.net static.cloudflareinsights.com; ` +
     "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.tailwindcss.com; " +
     "font-src 'self' fonts.gstatic.com; " +
-    "img-src 'self' data: https:; " +
+    "img-src 'self' data: https://cdn.jsdelivr.net https://static.cloudflareinsights.com; " +
     "connect-src 'self' https://oauth2.googleapis.com https://www.googleapis.com accounts.google.com cloudflareinsights.com; " +
     "object-src 'none'; " +
     "base-uri 'self'; " +

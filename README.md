@@ -159,11 +159,23 @@
 
 ## 安全掃描結果
 
-本專案已通過三項安全掃描工具驗證（2026-01-24）：
+本專案已通過三項安全掃描工具驗證（2026-03-07）：
 
-### 1. OWASP ZAP 掃描 (Web 應用程式安全)
+### 1. npm audit 掃描 (Node.js 依賴安全)
+- **漏洞數**: 0
+- **掃描範圍**: 414 個依賴套件
+- **最近修復**: ajv, minimatch, rollup (開發依賴)
+- **狀態**: ✅ 所有依賴安全無虞
+
+### 2. OSV-Scanner 掃描 (多語言依賴安全)
+- **漏洞數**: 0
+- **掃描範圍**: 378 個套件
+- **最近修復**: 3 個開發依賴漏洞（2026-03-07）
+- **資料來源**: Google OSV Database
+
+### 3. OWASP ZAP 掃描 (Web 應用程式安全)
 - **評級**: A
-- **結果**: 52 PASS, 15 WARN, 0 FAIL
+- **結果**: 51 PASS, 16 WARN, 0 FAIL
 - **環境**: Staging (db-card-staging.csw30454.workers.dev)
 - **狀態**: 所有中高風險漏洞已修復
 - **安全標頭**: 9 個完整實作
@@ -173,18 +185,6 @@
   - Cross-Origin-Embedder-Policy (COEP)
   - Cross-Origin-Opener-Policy (COOP)
   - Cross-Origin-Resource-Policy (CORP)
-
-### 2. npm audit 掃描 (Node.js 依賴安全)
-- **漏洞數**: 0
-- **掃描範圍**: 所有 npm 依賴
-- **最近修復**: wrangler OS Command Injection (GHSA-36p8-mvp6-cv38)
-- **狀態**: 所有依賴安全無虞
-
-### 3. OSV-Scanner 掃描 (多語言依賴安全)
-- **漏洞數**: 0
-- **掃描範圍**: 806 個套件 (3 個 lockfiles)
-- **最近修復**: js-yaml Prototype Pollution (CVE-2025-64718)
-- **資料來源**: Google OSV Database
 
 **掃描報告**: `docs/security/scan-reports/`
 

@@ -1,22 +1,39 @@
 # Security Scan Reports
 
-## OWASP ZAP Scans
+## Latest Scan (2026-03-07)
 
-### zap-staging-final.html (2026-01-24)
+### npm audit
+- **Vulnerabilities**: 0
+- **Dependencies**: 414 packages
+- **Fixed**: ajv, minimatch, rollup (dev dependencies)
+- **Status**: ✅ All dependencies secure
+
+### OSV-Scanner
+- **Vulnerabilities**: 0
+- **Packages**: 378 packages
+- **Fixed**: 3 dev dependency issues (2026-03-07)
+- **Status**: ✅ No issues found
+
+### OWASP ZAP
+- **Result**: 51 PASS, 16 WARN, 0 FAIL
 - **Environment**: Staging
 - **URL**: https://db-card-staging.csw30454.workers.dev
-- **Result**: 52 PASS, 15 WARN, 0 FAIL
-- **Status**: All medium+ risks fixed
+- **Status**: ✅ All medium+ risks fixed
 
-### zap-staging-after-fix.html (2026-01-24)
-- **Environment**: Staging (after security headers fix)
-- **URL**: https://db-card-staging.csw30454.workers.dev
-- **Result**: Security headers verified
-- **Status**: All critical fixes applied
+**Detailed Report**: [security-scan-2026-03-07.md](./security-scan-2026-03-07.md)
 
-## Scan Summary
+---
 
-### Security Headers (Complete)
+## Historical Scans
+
+### 2026-01-24
+- OWASP ZAP: 52 PASS, 15 WARN, 0 FAIL
+- npm audit: 0 vulnerabilities
+- OSV-Scanner: 0 vulnerabilities
+
+---
+
+## Security Headers (Complete)
 1. Content-Security-Policy (CSP with nonce)
 2. X-Content-Type-Options: nosniff
 3. X-Frame-Options: DENY
@@ -27,11 +44,10 @@
 8. Cross-Origin-Opener-Policy (COOP)
 9. Cross-Origin-Resource-Policy (CORP)
 
-### Dependency Scans (Complete)
-- npm audit: 0 vulnerabilities
-- OSV-Scanner: 0 vulnerabilities
+---
 
-### Final Rating
-- **Security Grade**: A+
+## Final Rating
+- **Security Grade**: A
 - **Production Ready**: ✅
 - **All Scans**: Passed ✅
+- **Last Updated**: 2026-03-07

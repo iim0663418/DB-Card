@@ -755,10 +755,10 @@ export default {
   async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
     // Single Cron: 02:00 台灣時間 - All Tasks
     
-    // Phase 1: Batch API Jobs (Priority - Poll existing jobs first)
-    console.log('[Cron] Phase 1: Batch API Jobs');
-    const { autoTagCardsBatch } = await import('./cron/auto-tag-cards-batch');
-    await autoTagCardsBatch(env);
+    // Phase 1: Auto-tag Cards (Simple Version - Unified Path)
+    console.log('[Cron] Phase 1: Auto-tag Cards');
+    const { autoTagCards } = await import('./cron/auto-tag-cards');
+    await autoTagCards(env);
 
     // Phase 2: Vectorize & Other Sync Tasks
     console.log('[Cron] Phase 2: Vectorize & Sync');

@@ -1,4 +1,16 @@
 /**
+ * @deprecated This Batch API version is currently not in use.
+ * Use auto-tag-cards.ts (simple version) instead.
+ * 
+ * Reason: Gemini Batch API is unstable and requires enterprise account.
+ * Simple version with generateTagsBatch() is sufficient for current scale.
+ * 
+ * Decision date: 2026-03-07
+ * Review date: 2026-03-21 (2 weeks)
+ * Decision doc: docs/decisions/batch-api-decision.md
+ */
+
+/**
  * Auto-tagging Cron Job (Batch API Version)
  * 
  * Flow:

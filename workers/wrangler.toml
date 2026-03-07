@@ -59,20 +59,6 @@ preview_bucket_name = "db-card-physical-images-preview"
 [triggers]
 crons = ["0 18 * * *"]
 
-# Production Environment
-[env.production]
-name = "db-card-api-prod"
-vars = { ENVIRONMENT = "production", WORKER_URL = "https://db-card.example.com", GOOGLE_CLIENT_ID = "675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com", FILE_SEARCH_STORE_NAME = "fileSearchStores/dbcard-knowledge-base-fpyodw69c4ua" }
-
-[[env.production.d1_databases]]
-binding = "DB"
-database_name = "db-card-prod"
-database_id = "947e021c-2858-47b3-8495-2aaf8fa956ad"
-
-[[env.production.kv_namespaces]]
-binding = "KV"
-id = "87221de061f049d3a4c976b7b5092dd9"
-
 # Observability Configuration
 [observability]
 enabled = false

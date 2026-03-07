@@ -293,7 +293,8 @@ export async function handleListCards(request: Request, env: Env): Promise<Respo
         company_summary, personal_summary, ai_sources_json, ai_status,
         original_image_url, thumbnail_url, created_at, updated_at,
         'own' as source,
-        NULL as shared_by
+        NULL as shared_by,
+        COALESCE(updated_at, created_at) AS sort_ts
       FROM received_cards
       WHERE user_email = ? AND deleted_at IS NULL AND merged_to IS NULL
 
@@ -306,13 +307,14 @@ export async function handleListCards(request: Request, env: Env): Promise<Respo
         rc.company_summary, rc.personal_summary, rc.ai_sources_json, rc.ai_status,
         rc.original_image_url, rc.thumbnail_url, rc.created_at, rc.updated_at,
         'shared' as source,
-        sc.owner_email as shared_by
+        sc.owner_email as shared_by,
+        COALESCE(rc.updated_at, rc.created_at) AS sort_ts
       FROM shared_cards sc
       INNER JOIN received_cards rc ON sc.card_uuid = rc.uuid
       WHERE rc.deleted_at IS NULL AND rc.merged_to IS NULL
         AND rc.user_email != ?
 
-      ORDER BY COALESCE(rc.updated_at, rc.created_at) DESC
+      ORDER BY sort_ts DESC
     `).bind(user.email, user.email).all();
 
     // Parse ai_sources_json for each card

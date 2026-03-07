@@ -875,7 +875,7 @@ const ReceivedCards = {
 
         // 取消前一個搜尋請求
         if (searchAbortController) {
-          searchAbortController.abort();
+          searchAbortController.abort('New search initiated');
         }
 
         // 清除前一個 debounce timer
@@ -1017,8 +1017,8 @@ const ReceivedCards = {
           return;
         }
       } catch (error) {
-        // 忽略 AbortError（用戶取消）
-        if (error.name === 'AbortError') {
+        // Ignore user cancellation (new search initiated)
+        if (error.name === 'AbortError' || error.code === 'CANCELLED') {
           return;
         }
         console.error('Smart search failed, fallback to client-side filter:', error);

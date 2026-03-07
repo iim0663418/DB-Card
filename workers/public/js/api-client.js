@@ -59,16 +59,31 @@ const APIClient = {
     } catch (error) {
       clearTimeout(timeoutId);
       
-      if (error.name === 'AbortError' && timeoutController.signal.aborted) {
-        return {
-          ok: false,
-          status: 0,
-          error: {
-            code: 'TIMEOUT',
-            message: '請求超時，請稍後再試',
-            retryable: true
-          }
-        };
+      // Distinguish between timeout and user cancellation
+      if (error.name === 'AbortError') {
+        if (timeoutController.signal.aborted) {
+          // Timeout abort
+          return {
+            ok: false,
+            status: 0,
+            error: {
+              code: 'TIMEOUT',
+              message: '請求超時，請稍後再試',
+              retryable: true
+            }
+          };
+        } else {
+          // User cancellation (e.g., new search initiated)
+          return {
+            ok: false,
+            status: 0,
+            error: {
+              code: 'CANCELLED',
+              message: error.message || 'Request cancelled',
+              retryable: false
+            }
+          };
+        }
       }
       
       return {

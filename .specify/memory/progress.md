@@ -2,6 +2,70 @@
 
 ## Status: ✅ Deployed to Staging
 
+### Latest Fix (2026-03-08 22:48) - Admin Dashboard CSP Image Fix ✅ DEPLOYED
+**Problem**: Unsplash image blocked by CSP (images.unsplash.com not in whitelist)
+- Root Cause: External image source not in CSP img-src directive
+- Impact: Browser console shows CSP violation, image doesn't load
+
+**Solution**: Replace with Google avatar placeholder (already in CSP)
+- Before: `https://images.unsplash.com/photo-1544005313-94ddf0286df2`
+- After: `https://www.gstatic.com/images/branding/product/1x/avatar_circle_blue_512dp.png`
+
+**Files Modified**:
+- `workers/public/admin-dashboard.html` (1 line, line 618)
+
+**Deployment**:
+- Version: e9b2a8e8-24e3-4ba9-acd6-8a7466f6646e
+- Assets: 1 modified (admin-dashboard.html), 51 cached
+- Bundle: 1059.54 KiB / gzip: 198.71 KiB
+- Startup: 16ms
+- Health: ✅ OK (v5.0.1, 28 cards, KEK v4)
+
+**Benefits**:
+- ✅ No CSP changes needed (www.gstatic.com already whitelisted)
+- ✅ No external dependency added
+- ✅ Better privacy (no Unsplash tracking)
+- ✅ Better reliability (Google CDN)
+
+**Admin 401 Analysis**: ❌ Not a bug - expected behavior
+- checkAuthStatus() calls /api/admin/cards to check if logged in
+- 401 response when not logged in is CORRECT
+- Shows login form as expected
+- Authentication flow verified working correctly
+
+---
+
+### Latest Fix (2026-03-08 22:39) - Session Validation Before Protected APIs ✅ DEPLOYED
+**Problem**: 401 errors during initialization (sessionStorage persists longer than HttpOnly cookies)
+- Root Cause: Protected APIs called before validating session is still valid
+- Impact: Users see 401 flashes, multiple error toasts, confusing UX
+
+**Solution**: Add validateSession() before calling protected APIs
+1. ✅ New Function: validateSession() uses /api/consent/check as lightweight validator
+2. ✅ OAuth Callback: Validate → Consent → Cards (sequential)
+3. ✅ Session Restore: Validate → Consent → Cards (sequential)
+
+**Files Modified**:
+- `workers/public/js/user-portal-init.js` (3 locations)
+  - Line ~750: Added validateSession() function
+  - Line ~2508: OAuth callback validation
+  - Line ~2580: Session restore validation
+
+**Deployment**:
+- Version: 2b225318-a9fb-4cda-a7bb-804d93d57ed4
+- Assets: 1 modified (user-portal-init.js), 51 cached
+- Bundle: 1059.54 KiB / gzip: 198.71 KiB
+- Startup: 16ms
+- Health: ✅ OK (v5.0.1, 28 cards, KEK v4)
+
+**Testing Required**:
+1. Login → wait for cookie expiry → refresh → should see clean login page
+2. Login → refresh immediately → should auto-login successfully
+3. Complete OAuth flow → should login without 401 errors
+4. Multiple tabs with expired session → all should redirect cleanly
+
+---
+
 ### Latest Fix (2026-03-08 22:26) - Search Empty Input & Circuit Breaker ✅ DEPLOYED
 **Problem**: Empty search triggers API 400 → Circuit Breaker false positive
 - Root Cause 1: compositionend unconditionally calls _triggerSearch()

@@ -734,6 +734,26 @@
             }
         }
 
+        /**
+         * Validate session before calling protected APIs
+         * Uses consent check as lightweight validator
+         * @returns {Promise<boolean>} - true if session valid
+         */
+        async function validateSession() {
+            try {
+                // Use consent check as session validator
+                // If it succeeds (200), session is valid
+                // If it returns 401, apiCall will handle cleanup
+                await apiCall('/api/consent/check', { method: 'GET' });
+                return true;
+            } catch (error) {
+                // 401 already handled by apiCall (clears session, redirects)
+                // Other errors: treat as invalid session
+                console.error('Session validation failed:', error);
+                return false;
+            }
+        }
+
         function isEmbeddedBrowser() {
           const ua = navigator.userAgent || navigator.vendor || window.opera;
           const patterns = [
@@ -2484,7 +2504,15 @@
                             // Update user display
                             updateUserDisplay(email, name, picture);
 
-                            // Check consent status (blocking if needed)
+                            // Validate session first
+                            const sessionValid = await validateSession();
+                            if (!sessionValid) {
+                                // Session invalid - cleanup already done by apiCall
+                                document.getElementById('global-loading').classList.add('hidden');
+                                return;
+                            }
+
+                            // Session valid - check consent status (blocking if needed)
                             const consentOk = await checkConsentStatus();
                             if (!consentOk) {
                                 // User needs to consent first - modal will be shown
@@ -2549,7 +2577,15 @@
 
                     // 驗證 session 並載入名片資料
                     try {
-                        // Check consent status first
+                        // Validate session first
+                        const sessionValid = await validateSession();
+                        if (!sessionValid) {
+                            // Session invalid - cleanup already done by apiCall
+                            document.getElementById('global-loading').classList.add('hidden');
+                            return;
+                        }
+
+                        // Session valid - check consent status
                         const consentOk = await checkConsentStatus();
                         if (!consentOk) {
                             // User needs to consent - modal will be shown

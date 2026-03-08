@@ -2,6 +2,36 @@
 
 ## Status: ✅ Deployed to Staging
 
+### Latest Fix (2026-03-08 22:26) - Search Empty Input & Circuit Breaker ✅ DEPLOYED
+**Problem**: Empty search triggers API 400 → Circuit Breaker false positive
+- Root Cause 1: compositionend unconditionally calls _triggerSearch()
+- Root Cause 2: _triggerSearch() has no empty string guard
+- Root Cause 3: Circuit Breaker counts 400 as failure (should only count network errors)
+
+**Solution**: Three-layer defense
+1. ✅ IME Handler: compositionend checks empty → filterCards('') + early return
+2. ✅ Search Guard: _triggerSearch() validates keyword at function start
+3. ✅ Circuit Breaker: Only count status=0/timeout/5xx as failures, ignore 4xx
+
+**Files Modified**:
+- `workers/public/js/received-cards.js` (2 locations)
+- `workers/public/js/search-orchestrator.js` (1 location)
+
+**Deployment**:
+- Version: 9560fdf0-614b-4773-a791-b6e9e534a8c5
+- Assets: 2 modified, 50 cached
+- Bundle: 1059.54 KiB / gzip: 198.71 KiB
+- Startup: 22ms
+- Health: ✅ OK (v5.0.1, 28 cards, KEK v4)
+
+**Testing Required**:
+1. Manual: Type in search, clear it → verify no API call
+2. Manual: Chinese IME, finish empty → verify no API call
+3. Manual: 3 empty searches → verify circuit stays closed
+4. DevTools: Verify no 400 errors from empty searches
+
+---
+
 ### Version Info
 - Version: v5.0.1
 - Deployment: 70e24366-3898-46e2-af60-c3f4c709012f

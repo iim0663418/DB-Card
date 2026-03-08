@@ -81,12 +81,16 @@ class SearchOrchestrator {
             return;
           }
 
-          // Network error or timeout
-          this.handleFailure();
+          // Only count real network failures (status=0, timeout, 5xx)
+          // Don't count 4xx client errors (bad request, validation errors)
+          const isNetworkFailure = !error.status || error.status === 0 || error.status >= 500;
+          if (isNetworkFailure) {
+            this.handleFailure();
+          }
           
           // Fallback to local search
           const result = await fallbackFn(query);
-          resolve({ ...result, degraded: true, error: error.message });
+          resolve({ ...result, degraded: isNetworkFailure, error: error.message });
         }
       }, this.debounceDelay);
     });

@@ -864,6 +864,11 @@ const ReceivedCards = {
         isComposing = false;
         // Trigger search after IME commit
         this.currentKeyword = e.target.value.toLowerCase().trim();
+        // Empty string: show all cards, don't trigger API
+        if (!this.currentKeyword) {
+          this.filterCards('');
+          return;
+        }
         this._triggerSearch();
       });
 
@@ -985,6 +990,11 @@ const ReceivedCards = {
 
   _triggerSearch() {
     const keyword = this.currentKeyword;
+    // Guard: empty/whitespace keyword should not trigger API
+    if (!keyword || !keyword.trim()) {
+      return;
+    }
+    
     const searchFn = (query, signal) => ReceivedCardsAPI.searchCards(query.trim(), 1, 20, signal);
     const fallbackFn = (query) => {
       const results = this.allCards.filter(card =>

@@ -69,20 +69,20 @@ Examples:
 Query: "吳勝繙"
 {"intent": "exact_match", "entities": {"person": "吳勝繙"}, "confidence": 0.95}
 
-Query: "叡揚"
-{"intent": "relationship", "entities": {"organization": "叡揚"}, "confidence": 0.9}
+Query: "數位發展部"
+{"intent": "relationship", "entities": {"organization": "數位發展部"}, "confidence": 0.9}
 
-Query: "叡揚的同事"
-{"intent": "relationship", "entities": {"organization": "叡揚"}, "confidence": 0.9}
+Query: "數位發展部的同事"
+{"intent": "relationship", "entities": {"organization": "數位發展部"}, "confidence": 0.9}
 
-Query: "在台北的工程師"
-{"intent": "explore", "entities": {"title": "工程師", "location": "台北"}, "confidence": 0.85}
+Query: "國家資通安全研究院的主任"
+{"intent": "relationship", "entities": {"organization": "國家資通安全研究院", "title": "主任"}, "confidence": 0.85}
 
-Query: "有做資安稽核的公司"
-{"intent": "explore", "entities": {"title": "資安稽核"}, "confidence": 0.85}
+Query: "在台北的科長"
+{"intent": "explore", "entities": {"title": "科長", "location": "台北"}, "confidence": 0.85}
 
-Query: "資安顧問"
-{"intent": "explore", "entities": {"title": "資安顧問"}, "confidence": 0.9}
+Query: "資訊處共用系統科科長"
+{"intent": "explore", "entities": {"title": "資訊處共用系統科科長"}, "confidence": 0.9}
 
 Now classify this query:
 Query: `;

@@ -54,14 +54,34 @@ const RESPONSE_SCHEMA = {
 
 const PROMPT = `Classify search query intent and extract entities.
 
-Intent:
-- exact_match: Specific person name
-- relationship: Company/org connections
-- explore: Broad search (title/location)
+Intent Types:
+- exact_match: Searching for a specific person by name
+- relationship: Finding connections within a company/organization
+- explore: Broad search by job title, location, or service type
 
-Entities: person, organization, title, location
-Confidence: 0-1
+Entity Types:
+- person: Full name of a specific individual
+- organization: Exact company/organization name (not descriptions)
+- title: Job title, role, or service type
+- location: Geographic location
 
+Examples:
+Query: "洪健復"
+{"intent": "exact_match", "entities": {"person": "洪健復"}, "confidence": 0.95}
+
+Query: "奧義智慧科技的同事"
+{"intent": "relationship", "entities": {"organization": "奧義智慧科技"}, "confidence": 0.9}
+
+Query: "在台北的工程師"
+{"intent": "explore", "entities": {"title": "工程師", "location": "台北"}, "confidence": 0.85}
+
+Query: "有做資安稽核的公司"
+{"intent": "explore", "entities": {"title": "資安稽核"}, "confidence": 0.85}
+
+Query: "資安顧問"
+{"intent": "explore", "entities": {"title": "資安顧問"}, "confidence": 0.9}
+
+Now classify this query:
 Query: `;
 
 async function sha256Hex(text: string): Promise<string> {

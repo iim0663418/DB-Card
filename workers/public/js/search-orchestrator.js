@@ -5,11 +5,9 @@
 
 class SearchOrchestrator {
   constructor(options = {}) {
-    this.debounceDelay = options.debounceDelay || 300;
-    this.debounceTimer = null;
     this.currentController = null;
     this.lastQuery = null;
-    
+
     // Circuit Breaker
     this.circuitBreaker = {
       state: 'closed',           // closed | open | half-open
@@ -22,7 +20,7 @@ class SearchOrchestrator {
   }
 
   /**
-   * Search with debounce, cancellation, and circuit breaking
+   * Search with cancellation, deduplication, and circuit breaking
    */
   async search(query, searchFn, fallbackFn) {
     // Cancel previous request
@@ -30,70 +28,60 @@ class SearchOrchestrator {
       this.currentController.abort();
     }
 
-    // Debounce
-    return new Promise((resolve) => {
-      clearTimeout(this.debounceTimer);
-      
-      this.debounceTimer = setTimeout(async () => {
-        // Deduplication
-        const queryKey = JSON.stringify(query);
-        if (queryKey === this.lastQuery) {
-          resolve({ deduplicated: true });
-          return;
-        }
-        this.lastQuery = queryKey;
+    // Deduplication
+    const queryKey = JSON.stringify(query);
+    if (queryKey === this.lastQuery) {
+      return { deduplicated: true };
+    }
+    this.lastQuery = queryKey;
 
-        // Check circuit breaker
-        if (this.circuitBreaker.state === 'open') {
-          const now = Date.now();
-          if (now < this.circuitBreaker.nextAttempt) {
-            // Still in degraded mode
-            if (!this.circuitBreaker.degradedNotified) {
-              console.warn('[SearchOrchestrator] Network unstable, using local search');
-              this.circuitBreaker.degradedNotified = true;
-            }
-            const result = await fallbackFn(query);
-            resolve({ ...result, degraded: true });
-            return;
-          } else {
-            // Try half-open
-            this.circuitBreaker.state = 'half-open';
-          }
+    // Check circuit breaker
+    if (this.circuitBreaker.state === 'open') {
+      const now = Date.now();
+      if (now < this.circuitBreaker.nextAttempt) {
+        // Still in degraded mode
+        if (!this.circuitBreaker.degradedNotified) {
+          console.warn('[SearchOrchestrator] Network unstable, using local search');
+          this.circuitBreaker.degradedNotified = true;
         }
+        const result = await fallbackFn(query);
+        return { ...result, degraded: true };
+      } else {
+        // Try half-open
+        this.circuitBreaker.state = 'half-open';
+      }
+    }
 
-        // Execute search
-        this.currentController = new AbortController();
-        try {
-          const result = await searchFn(query, this.currentController.signal);
-          
-          // Success - reset circuit breaker
-          if (this.circuitBreaker.state === 'half-open') {
-            this.close();
-          }
-          this.circuitBreaker.failureCount = 0;
-          
-          resolve({ ...result, degraded: false });
-        } catch (error) {
-          // Handle failure
-          if (error.name === 'AbortError') {
-            // User cancelled, don't count as failure
-            resolve({ cancelled: true });
-            return;
-          }
+    // Execute search
+    this.currentController = new AbortController();
+    try {
+      const result = await searchFn(query, this.currentController.signal);
 
-          // Only count real network failures (status=0, timeout, 5xx)
-          // Don't count 4xx client errors (bad request, validation errors)
-          const isNetworkFailure = !error.status || error.status === 0 || error.status >= 500;
-          if (isNetworkFailure) {
-            this.handleFailure();
-          }
-          
-          // Fallback to local search
-          const result = await fallbackFn(query);
-          resolve({ ...result, degraded: isNetworkFailure, error: error.message });
-        }
-      }, this.debounceDelay);
-    });
+      // Success - reset circuit breaker
+      if (this.circuitBreaker.state === 'half-open') {
+        this.close();
+      }
+      this.circuitBreaker.failureCount = 0;
+
+      return { ...result, degraded: false };
+    } catch (error) {
+      // Handle failure
+      if (error.name === 'AbortError') {
+        // User cancelled, don't count as failure
+        return { cancelled: true };
+      }
+
+      // Only count real network failures (status=0, timeout, 5xx)
+      // Don't count 4xx client errors (bad request, validation errors)
+      const isNetworkFailure = !error.status || error.status === 0 || error.status >= 500;
+      if (isNetworkFailure) {
+        this.handleFailure();
+      }
+
+      // Fallback to local search
+      const result = await fallbackFn(query);
+      return { ...result, degraded: isNetworkFailure, error: error.message };
+    }
   }
 
   handleFailure() {
@@ -122,7 +110,6 @@ class SearchOrchestrator {
     if (this.currentController) {
       this.currentController.abort();
     }
-    clearTimeout(this.debounceTimer);
     this.lastQuery = null;
   }
 }

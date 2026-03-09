@@ -141,6 +141,18 @@ async function learnNewChars(
       for (const char of chars) {
         await addToLearningQueue(char, error, env);
       }
+
+      // Update daily metrics (failure)
+      const today = new Date().toISOString().split('T')[0];
+      const now = Date.now();
+      await env.DB.prepare(
+        `INSERT INTO learning_metrics (date, api_calls, failure_count, updated_at)
+         VALUES (?, 1, 1, ?)
+         ON CONFLICT(date) DO UPDATE SET
+           api_calls = api_calls + 1,
+           failure_count = failure_count + 1,
+           updated_at = ?`
+      ).bind(today, now, now).run();
       return;
     }
 
@@ -150,12 +162,39 @@ async function learnNewChars(
 
     await saveMappings(mappings, env);
     Object.assign(VARIANTS_CACHE!, mappings);
+
+    // Update daily metrics (UPSERT)
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const now = Date.now();
+    const filteredCount = Object.entries(mappings).filter(([s, t]) => s !== t).length;
+
+    await env.DB.prepare(
+      `INSERT INTO learning_metrics (date, learned_count, api_calls, success_count, updated_at)
+       VALUES (?, ?, 1, 1, ?)
+       ON CONFLICT(date) DO UPDATE SET
+         learned_count = learned_count + ?,
+         api_calls = api_calls + 1,
+         success_count = success_count + 1,
+         updated_at = ?`
+    ).bind(today, filteredCount, now, filteredCount, now).run();
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     console.error(`[ChineseConverter] Failed:`, errorMsg);
     for (const char of chars) {
       await addToLearningQueue(char, errorMsg, env);
     }
+
+    // Update daily metrics (failure)
+    const today = new Date().toISOString().split('T')[0];
+    const now = Date.now();
+    await env.DB.prepare(
+      `INSERT INTO learning_metrics (date, api_calls, failure_count, updated_at)
+       VALUES (?, 1, 1, ?)
+       ON CONFLICT(date) DO UPDATE SET
+         api_calls = api_calls + 1,
+         failure_count = failure_count + 1,
+         updated_at = ?`
+    ).bind(today, now, now).run();
   }
 }
 

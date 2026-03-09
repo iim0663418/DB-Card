@@ -81,6 +81,18 @@ export async function retryLearningQueue(env: Env): Promise<void> {
       ).bind(...successChars).run();
 
       console.log(`[RetryQueue] Successfully learned ${filtered.length} characters`);
+
+      // Update daily metrics
+      const today = new Date().toISOString().split('T')[0];
+      await env.DB.prepare(
+        `INSERT INTO learning_metrics (date, learned_count, api_calls, success_count, updated_at)
+         VALUES (?, ?, 1, 1, ?)
+         ON CONFLICT(date) DO UPDATE SET
+           learned_count = learned_count + ?,
+           api_calls = api_calls + 1,
+           success_count = success_count + 1,
+           updated_at = ?`
+      ).bind(today, filtered.length, now, filtered.length, now).run();
     }
 
     // Reset any remaining chars that were identical (s === t) back to pending or delete them
@@ -94,6 +106,17 @@ export async function retryLearningQueue(env: Env): Promise<void> {
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     console.error(`[RetryQueue] Failed:`, errorMsg);
+
+    // Update daily metrics (failure)
+    const today = new Date().toISOString().split('T')[0];
+    await env.DB.prepare(
+      `INSERT INTO learning_metrics (date, api_calls, failure_count, updated_at)
+       VALUES (?, 1, 1, ?)
+       ON CONFLICT(date) DO UPDATE SET
+         api_calls = api_calls + 1,
+         failure_count = failure_count + 1,
+         updated_at = ?`
+    ).bind(today, now, now).run();
 
     for (const { char, attempts } of results) {
       if (attempts >= 5) {

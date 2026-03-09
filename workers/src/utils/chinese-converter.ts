@@ -110,18 +110,31 @@ async function saveMappings(
   mappings: Record<string, string>,
   env: Env
 ): Promise<void> {
+  // Filter out identical mappings (e.g., 碁 → 碁)
+  const filtered = Object.fromEntries(
+    Object.entries(mappings).filter(([s, t]) => s !== t)
+  );
+  
+  if (Object.keys(filtered).length === 0) {
+    console.log('[ChineseConverter] No new mappings to save (all identical)');
+    return;
+  }
+  
   const now = Date.now();
-  const values = Object.entries(mappings)
-    .map(([s, t]) => `('${s}', '${t}', ${now}, 'gemini')`)
-    .join(',');
-  
-  await env.DB.prepare(`
+
+  const stmt = env.DB.prepare(`
     INSERT INTO chinese_variants (simplified, traditional, learned_at, source)
-    VALUES ${values}
+    VALUES (?, ?, ?, 'gemini')
     ON CONFLICT (simplified) DO NOTHING
-  `).run();
+  `);
+
+  const batch = Object.entries(filtered).map(([s, t]) =>
+    stmt.bind(s, t, now)
+  );
+
+  await env.DB.batch(batch);
   
-  console.log(`[ChineseConverter] Learned ${Object.keys(mappings).length} new characters`);
+  console.log(`[ChineseConverter] Learned ${Object.keys(filtered).length} new characters`);
 }
 
 /**

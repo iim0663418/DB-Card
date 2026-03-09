@@ -57,6 +57,7 @@ export default [
         R2Bucket: 'readonly',
         DurableObjectNamespace: 'readonly',
         DurableObjectStub: 'readonly',
+        DurableObjectState: 'readonly',  // Phase 3: Durable Object state
         Fetcher: 'readonly',
         ScheduledEvent: 'readonly',
         Env: 'readonly',

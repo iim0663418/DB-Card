@@ -7,6 +7,8 @@ import { Env } from '../../../types';
 import { verifyOAuth } from '../../../middleware/oauth';
 import { normalizeToTraditional } from '../../../utils/chinese-converter';
 import { escapeLike, parseOrganizationAlias } from '../../../utils/search-helpers';
+import { analyzeIntent } from './intent-analyzer';
+import { logAgentMetrics, sha256Hex } from '../../../utils/agent-metrics';
 
 interface SearchResult {
   uuid: string;
@@ -29,6 +31,14 @@ interface SearchResponse {
   page: number;
   limit: number;
   hasMore: boolean;
+  meta?: {
+    intent: string;
+    confidence: number;
+    tools: string[];
+    cached: boolean;
+    latency_ms: number;
+    fallback?: boolean;
+  };
 }
 
 /**
@@ -366,9 +376,118 @@ async function hybridSearch(
 }
 
 /**
+ * Tool Router: selects which search tools to use based on intent and confidence.
+ * Confidence gate: < 0.7 → explore fallback (both tools).
+ */
+function selectTools(intent: string, confidence: number): string[] {
+  if (confidence < 0.7) {
+    return ['semantic', 'keyword'];
+  }
+
+  const toolMap: Record<string, string[]> = {
+    exact_match: ['keyword'],
+    explore: ['semantic', 'keyword'],
+    relationship: ['keyword', 'semantic'],
+  };
+
+  return toolMap[intent] || ['semantic', 'keyword'];
+}
+
+/**
+ * Agent Search: analyzes intent, routes to appropriate tools, returns results + meta.
+ * Falls back to hybridSearch on any error.
+ */
+async function agentSearch(
+  env: Env,
+  userEmail: string,
+  query: string,
+  limit: number
+): Promise<{ results: SearchResult[]; meta: NonNullable<SearchResponse['meta']> }> {
+  const start = Date.now();
+
+  try {
+    const intentResult = await analyzeIntent(query, userEmail, env);
+    const tools = selectTools(intentResult.intent, intentResult.confidence);
+
+    let results: SearchResult[];
+
+    if (tools.includes('semantic') && tools.includes('keyword')) {
+      const [semanticResults, keywordResults] = await Promise.all([
+        semanticSearch(env, userEmail, query, 50).catch(() => [] as SearchResult[]),
+        keywordSearch(env, userEmail, query, 50).catch(() => [] as SearchResult[]),
+      ]);
+      results = mergeAndRerank(semanticResults, keywordResults).slice(0, limit);
+    } else if (tools.includes('semantic')) {
+      results = await semanticSearch(env, userEmail, query, limit).catch(() => [] as SearchResult[]);
+    } else {
+      results = await keywordSearch(env, userEmail, query, limit).catch(() => [] as SearchResult[]);
+    }
+
+    const latency_ms = Date.now() - start;
+    const meta = {
+      intent: intentResult.intent,
+      confidence: intentResult.confidence,
+      tools,
+      cached: intentResult.cached,
+      latency_ms,
+    };
+
+    console.log('[AgentSearch]', JSON.stringify(meta));
+
+    // Non-blocking metrics write
+    sha256Hex(query.trim().toLowerCase().replace(/\s+/g, ' ')).then(hash =>
+      logAgentMetrics(env, {
+        timestamp: start,
+        query_hash: hash,
+        intent: intentResult.intent,
+        confidence: intentResult.confidence,
+        tools_used: tools,
+        result_count: results.length,
+        latency_ms,
+        fallback_used: false,
+        ai_timeout: intentResult.latency_ms > 2000,
+      })
+    ).catch(err => console.warn('[AgentSearch] metrics write failed:', err instanceof Error ? err.message : String(err)));
+
+    return { results, meta };
+  } catch (err) {
+    console.warn('[AgentSearch] failed, fallback to hybrid:', err instanceof Error ? err.message : String(err));
+    const results = await hybridSearch(env, userEmail, query, limit);
+    const latency_ms = Date.now() - start;
+
+    // Non-blocking metrics write for fallback
+    sha256Hex(query.trim().toLowerCase().replace(/\s+/g, ' ')).then(hash =>
+      logAgentMetrics(env, {
+        timestamp: start,
+        query_hash: hash,
+        intent: 'explore',
+        confidence: 0.5,
+        tools_used: ['semantic', 'keyword'],
+        result_count: results.length,
+        latency_ms,
+        fallback_used: true,
+        ai_timeout: false,
+      })
+    ).catch(e => console.warn('[AgentSearch] fallback metrics write failed:', e instanceof Error ? e.message : String(e)));
+
+    return {
+      results,
+      meta: {
+        intent: 'explore',
+        confidence: 0.5,
+        tools: ['semantic', 'keyword'],
+        cached: false,
+        latency_ms,
+        fallback: true,
+      },
+    };
+  }
+}
+
+/**
  * Main search handler
  */
-export async function searchCards(request: Request, env: Env): Promise<Response> {
+export async function searchCards(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
   try {
     const userResult = await verifyOAuth(request, env);
     if (userResult instanceof Response) return userResult;
@@ -389,8 +508,53 @@ export async function searchCards(request: Request, env: Env): Promise<Response>
     const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
     const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '20', 10)));
 
-    // Hybrid Search: Semantic + Keyword with RRF Re-ranking
-    const merged = await hybridSearch(env, userEmail, query, limit);
+    const shadowMode = env.AGENT_SHADOW_MODE === 'true';
+    const enableAgent = env.ENABLE_AGENT_SEARCH === 'true';
+    const enableMeta = env.ENABLE_AGENT_META === 'true';
+
+    let merged: SearchResult[];
+    let responseMeta: SearchResponse['meta'];
+
+    if (shadowMode) {
+      // Non-blocking intent analysis for observability; results unaffected
+      const effectiveCtx = ctx ?? env.ctx;
+      if (effectiveCtx) {
+        effectiveCtx.waitUntil(
+          analyzeIntent(query, userEmail, env)
+            .then(async result => {
+              console.log('[Shadow] intent analysis:', JSON.stringify({
+                intent: result.intent,
+                confidence: result.confidence,
+                cached: result.cached,
+                latency_ms: result.latency_ms,
+              }));
+              const hash = await sha256Hex(query.trim().toLowerCase().replace(/\s+/g, ' '));
+              await logAgentMetrics(env, {
+                timestamp: Date.now(),
+                query_hash: hash,
+                intent: result.intent,
+                confidence: result.confidence,
+                tools_used: selectTools(result.intent, result.confidence),
+                result_count: 0,
+                latency_ms: result.latency_ms,
+                fallback_used: false,
+                ai_timeout: result.latency_ms > 2000,
+              });
+            })
+            .catch(err => console.warn('[Shadow] failed:', err instanceof Error ? err.message : String(err)))
+        );
+      }
+      merged = await hybridSearch(env, userEmail, query, limit);
+    } else if (enableAgent) {
+      const agentResult = await agentSearch(env, userEmail, query, limit);
+      merged = agentResult.results;
+      if (enableMeta) {
+        responseMeta = agentResult.meta;
+      }
+    } else {
+      // Baseline: Hybrid Search (Semantic + Keyword with RRF Re-ranking)
+      merged = await hybridSearch(env, userEmail, query, limit);
+    }
 
     // Paginate
     const total = merged.length;
@@ -404,13 +568,18 @@ export async function searchCards(request: Request, env: Env): Promise<Response>
       enrichedResults.push(await enrichSearchResult(env, userEmail, result));
     }
 
-    return new Response(JSON.stringify({
+    const responseBody: SearchResponse = {
       results: enrichedResults,
       total,
       page,
       limit,
       hasMore: total > page * limit,
-    } as SearchResponse), {
+    };
+    if (responseMeta) {
+      responseBody.meta = responseMeta;
+    }
+
+    return new Response(JSON.stringify(responseBody), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });

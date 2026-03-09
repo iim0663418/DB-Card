@@ -368,7 +368,7 @@ export default {
 
     // GET /api/user/received-cards/search - Smart search
     if (url.pathname === '/api/user/received-cards/search' && request.method === 'GET') {
-      return addMinimalSecurityHeaders(await searchCards(request, env));
+      return addMinimalSecurityHeaders(await searchCards(request, env, ctx));
     }
 
     // PUT /api/user/received-cards/:uuid - Update received card (full update)

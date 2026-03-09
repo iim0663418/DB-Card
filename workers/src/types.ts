@@ -24,6 +24,10 @@ export interface Env {
   GEMINI_EMBEDDING_MODEL: string;  // text-embedding-004
   FILE_SEARCH_STORE_NAME?: string;
   ctx?: ExecutionContext;  // For waitUntil in auto-learning
+  // Agent Search feature flags (Phase 2)
+  AGENT_SHADOW_MODE?: string;   // 'true' to enable shadow mode (log only, no routing)
+  ENABLE_AGENT_SEARCH?: string; // 'true' to enable agent-based routing
+  ENABLE_AGENT_META?: string;   // 'true' to include meta field in search response
 }
 
 // Bilingual support types

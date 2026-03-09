@@ -6,7 +6,7 @@
 import type { Env } from '../../../types';
 
 export interface IntentAnalysisResult {
-  intent: 'exact_match' | 'explore' | 'relationship';
+  intent: 'exact_match' | 'explore' | 'relationship' | 'invalid';
   entities: {
     person?: string;
     organization?: string;
@@ -16,6 +16,10 @@ export interface IntentAnalysisResult {
   confidence: number;
   cached: boolean;
   latency_ms: number;
+  // For invalid intent
+  reason?: 'negation_not_supported' | 'ambiguous' | 'empty';
+  message?: string;
+  suggested_queries?: string[];
 }
 
 const CACHE_TTL = 600; // 10 minutes
@@ -32,7 +36,7 @@ const RESPONSE_SCHEMA = {
   properties: {
     intent: {
       type: 'string',
-      enum: ['exact_match', 'explore', 'relationship'],
+      enum: ['exact_match', 'explore', 'relationship', 'invalid'],
     },
     entities: {
       type: 'object',
@@ -48,6 +52,17 @@ const RESPONSE_SCHEMA = {
       minimum: 0,
       maximum: 1,
     },
+    reason: {
+      type: 'string',
+      enum: ['negation_not_supported', 'ambiguous', 'empty'],
+    },
+    message: {
+      type: 'string',
+    },
+    suggested_queries: {
+      type: 'array',
+      items: { type: 'string' },
+    },
   },
   required: ['intent', 'entities', 'confidence'],
 };
@@ -58,12 +73,20 @@ Intent Types:
 - exact_match: Searching for a specific person by name
 - relationship: Finding connections within a company/organization
 - explore: Broad search by job title, location, or service type
+- invalid: Query contains unsupported patterns (negations, ambiguous terms)
 
 Entity Types:
 - person: Full name of a specific individual
 - organization: Exact company/organization name (not descriptions)
 - title: Job title, role, or service type
-- location: Geographic location
+- location: Geographic location (positive only)
+
+Negation Handling:
+If query contains negation words (非, 不是, 除了, 不在, etc.), return:
+- intent: "invalid"
+- reason: "negation_not_supported"
+- message: "目前不支援否定條件（例如：非台北）"
+- suggested_queries: [alternative positive queries based on context]
 
 Examples:
 Query: "吳勝繙"
@@ -80,6 +103,9 @@ Query: "國家資通安全研究院的主任"
 
 Query: "在台北的科長"
 {"intent": "explore", "entities": {"title": "科長", "location": "台北"}, "confidence": 0.85}
+
+Query: "非台北的廠商"
+{"intent": "invalid", "entities": {}, "confidence": 0.0, "reason": "negation_not_supported", "message": "目前不支援否定條件（例如：非台北）", "suggested_queries": ["新北的廠商", "桃園的廠商", "台中的廠商"]}
 
 Query: "資訊處共用系統科科長"
 {"intent": "explore", "entities": {"title": "資訊處共用系統科科長"}, "confidence": 0.9}

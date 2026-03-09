@@ -1018,10 +1018,68 @@ const ReceivedCards = {
         searchButton.setAttribute('aria-disabled', 'false');
       }
       if (result.cancelled || result.deduplicated) return;
+      
+      // Handle invalid intent (e.g., negation not supported)
+      if (result.meta?.intent === 'invalid') {
+        this._handleInvalidQuery(result.meta);
+        return;
+      }
+      
       if (result.results) {
         this._applySearchResults(result.results, result.degraded, !!result.error);
       }
     });
+  },
+
+  _handleInvalidQuery(meta) {
+    const resultCount = document.getElementById('resultCount');
+    const lang = document.documentElement.lang || 'zh';
+    
+    // Show error message
+    if (resultCount) {
+      const message = meta.message || (lang === 'zh' ? '查詢格式不支援' : 'Query format not supported');
+      resultCount.textContent = message;
+      resultCount.className = 'text-sm font-medium text-yellow-600';
+    }
+    
+    // Show suggested queries if available
+    if (meta.suggested_queries && meta.suggested_queries.length > 0) {
+      const container = document.getElementById('cards-container');
+      if (container) {
+        const suggestionsHTML = `
+          <div class="col-span-full bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-6 space-y-4">
+            <div class="flex items-start gap-3">
+              <svg class="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+              </svg>
+              <div class="flex-1">
+                <h3 class="font-bold text-yellow-900 mb-2">${meta.message || '查詢格式不支援'}</h3>
+                <p class="text-sm text-yellow-800 mb-3">試試這些查詢：</p>
+                <div class="flex flex-wrap gap-2">
+                  ${meta.suggested_queries.map(query => `
+                    <button 
+                      onclick="ReceivedCards.applySuggestedQuery('${query.replace(/'/g, "\\'")}')"
+                      class="px-4 py-2 bg-white border-2 border-yellow-300 rounded-xl text-sm font-medium text-yellow-900 hover:bg-yellow-100 transition-colors">
+                      ${query}
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        container.innerHTML = suggestionsHTML;
+      }
+    }
+  },
+
+  applySuggestedQuery(query) {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+      searchInput.value = query;
+      this.currentKeyword = query;
+      this.submitSearch();
+    }
   },
 
   _applySearchResults(results, degraded = false, hasError = false) {

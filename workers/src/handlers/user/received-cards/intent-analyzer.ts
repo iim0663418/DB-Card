@@ -97,7 +97,7 @@ async function callGemini(
             responseJsonSchema: RESPONSE_SCHEMA,
             maxOutputTokens: 512,  // Increased for thinking tokens
             thinkingConfig: {
-              thinkingLevel: 'LOW'  // Minimize thinking for fast intent classification
+              thinkingLevel: 'MINIMAL'  // Minimal thinking for fast intent classification
             }
           },
         }),

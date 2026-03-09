@@ -66,11 +66,14 @@ Entity Types:
 - location: Geographic location
 
 Examples:
-Query: "洪健復"
-{"intent": "exact_match", "entities": {"person": "洪健復"}, "confidence": 0.95}
+Query: "吳勝繙"
+{"intent": "exact_match", "entities": {"person": "吳勝繙"}, "confidence": 0.95}
 
-Query: "奧義智慧科技的同事"
-{"intent": "relationship", "entities": {"organization": "奧義智慧科技"}, "confidence": 0.9}
+Query: "叡揚"
+{"intent": "relationship", "entities": {"organization": "叡揚"}, "confidence": 0.9}
+
+Query: "叡揚的同事"
+{"intent": "relationship", "entities": {"organization": "叡揚"}, "confidence": 0.9}
 
 Query: "在台北的工程師"
 {"intent": "explore", "entities": {"title": "工程師", "location": "台北"}, "confidence": 0.85}

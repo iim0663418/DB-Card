@@ -52,20 +52,15 @@ const RESPONSE_SCHEMA = {
   required: ['intent', 'entities', 'confidence'],
 };
 
-const PROMPT = `Analyze the user's business card search query and classify the intent.
+const PROMPT = `Classify search query intent and extract entities.
 
-Intent types:
-- exact_match: Searching for a specific person (e.g., "John Smith", "王小明")
-- relationship: Searching for connections by company/org (e.g., "Google colleagues", "台積電同事")
-- explore: Browsing/broad search (e.g., "engineers", "sales managers", "上海")
+Intent:
+- exact_match: Specific person name
+- relationship: Company/org connections
+- explore: Broad search (title/location)
 
-Extract entities if present:
-- person: Full or partial name
-- organization: Company or organization name
-- title: Job title or role
-- location: City, region, or country
-
-Return confidence (0-1) reflecting how certain you are about the classification.
+Entities: person, organization, title, location
+Confidence: 0-1
 
 Query: `;
 
@@ -100,7 +95,10 @@ async function callGemini(
           generationConfig: {
             responseMimeType: 'application/json',
             responseJsonSchema: RESPONSE_SCHEMA,
-            maxOutputTokens: 256,
+            maxOutputTokens: 512,  // Increased for thinking tokens
+            thinkingConfig: {
+              thinkingLevel: 'LOW'  // Minimize thinking for fast intent classification
+            }
           },
         }),
       }

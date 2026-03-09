@@ -765,6 +765,9 @@ export default {
     const { syncCardEmbeddings } = await import('./cron/sync-card-embeddings');
     await syncCardEmbeddings(env);
 
+    const { retryLearningQueue } = await import('./cron/retry-learning-queue');
+    await retryLearningQueue(env);
+
     const { deduplicateCards } = await import('./cron/deduplicate-cards');
     await deduplicateCards(env);
 

@@ -287,8 +287,20 @@ export async function normalizeToTraditional(
     if (env) {
       const unknown = findUnknownChars(text);
 
-      if (unknown.length > 0) {
-        // Auto-learn in background (non-blocking, fast-fail with queue)
+      if (unknown.length > 0 && env.LEARNING_BATCHER) {
+        // Batch learn via LearningBatcher DO (non-blocking, accumulates for efficiency)
+        env.ctx?.waitUntil((async () => {
+          const id = env.LEARNING_BATCHER.idFromName('global');
+          const batcher = env.LEARNING_BATCHER.get(id);
+          for (const char of unknown) {
+            await batcher.fetch(new Request('http://internal/add', {
+              method: 'POST',
+              body: JSON.stringify({ char })
+            }));
+          }
+        })());
+      } else if (unknown.length > 0) {
+        // Fallback: direct learning (no batcher available)
         env.ctx?.waitUntil(learnNewChars(unknown, env));
       }
     }

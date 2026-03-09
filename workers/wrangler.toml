@@ -44,6 +44,11 @@ name = "LEARNING_COUNTER"
 class_name = "LearningCounter"
 script_name = "db-card-staging"
 
+[[durable_objects.bindings]]
+name = "LEARNING_BATCHER"
+class_name = "LearningBatcher"
+script_name = "db-card-staging"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["RateLimiterDO"]
@@ -51,6 +56,10 @@ new_sqlite_classes = ["RateLimiterDO"]
 [[migrations]]
 tag = "v2"
 new_sqlite_classes = ["LearningCounter"]
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["LearningBatcher"]
 
 # R2 Bucket for Card Images (Staging)
 # Directory structure:

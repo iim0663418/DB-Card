@@ -6,6 +6,7 @@ export interface Env {
   KV: KVNamespace;  // Used for card type cache only (idempotency moved to DO)
   RATE_LIMITER: DurableObjectNamespace;
   LEARNING_COUNTER: DurableObjectNamespace;  // Phase 0.3: Atomic daily learning counter
+  LEARNING_BATCHER: DurableObjectNamespace;  // Phase 3: Batch learning with Alarm API
   PHYSICAL_CARDS: R2Bucket;
   VECTORIZE: VectorizeIndex;  // Vectorize 綁定
   KEK: string;

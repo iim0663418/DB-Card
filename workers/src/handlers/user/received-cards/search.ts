@@ -6,6 +6,7 @@
 import { Env } from '../../../types';
 import { verifyOAuth } from '../../../middleware/oauth';
 import { normalizeToTraditional } from '../../../utils/chinese-converter';
+import { escapeLike, parseOrganizationAlias } from '../../../utils/search-helpers';
 
 interface SearchResult {
   uuid: string;
@@ -31,78 +32,91 @@ interface SearchResponse {
 }
 
 /**
- * Enrich search result with related contacts and tags
+ * Enrich search result with related contacts and tags.
+ * Primary: json_each() for exact alias matching (JSON array format).
+ * Fallback: LIKE with ESCAPE '\' for legacy CSV format.
+ * On any error: returns safe defaults (related_contacts=0, tags=[]).
  */
 async function enrichSearchResult(
   env: Env,
   userEmail: string,
   result: SearchResult
 ): Promise<SearchResult> {
-  // 1. Count related contacts in same organization (use normalized + alias)
-  let relatedContacts = 0;
-  if (result.organization) {
-    // Get normalized organization name and aliases for the current card
-    const cardInfo = await env.DB.prepare(`
-      SELECT organization_normalized, organization_alias FROM received_cards WHERE uuid = ?
-    `).bind(result.uuid).first<{ organization_normalized: string | null; organization_alias: string | null }>();
+  try {
+    // 1. Count related contacts in same organization (normalized + alias)
+    let relatedContacts = 0;
+    if (result.organization) {
+      const cardInfo = await env.DB.prepare(`
+        SELECT organization_normalized, organization_alias FROM received_cards WHERE uuid = ?
+      `).bind(result.uuid).first<{ organization_normalized: string | null; organization_alias: string | null }>();
 
-    if (cardInfo?.organization_normalized) {
-      // Parse aliases (stored as plain text string, e.g., "零曜科技, Zeroflare")
-      const aliases: string[] = cardInfo.organization_alias 
-        ? cardInfo.organization_alias.split(',').map(s => s.trim()).filter(Boolean)
-        : [];
-      
-      // Build search terms: normalized name + all aliases
-      const searchTerms = [cardInfo.organization_normalized, ...aliases];
-      
-      // Build OR conditions: each search term matches organization_normalized OR in organization_alias
-      const conditions: string[] = [];
-      const params = [userEmail];
-      
-      for (const term of searchTerms) {
-        // Match organization_normalized
-        conditions.push('organization_normalized = ?');
-        params.push(term);
-        // Match in organization_alias JSON array
-        conditions.push('organization_alias LIKE ?');
-        params.push(`%"${term}"%`);
+      if (cardInfo?.organization_normalized) {
+        const aliases = parseOrganizationAlias(cardInfo.organization_alias);
+        const searchTerms = [cardInfo.organization_normalized, ...aliases];
+
+        // IN placeholders for exact matching via json_each()
+        const termPlaceholders = searchTerms.map(() => '?').join(', ');
+
+        // LIKE fallback conditions for pre-migration CSV format (ESCAPE '\')
+        const likeConditions = searchTerms.map(() => `organization_alias LIKE ? ESCAPE '\\'`).join(' OR ');
+        const likeParams = searchTerms.map(t => `%${escapeLike(t)}%`);
+
+        const countResult = await env.DB.prepare(`
+          SELECT COUNT(*) as count
+          FROM received_cards
+          WHERE user_email = ?
+            AND deleted_at IS NULL
+            AND merged_to IS NULL
+            AND uuid != ?
+            AND (
+              organization_normalized IN (${termPlaceholders})
+              OR EXISTS (
+                SELECT 1 FROM json_each(organization_alias) je
+                WHERE je.value IN (${termPlaceholders})
+              )
+              OR (${likeConditions})
+            )
+        `).bind(
+          userEmail,
+          result.uuid,
+          ...searchTerms,  // for organization_normalized IN
+          ...searchTerms,  // for json_each IN
+          ...likeParams,   // for LIKE fallback
+        ).first<{ count: number }>();
+
+        relatedContacts = countResult?.count || 0;
       }
-      
-      const countResult = await env.DB.prepare(`
-        SELECT COUNT(*) as count
-        FROM received_cards
-        WHERE user_email = ?
-          AND (${conditions.join(' OR ')})
-          AND deleted_at IS NULL
-          AND merged_to IS NULL
-          AND uuid != ?
-      `).bind(...params, result.uuid).first<{ count: number }>();
-      
-      relatedContacts = countResult?.count || 0;
     }
+
+    // 2. Get auto-generated tags (industry, location)
+    const { results: tagRows } = await env.DB.prepare(`
+      SELECT category, raw_value, normalized_value
+      FROM card_tags
+      WHERE card_uuid = ?
+        AND tag_source LIKE 'auto%'
+        AND category IN ('industry', 'location')
+      LIMIT 3
+    `).bind(result.uuid).all();
+
+    const tags = tagRows.map(t => ({
+      category: (t as any).category,
+      raw: (t as any).raw_value,
+      normalized: (t as any).normalized_value
+    }));
+
+    return {
+      ...result,
+      related_contacts: relatedContacts > 0 ? relatedContacts : undefined,
+      tags: tags.length > 0 ? tags : undefined,
+    };
+  } catch (error) {
+    console.error('[enrichSearchResult] failed', {
+      card_uuid: result.uuid,
+      error: String(error),
+      alias_length: result.organization?.length ?? 0,
+    });
+    return { ...result, related_contacts: 0, tags: [] };
   }
-
-  // 2. Get auto-generated tags (industry, location) - new format
-  const { results: tagRows } = await env.DB.prepare(`
-    SELECT category, raw_value, normalized_value 
-    FROM card_tags
-    WHERE card_uuid = ?
-      AND tag_source LIKE 'auto%'
-      AND category IN ('industry', 'location')
-    LIMIT 3
-  `).bind(result.uuid).all();
-  
-  const tags = tagRows.map(t => ({
-    category: (t as any).category,
-    raw: (t as any).raw_value,
-    normalized: (t as any).normalized_value
-  }));
-
-  return {
-    ...result,
-    related_contacts: relatedContacts > 0 ? relatedContacts : undefined,
-    tags: tags.length > 0 ? tags : undefined,
-  };
 }
 
 /**
@@ -383,10 +397,12 @@ export async function searchCards(request: Request, env: Env): Promise<Response>
     const start = (page - 1) * limit;
     const paginatedResults = merged.slice(start, start + limit);
 
-    // Enrich results
-    const enrichedResults = await Promise.all(
-      paginatedResults.map(result => enrichSearchResult(env, userEmail, result))
-    );
+    // Enrich results – sequential (not Promise.all) to avoid cascade failures; cap at 50
+    const toEnrich = paginatedResults.slice(0, 50);
+    const enrichedResults: SearchResult[] = [];
+    for (const result of toEnrich) {
+      enrichedResults.push(await enrichSearchResult(env, userEmail, result));
+    }
 
     return new Response(JSON.stringify({
       results: enrichedResults,

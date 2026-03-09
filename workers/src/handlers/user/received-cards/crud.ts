@@ -9,6 +9,7 @@ import { verifyOAuth } from '../../../middleware/oauth';
 import { jsonResponse, errorResponse } from '../../../utils/response';
 import { extractTagsFromOrganization } from '../../../utils/tags';
 import { normalizeToTraditional } from '../../../utils/chinese-converter';
+import { normalizeOrganizationAlias } from '../../../utils/search-helpers';
 
 interface SaveCardRequest {
   upload_id?: string;  // Optional for manual add
@@ -181,12 +182,22 @@ export async function handleSaveCard(request: Request, env: Env, ctx: ExecutionC
         : null;
       const aiStatus = body.ai_status || null;
       
-      // Handle organization_alias: convert array to JSON string
-      const organizationAlias = body.organization_alias 
-        ? (Array.isArray(body.organization_alias) 
-            ? JSON.stringify(body.organization_alias) 
-            : body.organization_alias)
-        : null;
+      // Handle organization_alias: normalize any format to JSON array string
+      let organizationAlias: string | null = null;
+      if (body.organization_alias != null) {
+        const normalized = normalizeOrganizationAlias(body.organization_alias);
+        // Warn if input was not already a JSON array (needed conversion)
+        if (
+          typeof body.organization_alias === 'string' &&
+          !body.organization_alias.trim().startsWith('[')
+        ) {
+          console.warn('[handleSaveCard] organization_alias normalized from non-JSON', {
+            original: String(body.organization_alias).slice(0, 200),
+            normalized,
+          });
+        }
+        organizationAlias = normalized !== '[]' ? normalized : null;
+      }
       
       // Normalize organization to traditional Chinese for search
       const organizationNormalized = body.organization 

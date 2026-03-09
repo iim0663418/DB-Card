@@ -48,6 +48,10 @@ script_name = "db-card-staging"
 tag = "v1"
 new_sqlite_classes = ["RateLimiterDO"]
 
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["LearningCounter"]
+
 # R2 Bucket for Card Images (Staging)
 # Directory structure:
 #   - physical/: Physical card images (existing feature)

@@ -138,6 +138,29 @@ async function saveMappings(
 }
 
 /**
+ * Check daily learning limit using Durable Object atomic counter
+ */
+async function checkDailyLimit(env: Env): Promise<boolean> {
+  try {
+    const id = env.LEARNING_COUNTER.idFromName('global');
+    const counter = env.LEARNING_COUNTER.get(id);
+    
+    const response = await counter.fetch(new Request('http://internal/increment'));
+    const data = await response.json() as { allowed: boolean; count: number };
+    
+    if (!data.allowed) {
+      console.warn(`[ChineseConverter] Daily learning limit reached: ${data.count}/1000`);
+    }
+    
+    return data.allowed;
+  } catch (error) {
+    console.error('[ChineseConverter] Failed to check daily limit:', error);
+    // Fail open: allow learning if counter is unavailable
+    return true;
+  }
+}
+
+/**
  * Normalize Chinese text to Traditional characters (Smart Version)
  * @param text - Input text (may contain simplified Chinese)
  * @param env - Cloudflare Worker environment (optional, for auto-learning)
@@ -170,6 +193,13 @@ export async function normalizeToTraditional(
       const unknown = findUnknownChars(text);
       
       if (unknown.length > 0) {
+        // Check daily limit before learning
+        const canLearn = await checkDailyLimit(env);
+        if (!canLearn) {
+          console.warn('[ChineseConverter] Daily learning limit reached, skipping auto-learn');
+          return result;
+        }
+        
         // Auto-learn in background (non-blocking)
         env.ctx?.waitUntil(
           (async () => {

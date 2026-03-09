@@ -791,3 +791,4 @@ export default {
 
 // Export Durable Object classes
 export { RateLimiterDO };
+export { LearningCounter } from './durable-objects/learning-counter';

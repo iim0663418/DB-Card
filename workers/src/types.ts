@@ -5,6 +5,7 @@ export interface Env {
   DB: D1Database;
   KV: KVNamespace;  // Used for card type cache only (idempotency moved to DO)
   RATE_LIMITER: DurableObjectNamespace;
+  LEARNING_COUNTER: DurableObjectNamespace;  // Phase 0.3: Atomic daily learning counter
   PHYSICAL_CARDS: R2Bucket;
   VECTORIZE: VectorizeIndex;  // Vectorize 綁定
   KEK: string;

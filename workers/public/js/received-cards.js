@@ -995,6 +995,13 @@ const ReceivedCards = {
       return;
     }
     
+    // Show loading state immediately
+    const resultCount = document.getElementById('resultCount');
+    if (resultCount) {
+      resultCount.textContent = '搜尋中...';
+      resultCount.className = 'text-blue-600 animate-pulse';
+    }
+    
     const searchFn = (query, signal) => ReceivedCardsAPI.searchCards(query.trim(), 1, 20, signal);
     const fallbackFn = (query) => {
       const results = this.allCards.filter(card =>

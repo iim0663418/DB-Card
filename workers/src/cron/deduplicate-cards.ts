@@ -281,8 +281,12 @@ export async function checkCompanyRelationship(
   }
 
   try {
+    // Vectorize API requires a valid 768-dim vector even for metadata-only queries.
+    // We use a dummy zero vector since we only need the filter functionality.
+    // Reference: https://community.cloudflare.com/t/589968
+    const dummyVector = new Array(768).fill(0);
     const matches = await env.VECTORIZE.query(
-      [],
+      dummyVector,
       {
         topK: 50,
         returnMetadata: 'all',

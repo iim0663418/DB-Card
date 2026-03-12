@@ -12,6 +12,7 @@ import { Planner } from './planner';
 import { Executor } from './executor';
 import { MemoryLayer } from './memory';
 import { enrichSearchResult } from './enrichers/contact-metadata';
+import { sha256Hex } from '../../utils/agent-metrics';
 import type { SearchRequest, SearchResponse, SearchResult } from './types';
 
 export class SearchAgent {
@@ -58,6 +59,10 @@ export class SearchAgent {
     // ── Layer 4: Remember (non-blocking) ─────────────────────────────────────
     this.memory.record(context, plan, executionResult);
 
+    // ── Compute query_hash for click tracking (Phase 3.0) ────────────────────
+    const queryNormalized = context.query.trim().toLowerCase().replace(/\s+/g, ' ');
+    const queryHash = await sha256Hex(queryNormalized);
+
     // ── Build response ────────────────────────────────────────────────────────
     const response: SearchResponse = {
       results: enrichedResults,
@@ -65,6 +70,7 @@ export class SearchAgent {
       page,
       limit,
       hasMore: total > page * limit,
+      query_hash: queryHash,
     };
 
     if (context.enableMeta && !context.shadowMode) {

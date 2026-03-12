@@ -756,6 +756,7 @@ const ReceivedCards = {
   pageSize: 20, // Page size for pagination
   searchToken: 0, // Request token for race condition prevention
   searchOrchestrator: null, // SearchOrchestrator instance
+  currentSearchQueryHash: null, // SHA-256 hash of current search query (for click tracking)
 
   init() {
     this.searchOrchestrator = new SearchOrchestrator({ threshold: 3 });
@@ -1026,7 +1027,7 @@ const ReceivedCards = {
       }
       
       if (result.results) {
-        this._applySearchResults(result.results, result.degraded, !!result.error);
+        this._applySearchResults(result.results, result.degraded, !!result.error, result.query_hash || null);
       }
     });
   },
@@ -1082,7 +1083,7 @@ const ReceivedCards = {
     }
   },
 
-  _applySearchResults(results, degraded = false, hasError = false) {
+  _applySearchResults(results, degraded = false, hasError = false, queryHash = null) {
     const resultCount = document.getElementById('resultCount');
     if (resultCount) {
       if (hasError) {
@@ -1094,7 +1095,9 @@ const ReceivedCards = {
         resultCount.className = degraded ? 'text-sm font-medium text-yellow-600' : 'text-sm text-slate-600 font-medium';
       }
     }
+    this.currentSearchQueryHash = queryHash;
     this.renderCards(results, this.currentKeyword.trim());
+    if (queryHash) this.bindSearchResultClickEvents(queryHash, results);
     this.updateClearFiltersButton();
     this.updateURL();
   },
@@ -1616,6 +1619,42 @@ const ReceivedCards = {
     document.addEventListener('keydown', handleEsc);
     
     document.body.appendChild(modal);
+  },
+
+  /**
+   * Bind click tracking to search result cards.
+   * Called after renderCards() when a search query_hash is available.
+   * Tracks rank (1-based, top result = 1) and fires-and-forgets to the API.
+   */
+  bindSearchResultClickEvents(queryHash, results) {
+    results.forEach((card, index) => {
+      const rank = index + 1;
+      const cardEl = document.querySelector(`[data-card-id="${card.uuid}"]`);
+      if (cardEl) {
+        cardEl.addEventListener('click', () => {
+          this.trackResultClick(queryHash, card.uuid, rank);
+        });
+      }
+    });
+  },
+
+  /**
+   * Fire-and-forget click event to the analytics API.
+   * Silent failure: never blocks the UI.
+   * Validates query_hash is present before sending.
+   */
+  trackResultClick(queryHash, resultUuid, rank) {
+    if (!queryHash) return; // Scenario 3: no query context → skip
+    fetch('/api/user/analytics/click', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query_hash: queryHash,
+        result_uuid: resultUuid,
+        result_rank: rank,
+        timestamp: Date.now()
+      })
+    }).catch(() => {}); // Silent failure (Scenario 4: rate limit, etc.)
   },
 
   renderCardHTML(card, keyword = '') {

@@ -32,6 +32,7 @@ export interface SearchResponse {
   page: number;
   limit: number;
   hasMore: boolean;
+  query_hash?: string;  // SHA-256 of normalized query (for click tracking)
   meta?: {
     // Phase 1 fields (preserved)
     intent?: string;

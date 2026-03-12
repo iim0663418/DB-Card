@@ -13,6 +13,7 @@ import { handlePasskeyRegisterStart, handlePasskeyRegisterFinish, handlePasskeyL
 import { handleSecurityStats, handleSecurityEvents, handleSecurityTimeline, handleBlockIP, handleUnblockIP, handleIPDetail, handleSecurityExport, handleCDNHealth } from './handlers/admin/security';
 import { handleMonitoringOverview, handleMonitoringHealth } from './handlers/admin/monitoring';
 import { handleVitalsReport, handleVitalsStats } from './handlers/analytics';
+import { handleAnalyticsClick } from './handlers/user/analytics-click';
 import { handleCSPReport, handleCSPReportStats } from './handlers/csp-report';
 import { handleUserCreateCard, handleUserUpdateCard, handleUserListCards, handleUserGetCard, handleUserRevokeCard, handleUserRestoreCard } from './handlers/user/cards';
 import { handleRevocationHistory } from './handlers/user/history';
@@ -322,7 +323,8 @@ export default {
                             url.pathname === '/api/csp-report' ||
                             url.pathname === '/api/risc/events' ||
                             url.pathname === '/oauth/callback' ||
-                            url.pathname === '/health';
+                            url.pathname === '/health' ||
+                            url.pathname === '/api/user/analytics/click';
 
     if (!isLoginEndpoint && !isPublicEndpoint &&
         (request.method === 'POST' || request.method === 'PUT' || request.method === 'DELETE')) {
@@ -671,6 +673,11 @@ export default {
       return addMinimalSecurityHeaders(await handleVitalsReport(request, env));
     }
 
+    // POST /api/user/analytics/click - Click tracking (Phase 3.0, public endpoint)
+    if (url.pathname === '/api/user/analytics/click' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleAnalyticsClick(request, env, ctx));
+    }
+
     // POST /api/csp-report - CSP Violation Report (public endpoint)
     if (url.pathname === '/api/csp-report' && request.method === 'POST') {
       return addMinimalSecurityHeaders(await handleCSPReport(request, env));
@@ -782,6 +789,7 @@ export default {
     const { cleanupSoftDeletedAssets } = await import('./handlers/scheduled/asset-cleanup');
     const { cleanupTempUploads } = await import('./cron/cleanup-temp-uploads');
     const { cleanupReceivedCards } = await import('./cron/cleanup-received-cards');
+    const { cleanupClickEvents } = await import('./cron/cleanup-click-events');
 
     await handleScheduledCleanup(env);
     await handleScheduledLogRotation(env);
@@ -789,6 +797,7 @@ export default {
     await cleanupSoftDeletedAssets(env);
     await cleanupTempUploads(env);
     await cleanupReceivedCards(env);
+    await cleanupClickEvents(env);
   }
 };
 

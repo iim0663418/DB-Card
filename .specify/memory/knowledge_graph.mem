@@ -1642,3 +1642,94 @@
 260312|Benefit|evolvability|Easy_To_Add_Personalization_Learning
 260312|Benefit|observability|Meta_Information_Per_Layer
 260312|Benefit|cost_control|Sense_Layer_No_Extra_LLM_Calls
+
+# Phase 3.0: Click Tracking Foundation (2026-03-12)
+260312|Phase_3_0|status|COMPLETE
+260312|Phase_3_0|duration|7_Minutes
+260312|Phase_3_0|purpose|High_Quality_Feedback_Signals
+
+# Click Tracking Implementation
+260312|Migration|0047|click_events_Table_3_Indexes
+260312|click_events|schema|event_id_user_email_query_hash_result_uuid_rank_timestamp
+260312|API|analytics_click|POST_Rate_Limited_100_Per_Hour
+260312|Frontend|tracking|Fire_And_Forget_Silent_Failure
+260312|Privacy|design|No_PII_Only_UUIDs_Hashes
+260312|Retention|policy|7_Day_Auto_Cleanup_Cron
+
+# Phase 3.0.5a: Data Pipeline Fix (2026-03-12)
+260312|Phase_3_0_5a|status|COMPLETE
+260312|Phase_3_0_5a|duration|12_Minutes
+260312|Phase_3_0_5a|purpose|Fix_Data_Quality_Issues
+
+# Data Quality Improvements
+260312|Migration|0048|query_event_id_result_source_Columns
+260312|query_event_id|purpose|Stable_Joins_No_Hash_Multi_Match
+260312|result_source|purpose|Accurate_Tool_Success_Tracking
+260312|result_source|values|semantic_keyword_hybrid
+260312|Cache_Invalidation|trigger|Click_Event_KV_Delete
+260312|Cache_Invalidation|latency|Less_Than_1_Second
+
+# Backend Changes
+260312|memory_ts|change|Return_event_id_From_writeQueryEvent
+260312|agent_ts|change|Pass_query_event_id_To_Response
+260312|retrievers|change|Mark_result_source_semantic_keyword
+260312|rankers|change|Mark_result_source_hybrid_After_RRF
+260312|analytics_click|change|Store_query_event_id_result_source
+
+# Frontend Changes
+260312|received_cards_js|state|currentSearchQueryEventId_Added
+260312|received_cards_js|tracking|Pass_query_event_id_result_source
+
+# Phase 3.0.5b: Realtime Hints (2026-03-12)
+260312|Phase_3_0_5b|status|COMPLETE
+260312|Phase_3_0_5b|duration|5_Minutes
+260312|Phase_3_0_5b|purpose|Immediate_Personalization
+
+# Realtime Hints Design
+260312|RealtimeHints|interface|forceHybrid_retrievalLimitMultiplier
+260312|RealtimeHints|minimum_clicks|5_Required
+260312|RealtimeHints|cache|KV_5_Min_TTL
+260312|RealtimeHints|invalidation|On_Click_Less_Than_1s
+
+# Signal Calculation
+260312|avgClickRank|algorithm|Capped_EMA_20_Clicks_Decay_0_3
+260312|clickDiversity|formula|Unique_Orgs_Divided_Total_Clicks
+260312|forceHybrid|trigger|clickDiversity_Greater_0_6
+260312|retrievalLimitMultiplier|trigger|avgClickRank_Greater_5_0
+260312|retrievalLimitMultiplier|value|1_5x
+
+# Architecture Compliance
+260312|Sense|responsibility|Load_Hints_Only
+260312|Think|responsibility|Apply_Hints_Planning_Only
+260312|Act|responsibility|Execute_Base_Search_No_Changes
+260312|Remember|responsibility|Log_Clicks
+260312|Learn|status|Phase_3_1_Future
+
+# Conservative Strategy
+260312|Strategy|boundary|Think_Only_Not_Act
+260312|Strategy|respect|exact_match_No_Override
+260312|Strategy|stability|Capped_EMA_Not_Simple_Average
+260312|Strategy|minimum|5_Clicks_Required
+
+# Files Created
+260312|Files|realtime_hints_ts|NEW_Capped_EMA_Logic
+260312|Files|migration_0047|click_events_Table
+260312|Files|migration_0048|query_event_id_result_source
+
+# Deployment
+260312|Deployment|phase_3_0|Version_76fc7933
+260312|Deployment|phase_3_0_5a|Version_c181ad92
+260312|Deployment|phase_3_0_5b|Version_e2f00615
+260312|Deployment|total_time|24_Minutes
+
+# Benefits
+260312|Benefit|immediate|Personalization_Without_Offline_Aggregation
+260312|Benefit|stable|Clear_Boundaries_Easy_Rollback
+260312|Benefit|accurate|High_Quality_Signals_From_Clicks
+260312|Benefit|fast|Cache_Invalidation_Less_Than_1s
+
+# Next Steps
+260312|Next|monitoring|Collect_100_Plus_Clicks
+260312|Next|phase_3_1|Learn_Layer_Offline_Aggregation
+260312|Next|phase_3_2|Canary_Rollout_10_Percent
+260312|Next|phase_3_3|Soft_Rerank_Optional

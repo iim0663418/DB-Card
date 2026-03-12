@@ -16,8 +16,10 @@ const RATE_LIMIT_MAX = 100;       // 100 clicks per hour per user
 
 interface ClickPayload {
   query_hash: string;
+  query_event_id?: string;  // Phase 3.0.5a: stable direct reference
   result_uuid: string;
   result_rank: number;
+  result_source?: string;   // Phase 3.0.5a: semantic/keyword/hybrid
   timestamp: number;
 }
 
@@ -69,8 +71,8 @@ async function persistClickEvent(
 ): Promise<void> {
   const eventId = generateUUID();
   await env.DB.prepare(`
-    INSERT INTO click_events (event_id, user_email, query_hash, result_uuid, result_rank, timestamp)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO click_events (event_id, user_email, query_hash, result_uuid, result_rank, timestamp, query_event_id, result_source)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     eventId,
     userEmail,
@@ -78,7 +80,12 @@ async function persistClickEvent(
     payload.result_uuid,
     payload.result_rank,
     payload.timestamp,
+    payload.query_event_id || null,
+    payload.result_source || null,
   ).run();
+
+  // Phase 3.0.5a: Invalidate realtime signals cache
+  await env.KV.delete(`realtime_signals:${userEmail}`).catch(() => {});
 
   console.log(`[Click] event_id=${eventId} user=${userEmail} rank=${payload.result_rank}`);
 }

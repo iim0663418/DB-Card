@@ -757,6 +757,7 @@ const ReceivedCards = {
   searchToken: 0, // Request token for race condition prevention
   searchOrchestrator: null, // SearchOrchestrator instance
   currentSearchQueryHash: null, // SHA-256 hash of current search query (for click tracking)
+  currentSearchQueryEventId: null, // Phase 3.0.5a: query_event_id for stable click tracking
 
   init() {
     this.searchOrchestrator = new SearchOrchestrator({ threshold: 3 });
@@ -1027,7 +1028,7 @@ const ReceivedCards = {
       }
       
       if (result.results) {
-        this._applySearchResults(result.results, result.degraded, !!result.error, result.query_hash || null);
+        this._applySearchResults(result.results, result.degraded, !!result.error, result.query_hash || null, result.query_event_id || null);
       }
     });
   },
@@ -1083,7 +1084,7 @@ const ReceivedCards = {
     }
   },
 
-  _applySearchResults(results, degraded = false, hasError = false, queryHash = null) {
+  _applySearchResults(results, degraded = false, hasError = false, queryHash = null, queryEventId = null) {
     const resultCount = document.getElementById('resultCount');
     if (resultCount) {
       if (hasError) {
@@ -1096,8 +1097,9 @@ const ReceivedCards = {
       }
     }
     this.currentSearchQueryHash = queryHash;
+    this.currentSearchQueryEventId = queryEventId;
     this.renderCards(results, this.currentKeyword.trim());
-    if (queryHash) this.bindSearchResultClickEvents(queryHash, results);
+    if (queryHash) this.bindSearchResultClickEvents(queryEventId, queryHash, results);
     this.updateClearFiltersButton();
     this.updateURL();
   },
@@ -1626,13 +1628,13 @@ const ReceivedCards = {
    * Called after renderCards() when a search query_hash is available.
    * Tracks rank (1-based, top result = 1) and fires-and-forgets to the API.
    */
-  bindSearchResultClickEvents(queryHash, results) {
+  bindSearchResultClickEvents(queryEventId, queryHash, results) {
     results.forEach((card, index) => {
       const rank = index + 1;
       const cardEl = document.querySelector(`[data-card-id="${card.uuid}"]`);
       if (cardEl) {
         cardEl.addEventListener('click', () => {
-          this.trackResultClick(queryHash, card.uuid, rank);
+          this.trackResultClick(queryEventId, queryHash, card.uuid, rank, card.result_source);
         });
       }
     });
@@ -1642,16 +1644,19 @@ const ReceivedCards = {
    * Fire-and-forget click event to the analytics API.
    * Silent failure: never blocks the UI.
    * Validates query_hash is present before sending.
+   * Phase 3.0.5a: Includes query_event_id and result_source for stable tracking.
    */
-  trackResultClick(queryHash, resultUuid, rank) {
-    if (!queryHash) return; // Scenario 3: no query context → skip
+  trackResultClick(queryEventId, queryHash, resultUuid, rank, resultSource) {
+    if (!queryEventId && !queryHash) return; // Scenario 3: no query context → skip
     fetch('/api/user/analytics/click', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        query_event_id: queryEventId,
         query_hash: queryHash,
         result_uuid: resultUuid,
         result_rank: rank,
+        result_source: resultSource,
         timestamp: Date.now()
       })
     }).catch(() => {}); // Silent failure (Scenario 4: rate limit, etc.)

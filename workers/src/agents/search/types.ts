@@ -21,6 +21,7 @@ export interface SearchResult {
   thumbnail_url?: string;
   score: number;
   match_reason: string;
+  result_source?: 'semantic' | 'keyword' | 'hybrid';  // Phase 3.0.5a
   // Enrichment data
   related_contacts?: number;
   tags?: Array<{ category: string; raw: string; normalized: string }>;
@@ -32,7 +33,8 @@ export interface SearchResponse {
   page: number;
   limit: number;
   hasMore: boolean;
-  query_hash?: string;  // SHA-256 of normalized query (for click tracking)
+  query_hash?: string;       // SHA-256 of normalized query (backward compat)
+  query_event_id?: string;   // Phase 3.0.5a: stable direct reference for click tracking
   meta?: {
     // Phase 1 fields (preserved)
     intent?: string;

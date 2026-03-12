@@ -52,5 +52,6 @@ export async function keywordSearch(
     thumbnail_url: card.thumbnail_url,
     score: 1.0,
     match_reason: 'keyword match',
+    result_source: 'keyword',
   }));
 }

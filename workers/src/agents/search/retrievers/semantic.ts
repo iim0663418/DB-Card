@@ -84,6 +84,7 @@ export async function semanticSearch(
           thumbnail_url: card.thumbnail_url as string | undefined,
           score: match.score,
           match_reason: `semantic: score ${match.score.toFixed(3)}`,
+          result_source: 'semantic',
         });
       }
     }

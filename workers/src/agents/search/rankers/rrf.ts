@@ -42,5 +42,5 @@ export function mergeAndRerank(
 
   return Array.from(rrfScores.values())
     .sort((a, b) => b.score - a.score)
-    .map(item => ({ ...item.result, score: item.score }));
+    .map(item => ({ ...item.result, score: item.score, result_source: 'hybrid' }));
 }

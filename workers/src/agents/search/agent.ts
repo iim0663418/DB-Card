@@ -57,7 +57,7 @@ export class SearchAgent {
     }
 
     // ── Layer 4: Remember (non-blocking) ─────────────────────────────────────
-    this.memory.record(context, plan, executionResult);
+    const queryEventId = await this.memory.record(context, plan, executionResult);
 
     // ── Compute query_hash for click tracking (Phase 3.0) ────────────────────
     const queryNormalized = context.query.trim().toLowerCase().replace(/\s+/g, ' ');
@@ -71,6 +71,7 @@ export class SearchAgent {
       limit,
       hasMore: total > page * limit,
       query_hash: queryHash,
+      query_event_id: queryEventId,
     };
 
     if (context.enableMeta && !context.shadowMode) {

@@ -19,38 +19,34 @@ export class MemoryLayer {
   ) {}
 
   /**
-   * Non-blocking: fire-and-forget event recording.
-   * Dispatched via ctx.waitUntil so it never blocks the response.
+   * Phase 3.0.5a: Returns event_id for click tracking (query_event_id).
+   * - Shadow/agent metrics: still non-blocking via ctx.waitUntil
+   * - writeQueryEvent: awaited to return stable event_id to caller
    */
-  record(context: SenseContext, plan: SearchPlan, result: ExecutionResult): void {
-    const task = this.runRecord(context, plan, result).catch(err =>
-      console.warn('[Memory] record failed:', err instanceof Error ? err.message : String(err)),
-    );
-
-    const effectiveCtx = this.ctx ?? this.env.ctx;
-    if (effectiveCtx) {
-      effectiveCtx.waitUntil(task);
-    }
-    // If no ctx, the promise is still in-flight but fire-and-forget
-  }
-
-  private async runRecord(
+  async record(
     context: SenseContext,
     plan: SearchPlan,
     result: ExecutionResult,
-  ): Promise<void> {
+  ): Promise<string | undefined> {
     const { shadowMode, enableAgent } = context;
 
-    if (shadowMode) {
-      // Shadow mode: run intent analysis non-blocking, log to agent_search_metrics
-      await this.recordShadow(context, result);
-    } else if (enableAgent) {
-      // Agent mode: log to agent_search_metrics (uses plan's intent data)
-      await this.recordAgentMetrics(context, plan, result);
+    // Shadow/agent metrics remain non-blocking
+    if (shadowMode || enableAgent) {
+      const metricsTask = (shadowMode
+        ? this.recordShadow(context, result)
+        : this.recordAgentMetrics(context, plan, result)
+      ).catch(err =>
+        console.warn('[Memory] record failed:', err instanceof Error ? err.message : String(err)),
+      );
+
+      const effectiveCtx = this.ctx ?? this.env.ctx;
+      if (effectiveCtx) {
+        effectiveCtx.waitUntil(metricsTask);
+      }
     }
 
-    // Always write to query_events (event-sourced log)
-    await this.writeQueryEvent(context, plan, result);
+    // writeQueryEvent is awaited to return event_id for click tracking
+    return await this.writeQueryEvent(context, plan, result);
   }
 
   private async recordShadow(context: SenseContext, result: ExecutionResult): Promise<void> {
@@ -109,16 +105,17 @@ export class MemoryLayer {
   /**
    * Write to query_events table (event-sourced, privacy-first).
    * Raw query is never stored — only SHA-256(normalized_query).
+   * Phase 3.0.5a: Returns event_id for stable click tracking joins.
    */
   private async writeQueryEvent(
     context: SenseContext,
     plan: SearchPlan,
     result: ExecutionResult,
-  ): Promise<void> {
+  ): Promise<string | undefined> {
     try {
       const queryNormalized = context.query.trim().toLowerCase().replace(/\s+/g, ' ');
       const queryHash = await sha256Hex(queryNormalized);
-      const eventId = `${context.timestamp}-${Math.random().toString(36).slice(2, 9)}`;
+      const eventId = crypto.randomUUID();
       const latency_ms = Object.values(result.execution.latencies).reduce((a, b) => a + b, 0);
 
       await this.env.DB.prepare(`
@@ -138,9 +135,12 @@ export class MemoryLayer {
         latency_ms,
         context.timestamp,
       ).run();
+
+      return eventId;
     } catch (err) {
       // query_events table may not exist yet — non-fatal
       console.warn('[Memory] query_events write failed:', err instanceof Error ? err.message : String(err));
+      return undefined;
     }
   }
 }

@@ -28,16 +28,16 @@ export async function keywordSearch(
       AND deleted_at IS NULL
       AND merged_to IS NULL
       AND (
-        full_name LIKE ? OR organization LIKE ? OR organization_en LIKE ? OR
-        organization_alias LIKE ? OR title LIKE ? OR department LIKE ? OR
-        company_summary LIKE ? OR personal_summary LIKE ? OR email LIKE ? OR
-        phone LIKE ? OR address LIKE ? OR website LIKE ? OR note LIKE ?
+        full_name LIKE ? OR organization LIKE ? OR organization_normalized LIKE ? OR
+        organization_en LIKE ? OR organization_alias LIKE ? OR title LIKE ? OR
+        department LIKE ? OR company_summary LIKE ? OR personal_summary LIKE ? OR
+        email LIKE ? OR phone LIKE ? OR address LIKE ? OR website LIKE ? OR note LIKE ?
       )
     ORDER BY updated_at DESC
     LIMIT ?
   `).bind(
     userEmail,
-    pattern, pattern, pattern, pattern, pattern, pattern,
+    pattern, pattern, pattern, pattern, pattern, pattern, pattern,
     pattern, pattern, pattern, pattern, pattern, pattern, pattern,
     limit,
   ).all();

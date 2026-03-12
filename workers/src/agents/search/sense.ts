@@ -1,10 +1,12 @@
 /**
  * Sense Layer - Deterministic input perception
  * Phase 2: No extra LLM calls, pure heuristics
+ * Phase 3.0.5b: Load realtime hints
  */
 
 import { Env } from '../../types';
 import { normalizeToTraditional } from '../../utils/chinese-converter';
+import { loadRealtimeHints } from './realtime-hints';
 import type { SearchRequest, SenseContext } from './types';
 
 export class SenseLayer {
@@ -18,6 +20,10 @@ export class SenseLayer {
     const queryType = this.detectQueryType(query);
     // Phase 0 fix: retrieve enough results for the requested page
     const retrievalLimit = Math.min(100, limit * page);
+
+    // Phase 3.0.5b: Load realtime hints (non-blocking if fails)
+    const realtimeHints = await loadRealtimeHints(this.env, userEmail)
+      .catch(() => null);
 
     return {
       query,
@@ -33,6 +39,7 @@ export class SenseLayer {
       shadowMode: this.env.AGENT_SHADOW_MODE === 'true',
       enableAgent: this.env.ENABLE_AGENT_SEARCH === 'true',
       enableMeta: this.env.ENABLE_AGENT_META === 'true',
+      realtimeHints,
     };
   }
 

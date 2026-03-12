@@ -62,6 +62,11 @@ export interface SearchResponse {
 
 // Phase 2: Four-layer architecture types
 
+export interface RealtimeHints {
+  forceHybrid?: boolean;
+  retrievalLimitMultiplier?: number;
+}
+
 export interface SenseContext {
   query: string;
   normalizedQuery: string;
@@ -77,6 +82,8 @@ export interface SenseContext {
   shadowMode: boolean;
   enableAgent: boolean;
   enableMeta: boolean;
+  // Phase 3.0.5b: Realtime hints
+  realtimeHints: RealtimeHints | null;
 }
 
 export interface SearchPlan {

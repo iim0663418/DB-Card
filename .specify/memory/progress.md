@@ -1,38 +1,22 @@
-# Task: Phase 3.0.5 - Realtime Personalization
-## Status: ✅ COMPLETE
-- Started: 2026-03-12T14:28:34+08:00
-- Completed: 2026-03-12T14:45:00+08:00
-- Duration: ~17 minutes
-- Version: e2f00615-d4fc-4cc7-95fa-772076538e16
+# Task Progress
+## Status: 🟢 IDLE
+- Last Updated: 2026-03-19T09:54:00+08:00
+- Branch: develop
+- Version: v5.0.1
 
-## Summary
-Phase 3.0.5 = 3.0.5a (Data Pipeline) + 3.0.5b (Realtime Hints)
+## Last Completed
+- Phase 3.0.5b: Realtime Hints (2026-03-12)
 
-### Phase 3.0.5a: Data Pipeline Fix ✅
-- query_event_id tracking (stable joins)
-- result_source tracking (accurate tool success)
-- Cache invalidation on click (<1s)
+## Current Priorities (from TODO.md)
+1. **P1** - 監控 Phase 3.0.5b 數據收集（Gate: 100+ clicks）
+2. **P1** - 自動化測試（E2E 防回歸）
+3. **P1** - Phase 3.1: Learn Layer（離線聚合）
+4. **P2** - Phase 3.2: Canary Rollout（10% 使用者）
+5. **P2** - Production 部署
 
-### Phase 3.0.5b: Realtime Hints ✅
-- RealtimeHints interface (forceHybrid, retrievalLimitMultiplier)
-- Capped EMA (20 clicks, decay 0.3)
-- Think layer only (conservative)
-- KV cached (5 min TTL)
-
-## Architecture Compliance
-✅ Sense: Load hints
-✅ Think: Apply hints (planning only)
-✅ Act: NO changes (base search)
-✅ Remember: Log clicks
-✅ Learn: (Phase 3.1 offline aggregation)
-
-## Conservative Strategy
-- Only affects Think (not Act)
-- Respects exact_match (no override)
-- Minimum 5 clicks required
-- Capped EMA (stable signals)
-
-## Next Steps
-- Monitor click_events accumulation
-- Wait for 100+ clicks
-- Phase 3.1: Learn Layer (offline aggregation)
+## System Health
+- TypeScript: ✅ Zero errors
+- Bundle: 1096.77 KiB / gzip 208.78 KiB
+- Worker startup: 24ms
+- Staging: deployed
+- Production: pending

@@ -23,6 +23,7 @@ export interface Env {
   JWT_SECRET: string;
   GEMINI_API_KEY: string;
   GEMINI_MODEL: string;  // gemini-3-flash-preview
+  GEMINI_LITE_MODEL: string;  // gemini-2.5-flash (lightweight tasks)
   GEMINI_EMBEDDING_MODEL: string;  // text-embedding-004
   FILE_SEARCH_STORE_NAME?: string;
   ctx?: ExecutionContext;  // For waitUntil in auto-learning

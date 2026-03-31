@@ -5,6 +5,8 @@ export interface Env {
   DB: D1Database;
   KV: KVNamespace;  // Used for card type cache only (idempotency moved to DO)
   RATE_LIMITER: DurableObjectNamespace;
+  LEARNING_COUNTER: DurableObjectNamespace;  // Phase 0.3: Atomic daily learning counter
+  LEARNING_BATCHER: DurableObjectNamespace;  // Phase 3: Batch learning with Alarm API
   PHYSICAL_CARDS: R2Bucket;
   VECTORIZE: VectorizeIndex;  // Vectorize 綁定
   KEK: string;
@@ -21,9 +23,14 @@ export interface Env {
   JWT_SECRET: string;
   GEMINI_API_KEY: string;
   GEMINI_MODEL: string;  // gemini-3-flash-preview
+  GEMINI_LITE_MODEL: string;  // gemini-2.5-flash (lightweight tasks)
   GEMINI_EMBEDDING_MODEL: string;  // text-embedding-004
   FILE_SEARCH_STORE_NAME?: string;
   ctx?: ExecutionContext;  // For waitUntil in auto-learning
+  // Agent Search feature flags (Phase 2)
+  AGENT_SHADOW_MODE?: string;   // 'true' to enable shadow mode (log only, no routing)
+  ENABLE_AGENT_SEARCH?: string; // 'true' to enable agent-based routing
+  ENABLE_AGENT_META?: string;   // 'true' to include meta field in search response
 }
 
 // Bilingual support types

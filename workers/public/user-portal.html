@@ -466,26 +466,37 @@
             <!-- Search and Filter Section -->
             <div class="space-y-4">
                 <!-- Search Box -->
-                <div class="relative">
-                    <input
-                        type="text"
-                        id="searchInput"
-                        placeholder="智慧搜尋：姓名、公司、職稱、地址、網站、備註..."
-                        class="w-full px-4 py-3 pl-11 pr-11 border-2 border-slate-200 rounded-2xl focus:ring-2 focus:ring-[var(--moda-accent)] focus:border-transparent transition-all text-slate-900 placeholder-slate-400 font-medium"
-                    >
-                    <svg class="absolute left-3 top-3.5 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-                    <button
-                        id="clearSearch"
-                        class="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 transition-colors hidden"
-                        title="清除搜尋"
-                    >
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                <form id="searchForm" class="flex gap-2">
+                    <div class="relative flex-1">
+                        <input
+                            type="text"
+                            id="searchInput"
+                            placeholder="試試看：吳勝繙、數位發展部的同事、在台北的科長"
+                            class="w-full px-4 py-3 pl-11 pr-11 border-2 border-slate-200 rounded-2xl focus:ring-2 focus:ring-[var(--moda-accent)] focus:border-transparent transition-all text-slate-900 placeholder-slate-400 font-medium"
+                            aria-label="搜尋名片"
+                        >
+                        <svg class="absolute left-3 top-3.5 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                         </svg>
-                    </button>
-                </div>
+                        <button
+                            type="button"
+                            id="clearSearch"
+                            class="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 transition-colors hidden"
+                            aria-label="清除搜尋"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <button
+                        type="submit"
+                        id="searchButton"
+                        class="px-6 py-3 text-white font-bold rounded-2xl hover:opacity-90 transition-all whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed bg-moda"
+                        aria-busy="false"
+                        aria-disabled="false"
+                    >搜尋名片</button>
+                </form>
 
                 <!-- Tag Filters (Accordion) -->
                 <div class="border-2 border-slate-200 rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm">
@@ -542,9 +553,7 @@
                 </div>
 
                 <!-- Result Count -->
-                <div class="text-sm text-slate-600 font-medium">
-                    顯示 <span id="resultCount" class="font-bold text-slate-900">0</span> 張名片
-                </div>
+                <div id="resultCount" class="text-sm text-slate-600 font-medium" aria-live="polite" aria-atomic="true">0 張名片</div>
             </div>
 
             <!-- Cards Grid -->
@@ -1520,6 +1529,7 @@
             crossorigin="anonymous"></script>
     <script src="/js/api-client.js"></script>
     <script src="/js/error-policy.js"></script>
+    <script src="/js/search-orchestrator.js"></script>
     <script src="/js/feature-api.js"></script>
     <script src="/js/received-cards.js"></script>
     <script>

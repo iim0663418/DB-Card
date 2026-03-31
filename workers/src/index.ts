@@ -13,6 +13,7 @@ import { handlePasskeyRegisterStart, handlePasskeyRegisterFinish, handlePasskeyL
 import { handleSecurityStats, handleSecurityEvents, handleSecurityTimeline, handleBlockIP, handleUnblockIP, handleIPDetail, handleSecurityExport, handleCDNHealth } from './handlers/admin/security';
 import { handleMonitoringOverview, handleMonitoringHealth } from './handlers/admin/monitoring';
 import { handleVitalsReport, handleVitalsStats } from './handlers/analytics';
+import { handleAnalyticsClick } from './handlers/user/analytics-click';
 import { handleCSPReport, handleCSPReportStats } from './handlers/csp-report';
 import { handleUserCreateCard, handleUserUpdateCard, handleUserListCards, handleUserGetCard, handleUserRevokeCard, handleUserRestoreCard } from './handlers/user/cards';
 import { handleRevocationHistory } from './handlers/user/history';
@@ -58,13 +59,13 @@ function generateNonce(): string {
 function addSecurityHeaders(response: Response, nonce: string): Response {
   const headers = new Headers(response.headers);
 
-  // Content Security Policy (with nonce, no unsafe-inline for scripts)
+  // Content Security Policy (with nonce for scripts, unsafe-inline for styles due to static HTML)
   headers.set('Content-Security-Policy',
     "default-src 'self'; " +
     `script-src 'self' 'nonce-${nonce}' cdn.tailwindcss.com cdn.jsdelivr.net static.cloudflareinsights.com; ` +
     "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.tailwindcss.com; " +
     "font-src 'self' fonts.gstatic.com; " +
-    "img-src 'self' data: https:; " +
+    "img-src 'self' data: https://cdn.jsdelivr.net https://static.cloudflareinsights.com https://*.googleusercontent.com https://*.r2.cloudflarestorage.com https://www.gstatic.com; " +
     "connect-src 'self' https://oauth2.googleapis.com https://www.googleapis.com accounts.google.com cloudflareinsights.com; " +
     "object-src 'none'; " +
     "base-uri 'self'; " +
@@ -322,7 +323,8 @@ export default {
                             url.pathname === '/api/csp-report' ||
                             url.pathname === '/api/risc/events' ||
                             url.pathname === '/oauth/callback' ||
-                            url.pathname === '/health';
+                            url.pathname === '/health' ||
+                            url.pathname === '/api/user/analytics/click';
 
     if (!isLoginEndpoint && !isPublicEndpoint &&
         (request.method === 'POST' || request.method === 'PUT' || request.method === 'DELETE')) {
@@ -368,7 +370,7 @@ export default {
 
     // GET /api/user/received-cards/search - Smart search
     if (url.pathname === '/api/user/received-cards/search' && request.method === 'GET') {
-      return addMinimalSecurityHeaders(await searchCards(request, env));
+      return addMinimalSecurityHeaders(await searchCards(request, env, ctx));
     }
 
     // PUT /api/user/received-cards/:uuid - Update received card (full update)
@@ -671,6 +673,11 @@ export default {
       return addMinimalSecurityHeaders(await handleVitalsReport(request, env));
     }
 
+    // POST /api/user/analytics/click - Click tracking (Phase 3.0, public endpoint)
+    if (url.pathname === '/api/user/analytics/click' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleAnalyticsClick(request, env, ctx));
+    }
+
     // POST /api/csp-report - CSP Violation Report (public endpoint)
     if (url.pathname === '/api/csp-report' && request.method === 'POST') {
       return addMinimalSecurityHeaders(await handleCSPReport(request, env));
@@ -705,10 +712,10 @@ export default {
             let html = await asset.text();
             // Add nonce to all script tags
             html = html.replace(/<script/g, `<script nonce="${nonce}"`);
+            // Create new response WITHOUT original headers (to avoid ASSETS CSP override)
             asset = new Response(html, {
               status: asset.status,
-              statusText: asset.statusText,
-              headers: asset.headers
+              statusText: asset.statusText
             });
             return addSecurityHeaders(asset, nonce);
           }
@@ -765,6 +772,9 @@ export default {
     const { syncCardEmbeddings } = await import('./cron/sync-card-embeddings');
     await syncCardEmbeddings(env);
 
+    const { retryLearningQueue } = await import('./cron/retry-learning-queue');
+    await retryLearningQueue(env);
+
     const { deduplicateCards } = await import('./cron/deduplicate-cards');
     await deduplicateCards(env);
 
@@ -779,6 +789,7 @@ export default {
     const { cleanupSoftDeletedAssets } = await import('./handlers/scheduled/asset-cleanup');
     const { cleanupTempUploads } = await import('./cron/cleanup-temp-uploads');
     const { cleanupReceivedCards } = await import('./cron/cleanup-received-cards');
+    const { cleanupClickEvents } = await import('./cron/cleanup-click-events');
 
     await handleScheduledCleanup(env);
     await handleScheduledLogRotation(env);
@@ -786,8 +797,11 @@ export default {
     await cleanupSoftDeletedAssets(env);
     await cleanupTempUploads(env);
     await cleanupReceivedCards(env);
+    await cleanupClickEvents(env);
   }
 };
 
 // Export Durable Object classes
 export { RateLimiterDO };
+export { LearningCounter } from './durable-objects/learning-counter';
+export { LearningBatcher } from './durable-objects/learning-batcher';

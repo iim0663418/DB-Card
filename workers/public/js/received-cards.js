@@ -371,7 +371,7 @@ const ReceivedCardsAPI = {
     return await this.call('/api/user/received-cards');
   },
 
-  async searchCards(query, page = 1, limit = 100, signal = null) {
+  async searchCards(query, page = 1, limit = 20, signal = null) {
     const params = new URLSearchParams({ q: query, page: page.toString(), limit: limit.toString() });
     return await this.call(`/api/user/received-cards/search?${params}`, { signal });
   },
@@ -751,9 +751,16 @@ const ReceivedCards = {
   cards: [], // Store loaded cards
   allCards: [], // Store all cards for filtering
   selectedTags: [], // Store selected tags
-  currentKeyword: '', // Store current search keyword
+  currentKeyword: '', // Store current search keyword (raw, trimmed at submit)
+  currentPage: 1, // Current page for pagination
+  pageSize: 20, // Page size for pagination
+  searchToken: 0, // Request token for race condition prevention
+  searchOrchestrator: null, // SearchOrchestrator instance
+  currentSearchQueryHash: null, // SHA-256 hash of current search query (for click tracking)
+  currentSearchQueryEventId: null, // Phase 3.0.5a: query_event_id for stable click tracking
 
   init() {
+    this.searchOrchestrator = new SearchOrchestrator({ threshold: 3 });
     this.bindEvents();
     this.bindSearchEvents();
     this.bindEditModalEvents();
@@ -853,60 +860,40 @@ const ReceivedCards = {
   },
 
   bindSearchEvents() {
-    // Debounce timer and abort controller for search
-    let searchDebounceTimer = null;
-    let searchAbortController = null;
-
-    // 搜尋框輸入事件（帶 debounce）
     const searchInput = document.getElementById('searchInput');
+    const clearBtn = document.getElementById('clearSearch');
+    const searchForm = document.getElementById('searchForm');
+
+    // Input: keep raw value, toggle clear button visibility
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
-        this.currentKeyword = e.target.value.toLowerCase().trim();
-
-        // 顯示/隱藏清除按鈕
-        const clearBtn = document.getElementById('clearSearch');
+        this.currentKeyword = e.target.value;
         if (clearBtn) {
-          if (this.currentKeyword) {
-            clearBtn.classList.remove('hidden');
-          } else {
-            clearBtn.classList.add('hidden');
-          }
+          clearBtn.classList.toggle('hidden', !this.currentKeyword.trim());
         }
-
-        // 取消前一個搜尋請求
-        if (searchAbortController) {
-          searchAbortController.abort('New search initiated');
-        }
-
-        // 清除前一個 debounce timer
-        if (searchDebounceTimer) {
-          clearTimeout(searchDebounceTimer);
-        }
-
-        // 如果搜尋框為空，立即執行
-        if (!this.currentKeyword) {
-          this.filterCards();
-          return;
-        }
-
-        // 300ms debounce（業界最佳實踐）
-        searchDebounceTimer = setTimeout(() => {
-          searchAbortController = new AbortController();
-          this.filterCards(searchAbortController.signal);
-        }, 300);
       });
     }
 
-    // 清除搜尋按鈕
-    const clearSearch = document.getElementById('clearSearch');
-    if (clearSearch) {
-      clearSearch.addEventListener('click', () => {
-        if (searchInput) {
-          searchInput.value = '';
-          this.currentKeyword = '';
-          this.filterCards();
-          clearSearch.classList.add('hidden');
+    // Form submit: trigger search
+    if (searchForm) {
+      searchForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.submitSearch();
+      });
+    }
+
+    // Clear button: reset all UI state
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        if (searchInput) searchInput.value = '';
+        this.currentKeyword = '';
+        clearBtn.classList.add('hidden');
+        const resultCount = document.getElementById('resultCount');
+        if (resultCount) {
+          resultCount.className = 'text-sm text-slate-600 font-medium';
         }
+        this.currentPage = 1;
+        this.filterCards();
       });
     }
 
@@ -987,45 +974,137 @@ const ReceivedCards = {
     });
   },
 
-  async filterCards(signal = null) {
-    // 如果有搜尋關鍵字，使用智慧搜尋 API
-    if (this.currentKeyword && this.currentKeyword.trim().length > 0) {
-      try {
-        // 顯示智慧搜尋中的提示
-        const resultCount = document.getElementById('resultCount');
-        if (resultCount) {
-          resultCount.textContent = '智慧搜尋中...';
-          resultCount.className = 'text-blue-600 animate-pulse';
-        }
+  submitSearch() {
+    const keyword = this.currentKeyword.trim();
 
-        const response = await ReceivedCardsAPI.searchCards(this.currentKeyword.trim(), 1, 100, signal);
-        
-        if (response && response.results) {
-          // 智慧搜尋結果不再套用標籤過濾（後端已優化排序）
-          // 標籤過濾僅在無搜尋關鍵字時生效
-          
-          // 更新結果數量
-          if (resultCount) {
-            resultCount.textContent = `${response.results.length} (智慧搜尋)`;
-            resultCount.className = ''; // 恢復原始樣式
-          }
-
-          // 渲染名片（帶高亮）
-          this.renderCards(response.results, this.currentKeyword);
-          this.updateClearFiltersButton();
-          this.updateURL();
-          return;
-        }
-      } catch (error) {
-        // Ignore user cancellation (new search initiated)
-        if (error.name === 'AbortError' || error.code === 'CANCELLED') {
-          return;
-        }
-        console.error('Smart search failed, fallback to client-side filter:', error);
-        // 失敗時回退到客戶端過濾
-      }
+    if (!keyword) {
+      this.currentPage = 1;
+      this.filterCards();
+      return;
     }
 
+    // Request token for race condition prevention
+    const token = ++this.searchToken;
+
+    // Show loading state
+    const searchButton = document.getElementById('searchButton');
+    const resultCount = document.getElementById('resultCount');
+    if (searchButton) {
+      searchButton.textContent = '搜尋中...';
+      searchButton.setAttribute('aria-busy', 'true');
+      searchButton.setAttribute('aria-disabled', 'true');
+    }
+    if (resultCount) {
+      resultCount.textContent = '搜尋中...';
+      resultCount.className = 'text-sm font-medium text-blue-600 animate-pulse';
+    }
+
+    const searchFn = (query, signal) => ReceivedCardsAPI.searchCards(query, this.currentPage, this.pageSize, signal);
+    const fallbackFn = (query) => {
+      const normalized = query.normalize('NFKC').toLowerCase();
+      const results = this.allCards.filter(card => {
+        const fields = [
+          card.full_name, card.full_name_en,
+          card.organization, card.email, card.phone
+        ].map(f => f?.normalize('NFKC').toLowerCase() || '');
+        return fields.some(f => f.includes(normalized));
+      });
+      return Promise.resolve({ results, degraded: true });
+    };
+
+    this.searchOrchestrator.search(keyword, searchFn, fallbackFn).then(result => {
+      if (token !== this.searchToken) return; // Stale response
+      if (searchButton) {
+        searchButton.textContent = '搜尋名片';
+        searchButton.setAttribute('aria-busy', 'false');
+        searchButton.setAttribute('aria-disabled', 'false');
+      }
+      if (result.cancelled || result.deduplicated) return;
+      
+      // Handle invalid intent (e.g., negation not supported)
+      if (result.meta?.intent === 'invalid') {
+        this._handleInvalidQuery(result.meta);
+        return;
+      }
+      
+      if (result.results) {
+        this._applySearchResults(result.results, result.degraded, !!result.error, result.query_hash || null, result.query_event_id || null);
+      }
+    });
+  },
+
+  _handleInvalidQuery(meta) {
+    const resultCount = document.getElementById('resultCount');
+    const lang = document.documentElement.lang || 'zh';
+    
+    // Show error message
+    if (resultCount) {
+      const message = meta.message || (lang === 'zh' ? '查詢格式不支援' : 'Query format not supported');
+      resultCount.textContent = message;
+      resultCount.className = 'text-sm font-medium text-yellow-600';
+    }
+    
+    // Show suggested queries if available
+    if (meta.suggested_queries && meta.suggested_queries.length > 0) {
+      const container = document.getElementById('cards-container');
+      if (container) {
+        const suggestionsHTML = `
+          <div class="col-span-full bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-6 space-y-4">
+            <div class="flex items-start gap-3">
+              <svg class="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+              </svg>
+              <div class="flex-1">
+                <h3 class="font-bold text-yellow-900 mb-2">${meta.message || '查詢格式不支援'}</h3>
+                <p class="text-sm text-yellow-800 mb-3">試試這些查詢：</p>
+                <div class="flex flex-wrap gap-2">
+                  ${meta.suggested_queries.map(query => `
+                    <button 
+                      onclick="ReceivedCards.applySuggestedQuery('${query.replace(/'/g, "\\'")}')"
+                      class="px-4 py-2 bg-white border-2 border-yellow-300 rounded-xl text-sm font-medium text-yellow-900 hover:bg-yellow-100 transition-colors">
+                      ${query}
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        container.innerHTML = suggestionsHTML;
+      }
+    }
+  },
+
+  applySuggestedQuery(query) {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+      searchInput.value = query;
+      this.currentKeyword = query;
+      this.submitSearch();
+    }
+  },
+
+  _applySearchResults(results, degraded = false, hasError = false, queryHash = null, queryEventId = null) {
+    const resultCount = document.getElementById('resultCount');
+    if (resultCount) {
+      if (hasError) {
+        resultCount.textContent = '搜尋失敗，已使用本地結果';
+        resultCount.className = 'text-sm font-medium text-yellow-600';
+      } else {
+        const label = degraded ? '本地搜尋' : '智慧搜尋';
+        resultCount.textContent = `${results.length} (${label})`;
+        resultCount.className = degraded ? 'text-sm font-medium text-yellow-600' : 'text-sm text-slate-600 font-medium';
+      }
+    }
+    this.currentSearchQueryHash = queryHash;
+    this.currentSearchQueryEventId = queryEventId;
+    this.renderCards(results, this.currentKeyword.trim());
+    if (queryHash) this.bindSearchResultClickEvents(queryEventId, queryHash, results);
+    this.updateClearFiltersButton();
+    this.updateURL();
+  },
+
+  async filterCards() {
     // 無搜尋關鍵字時，確保使用最新的完整清單
     // 如果 allCards 為空或可能過期，重新載入
     if (!this.allCards || this.allCards.length === 0) {
@@ -1033,22 +1112,23 @@ const ReceivedCards = {
     }
 
     // 客戶端過濾（無搜尋或 API 失敗時）
+    const keyword = this.currentKeyword.trim().normalize('NFKC').toLowerCase();
     const filtered = this.allCards.filter(card => {
       // 搜尋過濾（擴展到 13 個欄位：涵蓋率 65%）
-      const matchKeyword = !this.currentKeyword ||
-        card.full_name?.toLowerCase().includes(this.currentKeyword) ||
-        card.organization?.toLowerCase().includes(this.currentKeyword) ||
-        card.organization_en?.toLowerCase().includes(this.currentKeyword) ||
-        card.organization_alias?.toLowerCase().includes(this.currentKeyword) ||
-        card.department?.toLowerCase().includes(this.currentKeyword) ||
-        card.title?.toLowerCase().includes(this.currentKeyword) ||
-        card.company_summary?.toLowerCase().includes(this.currentKeyword) ||
-        card.personal_summary?.toLowerCase().includes(this.currentKeyword) ||
-        card.email?.toLowerCase().includes(this.currentKeyword) ||
-        card.phone?.toLowerCase().includes(this.currentKeyword) ||
-        card.website?.toLowerCase().includes(this.currentKeyword) ||
-        card.address?.toLowerCase().includes(this.currentKeyword) ||
-        card.note?.toLowerCase().includes(this.currentKeyword);
+      const matchKeyword = !keyword ||
+        card.full_name?.normalize('NFKC').toLowerCase().includes(keyword) ||
+        card.organization?.normalize('NFKC').toLowerCase().includes(keyword) ||
+        card.organization_en?.normalize('NFKC').toLowerCase().includes(keyword) ||
+        card.organization_alias?.normalize('NFKC').toLowerCase().includes(keyword) ||
+        card.department?.normalize('NFKC').toLowerCase().includes(keyword) ||
+        card.title?.normalize('NFKC').toLowerCase().includes(keyword) ||
+        card.company_summary?.normalize('NFKC').toLowerCase().includes(keyword) ||
+        card.personal_summary?.normalize('NFKC').toLowerCase().includes(keyword) ||
+        card.email?.normalize('NFKC').toLowerCase().includes(keyword) ||
+        card.phone?.normalize('NFKC').toLowerCase().includes(keyword) ||
+        card.website?.normalize('NFKC').toLowerCase().includes(keyword) ||
+        card.address?.normalize('NFKC').toLowerCase().includes(keyword) ||
+        card.note?.normalize('NFKC').toLowerCase().includes(keyword);
 
       // 標籤過濾（多選 OR 邏輯）- 僅在無搜尋關鍵字時生效
       const matchTags = this.selectedTags.length === 0 ||
@@ -1060,11 +1140,12 @@ const ReceivedCards = {
     // 更新結果數量
     const resultCount = document.getElementById('resultCount');
     if (resultCount) {
-      resultCount.textContent = filtered.length;
+      resultCount.textContent = `${filtered.length} 張名片`;
+      resultCount.className = 'text-sm text-slate-600 font-medium';
     }
 
     // 渲染名片（帶高亮）
-    this.renderCards(filtered, this.currentKeyword);
+    this.renderCards(filtered, this.currentKeyword.trim());
 
     // 更新清除篩選按鈕可見性
     this.updateClearFiltersButton();
@@ -1100,7 +1181,7 @@ const ReceivedCards = {
   updateClearFiltersButton() {
     const clearFilters = document.getElementById('clearFilters');
     if (clearFilters) {
-      if (this.selectedTags.length > 0 || this.currentKeyword) {
+      if (this.selectedTags.length > 0 || this.currentKeyword.trim()) {
         clearFilters.classList.remove('hidden');
       } else {
         clearFilters.classList.add('hidden');
@@ -1110,7 +1191,7 @@ const ReceivedCards = {
 
   updateURL() {
     const params = new URLSearchParams();
-    if (this.currentKeyword) params.set('q', this.currentKeyword);
+    if (this.currentKeyword.trim()) params.set('q', this.currentKeyword.trim());
     if (this.selectedTags.length > 0) params.set('tags', this.selectedTags.join(','));
 
     const newURL = params.toString() ? `?${params.toString()}` : window.location.pathname;
@@ -1126,7 +1207,7 @@ const ReceivedCards = {
     const searchInput = document.getElementById('searchInput');
     if (searchInput && keyword) {
       searchInput.value = keyword;
-      this.currentKeyword = keyword.toLowerCase().trim();
+      this.currentKeyword = keyword;
 
       const clearSearch = document.getElementById('clearSearch');
       if (clearSearch) {
@@ -1145,7 +1226,9 @@ const ReceivedCards = {
     });
 
     // 執行篩選
-    if (keyword || tags.length > 0) {
+    if (keyword) {
+      this.submitSearch();
+    } else if (tags.length > 0) {
       this.filterCards();
     }
   },
@@ -1358,7 +1441,7 @@ const ReceivedCards = {
         this.renderCards(cards);
         const resultCount = document.getElementById('resultCount');
         if (resultCount) {
-          resultCount.textContent = cards.length;
+          resultCount.textContent = `${cards.length} 張名片`;
         }
       }
     } catch (_error) {
@@ -1367,7 +1450,7 @@ const ReceivedCards = {
       this.renderCards([]);
       const resultCount = document.getElementById('resultCount');
       if (resultCount) {
-        resultCount.textContent = '0';
+        resultCount.textContent = '0 張名片';
       }
     }
   },
@@ -1538,6 +1621,45 @@ const ReceivedCards = {
     document.addEventListener('keydown', handleEsc);
     
     document.body.appendChild(modal);
+  },
+
+  /**
+   * Bind click tracking to search result cards.
+   * Called after renderCards() when a search query_hash is available.
+   * Tracks rank (1-based, top result = 1) and fires-and-forgets to the API.
+   */
+  bindSearchResultClickEvents(queryEventId, queryHash, results) {
+    results.forEach((card, index) => {
+      const rank = index + 1;
+      const cardEl = document.querySelector(`[data-card-id="${card.uuid}"]`);
+      if (cardEl) {
+        cardEl.addEventListener('click', () => {
+          this.trackResultClick(queryEventId, queryHash, card.uuid, rank, card.result_source);
+        });
+      }
+    });
+  },
+
+  /**
+   * Fire-and-forget click event to the analytics API.
+   * Silent failure: never blocks the UI.
+   * Validates query_hash is present before sending.
+   * Phase 3.0.5a: Includes query_event_id and result_source for stable tracking.
+   */
+  trackResultClick(queryEventId, queryHash, resultUuid, rank, resultSource) {
+    if (!queryEventId && !queryHash) return; // Scenario 3: no query context → skip
+    fetch('/api/user/analytics/click', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query_event_id: queryEventId,
+        query_hash: queryHash,
+        result_uuid: resultUuid,
+        result_rank: rank,
+        result_source: resultSource,
+        timestamp: Date.now()
+      })
+    }).catch(() => {}); // Silent failure (Scenario 4: rate limit, etc.)
   },
 
   renderCardHTML(card, keyword = '') {

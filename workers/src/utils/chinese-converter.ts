@@ -53,13 +53,54 @@ function findUnknownChars(text: string): string[] {
 }
 
 /**
- * Learn new character mappings via Gemini AI with Context Caching
+ * Add failed character to learning queue with exponential backoff
+ */
+async function addToLearningQueue(
+  char: string,
+  error: string,
+  env: Env
+): Promise<void> {
+  const now = Date.now();
+
+  const existing = await env.DB.prepare(
+    `SELECT attempts FROM learning_queue WHERE char = ?`
+  ).bind(char).first<{ attempts: number }>();
+
+  if (existing) {
+    const attempts = existing.attempts + 1;
+    const backoffMinutes = 5 * Math.pow(2, attempts - 1);
+    const nextRetry = now + backoffMinutes * 60 * 1000;
+
+    await env.DB.prepare(
+      `UPDATE learning_queue
+       SET attempts = ?, next_retry_at = ?, last_error = ?,
+           status = 'pending', updated_at = ?
+       WHERE char = ?`
+    ).bind(attempts, nextRetry, error, now, char).run();
+  } else {
+    const nextRetry = now + 5 * 60 * 1000;
+
+    await env.DB.prepare(
+      `INSERT INTO learning_queue
+       (char, attempts, next_retry_at, last_error, status, created_at, updated_at)
+       VALUES (?, 1, ?, ?, 'pending', ?, ?)`
+    ).bind(char, nextRetry, error, now, now).run();
+  }
+}
+
+/**
+ * Learn new character mappings via Gemini AI (single attempt, fast-fail)
+ * Failures are added to learning_queue for cron retry
  */
 async function learnNewChars(
   chars: string[],
   env: Env
-): Promise<Record<string, string>> {
-  // System instruction (cacheable)
+): Promise<void> {
+  if (!await checkDailyLimit(env)) {
+    console.log('[ChineseConverter] Daily learning limit reached');
+    return;
+  }
+
   const systemInstruction = `你是簡繁體轉換專家。
 
 要求：
@@ -71,36 +112,90 @@ async function learnNewChars(
 輸入：["软", "件", "開"]
 輸出：{"软": "軟", "件": "件", "開": "開"}`;
 
-  // User query (variable)
   const userQuery = `請將以下字元轉換為繁體字（如果已是繁體則保持不變）：\n\n字元：${chars.join(', ')}`;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system_instruction: {
-          parts: [{ text: systemInstruction }]
-        },
-        contents: [{ 
-          parts: [{ text: userQuery }],
-          role: 'user'
-        }],
-        generationConfig: {
-          response_mime_type: 'application/json'
-        }
-      })
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_LITE_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: {
+            parts: [{ text: systemInstruction }]
+          },
+          contents: [{
+            parts: [{ text: userQuery }],
+            role: 'user'
+          }],
+          generationConfig: {
+            response_mime_type: 'application/json'
+          }
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const error = `Gemini API ${response.status}`;
+      console.error(`[ChineseConverter] ${error}`);
+      for (const char of chars) {
+        await addToLearningQueue(char, error, env);
+      }
+
+      // Update daily metrics (failure)
+      const today = new Date().toISOString().split('T')[0];
+      const now = Date.now();
+      await env.DB.prepare(
+        `INSERT INTO learning_metrics (date, api_calls, failure_count, updated_at)
+         VALUES (?, 1, 1, ?)
+         ON CONFLICT(date) DO UPDATE SET
+           api_calls = api_calls + 1,
+           failure_count = failure_count + 1,
+           updated_at = ?`
+      ).bind(today, now, now).run();
+      return;
     }
-  );
-  
-  if (!response.ok) {
-    throw new Error(`Gemini API error: ${response.status}`);
+
+    const data = await response.json() as { candidates: Array<{ content: { parts: Array<{ text: string }> } }> };
+    const text = data.candidates[0].content.parts[0].text;
+    const mappings: Record<string, string> = JSON.parse(text);
+
+    await saveMappings(mappings, env);
+    Object.assign(VARIANTS_CACHE!, mappings);
+
+    // Update daily metrics (UPSERT)
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const now = Date.now();
+    const filteredCount = Object.entries(mappings).filter(([s, t]) => s !== t).length;
+
+    await env.DB.prepare(
+      `INSERT INTO learning_metrics (date, learned_count, api_calls, success_count, updated_at)
+       VALUES (?, ?, 1, 1, ?)
+       ON CONFLICT(date) DO UPDATE SET
+         learned_count = learned_count + ?,
+         api_calls = api_calls + 1,
+         success_count = success_count + 1,
+         updated_at = ?`
+    ).bind(today, filteredCount, now, filteredCount, now).run();
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`[ChineseConverter] Failed:`, errorMsg);
+    for (const char of chars) {
+      await addToLearningQueue(char, errorMsg, env);
+    }
+
+    // Update daily metrics (failure)
+    const today = new Date().toISOString().split('T')[0];
+    const now = Date.now();
+    await env.DB.prepare(
+      `INSERT INTO learning_metrics (date, api_calls, failure_count, updated_at)
+       VALUES (?, 1, 1, ?)
+       ON CONFLICT(date) DO UPDATE SET
+         api_calls = api_calls + 1,
+         failure_count = failure_count + 1,
+         updated_at = ?`
+    ).bind(today, now, now).run();
   }
-  
-  const data = await response.json() as { candidates: Array<{ content: { parts: Array<{ text: string }> } }> };
-  const text = data.candidates[0].content.parts[0].text;
-  return JSON.parse(text);
 }
 
 /**
@@ -110,18 +205,54 @@ async function saveMappings(
   mappings: Record<string, string>,
   env: Env
 ): Promise<void> {
+  // Filter out identical mappings (e.g., 碁 → 碁)
+  const filtered = Object.fromEntries(
+    Object.entries(mappings).filter(([s, t]) => s !== t)
+  );
+  
+  if (Object.keys(filtered).length === 0) {
+    console.log('[ChineseConverter] No new mappings to save (all identical)');
+    return;
+  }
+  
   const now = Date.now();
-  const values = Object.entries(mappings)
-    .map(([s, t]) => `('${s}', '${t}', ${now}, 'gemini')`)
-    .join(',');
-  
-  await env.DB.prepare(`
+
+  const stmt = env.DB.prepare(`
     INSERT INTO chinese_variants (simplified, traditional, learned_at, source)
-    VALUES ${values}
+    VALUES (?, ?, ?, 'gemini')
     ON CONFLICT (simplified) DO NOTHING
-  `).run();
+  `);
+
+  const batch = Object.entries(filtered).map(([s, t]) =>
+    stmt.bind(s, t, now)
+  );
+
+  await env.DB.batch(batch);
   
-  console.log(`[ChineseConverter] Learned ${Object.keys(mappings).length} new characters`);
+  console.log(`[ChineseConverter] Learned ${Object.keys(filtered).length} new characters`);
+}
+
+/**
+ * Check daily learning limit using Durable Object atomic counter
+ */
+async function checkDailyLimit(env: Env): Promise<boolean> {
+  try {
+    const id = env.LEARNING_COUNTER.idFromName('global');
+    const counter = env.LEARNING_COUNTER.get(id);
+    
+    const response = await counter.fetch(new Request('http://internal/increment'));
+    const data = await response.json() as { allowed: boolean; count: number };
+    
+    if (!data.allowed) {
+      console.warn(`[ChineseConverter] Daily learning limit reached: ${data.count}/1000`);
+    }
+    
+    return data.allowed;
+  } catch (error) {
+    console.error('[ChineseConverter] Failed to check daily limit:', error);
+    // Fail open: allow learning if counter is unavailable
+    return true;
+  }
 }
 
 /**
@@ -152,25 +283,25 @@ export async function normalizeToTraditional(
       .map(char => VARIANTS_CACHE![char] || char)
       .join('');
     
-    // Check for unknown characters
+    // Check for unknown characters and trigger background learning
     if (env) {
       const unknown = findUnknownChars(text);
-      
-      if (unknown.length > 0) {
-        // Auto-learn in background (non-blocking)
-        env.ctx?.waitUntil(
-          (async () => {
-            try {
-              const mappings = await learnNewChars(unknown, env);
-              await saveMappings(mappings, env);
-              
-              // Update memory cache
-              Object.assign(VARIANTS_CACHE!, mappings);
-            } catch (error) {
-              console.error('[ChineseConverter] Auto-learning failed:', error);
-            }
-          })()
-        );
+
+      if (unknown.length > 0 && env.LEARNING_BATCHER) {
+        // Batch learn via LearningBatcher DO (non-blocking, accumulates for efficiency)
+        env.ctx?.waitUntil((async () => {
+          const id = env.LEARNING_BATCHER.idFromName('global');
+          const batcher = env.LEARNING_BATCHER.get(id);
+          for (const char of unknown) {
+            await batcher.fetch(new Request('http://internal/add', {
+              method: 'POST',
+              body: JSON.stringify({ char })
+            }));
+          }
+        })());
+      } else if (unknown.length > 0) {
+        // Fallback: direct learning (no batcher available)
+        env.ctx?.waitUntil(learnNewChars(unknown, env));
       }
     }
     

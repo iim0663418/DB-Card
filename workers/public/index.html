@@ -581,7 +581,7 @@
                 <div class="glass-card rounded-2xl p-8">
                     <div class="text-center mb-6">
                         <p class="text-sm text-slate-600 mb-4" data-i18n="security-scan-intro">
-                            已通過三項安全掃描工具驗證（2026-02-01）
+                            已通過三項安全掃描工具驗證（2026-03-07）
                         </p>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -604,7 +604,7 @@
                             <h3 class="font-bold mb-2">npm audit</h3>
                             <p class="text-xs text-slate-600 mb-2" data-i18n="security-npm-desc">Node.js 依賴安全掃描</p>
                             <div class="text-xs font-mono text-slate-500">
-                                0 vulnerabilities
+                                414 packages · 0 vulnerabilities
                             </div>
                         </div>
                         <!-- OSV-Scanner -->
@@ -615,21 +615,61 @@
                             <h3 class="font-bold mb-2">OSV-Scanner</h3>
                             <p class="text-xs text-slate-600 mb-2" data-i18n="security-osv-desc">多語言依賴安全掃描</p>
                             <div class="text-xs font-mono text-slate-500">
-                                283 packages · 0 issues
+                                378 packages · 0 issues
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- 風險分析與處理 -->
+                    <div class="mt-8 pt-6 border-t border-slate-200">
+                        <h4 class="text-sm font-bold text-slate-700 mb-4 text-center">安全風險分析 (2026-03-07)</h4>
+                        <div class="space-y-3 text-xs">
+                            <!-- CSRF Protection -->
+                            <div class="flex items-start gap-2">
+                                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 text-green-600 flex-shrink-0 mt-0.5">✓</span>
+                                <div>
+                                    <span class="font-semibold">CSRF Protection</span> - False Positive
+                                    <p class="text-slate-600 mt-0.5">現代 SPA 模式（HTTP Header），非傳統表單</p>
+                                </div>
+                            </div>
+                            <!-- CSP img-src -->
+                            <div class="flex items-start gap-2">
+                                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 text-green-600 flex-shrink-0 mt-0.5">✓</span>
+                                <div>
+                                    <span class="font-semibold">CSP img-src Wildcard</span> - 已修復
+                                    <p class="text-slate-600 mt-0.5">特定域名白名單（Medium → Low）</p>
+                                </div>
+                            </div>
+                            <!-- CSP script-src -->
+                            <div class="flex items-start gap-2">
+                                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex-shrink-0 mt-0.5">i</span>
+                                <div>
+                                    <span class="font-semibold">CSP script-src unsafe-inline</span> - Accepted Risk (Low)
+                                    <p class="text-slate-600 mt-0.5">Nonce 保護現代瀏覽器 (95%+)</p>
+                                </div>
+                            </div>
+                            <!-- CSP style-src -->
+                            <div class="flex items-start gap-2">
+                                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex-shrink-0 mt-0.5">i</span>
+                                <div>
+                                    <span class="font-semibold">CSP style-src unsafe-inline</span> - Accepted Risk (Very Low)
+                                    <p class="text-slate-600 mt-0.5">Tailwind CSS 需求，connect-src 阻止資料外洩</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="mt-6 pt-6 border-t border-slate-200">
                         <div class="text-center mb-4">
-                            <p class="text-xs font-semibold text-slate-700 mb-2" data-i18n="security-improvements">最新安全改進 (2026-02-01)</p>
+                            <p class="text-xs font-semibold text-slate-700 mb-2" data-i18n="security-improvements">最新安全改進 (2026-03-07)</p>
                             <div class="flex flex-wrap justify-center gap-2" role="list" aria-label="安全改進項目">
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800" role="listitem">
                                     <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                    Permissions-Policy
+                                    CSP img-src 修復
                                 </span>
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800" role="listitem">
                                     <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                    <span data-i18n="csp-directives">完整 CSP 指令</span>
+                                    <span data-i18n="csp-directives">Nonce-based CSP</span>
                                 </span>
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800" role="listitem">
                                     <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
@@ -638,7 +678,7 @@
                             </div>
                         </div>
                         <p class="text-xs text-slate-500 text-center">
-                            <span data-i18n="scan-reports">掃描報告</span>：<a href="https://github.com/iim0663418/DB-Card/tree/develop/docs/security/scan-reports" target="_blank" rel="noopener noreferrer" class="text-purple-600 hover:underline" aria-label="查看安全掃描報告（在新分頁開啟）">docs/security/scan-reports/</a>
+                            <span data-i18n="scan-reports">掃描報告</span>：<a href="https://github.com/iim0663418/DB-Card/tree/develop/docs/security" target="_blank" rel="noopener noreferrer" class="text-purple-600 hover:underline" aria-label="查看安全分析文檔（在新分頁開啟）">docs/security/</a>
                         </p>
                     </div>
                 </div>

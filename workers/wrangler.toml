@@ -9,6 +9,7 @@ ENVIRONMENT = "staging"
 WORKER_URL = "https://db-card-staging.csw30454.workers.dev"
 GOOGLE_CLIENT_ID = "675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com"
 GEMINI_MODEL = "gemini-3-flash-preview"
+GEMINI_LITE_MODEL = "gemini-2.5-flash"
 GEMINI_EMBEDDING_MODEL = "gemini-embedding-001"
 FILE_SEARCH_STORE_NAME = "fileSearchStores/dbcard-knowledge-base-fpyodw69c4ua"
 
@@ -39,9 +40,27 @@ name = "RATE_LIMITER"
 class_name = "RateLimiterDO"
 script_name = "db-card-staging"
 
+[[durable_objects.bindings]]
+name = "LEARNING_COUNTER"
+class_name = "LearningCounter"
+script_name = "db-card-staging"
+
+[[durable_objects.bindings]]
+name = "LEARNING_BATCHER"
+class_name = "LearningBatcher"
+script_name = "db-card-staging"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["RateLimiterDO"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["LearningCounter"]
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["LearningBatcher"]
 
 # R2 Bucket for Card Images (Staging)
 # Directory structure:
@@ -58,20 +77,6 @@ preview_bucket_name = "db-card-physical-images-preview"
 #   02:00 = UTC 18:00 - All Tasks (Sync + Deduplicate + AutoTag + Candidates + Cleanup)
 [triggers]
 crons = ["0 18 * * *"]
-
-# Production Environment
-[env.production]
-name = "db-card-api-prod"
-vars = { ENVIRONMENT = "production", WORKER_URL = "https://db-card.example.com", GOOGLE_CLIENT_ID = "675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com", FILE_SEARCH_STORE_NAME = "fileSearchStores/dbcard-knowledge-base-fpyodw69c4ua" }
-
-[[env.production.d1_databases]]
-binding = "DB"
-database_name = "db-card-prod"
-database_id = "947e021c-2858-47b3-8495-2aaf8fa956ad"
-
-[[env.production.kv_namespaces]]
-binding = "KV"
-id = "87221de061f049d3a4c976b7b5092dd9"
 
 # Observability Configuration
 [observability]

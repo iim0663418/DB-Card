@@ -9,6 +9,7 @@ import { verifyOAuth } from '../../../middleware/oauth';
 import { jsonResponse, errorResponse } from '../../../utils/response';
 import { extractTagsFromOrganization } from '../../../utils/tags';
 import { normalizeToTraditional } from '../../../utils/chinese-converter';
+import { normalizeOrganizationAlias } from '../../../utils/search-helpers';
 
 interface SaveCardRequest {
   upload_id?: string;  // Optional for manual add
@@ -181,12 +182,22 @@ export async function handleSaveCard(request: Request, env: Env, ctx: ExecutionC
         : null;
       const aiStatus = body.ai_status || null;
       
-      // Handle organization_alias: convert array to JSON string
-      const organizationAlias = body.organization_alias 
-        ? (Array.isArray(body.organization_alias) 
-            ? JSON.stringify(body.organization_alias) 
-            : body.organization_alias)
-        : null;
+      // Handle organization_alias: normalize any format to JSON array string
+      let organizationAlias: string | null = null;
+      if (body.organization_alias != null) {
+        const normalized = normalizeOrganizationAlias(body.organization_alias);
+        // Warn if input was not already a JSON array (needed conversion)
+        if (
+          typeof body.organization_alias === 'string' &&
+          !body.organization_alias.trim().startsWith('[')
+        ) {
+          console.warn('[handleSaveCard] organization_alias normalized from non-JSON', {
+            original: String(body.organization_alias).slice(0, 200),
+            normalized,
+          });
+        }
+        organizationAlias = normalized !== '[]' ? normalized : null;
+      }
       
       // Normalize organization to traditional Chinese for search
       const organizationNormalized = body.organization 
@@ -293,7 +304,8 @@ export async function handleListCards(request: Request, env: Env): Promise<Respo
         company_summary, personal_summary, ai_sources_json, ai_status,
         original_image_url, thumbnail_url, created_at, updated_at,
         'own' as source,
-        NULL as shared_by
+        NULL as shared_by,
+        COALESCE(updated_at, created_at) AS sort_ts
       FROM received_cards
       WHERE user_email = ? AND deleted_at IS NULL AND merged_to IS NULL
 
@@ -306,13 +318,14 @@ export async function handleListCards(request: Request, env: Env): Promise<Respo
         rc.company_summary, rc.personal_summary, rc.ai_sources_json, rc.ai_status,
         rc.original_image_url, rc.thumbnail_url, rc.created_at, rc.updated_at,
         'shared' as source,
-        sc.owner_email as shared_by
+        sc.owner_email as shared_by,
+        COALESCE(rc.updated_at, rc.created_at) AS sort_ts
       FROM shared_cards sc
       INNER JOIN received_cards rc ON sc.card_uuid = rc.uuid
       WHERE rc.deleted_at IS NULL AND rc.merged_to IS NULL
         AND rc.user_email != ?
 
-      ORDER BY COALESCE(updated_at, created_at) DESC
+      ORDER BY sort_ts DESC
     `).bind(user.email, user.email).all();
 
     // Parse ai_sources_json for each card

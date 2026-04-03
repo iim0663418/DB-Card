@@ -1,7 +1,7 @@
 name = "db-card-staging"
 main = "src/index.ts"
 compatibility_date = "2024-04-03"  # Enable Durable Objects RPC
-# Version: v5.0.1
+# Version: v5.1.0
 
 # Environment Variables
 [vars]

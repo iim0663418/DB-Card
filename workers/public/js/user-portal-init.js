@@ -1,3 +1,4 @@
+        /* global isHEIC, compressImageWithCancellation, fileToBase64, generateIdempotencyKey */
         // API Base URL
         const API_BASE = window.location.origin;
 

@@ -29,7 +29,7 @@ export async function verifySetupToken(request: Request, env: Env): Promise<bool
   const cookieHeader = request.headers.get('Cookie');
   if (cookieHeader) {
     const cookies = parseCookies(cookieHeader);
-    const tokenFromCookie = cookies['admin_token'] || cookies['auth_token']; // Support both admin and user tokens
+    const tokenFromCookie = cookies['admin_token']; // Only admin_token, never auth_token
 
     if (tokenFromCookie) {
       // Check if it's a Passkey session
@@ -44,12 +44,8 @@ export async function verifySetupToken(request: Request, env: Env): Promise<bool
         return true;
       }
 
-      // Check if it's a JWT token (OAuth user session)
-      // JWT tokens are validated separately in user API handlers
-      if (tokenFromCookie.includes('.')) {
-        // Looks like a JWT token, let user handlers validate it
-        return true;
-      }
+      // No more fallbacks — only passkey sessions, setup_token sessions, or exact SETUP_TOKEN match
+      // JWT tokens in auth_token are for user APIs only, never admin
 
       // Fallback: Check if cookie value equals SETUP_TOKEN (backward compatibility)
       const isValid = timingSafeEqual(tokenFromCookie, expectedToken);

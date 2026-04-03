@@ -542,8 +542,8 @@ export async function handleAssetContent(
   const asset = await env.DB.prepare(`
     SELECT asset_id, card_uuid, asset_type, current_version, r2_key_prefix, status
     FROM assets
-    WHERE asset_id = ?
-  `).bind(assetId).first<{
+    WHERE asset_id = ? AND card_uuid = ?
+  `).bind(assetId, cardUuid).first<{
     asset_id: string;
     card_uuid: string;
     asset_type: string;

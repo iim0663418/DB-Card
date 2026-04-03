@@ -21,93 +21,16 @@
   - 修復 API 錯誤訊息顯示 `[object Object]` 問題
   - 修復 provenance badge 在無 `label[for]` 欄位上不顯示的問題
 
-### v5.0.1 (2026-03-07) - 標籤系統與排序修復
-- **🏷️ 標籤標準化系統** - 抽取與標準化分離架構，支援篩選與多樣性
-  - Schema: category, raw_value, normalized_value 三欄位設計
-  - 統一寫入層: tag-service.ts 單一入口，可重建快取
-  - AI 抽取: 保留原始語言，後端標準化（台灣市場優化）
-  - 前端相容: 篩選用 normalized，顯示用 raw
-  - Migration 0039/0040: 446 tags 遷移，85 cards 重新標籤
-- **🔧 Batch API 穩定化** - 統一 Cron 路徑，止血卡住的 jobs
-  - Migration 0041: 清理超過 48 小時的 stale jobs
-  - 簡單版 auto-tag: 20 張/批，單次 Gemini API 呼叫
-  - Deprecated: auto-tag-cards-batch.ts（評估期 2 週）
-- **📊 Cron Subrequest 優化** - 分離優先與背景任務
-  - 優先任務: Auto-tag, Find Candidates, Sync Embeddings, Deduplicate（阻塞執行）
-  - 背景任務: 8 個清理任務（ctx.waitUntil 非阻塞）
-  - 修復: "Too many API requests" 錯誤
-- **🐛 關鍵修復**
-  - 排序邏輯: COALESCE(updated_at, created_at) 修復 87% 新卡片排序問題
-  - Location 標準化: 支援繁簡體（臺→台），修復台北地區標籤
-  - 標籤顯示: 修復 [object Object] 顯示問題，支援物件格式
-  - 搜尋 Abort: 區分 timeout vs 用戶取消，消除錯誤訊息
-- **📚 文檔完善**
-  - 標籤系統架構總覽（4 categories, 標準化規則）
-  - 國際化分析（台灣中心設計，擴展路徑）
-  - Batch API 決策記錄（2 週評估期）
+### v5.0.0 – v5.0.1 (2026-02 ~ 2026-03)
+- **v5.0.1** — 標籤標準化系統（category/raw/normalized 三欄位）、Batch API 穩定化、Cron subrequest 優化、排序與搜尋修復
+- **v5.0.0** — 收到的名片管理系統：Gemini Structured Output、OCR + Web Search 統一提取、冪等上傳、HEIC 阻擋、智慧壓縮、指數退避重試、ESLint 87% 改善
 
-### v5.0.0 (2026-02-23) - 收到的名片管理系統完成
-- **🎯 Gemini Structured Output** - JSON Schema 強制結構化輸出，零解析錯誤
-- **多模態 AI 狀態追蹤** - pending/completed/failed 三階段狀態，ocr_error 錯誤記錄
-- **統一提取流程** - OCR + Web Search 一次 API 呼叫，30% Token 減少
-- **上傳冪等性保證** - idempotency_key UNIQUE 約束，防止重複上傳
-- **HEIC 格式檢測與阻擋** - Extension + MIME + Magic Bytes 三重驗證
-- **智慧圖片壓縮** - browser-image-compression，目標 1MB，80% 上傳時間減少
-- **可靠性提升** - 指數退避重試機制 (3 次 + Jitter)，成功率 70%→95%
-- **上傳取消支援** - AbortController 實作，使用者可中斷上傳
-- **本地 Vendor 資源** - browser-image-compression 56KB MIT 授權本地化
-- **代碼品質** - ESLint warnings 547→44 (87% 改善)，TypeScript 零錯誤
-- **全域類型定義** - 33 個 Cloudflare + Web API 類型定義，消除 any 類型
-- **資料庫優化** - Migration 0032: idempotency_key + user_email 複合唯一索引
-
-### v4.6.0 (2026-02-26) - KV 使用優化
-- **Idempotency 遷移到 Durable Objects** - KV writes 從 500/day 降至 0 (100% 減少)
-- **延遲優化** - Idempotency 查詢從 50ms 降至 5ms (90% 改善)
-- **無限制擴展** - Durable Objects 無每日 writes 限制
-- **自動清理** - alarm() 機制每小時清理過期 keys
-
-### v4.6.0 (2026-02-08) - Icon Bundle 優化完成
-- **Vite Tree-Shaking** - Lucide Icons 從 379 KB 降至 12.33 KB (96.8% 減少)
-- **ES Module 遷移** - 65 個實際使用的 icons，移除 1,400+ 未使用 icons
-- **效能提升** - 預期 FCP 改善 50%+, LCP 改善 40%+
-- **Build System** - Vite + esbuild minifier 自動化打包
-- **全域函式** - `window.initIcons()` 統一 icon 初始化
-- **動態載入** - 支援社群 icon 動態插入後初始化
-
-### v4.6.0 (2026-02-06) - 並發控制與快取安全修復
-- **並發控制修復** - 使用 SQLite RETURNING 實現原子性操作
-- **樂觀鎖機制** - WHERE 子句防止競態條件
-- **移除 Response Cache** - 修復 rate limiting 繞過漏洞 (CVE-2024-21662 類似模式)
-- **統一快取失效** - 4 層快取一致性保證
-- **HTTP Cache-Control** - 符合 RFC 7234 標準 (no-store)
-- **max_reads 執行** - 100% 準確的讀取限制
-- **TOCTOU 緩解** - 消除 Time-of-Check-Time-of-Use 漏洞
-
-### v4.6.0 (2026-02-02) - 個資同意管理系統完成
-- **GDPR 合規** - 100% 符合 GDPR Article 7, 12, 13, 15, 20, 30
-- **分層揭露** - First Layer (摘要) + Second Layer (完整條款)
-- **同意管理** - 接受、撤回、恢復完整流程
-- **資料可攜權** - JSON 格式即時匯出
-- **審計追蹤** - 完整同意歷史記錄
-- **原子性交易** - DB.batch() 確保資料一致性
-- **既有使用者支援** - 隱式同意機制
-- **No-Email 設計** - Email 僅作內部 ID
-
-### v4.6.0 (2026-01-31) - OIDC 安全優化完成
-- **PKCE 實作** (RFC 7636) - 防止授權碼攔截攻擊
-- **OAuth Redirect 流程** - 取代 Popup，更安全可靠
-- **SameSite=Lax** - 從 None 改為 Lax，降低 CSRF 風險
-- **移除 postMessage** - 消除跨域通信風險
-- ✅ **移除 DEBUG 日誌** - 防止敏感資訊洩漏
-- ✅ **符合 RFC 9700** - OAuth 2.0 Security Best Current Practice
-- ✅ **OWASP 合規** - OAuth 2.0 Cheat Sheet 完全符合
-
-### 安全預設架構
-- **信封加密**: 每張名片獨立 DEK，KEK 定期輪換
-- **授權會話機制 (ReadSession)**: 24 小時 TTL，可撤銷、可限制同時讀取數
-- **原子性計數器**: SQLite RETURNING 確保 reads_used 準確性
-- **即時撤銷**: NFC 重新觸碰即可撤銷上一個會話
-- **審計日誌**: 完整記錄所有存取行為，IP 匿名化保護隱私
+### v4.6.0 (2026-01 ~ 2026-02)
+- **OIDC 安全優化** — PKCE (RFC 7636)、OAuth Redirect、SameSite=Lax、符合 RFC 9700
+- **GDPR 同意管理** — 分層揭露、撤回機制、資料可攜權、審計追蹤、100% GDPR 合規
+- **並發控制與快取安全** — SQLite RETURNING 原子性、樂觀鎖、移除 Response Cache、TOCTOU 緩解
+- **Icon Bundle 優化** — Vite Tree-Shaking 379KB→12KB (96.8%)、ES Module 遷移
+- **KV → Durable Objects** — Idempotency 遷移、延遲 50ms→5ms、零 KV writes
 
 ### Cloudflare Workers 架構
 - **全球邊緣運算**: 低延遲、高可用性

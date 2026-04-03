@@ -19,6 +19,7 @@ import { handleUserCreateCard, handleUserUpdateCard, handleUserListCards, handle
 import { handleRevocationHistory } from './handlers/user/history';
 import { handleUserLogout } from './handlers/user/logout';
 import { handleUpload } from './handlers/user/received-cards/upload';
+import { handleExtractDraft } from './handlers/user/cards/extract-draft';
 import { handleOCR } from './handlers/user/received-cards/ocr';
 import { handleEnrich } from './handlers/user/received-cards/enrich';
 import { handleUnifiedExtract } from './handlers/user/received-cards/unified-extract';
@@ -341,6 +342,11 @@ export default {
 
     if (url.pathname === '/api/user/cards' && request.method === 'GET') {
       return addMinimalSecurityHeaders(await handleUserListCards(request, env));
+    }
+
+    // POST /api/user/cards/extract-draft - Extract self-card draft from uploaded image
+    if (url.pathname === '/api/user/cards/extract-draft' && request.method === 'POST') {
+      return addMinimalSecurityHeaders(await handleExtractDraft(request, env));
     }
 
     // Received Cards APIs (OAuth required)

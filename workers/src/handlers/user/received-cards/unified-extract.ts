@@ -5,6 +5,7 @@
 import type { Env } from '../../../types';
 import { verifyOAuth } from '../../../middleware/oauth';
 import { jsonResponse, errorResponse } from '../../../utils/response';
+import { arrayBufferToBase64Chunked, retryWithBackoff, parseGeminiJSON } from '../../../utils/ocr-helpers';
 
 interface UnifiedExtractRequest {
   upload_id: string;
@@ -37,54 +38,6 @@ interface UnifiedExtractResult {
   // Decision (2026-02-24): Keep DB field for backward compatibility, but not actively used
 }
 
-/**
- * Convert ArrayBuffer to Base64 in chunks
- */
-function arrayBufferToBase64Chunked(buffer: ArrayBuffer): string {
-  const uint8Array = new Uint8Array(buffer);
-  const chunkSize = 8192;
-  let binaryString = '';
-
-  for (let i = 0; i < uint8Array.length; i += chunkSize) {
-    const chunk = uint8Array.slice(i, Math.min(i + chunkSize, uint8Array.length));
-    binaryString += String.fromCharCode(...chunk);
-  }
-
-  return btoa(binaryString);
-}
-
-/**
- * Retry function with exponential backoff and jitter
- * Retries on QUOTA_OR_LIMIT (429) and SERVICE_UNAVAILABLE (503) errors
- */
-async function retryWithBackoff<T>(
-  fn: () => Promise<T>,
-  maxRetries: number = 3
-): Promise<T> {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await fn();
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const shouldRetry = errorMessage.includes('QUOTA_OR_LIMIT') || errorMessage.includes('SERVICE_UNAVAILABLE');
-
-      // Don't retry if not retriable error, or if this was the last attempt
-      if (!shouldRetry || i === maxRetries - 1) {
-        throw error;
-      }
-
-      // Exponential backoff: 1s, 2s, 4s
-      const baseDelay = Math.pow(2, i) * 1000;
-      // Add jitter: ±20%
-      const jitter = baseDelay * 0.2 * (Math.random() - 0.5);
-      const delay = baseDelay + jitter;
-
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-
-  throw new Error('Retry exhausted');
-}
 
 /**
  * Upload extracted data to FileSearchStore
@@ -350,83 +303,10 @@ async function performUnifiedExtract(
     title: chunk.web?.title || ''
   })).filter((s: any) => s.uri) || [];
 
-  // Parse JSON (Structured Output with robust error handling)
+  // Parse JSON using shared helper
   try {
-    let jsonString = text.trim();
-
-    // Step 1: Remove markdown code blocks (```json ... ```)
-    const fencedMatch = jsonString.match(/```(?:json)?\s*\r?\n([\s\S]*?)\r?\n?```/);
-    if (fencedMatch) {
-      jsonString = fencedMatch[1].trim();
-    }
-
-    // Step 2: Escape unescaped control characters in strings
-    // Replace unescaped newlines, tabs, etc. (common AI output issue)
-    jsonString = jsonString.replace(/([^\\])(\\n|\\t|\\r)/g, '$1\\\\$2');
-
-    // Step 3: Fix invalid backslash sequences (e.g., \' → ')
-    jsonString = jsonString.replace(/\\'/g, "'");
-
-    // Step 4: Remove trailing commas (before } or ])
-    jsonString = jsonString.replace(/,(\s*[}\]])/g, '$1');
-
-    // Step 5: Extract valid JSON by brace balancing (handles trailing garbage)
-    const firstBraceIndex = jsonString.indexOf('{');
-    if (firstBraceIndex !== -1) {
-      let braceDepth = 0;
-      let inString = false;
-      let stringQuote = '';
-      let isEscaped = false;
-      let endIndex = firstBraceIndex;
-
-      for (; endIndex < jsonString.length; endIndex++) {
-        const ch = jsonString[endIndex];
-        
-        if (inString) {
-          if (isEscaped) {
-            isEscaped = false;
-          } else if (ch === '\\') {
-            isEscaped = true;
-          } else if (ch === stringQuote) {
-            inString = false;
-          }
-        } else {
-          if (ch === '"' || ch === "'") {
-            inString = true;
-            stringQuote = ch;
-          } else if (ch === '{') {
-            braceDepth++;
-          } else if (ch === '}') {
-            braceDepth--;
-            if (braceDepth === 0) {
-              endIndex++;
-              break;
-            }
-          }
-        }
-      }
-      
-      jsonString = jsonString.slice(firstBraceIndex, endIndex).trim();
-      
-      // Step 5.5: Repair unterminated string (if still in string at end)
-      if (inString) {
-        jsonString += stringQuote; // Close the unterminated string
-      }
-      
-      // Step 5.6: Close unclosed braces/brackets
-      while (braceDepth > 0) {
-        jsonString += '}';
-        braceDepth--;
-      }
-    }
-
-    // Step 6: Parse JSON
-    const result = JSON.parse(jsonString);
-    return { 
-      ...result, 
-      sources,
-      ocr_raw_text: text  // Store full Gemini response for audit/search
-    };
+    const result = parseGeminiJSON(text) as unknown as UnifiedExtractResult;
+    return { ...result, sources, ocr_raw_text: text } as UnifiedExtractResult;
   } catch (error) {
     console.error('[UnifiedExtract] JSON parse failed:', error);
     console.error('[UnifiedExtract] Text sample:', text.substring(0, 300));

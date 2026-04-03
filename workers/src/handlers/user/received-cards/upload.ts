@@ -140,6 +140,7 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
     const now = Date.now();
     const expiresAt = now + 3600000; // 1 hour
     const idempotencyKey = request.headers.get('X-Idempotency-Key');
+    const flow = request.headers.get('X-Upload-Flow') || 'received';
 
     // Idempotency: INSERT first, catch UNIQUE conflict, then SELECT existing
     if (idempotencyKey) {
@@ -147,8 +148,8 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
         await env.DB.prepare(`
           INSERT INTO temp_uploads (
             upload_id, user_email, image_url, thumbnail_url, idempotency_key,
-            consumed, expires_at, created_at, ocr_status
-          ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, 'pending')
+            consumed, expires_at, created_at, ocr_status, flow
+          ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, 'pending', ?)
         `).bind(
           uploadId,
           user.email,
@@ -156,7 +157,8 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
           thumbnailUrl,
           idempotencyKey,
           expiresAt.toString(),
-          now.toString()
+          now.toString(),
+          flow
         ).run();
 
         return jsonResponse({
@@ -192,15 +194,16 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
     // Fallback: no idempotency key (backward compatible)
     await env.DB.prepare(`
       INSERT INTO temp_uploads (
-        upload_id, user_email, image_url, thumbnail_url, consumed, expires_at, created_at, ocr_status
-      ) VALUES (?, ?, ?, ?, 0, ?, ?, 'pending')
+        upload_id, user_email, image_url, thumbnail_url, consumed, expires_at, created_at, ocr_status, flow
+      ) VALUES (?, ?, ?, ?, 0, ?, ?, 'pending', ?)
     `).bind(
       uploadId,
       user.email,
       r2Key,
       thumbnailUrl,
       expiresAt.toString(),
-      now.toString()
+      now.toString(),
+      flow
     ).run();
 
     // 10. Return response

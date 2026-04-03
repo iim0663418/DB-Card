@@ -188,7 +188,14 @@
                 'webview_warning_message': '此頁面不支援應用程式內建瀏覽器。請使用系統瀏覽器（Chrome、Safari、Firefox）開啟此連結。',
                 'copy_url': '複製網址',
                 'url_copied': '網址已複製',
-                'close': '關閉'
+                'close': '關閉',
+
+                // Self-Card OCR
+                'scan-button': '📷 從實體名片掃描',
+                'scan-processing': 'AI 辨識中...',
+                'prov-observed': '名片上可見',
+                'prov-translated': 'AI 翻譯',
+                'prov-inferred': 'AI 推測'
             },
             en: {
                 // 1. Login Page (5 keys)
@@ -375,7 +382,14 @@
                 'webview_warning_message': 'This page does not support in-app browsers. Please open this link in your system browser (Chrome, Safari, Firefox).',
                 'copy_url': 'Copy URL',
                 'url_copied': 'URL copied',
-                'close': 'Close'
+                'close': 'Close',
+
+                // Self-Card OCR
+                'scan-button': '📷 Scan from Physical Card',
+                'scan-processing': 'AI Processing...',
+                'prov-observed': 'Visible on card',
+                'prov-translated': 'AI translated',
+                'prov-inferred': 'AI inferred'
             }
         };
 
@@ -1149,6 +1163,262 @@
             }
         }
 
+        // ==================== SelfCardOCR Module ====================
+        const PRESET_DEPARTMENTS_OCR = [
+            '數位策略司', '數位政府司', '資源管理司', '韌性建設司',
+            '數位國際司', '資料創新司', '秘書處', '人事處',
+            '政風處', '主計處', '資訊處', '法制處',
+            '部長室', '政務次長室', '常務次長室', '主任秘書室'
+        ];
+
+        const SelfCardOCR = {
+            abortController: null,
+
+            async scan() {
+                document.getElementById('scan-file-input').value = '';
+                document.getElementById('scan-file-input').click();
+            },
+
+            cancel() {
+                if (this.abortController) {
+                    this.abortController.abort();
+                    this.abortController = null;
+                }
+                this._resetUI();
+            },
+
+            _resetUI() {
+                document.getElementById('scan-btn-area').classList.remove('hidden');
+                document.getElementById('scan-processing-area').classList.add('hidden');
+            },
+
+            _showProcessing() {
+                document.getElementById('scan-btn-area').classList.add('hidden');
+                document.getElementById('scan-processing-area').classList.remove('hidden');
+            },
+
+            async _processFile(file) {
+                this.abortController = new AbortController();
+                const signal = this.abortController.signal;
+
+                this._showProcessing();
+
+                try {
+                    // 1. HEIC detection
+                    if (await isHEIC(file)) {
+                        showToast('不支援 HEIC 格式');
+                        this._resetUI();
+                        return;
+                    }
+
+                    if (signal.aborted) return;
+
+                    // 2. Compress
+                    const compressed = await compressImageWithCancellation(file, signal);
+
+                    if (signal.aborted) return;
+
+                    // 3. Convert to base64
+                    const imageBase64 = await fileToBase64(compressed);
+                    const csrfToken = sessionStorage.getItem('csrfToken');
+                    const idempotencyKey = generateIdempotencyKey();
+
+                    // 4. Upload with X-Upload-Flow: own_card
+                    const uploadResp = await fetch(`${API_BASE}/api/user/received-cards/upload`, {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Idempotency-Key': idempotencyKey,
+                            'X-Upload-Flow': 'own_card',
+                            ...(csrfToken && { 'X-CSRF-Token': csrfToken })
+                        },
+                        body: JSON.stringify({ image_base64: imageBase64, filename: file.name }),
+                        signal
+                    });
+
+                    if (!uploadResp.ok) {
+                        const errData = await uploadResp.json().catch(() => ({}));
+                        const errMsg = (errData.error && typeof errData.error === 'object')
+                            ? errData.error.message || errData.error.code || `Upload failed: ${uploadResp.status}`
+                            : errData.error || `Upload failed: ${uploadResp.status}`;
+                        throw new Error(errMsg);
+                    }
+
+                    const uploadData = await uploadResp.json();
+                    const upload_id = (uploadData.data || uploadData).upload_id;
+
+                    if (signal.aborted) return;
+
+                    // 5. Extract draft
+                    const extractResp = await fetch(`${API_BASE}/api/user/cards/extract-draft`, {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(csrfToken && { 'X-CSRF-Token': csrfToken })
+                        },
+                        body: JSON.stringify({ upload_id }),
+                        signal
+                    });
+
+                    if (!extractResp.ok) {
+                        const errData = await extractResp.json().catch(() => ({}));
+                        const errMsg = (errData.error && typeof errData.error === 'object')
+                            ? errData.error.message || errData.error.code || `Extract failed: ${extractResp.status}`
+                            : errData.error || `Extract failed: ${extractResp.status}`;
+                        throw new Error(errMsg);
+                    }
+
+                    const extractData = await extractResp.json();
+                    const raw = extractData.data || extractData;
+                    const draft = raw.fields || raw;
+
+                    if (signal.aborted) return;
+
+                    // 6. Fill form
+                    this.fillForm(draft);
+
+                } catch (err) {
+                    if (err.name === 'AbortError' || signal.aborted) return;
+                    showToast(err.message || '掃描失敗，請稍後再試');
+                } finally {
+                    this.abortController = null;
+                    this._resetUI();
+                }
+            },
+
+            fillForm(draft) {
+                // Simple scalar fields: draftKey → formFieldId
+                const fieldMap = {
+                    'name_zh': 'name_zh', 'name_en': 'name_en',
+                    'title_zh': 'title_zh', 'title_en': 'title_en',
+                    'email': 'email', 'phone': 'phone', 'mobile': 'mobile',
+                    'website': 'web', 'avatar_url': 'avatar_url',
+                    'greetings_zh': 'greetings_zh', 'greetings_en': 'greetings_en',
+                    'social_github': 'social_github', 'social_linkedin': 'social_linkedin',
+                    'social_facebook': 'social_facebook', 'social_instagram': 'social_instagram',
+                    'social_twitter': 'social_twitter', 'social_youtube': 'social_youtube',
+                    'social_line': 'social_line', 'social_signal': 'social_signal'
+                };
+
+                let hasSocialOrMobile = false;
+                const socialFields = ['social_github', 'social_linkedin', 'social_facebook',
+                    'social_instagram', 'social_twitter', 'social_youtube', 'social_line', 'social_signal'];
+
+                Object.entries(fieldMap).forEach(([draftKey, fieldId]) => {
+                    const fieldDraft = draft[draftKey];
+                    if (!fieldDraft || fieldDraft.value == null) return;
+
+                    const el = document.getElementById(fieldId);
+                    if (!el) return;
+
+                    el.value = fieldDraft.value;
+                    this.setBadge(fieldId, fieldDraft.provenance);
+
+                    if (socialFields.includes(draftKey) && fieldDraft.value) hasSocialOrMobile = true;
+                    if (draftKey === 'mobile' && fieldDraft.value) hasSocialOrMobile = true;
+                });
+
+                // Department mapping
+                if (draft.department && draft.department.value != null) {
+                    const deptValue = draft.department.value;
+                    if (PRESET_DEPARTMENTS_OCR.includes(deptValue)) {
+                        document.getElementById('department-preset').value = deptValue;
+                        document.getElementById('custom-department-field').classList.add('hidden');
+                    } else {
+                        document.getElementById('department-preset').value = 'custom';
+                        document.getElementById('custom-department-field').classList.remove('hidden');
+                        document.getElementById('department-custom-zh').value = deptValue;
+                    }
+                    this.setBadge('department-preset', draft.department.provenance);
+                }
+
+                // Address mapping (always custom from OCR)
+                if ((draft.address_zh && draft.address_zh.value != null) ||
+                    (draft.address_en && draft.address_en.value != null)) {
+                    document.getElementById('address-preset').value = 'custom';
+                    document.getElementById('custom-address-fields').classList.remove('hidden');
+                    if (draft.address_zh && draft.address_zh.value != null) {
+                        document.getElementById('address_zh').value = draft.address_zh.value;
+                        this.setBadge('address_zh', draft.address_zh.provenance);
+                    }
+                    if (draft.address_en && draft.address_en.value != null) {
+                        document.getElementById('address_en').value = draft.address_en.value;
+                        this.setBadge('address_en', draft.address_en.provenance);
+                    }
+                }
+
+                // Auto-expand advanced section if needed
+                if (hasSocialOrMobile) {
+                    const details = document.querySelector('#edit-form details');
+                    if (details) details.open = true;
+                }
+
+                updatePreview();
+            },
+
+            clearBadges() {
+                document.querySelectorAll('.prov-badge').forEach(el => el.remove());
+            },
+
+            setBadge(fieldId, provenance) {
+                if (!provenance) return;
+                this.removeBadge(fieldId);
+
+                const el = document.getElementById(fieldId);
+                if (!el) return;
+
+                // Find badge anchor: label[for], or closest label/span ancestor, or insert before the input
+                let anchor = document.querySelector(`label[for="${fieldId}"]`);
+                if (!anchor) {
+                    // Walk up to find a label-like container (span with text, or the parent's first text node)
+                    const parent = el.closest('.space-y-2, .flex');
+                    if (parent) {
+                        anchor = parent.querySelector('label, span[class*="text-"]');
+                    }
+                }
+                if (!anchor) {
+                    // Last resort: insert badge right before the input element
+                    anchor = el.parentElement;
+                }
+                if (!anchor) return;
+
+                const badge = document.createElement('span');
+                badge.className = `prov-badge prov-${provenance}`;
+                badge.dataset.fieldId = fieldId;
+                badge.title = i18n[currentLang][`prov-${provenance}`] || provenance;
+
+                if (anchor === el.parentElement) {
+                    anchor.insertBefore(badge, el);
+                } else {
+                    anchor.appendChild(badge);
+                }
+
+                // Remove badge on manual input
+                const handler = () => {
+                    this.removeBadge(fieldId);
+                    el.removeEventListener('input', handler);
+                };
+                el.addEventListener('input', handler);
+            },
+
+            removeBadge(fieldId) {
+                document.querySelectorAll(`.prov-badge[data-field-id="${fieldId}"]`).forEach(el => el.remove());
+            }
+        };
+
+        // Wire up file input
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileInput = document.getElementById('scan-file-input');
+            if (fileInput) {
+                fileInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) SelfCardOCR._processFile(file);
+                });
+            }
+        });
+
         // Scenario F5: GET /api/user/cards/:uuid (編輯模式)
         async function openEditForm(type) {
             const card = state.cards.find(c => c.type === type);
@@ -1164,6 +1434,19 @@
             document.getElementById('edit-form').reset();
             document.getElementById('form-error-msg').classList.add('hidden');
             document.getElementById('form-type').value = type;
+
+            // Show scan button only in create mode; clear badges
+            SelfCardOCR.clearBadges();
+            SelfCardOCR._resetUI();
+            const scanUI = document.getElementById('scan-ui');
+            if (scanUI) {
+                if (isEdit) {
+                    scanUI.classList.add('hidden');
+                } else {
+                    scanUI.classList.remove('hidden');
+                    applyTranslations(currentLang); // refresh i18n on scan button
+                }
+            }
 
             if (isEdit && card.uuid) {
                 try {

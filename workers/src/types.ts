@@ -201,6 +201,40 @@ export interface UserCardUpdateRequest {
   social_signal?: string;
 }
 
+// Self-Card Extract Draft Types
+export type FieldProvenance = 'observed' | 'translated' | 'inferred';
+
+export interface DraftField<T = string> {
+  value: T;
+  provenance: FieldProvenance;
+}
+
+export interface UserCardExtractDraft {
+  schema_version: string;
+  fields: {
+    name_zh: DraftField;
+    name_en: DraftField;
+    title_zh: DraftField | null;
+    title_en: DraftField | null;
+    department: DraftField | null;
+    email: DraftField | null;
+    phone: DraftField | null;
+    mobile: DraftField | null;
+    address_zh: DraftField | null;
+    address_en: DraftField | null;
+    social_linkedin: DraftField | null;
+    social_line: DraftField | null;
+    social_facebook: DraftField | null;
+    social_instagram: DraftField | null;
+    social_twitter: DraftField | null;
+    social_youtube: DraftField | null;
+    social_github: DraftField | null;
+    social_signal: DraftField | null;
+    website: DraftField | null;
+    organization: DraftField | null;
+  };
+}
+
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;

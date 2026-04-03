@@ -250,6 +250,21 @@
         .hover\:bg-moda\/90:hover {
             background-color: rgba(104, 104, 172, 0.9);
         }
+
+        /* Provenance badges */
+        .prov-badge {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-left: 4px;
+            vertical-align: middle;
+            cursor: help;
+            flex-shrink: 0;
+        }
+        .prov-observed { background-color: #10b981; }
+        .prov-translated { background-color: #f59e0b; }
+        .prov-inferred { background-color: #94a3b8; }
     </style>
 </head>
 <body class="flex flex-col items-center min-h-screen p-4 lg:p-8">
@@ -909,6 +924,26 @@
                         <p id="form-subtitle" class="text-xs text-slate-400 font-bold uppercase tracking-widest" data-i18n="form-subtitle">Self-Service Issuance</p>
                     </div>
                 </div>
+
+                <!-- Self-Card OCR Scan UI -->
+                <div id="scan-ui" class="hidden">
+                    <!-- Scan Button -->
+                    <div id="scan-btn-area">
+                        <button type="button" id="scan-btn" onclick="SelfCardOCR.scan()" class="w-full py-3 px-5 bg-white border border-slate-200 rounded-2xl text-sm font-black text-moda uppercase tracking-widest hover:bg-slate-50 transition-colors flex items-center justify-center gap-2">
+                            <span data-i18n="scan-button">📷 從實體名片掃描</span>
+                        </button>
+                    </div>
+                    <!-- Processing Indicator (hidden by default) -->
+                    <div id="scan-processing-area" class="hidden flex items-center justify-between py-3 px-5 bg-white border border-slate-200 rounded-2xl">
+                        <div class="flex items-center gap-3">
+                            <div class="w-4 h-4 border-2 border-moda border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
+                            <span class="text-sm font-bold text-moda" data-i18n="scan-processing">AI 辨識中...</span>
+                        </div>
+                        <button type="button" onclick="SelfCardOCR.cancel()" class="text-xs font-black text-slate-400 hover:text-red-500 uppercase tracking-widest transition-colors">✕</button>
+                    </div>
+                </div>
+                <!-- Hidden file input -->
+                <input type="file" id="scan-file-input" accept="image/jpeg,image/png" class="hidden">
 
                 <form id="edit-form" class="glass-panel p-6 lg:p-10 rounded-[2rem] lg:rounded-[3rem] space-y-6 lg:space-y-8">
                     <!-- 隱藏欄位 -->

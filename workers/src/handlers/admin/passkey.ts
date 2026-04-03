@@ -61,14 +61,16 @@ function base64UrlDecode(str: string): Uint8Array {
 
 export async function handlePasskeyRegisterStart(request: Request, env: Env): Promise<Response> {
   try {
-    // Require existing admin authentication before allowing passkey registration
-    const isAdmin = await verifySetupToken(request, env);
-    if (!isAdmin) {
+    // Require existing admin authentication and bind to that identity
+    const adminEmail = await verifySetupToken(request, env);
+    if (!adminEmail) {
       return errorResponse('unauthorized', 'Admin authentication required for passkey registration', 401, request);
     }
 
-    const body = await request.json() as { email: string };
-    const { email } = body;
+    // Use the authenticated admin's email, ignore any email in request body
+    const email = adminEmail === '__setup_token__'
+      ? ((await request.json() as { email: string }).email) // SETUP_TOKEN has no identity, allow body email
+      : adminEmail;
 
     if (!email) {
       return errorResponse('invalid_request', 'Email required', 400, request);
@@ -96,7 +98,7 @@ export async function handlePasskeyRegisterStart(request: Request, env: Env): Pr
       attestationType: 'none',
       authenticatorSelection: {
         residentKey: 'preferred',
-        userVerification: 'preferred'
+        userVerification: 'required'
       }
     };
 
@@ -121,14 +123,17 @@ export async function handlePasskeyRegisterStart(request: Request, env: Env): Pr
 
 export async function handlePasskeyRegisterFinish(request: Request, env: Env): Promise<Response> {
   try {
-    // Require existing admin authentication
-    const isAdmin = await verifySetupToken(request, env);
-    if (!isAdmin) {
+    // Require existing admin authentication and bind to that identity
+    const adminEmail = await verifySetupToken(request, env);
+    if (!adminEmail) {
       return errorResponse('unauthorized', 'Admin authentication required for passkey registration', 401, request);
     }
 
     const body = await request.json() as { email: string; credential: RegistrationResponseJSON };
-    const { email, credential: registrationCredential } = body;
+    const { credential: registrationCredential } = body;
+
+    // Use authenticated identity; for SETUP_TOKEN fallback, allow body email
+    const email = adminEmail === '__setup_token__' ? body.email : adminEmail;
 
     if (!email || !registrationCredential) {
       return errorResponse('invalid_request', 'Email and credential required', 400, request);
@@ -218,7 +223,8 @@ export async function handlePasskeyLoginStart(request: Request, env: Env): Promi
 
     const opts: GenerateAuthenticationOptionsOpts = {
       rpID,
-      allowCredentials
+      allowCredentials,
+      userVerification: 'required'
     };
 
     const options = await generateAuthenticationOptions(opts);
@@ -318,6 +324,12 @@ export async function handlePasskeyLoginFinish(request: Request, env: Env): Prom
     }
 
     const { authenticationInfo } = verification;
+
+    // Enforce user verification for admin sessions
+    if (!authenticationInfo.userVerified) {
+      await incrementLoginAttempts(email, env);
+      return errorResponse('uv_required', 'User verification (PIN/biometric) is required for admin access', 403, request);
+    }
 
     // Touch ID 等平台認證器的 counter 可能永遠是 0
     // 只有當 counter 不是 0 時才檢查是否遞增

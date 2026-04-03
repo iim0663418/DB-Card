@@ -17,12 +17,16 @@ import type { Env } from '../types';
  * @param env - Worker environment bindings
  * @returns Promise<boolean> - true if token is valid
  */
-export async function verifySetupToken(request: Request, env: Env): Promise<boolean> {
+/**
+ * Verify admin authentication.
+ * Returns the authenticated admin email, or null if not authenticated.
+ */
+export async function verifySetupToken(request: Request, env: Env): Promise<string | null> {
   const expectedToken = env.SETUP_TOKEN;
 
   if (!expectedToken) {
     console.error('SETUP_TOKEN not configured in environment');
-    return false;
+    return null;
   }
 
   // Priority 1: Check HttpOnly Cookie (Phase 2)
@@ -32,16 +36,16 @@ export async function verifySetupToken(request: Request, env: Env): Promise<bool
     const tokenFromCookie = cookies['admin_token']; // Only admin_token, never auth_token
 
     if (tokenFromCookie) {
-      // Check if it's a Passkey session
-      const isPasskeySession = await env.KV.get(`passkey_session:${tokenFromCookie}`);
-      if (isPasskeySession) {
-        return true;
+      // Check if it's a Passkey session (KV value = admin email)
+      const passkeyEmail = await env.KV.get(`passkey_session:${tokenFromCookie}`);
+      if (passkeyEmail) {
+        return passkeyEmail;
       }
 
-      // Check if it's a SETUP_TOKEN session (new session fixation fix)
-      const isSetupTokenSession = await env.KV.get(`setup_token_session:${tokenFromCookie}`);
-      if (isSetupTokenSession) {
-        return true;
+      // Check if it's a SETUP_TOKEN session (KV value = admin email)
+      const setupEmail = await env.KV.get(`setup_token_session:${tokenFromCookie}`);
+      if (setupEmail) {
+        return setupEmail;
       }
 
       // No more fallbacks — only passkey sessions, setup_token sessions, or exact SETUP_TOKEN match
@@ -50,7 +54,7 @@ export async function verifySetupToken(request: Request, env: Env): Promise<bool
       // Fallback: Check if cookie value equals SETUP_TOKEN (backward compatibility)
       const isValid = timingSafeEqual(tokenFromCookie, expectedToken);
       if (isValid) {
-        return true;
+        return '__setup_token__'; // No specific email for raw token auth
       }
     }
   }
@@ -63,13 +67,12 @@ export async function verifySetupToken(request: Request, env: Env): Promise<bool
       const providedToken = parts[1];
       const isValid = timingSafeEqual(providedToken, expectedToken);
       if (isValid) {
-        return true;
+        return '__setup_token__';
       }
     }
   }
 
-  // No valid authentication found
-  return false;
+  return null;
 }
 
 /**

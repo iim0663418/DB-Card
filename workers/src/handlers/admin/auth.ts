@@ -29,12 +29,15 @@ export async function handleAdminLogin(request: Request, env: Env): Promise<Resp
       return adminErrorResponse(emailValidation.error || 'Invalid email format', 400, request);
     }
 
-    // 3. Check rate limit
+    // 3. Check rate limit (per-email AND per-IP to prevent email rotation attacks)
     const rateLimit = await checkLoginRateLimit(email, env);
-    if (!rateLimit.allowed) {
+    const ip = request.headers.get('CF-Connecting-IP') || '0.0.0.0';
+    const ipRateLimit = await checkLoginRateLimit(`ip:${ip}`, env);
+    if (!rateLimit.allowed || !ipRateLimit.allowed) {
+      const retryAfter = Math.max(rateLimit.retryAfter || 0, ipRateLimit.retryAfter || 0);
       const headers = new Headers({ 'Content-Type': 'application/json' });
-      if (rateLimit.retryAfter) {
-        headers.set('Retry-After', rateLimit.retryAfter.toString());
+      if (retryAfter) {
+        headers.set('Retry-After', retryAfter.toString());
       }
       return new Response(
         JSON.stringify({
@@ -59,6 +62,7 @@ export async function handleAdminLogin(request: Request, env: Env): Promise<Resp
     const isValid = await timingSafeEqual(token, expectedToken);
     if (!isValid) {
       await incrementLoginAttempts(email, env);
+      await incrementLoginAttempts(`ip:${ip}`, env);
       return adminErrorResponse('Invalid token', 403, request);
     }
 
@@ -70,12 +74,14 @@ export async function handleAdminLogin(request: Request, env: Env): Promise<Resp
     if (!admin) {
       // Don't leak email existence
       await incrementLoginAttempts(email, env);
+      await incrementLoginAttempts(`ip:${ip}`, env);
       return adminErrorResponse('Invalid token', 403, request);
     }
 
     if (admin.passkey_enabled === 1) {
       console.warn(`SETUP_TOKEN rejected: passkey_enabled=1 for ${email}`);
       await incrementLoginAttempts(email, env);
+      await incrementLoginAttempts(`ip:${ip}`, env);
       return adminErrorResponse('此管理員已啟用 Passkey，請使用 Passkey 登入', 403, request);
     }
 

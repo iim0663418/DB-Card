@@ -1,8 +1,25 @@
-# DB-Card - NFC 數位名片系統 v5.0.1
+# DB-Card - NFC 數位名片系統 v5.1.0
 
 安全預設 NFC 數位名片系統 | 隱私優先 · 安全至上 · OIDC 認證 · GDPR 合規
 
 ## 最新更新
+
+### v5.1.0 (2026-04-03) - 自建名片 OCR 掃描
+- **📷 實體名片掃描建立數位名片** - 拍照即可自動填入表單，大幅簡化建卡流程
+  - 新 endpoint: `POST /api/user/cards/extract-draft` — Gemini Vision OCR 雙語辨識
+  - Extract Draft 架構: 回傳 `{ value, provenance }` 標記每個欄位來源（observed/translated/inferred）
+  - 不使用 Google Search: 自建名片僅需快速草稿，不需外部事實查核，降低延遲與成本
+  - 共享 OCR 基礎層: `ocr-helpers.ts` 抽取 retryWithBackoff、parseGeminiJSON、arrayBufferToBase64Chunked
+  - 前端 SelfCardOCR 模組: 掃描按鈕 + AI 處理指示器 + 表單自動填入
+  - Provenance 標記: 綠點（名片可見）、橙點（AI 翻譯）、灰點（AI 推測），手動編輯後自動移除
+  - temp_uploads 流程隔離: `flow` + `extract_schema_version` 欄位（Migration 0049）
+  - 上傳共用: 既有 upload endpoint + `X-Upload-Flow: own_card` header
+  - 現有建卡流程不變: `POST /api/user/cards` 仍為唯一加密寫入路徑
+- **🔧 整合修復**
+  - 修復 extract-draft 回應結構解析（unwrap `.fields`）
+  - 修復 `website` → `web` 表單欄位映射
+  - 修復 API 錯誤訊息顯示 `[object Object]` 問題
+  - 修復 provenance badge 在無 `label[for]` 欄位上不顯示的問題
 
 ### v5.0.1 (2026-03-07) - 標籤系統與排序修復
 - **🏷️ 標籤標準化系統** - 抽取與標準化分離架構，支援篩選與多樣性
@@ -640,6 +657,7 @@ wrangler dev --remote
 
 ### 使用者 API (需 OIDC 認證)
 - `POST /api/user/upload` - 上傳名片圖片
+- `POST /api/user/cards/extract-draft` - 自建名片 OCR 草稿提取
 - `GET /api/user/received-cards` - 列出收到的名片
 - `DELETE /api/user/received-cards/:id` - 刪除收到的名片
 

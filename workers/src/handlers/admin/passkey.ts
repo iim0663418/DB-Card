@@ -1,4 +1,5 @@
 import type { Env } from '../../types';
+import { verifySetupToken } from '../../middleware/auth';
 import { jsonResponse, errorResponse, getCorsHeaders } from '../../utils/response';
 import { validateEmail } from '../../utils/validation';
 import { checkLoginRateLimit, incrementLoginAttempts, resetLoginAttempts } from '../../utils/login-rate-limit';
@@ -60,6 +61,12 @@ function base64UrlDecode(str: string): Uint8Array {
 
 export async function handlePasskeyRegisterStart(request: Request, env: Env): Promise<Response> {
   try {
+    // Require existing admin authentication before allowing passkey registration
+    const isAdmin = await verifySetupToken(request, env);
+    if (!isAdmin) {
+      return errorResponse('unauthorized', 'Admin authentication required for passkey registration', 401, request);
+    }
+
     const body = await request.json() as { email: string };
     const { email } = body;
 
@@ -114,6 +121,12 @@ export async function handlePasskeyRegisterStart(request: Request, env: Env): Pr
 
 export async function handlePasskeyRegisterFinish(request: Request, env: Env): Promise<Response> {
   try {
+    // Require existing admin authentication
+    const isAdmin = await verifySetupToken(request, env);
+    if (!isAdmin) {
+      return errorResponse('unauthorized', 'Admin authentication required for passkey registration', 401, request);
+    }
+
     const body = await request.json() as { email: string; credential: RegistrationResponseJSON };
     const { email, credential: registrationCredential } = body;
 

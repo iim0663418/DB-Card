@@ -83,15 +83,15 @@ export function generateVCard(card: ReceivedCard): string {
   }
 
   if (card.phone) {
-    lines.push(`TEL;TYPE=CELL:${card.phone}`);
+    lines.push(`TEL;TYPE=CELL:${escapeVCardValue(card.phone)}`);
   }
 
   if (card.email) {
-    lines.push(`EMAIL:${card.email}`);
+    lines.push(`EMAIL:${escapeVCardValue(card.email)}`);
   }
 
   if (card.website) {
-    lines.push(`URL:${card.website}`);
+    lines.push(`URL:${escapeVCardValue(card.website)}`);
   }
 
   if (card.address) {

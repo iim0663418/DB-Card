@@ -7,6 +7,7 @@ compatibility_date = "2024-04-03"  # Enable Durable Objects RPC
 [vars]
 ENVIRONMENT = "staging"
 WORKER_URL = "https://db-card-staging.csw30454.workers.dev"
+CUSTOM_DOMAIN = "https://db-card.sfan-tech.com"
 GOOGLE_CLIENT_ID = "675226781448-akeqtr5d603ad0bcb3tve5hl4a8c164u.apps.googleusercontent.com"
 GEMINI_MODEL = "gemini-3-flash-preview"
 GEMINI_LITE_MODEL = "gemini-2.5-flash"

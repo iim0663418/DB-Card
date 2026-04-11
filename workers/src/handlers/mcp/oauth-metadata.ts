@@ -6,9 +6,8 @@ const CACHE_CONTROL = 'public, max-age=3600';
 /** Use the request's origin so metadata URLs match the domain the client connected to */
 function getBaseUrl(request: Request, env: Env): string {
   const origin = new URL(request.url).origin;
-  // Only allow known origins; fall back to WORKER_URL
   if (origin === env.WORKER_URL) return origin;
-  if (env.ENVIRONMENT === 'staging' && origin === 'https://db-card.sfan-tech.com') return origin;
+  if (env.CUSTOM_DOMAIN && origin === env.CUSTOM_DOMAIN) return origin;
   return env.WORKER_URL;
 }
 

@@ -52,7 +52,7 @@ export async function handleMcpAuthorize(request: Request, env: Env): Promise<Re
   // Validate resource — must match this server's URL
   const resource = p.get('resource') ?? '';
   const allowedOrigins = [env.WORKER_URL];
-  if (env.ENVIRONMENT === 'staging') allowedOrigins.push('https://db-card.sfan-tech.com');
+  if (env.CUSTOM_DOMAIN) allowedOrigins.push(env.CUSTOM_DOMAIN);
 
   if (resource) {
     // Accept resource as origin or origin+path (e.g. https://host/mcp)

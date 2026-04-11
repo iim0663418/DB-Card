@@ -38,6 +38,11 @@ import { handleOAuthCallback } from './handlers/oauth';
 import { handleOAuthInit } from './handlers/oauth-init';
 import { handleRISCEvent } from './handlers/risc';
 import { handleManifest } from './handlers/manifest';
+import { handleProtectedResourceMetadata, handleAuthorizationServerMetadata, mcpUnauthorizedResponse } from './handlers/mcp/oauth-metadata';
+import { handleMcp } from './handlers/mcp/handler';
+import { handleMcpRegister } from './handlers/mcp/oauth-register';
+import { handleMcpAuthorize, handleMcpCallback } from './handlers/mcp/oauth-authorize';
+import { handleMcpToken } from './handlers/mcp/oauth-token';
 import { publicErrorResponse, errorResponse } from './utils/response';
 import { initAllowedOrigins } from './utils/response';
 import { checkRateLimit } from './middleware/rate-limit';
@@ -301,6 +306,35 @@ export default {
       return addMinimalSecurityHeaders(await handleGetOAuthUserInfo(request, env));
     }
 
+    // MCP OAuth 2.1 Metadata Endpoints (RFC 9728 / RFC 8414)
+    if (url.pathname === '/.well-known/oauth-protected-resource' && request.method === 'GET') {
+      return handleProtectedResourceMetadata(request, env);
+    }
+
+    if (url.pathname === '/.well-known/oauth-authorization-server' && request.method === 'GET') {
+      return handleAuthorizationServerMetadata(request, env);
+    }
+
+    if (url.pathname === '/mcp/register' && request.method === 'POST') {
+      return handleMcpRegister(request, env);
+    }
+
+    if (url.pathname === '/mcp/authorize' && request.method === 'GET') {
+      return handleMcpAuthorize(request, env);
+    }
+
+    if (url.pathname === '/mcp/callback' && request.method === 'GET') {
+      return handleMcpCallback(request, env);
+    }
+
+    if (url.pathname === '/mcp/token' && request.method === 'POST') {
+      return handleMcpToken(request, env);
+    }
+
+    if (url.pathname === '/mcp' && request.method === 'POST') {
+      return handleMcp(request, env);
+    }
+
     // Health check
     if (url.pathname === '/health') {
       return addMinimalSecurityHeaders(await handleHealth(request, env));
@@ -325,7 +359,10 @@ export default {
                             url.pathname === '/api/risc/events' ||
                             url.pathname === '/oauth/callback' ||
                             url.pathname === '/health' ||
-                            url.pathname === '/api/user/analytics/click';
+                            url.pathname === '/api/user/analytics/click' ||
+                            url.pathname === '/.well-known/oauth-protected-resource' ||
+                            url.pathname === '/.well-known/oauth-authorization-server' ||
+                            url.pathname.startsWith('/mcp');
 
     if (!isLoginEndpoint && !isPublicEndpoint &&
         (request.method === 'POST' || request.method === 'PUT' || request.method === 'DELETE')) {

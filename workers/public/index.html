@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Scenario 1: 完整 Meta Tags -->
-    <meta name="description" content="DB-Card 安全預設 NFC 數位名片系統 - 名片管理（多模態 AI、智慧壓縮）、信封加密、可撤銷會話。隱私優先、GDPR 合規。">
-    <meta name="keywords" content="NFC 數位名片, 數位名片系統, 信封加密, OIDC 認證, GDPR, DB-Card, 安全名片">
+    <meta name="description" content="DB-Card 安全預設 NFC 數位名片系統 - 名片管理（多模態 AI、智慧壓縮）、MCP AI Agent 介面、信封加密、可撤銷會話。隱私優先、GDPR 合規。">
+    <meta name="keywords" content="NFC 數位名片, 數位名片系統, 信封加密, OIDC 認證, GDPR, DB-Card, 安全名片, MCP, Model Context Protocol, AI Agent">
     <meta name="author" content="Sheng-Fan Wu">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://db-card-staging.csw30454.workers.dev/">
@@ -14,7 +14,7 @@
     <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="DB-Card | 安全預設 NFC 數位名片系統">
-    <meta property="og:description" content="NFC 數位名片 + 收到的名片管理（多模態 AI、智慧壓縮）。信封加密、可撤銷會話。安全預設、隱私優先、GDPR 合規。">
+    <meta property="og:description" content="NFC 數位名片 + 收到的名片管理（多模態 AI、智慧壓縮）+ MCP AI Agent 介面。信封加密、可撤銷會話。安全預設、隱私優先、GDPR 合規。">
     <meta property="og:url" content="https://db-card-staging.csw30454.workers.dev/">
     <meta property="og:site_name" content="DB-Card">
     <meta property="og:locale" content="zh_TW">
@@ -26,7 +26,7 @@
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="DB-Card | 安全預設 NFC 數位名片系統">
-    <meta name="twitter:description" content="NFC 數位名片 + 收到的名片管理（多模態 AI、智慧壓縮）。信封加密、可撤銷會話。安全預設、隱私優先、GDPR 合規。">
+    <meta name="twitter:description" content="NFC 數位名片 + 收到的名片管理（多模態 AI、智慧壓縮）+ MCP AI Agent 介面。信封加密、可撤銷會話。安全預設、隱私優先、GDPR 合規。">
     <meta name="twitter:image" content="https://db-card-staging.csw30454.workers.dev/images/og-cover.png">
     <meta name="twitter:image:alt" content="DB-Card NFC 數位名片系統">
 
@@ -65,7 +65,7 @@
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "DB-Card",
-      "description": "安全預設 NFC 數位名片系統，收到的名片管理（多模態 AI、智慧壓縮）、信封加密、可撤銷會話，GDPR 合規",
+      "description": "安全預設 NFC 數位名片系統，收到的名片管理（多模態 AI、智慧壓縮）、MCP AI Agent 介面、信封加密、可撤銷會話，GDPR 合規",
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web-based, iOS, Android",
       "url": "https://db-card-staging.csw30454.workers.dev/",
@@ -90,7 +90,8 @@
         "審計日誌 (Audit Logs)",
         "OIDC 認證",
         "GDPR 合規",
-        "NFC 卡片支援"
+        "NFC 卡片支援",
+        "MCP AI Agent 介面 (Model Context Protocol)"
       ]
     }
     </script>
@@ -542,12 +543,46 @@
                                         <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-received-cards-3">冪等上傳機制，防止重複提交</span>
                                     </li>
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
+                                        <span data-i18n="feature-received-cards-4">MCP 介面：AI Agent 可透過標準協議存取</span>
+                                    </li>
                                 </ul>
                             </div>
                         </div>
                     </article>
 
-                    <!-- 特色 8: 可隨時撤銷授權 -->
+                    <!-- 特色 8: MCP AI Agent 介面 -->
+                    <article class="glass-card rounded-2xl p-8" aria-label="MCP AI Agent 介面">
+                        <div class="flex gap-4">
+                            <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
+                                <i data-lucide="bot" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold mb-3" data-i18n="feature-mcp-title">MCP AI Agent 介面</h3>
+                                <ul class="space-y-2 text-xs text-slate-600">
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
+                                        <span data-i18n="feature-mcp-1">Model Context Protocol 2025-06-18 合規</span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
+                                        <span data-i18n="feature-mcp-2">OAuth 2.1 + PKCE 認證，委託 Google OIDC</span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
+                                        <span data-i18n="feature-mcp-3">7 個 Tools：查詢、搜尋、建立、更新、刪除、匯出</span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
+                                        <span data-i18n="feature-mcp-4">結構化搜尋，不依賴伺服端 LLM</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- 特色 9: 可隨時撤銷授權 -->
                     <article class="glass-card rounded-2xl p-8" aria-label="可隨時撤銷存取">
                         <div class="flex gap-4">
                             <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
@@ -572,6 +607,81 @@
                             </div>
                         </div>
                     </article>
+                </div>
+            </section>
+
+            <!-- MCP AI Agent 設定指南 -->
+            <section class="mb-16" aria-labelledby="mcp-setup-heading">
+                <h2 id="mcp-setup-heading" class="text-2xl font-black text-center mb-8" style="color: #6868ac;" data-i18n="mcp-setup-title">MCP AI Agent 設定</h2>
+                <div class="glass-card rounded-2xl p-8">
+                    <p class="text-sm text-slate-600 mb-6 text-center" data-i18n="mcp-setup-intro">
+                        將 DB-Card 連接到支援 MCP 的 AI 助手，讓 AI 直接查詢、管理你收到的名片。
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Claude Desktop — UI 方式 -->
+                        <div>
+                            <div class="flex items-center gap-2 mb-3">
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
+                                    <i data-lucide="message-square" class="w-4 h-4"></i>
+                                </div>
+                                <h3 class="font-bold text-sm">Claude Desktop</h3>
+                            </div>
+                            <ol class="space-y-2 text-xs text-slate-600 list-none">
+                                <li class="flex items-start gap-2">
+                                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold shrink-0" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">1</span>
+                                    <span data-i18n="mcp-claude-step1">Settings → Connectors → Add custom connector</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold shrink-0" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">2</span>
+                                    <span data-i18n="mcp-claude-step2">貼上 Server URL：</span>
+                                </li>
+                            </ol>
+                            <div class="mt-2 ml-7 flex items-center gap-2">
+                                <code class="flex-1 px-3 py-2 bg-slate-900 text-green-400 text-xs rounded-lg select-all">https://db-card.sfan-tech.com/mcp</code>
+                            </div>
+                            <ol start="3" class="mt-2 space-y-2 text-xs text-slate-600 list-none">
+                                <li class="flex items-start gap-2">
+                                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold shrink-0" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">3</span>
+                                    <span data-i18n="mcp-claude-step3">首次使用時會開啟 Google 登入授權</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold shrink-0" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">4</span>
+                                    <span data-i18n="mcp-claude-step4">完成！可以直接對 Claude 說「列出我收到的名片」</span>
+                                </li>
+                            </ol>
+                        </div>
+
+                        <!-- JSON 設定檔（進階） -->
+                        <div>
+                            <div class="flex items-center gap-2 mb-3">
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
+                                    <i data-lucide="terminal" class="w-4 h-4"></i>
+                                </div>
+                                <h3 class="font-bold text-sm" data-i18n="mcp-json-title">JSON 設定檔（進階）</h3>
+                            </div>
+                            <p class="text-xs text-slate-500 mb-2" data-i18n="mcp-json-desc">
+                                或直接編輯 Claude Desktop 設定檔：
+                            </p>
+                            <pre class="bg-slate-900 text-green-400 text-xs p-4 rounded-xl overflow-x-auto"><code>{
+  "mcpServers": {
+    "db-card": {
+      "url": "https://db-card.sfan-tech.com/mcp"
+    }
+  }
+}</code></pre>
+                            <p class="text-xs text-slate-400 mt-2">
+                                macOS: <code class="px-1 py-0.5 bg-slate-100 text-slate-600 rounded">~/Library/Application Support/Claude/claude_desktop_config.json</code>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 pt-4 border-t border-slate-200 text-center">
+                        <p class="text-xs text-slate-500" data-i18n="mcp-setup-note">
+                            首次連線時，MCP client 會自動完成 OAuth 2.1 認證流程（Dynamic Client Registration + PKCE）。<br>
+                            僅限已授權的 Google 帳號可存取。
+                        </p>
+                    </div>
                 </div>
             </section>
 

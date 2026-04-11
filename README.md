@@ -1,8 +1,21 @@
-# DB-Card - NFC 數位名片系統 v5.1.0
+# DB-Card - NFC 數位名片系統 v5.2.0
 
-安全預設 NFC 數位名片系統 | 隱私優先 · 安全至上 · OIDC 認證 · GDPR 合規
+安全預設 NFC 數位名片系統 | 隱私優先 · 安全至上 · OIDC 認證 · GDPR 合規 · MCP 介面
 
 ## 最新更新
+
+### v5.2.0 (2026-04-11) - MCP 介面 + OAuth 2.1
+- **🤖 Model Context Protocol (MCP) 介面** - AI Agent 可透過標準協議存取收到的名片
+  - MCP spec 2025-06-18 合規：Streamable HTTP + JSON-RPC 2.0
+  - OAuth 2.1 認證：Authorization Code + PKCE S256，委託 Google OIDC
+  - RFC 9728 Protected Resource Metadata：`/.well-known/oauth-protected-resource`
+  - RFC 8414 Authorization Server Metadata：`/.well-known/oauth-authorization-server`
+  - RFC 7591 Dynamic Client Registration：`POST /mcp/register`
+  - RFC 8707 Resource Indicators：Token audience 綁定至 MCP server URI
+  - 7 個 MCP Tools：list / search / get / save / update / delete / export_vcard
+  - 結構化搜尋：欄位級篩選（姓名、公司、職稱、email、電話、標籤），不依賴伺服端 LLM
+  - 安全性：disabled user 檢查、scope 驗證（空格分隔精確匹配）、Durable Objects 原子限速
+  - 審計日誌：所有 tool call（含失敗路徑）記錄至 audit_logs
 
 ### v5.1.0 (2026-04-03) - 自建名片 OCR 掃描
 - **📷 實體名片掃描建立數位名片** - 拍照即可自動填入表單，大幅簡化建卡流程
@@ -76,23 +89,33 @@
 - **多模態 AI**: pending/completed/failed 三階段狀態追蹤
 - **智慧壓縮**: browser-image-compression,目標 1MB,80% 上傳時間減少
 - **冪等上傳**: idempotency_key 防止重複上傳
+- **MCP 介面**: AI Agent 透過標準 MCP 協議存取名片（7 個 tools）
 
-### 3. 管理後台
+### 3. MCP (Model Context Protocol) 介面
+- **標準協議**: MCP spec 2025-06-18，Streamable HTTP + JSON-RPC 2.0
+- **OAuth 2.1 認證**: Authorization Code + PKCE S256，委託 Google OIDC
+- **Dynamic Client Registration**: MCP client 自動註冊取得 client_id
+- **7 個 Tools**: list / search / get / save / update / delete / export_vcard
+- **結構化搜尋**: 欄位級篩選，不依賴伺服端 LLM（由 client 端 LLM 解析意圖）
+- **Resource Indicators**: RFC 8707 token audience 綁定
+- **審計日誌**: 所有 tool call 記錄（含失敗路徑）
+
+### 4. 管理後台
 - **完整 CRUD**: 創建、讀取、更新、刪除名片
 - **即時監控**: KEK 版本、活躍名片數統計
 - **緊急撤銷**: 全域撤銷機制
 
-### 4. 隱私合規
+### 5. 隱私合規
 - **GDPR 合規**: 100% 符合 Article 7, 12, 13, 15, 20, 30
 - **個資同意**: 分層揭露、撤回機制、30 天緩衝期
 - **資料可攜**: JSON 格式即時匯出
 
-### 5. 安全架構
+### 6. 安全架構
 - **信封加密**: 每張名片獨立 DEK,KEK 定期輪換
 - **OIDC 認證**: PKCE、State、Nonce 防護
 - **審計日誌**: 完整記錄所有存取行為,IP 匿名化
 
-### 6. 效能優化
+### 7. 效能優化
 - **Icon Tree-Shaking**: Lucide Icons 從 379 KB 降至 12.33 KB (96.8%)
 - **並發控制**: SQLite RETURNING 原子性操作
 - **快取策略**: 4 層快取一致性保證
@@ -568,6 +591,15 @@ wrangler dev --remote
 - `GET /api/oauth/init` - OAuth 初始化 (取得 state 和 nonce)
 - `GET /oauth/callback` - OAuth 回調
 
+### MCP API (OAuth 2.1 認證)
+- `GET /.well-known/oauth-protected-resource` - Resource Metadata (RFC 9728)
+- `GET /.well-known/oauth-authorization-server` - AS Metadata (RFC 8414)
+- `POST /mcp/register` - Dynamic Client Registration (RFC 7591)
+- `GET /mcp/authorize` - 授權端點 → Google OIDC 委託
+- `GET /mcp/callback` - Google OAuth 回調
+- `POST /mcp/token` - Token 端點（code/refresh → access_token）
+- `POST /mcp` - MCP JSON-RPC 2.0（tools/call, tools/list, initialize）
+
 ### 管理 API (需認證)
 - `POST /api/admin/login` - 登入
 - `POST /api/admin/logout` - 登出
@@ -604,6 +636,11 @@ wrangler dev --remote
 - ✅ RFC 6749 (OAuth 2.0)
 - ✅ RFC 7636 (PKCE)
 - ✅ RFC 9700 (OAuth 2.0 Security Best Current Practice)
+- ✅ RFC 8414 (OAuth 2.0 Authorization Server Metadata)
+- ✅ RFC 9728 (OAuth 2.0 Protected Resource Metadata)
+- ✅ RFC 7591 (OAuth 2.0 Dynamic Client Registration)
+- ✅ RFC 8707 (Resource Indicators for OAuth 2.0)
+- ✅ MCP Specification 2025-06-18
 - ✅ OpenID Connect Core 1.0
 - ✅ OpenID Connect Discovery 1.0
 - ✅ OWASP Top 10 2021

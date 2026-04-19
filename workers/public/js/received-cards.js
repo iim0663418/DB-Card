@@ -367,8 +367,10 @@ const ReceivedCardsAPI = {
     });
   },
 
-  async loadCards() {
-    return await this.call('/api/user/received-cards');
+  async loadCards(limit = 50, cursor = null) {
+    let url = '/api/user/received-cards?limit=' + limit;
+    if (cursor) url += '&cursor=' + encodeURIComponent(cursor);
+    return await this.call(url);
   },
 
   async searchCards(query, page = 1, limit = 20, signal = null) {
@@ -758,6 +760,11 @@ const ReceivedCards = {
   searchOrchestrator: null, // SearchOrchestrator instance
   currentSearchQueryHash: null, // SHA-256 hash of current search query (for click tracking)
   currentSearchQueryEventId: null, // Phase 3.0.5a: query_event_id for stable click tracking
+  nextCursor: null,    // cursor for next page
+  hasMore: false,      // whether more pages exist
+  isLoadingMore: false, // prevent double-click
+  _tagFiltersBound: false, // guard: accordion/clear handlers bound once
+  sharedUuids: new Set(), // cached shared UUIDs, fetched once on initial load
 
   init() {
     this.searchOrchestrator = new SearchOrchestrator({ threshold: 3 });
@@ -1132,7 +1139,14 @@ const ReceivedCards = {
 
       // 標籤過濾（多選 OR 邏輯）- 僅在無搜尋關鍵字時生效
       const matchTags = this.selectedTags.length === 0 ||
-        this.selectedTags.some(tag => card.tags?.includes(tag));
+        this.selectedTags.some(tag => {
+          // selectedTags format: "category:normalized" (e.g. "industry:資訊服務")
+          // card.tags format: [{category, raw, normalized}, ...] or legacy "category:value" strings
+          if (!card.tags) return false;
+          return card.tags.some(t =>
+            typeof t === 'object' ? `${t.category}:${t.normalized}` === tag : t === tag
+          );
+        });
 
       return matchKeyword && matchTags;
     });
@@ -1273,28 +1287,32 @@ const ReceivedCards = {
     this.renderCategoryTags('expertise', tagsByCategory.expertise);
     this.renderCategoryTags('seniority', tagsByCategory.seniority);
 
-    // Accordion toggle
-    const toggle = document.getElementById('tagFilterToggle');
-    const content = document.getElementById('tagFilterContent');
-    const chevron = document.getElementById('tagFilterChevron');
+    // Accordion toggle + Clear filters — bind only once
+    if (!this._tagFiltersBound) {
+      this._tagFiltersBound = true;
 
-    toggle?.addEventListener('click', () => {
-      const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
-      toggle.setAttribute('aria-expanded', !isExpanded);
-      content?.classList.toggle('hidden');
-      chevron?.classList.toggle('rotate-180');
-    });
+      const toggle = document.getElementById('tagFilterToggle');
+      const content = document.getElementById('tagFilterContent');
+      const chevron = document.getElementById('tagFilterChevron');
 
-    // Clear filters
-    document.getElementById('clearFilters')?.addEventListener('click', () => {
-      this.selectedTags = [];
-      document.querySelectorAll('.tag-filter').forEach(btn => {
-        btn.classList.remove('bg-blue-500', 'text-white', 'border-blue-500');
-        btn.classList.add('border-slate-300', 'text-slate-700');
+      toggle?.addEventListener('click', () => {
+        const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+        toggle.setAttribute('aria-expanded', !isExpanded);
+        content?.classList.toggle('hidden');
+        chevron?.classList.toggle('rotate-180');
       });
-      this.updateActiveFilterCount();
-      this.filterCards();
-    });
+
+      // Clear filters
+      document.getElementById('clearFilters')?.addEventListener('click', () => {
+        this.selectedTags = [];
+        document.querySelectorAll('.tag-filter').forEach(btn => {
+          btn.classList.remove('bg-blue-500', 'text-white', 'border-blue-500');
+          btn.classList.add('border-slate-300', 'text-slate-700');
+        });
+        this.updateActiveFilterCount();
+        this.filterCards();
+      });
+    }
   },
 
   renderCategoryTags(category, tagsMap) {
@@ -1404,10 +1422,15 @@ const ReceivedCards = {
   async loadCards() {
     try {
       const response = await ReceivedCardsAPI.loadCards();
-      const cards = Array.isArray(response) ? response : (response?.data || []);
+      // FeatureAPI.call returns raw body: { success, data: { cards, nextCursor, hasMore } }
+      // or legacy flat array via data: [...]
+      const payload = response?.data ?? response;
+      const cards = payload?.cards ?? (Array.isArray(payload) ? payload : []);
+      this.nextCursor = payload?.nextCursor ?? null;
+      this.hasMore = payload?.hasMore ?? false;
 
-      // 查詢已分享的名片 UUID（加上錯誤處理）
-      let sharedUuids = new Set();
+      // 查詢已分享的名片 UUID（加上錯誤處理）— fetched once, cached for loadMoreCards
+      this.sharedUuids = new Set();
       try {
         const sharedResponse = await fetch(`${API_BASE}/api/user/shared-cards`, {
           credentials: 'include'
@@ -1415,7 +1438,7 @@ const ReceivedCards = {
         if (sharedResponse.ok) {
           const sharedData = await sharedResponse.json();
           const sharedCards = Array.isArray(sharedData) ? sharedData : (sharedData?.data || []);
-          sharedUuids = new Set(sharedCards.map(c => c.uuid));
+          this.sharedUuids = new Set(sharedCards.map(c => c.uuid));
         }
       } catch (error) {
         console.warn('Failed to load shared cards:', error);
@@ -1424,7 +1447,7 @@ const ReceivedCards = {
 
       // 標記 is_shared
       cards.forEach(card => {
-        card.is_shared = sharedUuids.has(card.uuid);
+        card.is_shared = this.sharedUuids.has(card.uuid);
       });
 
       this.cards = cards; // Store for later use
@@ -1441,17 +1464,86 @@ const ReceivedCards = {
         this.renderCards(cards);
         const resultCount = document.getElementById('resultCount');
         if (resultCount) {
-          resultCount.textContent = `${cards.length} 張名片`;
+          resultCount.textContent = this.hasMore
+            ? `${this.allCards.length}+ 張名片`
+            : `${this.allCards.length} 張名片`;
         }
       }
     } catch (_error) {
       this.cards = [];
       this.allCards = [];
+      this.nextCursor = null;
+      this.hasMore = false;
       this.renderCards([]);
       const resultCount = document.getElementById('resultCount');
       if (resultCount) {
         resultCount.textContent = '0 張名片';
       }
+    }
+  },
+
+  async loadMoreCards() {
+    if (this.isLoadingMore || !this.hasMore || !this.nextCursor) return;
+    this.isLoadingMore = true;
+
+    try {
+      const response = await ReceivedCardsAPI.loadCards(50, this.nextCursor);
+      const payload = response?.data ?? response;
+      const newCards = payload?.cards ?? (Array.isArray(payload) ? payload : []);
+      this.nextCursor = payload?.nextCursor ?? null;
+      this.hasMore = payload?.hasMore ?? false;
+
+      // 標記 is_shared using cached sharedUuids
+      newCards.forEach(card => {
+        card.is_shared = this.sharedUuids.has(card.uuid);
+      });
+
+      // Accumulate cards
+      this.allCards = this.allCards.concat(newCards);
+
+      // Append new card HTML to grid (don't replace)
+      const grid = document.getElementById('cards-grid');
+      if (grid) {
+        // Wrap new cards in a container so we can scope event binding
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = newCards.map(card => this.renderCardHTML(card, '')).join('');
+
+        // Bind events only on new elements (before moving to DOM)
+        this.bindThumbnailEvents(wrapper);
+        this.bindShareToggles(wrapper);
+
+        // Move children into grid
+        while (wrapper.firstChild) {
+          grid.appendChild(wrapper.firstChild);
+        }
+
+        if (typeof window.initIcons === 'function') {
+          window.initIcons();
+        }
+      }
+
+      // Update tag filters with new cards
+      this.initTagFilters();
+
+      // Update result count
+      const resultCount = document.getElementById('resultCount');
+      if (resultCount) {
+        resultCount.textContent = this.hasMore
+          ? `${this.allCards.length}+ 張名片`
+          : `${this.allCards.length} 張名片`;
+      }
+
+      // Update load-more button
+      const loadMoreContainer = document.getElementById('load-more-container');
+      if (loadMoreContainer) {
+        if (!this.hasMore) {
+          loadMoreContainer.remove();
+        }
+      }
+    } catch (_error) {
+      console.warn('Failed to load more cards:', _error);
+    } finally {
+      this.isLoadingMore = false;
     }
   },
   
@@ -1492,6 +1584,16 @@ const ReceivedCards = {
     if (typeof window.initIcons === 'function') {
       window.initIcons();
     }
+
+    // Manage "load more" button — only in unfiltered view
+    const existingContainer = document.getElementById('load-more-container');
+    if (existingContainer) existingContainer.remove();
+    const isFiltered = this.currentKeyword || this.selectedTags.length > 0;
+    if (this.hasMore && !isFiltered) {
+      grid.insertAdjacentHTML('afterend', `<div id="load-more-container" class="col-span-full flex justify-center mt-6 mb-4">
+        <button onclick="ReceivedCards.loadMoreCards()" class="group flex items-center gap-2 px-8 py-3 rounded-xl font-bold text-sm tracking-wide transition-all" style="background: rgba(104, 104, 172, 0.1); color: var(--moda-accent);" onmouseover="this.style.background='rgba(104, 104, 172, 0.2)'" onmouseout="this.style.background='rgba(104, 104, 172, 0.1)'"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>載入更多</button>
+      </div>`);
+    }
   },
 
   renderCardThumbnail(card) {
@@ -1522,9 +1624,9 @@ const ReceivedCards = {
     }
   },
 
-  bindThumbnailEvents() {
+  bindThumbnailEvents(root = document) {
     // Bind click events for thumbnails
-    document.querySelectorAll('.card-thumbnail[data-card-uuid]').forEach(thumbnail => {
+    root.querySelectorAll('.card-thumbnail[data-card-uuid]').forEach(thumbnail => {
       thumbnail.addEventListener('click', (e) => {
         e.stopPropagation();
         const cardUuid = thumbnail.dataset.cardUuid;
@@ -1533,8 +1635,8 @@ const ReceivedCards = {
     });
   },
 
-  bindShareToggles() {
-    document.querySelectorAll('.share-toggle').forEach(toggle => {
+  bindShareToggles(root = document) {
+    root.querySelectorAll('.share-toggle').forEach(toggle => {
       const switchEl = toggle.nextElementSibling; // .toggle-switch
       const slider = switchEl?.querySelector('.toggle-slider');
 

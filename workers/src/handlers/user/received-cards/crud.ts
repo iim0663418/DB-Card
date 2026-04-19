@@ -289,6 +289,7 @@ export async function handleSaveCard(request: Request, env: Env, ctx: ExecutionC
 /**
  * Handle GET /api/user/received-cards - List cards (own + shared)
  * BDD: Merged Display - Own + Shared Cards
+ * Supports optional cursor-based pagination via ?limit=N&cursor=<token>
  */
 export async function handleListCards(request: Request, env: Env): Promise<Response> {
   try {
@@ -296,77 +297,214 @@ export async function handleListCards(request: Request, env: Env): Promise<Respo
     if (userResult instanceof Response) return userResult;
     const user = userResult;
 
-    const cards = await env.DB.prepare(`
-      SELECT
-        uuid, name_prefix, full_name, first_name, last_name, name_suffix,
-        organization, organization_en, organization_alias, department, title,
-        phone, email, website, address, note,
-        company_summary, personal_summary, ai_sources_json, ai_status,
-        original_image_url, thumbnail_url, created_at, updated_at,
-        'own' as source,
-        NULL as shared_by,
-        COALESCE(updated_at, created_at) AS sort_ts
-      FROM received_cards
-      WHERE user_email = ? AND deleted_at IS NULL AND merged_to IS NULL
+    const url = new URL(request.url);
+    const limitParam = url.searchParams.get('limit');
+    const cursorParam = url.searchParams.get('cursor');
+    const isPaginated = limitParam !== null;
 
-      UNION ALL
+    let limit = 50;
+    let cursorTs: number | null = null;
+    let cursorUuid: string | null = null;
 
-      SELECT
-        rc.uuid, rc.name_prefix, rc.full_name, rc.first_name, rc.last_name, rc.name_suffix,
-        rc.organization, rc.organization_en, rc.organization_alias, rc.department, rc.title,
-        rc.phone, rc.email, rc.website, rc.address, rc.note,
-        rc.company_summary, rc.personal_summary, rc.ai_sources_json, rc.ai_status,
-        rc.original_image_url, rc.thumbnail_url, rc.created_at, rc.updated_at,
-        'shared' as source,
-        sc.owner_email as shared_by,
-        COALESCE(rc.updated_at, rc.created_at) AS sort_ts
-      FROM shared_cards sc
-      INNER JOIN received_cards rc ON sc.card_uuid = rc.uuid
-      WHERE rc.deleted_at IS NULL AND rc.merged_to IS NULL
-        AND rc.user_email != ?
+    if (isPaginated) {
+      const parsedLimit = parseInt(limitParam!, 10);
+      limit = (!isNaN(parsedLimit) && parsedLimit >= 1 && parsedLimit <= 100) ? parsedLimit : 50;
 
-      ORDER BY sort_ts DESC
-    `).bind(user.email, user.email).all();
+      if (cursorParam !== null) {
+        try {
+          const normalized = cursorParam.replace(/-/g, '+').replace(/_/g, '/');
+          const padded = normalized + '='.repeat((4 - normalized.length % 4) % 4);
+          const parsed = JSON.parse(atob(padded));
+          if (typeof parsed.t !== 'number' || typeof parsed.u !== 'string') {
+            return errorResponse('INVALID_CURSOR', 'Invalid cursor', 400);
+          }
+          cursorTs = parsed.t;
+          cursorUuid = parsed.u;
+        } catch {
+          return errorResponse('INVALID_CURSOR', 'Invalid cursor', 400);
+        }
+      }
+    }
+
+    // Fetch raw results
+    let rawResults: any[];
+
+    if (isPaginated) {
+      const fetchLimit = limit + 1;
+      let stmt;
+      if (cursorTs === null) {
+        stmt = env.DB.prepare(`
+          SELECT
+            uuid, name_prefix, full_name, first_name, last_name, name_suffix,
+            organization, organization_en, organization_alias, department, title,
+            phone, email, website, address, note,
+            company_summary, personal_summary, ai_sources_json, ai_status,
+            original_image_url, thumbnail_url, created_at, updated_at,
+            'own' as source,
+            NULL as shared_by,
+            COALESCE(updated_at, created_at) AS sort_ts
+          FROM received_cards
+          WHERE user_email = ? AND deleted_at IS NULL AND merged_to IS NULL
+
+          UNION ALL
+
+          SELECT
+            rc.uuid, rc.name_prefix, rc.full_name, rc.first_name, rc.last_name, rc.name_suffix,
+            rc.organization, rc.organization_en, rc.organization_alias, rc.department, rc.title,
+            rc.phone, rc.email, rc.website, rc.address, rc.note,
+            rc.company_summary, rc.personal_summary, rc.ai_sources_json, rc.ai_status,
+            rc.original_image_url, rc.thumbnail_url, rc.created_at, rc.updated_at,
+            'shared' as source,
+            sc.owner_email as shared_by,
+            COALESCE(rc.updated_at, rc.created_at) AS sort_ts
+          FROM shared_cards sc
+          INNER JOIN received_cards rc ON sc.card_uuid = rc.uuid
+          WHERE rc.deleted_at IS NULL AND rc.merged_to IS NULL
+            AND rc.user_email != ?
+
+          ORDER BY sort_ts DESC, uuid DESC
+          LIMIT ?
+        `).bind(user.email, user.email, fetchLimit);
+      } else {
+        stmt = env.DB.prepare(`
+          SELECT
+            uuid, name_prefix, full_name, first_name, last_name, name_suffix,
+            organization, organization_en, organization_alias, department, title,
+            phone, email, website, address, note,
+            company_summary, personal_summary, ai_sources_json, ai_status,
+            original_image_url, thumbnail_url, created_at, updated_at,
+            'own' as source,
+            NULL as shared_by,
+            COALESCE(updated_at, created_at) AS sort_ts
+          FROM received_cards
+          WHERE user_email = ? AND deleted_at IS NULL AND merged_to IS NULL
+            AND (CAST(COALESCE(updated_at, created_at) AS INTEGER) < ?
+                 OR (CAST(COALESCE(updated_at, created_at) AS INTEGER) = ? AND uuid < ?))
+
+          UNION ALL
+
+          SELECT
+            rc.uuid, rc.name_prefix, rc.full_name, rc.first_name, rc.last_name, rc.name_suffix,
+            rc.organization, rc.organization_en, rc.organization_alias, rc.department, rc.title,
+            rc.phone, rc.email, rc.website, rc.address, rc.note,
+            rc.company_summary, rc.personal_summary, rc.ai_sources_json, rc.ai_status,
+            rc.original_image_url, rc.thumbnail_url, rc.created_at, rc.updated_at,
+            'shared' as source,
+            sc.owner_email as shared_by,
+            COALESCE(rc.updated_at, rc.created_at) AS sort_ts
+          FROM shared_cards sc
+          INNER JOIN received_cards rc ON sc.card_uuid = rc.uuid
+          WHERE rc.deleted_at IS NULL AND rc.merged_to IS NULL
+            AND rc.user_email != ?
+            AND (CAST(COALESCE(rc.updated_at, rc.created_at) AS INTEGER) < ?
+                 OR (CAST(COALESCE(rc.updated_at, rc.created_at) AS INTEGER) = ? AND rc.uuid < ?))
+
+          ORDER BY sort_ts DESC, uuid DESC
+          LIMIT ?
+        `).bind(user.email, cursorTs, cursorTs, cursorUuid, user.email, cursorTs, cursorTs, cursorUuid, fetchLimit);
+      }
+      rawResults = (await stmt.all()).results as any[];
+    } else {
+      rawResults = (await env.DB.prepare(`
+        SELECT
+          uuid, name_prefix, full_name, first_name, last_name, name_suffix,
+          organization, organization_en, organization_alias, department, title,
+          phone, email, website, address, note,
+          company_summary, personal_summary, ai_sources_json, ai_status,
+          original_image_url, thumbnail_url, created_at, updated_at,
+          'own' as source,
+          NULL as shared_by,
+          COALESCE(updated_at, created_at) AS sort_ts
+        FROM received_cards
+        WHERE user_email = ? AND deleted_at IS NULL AND merged_to IS NULL
+
+        UNION ALL
+
+        SELECT
+          rc.uuid, rc.name_prefix, rc.full_name, rc.first_name, rc.last_name, rc.name_suffix,
+          rc.organization, rc.organization_en, rc.organization_alias, rc.department, rc.title,
+          rc.phone, rc.email, rc.website, rc.address, rc.note,
+          rc.company_summary, rc.personal_summary, rc.ai_sources_json, rc.ai_status,
+          rc.original_image_url, rc.thumbnail_url, rc.created_at, rc.updated_at,
+          'shared' as source,
+          sc.owner_email as shared_by,
+          COALESCE(rc.updated_at, rc.created_at) AS sort_ts
+        FROM shared_cards sc
+        INNER JOIN received_cards rc ON sc.card_uuid = rc.uuid
+        WHERE rc.deleted_at IS NULL AND rc.merged_to IS NULL
+          AND rc.user_email != ?
+
+        ORDER BY sort_ts DESC
+      `).bind(user.email, user.email).all()).results as any[];
+    }
+
+    // Determine page slice (prefetch+1 pattern)
+    const hasMore = isPaginated && rawResults.length > limit;
+    const pageResults = hasMore ? rawResults.slice(0, limit) : rawResults;
 
     // Parse ai_sources_json for each card
-    const cardsWithSources = cards.results.map((card: any) => ({
+    const cards = pageResults.map((card: any) => ({
       ...card,
       sources: card.ai_sources_json ? JSON.parse(card.ai_sources_json) : []
     }));
 
-    // Fetch tags for all cards
-    if (cardsWithSources.length > 0) {
-      const cardUuids = cardsWithSources.map((c: any) => c.uuid);
-      const placeholders = cardUuids.map(() => '?').join(',');
-      
-      const tagsResult = await env.DB.prepare(`
-        SELECT card_uuid, category, raw_value, normalized_value, tag_source
-        FROM card_tags
-        WHERE card_uuid IN (${placeholders})
-        ORDER BY created_at ASC
-      `).bind(...cardUuids).all();
+    // Fetch tags for all cards (batched in chunks of 100 to stay within D1 bind param limit)
+    if (cards.length > 0) {
+      const cardUuids = cards.map((c: any) => c.uuid);
 
-      // Group tags by card_uuid (new format with objects)
-      const tagsByCard = new Map<string, Array<{ category: string; raw: string; normalized: string }>>();
-      for (const row of tagsResult.results) {
-        const r = row as any;
-        if (!tagsByCard.has(r.card_uuid)) {
-          tagsByCard.set(r.card_uuid, []);
-        }
-        tagsByCard.get(r.card_uuid)!.push({
-          category: r.category,
-          raw: r.raw_value,
-          normalized: r.normalized_value
-        });
+      const CHUNK_SIZE = 100;
+      const chunks: string[][] = [];
+      for (let i = 0; i < cardUuids.length; i += CHUNK_SIZE) {
+        chunks.push(cardUuids.slice(i, i + CHUNK_SIZE));
       }
 
-      // Add tags to cards
-      for (const card of cardsWithSources) {
+      const chunkStatements = chunks.map(chunk => {
+        const placeholders = chunk.map(() => '?').join(',');
+        return env.DB.prepare(`
+          SELECT card_uuid, category, raw_value, normalized_value, tag_source
+          FROM card_tags
+          WHERE card_uuid IN (${placeholders})
+          ORDER BY created_at ASC
+        `).bind(...chunk);
+      });
+
+      const chunkResults = await env.DB.batch(chunkStatements);
+
+      // Group tags by card_uuid
+      const tagsByCard = new Map<string, Array<{ category: string; raw: string; normalized: string }>>();
+      for (const result of chunkResults) {
+        for (const row of result.results) {
+          const r = row as any;
+          if (!tagsByCard.has(r.card_uuid)) {
+            tagsByCard.set(r.card_uuid, []);
+          }
+          tagsByCard.get(r.card_uuid)!.push({
+            category: r.category,
+            raw: r.raw_value,
+            normalized: r.normalized_value
+          });
+        }
+      }
+
+      for (const card of cards) {
         card.tags = tagsByCard.get(card.uuid) || [];
       }
     }
 
-    return jsonResponse(cardsWithSources);
+    // Return paginated or flat response
+    if (isPaginated) {
+      let nextCursor: string | null = null;
+      if (hasMore) {
+        const last = cards[cards.length - 1];
+        nextCursor = btoa(JSON.stringify({ t: Number(last.sort_ts), u: String(last.uuid) }))
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=+$/, '');
+      }
+      return jsonResponse({ cards, nextCursor, hasMore });
+    }
+
+    return jsonResponse(cards);
 
   } catch (error) {
     console.error('List cards error:', error);

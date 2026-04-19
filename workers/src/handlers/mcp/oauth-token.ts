@@ -67,7 +67,7 @@ async function parseBody(request: Request): Promise<URLSearchParams> {
   return new URLSearchParams(text);
 }
 
-export async function handleMcpToken(request: Request, env: Env): Promise<Response> {
+export async function handleMcpToken(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   // Atomic rate limit via Durable Objects
   const ip = request.headers.get('CF-Connecting-IP') || '0.0.0.0';
   try {
@@ -91,8 +91,8 @@ export async function handleMcpToken(request: Request, env: Env): Promise<Respon
   const ua = request.headers.get('User-Agent') || '';
   const anonIp = anonymizeIP(ip);
   const failToken = (error: string, description?: string): Response => {
-    env.DB.prepare(`INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details) VALUES (?, ?, ?, ?, ?)`)
-      .bind('mcp_token_failed', ua, anonIp, Date.now(), JSON.stringify({ error, grant_type: grantType ?? 'unknown' })).run().catch(() => {});
+    ctx.waitUntil(env.DB.prepare(`INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details) VALUES (?, ?, ?, ?, ?)`)
+      .bind('mcp_token_failed', ua, anonIp, Date.now(), JSON.stringify({ error, grant_type: grantType ?? 'unknown' })).run().catch(() => {}));
     return tokenError(error, description);
   };
 
@@ -127,8 +127,8 @@ export async function handleMcpToken(request: Request, env: Env): Promise<Respon
       resource: data.resource,
     }, env);
 
-    env.DB.prepare(`INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details) VALUES (?, ?, ?, ?, ?)`)
-      .bind('mcp_token_issued', ua, anonIp, Date.now(), JSON.stringify({ email: data.email, grant_type: 'authorization_code' })).run().catch(() => {});
+    ctx.waitUntil(env.DB.prepare(`INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details) VALUES (?, ?, ?, ?, ?)`)
+      .bind('mcp_token_issued', ua, anonIp, Date.now(), JSON.stringify({ email: data.email, grant_type: 'authorization_code' })).run().catch(() => {}));
 
     return new Response(JSON.stringify({
       access_token: accessToken,
@@ -169,8 +169,8 @@ export async function handleMcpToken(request: Request, env: Env): Promise<Respon
       resource: data.resource,
     }, env);
 
-    env.DB.prepare(`INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details) VALUES (?, ?, ?, ?, ?)`)
-      .bind('mcp_token_refreshed', ua, anonIp, Date.now(), JSON.stringify({ email: data.email, grant_type: 'refresh_token' })).run().catch(() => {});
+    ctx.waitUntil(env.DB.prepare(`INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details) VALUES (?, ?, ?, ?, ?)`)
+      .bind('mcp_token_refreshed', ua, anonIp, Date.now(), JSON.stringify({ email: data.email, grant_type: 'refresh_token' })).run().catch(() => {}));
 
     return new Response(JSON.stringify({
       access_token: accessToken,

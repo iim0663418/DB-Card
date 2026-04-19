@@ -137,7 +137,7 @@ export async function handleMcpAuthorize(request: Request, env: Env): Promise<Re
 }
 
 // Scenario 5, 6, 7: Handle Google callback
-export async function handleMcpCallback(request: Request, env: Env): Promise<Response> {
+export async function handleMcpCallback(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const url = new URL(request.url);
   const cbIp = anonymizeIP(request.headers.get('CF-Connecting-IP') || '0.0.0.0');
   const cbUa = request.headers.get('User-Agent') || '';
@@ -161,6 +161,8 @@ export async function handleMcpCallback(request: Request, env: Env): Promise<Res
 
   // Scenario 6: Google returned an error
   if (error) {
+    ctx.waitUntil(env.DB.prepare(`INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details) VALUES (?, ?, ?, ?, ?)`)
+      .bind('mcp_auth_failed', cbUa, cbIp, Date.now(), JSON.stringify({ reason: 'google_error', error })).run().catch(() => {}));
     const dest = new URL(redirect_uri);
     dest.searchParams.set('error', error);
     if (client_state) dest.searchParams.set('state', client_state);
@@ -168,6 +170,8 @@ export async function handleMcpCallback(request: Request, env: Env): Promise<Res
   }
 
   if (!googleCode) {
+    ctx.waitUntil(env.DB.prepare(`INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details) VALUES (?, ?, ?, ?, ?)`)
+      .bind('mcp_auth_failed', cbUa, cbIp, Date.now(), JSON.stringify({ reason: 'missing_code' })).run().catch(() => {}));
     const dest = new URL(redirect_uri);
     dest.searchParams.set('error', 'server_error');
     if (client_state) dest.searchParams.set('state', client_state);
@@ -210,8 +214,8 @@ export async function handleMcpCallback(request: Request, env: Env): Promise<Res
 
     // Scenario 7: email not in allowlist
     if (!allowlistResult) {
-      env.DB.prepare(`INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details) VALUES (?, ?, ?, ?, ?)`)
-        .bind('mcp_auth_failed', cbUa, cbIp, Date.now(), JSON.stringify({ email, reason: 'not_in_allowlist' })).run().catch(() => {});
+      ctx.waitUntil(env.DB.prepare(`INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details) VALUES (?, ?, ?, ?, ?)`)
+        .bind('mcp_auth_failed', cbUa, cbIp, Date.now(), JSON.stringify({ email, reason: 'not_in_allowlist' })).run().catch(() => {}));
       const dest = new URL(redirect_uri);
       dest.searchParams.set('error', 'access_denied');
       if (client_state) dest.searchParams.set('state', client_state);
@@ -220,8 +224,8 @@ export async function handleMcpCallback(request: Request, env: Env): Promise<Res
 
     // Block disabled accounts (RISC events, etc.)
     if (await isUserDisabled(env.DB, email)) {
-      env.DB.prepare(`INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details) VALUES (?, ?, ?, ?, ?)`)
-        .bind('mcp_auth_failed', cbUa, cbIp, Date.now(), JSON.stringify({ email, reason: 'user_disabled' })).run().catch(() => {});
+      ctx.waitUntil(env.DB.prepare(`INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details) VALUES (?, ?, ?, ?, ?)`)
+        .bind('mcp_auth_failed', cbUa, cbIp, Date.now(), JSON.stringify({ email, reason: 'user_disabled' })).run().catch(() => {}));
       const dest = new URL(redirect_uri);
       dest.searchParams.set('error', 'access_denied');
       if (client_state) dest.searchParams.set('state', client_state);
@@ -263,7 +267,10 @@ export async function handleMcpCallback(request: Request, env: Env): Promise<Res
     return Response.redirect(dest.toString(), 302);
 
   } catch (err) {
-    console.error('[MCP Callback Error]', err instanceof Error ? err.message : String(err));
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error('[MCP Callback Error]', errMsg);
+    ctx.waitUntil(env.DB.prepare(`INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details) VALUES (?, ?, ?, ?, ?)`)
+      .bind('mcp_auth_failed', cbUa, cbIp, Date.now(), JSON.stringify({ reason: 'server_error', error: errMsg })).run().catch(() => {}));
     const dest = new URL(redirect_uri);
     dest.searchParams.set('error', 'server_error');
     if (client_state) dest.searchParams.set('state', client_state);

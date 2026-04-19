@@ -316,7 +316,7 @@ export default {
     }
 
     if (url.pathname === '/mcp/register' && request.method === 'POST') {
-      return addMinimalSecurityHeaders(await handleMcpRegister(request, env));
+      return addMinimalSecurityHeaders(await handleMcpRegister(request, env, ctx));
     }
 
     if (url.pathname === '/mcp/authorize' && request.method === 'GET') {
@@ -324,15 +324,15 @@ export default {
     }
 
     if (url.pathname === '/mcp/callback' && request.method === 'GET') {
-      return addMinimalSecurityHeaders(await handleMcpCallback(request, env));
+      return addMinimalSecurityHeaders(await handleMcpCallback(request, env, ctx));
     }
 
     if (url.pathname === '/mcp/token' && request.method === 'POST') {
-      return addMinimalSecurityHeaders(await handleMcpToken(request, env));
+      return addMinimalSecurityHeaders(await handleMcpToken(request, env, ctx));
     }
 
     if (url.pathname === '/mcp' && request.method === 'POST') {
-      return addMinimalSecurityHeaders(await handleMcp(request, env));
+      return addMinimalSecurityHeaders(await handleMcp(request, env, ctx));
     }
 
     // Health check

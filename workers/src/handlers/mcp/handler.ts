@@ -83,7 +83,7 @@ async function validateToken(
 
 // ── Main handler ──────────────────────────────────────────────────────────────
 
-export async function handleMcp(request: Request, env: Env): Promise<Response> {
+export async function handleMcp(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   // Require Authorization header
   const authHeader = request.headers.get('Authorization') ?? '';
   if (!authHeader.startsWith('Bearer ')) {
@@ -135,14 +135,14 @@ export async function handleMcp(request: Request, env: Env): Promise<Response> {
 
     const ip = anonymizeIP(request.headers.get('CF-Connecting-IP') || '0.0.0.0');
     const logToolCall = (tool: string, success: boolean, reason?: string) => {
-      env.DB.prepare(`
+      ctx.waitUntil(env.DB.prepare(`
         INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details)
         VALUES ('mcp_tool_call', ?, ?, ?, ?)
       `).bind(
         request.headers.get('User-Agent') || 'mcp-client',
         ip, Date.now(),
         JSON.stringify({ tool, email, success, ...(reason && { reason }) })
-      ).run().catch(() => {});
+      ).run().catch(() => {}));
     };
 
     const needsRead = ['list_received_cards', 'search_received_cards', 'get_received_card', 'export_vcard'];

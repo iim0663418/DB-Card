@@ -85,7 +85,7 @@ export async function handleMcpRegister(request: Request, env: Env): Promise<Res
     token_endpoint_auth_method: tokenEndpointAuthMethod,
   };
 
-  await env.KV.put(`mcp_client:${clientId}`, JSON.stringify(clientData), { expirationTtl: 7776000 });
+  await env.KV.put(`mcp_client:${clientId}`, JSON.stringify(clientData));
 
   env.DB.prepare(`INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details) VALUES (?, ?, ?, ?, ?)`)
     .bind('mcp_client_registered', ua, anonIp, Date.now(), JSON.stringify({ client_id: clientId, client_name: clientName })).run().catch(() => {});

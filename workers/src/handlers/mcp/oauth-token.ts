@@ -154,12 +154,10 @@ export async function handleMcpToken(request: Request, env: Env, ctx: ExecutionC
     // Validate before consuming — don't burn the token on a fixable client error
     if (data.client_id !== clientId) return failToken('invalid_grant');
     if (resource && resource !== data.resource) return failToken('invalid_target', 'resource mismatch');
+    if (await isUserDisabled(env.DB, data.email)) return failToken('invalid_grant');
 
     // Consume refresh token (one-time use, rotate)
     await env.KV.delete(`${MCP_REFRESH_PREFIX}${refreshToken}`);
-
-    // Block disabled accounts on refresh
-    if (await isUserDisabled(env.DB, data.email)) return failToken('invalid_grant');
 
     const accessToken = await issueAccessToken(data.email, data.resource, data.scope, env);
     const newRefreshToken = await issueRefreshToken({

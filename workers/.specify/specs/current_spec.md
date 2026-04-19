@@ -1,117 +1,48 @@
-# BDD Spec: Frontend progressive loading for received-cards
+# BDD Spec: Fix MCP audit logging reliability + coverage
 
-## Context
-Phase 1 added cursor-based pagination to `GET /api/user/received-cards?limit=50&cursor=<token>`. The frontend currently calls the endpoint without params (gets all cards at once). This spec adds progressive loading: fetch first page fast, then "load more" to accumulate cards for client-side filtering.
+## Problem
+1. Audit log writes use `.run().catch(() => {})` — fire-and-forget without `ctx.waitUntil`. Workers may terminate before D1 write completes.
+2. Callback has 3 unlogged failure paths: Google error, missing code, catch block.
 
 ## Impacted Files
-- `public/js/received-cards.js` — `ReceivedCardsAPI.loadCards`, `ReceivedCards.loadCards`, `ReceivedCards` state, `ReceivedCards.renderCards`
+- `src/index.ts` — pass `ctx` to MCP handlers
+- `src/handlers/mcp/handler.ts` — accept `ctx`, use `ctx.waitUntil` for audit
+- `src/handlers/mcp/oauth-register.ts` — accept `ctx`, use `ctx.waitUntil`
+- `src/handlers/mcp/oauth-token.ts` — accept `ctx`, use `ctx.waitUntil`
+- `src/handlers/mcp/oauth-authorize.ts` — accept `ctx`, use `ctx.waitUntil`, add 3 missing log paths
 
-## Behavioral Unit
-Progressive loading with "load more" button. First page loads instantly, subsequent pages append on demand. Client-side filtering works on accumulated cards.
+## Implementation
 
----
-
-## Scenario 1: Initial load fetches first page only
-
-**Given** user opens received-cards view
-**When** `loadCards()` is called
-**Then** API is called with `?limit=50`
-**And** first 50 cards render immediately
-**And** result count shows "50+ 張名片" (indicating more exist)
-**And** a "載入更多" button appears below the card grid
-
-## Scenario 2: Load more appends next page
-
-**Given** first 50 cards are displayed with "載入更多" button
-**When** user clicks "載入更多"
-**Then** API is called with `?limit=50&cursor=<nextCursor>`
-**And** next 50 cards append to the grid (not replace)
-**And** `allCards` accumulates to 100 cards
-**And** tag filters update to include new cards' tags
-**And** result count updates to "100+ 張名片"
-
-## Scenario 3: All cards loaded (no more pages)
-
-**Given** user has loaded all pages (hasMore=false)
-**When** last page loads
-**Then** "載入更多" button disappears
-**And** result count shows exact count "101 張名片"
-**And** `allCards` contains all 101 cards
-
-## Scenario 4: Client-side filtering works on accumulated cards
-
-**Given** user has loaded 100 of 101 cards
-**When** user selects a tag filter
-**Then** filtering applies to the 100 accumulated cards
-**And** result count reflects filtered count from loaded cards
-
-## Scenario 5: Backward compat — after full load, filtering works as before
-
-**Given** all cards are loaded (hasMore=false)
-**When** user uses keyword search or tag filter
-**Then** behavior is identical to current (all cards available for filtering)
-
----
-
-## Implementation Constraints
-
-### API layer change
-```javascript
-// ReceivedCardsAPI.loadCards — add pagination params
-async loadCards(limit = 50, cursor = null) {
-  let url = '/api/user/received-cards?limit=' + limit;
-  if (cursor) url += '&cursor=' + encodeURIComponent(cursor);
-  return await this.call(url);
-}
+### Step 1: Pass ctx from index.ts
+Change all 5 MCP handler calls to pass `ctx`:
 ```
-
-### State additions to ReceivedCards namespace
-```javascript
-nextCursor: null,    // cursor for next page
-hasMore: false,      // whether more pages exist
-isLoadingMore: false // prevent double-click
+handleMcpRegister(request, env, ctx)
+handleMcpAuthorize(request, env)        // no change (GET, no audit on initiate)
+handleMcpCallback(request, env, ctx)
+handleMcpToken(request, env, ctx)
+handleMcp(request, env, ctx)
 ```
+Note: handleMcpAuthorize (initiate) doesn't need ctx — it has no audit writes. handleMcpCallback does.
 
-### loadCards changes
-- First call: `loadCards()` fetches `?limit=50`, stores cards + nextCursor + hasMore
-- Sets `allCards` to first page results
-- Calls `renderCards` + shows "load more" button if hasMore
+### Step 2: Update handler signatures
+Each handler adds `ctx: ExecutionContext` parameter.
 
-### New: loadMoreCards method
-- Fetches next page using stored `nextCursor`
-- Appends to `allCards` (not replace)
-- Appends new card HTML to grid (not re-render all)
-- Updates tag filters with new cards
-- Updates result count
-- If !hasMore, removes "load more" button
+### Step 3: Replace .run().catch() with ctx.waitUntil
+All audit log writes change from:
+```typescript
+env.DB.prepare(...).bind(...).run().catch(() => {});
+```
+to:
+```typescript
+ctx.waitUntil(env.DB.prepare(...).bind(...).run().catch(() => {}));
+```
+This ensures the D1 write completes even after the response is sent.
 
-### renderCards changes
-- After rendering cards, if `hasMore`, append "load more" button div below grid
-- Button: `<button onclick="ReceivedCards.loadMoreCards()">載入更多</button>`
-
-### Shared cards query
-- The shared-cards query (`/api/user/shared-cards`) runs once on initial load
-- `sharedUuids` Set is stored and reused for subsequent pages
-
-### Tag filter re-initialization
-- `initTagFilters()` already reads from `this.allCards`
-- After appending new cards, call `initTagFilters()` again to update sidebar
-
-### Result count display
-- While `hasMore`: show `${allCards.length}+ 張名片`
-- When `!hasMore`: show `${allCards.length} 張名片`
-
----
-
-## What NOT to change
-- `renderCardHTML` — unchanged
-- `filterCards` — unchanged (already works on `allCards`)
-- `searchCards` API — unchanged (server-side search is separate)
-- `initFromURL` — unchanged
-- Card upload flow — unchanged
-- Edit/delete/share flows — unchanged
+### Step 4: Add 3 missing callback audit logs (oauth-authorize.ts)
+In handleMcpCallback, log before redirect for:
+1. Google returned error: `mcp_auth_failed` with `{ reason: 'google_error', error: <google error> }`
+2. Missing google code: `mcp_auth_failed` with `{ reason: 'missing_code' }`
+3. Catch block: `mcp_auth_failed` with `{ reason: 'server_error', error: <message> }`
 
 ## Validation
-- Manual test: open received-cards, verify 50 cards load, click "load more", verify 50 more append, click again, verify last 1 card loads and button disappears
-- Verify tag filters update after each page load
-- Verify client-side keyword filtering works on accumulated cards
+- `npx tsc --noEmit`

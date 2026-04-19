@@ -1,4 +1,5 @@
 import type { Env } from '../../types';
+import { anonymizeIP } from '../../utils/audit';
 import { generateCodeVerifier, generateCodeChallenge } from '../../utils/pkce';
 import { generateOAuthNonce, storeOAuthNonce } from '../../utils/oauth-nonce';
 import { validateIDToken } from '../../utils/oidc-validator';
@@ -138,6 +139,8 @@ export async function handleMcpAuthorize(request: Request, env: Env): Promise<Re
 // Scenario 5, 6, 7: Handle Google callback
 export async function handleMcpCallback(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
+  const cbIp = anonymizeIP(request.headers.get('CF-Connecting-IP') || '0.0.0.0');
+  const cbUa = request.headers.get('User-Agent') || '';
   const googleState = url.searchParams.get('state');
   const googleCode = url.searchParams.get('code');
   const error = url.searchParams.get('error');
@@ -207,6 +210,8 @@ export async function handleMcpCallback(request: Request, env: Env): Promise<Res
 
     // Scenario 7: email not in allowlist
     if (!allowlistResult) {
+      env.DB.prepare(`INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details) VALUES (?, ?, ?, ?, ?)`)
+        .bind('mcp_auth_failed', cbUa, cbIp, Date.now(), JSON.stringify({ email, reason: 'not_in_allowlist' })).run().catch(() => {});
       const dest = new URL(redirect_uri);
       dest.searchParams.set('error', 'access_denied');
       if (client_state) dest.searchParams.set('state', client_state);
@@ -215,6 +220,8 @@ export async function handleMcpCallback(request: Request, env: Env): Promise<Res
 
     // Block disabled accounts (RISC events, etc.)
     if (await isUserDisabled(env.DB, email)) {
+      env.DB.prepare(`INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details) VALUES (?, ?, ?, ?, ?)`)
+        .bind('mcp_auth_failed', cbUa, cbIp, Date.now(), JSON.stringify({ email, reason: 'user_disabled' })).run().catch(() => {});
       const dest = new URL(redirect_uri);
       dest.searchParams.set('error', 'access_denied');
       if (client_state) dest.searchParams.set('state', client_state);

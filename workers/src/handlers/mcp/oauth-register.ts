@@ -1,4 +1,5 @@
 import type { Env } from '../../types';
+import { anonymizeIP } from '../../utils/audit';
 
 function isValidRedirectUri(uri: string): boolean {
   try {
@@ -26,11 +27,15 @@ const REGISTER_RL_LIMIT = 5;
 
 export async function handleMcpRegister(request: Request, env: Env): Promise<Response> {
   const ip = request.headers.get('CF-Connecting-IP') || '0.0.0.0';
+  const ua = request.headers.get('User-Agent') || '';
+  const anonIp = anonymizeIP(ip);
   try {
     const doId = env.RATE_LIMITER.idFromName(`mcp_register:${ip}`);
     const stub = env.RATE_LIMITER.get(doId);
     const rl = await (stub as any).checkAndIncrement('mcp_register', ip, REGISTER_RL_WINDOW, REGISTER_RL_LIMIT);
     if (!rl.allowed) {
+      env.DB.prepare(`INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details) VALUES (?, ?, ?, ?, ?)`)
+        .bind('mcp_register_rate_limited', ua, anonIp, Date.now(), JSON.stringify({})).run().catch(() => {});
       return registerResponse({ error: 'rate_limit_exceeded' }, 429);
     }
   } catch (e) {
@@ -81,6 +86,9 @@ export async function handleMcpRegister(request: Request, env: Env): Promise<Res
   };
 
   await env.KV.put(`mcp_client:${clientId}`, JSON.stringify(clientData), { expirationTtl: 7776000 });
+
+  env.DB.prepare(`INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details) VALUES (?, ?, ?, ?, ?)`)
+    .bind('mcp_client_registered', ua, anonIp, Date.now(), JSON.stringify({ client_id: clientId, client_name: clientName })).run().catch(() => {});
 
   return registerResponse(clientData, 201);
 }

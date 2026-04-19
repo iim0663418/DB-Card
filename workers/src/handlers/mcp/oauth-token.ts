@@ -1,5 +1,6 @@
 import { SignJWT } from 'jose';
 import type { Env } from '../../types';
+import { anonymizeIP } from '../../utils/audit';
 import { generateCodeChallenge } from '../../utils/pkce';
 import { isUserDisabled } from '../../utils/user-security';
 
@@ -87,6 +88,14 @@ export async function handleMcpToken(request: Request, env: Env): Promise<Respon
   const params = await parseBody(request);
   const grantType = params.get('grant_type');
 
+  const ua = request.headers.get('User-Agent') || '';
+  const anonIp = anonymizeIP(ip);
+  const failToken = (error: string, description?: string): Response => {
+    env.DB.prepare(`INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details) VALUES (?, ?, ?, ?, ?)`)
+      .bind('mcp_token_failed', ua, anonIp, Date.now(), JSON.stringify({ error, grant_type: grantType ?? 'unknown' })).run().catch(() => {});
+    return tokenError(error, description);
+  };
+
   if (grantType === 'authorization_code') {
     const code = params.get('code');
     const clientId = params.get('client_id');
@@ -94,21 +103,21 @@ export async function handleMcpToken(request: Request, env: Env): Promise<Respon
     const codeVerifier = params.get('code_verifier');
     const resource = params.get('resource') || '';
 
-    if (!code) return tokenError('invalid_grant');
-    if (!resource) return tokenError('invalid_request', 'resource parameter is required');
+    if (!code) return failToken('invalid_grant');
+    if (!resource) return failToken('invalid_request', 'resource parameter is required');
 
     const raw = await env.KV.get(`${MCP_AUTH_CODE_PREFIX}${code}`);
-    if (!raw) return tokenError('invalid_grant');
+    if (!raw) return failToken('invalid_grant');
     await env.KV.delete(`${MCP_AUTH_CODE_PREFIX}${code}`);
 
     const data = JSON.parse(raw) as AuthCodeData;
 
-    if (data.client_id !== clientId) return tokenError('invalid_grant');
-    if (data.redirect_uri !== redirectUri) return tokenError('invalid_grant');
-    if (data.resource !== resource) return tokenError('invalid_grant');
+    if (data.client_id !== clientId) return failToken('invalid_grant');
+    if (data.redirect_uri !== redirectUri) return failToken('invalid_grant');
+    if (data.resource !== resource) return failToken('invalid_grant');
 
     const expectedChallenge = await generateCodeChallenge(codeVerifier ?? '');
-    if (expectedChallenge !== data.code_challenge) return tokenError('invalid_grant');
+    if (expectedChallenge !== data.code_challenge) return failToken('invalid_grant');
 
     const accessToken = await issueAccessToken(data.email, data.resource, data.scope, env);
     const refreshToken = await issueRefreshToken({
@@ -117,6 +126,9 @@ export async function handleMcpToken(request: Request, env: Env): Promise<Respon
       scope: data.scope,
       resource: data.resource,
     }, env);
+
+    env.DB.prepare(`INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details) VALUES (?, ?, ?, ?, ?)`)
+      .bind('mcp_token_issued', ua, anonIp, Date.now(), JSON.stringify({ email: data.email, grant_type: 'authorization_code' })).run().catch(() => {});
 
     return new Response(JSON.stringify({
       access_token: accessToken,
@@ -132,19 +144,19 @@ export async function handleMcpToken(request: Request, env: Env): Promise<Respon
     const clientId = params.get('client_id');
     const resource = params.get('resource') ?? '';
 
-    if (!refreshToken) return tokenError('invalid_grant');
+    if (!refreshToken) return failToken('invalid_grant');
 
     const raw = await env.KV.get(`${MCP_REFRESH_PREFIX}${refreshToken}`);
-    if (!raw) return tokenError('invalid_grant');
+    if (!raw) return failToken('invalid_grant');
     await env.KV.delete(`${MCP_REFRESH_PREFIX}${refreshToken}`);
 
     const data = JSON.parse(raw) as RefreshTokenData;
 
-    if (data.client_id !== clientId) return tokenError('invalid_grant');
-    if (resource && resource !== data.resource) return tokenError('invalid_target', 'resource mismatch');
+    if (data.client_id !== clientId) return failToken('invalid_grant');
+    if (resource && resource !== data.resource) return failToken('invalid_target', 'resource mismatch');
 
     // Block disabled accounts on refresh
-    if (await isUserDisabled(env.DB, data.email)) return tokenError('invalid_grant');
+    if (await isUserDisabled(env.DB, data.email)) return failToken('invalid_grant');
 
     const accessToken = await issueAccessToken(data.email, data.resource, data.scope, env);
     const newRefreshToken = await issueRefreshToken({
@@ -153,6 +165,9 @@ export async function handleMcpToken(request: Request, env: Env): Promise<Respon
       scope: data.scope,
       resource: data.resource,
     }, env);
+
+    env.DB.prepare(`INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details) VALUES (?, ?, ?, ?, ?)`)
+      .bind('mcp_token_refreshed', ua, anonIp, Date.now(), JSON.stringify({ email: data.email, grant_type: 'refresh_token' })).run().catch(() => {});
 
     return new Response(JSON.stringify({
       access_token: accessToken,
@@ -163,5 +178,5 @@ export async function handleMcpToken(request: Request, env: Env): Promise<Respon
     }), { status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
   }
 
-  return tokenError('unsupported_grant_type');
+  return failToken('unsupported_grant_type');
 }

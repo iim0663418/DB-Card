@@ -21,7 +21,22 @@ function registerResponse(body: unknown, status: number): Response {
   });
 }
 
+const REGISTER_RL_WINDOW = 3_600_000; // 1 hour in ms
+const REGISTER_RL_LIMIT = 5;
+
 export async function handleMcpRegister(request: Request, env: Env): Promise<Response> {
+  const ip = request.headers.get('CF-Connecting-IP') || '0.0.0.0';
+  try {
+    const doId = env.RATE_LIMITER.idFromName(`mcp_register:${ip}`);
+    const stub = env.RATE_LIMITER.get(doId);
+    const rl = await (stub as any).checkAndIncrement('mcp_register', ip, REGISTER_RL_WINDOW, REGISTER_RL_LIMIT);
+    if (!rl.allowed) {
+      return registerResponse({ error: 'rate_limit_exceeded' }, 429);
+    }
+  } catch (e) {
+    console.error('[MCP register rate limit error]', e);
+  }
+
   let body: Record<string, unknown>;
   try {
     body = await request.json() as Record<string, unknown>;
@@ -65,7 +80,7 @@ export async function handleMcpRegister(request: Request, env: Env): Promise<Res
     token_endpoint_auth_method: tokenEndpointAuthMethod,
   };
 
-  await env.KV.put(`mcp_client:${clientId}`, JSON.stringify(clientData));
+  await env.KV.put(`mcp_client:${clientId}`, JSON.stringify(clientData), { expirationTtl: 7776000 });
 
   return registerResponse(clientData, 201);
 }

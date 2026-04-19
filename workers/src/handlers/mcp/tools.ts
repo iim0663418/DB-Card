@@ -130,6 +130,27 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   },
 ];
 
+// ── Input length validation ───────────────────────────────────────────────────
+
+const FIELD_MAX_LENGTHS: Record<string, number> = {
+  full_name: 200, first_name: 200, last_name: 200, name_prefix: 200, name_suffix: 200,
+  organization: 500, organization_en: 500, department: 500, title: 500,
+  phone: 500, email: 500, website: 500,
+  address: 1000,
+  note: 5000,
+  company_summary: 3000, personal_summary: 3000,
+};
+
+function validateFieldLengths(args: Record<string, unknown>): string | null {
+  for (const [field, max] of Object.entries(FIELD_MAX_LENGTHS)) {
+    const val = args[field];
+    if (typeof val === 'string' && val.length > max) {
+      return `Field '${field}' exceeds maximum length of ${max}`;
+    }
+  }
+  return null;
+}
+
 // ── Tool result helper ────────────────────────────────────────────────────────
 
 function textResult(text: string) {
@@ -305,6 +326,9 @@ export async function toolSaveReceivedCard(
     return textResult('full_name is required');
   }
 
+  const lenErr = validateFieldLengths(args as Record<string, unknown>);
+  if (lenErr) return textResult(lenErr);
+
   const cardUuid = crypto.randomUUID();
   const now = Date.now();
 
@@ -381,6 +405,9 @@ export async function toolUpdateReceivedCard(
   userEmail: string,
   env: Env
 ): Promise<unknown> {
+  const lenErr = validateFieldLengths(args as Record<string, unknown>);
+  if (lenErr) return textResult(lenErr);
+
   const updatable = [
     'full_name', 'first_name', 'last_name', 'name_prefix', 'name_suffix',
     'organization', 'organization_en', 'department', 'title',

@@ -141,17 +141,17 @@ export async function handleMcpToken(request: Request, env: Env): Promise<Respon
     const data = JSON.parse(raw) as RefreshTokenData;
 
     if (data.client_id !== clientId) return tokenError('invalid_grant');
+    if (resource && resource !== data.resource) return tokenError('invalid_target', 'resource mismatch');
 
     // Block disabled accounts on refresh
     if (await isUserDisabled(env.DB, data.email)) return tokenError('invalid_grant');
 
-    const effectiveResource = resource || data.resource;
-    const accessToken = await issueAccessToken(data.email, effectiveResource, data.scope, env);
+    const accessToken = await issueAccessToken(data.email, data.resource, data.scope, env);
     const newRefreshToken = await issueRefreshToken({
       client_id: data.client_id,
       email: data.email,
       scope: data.scope,
-      resource: effectiveResource,
+      resource: data.resource,
     }, env);
 
     return new Response(JSON.stringify({

@@ -26,11 +26,13 @@ const ErrorPolicy = {
    * @returns {Promise<{action: string, ...}>}
    */
   async handle(status, errorData, context = 'api', method = 'GET', endpoint = '') {
-    // Log for monitoring
-    this.logError(status, errorData, context, method, endpoint);
-
-    // 401 Unauthorized - Session expired
+    // 401 Unauthorized - Session expired (circuit breaker: act once, suppress duplicates)
     if (status === 401) {
+      if (window.__sessionExpired) {
+        return { action: 'none' };
+      }
+      this.logError(status, errorData, context, method, endpoint);
+      window.__sessionExpired = true;
       sessionStorage.clear();
       return {
         action: 'redirect',
@@ -41,6 +43,9 @@ const ErrorPolicy = {
     }
 
     // 403 Forbidden - Multiple scenarios
+    // Log non-401 errors for monitoring (401 logged only on first occurrence above)
+    this.logError(status, errorData, context, method, endpoint);
+
     if (status === 403) {
       return await this.handle403(errorData, context, method);
     }

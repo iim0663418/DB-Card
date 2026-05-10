@@ -1,5 +1,5 @@
 // Application Version
-export const APP_VERSION = '5.1.0';
+export const APP_VERSION = '5.2.0';
 
 // API Configuration
 export const API_BASE = window.location.origin;

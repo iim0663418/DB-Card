@@ -990,6 +990,58 @@ const ReceivedCards = {
       return;
     }
 
+    this.currentPage = 1;
+    const token = ++this.searchToken;
+
+    const searchButton = document.getElementById('searchButton');
+    const resultCount = document.getElementById('resultCount');
+    if (searchButton) {
+      searchButton.textContent = '搜尋中...';
+      searchButton.setAttribute('aria-busy', 'true');
+      searchButton.setAttribute('aria-disabled', 'true');
+    }
+    if (resultCount) {
+      resultCount.textContent = '搜尋中...';
+      resultCount.className = 'text-sm font-medium text-blue-600 animate-pulse';
+    }
+
+    const searchFn = (query, signal) => ReceivedCardsAPI.searchCards(query, 1, 100, signal);
+    const fallbackFn = (query) => {
+      const normalized = query.normalize('NFKC').toLowerCase();
+      const results = this.allCards.filter(card => {
+        const fields = [
+          card.full_name, card.full_name_en,
+          card.organization, card.title, card.email, card.phone
+        ].map(f => f?.normalize('NFKC').toLowerCase() || '');
+        return fields.some(f => f.includes(normalized));
+      });
+      return Promise.resolve({ results, degraded: true });
+    };
+
+    this.searchOrchestrator.search(keyword, searchFn, fallbackFn).then(result => {
+      if (token !== this.searchToken) return;
+      if (searchButton) {
+        searchButton.textContent = '搜尋名片';
+        searchButton.setAttribute('aria-busy', 'false');
+        searchButton.setAttribute('aria-disabled', 'false');
+      }
+      if (result.cancelled || result.deduplicated) return;
+
+      if (result.results) {
+        this._applySearchResults(result.results, result.degraded, !!result.error);
+      }
+    });
+  },
+
+  _submitSearch_legacy() {
+    const keyword = this.currentKeyword.trim();
+
+    if (!keyword) {
+      this.currentPage = 1;
+      this.filterCards();
+      return;
+    }
+
     // Request token for race condition prevention
     const token = ++this.searchToken;
 
@@ -1098,9 +1150,16 @@ const ReceivedCards = {
         resultCount.textContent = '搜尋失敗，已使用本地結果';
         resultCount.className = 'text-sm font-medium text-yellow-600';
       } else {
-        const label = degraded ? '本地搜尋' : '智慧搜尋';
+        const label = degraded ? '本地搜尋' : '關鍵字搜尋';
         resultCount.textContent = `${results.length} (${label})`;
         resultCount.className = degraded ? 'text-sm font-medium text-yellow-600' : 'text-sm text-slate-600 font-medium';
+      }
+    }
+    // Merge search results into allCards so openCardDetail can find them
+    const existingUuids = new Set(this.allCards.map(c => c.uuid));
+    for (const card of results) {
+      if (!existingUuids.has(card.uuid)) {
+        this.allCards.push(card);
       }
     }
     this.currentSearchQueryHash = queryHash;
@@ -2098,7 +2157,7 @@ const ReceivedCards = {
   async openCardDetail(uuid) {
     try {
       // 從已載入的 cards 陣列中找到卡片
-      const card = this.cards.find(c => c.uuid === uuid);
+      const card = this.allCards.find(c => c.uuid === uuid) || this.cards.find(c => c.uuid === uuid);
       if (!card) {
         showToast('找不到名片', 'error');
         return;
@@ -2327,7 +2386,7 @@ const ReceivedCards = {
       this.showEnrichProgress('🔍 步驟 1/3：搜尋公司資訊...', 33);
 
       // 取得卡片資料
-      const card = this.cards.find(c => c.uuid === uuid);
+      const card = this.allCards.find(c => c.uuid === uuid) || this.cards.find(c => c.uuid === uuid);
       if (!card) {
         this.hideEnrichProgress();
         showToast('找不到名片', 'error');

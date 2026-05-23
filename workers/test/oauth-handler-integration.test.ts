@@ -6,26 +6,54 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handleOAuthCallback } from '../src/handlers/oauth';
 import type { Env } from '../src/types';
-import * as oidcValidator from '../src/utils/oidc-validator';
+
+// Mock oidc-validator at module level (Vitest 4 requires this for ESM in Workers pool)
+const mockValidateIDToken = vi.fn();
+vi.mock('../src/utils/oidc-validator', () => ({
+  validateIDToken: (...args: unknown[]) => mockValidateIDToken(...args),
+}));
+
+vi.mock('../src/utils/user-security', () => ({
+  isUserDisabled: vi.fn().mockResolvedValue(false),
+}));
+
+vi.mock('../src/utils/oauth-session-index', () => ({
+  addOAuthSessionForUser: vi.fn().mockResolvedValue(undefined),
+}));
 
 describe('Feature 3: OAuth Handler Integration', () => {
   let mockEnv: Env;
 
   beforeEach(() => {
+    mockValidateIDToken.mockReset();
     mockEnv = {
       GOOGLE_CLIENT_ID: 'test-client-id',
       GOOGLE_CLIENT_SECRET: 'test-client-secret',
       JWT_SECRET: 'test-jwt-secret-32-chars-long!!!',
+      WORKER_URL: 'https://db-card.moda.gov.tw',
+      ENVIRONMENT: 'staging',
       KV: {
         get: vi.fn(),
         put: vi.fn(),
         delete: vi.fn()
+      } as any,
+      DB: {
+        prepare: vi.fn().mockReturnValue({
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue({ 1: 1 }),
+            run: vi.fn().mockResolvedValue({}),
+            all: vi.fn().mockResolvedValue({ results: [] }),
+          }),
+        }),
       } as any
     };
 
     // Mock validateAndConsumeOAuthState to return true
     vi.mock('../src/utils/oauth-state', () => ({
-      validateAndConsumeOAuthState: vi.fn().mockResolvedValue(true)
+      validateAndConsumeOAuthState: vi.fn().mockResolvedValue(true),
+      getAndConsumeOAuthState: vi.fn().mockResolvedValue({ nonce: 'test-nonce', codeVerifier: 'test-verifier' }),
+      generateOAuthState: vi.fn().mockReturnValue('test-state'),
+      storeOAuthState: vi.fn().mockResolvedValue(undefined),
     }));
 
     // Mock CSRF functions
@@ -54,7 +82,7 @@ describe('Feature 3: OAuth Handler Integration', () => {
       };
 
       // Mock validateIDToken to succeed
-      vi.spyOn(oidcValidator, 'validateIDToken').mockResolvedValue(mockIDTokenPayload);
+      mockValidateIDToken.mockResolvedValue(mockIDTokenPayload);
 
       // Mock token exchange response with id_token
       global.fetch = vi.fn()
@@ -75,16 +103,14 @@ describe('Feature 3: OAuth Handler Integration', () => {
       const response = await handleOAuthCallback(request, mockEnv);
 
       // Then: ID Token should be validated
-      expect(oidcValidator.validateIDToken).toHaveBeenCalledWith('mock-id-token', mockEnv);
+      expect(mockValidateIDToken).toHaveBeenCalledWith('mock-id-token', mockEnv);
 
       // Then: UserInfo API should NOT be called
       expect(global.fetch).toHaveBeenCalledTimes(1); // Only token exchange, not UserInfo
 
-      // Then: Response should contain user info from ID Token
-      const html = await response.text();
-      expect(html).toContain('user@moda.gov.tw');
-      expect(html).toContain('Test User');
-      expect(html).toContain('https://example.com/photo.jpg');
+      // Then: Response should be a redirect to user portal
+      expect(response.status).toBe(302);
+      expect(response.headers.get('Location')).toContain('login=success');
     });
 
     it('should log success message when ID Token validation succeeds', async () => {
@@ -102,7 +128,7 @@ describe('Feature 3: OAuth Handler Integration', () => {
         exp: Math.floor(Date.now() / 1000) + 3600
       };
 
-      vi.spyOn(oidcValidator, 'validateIDToken').mockResolvedValue(mockIDTokenPayload);
+      mockValidateIDToken.mockResolvedValue(mockIDTokenPayload);
 
       global.fetch = vi.fn()
         .mockResolvedValueOnce({
@@ -164,10 +190,9 @@ describe('Feature 3: OAuth Handler Integration', () => {
       // Then: UserInfo API should be called
       expect(global.fetch).toHaveBeenCalledTimes(2); // Token exchange + UserInfo
 
-      // Then: Login should complete successfully
-      const html = await response.text();
-      expect(html).toContain('user@moda.gov.tw');
-      expect(html).toContain('Test User');
+      // Then: Login should complete successfully (302 redirect)
+      expect(response.status).toBe(302);
+      expect(response.headers.get('Location')).toContain('login=success');
 
       consoleWarnSpy.mockRestore();
     });
@@ -176,7 +201,7 @@ describe('Feature 3: OAuth Handler Integration', () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       // Mock validateIDToken to fail
-      vi.spyOn(oidcValidator, 'validateIDToken').mockRejectedValue(new Error('Invalid signature'));
+      mockValidateIDToken.mockRejectedValue(new Error('Invalid signature'));
 
       // Mock token exchange with id_token (but validation will fail)
       global.fetch = vi.fn()
@@ -213,8 +238,8 @@ describe('Feature 3: OAuth Handler Integration', () => {
       expect(global.fetch).toHaveBeenCalledTimes(2);
 
       // Then: Login should complete successfully using UserInfo API
-      const html = await response.text();
-      expect(html).toContain('user@moda.gov.tw');
+      expect(response.status).toBe(302);
+      expect(response.headers.get('Location')).toContain('login=success');
 
       consoleErrorSpy.mockRestore();
     });
@@ -246,12 +271,9 @@ describe('Feature 3: OAuth Handler Integration', () => {
       // When: Handle OAuth callback with legacy response
       const response = await handleOAuthCallback(request, mockEnv);
 
-      // Then: Should complete successfully without breaking
-      expect(response.status).toBe(200);
-
-      const html = await response.text();
-      expect(html).toContain('user@moda.gov.tw');
-      expect(html).toContain('Legacy User');
+      // Then: Should complete successfully without breaking (302 redirect)
+      expect(response.status).toBe(302);
+      expect(response.headers.get('Location')).toContain('login=success');
     });
   });
 });

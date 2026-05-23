@@ -401,8 +401,7 @@ describe('Scenario 5: Tenant Isolation', () => {
     expect(response.status).toBe(404);
 
     const body = await response.json();
-    expect(body).toHaveProperty('error', 'CARD_NOT_FOUND');
-    expect(body).toHaveProperty('message', 'Card not found or not authorized');
+    expect(body.error).toEqual({ code: 'CARD_NOT_FOUND', message: 'Card not found or not authorized' });
 
     // Verify tenant isolation in DB query
     expect(mockPrepare).toHaveBeenCalled();
@@ -431,8 +430,7 @@ describe('Scenario 5: Tenant Isolation', () => {
     expect(response.status).toBe(404);
 
     const body = await response.json();
-    expect(body).toHaveProperty('error', 'CARD_NOT_FOUND');
-    // Should not distinguish between "not found" and "unauthorized"
+    expect(body.error).toHaveProperty('code', 'CARD_NOT_FOUND');
   });
 
   it('should successfully return vCard for authorized access', async () => {

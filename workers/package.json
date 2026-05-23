@@ -24,7 +24,7 @@
     "kek:rewrap": "tsx scripts/rewrap-deks.ts"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.12.6",
+    "@cloudflare/vitest-pool-workers": "^0.16.9",
     "@tailwindcss/cli": "^4.1.18",
     "@typescript-eslint/eslint-plugin": "^8.55.0",
     "@typescript-eslint/parser": "^8.55.0",
@@ -35,8 +35,8 @@
     "tsx": "^4.19.2",
     "typescript": "^5.5.2",
     "vite": "^7.3.1",
-    "vitest": "~3.2.0",
-    "wrangler": "^4.59.2"
+    "vitest": "^4.1.7",
+    "wrangler": "^4.94.0"
   },
   "dependencies": {
     "@simplewebauthn/server": "^13.2.2",

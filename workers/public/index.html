@@ -164,65 +164,24 @@
             transform: scale(1.02);
             box-shadow: 0 20px 25px -5px rgba(104, 104, 172, 0.1), 0 8px 10px -6px rgba(104, 104, 172, 0.1);
         }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            border-radius: 2rem;
-            font-size: 0.75rem;
-            font-weight: 700;
-            background: rgba(16, 185, 129, 0.1);
-            color: #10b981;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #10b981;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
     </style>
 </head>
 <body>
     <canvas id="three-canvas" aria-hidden="true"></canvas>
 
     <div class="relative z-10 min-h-screen flex flex-col">
-        <!-- Scenario 5: 語言切換按鈕加上 aria-label -->
-        <div class="absolute top-4 right-4 z-50">
-            <button id="lang-toggle"
-                    aria-label="切換語言為英文 (Switch to English)"
-                    class="px-3 py-1 text-sm font-medium text-slate-600 hover:text-moda transition-colors bg-white/80 backdrop-blur-sm rounded-lg border border-slate-200 hover:border-moda/30">
-                EN
-            </button>
-        </div>
 
-        <!-- Scenario 3: 語意化 HTML - header -->
         <header class="container mx-auto px-6 py-16 text-center" role="banner">
-            <div class="inline-block mb-4">
-                <span class="status-badge" role="status" aria-live="polite">
-                    <span class="status-dot" aria-hidden="true"></span>
-                    <span id="system-status" data-i18n="system-status">系統運行中</span>
-                </span>
+            <div class="inline-block mb-6">
+                <img src="/icons/icon-192.png" alt="DB-Card" class="w-16 h-16 rounded-2xl shadow-lg mx-auto">
             </div>
             <h1 class="text-5xl md:text-7xl font-black mb-4" style="color: #6868ac;">
                 DB-Card
             </h1>
-            <p class="text-xl md:text-2xl font-bold mb-2" style="color: #1e293b;" data-i18n="hero-title">
-                數位名片系統
+            <p class="text-lg md:text-xl text-slate-600 font-medium" data-i18n="hero-subtitle">
+                安全預設 NFC 數位名片系統
             </p>
-            <p class="text-sm md:text-base text-slate-500 font-medium" data-i18n="hero-subtitle">
-                安全預設 | 隱私優先 | 輕量化設計
-            </p>
-            <div class="mt-6 text-xs text-slate-400 font-mono" id="app-version" data-i18n="loading" aria-label="應用程式版本">
-                載入中...
+            <div class="mt-4 text-xs text-slate-400 font-mono" id="app-version" aria-label="應用程式版本">
             </div>
         </header>
 
@@ -900,10 +859,10 @@
             .catch(() => {
                 // Fallback to static version
                 const headerEl = document.getElementById('app-version');
-                if (headerEl) headerEl.textContent = 'v4.5.3';
+                if (headerEl) headerEl.textContent = 'v5.2.0';
 
                 const footerEl = document.getElementById('footer-version');
-                if (footerEl) footerEl.innerHTML = 'DB-Card v4.5.3 | Apache License 2.0';
+                if (footerEl) footerEl.innerHTML = 'DB-Card v5.2.0 | Apache License 2.0';
             });
     </script>
 </body>

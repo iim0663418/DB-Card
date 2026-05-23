@@ -7,6 +7,9 @@
 | npm audit | 0 vulnerabilities | 241 packages |
 | OSV-Scanner | 0 issues | 241 packages |
 | OWASP ZAP | A (51 PASS, 16 WARN, 0 FAIL) | Staging |
+| 黑箱滲透測試 | 6 findings, 全部已修復 | Production (2026-05-24) |
+
+> 滲透測試完整報告見 [docs/security/pentest-2026-05-24.md](../security/pentest-2026-05-24.md)
 
 ## OWASP ZAP 16 WARN 適用性聲明
 

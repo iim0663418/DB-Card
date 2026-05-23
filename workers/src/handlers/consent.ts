@@ -291,6 +291,17 @@ export async function handleConsentWithdraw(request: Request, env: Env): Promise
     }
     const { email } = authResult;
 
+    // Validate confirmation text (防止 CSRF/腳本直接觸發撤回)
+    let body: { confirmation?: string };
+    try {
+      body = await request.json();
+    } catch {
+      return errorResponse('invalid_confirmation', 'Confirmation text "確認撤回" is required', 400, request);
+    }
+    if (body.confirmation !== '確認撤回') {
+      return errorResponse('invalid_confirmation', 'Confirmation text "確認撤回" is required', 400, request);
+    }
+
     // Check current consent status (or create implicit consent for existing users)
     const latestConsent = await env.DB.prepare(`
       SELECT consent_status, withdrawn_at

@@ -12,6 +12,10 @@ import { generateOAuthState, storeOAuthState } from '../utils/oauth-state';
 import { generateOAuthNonce, storeOAuthNonce } from '../utils/oauth-nonce';
 import { generateCodeVerifier, generateCodeChallenge } from '../utils/pkce';
 import { errorResponse } from '../utils/response';
+import { getClientIP } from '../utils/ip';
+
+const OAUTH_INIT_RL_WINDOW = 60_000; // 60s
+const OAUTH_INIT_RL_LIMIT = 10;
 
 /**
  * Detect if User-Agent is a WebView/In-App Browser
@@ -38,6 +42,22 @@ export async function handleOAuthInit(
   env: Env
 ): Promise<Response> {
   try {
+    // Rate limit per IP (10 requests / 60s)
+    const ip = getClientIP(request);
+    try {
+      const doId = env.RATE_LIMITER.idFromName(`oauth_init:${ip}`);
+      const stub = env.RATE_LIMITER.get(doId);
+      const rl = await (stub as any).checkAndIncrement('oauth_init', ip, OAUTH_INIT_RL_WINDOW, OAUTH_INIT_RL_LIMIT);
+      if (!rl.allowed) {
+        return new Response(JSON.stringify({ error: 'rate_limit_exceeded' }), {
+          status: 429,
+          headers: { 'Content-Type': 'application/json', 'Retry-After': String(Math.ceil((rl.retryAfter || 60000) / 1000)) }
+        });
+      }
+    } catch (e) {
+      console.error('[OAuth init rate limit error]', e);
+    }
+
     // Check for WebView/In-App Browser (Google OAuth Policy)
     const userAgent = request.headers.get('User-Agent') || '';
     if (isWebView(userAgent)) {

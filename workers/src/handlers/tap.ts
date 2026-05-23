@@ -30,6 +30,26 @@ function isValidUUID(uuid: string): boolean {
  */
 export async function handleTap(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   try {
+    // Short-window per-IP rate limit (30 req / 60s) to prevent UUID enumeration
+    const clientIPEarly = getClientIP(request);
+    try {
+      const doId = env.RATE_LIMITER.idFromName(`tap_ip_short:${clientIPEarly}`);
+      const stub = env.RATE_LIMITER.get(doId);
+      const rl = await (stub as any).checkAndIncrement('tap_ip_short', clientIPEarly, 60_000, 30);
+      if (!rl.allowed) {
+        return new Response(JSON.stringify({
+          error: 'rate_limited',
+          message: '請求過於頻繁,請稍後再試',
+          retry_after: Math.ceil((rl.retryAfter || 60000) / 1000)
+        }), {
+          status: 429,
+          headers: { 'Content-Type': 'application/json', 'Retry-After': String(Math.ceil((rl.retryAfter || 60000) / 1000)) }
+        });
+      }
+    } catch (e) {
+      console.error('[Tap short rate limit error]', e);
+    }
+
     // ============================================================
     // STEP 0: Basic Validation
     // ============================================================

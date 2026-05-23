@@ -64,10 +64,12 @@ Cloudflare Workers (全球邊緣)
 | OWASP ZAP | **A** — 51 PASS, 16 WARN, 0 FAIL |
 | npm audit | **0** vulnerabilities (241 packages) |
 | OSV-Scanner | **0** issues (241 packages) |
+| 黑箱滲透測試 | **6** findings, 全部已修復 (2026-05-24) |
 
 9 個安全標頭完整實作（CSP with nonce、HSTS、COEP/COOP/CORP 等）。
 
 > 16 WARN 適用性聲明及完整安全分析見 [docs/wiki/security.md](docs/wiki/security.md)
+> 滲透測試報告見 [docs/security/pentest-2026-05-24.md](docs/security/pentest-2026-05-24.md)
 
 ## 測試
 

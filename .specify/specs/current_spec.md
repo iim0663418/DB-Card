@@ -1,94 +1,103 @@
-# BDD Spec: Session Expired Circuit Breaker
+# BDD Spec: Pentest Findings Remediation (2026-05-24)
 
 ## Goal
-When a user's auth token expires, the frontend should detect the first 401 response, immediately suppress all further API calls, show ONE clear user-facing message, and transition to the login view — instead of the current behavior where multiple concurrent 401s each trigger independent cleanup, toasts, and redirects.
+修復黑箱滲透測試發現的 6 個安全問題，優先處理可導致資料刪除的 consent withdraw 驗證缺失。
 
-## Behavioral Unit
-**Session Expired Circuit Breaker** — a global flag that short-circuits all API paths on first 401.
-
-## Problem Context
-Two independent API call paths exist:
-1. `apiCall()` in user-portal-init.js (internal fetch wrapper)
-2. `APIClient.fetch()` → `ErrorPolicy.handle()` in api-client.js / error-policy.js (feature layer)
-
-Both handle 401 independently. Image loads via `<img src="/api/user/received-cards/.../thumbnail">` bypass both entirely. When token expires, concurrent requests create a 401 storm: multiple toasts, duplicate sessionStorage clears, and ErrorPolicy redirects to the same page causing reload loops.
-
-Production logs show: consent/check + multiple received-cards/image requests all hitting 401 within seconds.
-
-## Impacted Modules
-- `workers/public/js/error-policy.js` — 401 handler
-- `workers/public/js/api-client.js` — fetch wrapper
-- `workers/public/js/user-portal-init.js` — internal apiCall() 401 handler
+## Behavioral Units
+1. **Consent Withdraw Confirmation Validation** (Medium-High)
+2. **Web Field URL Scheme Validation** (Low-Medium)
+3. **MCP redirect_uri Allowlist** (Medium)
+4. **Staging URL Leakage Cleanup** (Medium)
+5. **OAuth Init Rate Limiting** (Low)
+6. **NFC Tap Rate Limiting** (Low)
 
 ## Scenarios
 
-### Scenario 1: First 401 triggers circuit breaker
+### Scenario 1.1: Consent withdraw requires exact confirmation text
 ```gherkin
-Given a user is logged in on user-portal
-When any API call returns HTTP 401
-Then a global session-expired flag is set (window.__sessionExpired = true)
-And sessionStorage is cleared (auth_user, csrfToken)
-And ONE toast is shown: "登入已過期，請重新登入" (info type, 3s)
-And the view transitions to login (showView('login'))
-And no page redirect/reload occurs
+Given a user is authenticated
+When POST /api/consent/withdraw with body {"confirmation": "wrong text"}
+Then response is 400 with error code "invalid_confirmation"
+And consent status remains unchanged
 ```
 
-### Scenario 2: Subsequent 401s are suppressed
+### Scenario 1.2: Consent withdraw succeeds with correct confirmation
 ```gherkin
-Given the session-expired flag is already set
-When another API call would be made (apiCall or APIClient.fetch)
-Then the call short-circuits immediately without making a network request
-And no additional toast or redirect is triggered
-And the caller receives a structured 401 error (for proper error propagation)
+Given a user is authenticated with active consent
+When POST /api/consent/withdraw with body {"confirmation": "確認撤回"}
+Then response is 200
+And consent_status is set to "withdrawn"
+And deletion_scheduled_at is set to now + 30 days
 ```
 
-### Scenario 3: ErrorPolicy 401 respects circuit breaker
+### Scenario 1.3: Consent withdraw rejects empty/missing confirmation
 ```gherkin
-Given the session-expired flag is already set
-When ErrorPolicy.handle() is called with status 401
-Then it returns { action: 'none' } without clearing sessionStorage again or redirecting
+Given a user is authenticated
+When POST /api/consent/withdraw with body {}
+Then response is 400 with error code "invalid_confirmation"
 ```
 
-### Scenario 4: Login resets circuit breaker
+### Scenario 2.1: Web field rejects javascript: URL
 ```gherkin
-Given the session-expired flag is set
-When the user successfully logs in again
-Then the flag is reset to false
-And API calls proceed normally
+Given a user is authenticated with a card
+When PUT /api/user/cards/{uuid} with body {"web": "javascript:alert(1)"}
+Then response is 400 with error mentioning "web" field
 ```
 
-## Implementation Constraints
+### Scenario 2.2: Web field accepts valid https URL
+```gherkin
+Given a user is authenticated with a card
+When PUT /api/user/cards/{uuid} with body {"web": "https://example.com"}
+Then response is 200
+And card web field is updated
+```
 
-1. **Shared flag**: Use `window.__sessionExpired` (boolean) — accessible from all JS modules without import.
+### Scenario 3.1: MCP register rejects non-localhost redirect_uri
+```gherkin
+Given an unauthenticated client
+When POST /mcp/register with redirect_uris ["https://evil.com/callback"]
+Then response is 400 with error "invalid_redirect_uri"
+```
 
-2. **api-client.js changes**: At the TOP of `APIClient.fetch()`, check `window.__sessionExpired`. If true, return immediately:
-   ```js
-   if (window.__sessionExpired) {
-     return { ok: false, status: 401, error: { code: 'SESSION_EXPIRED', message: '登入已過期', retryable: false } };
-   }
-   ```
+### Scenario 3.2: MCP register accepts localhost redirect_uri
+```gherkin
+Given an unauthenticated client
+When POST /mcp/register with redirect_uris ["http://localhost:3000/callback"]
+Then response is 201 with client_id assigned
+```
 
-3. **error-policy.js changes**: In the 401 handler, check `window.__sessionExpired`:
-   - If already set → return `{ action: 'none' }` (no-op)
-   - If not set → set `window.__sessionExpired = true`, then return existing redirect action BUT change the action to 'none' for user-portal context (let apiCall handle the view transition instead of page redirect)
+### Scenario 3.3: MCP register accepts 127.0.0.1 redirect_uri
+```gherkin
+Given an unauthenticated client
+When POST /mcp/register with redirect_uris ["http://127.0.0.1:8080/callback"]
+Then response is 201 with client_id assigned
+```
 
-4. **user-portal-init.js changes**: In `apiCall()` 401 handler:
-   - Check `window.__sessionExpired` first — if already set, just throw without re-doing cleanup
-   - If not set → set `window.__sessionExpired = true`, do cleanup, show toast ONCE, showView('login')
-   - At the TOP of `apiCall()`: if `window.__sessionExpired`, throw immediately without fetch
+### Scenario 4: Staging URL removed from production
+```gherkin
+Given the production card-display page
+When rendered
+Then no dns-prefetch or link to staging worker URL exists
+And MCP OAuth redirect_uri uses production domain
+```
 
-5. **Login success path**: After successful Google OAuth callback, set `window.__sessionExpired = false`.
+### Scenario 5: /api/oauth/init rate limited
+```gherkin
+Given an IP address
+When 20 requests to /api/oauth/init within 60 seconds
+Then requests beyond limit return 429
+```
 
-6. **FeatureAPI.executeAction**: Handle `action: 'none'` case — return false (no retry).
+### Scenario 6: /api/nfc/tap rate limited
+```gherkin
+Given an IP address
+When 30 requests to /api/nfc/tap within 60 seconds
+Then requests beyond limit return 429
+```
 
-7. **Do NOT change**: Image onerror handlers (already gracefully degrade to SVG icons), api-retry.js (separate concern), backend code.
-
-## Validation Target
-- After token expiry, only ONE toast appears regardless of how many concurrent API calls are in flight
-- No page reload/redirect loop
-- Backend logs show at most 1-2 401s (the ones already in flight), not a continuous stream
-- Login view is shown cleanly
-- After re-login, all functionality works normally
-
-## Expected Outcome
-Users see a clean "session expired, please re-login" message once, land on the login screen, and can log back in. No confusion about system being broken.
+## Implementation Notes
+- Finding #1: Add body parsing + confirmation === '確認撤回' check in handleConsentWithdraw
+- Finding #4: Add "web" to urlFields array in validateUserCardData
+- Finding #2: Restrict isValidRedirectUri to localhost/127.0.0.1 only
+- Finding #3: Remove staging dns-prefetch; fix MCP OAuth redirect_uri env config
+- Finding #5/#6: Add Durable Objects rate limiting to oauth init and nfc tap handlers

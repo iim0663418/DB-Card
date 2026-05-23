@@ -72,7 +72,7 @@ function validateUserCardData(data: any, isCreate: boolean): { valid: boolean; e
 
 
   // Validate social links if provided
-  const urlFields = ["social_github", "social_linkedin", "social_facebook", "social_instagram", "social_twitter", "social_youtube"];
+  const urlFields = ["web", "social_github", "social_linkedin", "social_facebook", "social_instagram", "social_twitter", "social_youtube"];
   for (const field of urlFields) {
     if (data[field] !== undefined && data[field] !== null && data[field] !== "") {
       if (!validateSocialLink(data[field])) {

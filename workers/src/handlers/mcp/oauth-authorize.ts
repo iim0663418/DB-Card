@@ -125,7 +125,7 @@ export async function handleMcpAuthorize(request: Request, env: Env): Promise<Re
 
   const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
   googleAuthUrl.searchParams.set('client_id', env.GOOGLE_CLIENT_ID);
-  googleAuthUrl.searchParams.set('redirect_uri', `${env.WORKER_URL}/mcp/callback`);
+  googleAuthUrl.searchParams.set('redirect_uri', `${env.CUSTOM_DOMAIN || env.WORKER_URL}/mcp/callback`);
   googleAuthUrl.searchParams.set('response_type', 'code');
   googleAuthUrl.searchParams.set('scope', 'openid email profile');
   googleAuthUrl.searchParams.set('state', googleState);
@@ -187,7 +187,7 @@ export async function handleMcpCallback(request: Request, env: Env, ctx: Executi
         code: googleCode,
         client_id: env.GOOGLE_CLIENT_ID,
         client_secret: env.GOOGLE_CLIENT_SECRET,
-        redirect_uri: `${env.WORKER_URL}/mcp/callback`,
+        redirect_uri: `${env.CUSTOM_DOMAIN || env.WORKER_URL}/mcp/callback`,
         grant_type: 'authorization_code',
         code_verifier: state.google_code_verifier,
       }),

@@ -4,8 +4,13 @@ import { anonymizeIP } from '../../utils/audit';
 function isValidRedirectUri(uri: string): boolean {
   try {
     const parsed = new URL(uri);
-    if (parsed.protocol === 'https:') return true;
-    if (parsed.protocol === 'http:' && parsed.hostname === 'localhost') return true;
+    // Loopback: localhost or 127.0.0.1 (any port, per RFC 8252)
+    if (parsed.protocol === 'http:' && (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1')) return true;
+    // Known MCP platforms (HTTPS only)
+    const allowedHosts = ['claude.ai'];
+    if (parsed.protocol === 'https:' && allowedHosts.includes(parsed.hostname)) return true;
+    // Known MCP client custom schemes
+    if (parsed.protocol === 'cursor:' && parsed.hostname === 'anysphere.cursor-mcp') return true;
     return false;
   } catch {
     return false;

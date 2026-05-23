@@ -200,6 +200,29 @@
 - ✅ 所有中風險項目: 已修復或已接受（有文檔支持）
 - 📊 整體安全評級: A (OWASP ZAP)
 
+#### 📋 OWASP ZAP 16 WARN 適用性聲明 (Statement of Applicability)
+
+| # | WARN 項目 | 處置 | 理由 |
+|---|----------|------|------|
+| 1 | CSP script-src unsafe-inline | 接受 | Nonce-based CSP 已保護 95%+ 瀏覽器，保留為舊瀏覽器向後相容 |
+| 2 | CSP style-src unsafe-inline | 接受 | Tailwind CSS 需求；CSS 無法執行 JS；connect-src 白名單阻止資料外洩 |
+| 3 | CSP Wildcard Directive | 誤報 | 掃描器將 nonce 誤判為 wildcard，實際為安全實作 |
+| 4 | Timestamp Disclosure | 不適用 | API 功能需求（`/health`、audit logs），非敏感資訊 |
+| 5 | Server Version Disclosure | 不可控 | Cloudflare Workers 平台預設行為，無法移除 |
+| 6 | Cross-Domain JS Inclusion | 已緩解 | CDN 資源已實作 SRI (Subresource Integrity) 驗證 |
+| 7 | Weak/Deprecated Cipher Suites | 不可控 | TLS 由 Cloudflare 邊緣管理，非應用層可配置 |
+| 8 | Cookie Without SameSite | 已修復 | 所有 cookie 已設定 SameSite=Lax |
+| 9 | Cookie Without Secure Flag | 已修復 | 所有 cookie 已設定 Secure（HTTPS only） |
+| 10 | Missing Anti-clickjacking | 已修復 | X-Frame-Options: DENY 已實作 |
+| 11 | X-Content-Type-Options Missing | 已修復 | nosniff 已實作於所有回應 |
+| 12 | Strict-Transport-Security | 已修復 | HSTS max-age=31536000 已實作 |
+| 13 | Permissions-Policy | 已實作 | geolocation=(), microphone=(), camera=() |
+| 14 | Content-Type Header Missing | 接受 | 個別靜態資源，Cloudflare 自動推斷 MIME type |
+| 15 | Private IP Disclosure | 不適用 | Cloudflare 內部路由資訊，非應用程式洩漏 |
+| 16 | Information Disclosure in URL | 不適用 | OAuth state/session 為短暫 UUID（128-bit entropy, 60s TTL） |
+
+**處置分類統計**：已修復 5 · 已緩解/接受 5 · 誤報 1 · 不適用 3 · 不可控 2
+
 ---
 
 ## 快速開始

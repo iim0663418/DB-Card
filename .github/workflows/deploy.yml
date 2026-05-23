@@ -2,47 +2,51 @@ name: Deploy to Cloudflare Workers
 
 on:
   push:
-    branches: [develop]  # Only deploy staging from develop
-  pull_request:
     branches: [main]
+    paths: ['workers/**']
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
-    name: Deploy
+    name: Test & Type Check
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: workers/package-lock.json
 
-      - name: Install dependencies
-        run: |
-          cd workers
-          npm ci --prefer-offline --no-audit
+      - run: npm ci --prefer-offline --no-audit
+        working-directory: workers
 
-      - name: Run type check
-        run: |
-          cd workers
-          npm run typecheck
+      - run: npm run typecheck
+        working-directory: workers
 
-      - name: Build CSS
-        run: |
-          cd workers
-          npm run build:css
+      - run: npm audit --omit=dev
+        working-directory: workers
 
-      - name: Build Icons
-        run: |
-          cd workers
-          npm run build:icons
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    name: Deploy Staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: workers/package-lock.json
+
+      - run: npm ci --prefer-offline --no-audit
+        working-directory: workers
+
+      - run: npm run build:css && npm run build:icons
+        working-directory: workers
 
       - name: Deploy to Staging
-        if: github.ref == 'refs/heads/develop'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -50,24 +54,7 @@ jobs:
           workingDirectory: workers
           command: deploy
 
-      # Production deployment disabled - deploy manually when ready
-      # - name: Deploy to Production
-      #   if: github.ref == 'refs/heads/main'
-      #   uses: cloudflare/wrangler-action@v3
-      #   with:
-      #     apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      #     accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      #     workingDirectory: workers
-      #     command: deploy --env production
-
-      - name: Run health check (Staging)
-        if: github.ref == 'refs/heads/develop'
+      - name: Health check
         run: |
           sleep 5
-          curl -f https://db-card-staging.csw30454.workers.dev/health || exit 1
-
-      # - name: Run health check (Production)
-      #   if: github.ref == 'refs/heads/main'
-      #   run: |
-      #     sleep 5
-      #     curl -f https://db-card.csw30454.workers.dev/health || exit 1
+          curl -f https://db-card-staging.csw30454.workers.dev/health

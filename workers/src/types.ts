@@ -17,6 +17,7 @@ export interface Env {
   ORIGIN?: string;
   ENVIRONMENT: 'production' | 'staging';
   WORKER_URL: string;
+  CUSTOM_DOMAIN?: string;  // e.g. https://db-card.sfan-tech.com
   ASSETS: Fetcher;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;

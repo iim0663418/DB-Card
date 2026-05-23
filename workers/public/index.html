@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Scenario 1: 完整 Meta Tags -->
-    <meta name="description" content="DB-Card 安全預設 NFC 數位名片系統 - 名片管理（多模態 AI、智慧壓縮）、信封加密、可撤銷會話。隱私優先、GDPR 合規。">
-    <meta name="keywords" content="NFC 數位名片, 數位名片系統, 信封加密, OIDC 認證, GDPR, DB-Card, 安全名片">
+    <meta name="description" content="DB-Card 安全預設 NFC 數位名片系統 - 名片管理（多模態 AI、智慧壓縮）、MCP AI Agent 介面、信封加密、可撤銷會話。隱私優先、GDPR 合規。">
+    <meta name="keywords" content="NFC 數位名片, 數位名片系統, 信封加密, OIDC 認證, GDPR, DB-Card, 安全名片, MCP, Model Context Protocol, AI Agent">
     <meta name="author" content="Sheng-Fan Wu">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://db-card-staging.csw30454.workers.dev/">
@@ -14,7 +14,7 @@
     <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="DB-Card | 安全預設 NFC 數位名片系統">
-    <meta property="og:description" content="NFC 數位名片 + 收到的名片管理（多模態 AI、智慧壓縮）。信封加密、可撤銷會話。安全預設、隱私優先、GDPR 合規。">
+    <meta property="og:description" content="NFC 數位名片 + 收到的名片管理（多模態 AI、智慧壓縮）+ MCP AI Agent 介面。信封加密、可撤銷會話。安全預設、隱私優先、GDPR 合規。">
     <meta property="og:url" content="https://db-card-staging.csw30454.workers.dev/">
     <meta property="og:site_name" content="DB-Card">
     <meta property="og:locale" content="zh_TW">
@@ -26,7 +26,7 @@
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="DB-Card | 安全預設 NFC 數位名片系統">
-    <meta name="twitter:description" content="NFC 數位名片 + 收到的名片管理（多模態 AI、智慧壓縮）。信封加密、可撤銷會話。安全預設、隱私優先、GDPR 合規。">
+    <meta name="twitter:description" content="NFC 數位名片 + 收到的名片管理（多模態 AI、智慧壓縮）+ MCP AI Agent 介面。信封加密、可撤銷會話。安全預設、隱私優先、GDPR 合規。">
     <meta name="twitter:image" content="https://db-card-staging.csw30454.workers.dev/images/og-cover.png">
     <meta name="twitter:image:alt" content="DB-Card NFC 數位名片系統">
 
@@ -65,7 +65,7 @@
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "DB-Card",
-      "description": "安全預設 NFC 數位名片系統，收到的名片管理（多模態 AI、智慧壓縮）、信封加密、可撤銷會話，GDPR 合規",
+      "description": "安全預設 NFC 數位名片系統，收到的名片管理（多模態 AI、智慧壓縮）、MCP AI Agent 介面、信封加密、可撤銷會話，GDPR 合規",
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web-based, iOS, Android",
       "url": "https://db-card-staging.csw30454.workers.dev/",
@@ -90,7 +90,8 @@
         "審計日誌 (Audit Logs)",
         "OIDC 認證",
         "GDPR 合規",
-        "NFC 卡片支援"
+        "NFC 卡片支援",
+        "MCP AI Agent 介面 (Model Context Protocol)"
       ]
     }
     </script>
@@ -542,12 +543,46 @@
                                         <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
                                         <span data-i18n="feature-received-cards-3">冪等上傳機制，防止重複提交</span>
                                     </li>
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
+                                        <span data-i18n="feature-received-cards-4">MCP 介面：AI Agent 可透過標準協議存取</span>
+                                    </li>
                                 </ul>
                             </div>
                         </div>
                     </article>
 
-                    <!-- 特色 8: 可隨時撤銷授權 -->
+                    <!-- 特色 8: MCP AI Agent 介面 -->
+                    <article class="glass-card rounded-2xl p-8" aria-label="MCP AI Agent 介面">
+                        <div class="flex gap-4">
+                            <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
+                                <i data-lucide="zap" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold mb-3" data-i18n="feature-mcp-title">MCP AI Agent 介面</h3>
+                                <ul class="space-y-2 text-xs text-slate-600">
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
+                                        <span data-i18n="feature-mcp-1">Model Context Protocol 2025-06-18 合規</span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
+                                        <span data-i18n="feature-mcp-2">OAuth 2.1 + PKCE 認證，委託 Google OIDC</span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
+                                        <span data-i18n="feature-mcp-3">7 個 Tools：查詢、搜尋、建立、更新、刪除、匯出</span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5" style="color: #10b981;" aria-hidden="true"></i>
+                                        <span data-i18n="feature-mcp-4">結構化搜尋，不依賴伺服端 LLM</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- 特色 9: 可隨時撤銷授權 -->
                     <article class="glass-card rounded-2xl p-8" aria-label="可隨時撤銷存取">
                         <div class="flex gap-4">
                             <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
@@ -575,13 +610,129 @@
                 </div>
             </section>
 
+            <!-- MCP AI Agent 設定指南 -->
+            <section class="mb-16" aria-labelledby="mcp-setup-heading">
+                <h2 id="mcp-setup-heading" class="text-2xl font-black text-center mb-8" style="color: #6868ac;" data-i18n="mcp-setup-title">MCP AI Agent 設定</h2>
+                <div class="glass-card rounded-2xl p-8">
+                    <p class="text-sm text-slate-600 mb-6 text-center" data-i18n="mcp-setup-intro">
+                        將 DB-Card 連接到支援 MCP 的 AI 助手，讓 AI 直接查詢、管理你收到的名片。
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- claude.ai 網頁版 -->
+                        <div>
+                            <div class="flex items-center gap-2 mb-3">
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
+                                    <i data-lucide="globe" class="w-4 h-4"></i>
+                                </div>
+                                <h3 class="font-bold text-sm">claude.ai（網頁版）</h3>
+                            </div>
+                            <ol class="space-y-2 text-xs text-slate-600 list-none">
+                                <li class="flex items-start gap-2">
+                                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold shrink-0" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">1</span>
+                                    <span>開啟 <a href="https://claude.ai" target="_blank" rel="noopener" class="text-purple-600 hover:underline">claude.ai</a></span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold shrink-0" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">2</span>
+                                    <span>點擊聊天輸入框的 <strong>🔌 圖示</strong>（或搜尋欄旁的 Integrations）</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold shrink-0" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">3</span>
+                                    <span>選擇 <strong>Add more integrations</strong> → <strong>Add custom integration</strong></span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold shrink-0" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">4</span>
+                                    <span>貼上 URL：</span>
+                                </li>
+                            </ol>
+                            <div class="mt-2 ml-7">
+                                <code class="block px-3 py-2 bg-slate-900 text-green-400 text-xs rounded-lg select-all">https://db-card.sfan-tech.com/mcp</code>
+                            </div>
+                            <ol start="5" class="mt-2 space-y-2 text-xs text-slate-600 list-none">
+                                <li class="flex items-start gap-2">
+                                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold shrink-0" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">5</span>
+                                    <span>用 Google 帳號授權登入</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold shrink-0" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">6</span>
+                                    <span>完成！對 Claude 說「列出我收到的名片」</span>
+                                </li>
+                            </ol>
+                        </div>
+
+                        <!-- Claude Desktop — UI 方式 -->
+                        <div>
+                            <div class="flex items-center gap-2 mb-3">
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
+                                    <i data-lucide="monitor" class="w-4 h-4"></i>
+                                </div>
+                                <h3 class="font-bold text-sm">Claude Desktop</h3>
+                            </div>
+                            <ol class="space-y-2 text-xs text-slate-600 list-none">
+                                <li class="flex items-start gap-2">
+                                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold shrink-0" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">1</span>
+                                    <span data-i18n="mcp-claude-step1">Settings → Connectors → Add custom connector</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold shrink-0" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">2</span>
+                                    <span data-i18n="mcp-claude-step2">貼上 Server URL：</span>
+                                </li>
+                            </ol>
+                            <div class="mt-2 ml-7">
+                                <code class="block px-3 py-2 bg-slate-900 text-green-400 text-xs rounded-lg select-all">https://db-card.sfan-tech.com/mcp</code>
+                            </div>
+                            <ol start="3" class="mt-2 space-y-2 text-xs text-slate-600 list-none">
+                                <li class="flex items-start gap-2">
+                                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold shrink-0" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">3</span>
+                                    <span data-i18n="mcp-claude-step3">首次使用時會開啟 Google 登入授權</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold shrink-0" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;">4</span>
+                                    <span data-i18n="mcp-claude-step4">完成！可以直接對 Claude 說「列出我收到的名片」</span>
+                                </li>
+                            </ol>
+                        </div>
+
+                        <!-- JSON 設定檔（進階） -->
+                        <div>
+                            <div class="flex items-center gap-2 mb-3">
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(104, 104, 172, 0.1); color: #6868ac;" aria-hidden="true">
+                                    <i data-lucide="settings" class="w-4 h-4"></i>
+                                </div>
+                                <h3 class="font-bold text-sm" data-i18n="mcp-json-title">JSON 設定檔（進階）</h3>
+                            </div>
+                            <p class="text-xs text-slate-500 mb-2" data-i18n="mcp-json-desc">
+                                或直接編輯 Claude Desktop 設定檔：
+                            </p>
+                            <pre class="bg-slate-900 text-green-400 text-xs p-4 rounded-xl overflow-x-auto"><code>{
+  "mcpServers": {
+    "db-card": {
+      "url": "https://db-card.sfan-tech.com/mcp"
+    }
+  }
+}</code></pre>
+                            <p class="text-xs text-slate-400 mt-2">
+                                macOS: <code class="px-1 py-0.5 bg-slate-100 text-slate-600 rounded">~/Library/Application Support/Claude/claude_desktop_config.json</code>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 pt-4 border-t border-slate-200 text-center">
+                        <p class="text-xs text-slate-500" data-i18n="mcp-setup-note">
+                            首次連線時，MCP client 會自動完成 OAuth 2.1 認證流程（Dynamic Client Registration + PKCE）。<br>
+                            僅限已授權的 Google 帳號可存取。
+                        </p>
+                    </div>
+                </div>
+            </section>
+
             <!-- Scenario 3: 安全掃描結果區塊 -->
             <section class="mb-16" aria-labelledby="security-scan-heading">
                 <h2 id="security-scan-heading" class="text-2xl font-black text-center mb-8" style="color: #6868ac;" data-i18n="security-scan-title">安全掃描結果</h2>
                 <div class="glass-card rounded-2xl p-8">
                     <div class="text-center mb-6">
                         <p class="text-sm text-slate-600 mb-4" data-i18n="security-scan-intro">
-                            已通過三項安全掃描工具驗證（2026-03-07）
+                            已通過三項安全掃描工具驗證（2026-05-23）
                         </p>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -604,7 +755,7 @@
                             <h3 class="font-bold mb-2">npm audit</h3>
                             <p class="text-xs text-slate-600 mb-2" data-i18n="security-npm-desc">Node.js 依賴安全掃描</p>
                             <div class="text-xs font-mono text-slate-500">
-                                414 packages · 0 vulnerabilities
+                                241 packages · 0 vulnerabilities
                             </div>
                         </div>
                         <!-- OSV-Scanner -->
@@ -615,14 +766,14 @@
                             <h3 class="font-bold mb-2">OSV-Scanner</h3>
                             <p class="text-xs text-slate-600 mb-2" data-i18n="security-osv-desc">多語言依賴安全掃描</p>
                             <div class="text-xs font-mono text-slate-500">
-                                378 packages · 0 issues
+                                241 packages · 0 issues
                             </div>
                         </div>
                     </div>
                     
                     <!-- 風險分析與處理 -->
                     <div class="mt-8 pt-6 border-t border-slate-200">
-                        <h4 class="text-sm font-bold text-slate-700 mb-4 text-center">安全風險分析 (2026-03-07)</h4>
+                        <h4 class="text-sm font-bold text-slate-700 mb-4 text-center">安全風險分析 (2026-05-23)</h4>
                         <div class="space-y-3 text-xs">
                             <!-- CSRF Protection -->
                             <div class="flex items-start gap-2">
@@ -657,15 +808,41 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- 16 WARN 適用性聲明 -->
+                        <div class="mt-6 pt-4 border-t border-slate-100">
+                            <h5 class="text-xs font-bold text-slate-600 mb-3 text-center">16 WARN 適用性聲明 (Statement of Applicability)</h5>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+                                <div class="p-2 rounded-lg bg-green-50">
+                                    <div class="text-lg font-black text-green-600">5</div>
+                                    <div class="text-xs text-slate-600">已修復</div>
+                                </div>
+                                <div class="p-2 rounded-lg bg-blue-50">
+                                    <div class="text-lg font-black text-blue-600">5</div>
+                                    <div class="text-xs text-slate-600">已緩解/接受</div>
+                                </div>
+                                <div class="p-2 rounded-lg bg-slate-50">
+                                    <div class="text-lg font-black text-slate-600">4</div>
+                                    <div class="text-xs text-slate-600">不適用/誤報</div>
+                                </div>
+                                <div class="p-2 rounded-lg bg-amber-50">
+                                    <div class="text-lg font-black text-amber-600">2</div>
+                                    <div class="text-xs text-slate-600">平台不可控</div>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-3 text-center">
+                                完整適用性聲明見 <a href="https://github.com/iim0663418/DB-Card#-owasp-zap-16-warn-%E9%81%A9%E7%94%A8%E6%80%A7%E8%81%B2%E6%98%8E-statement-of-applicability" target="_blank" rel="noopener noreferrer" class="text-purple-600 hover:underline">README</a>
+                            </p>
+                        </div>
                     </div>
                     
                     <div class="mt-6 pt-6 border-t border-slate-200">
                         <div class="text-center mb-4">
-                            <p class="text-xs font-semibold text-slate-700 mb-2" data-i18n="security-improvements">最新安全改進 (2026-03-07)</p>
+                            <p class="text-xs font-semibold text-slate-700 mb-2" data-i18n="security-improvements">最新安全改進 (2026-05-23)</p>
                             <div class="flex flex-wrap justify-center gap-2" role="list" aria-label="安全改進項目">
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800" role="listitem">
                                     <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                    CSP img-src 修復
+                                    依賴漏洞全數修復
                                 </span>
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800" role="listitem">
                                     <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
@@ -673,7 +850,7 @@
                                 </span>
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800" role="listitem">
                                     <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                    <span data-i18n="sri-protection">SRI 完整性保護</span>
+                                    <span data-i18n="sri-protection">Detector-Validator 審計通過</span>
                                 </span>
                             </div>
                         </div>

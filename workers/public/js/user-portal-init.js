@@ -703,6 +703,9 @@
 
 
         async function apiCall(endpoint, options = {}) {
+            if (window.__sessionExpired) {
+                throw { status: 401, code: 'SESSION_EXPIRED', message: '登入已過期' };
+            }
             try {
                 const headers = getHeadersWithCSRF({
                     'Content-Type': 'application/json',
@@ -721,15 +724,18 @@
                 if (!res.ok) {
                     const error = await res.json().catch(() => ({ message: 'Request failed' }));
 
-                    // Handle token expiration (silent logout)
+                    // Handle token expiration (circuit breaker)
                     if (res.status === 401) {
-                        state.isLoggedIn = false;
-                        state.authToken = null;
-                        state.currentUser = null;
-                        sessionStorage.removeItem('auth_user');  // Clear sessionStorage
-                        sessionStorage.removeItem('csrfToken');  // Clear CSRF token
+                        if (!window.__sessionExpired) {
+                            window.__sessionExpired = true;
+                            state.isLoggedIn = false;
+                            state.authToken = null;
+                            state.currentUser = null;
+                            sessionStorage.removeItem('auth_user');
+                            sessionStorage.removeItem('csrfToken');
+                            showToast('登入已過期，請重新登入');
+                        }
                         showView('login');
-                        // Silent logout - no toast for normal session expiration
                     }
 
                     // Extract error details (support nested error object)
@@ -2784,6 +2790,7 @@
                             // Set login state
                             state.isLoggedIn = true;
                             state.currentUser = user;
+                            window.__sessionExpired = false;
 
                             // Update user display
                             updateUserDisplay(email, name, picture);
@@ -2880,6 +2887,7 @@
                         await fetchUserCards();
                         // 只有成功載入才切換視圖和顯示 toast
                         if (state.isLoggedIn) {
+                            window.__sessionExpired = false;
                             showToast('自動登入成功');
                             showView('selection');
                         }

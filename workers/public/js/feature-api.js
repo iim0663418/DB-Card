@@ -42,6 +42,11 @@ const FeatureAPI = {
       // Execute action
       const shouldRetry = await this.executeAction(action);
 
+      // Suppressed duplicate 401 — swallow silently, redirect already in progress
+      if (action.action === 'none') {
+        return;
+      }
+
       // Retry if action says so (and not exceeded max retries)
       if (shouldRetry && retryCount < maxRetries) {
         retryCount++;

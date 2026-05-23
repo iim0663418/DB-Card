@@ -16,6 +16,10 @@ const APIClient = {
    * @returns {Promise<{ok: boolean, status: number, data?: any, error?: object}>}
    */
   async fetch(endpoint, options = {}) {
+    if (window.__sessionExpired) {
+      return { ok: false, status: 401, error: { code: 'SESSION_EXPIRED', message: '登入已過期', retryable: false } };
+    }
+
     const csrfToken = sessionStorage.getItem('csrfToken');
     const headers = {
       ...options.headers,

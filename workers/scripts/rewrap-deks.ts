@@ -179,7 +179,6 @@ async function rewrapDeks() {
     const cards = await queryD1<Card>(`
       SELECT uuid, wrapped_dek
       FROM cards
-      WHERE status = 'active'
     `);
     console.log(`   - Found ${cards.length} cards\n`);
 

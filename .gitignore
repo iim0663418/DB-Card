@@ -1,6 +1,3 @@
-# Task tracking folder
-task/
-
 # macOS
 .DS_Store
 
@@ -8,100 +5,44 @@ task/
 .vscode/
 .idea/
 
-# Claude Code documentation
-CLAUDE.md
-
-# Temporary files
-*.tmp
-*~
-
-# Node.js dependencies (for testing)
+# Node.js
 node_modules/
-tests/node_modules/
-
-# Test coverage reports
 coverage/
 *.lcov
 
-# Jest cache
-.jest/
-
-# Test output files
-test-results/
-*.test.log
-
-# Security test artifacts
-tests/security/test-output/
-tests/security/*.json
-
-# PWA build artifacts
-pwa-card-storage/dist/
-pwa-card-storage/.cache/
-
-# Environment files
+# Environment
 .env
-.env.local
-.env.development
-.env.test
-.env.production
+.env.*
+!.env.example
 
 # Logs
-logs/
 *.log
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
-# Runtime data
-pids
+# Runtime
 *.pid
-*.seed
 *.pid.lock
 
-# Optional npm cache directory
-.npm
-
-# Optional eslint cache
-.eslintcache
-
-# Dependency directories
-jspm_packages/
-
-# Optional REPL history
-.node_repl_history
-
-# Output of 'npm pack'
+# Build artifacts
+dist/
 *.tgz
 
-# Yarn Integrity file
-.yarn-integrity
-
-# dotenv environment variables file
-.env
-
-# Backup files
-*.bak
-*.backup
-
-# Security sensitive files
+# Secrets
 *.key
 *.pem
 *.p12
-*.pfx
 secrets/
 
-# Local development files
-local/
-dev/
+# Cloudflare
+.wrangler/
+.dev.vars
+!.dev.vars.example
 
-# Generated documentation
-docs/generated/
+# Cache
+.eslintcache
+.npm
 
-# Temporary test files
-test-*.html
-test-*.js
-test-*.json
-
-# Sensitive documentation (if contains actual secrets)
-docs/JWT_SECRET_RECORDS.md
-*_RECORDS.md
+# Temporary
+*.tmp
+*~
+*.bak

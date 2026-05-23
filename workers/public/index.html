@@ -691,10 +691,10 @@
                 <div class="glass-card rounded-2xl p-8">
                     <div class="text-center mb-6">
                         <p class="text-sm text-slate-600 mb-4" data-i18n="security-scan-intro">
-                            已通過三項安全掃描工具驗證（2026-05-23）
+                            已通過四項安全驗證（2026-05-24）
                         </p>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <!-- OWASP ZAP -->
                         <div class="text-center">
                             <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-3" style="background: rgba(16, 185, 129, 0.1);" aria-label="OWASP ZAP 評級 A">
@@ -726,6 +726,17 @@
                             <p class="text-xs text-slate-600 mb-2" data-i18n="security-osv-desc">多語言依賴安全掃描</p>
                             <div class="text-xs font-mono text-slate-500">
                                 241 packages · 0 issues
+                            </div>
+                        </div>
+                        <!-- Pentest -->
+                        <div class="text-center">
+                            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-3" style="background: rgba(16, 185, 129, 0.1);" aria-label="滲透測試全部修復">
+                                <span class="text-2xl font-black" style="color: #10b981;" aria-hidden="true">✓</span>
+                            </div>
+                            <h3 class="font-bold mb-2">黑箱滲透測試</h3>
+                            <p class="text-xs text-slate-600 mb-2">未認證 + 已認證攻擊面</p>
+                            <div class="text-xs font-mono text-slate-500">
+                                6 findings · 全部已修復
                             </div>
                         </div>
                     </div>

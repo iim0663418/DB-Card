@@ -760,18 +760,31 @@
          * Uses consent check as lightweight validator
          * @returns {Promise<boolean>} - true if session valid
          */
-        async function validateSession() {
+        /**
+         * Validate session AND check consent in a single API call.
+         * Returns { valid: true, consentOk: true } on full success,
+         * { valid: true, consentOk: false } if consent needed,
+         * { valid: false } if session invalid.
+         */
+        async function validateSessionAndConsent() {
             try {
-                // Use consent check as session validator
-                // If it succeeds (200), session is valid
-                // If it returns 401, apiCall will handle cleanup
-                await apiCall('/api/consent/check', { method: 'GET' });
-                return true;
+                const response = await apiCall('/api/consent/check', { method: 'GET' });
+                const data = response.data || response;
+
+                if (data.needs_consent) {
+                    showConsentModal(data.current_policy, data.reason);
+                    return { valid: true, consentOk: false };
+                }
+
+                if (data.is_withdrawn && data.can_restore) {
+                    showRestoreConsentModal(data.days_remaining);
+                    return { valid: true, consentOk: false };
+                }
+
+                return { valid: true, consentOk: true };
             } catch (error) {
-                // 401 already handled by apiCall (clears session, redirects)
-                // Other errors: treat as invalid session
                 console.error('Session validation failed:', error);
-                return false;
+                return { valid: false, consentOk: false };
             }
         }
 
@@ -2187,30 +2200,12 @@
         /**
          * Check consent status on login
          */
+        /**
+         * Check consent status on login (legacy wrapper for window.checkConsentStatus)
+         */
         async function checkConsentStatus() {
-            try {
-                const response = await apiCall('/api/consent/check', { method: 'GET' });
-                const data = response.data || response; // Handle both formats
-
-                // Case 1: Needs consent (first login or version update)
-                if (data.needs_consent) {
-                    showConsentModal(data.current_policy, data.reason);
-                    return false;
-                }
-
-                // Case 2: Consent withdrawn - show restore option
-                if (data.is_withdrawn && data.can_restore) {
-                    showRestoreConsentModal(data.days_remaining);
-                    return false;
-                }
-
-                // Case 3: All good
-                return true;
-            } catch (error) {
-                console.error('Failed to check consent:', error);
-                // On error, allow login but log warning
-                return true;
-            }
+            const { consentOk } = await validateSessionAndConsent();
+            return consentOk;
         }
 
         /**
@@ -2796,7 +2791,7 @@
                             updateUserDisplay(email, name, picture);
 
                             // Validate session first
-                            const sessionValid = await validateSession();
+                            const { valid: sessionValid, consentOk } = await validateSessionAndConsent();
                             if (!sessionValid) {
                                 // Session invalid - cleanup already done by apiCall
                                 document.getElementById('global-loading').classList.add('hidden');
@@ -2804,7 +2799,6 @@
                             }
 
                             // Session valid - check consent status (blocking if needed)
-                            const consentOk = await checkConsentStatus();
                             if (!consentOk) {
                                 // User needs to consent first - modal will be shown
                                 document.getElementById('global-loading').classList.add('hidden');
@@ -2869,7 +2863,7 @@
                     // 驗證 session 並載入名片資料
                     try {
                         // Validate session first
-                        const sessionValid = await validateSession();
+                        const { valid: sessionValid, consentOk } = await validateSessionAndConsent();
                         if (!sessionValid) {
                             // Session invalid - cleanup already done by apiCall
                             document.getElementById('global-loading').classList.add('hidden');
@@ -2877,7 +2871,6 @@
                         }
 
                         // Session valid - check consent status
-                        const consentOk = await checkConsentStatus();
                         if (!consentOk) {
                             // User needs to consent - modal will be shown
                             document.getElementById('global-loading').classList.add('hidden');

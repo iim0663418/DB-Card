@@ -606,7 +606,7 @@ export default {
     // GET /api/admin/candidates/precision - Get precision statistics
     if (url.pathname === '/api/admin/candidates/precision' && request.method === 'GET') {
       const { handleGetPrecision } = await import('./handlers/admin/candidates');
-      return addMinimalSecurityHeaders(await handleGetPrecision(env));
+      return addMinimalSecurityHeaders(await handleGetPrecision(request, env));
     }
 
     // GET /api/admin/candidates - List candidates

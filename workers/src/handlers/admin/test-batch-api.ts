@@ -8,9 +8,17 @@
 
 import type { Env } from '../../types';
 import { BatchJobManager } from '../../utils/batch-manager';
-import { jsonResponse, errorResponse } from '../../utils/response';
+import { jsonResponse, errorResponse, adminErrorResponse } from '../../utils/response';
+import { verifySetupToken } from '../../middleware/auth';
 
 export async function handleTestBatchAPI(request: Request, env: Env): Promise<Response> {
+  const isAuthorized = await verifySetupToken(request, env);
+  if (!isAuthorized) {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader) return adminErrorResponse('Authentication required', 401, request);
+    return adminErrorResponse('Invalid token', 403, request);
+  }
+
   const testResults: any[] = [];
 
   try {

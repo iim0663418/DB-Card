@@ -1,5 +1,6 @@
 import type { Env } from '../../types';
-import { jsonResponse, errorResponse } from '../../utils/response';
+import { jsonResponse, errorResponse, adminErrorResponse } from '../../utils/response';
+import { verifySetupToken } from '../../middleware/auth';
 
 /**
  * Validate a candidate match (confirmed/rejected)
@@ -10,6 +11,12 @@ export async function handleValidateCandidate(
   env: Env,
   pairKey: string
 ): Promise<Response> {
+  const isAuthorized = await verifySetupToken(request, env);
+  if (!isAuthorized) {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader) return adminErrorResponse('Authentication required', 401, request);
+    return adminErrorResponse('Invalid token', 403, request);
+  }
   
   const body = await request.json() as { status: 'confirmed' | 'rejected' };
   
@@ -39,8 +46,14 @@ export async function handleValidateCandidate(
  * Get precision statistics
  * GET /api/admin/candidates/precision
  */
-export async function handleGetPrecision(env: Env): Promise<Response> {
-  
+export async function handleGetPrecision(request: Request, env: Env): Promise<Response> {
+  const isAuthorized = await verifySetupToken(request, env);
+  if (!isAuthorized) {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader) return adminErrorResponse('Authentication required', 401, request);
+    return adminErrorResponse('Invalid token', 403, request);
+  }
+
   try {
     const stats = await env.DB.prepare(`
       SELECT 
@@ -82,7 +95,13 @@ export async function handleListCandidates(
   request: Request,
   env: Env
 ): Promise<Response> {
-  
+  const isAuthorized = await verifySetupToken(request, env);
+  if (!isAuthorized) {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader) return adminErrorResponse('Authentication required', 401, request);
+    return adminErrorResponse('Invalid token', 403, request);
+  }
+
   try {
     const url = new URL(request.url);
     const status = url.searchParams.get('status') || 'pending';

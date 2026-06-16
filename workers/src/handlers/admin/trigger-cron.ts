@@ -4,9 +4,20 @@
  */
 
 import type { Env } from '../../types';
+import { verifySetupToken } from '../../middleware/auth';
+import { adminErrorResponse } from '../../utils/response';
 
 export async function handleTriggerCron(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   try {
+    const isAuthorized = await verifySetupToken(request, env);
+    if (!isAuthorized) {
+      const authHeader = request.headers.get('Authorization');
+      if (!authHeader) {
+        return adminErrorResponse('Authentication required', 401, request);
+      }
+      return adminErrorResponse('Invalid token', 403, request);
+    }
+
     console.log('[Manual Cron] Starting manual execution...');
 
     // Priority tasks (blocking - must complete)

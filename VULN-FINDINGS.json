@@ -1,0 +1,167 @@
+[
+  {
+    "id": "f001",
+    "file": "src/handlers/admin/trigger-cron.ts",
+    "line": 8,
+    "category": "auth-bypass",
+    "severity": "CRITICAL",
+    "confidence": 0.98,
+    "title": "Admin trigger-cron endpoint 完全無認證",
+    "description": "handleTriggerCron 函式內部不呼叫 verifySetupToken()，且主路由 index.ts:595 直接將請求轉發至 handler 而無任何認證中介層。CSRF middleware 僅驗證 CSRF token 存在（且有多個跳過條件），不驗證使用者身份。任何能發送 POST 請求的人只要提供有效的 CSRF token（或繞過 CSRF）即可觸發所有 cron 任務。",
+    "exploit_scenario": "攻擊者發送 POST /api/admin/trigger-cron，由於 CSRF middleware 在無 cookie 時返回 null（pass through），且 handler 不做認證，請求被完整執行。攻擊者可反覆觸發 AI tag、embedding sync、deduplicate 等任務消耗 API 配額與 CPU 時間。"
+  },
+  {
+    "id": "f002",
+    "file": "src/handlers/admin/test-batch-api.ts",
+    "line": 15,
+    "category": "auth-bypass",
+    "severity": "HIGH",
+    "confidence": 0.95,
+    "title": "Admin test-batch-api endpoint 無認證",
+    "description": "handleTestBatchAPI 不呼叫 verifySetupToken()，僅有註解提示「使用 Bearer token」但未實作驗證。路由 index.ts 直接轉發。任何人可存取此測試端點，執行 BatchJobManager 操作（enqueue entities 等）。",
+    "exploit_scenario": "攻擊者發送 GET /api/admin/test-batch-api，直接執行 batch job 測試邏輯，可能產生大量 D1/KV 寫入導致服務降級或資料污染。"
+  },
+  {
+    "id": "f003",
+    "file": "src/handlers/admin/candidates.ts",
+    "line": 8,
+    "category": "auth-bypass",
+    "severity": "HIGH",
+    "confidence": 0.95,
+    "title": "Admin candidates API 無認證",
+    "description": "handleValidateCandidate、handleListCandidates、handleGetPrecision 均不呼叫 verifySetupToken()。路由 index.ts 直接將 /api/admin/candidates/* 請求轉發，無認證。攻擊者可列出跨使用者匹配候選人、修改驗證狀態。",
+    "exploit_scenario": "攻擊者 GET /api/admin/candidates 列出所有 cross-user match candidates（含使用者名片比對資訊），或 PUT /api/admin/candidates/:pairKey 篡改驗證狀態影響合併邏輯。"
+  },
+  {
+    "id": "f004",
+    "file": "src/handlers/user/received-cards/list-shared.ts",
+    "line": 18,
+    "category": "idor",
+    "severity": "HIGH",
+    "confidence": 0.92,
+    "title": "Shared cards 列表缺少使用者過濾 — 任何已認證使用者可查看所有人的分享名片",
+    "description": "handleListSharedCards 的 SQL 查詢 `FROM shared_cards sc INNER JOIN received_cards rc ON sc.card_uuid = rc.uuid WHERE rc.deleted_at IS NULL` 完全沒有以當前使用者 email 過濾。已驗證的 `user` 變數未被使用於查詢中。任何已認證使用者呼叫 GET /api/user/shared-cards 即可取得系統中所有被分享名片的完整資料。",
+    "exploit_scenario": "攻擊者以任意 allowlisted 帳號登入後，呼叫 GET /api/user/shared-cards，取得全系統所有使用者分享出的名片資料（含姓名、電話、email、地址、公司摘要等 PII）。"
+  },
+  {
+    "id": "f005",
+    "file": "src/middleware/csrf.ts",
+    "line": 37,
+    "category": "auth-bypass",
+    "severity": "MEDIUM",
+    "confidence": 0.85,
+    "title": "CSRF middleware 在無 cookie 時直接放行 — 可繞過保護",
+    "description": "csrfMiddleware 在 cookieHeader 為 null（line 37）或 sessionToken 為空（line 53）時返回 null（放行）。設計意圖是「讓 auth middleware 處理」，但部分 admin endpoint（如 f001-f003）根本沒有 auth middleware。即使有認證的端點，攻擊者只要不帶 cookie 就能跳過 CSRF 檢查（但通常也會失敗於 auth，除了上述無 auth 端點）。",
+    "exploit_scenario": "對於 f001/f002/f003 無認證端點，攻擊者不帶 cookie 發送 POST 請求即可完全繞過 CSRF 保護。"
+  },
+  {
+    "id": "f006",
+    "file": "src/handlers/mcp/oauth-register.ts",
+    "line": 60,
+    "category": "resource-exhaustion",
+    "severity": "MEDIUM",
+    "confidence": 0.80,
+    "title": "MCP Dynamic Client Registration 無 TTL — KV 永久佔用",
+    "description": "handleMcpRegister 呼叫 env.KV.put(`mcp_client:${clientId}`, ...) 但未設定 expirationTtl。Rate limit 為 5 次/IP/小時，但攻擊者可使用多個 IP 大量註冊 client，每個 client 資料永久留在 KV 中，無清理機制（scheduled cleanup 不涵蓋 mcp_client: keys）。",
+    "exploit_scenario": "攻擊者從大量 IP（proxy/botnet）以 5 次/IP/小時的速率持續註冊 MCP client，經一個月累積數十萬筆 KV 條目，增加 KV 成本與 list 操作延遲。"
+  },
+  {
+    "id": "f007",
+    "file": "src/handlers/mcp/oauth-token.ts",
+    "line": 78,
+    "category": "crypto-weakness",
+    "severity": "MEDIUM",
+    "confidence": 0.75,
+    "title": "MCP access token 使用 HS256 symmetric JWT — secret 洩漏即全面妥協",
+    "description": "issueAccessToken 使用 env.JWT_SECRET + HS256 簽發 JWT。同一個 JWT_SECRET 用於 user OAuth session (oauth.ts) 和 MCP token。若 secret 洩漏（log、KV dump、env 備份），攻擊者可偽造任意使用者的 access token，且 user session JWT 與 MCP JWT 的 issuer/audience 不同但共用 secret，增加洩漏面。",
+    "exploit_scenario": "若 JWT_SECRET 經由 error log 或環境變數匯出洩漏，攻擊者可簽發任意 email 的 JWT 存取 MCP endpoint 或 user API。"
+  },
+  {
+    "id": "f008",
+    "file": "src/handlers/tap.ts",
+    "line": 109,
+    "category": "information-disclosure",
+    "severity": "MEDIUM",
+    "confidence": 0.78,
+    "title": "NFC tap endpoint 回應差異洩漏 UUID 存在性（Timing + HTTP status oracle）",
+    "description": "handleTap 對不存在的 card_uuid 回傳 404 'card_not_found'，對已撤銷的回傳 403 'card_revoked'。雖有 per-IP short rate limit（30/60s），攻擊者仍可透過不同 status code 判斷 UUID 是否存在及其狀態。加上 rate limit 為 IP-based，可使用分散 IP 繞過。",
+    "exploit_scenario": "攻擊者批量測試 UUID（v4 格式有限空間但若有模式可循），透過 404 vs 403 差異判斷有效 UUID。配合 idempotency key 機制可避免重複計數。以 30 req/60s/IP × 多 IP 進行高速列舉。"
+  },
+  {
+    "id": "f009",
+    "file": "src/handlers/read.ts",
+    "line": 143,
+    "category": "access-control",
+    "severity": "MEDIUM",
+    "confidence": 0.70,
+    "title": "Read session token 為 UUID — 可預測性低但無額外綁定",
+    "description": "read_sessions.session_id 為 crypto.randomUUID()（v4 UUID），僅透過 session_id + card_uuid 比對即可讀取解密資料。session 未綁定任何用戶端指紋（IP、User-Agent hash 等）。若 session_id 洩漏（如透過 URL 分享、referer header、瀏覽器歷史），任何人都能在 TTL 內使用。",
+    "exploit_scenario": "使用者在 NFC tap 後將含 session 的 URL 貼入聊天（如 /api/read?uuid=...&session=...），接收者可在 session 過期前直接存取解密名片資料。"
+  },
+  {
+    "id": "f010",
+    "file": "src/handlers/oauth.ts",
+    "line": 124,
+    "category": "information-disclosure",
+    "severity": "LOW",
+    "confidence": 0.75,
+    "title": "OAuth callback redirect 在 URL 中暴露 session ID",
+    "description": "handleOAuthCallback 將 sessionId 放在 redirect URL query parameter: `?login=success&session=${sessionId}`。雖然 session 已透過 HttpOnly cookie 設定，但 query parameter 中的 session ID 會出現在瀏覽器歷史、server logs、以及 Referer header 中。",
+    "exploit_scenario": "攻擊者存取使用者的瀏覽器歷史或共用裝置瀏覽紀錄，從 URL 取得 sessionId 值，然後手動設定 auth_token cookie 劫持 session。"
+  },
+  {
+    "id": "f011",
+    "file": "src/handlers/user/received-cards/crud.ts",
+    "line": 157,
+    "category": "idor",
+    "severity": "LOW",
+    "confidence": 0.60,
+    "title": "handleListCards UNION 查詢 shared_cards 未限制 recipient",
+    "description": "handleListCards 的 UNION ALL 子查詢中 shared_cards 加入條件為 `rc.user_email != ?`（排除自己的卡），但未檢查 shared_cards 是否設定特定 recipient。shared_cards 表僅紀錄 card_uuid + owner_email，意味分享是「公開給所有已認證使用者」而非指定對象。若此為設計意圖則非漏洞，但缺乏文件確認。",
+    "exploit_scenario": "使用者 A 分享名片後，系統中所有已認證使用者（使用者 B、C 等）都能在 list cards 中看到 A 的分享名片。若使用者期望僅分享給特定對象，則為 IDOR。"
+  },
+  {
+    "id": "f012",
+    "file": "src/middleware/rate-limit.ts",
+    "line": 112,
+    "category": "access-control",
+    "severity": "LOW",
+    "confidence": 0.70,
+    "title": "KV-based rate limit 有 race condition — 非原子操作",
+    "description": "checkRateLimit 和 checkUserRateLimit 使用 KV.get + KV.put 的非原子操作。在高併發下（如並行請求），多個請求可能同時讀取到相同計數值，都通過檢查後各自+1，導致實際通過請求數超過設定上限。（Tap endpoint 使用 Durable Object 不受此問題影響）。",
+    "exploit_scenario": "攻擊者同時發送 50 個 POST /api/user/cards 請求（或其他 KV rate limit 保護的端點），由於非原子讀寫，大部分請求可在相同計數窗口內通過，突破 5 次/小時限制。"
+  },
+  {
+    "id": "f013",
+    "file": "src/handlers/risc.ts",
+    "line": 87,
+    "category": "access-control",
+    "severity": "LOW",
+    "confidence": 0.55,
+    "title": "RISC endpoint 缺少 replay protection（無 jti 去重）",
+    "description": "handleRISCEvent 驗證 JWT 簽章和 issuer/audience，但未檢查 jti（JWT ID）是否已處理過。雖然 Google 正常不會重發相同事件，但 raw_token_hash 僅做記錄不做去重拒絕。攻擊者若取得有效但已處理的 RISC JWT 可重放。",
+    "exploit_scenario": "攻擊者截取有效 RISC JWT（如經由 network tap），在 clockTolerance 60s 內重放相同事件，可能導致重複處理（如再次清除已恢復的 session）。影響較低因為 RISC 事件處理為冪等操作。"
+  },
+  {
+    "id": "f014",
+    "file": "src/handlers/mcp/oauth-token.ts",
+    "line": 90,
+    "category": "auth-bypass",
+    "severity": "LOW",
+    "confidence": 0.60,
+    "title": "MCP token endpoint rate limit fail-open",
+    "description": "handleMcpToken 在 Durable Object rate limit 失敗時（catch block line 90）記錄錯誤但繼續處理請求（fail-open）。若 DO 暫時不可用（如 cold start、網路問題），攻擊者可無限制嘗試 auth code 或 refresh token。",
+    "exploit_scenario": "在 Durable Object 暫時不可用期間（維護、冷啟動延遲），攻擊者對 /mcp/token 發送大量 brute-force 請求嘗試猜測 auth code（UUID v4 但短 TTL 10 分鐘內有效）。實際可行性低但 fail-open 設計削弱了防護。"
+  },
+  {
+    "id": "f015",
+    "file": "src/handlers/user/received-cards/upload.ts",
+    "line": 83,
+    "category": "injection",
+    "severity": "LOW",
+    "confidence": 0.50,
+    "title": "Upload filename 未驗證即使用於生成路徑",
+    "description": "handleUpload 接受 body.filename 但未驗證其格式（如路徑穿越字元 ../ 或特殊字元）。雖然實際 R2 key 使用 upload_id 而非 filename（`received/temp/${uploadId}.${extension}`），filename 參數目前未直接用於路徑，但其存在暗示未來可能用於下載或 Content-Disposition。",
+    "exploit_scenario": "若未來程式碼使用 filename 作為 Content-Disposition 或 R2 key 的一部分，攻擊者可注入惡意字元。目前影響極低因 filename 未被使用於關鍵路徑。"
+  }
+]

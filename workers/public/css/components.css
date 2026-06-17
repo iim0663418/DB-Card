@@ -1,0 +1,452 @@
+/* ============================================
+   DB-Card Component Styles
+   Shared UI components across all pages.
+   ============================================ */
+
+/* === MODA Brand Utilities (replaces 3x duplicated inline defs) === */
+.bg-moda { background-color: var(--color-primary); }
+.bg-moda-light { background-color: var(--color-primary-ghost); }
+.text-moda { color: var(--color-primary); }
+.text-moda-dark { color: var(--color-moda-700); }
+.border-moda { border-color: var(--color-primary); }
+.border-moda-light { border-color: var(--color-primary-ghost); }
+.shadow-moda { box-shadow: 0 20px 25px -5px rgba(104, 104, 172, 0.1), 0 8px 10px -6px rgba(104, 104, 172, 0.1); }
+
+.hover\:bg-moda:hover { background-color: var(--color-primary-hover); }
+.hover\:text-moda:hover { color: var(--color-primary); }
+.hover\:border-moda:hover { border-color: var(--color-primary); }
+.focus\:border-moda:focus { border-color: var(--color-primary); }
+.focus\:ring-moda:focus { --tw-ring-color: var(--color-primary); }
+.group:hover .group-hover\:bg-moda { background-color: var(--color-primary); }
+.group:hover .group-hover\:text-white { color: white; }
+
+/* === Glassmorphism Surfaces (unified naming) === */
+.glass-card,
+.glass-panel,
+.glass-surface {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  transition: all var(--duration-normal) var(--ease-default);
+}
+
+.glass-card:hover,
+.glass-panel:hover,
+.glass-surface:hover {
+  background: var(--glass-bg-hover);
+  box-shadow: var(--glass-shadow-hover);
+  transform: translateY(-4px);
+}
+
+.crystal-container {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  position: relative;
+}
+
+/* === Buttons === */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: var(--text-xs);
+  letter-spacing: 0.15em;
+  transition: all var(--duration-normal) ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-hover);
+  transform: scale(1.02);
+  box-shadow: var(--shadow-md);
+}
+
+/* === Feature Icon Container === */
+.feature-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-ghost);
+  color: var(--color-primary);
+}
+
+/* === HUD Text === */
+.hud-text {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-primary);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+/* === Info Chip (card-display) === */
+.info-chip {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-md);
+  transition: all 0.4s var(--ease-default);
+}
+
+.info-chip:hover {
+  background: var(--glass-bg-hover);
+  backdrop-filter: blur(16px) saturate(200%);
+  -webkit-backdrop-filter: blur(16px) saturate(200%);
+  border-color: var(--color-primary-border);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(104, 104, 172, 0.15), 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* === Social Node (card-display) === */
+.social-node {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--color-primary-ghost);
+  color: var(--color-primary);
+  transition: all var(--duration-normal) ease;
+}
+
+.social-node:hover {
+  background: var(--color-primary);
+  color: #ffffff;
+  transform: scale(1.1) rotate(3deg);
+}
+
+/* === Notifications === */
+#notification-container {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.notification {
+  background: white;
+  border-radius: 0.75rem;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  font-size: 0.875rem;
+  font-weight: 600;
+  animation: slideIn var(--duration-normal) ease;
+}
+
+.notification-info    { border-left: 4px solid var(--color-info); color: var(--color-info); }
+.notification-warning { border-left: 4px solid var(--color-warning); color: var(--color-warning); }
+.notification-success { border-left: 4px solid var(--color-success); color: var(--color-success); }
+.notification-error   { border-left: 4px solid var(--color-error); color: var(--color-error); }
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+/* === Error Container === */
+#error-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+  display: none;
+}
+
+.error-message {
+  background: white;
+  border: 2px solid var(--color-error);
+  border-radius: var(--radius-md);
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  color: var(--color-error);
+  font-weight: 700;
+  max-width: 90%;
+  width: 400px;
+  box-sizing: border-box;
+}
+
+.error-message button {
+  min-width: 120px;
+  min-height: 44px;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+/* === Watermark === */
+.watermark {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: 10vw;
+  color: rgba(104, 104, 172, 0.04);
+  font-weight: 900;
+  user-select: none;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* === Offline Badge === */
+.offline-badge {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255, 165, 0, 0.9);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 60;
+}
+
+/* === Warning Banner === */
+.warning-banner {
+  background: linear-gradient(135deg, var(--color-warning) 0%, #d97706 100%);
+  color: white;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+/* === Cursor Blink === */
+.cursor::after {
+  content: '_';
+  animation: blink 1s infinite;
+  color: var(--color-primary);
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+/* === Animations === */
+.reveal {
+  animation: crystalReveal 1.2s var(--ease-default) forwards;
+}
+
+@keyframes crystalReveal {
+  from { opacity: 0; transform: translateY(60px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.fade-in {
+  animation: fadeIn var(--duration-slow) ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* === Bilingual Field (shared by user-portal + admin) === */
+.bilingual-field {
+  display: grid;
+  grid-template-columns: 40% 60%;
+  gap: 1px;
+  background: #e2e8f0;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+@media (max-width: 640px) {
+  .bilingual-field {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bilingual-field input,
+.bilingual-field textarea {
+  background: #fff;
+  padding: 14px 18px;
+  font-size: 14px;
+  border: none;
+  outline: none;
+}
+
+.bilingual-field input:focus,
+.bilingual-field textarea:focus {
+  background: #fdfdff;
+  box-shadow: inset 0 0 0 2px var(--color-primary);
+  z-index: 10;
+}
+
+/* === Modal Animations === */
+.modal-backdrop {
+  animation: fadeInBg var(--duration-normal) ease-out;
+}
+
+@keyframes fadeInBg {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal-content {
+  animation: slideUp 0.4s var(--ease-default);
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-xl);
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* === Loading Overlay === */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  align-items: center;
+  justify-content: center;
+}
+.loading-overlay:not(.hidden) {
+  display: flex;
+}
+
+/* === Skeleton Loading === */
+.skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* === Badge System === */
+.badge {
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.badge-personal { background: #dbeafe; color: #1e40af; }
+.badge-event    { background: #fef3c7; color: #92400e; }
+.badge-sensitive { background: #fee2e2; color: #991b1b; }
+.badge-bound    { background: #d1fae5; color: #065f46; }
+.badge-revoked  { background: #fecaca; color: #991b1b; }
+.badge-active   { background: #d1fae5; color: #065f46; }
+.badge-suspended { background: #fed7aa; color: #9a3412; }
+
+/* === Tab System (admin) === */
+.tab-btn {
+  position: relative;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  transition: all var(--duration-normal) ease;
+}
+.tab-btn.active {
+  color: var(--color-primary);
+}
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--color-primary);
+}
+
+/* === Social Chip Preview === */
+.social-chip-prev {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-ghost);
+  color: var(--color-primary);
+  transition: all 0.2s;
+}
+
+/* === Google Login Button === */
+.btn-google {
+  background: white;
+  border: 1px solid #dadce0;
+  color: #3c4043;
+  transition: all 0.2s;
+}
+.btn-google:hover:not(:disabled) {
+  background-color: #f8f9fa;
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.3);
+}
+
+/* === Responsive Overrides === */
+@media (max-width: 768px) {
+  .watermark {
+    font-size: 15vw;
+  }
+
+  #notification-container {
+    bottom: 1rem;
+    right: 1rem;
+    left: 1rem;
+  }
+
+  .notification {
+    font-size: 0.75rem;
+    padding: 0.75rem 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .error-message {
+    padding: 2rem 1.5rem;
+    max-width: 95%;
+    width: auto;
+  }
+
+  .error-message button {
+    width: 100%;
+    min-height: 48px;
+  }
+}

@@ -9,8 +9,11 @@
     <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="/css/tokens.css">
+    <link rel="stylesheet" href="/css/base.css">
     <link rel="stylesheet" href="/css/tailwind.css">
     <link rel="stylesheet" href="/css/v4-design.css">
+    <link rel="stylesheet" href="/css/components.css">
     <script src="/js/tailwind-suppress.js"></script>
     <!-- Vite Icon Bundle (Tree-shaken: 11.62 KB, 96.9% reduction) - Dynamic Loading -->
     <script src="/js/manifest-loader.js"></script>
@@ -39,23 +42,9 @@
     <script src="/js/social-link-integration.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Noto+Sans+TC:wght@300;500;700;900&display=swap');
-        
-        :root {
-            --moda-accent: #6868ac;
-            --moda-success: #10b981;
-            --moda-warning: #f59e0b;
-            --moda-danger: #ef4444;
-            --crystal-bg: rgba(255, 255, 255, 0.8);
-        }
 
-        body {
-            font-family: 'Inter', 'Noto Sans TC', sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
-            margin: 0;
-            overflow-x: hidden;
-            min-height: 100vh;
-        }
+        /* Page-specific: admin uses Inter + lower Three.js opacity */
+        body { font-family: var(--font-data); }
 
         #three-canvas {
             position: fixed;
@@ -65,74 +54,15 @@
             opacity: 0.2;
         }
 
-        .glass-surface {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px) saturate(180%);
-            -webkit-backdrop-filter: blur(10px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            box-shadow: 0 8px 32px rgba(104, 104, 172, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04);
-        }
+        /* Tab: logout variant */
+        .tab-btn.logout-btn { color: #dc2626; }
+        .tab-btn.logout-btn:hover { color: #b91c1c; }
 
-        /* Tab 系統樣式 */
-        .tab-btn {
-            position: relative;
-            padding: 12px 24px;
-            font-size: 14px;
-            font-weight: 700;
-            color: #64748b;
-            transition: all 0.3s ease;
-        }
-        .tab-btn.active {
-            color: var(--moda-accent);
-        }
-        .tab-btn.active::after {
-            content: '';
-            position: absolute;
-            bottom: -1px; left: 0; right: 0;
-            height: 3px;
-            background: var(--moda-accent);
-        }
-        .tab-btn.logout-btn {
-            color: #dc2626 !important; /* text-red-600 */
-        }
-        .tab-btn.logout-btn:hover {
-            color: #b91c1c !important; /* text-red-700 */
-        }
-
-        /* 雙語輸入框 */
-        .bilingual-field {
-            display: grid;
-            grid-template-columns: 40% 60%;
-            gap: 1px;
-            background: #e2e8f0;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid #e2e8f0;
-        }
-        
-        @media (max-width: 640px) {
-            .bilingual-field {
-                grid-template-columns: 1fr;
-                gap: 1px;
-            }
-        }
-        .bilingual-field input, .bilingual-field textarea {
-            background: #fff;
-            padding: 12px 16px;
-            font-size: 14px;
-            border: none;
-            outline: none;
-        }
-        .bilingual-field input:focus, .bilingual-field textarea:focus {
-            background: #fdfdff;
-            box-shadow: inset 0 0 0 2px var(--moda-accent);
-            z-index: 10;
-        }
-
+        /* Lang indicator (admin-specific) */
         .lang-indicator {
             font-size: 9px;
             font-weight: 800;
-            color: #94a3b8;
+            color: var(--color-text-muted);
             text-transform: uppercase;
             letter-spacing: 1px;
             margin-bottom: 4px;
@@ -140,74 +70,23 @@
             justify-content: space-between;
         }
 
-        .social-chip-prev {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #f1f5f9;
-            color: var(--moda-accent);
-            border: 1px solid #e2e8f0;
-        }
-
-        /* Badge 樣式 */
-        .badge {
-            padding: 2px 10px;
-            border-radius: 999px;
-            font-size: 10px;
-            font-weight: 800;
-            text-transform: uppercase;
-        }
-        .badge-personal { background: #dbeafe; color: #1e40af; }
-        .badge-event { background: #fef3c7; color: #92400e; }
-        .badge-sensitive { background: #fee2e2; color: #991b1b; }
-        .badge-bound { background: #d1fae5; color: #065f46; }
-        .badge-revoked { background: #fecaca; color: #991b1b; }
-        .badge-active { background: #d1fae5; color: #065f46; }
-        .badge-suspended { background: #fed7aa; color: #9a3412; }
-
-        /* Budget Badge */
+        /* Budget Badge (admin-specific) */
         .badge-budget-warning {
-            background: rgba(245, 158, 11, 0.1);
-            color: #f59e0b;
+            background: var(--color-warning-bg);
+            color: var(--color-warning);
             border: 1px solid rgba(245, 158, 11, 0.3);
         }
         .badge-budget-critical {
-            background: rgba(239, 68, 68, 0.1);
-            color: #ef4444;
+            background: var(--color-error-bg);
+            color: var(--color-error);
             border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
-        /* Skeleton Loading */
-        .skeleton {
-            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-            background-size: 200% 100%;
-            animation: skeleton-loading 1.5s ease-in-out infinite;
-            border-radius: 8px;
-        }
-        @keyframes skeleton-loading {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-        .skeleton-text {
-            height: 12px;
-            margin: 4px 0;
-        }
-        .skeleton-badge {
-            width: 60px;
-            height: 20px;
-            display: inline-block;
-        }
+        /* Skeleton sub-types */
+        .skeleton-text { height: 12px; margin: 4px 0; }
+        .skeleton-badge { width: 60px; height: 20px; display: inline-block; }
 
-        /* 動畫 */
-        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-
-        /* 按鈕 Loading 狀態 */
+        /* Button loading state */
         .btn-loading {
             position: relative;
             pointer-events: none;
@@ -229,20 +108,6 @@
         @keyframes btn-spin {
             to { transform: translateY(-50%) rotate(360deg); }
         }
-
-        /* MODA Accent 顏色覆蓋 Tailwind indigo */
-        .bg-moda { background-color: var(--moda-accent) !important; }
-        .text-moda { color: var(--moda-accent) !important; }
-        .text-moda-dark { color: #4a4a8a !important; }
-        .border-moda { border-color: var(--moda-accent) !important; }
-        .border-moda-light { border-color: rgba(104, 104, 172, 0.1) !important; }
-        .bg-moda-light { background-color: rgba(104, 104, 172, 0.1) !important; }
-        .hover\:bg-moda:hover { background-color: #5858a0 !important; }
-        .hover\:text-moda:hover { color: var(--moda-accent) !important; }
-        .hover\:border-moda:hover { border-color: var(--moda-accent) !important; }
-        .focus\:border-moda:focus { border-color: var(--moda-accent) !important; }
-        .focus\:ring-moda:focus { --tw-ring-color: var(--moda-accent) !important; }
-        .shadow-moda { box-shadow: 0 20px 25px -5px rgba(104, 104, 172, 0.1), 0 8px 10px -6px rgba(104, 104, 172, 0.1) !important; }
     </style>
 </head>
 <body class="p-4 lg:p-8">
@@ -592,7 +457,7 @@
                                     <i data-lucide="x" class="w-5 h-5"></i>
                                     取消編輯
                                 </button>
-                                <button type="submit" class="md:flex-1 bg-moda text-white px-8 py-4 rounded-xl font-bold hover:bg-moda shadow-lg transition-all flex items-center justify-center gap-3">
+                                <button type="submit" class="md:flex-1 bg-moda text-white px-8 py-4 rounded-xl font-bold hover:bg-moda/90 shadow-lg transition-all flex items-center justify-center gap-3">
                                     <i data-lucide="zap" class="w-5 h-5"></i>
                                     簽發數位名片
                                 </button>
@@ -721,7 +586,7 @@
 
                     <!-- 上傳按鈕 -->
                     <div class="flex gap-3">
-                        <button id="upload-btn" data-action="uploadAsset" disabled class="flex-1 bg-moda text-white px-6 py-3 rounded-xl font-bold hover:bg-moda transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                        <button id="upload-btn" data-action="uploadAsset" disabled class="flex-1 bg-moda text-white px-6 py-3 rounded-xl font-bold hover:bg-moda/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                             上傳
                         </button>
                         <button data-action="clearPreview" class="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-all">
@@ -922,7 +787,7 @@
                                 <option value="suspicious_activity">Suspicious</option>
                                 <option value="blocked_ip">Blocked IP</option>
                             </select>
-                            <button data-action="exportSecurityEvents" class="px-4 py-2 bg-moda text-white rounded-xl text-xs font-bold hover:bg-moda">Export CSV</button>
+                            <button data-action="exportSecurityEvents" class="px-4 py-2 bg-moda text-white rounded-xl text-xs font-bold hover:bg-moda/90">Export CSV</button>
                         </div>
                     </div>
                     <div class="overflow-x-auto">
@@ -1169,7 +1034,7 @@
             <div class="space-y-4">
                 <div class="p-5 bg-white rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
                     <div class="flex items-start gap-4">
-                        <div class="flex-shrink-0 w-10 h-10 bg-[#6868ac] text-white rounded-full flex items-center justify-center font-bold">1</div>
+                        <div class="flex-shrink-0 w-10 h-10 bg-moda text-white rounded-full flex items-center justify-center font-bold">1</div>
                         <div class="flex-1">
                             <h3 class="font-bold text-slate-900 mb-2">生成新 KEK</h3>
                             <div class="relative group">
@@ -1186,7 +1051,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
                 <div class="p-5 bg-white rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
                     <div class="flex items-start gap-4">
-                        <div class="flex-shrink-0 w-10 h-10 bg-[#6868ac] text-white rounded-full flex items-center justify-center font-bold">2</div>
+                        <div class="flex-shrink-0 w-10 h-10 bg-moda text-white rounded-full flex items-center justify-center font-bold">2</div>
                         <div class="flex-1">
                             <h3 class="font-bold text-slate-900 mb-2">更新環境變數</h3>
                             <p class="text-sm text-slate-600 mb-3">將當前 KEK 移至 OLD_KEK，新 KEK 設為 KEK</p>
@@ -1205,7 +1070,7 @@ wrangler secret put OLD_KEK
 
                 <div class="p-5 bg-white rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
                     <div class="flex items-start gap-4">
-                        <div class="flex-shrink-0 w-10 h-10 bg-[#6868ac] text-white rounded-full flex items-center justify-center font-bold">3</div>
+                        <div class="flex-shrink-0 w-10 h-10 bg-moda text-white rounded-full flex items-center justify-center font-bold">3</div>
                         <div class="flex-1">
                             <h3 class="font-bold text-slate-900 mb-2">重新部署</h3>
                             <div class="relative group">
@@ -1222,7 +1087,7 @@ wrangler deploy
 
                 <div class="p-5 bg-white rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
                     <div class="flex items-start gap-4">
-                        <div class="flex-shrink-0 w-10 h-10 bg-[#6868ac] text-white rounded-full flex items-center justify-center font-bold">4</div>
+                        <div class="flex-shrink-0 w-10 h-10 bg-moda text-white rounded-full flex items-center justify-center font-bold">4</div>
                         <div class="flex-1">
                             <h3 class="font-bold text-slate-900 mb-2">執行 DEK 重新包裝腳本</h3>
                             <p class="text-sm text-slate-600 mb-3">在本地執行腳本進行重新包裝</p>
@@ -1241,7 +1106,7 @@ npm run kek:rewrap
 
                 <div class="p-5 bg-white rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
                     <div class="flex items-start gap-4">
-                        <div class="flex-shrink-0 w-10 h-10 bg-[#6868ac] text-white rounded-full flex items-center justify-center font-bold">5</div>
+                        <div class="flex-shrink-0 w-10 h-10 bg-moda text-white rounded-full flex items-center justify-center font-bold">5</div>
                         <div class="flex-1">
                             <h3 class="font-bold text-slate-900 mb-2">清理舊密鑰</h3>
                             <p class="text-sm text-slate-600 mb-3">確認輪替成功後刪除 OLD_KEK</p>

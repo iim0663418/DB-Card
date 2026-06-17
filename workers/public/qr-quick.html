@@ -12,6 +12,7 @@
 <!-- Vite Icon Bundle (Tree-shaken: 11.62 KB, 96.9% reduction) - Dynamic Loading -->
 <script src="/js/manifest-loader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+<link rel="stylesheet" href="/css/tokens.css">
 <style>
 body{margin:0;padding:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(244,247,249,0.3) 0%,rgba(230,235,240,0.4) 100%);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 .modal{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center}
@@ -29,7 +30,7 @@ h3{font-size:1.5rem;font-weight:900;color:#1e293b;margin:0 0 0.5rem}
 .desktop-guide{background:#f1f5f9;border:1px solid #cbd5e1;color:#334155}
 .chrome-guide{background:#fef3c7;border:1px solid #fde047;color:#713f12}
 .btn{width:100%;padding:1rem;border:none;border-radius:0.75rem;font-weight:700;font-size:0.875rem;cursor:pointer;margin-top:0.5rem}
-.btn-primary{background:#6868ac;color:#fff}
+.btn-primary{background:var(--color-primary, #6868ac);color:#fff}
 .btn-primary:hover{background:#5858a0}
 .btn-secondary{background:#f1f5f9;color:#64748b}
 .btn-secondary:hover{background:#e2e8f0}
@@ -43,7 +44,7 @@ canvas{max-width:100%;height:auto;border-radius:.5rem}
 <div class="backdrop"></div>
 <div class="content">
 <div class="header">
-<div class="icon"><i data-lucide="qr-code" style="width:2rem;height:2rem;color:#6868ac"></i></div>
+<div class="icon"><i data-lucide="qr-code" style="width:2rem;height:2rem;color:var(--color-primary, #6868ac)"></i></div>
 <h3 data-i18n="install-title">加到主畫面</h3>
 <p class="subtitle" data-i18n="install-subtitle">隨時打開，立即分享</p>
 </div>
@@ -82,7 +83,7 @@ canvas{max-width:100%;height:auto;border-radius:.5rem}
 
 <div id="qr-view" class="card hidden">
 <div class="header">
-<div class="icon"><i data-lucide="contact" style="width:2rem;height:2rem;color:#6868ac"></i></div>
+<div class="icon"><i data-lucide="contact" style="width:2rem;height:2rem;color:var(--color-primary, #6868ac)"></i></div>
 <h3 id="qr-card-name">數位名片</h3>
 <p class="subtitle" data-i18n="qr-subtitle">掃描 QR Code 查看名片</p>
 </div>

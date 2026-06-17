@@ -328,25 +328,14 @@ body {
     </script>
 
     <!-- Async load non-critical CSS -->
+    <link rel="stylesheet" href="/css/tokens.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="/css/tokens.css"></noscript>
+    <link rel="stylesheet" href="/css/base.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="/css/base.css"></noscript>
     <link rel="stylesheet" href="css/v4-design.css" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="css/v4-design.css"></noscript>
-    <style>
-/* MODA Accent 顏色覆蓋 Tailwind indigo */
-.bg-moda { background-color: var(--moda-accent) !important; }
-.bg-moda-light { background-color: rgba(104, 104, 172, 0.1) !important; }
-.border-moda-light { border-color: rgba(104, 104, 172, 0.1) !important; }
-.text-moda { color: var(--moda-accent) !important; }
-.text-moda-dark { color: #4a4a8a !important; }
-.border-moda { border-color: var(--moda-accent) !important; }
-.hover\:bg-moda:hover { background-color: #5858a0 !important; }
-.hover\:text-moda:hover { color: var(--moda-accent) !important; }
-.hover\:border-moda:hover { border-color: var(--moda-accent) !important; }
-.focus\:border-moda:focus { border-color: var(--moda-accent) !important; }
-.focus\:ring-moda:focus { --tw-ring-color: var(--moda-accent) !important; }
-.shadow-moda { box-shadow: 0 20px 25px -5px rgba(104, 104, 172, 0.1), 0 8px 10px -6px rgba(104, 104, 172, 0.1) !important; }
-.group:hover .group-hover\:bg-moda { background-color: var(--moda-accent) !important; }
-.group:hover .group-hover\:text-white { color: white !important; }
-</style>
+    <link rel="stylesheet" href="/css/components.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="/css/components.css"></noscript>
 </head>
 <body class="no-scrollbar flex flex-col items-center">
 
@@ -433,17 +422,10 @@ body {
                 
                 <div class="card-face card-front">
                     <main id="main-content">
-            <!-- 頂部 Banner -->
-            <div data-animate class="relative w-full h-32 overflow-hidden rounded-t-2xl">
-                <img src="/images/card-banner.jpg" alt="" aria-hidden="true" class="w-full h-full object-cover object-top">
-                <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white"></div>
-            </div>
-
             <!-- 身分首部 -->
-            <article data-animate class="px-8 pb-8 border-b border-moda-light flex flex-col gap-6 items-center relative z-10">
-                <div class="relative -mt-16 avatar-ring">
-                    <div class="absolute -inset-2 border-2 border-white/50 rounded-full pointer-events-none" aria-hidden="true"></div>
-                    <img id="user-avatar" src="" alt="名片大頭貼" class="w-32 h-32 rounded-full object-cover border-4 border-white shadow-xl transition-all duration-700">
+            <article data-animate class="pt-14 px-8 pb-8 border-b border-moda-light flex flex-col gap-6 items-center relative z-10">
+                <div class="relative avatar-ring">
+                    <img id="user-avatar" src="" alt="名片大頭貼" class="w-28 h-28 rounded-full object-cover shadow-[0_0_24px_rgba(104,104,172,0.15)] transition-all duration-700">
                 </div>
 
                 <div class="flex-1 text-center">
@@ -500,7 +482,7 @@ body {
             </section>
 
             <!-- 品牌漸層分隔 -->
-            <div class="mx-6 h-px bg-gradient-to-r from-transparent via-[#6868ac]/30 to-transparent"></div>
+            <div class="mx-6 h-px bg-gradient-to-r from-transparent via-moda/30 to-transparent"></div>
 
             <!-- 社群連結聚落 -->
             <nav data-animate id="social-cluster" class="px-6 py-8 flex flex-wrap gap-4 justify-center relative z-10" aria-label="社群媒體連結">
@@ -517,17 +499,10 @@ body {
 
                 <div class="card-face card-back">
                     <main>
-            <!-- 頂部 Banner -->
-            <div class="relative w-full h-32 overflow-hidden rounded-t-2xl">
-                <img src="/images/card-banner.jpg" alt="" aria-hidden="true" class="w-full h-full object-cover object-top">
-                <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white"></div>
-            </div>
-
             <!-- 身分首部 -->
-            <article class="px-8 pb-8 border-b border-moda-light flex flex-col gap-6 items-center relative z-10">
-                <div class="relative -mt-16 avatar-ring">
-                    <div class="absolute -inset-2 border-2 border-white/50 rounded-full pointer-events-none" aria-hidden="true"></div>
-                    <img id="user-avatar-en" src="" alt="Profile Photo" class="w-32 h-32 rounded-full object-cover border-4 border-white shadow-xl transition-all duration-700">
+            <article class="pt-14 px-8 pb-8 border-b border-moda-light flex flex-col gap-6 items-center relative z-10">
+                <div class="relative avatar-ring">
+                    <img id="user-avatar-en" src="" alt="Profile Photo" class="w-28 h-28 rounded-full object-cover shadow-[0_0_24px_rgba(104,104,172,0.15)] transition-all duration-700">
                 </div>
 
                 <div class="flex-1 text-center">
@@ -585,7 +560,7 @@ body {
 
             <!-- 社群連結聚落 -->
             <!-- 品牌漸層分隔 -->
-            <div class="mx-6 h-px bg-gradient-to-r from-transparent via-[#6868ac]/30 to-transparent"></div>
+            <div class="mx-6 h-px bg-gradient-to-r from-transparent via-moda/30 to-transparent"></div>
 
             <!-- 社群連結聚落 -->
             <!-- 社群連結聚落 -->

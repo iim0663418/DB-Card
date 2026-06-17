@@ -1,0 +1,131 @@
+/* ============================================
+   DB-Card Design Tokens v1.0
+   Single source of truth for all visual values.
+   ============================================ */
+
+:root {
+  /* === Color: Brand (OKLCH) === */
+  --color-moda-50:  oklch(0.96 0.02 280);
+  --color-moda-100: oklch(0.92 0.04 280);
+  --color-moda-200: oklch(0.84 0.07 280);
+  --color-moda-300: oklch(0.74 0.10 280);
+  --color-moda-400: oklch(0.64 0.12 280);
+  --color-moda-500: oklch(0.54 0.11 280);  /* ≈ #6868ac */
+  --color-moda-600: oklch(0.46 0.10 280);
+  --color-moda-700: oklch(0.38 0.09 280);
+  --color-moda-800: oklch(0.30 0.07 280);
+  --color-moda-900: oklch(0.22 0.05 280);
+
+  /* === Color: Semantic === */
+  --color-primary: var(--color-moda-500);
+  --color-primary-hover: var(--color-moda-600);
+  --color-primary-ghost: oklch(0.54 0.11 280 / 0.1);
+  --color-primary-glow: oklch(0.54 0.11 280 / 0.2);
+  --color-primary-border: oklch(0.54 0.11 280 / 0.3);
+
+  /* === Color: Neutral === */
+  --color-text: #1e1e3f;
+  --color-text-secondary: #64748b;
+  --color-text-muted: #94a3b8;
+  --color-surface: #f8fafd;
+  --color-surface-alt: #f4f7f9;
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-border-subtle: rgba(255, 255, 255, 0.18);
+
+  /* === Color: Feedback === */
+  --color-success: #10b981;
+  --color-success-bg: rgba(16, 185, 129, 0.1);
+  --color-warning: #f59e0b;
+  --color-warning-bg: rgba(245, 158, 11, 0.1);
+  --color-error: #ef4444;
+  --color-error-bg: rgba(239, 68, 68, 0.1);
+  --color-info: #3b82f6;
+  --color-info-bg: rgba(59, 130, 246, 0.1);
+
+  /* === Color: Glass === */
+  --glass-bg: rgba(255, 255, 255, 0.1);
+  --glass-bg-hover: rgba(255, 255, 255, 0.15);
+  --glass-border: rgba(255, 255, 255, 0.18);
+  --glass-blur: blur(10px) saturate(180%);
+  --glass-shadow: 0 8px 32px rgba(104, 104, 172, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --glass-shadow-hover: 0 12px 48px rgba(104, 104, 172, 0.18), 0 4px 12px rgba(0, 0, 0, 0.06);
+
+  /* === Spacing (8pt grid) === */
+  --space-025: 2px;
+  --space-050: 4px;
+  --space-100: 8px;
+  --space-150: 12px;
+  --space-200: 16px;
+  --space-300: 24px;
+  --space-400: 32px;
+  --space-500: 40px;
+  --space-600: 48px;
+  --space-800: 64px;
+
+  /* === Border Radius === */
+  --radius-sm: 0.5rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.5rem;
+  --radius-xl: 2rem;
+  --radius-full: 9999px;
+
+  /* === Typography: Fluid Scale === */
+  --text-xs:   clamp(0.625rem, 0.6rem + 0.15vw, 0.75rem);
+  --text-sm:   clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+  --text-base: clamp(0.875rem, 0.82rem + 0.3vw, 1rem);
+  --text-lg:   clamp(1rem, 0.9rem + 0.5vw, 1.25rem);
+  --text-xl:   clamp(1.25rem, 1rem + 1.2vw, 1.75rem);
+  --text-2xl:  clamp(1.5rem, 1rem + 2vw, 2.5rem);
+  --text-3xl:  clamp(2rem, 1.2rem + 3vw, 3.5rem);
+
+  /* === Typography: Font Stacks === */
+  --font-sans: 'Outfit', 'Noto Sans TC', system-ui, sans-serif;
+  --font-data: 'Inter', 'Noto Sans TC', system-ui, sans-serif;
+  --font-mono: 'Share Tech Mono', ui-monospace, monospace;
+
+  /* === Motion === */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  --duration-emphasis: 800ms;
+  --ease-default: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* === Elevation (Shadows) === */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 16px rgba(104, 104, 172, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 8px 32px rgba(104, 104, 172, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.15), 0 8px 20px rgba(0, 0, 0, 0.08);
+
+  /* === Legacy alias (backward compat) === */
+  --moda-accent: var(--color-primary);
+  --moda-glow: var(--color-primary-glow);
+  --crystal-bg: rgba(255, 255, 255, 0.5);
+  --ui-text: var(--color-text);
+}
+
+/* === Dark Mode === */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-text: #e8e8f0;
+    --color-text-secondary: #a1a1b5;
+    --color-text-muted: #6b6b80;
+    --color-surface: #121218;
+    --color-surface-alt: #1a1a24;
+    --color-border: rgba(255, 255, 255, 0.08);
+
+    --color-primary: oklch(0.68 0.10 280);
+    --color-primary-hover: oklch(0.74 0.08 280);
+    --color-primary-ghost: oklch(0.68 0.10 280 / 0.12);
+    --color-primary-glow: oklch(0.68 0.10 280 / 0.2);
+
+    --glass-bg: rgba(30, 30, 50, 0.6);
+    --glass-bg-hover: rgba(30, 30, 50, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
+
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3), 0 1px 4px rgba(0, 0, 0, 0.2);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.25);
+  }
+}

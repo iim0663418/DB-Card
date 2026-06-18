@@ -29,6 +29,7 @@
   --color-text-muted: #94a3b8;
   --color-surface: #f8fafd;
   --color-surface-alt: #f4f7f9;
+  --color-surface-elevated: #ffffff;
   --color-border: rgba(0, 0, 0, 0.08);
   --color-border-subtle: rgba(255, 255, 255, 0.18);
 
@@ -109,14 +110,15 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --color-text: #e8e8f0;
-    --color-text-secondary: #a1a1b5;
-    --color-text-muted: #6b6b80;
+    --color-text-secondary: #d0d0e0;
+    --color-text-muted: #9a9ab0;
     --color-surface: #121218;
     --color-surface-alt: #1a1a24;
+    --color-surface-elevated: #222230;
     --color-border: rgba(255, 255, 255, 0.08);
 
-    --color-primary: oklch(0.68 0.10 280);
-    --color-primary-hover: oklch(0.74 0.08 280);
+    --color-primary: oklch(0.75 0.10 280);
+    --color-primary-hover: oklch(0.80 0.08 280);
     --color-primary-ghost: oklch(0.68 0.10 280 / 0.12);
     --color-primary-glow: oklch(0.68 0.10 280 / 0.2);
 

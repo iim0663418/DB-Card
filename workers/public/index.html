@@ -102,6 +102,17 @@
     <style>
         body {
             background: linear-gradient(135deg, rgba(244,247,249,0.3) 0%, rgba(230,235,240,0.4) 100%);
+            background-color: var(--color-surface);
+        }
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: var(--color-surface);
+                color: var(--color-text);
+            }
+            .text-moda { color: var(--color-primary) !important; }
+            .text-slate-600, .text-slate-700, .dark-text-secondary { color: var(--color-text-secondary) !important; }
+            .text-slate-400 { color: var(--color-text-muted) !important; }
+            .bg-white { background-color: var(--color-surface-alt) !important; }
         }
 
         #three-canvas {
@@ -125,7 +136,7 @@
             <h1 class="text-5xl md:text-7xl font-black mb-4 text-moda">
                 DB-Card
             </h1>
-            <p class="text-lg md:text-xl text-slate-600 font-medium" data-i18n="hero-subtitle">
+            <p class="text-lg md:text-xl font-medium dark-text-secondary" data-i18n="hero-subtitle">
                 安全預設 NFC 數位名片系統
             </p>
             <div class="mt-4 text-xs text-slate-400 font-mono" id="app-version" aria-label="應用程式版本">

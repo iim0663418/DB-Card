@@ -31,6 +31,12 @@
         /* Page-specific: gradient background */
         body {
             background: linear-gradient(135deg, rgba(244,247,249,0.3) 0%, rgba(230,235,240,0.4) 100%);
+            background-color: var(--color-surface);
+        }
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: var(--color-surface);
+            }
         }
 
         #three-canvas {
@@ -54,6 +60,11 @@
         .selection-card.revoked {
             border: 2px solid var(--color-error);
             background: rgba(254, 242, 242, 0.8);
+        }
+        @media (prefers-color-scheme: dark) {
+            .selection-card.revoked {
+                background: rgba(127, 29, 29, 0.3);
+            }
         }
 
         /* AI Processing Steps */

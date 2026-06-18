@@ -31,7 +31,7 @@
 }
 
 body {
-    background-color: #f8fafd;
+    background-color: var(--color-surface);
     margin: 0;
     padding: 0;
 }
@@ -44,8 +44,66 @@ body {
 /* 深色模式支援 */
 @media (prefers-color-scheme: dark) {
     body {
-        background-color: #1a1a1a;
+        background-color: #0e0e16;
     }
+    #loading {
+        background-color: #0e0e16;
+    }
+    /* Card stays light — like a physical white card in a dark room */
+    .card-face {
+        background: #f8f8fc;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        border-color: rgba(0, 0, 0, 0.1);
+        box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .card-face::before {
+        display: none;
+    }
+    /* Card text — triple specificity to always beat components.css global overrides */
+    .card-face.card-front h1, .card-face.card-back h1,
+    .card-face h1.text-slate-900, .card-face h1.font-black { color: #111128 !important; }
+    .card-face.card-front .text-slate-900, .card-face.card-back .text-slate-900,
+    .card-face.card-front .font-black, .card-face.card-back .font-black { color: #111128 !important; }
+    .card-face.card-front .text-slate-700, .card-face.card-back .text-slate-700,
+    .card-face.card-front .font-bold, .card-face.card-back .font-bold { color: #1a1a35 !important; }
+    .card-face.card-front .text-slate-600, .card-face.card-back .text-slate-600 { color: #222244 !important; }
+    .card-face.card-front .text-slate-500, .card-face.card-back .text-slate-500 { color: #2a2a4e !important; }
+    .card-face.card-front .text-slate-400, .card-face.card-back .text-slate-400 { color: #333360 !important; }
+    .card-face.card-front .text-slate-300, .card-face.card-back .text-slate-300 { color: #444470 !important; }
+    .card-face.card-front .text-moda-dark, .card-face.card-back .text-moda-dark { color: #3a3a6a !important; }
+    /* Info chips inside card — keep light surface style */
+    .card-face .info-chip {
+        background: rgba(104, 104, 172, 0.06) !important;
+        border-color: rgba(104, 104, 172, 0.12) !important;
+    }
+    .card-face .info-chip:hover {
+        background: rgba(104, 104, 172, 0.1) !important;
+    }
+    .card-face .social-node {
+        background: rgba(104, 104, 172, 0.06) !important;
+        border-color: rgba(104, 104, 172, 0.12) !important;
+    }
+    /* HUD label */
+    .card-face .hud-text { color: #2a2a4e !important; }
+    .card-face .opacity-40 { opacity: 1 !important; }
+    /* Header UI adapts to dark */
+    #ui-header .text-slate-500 { color: #9898b0 !important; }
+    #ui-header .bg-white { background-color: #1e1e2e !important; }
+    #ui-header .border-slate-200 { border-color: rgba(255,255,255,0.1) !important; }
+    #ui-header .text-slate-700 { color: #d0d0e0 !important; }
+    /* Footer / aside elements outside card */
+    aside.bg-white\/80,
+    .bg-white\/80 {
+        background: #f8f8fc !important;
+    }
+    aside .text-slate-500 { color: #2e2e50 !important; }
+    aside .text-moda-dark { color: #3a3a6a !important; }
+    aside .hud-text { color: #2e2e50 !important; }
+    aside .border-moda-light { border-color: rgba(40,40,80,0.15) !important; }
+    /* Token info below card */
+    #token-info .text-slate-400 { color: #9898b0 !important; }
+    #token-info .opacity-40 { opacity: 0.7 !important; }
 }
 
 /* Desktop hint - No layout shift */
@@ -81,7 +139,7 @@ body {
 #loading {
     position: fixed;
     inset: 0;
-    background-color: #f8fafd;
+    background-color: var(--color-surface);
     z-index: 100;
     display: flex;
     flex-direction: column;
@@ -343,7 +401,7 @@ body {
     <canvas id="three-canvas"></canvas>
 
     <!-- 載入動畫 -->
-    <div id="loading" class="fixed inset-0 bg-[#f8fafd] z-[100] flex flex-col items-center justify-center transition-opacity duration-1000" role="status" aria-live="polite">
+    <div id="loading" class="fixed inset-0 bg-[var(--color-surface)] z-[100] flex flex-col items-center justify-center transition-opacity duration-1000" role="status" aria-live="polite">
         <div class="relative w-32 h-32">
             <div class="absolute inset-0 border-2 border-moda opacity-10 rounded-full animate-ping"></div>
             <div class="absolute inset-0 border-t-2 border-moda rounded-full animate-spin"></div>

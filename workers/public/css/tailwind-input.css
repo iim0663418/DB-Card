@@ -8,3 +8,24 @@
 @theme {
   --color-moda: var(--color-primary);
 }
+
+/* Dark mode overrides — must be outside @layer to win over utilities */
+@media (prefers-color-scheme: dark) {
+  .text-slate-600 { color: var(--color-text-secondary) !important; }
+  .text-slate-700 { color: var(--color-text) !important; }
+  .text-slate-400 { color: var(--color-text-muted) !important; }
+  .text-gray-600  { color: var(--color-text-secondary) !important; }
+  .text-gray-700  { color: var(--color-text) !important; }
+
+  .bg-white { background-color: var(--color-surface-alt) !important; }
+  .bg-slate-50, .bg-gray-50 { background-color: var(--color-surface) !important; }
+
+  .border-slate-200, .border-slate-100,
+  .border-gray-200, .border-gray-100 {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .hover\:bg-slate-50:hover, .hover\:bg-gray-50:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+  }
+}

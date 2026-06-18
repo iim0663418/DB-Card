@@ -45,6 +45,11 @@
 
         /* Page-specific: admin uses Inter + lower Three.js opacity */
         body { font-family: var(--font-data); }
+        @media (prefers-color-scheme: dark) {
+            body { background: var(--color-surface); color: var(--color-text); }
+            .tab-btn.logout-btn { color: #f87171; }
+            .tab-btn.logout-btn:hover { color: #fca5a5; }
+        }
 
         #three-canvas {
             position: fixed;
@@ -55,7 +60,7 @@
         }
 
         /* Tab: logout variant */
-        .tab-btn.logout-btn { color: #dc2626; }
+        .tab-btn.logout-btn { color: var(--color-error); }
         .tab-btn.logout-btn:hover { color: #b91c1c; }
 
         /* Lang indicator (admin-specific) */

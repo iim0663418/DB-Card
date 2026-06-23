@@ -597,8 +597,11 @@ export default {
       return addMinimalSecurityHeaders(await handleTriggerCron(request, env, ctx));
     }
 
-    // GET /api/admin/test-batch-api - Test Batch API (admin only)
+    // GET /api/admin/test-batch-api - Test Batch API (admin only, non-production)
     if (url.pathname === '/api/admin/test-batch-api' && request.method === 'GET') {
+      if (env.ENVIRONMENT === 'production') {
+        return new Response('Not Found', { status: 404 });
+      }
       const { handleTestBatchAPI } = await import('./handlers/admin/test-batch-api');
       return addMinimalSecurityHeaders(await handleTestBatchAPI(request, env));
     }

@@ -23,16 +23,10 @@ export async function handleListSharedCards(request: Request, env: Env): Promise
         rc.organization_alias,
         rc.department,
         rc.title,
-        rc.phone,
-        rc.email,
-        rc.website,
-        rc.address,
-        rc.note,
         rc.company_summary,
         rc.personal_summary,
         rc.ai_sources_json,
         rc.ai_status,
-        rc.original_image_url,
         rc.thumbnail_url,
         rc.created_at,
         rc.updated_at,
@@ -41,8 +35,9 @@ export async function handleListSharedCards(request: Request, env: Env): Promise
       FROM shared_cards sc
       INNER JOIN received_cards rc ON sc.card_uuid = rc.uuid
       WHERE rc.deleted_at IS NULL
+        AND sc.owner_email != ?
       ORDER BY sc.shared_at DESC
-    `).all();
+    `).bind(userResult.email).all();
 
     // Parse ai_sources_json for each card
     const cardsWithSources = sharedCards.results.map((card: any) => ({

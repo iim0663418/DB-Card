@@ -29,11 +29,11 @@ export async function handleGetImage(
         AND (
           user_email = ?
           OR EXISTS (
-            SELECT 1 FROM shared_cards WHERE card_uuid = ?
+            SELECT 1 FROM shared_cards WHERE card_uuid = ? AND owner_email != ?
           )
         )
     `)
-      .bind(uuid, user.email, uuid)
+      .bind(uuid, user.email, uuid, user.email)
       .first();
 
     if (!card) {

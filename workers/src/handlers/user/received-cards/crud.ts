@@ -232,9 +232,9 @@ export async function handleSaveCard(request: Request, env: Env, ctx: ExecutionC
           for (const tag of tags) {
             statements.push(
               env.DB.prepare(`
-                INSERT OR IGNORE INTO card_tags (card_uuid, tag, tag_source, created_at)
-                VALUES (?, ?, 'auto_keyword', ?)
-              `).bind(cardUuid, tag, now)
+                INSERT OR IGNORE INTO card_tags (card_uuid, tag, category, raw_value, normalized_value, tag_source, created_at)
+                VALUES (?, ?, 'keyword', ?, ?, 'auto_keyword', ?)
+              `).bind(cardUuid, tag, tag, tag, now)
             );
           }
           await env.DB.batch(statements);

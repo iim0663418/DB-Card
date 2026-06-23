@@ -1,5 +1,5 @@
 import type { Env } from '../types';
-import { resolveIdentity, isBlacklisted, generatePairKey } from '../utils/identity-resolution';
+import { resolveIdentity, generatePairKey } from '../utils/identity-resolution';
 
 /**
  * Find potential cross-user matches for a given card
@@ -48,6 +48,14 @@ export async function findCrossUserCandidates(env: Env): Promise<{
   let processed = 0;
   let candidates = 0;
   let blacklisted = 0;
+
+  // Preload blacklist into memory (1 query instead of N² per-pair queries)
+  const now = Date.now();
+  const { results: blacklistRows } = await env.DB.prepare(`
+    SELECT person_pair_key FROM matching_blacklist
+    WHERE expires_at IS NULL OR expires_at > ?
+  `).bind(now).all();
+  const blacklistSet = new Set(blacklistRows.map(r => r.person_pair_key as string));
   
   const usersStmt = env.DB.prepare(`
     SELECT DISTINCT user_email
@@ -86,7 +94,7 @@ export async function findCrossUserCandidates(env: Env): Promise<{
         const cardA = card as any;
         const cardB = match.card;
         
-        const isBlacklistedPair = await isBlacklisted(env, cardA.uuid, cardB.uuid);
+        const isBlacklistedPair = blacklistSet.has(generatePairKey(cardA.uuid, cardB.uuid));
         if (isBlacklistedPair) {
           blacklisted++;
           continue;
@@ -129,6 +137,7 @@ export async function findCrossUserCandidates(env: Env): Promise<{
             VALUES (?, ?)
             ON CONFLICT(person_pair_key) DO NOTHING
           `).bind(pairKey, Date.now()).run();
+          blacklistSet.add(pairKey);
           
           candidates++;
           console.log(`[Cron] Found candidate: ${cardA.name} <-> ${cardB.name} (${confidence}%)`);

@@ -297,7 +297,7 @@ body {
 
 /* 3D 翻轉容器 */
 .card-perspective {
-    perspective: 2000px;
+    perspective: 800px;
     width: 100%;
     max-width: 56rem; /* 896px */
     padding: 0 1rem;
@@ -334,6 +334,7 @@ body {
 @media (min-width: 1024px) {
     /* 桌面版實體名片比例 */
     .card-perspective {
+        perspective: 2000px;
         max-width: 540px;
         aspect-ratio: 540 / 856;
         margin: 4rem auto;

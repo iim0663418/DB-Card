@@ -164,8 +164,15 @@ export async function readCard(uuid, sessionId, externalSignal = null) {
 
   if (!response.ok) {
     // Scenario 4: API error - don't cache error responses
-    const errorData = await response.json();
-    const error = new Error(errorData.error?.message || errorData.message || 'Failed to read card');
+    const contentType = response.headers.get('content-type');
+    let errorData;
+    if (contentType?.includes('application/json')) {
+      errorData = await response.json();
+    } else {
+      const text = await response.text();
+      errorData = { error: text || 'Network error, please try again' };
+    }
+    const error = new Error(errorData.error?.message || errorData.message || errorData.error || 'Failed to read card');
     error.code = errorData.error?.code;
     error.status = response.status;
     error.data = errorData;

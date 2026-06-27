@@ -5,6 +5,27 @@ import { getLocalizedText, getLocalizedArray } from './utils/bilingual.js';
 const DEBUG = window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1');
 window.DEBUG = DEBUG; // Expose for other modules
 
+// Social URL normalization utilities
+function getLineUrl(input) {
+    if (!input) return null;
+    const trimmed = input.trim();
+    if (!trimmed) return null;
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    const cleanId = trimmed.replace(/\s+/g, '').replace(/^@+/, '');
+    if (!cleanId) return null;
+    return `https://line.me/ti/p/~${cleanId}`;
+}
+
+function getSignalUrl(input) {
+    if (!input) return null;
+    const trimmed = input.trim();
+    if (!trimmed) return null;
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    if (trimmed.startsWith('signal.me/') || trimmed.startsWith('signal.group/')) return `https://${trimmed}`;
+    if (trimmed.startsWith('+')) return `https://signal.me/#p/${trimmed}`;
+    return null;
+}
+
 // Error message constants for v4.1.0 & v4.2.0
 const ERROR_MESSAGES = {
   'rate_limited': '請求過於頻繁，請稍後再試',
@@ -63,7 +84,6 @@ async function waitForQrCreator(maxRetries = 2) {
 
 let scene, camera, renderer, mesh, grid;
 let currentLanguage = 'zh';
-let typewriterTimeout = null;
 let currentCardData = null; // 儲存當前名片資料供 vCard 下載使用
 
 // 組織與部門雙語對照表（來自 v3 bilingual-common.js）
@@ -326,6 +346,12 @@ function showNotification(message, type = 'info') {
 }
 
 async function initApp() {
+    // Clear module-load safety timer
+    if (window.__loadingSafetyTimer) {
+        clearTimeout(window.__loadingSafetyTimer);
+        window.__loadingSafetyTimer = null;
+    }
+
     initLoadingIcon(); // 隨機選擇載入圖示
 
     // 1. 載入資料
@@ -767,52 +793,6 @@ function renderCardFace(cardData, sessionData, lang, suffix) {
         signal: '#3A76F0'
     };
 
-    // URL 處理函數
-    const getLineUrl = (input) => {
-        if (!input) return null;
-        
-        // 清理輸入
-        const trimmed = input.trim();
-        if (!trimmed) return null;
-
-        // 規則 1：若已是完整 URL，直接返回
-        if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-            return trimmed;
-        }
-
-        // 規則 2：視為 ID，移除空白與前置 @
-        const cleanId = trimmed.replace(/\s+/g, '').replace(/^@+/, '');
-        
-        // 規則 3：若清理後為空，返回 null
-        if (!cleanId) return null;
-
-        // 組成標準 URL
-        return `https://line.me/ti/p/~${cleanId}`;
-    };
-
-    const getSignalUrl = (input) => {
-        if (!input) return null;
-        input = input.trim();
-
-        // 如果已經是完整 URL，直接返回
-        if (input.startsWith('http://') || input.startsWith('https://')) {
-            return input;
-        }
-
-        // 如果是 signal.me 路徑，補上 https://
-        if (input.startsWith('signal.me/')) {
-            return `https://${input}`;
-        }
-
-        // 如果是電話號碼格式（+開頭），使用 #p/ 路徑
-        if (input.startsWith('+')) {
-            return `https://signal.me/#p/${input}`;
-        }
-
-        // 其他情況無法處理，返回 null
-        return null;
-    };
-
     // 新格式：獨立欄位
     const socialLinks = [];
     if (cardData.social_github) socialLinks.push({ url: cardData.social_github, icon: 'github', color: SOCIAL_COLORS.github });
@@ -1044,10 +1024,13 @@ function initThree() {
     scene.add(lines);
 
     handleResize();
-    animate();
+
+    let animationId = null;
+    let frameCount = 0;
 
     function animate() {
-        requestAnimationFrame(animate);
+        animationId = requestAnimationFrame(animate);
+        frameCount++;
         
         const positions = mesh.geometry.attributes.position.array;
         const linePositions = lines.geometry.attributes.position.array;
@@ -1063,12 +1046,10 @@ function initThree() {
             particle.z += particle.vz;
             
             if (particle.isCard) {
-                // Card particles fly forward and reset
                 if (particle.z > 50) {
                     particle.z = -80;
                 }
             } else {
-                // Regular particles bounce
                 if (Math.abs(particle.x) > 50) particle.vx *= -1;
                 if (particle.y > 30 || particle.y < -10) particle.vy *= -1;
                 if (particle.z > 20 || particle.z < -60) particle.vz *= -1;
@@ -1090,31 +1071,46 @@ function initThree() {
             positions[i * 3 + 1] = particle.y;
             positions[i * 3 + 2] = particle.z;
             
-            // Create connections
-            for (let j = i + 1; j < particleCount; j++) {
-                const other = particles[j];
-                const dx = particle.x - other.x;
-                const dy = particle.y - other.y;
-                const dz = particle.z - other.z;
-                const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                
-                if (distance < maxDistance && lineIndex < maxConnections * 6) {
-                    linePositions[lineIndex++] = particle.x;
-                    linePositions[lineIndex++] = particle.y;
-                    linePositions[lineIndex++] = particle.z;
-                    linePositions[lineIndex++] = other.x;
-                    linePositions[lineIndex++] = other.y;
-                    linePositions[lineIndex++] = other.z;
+            // Create connections (every 2nd frame to reduce O(n²) cost)
+            if (frameCount % 2 === 0) {
+                for (let j = i + 1; j < particleCount; j++) {
+                    const other = particles[j];
+                    const dx = particle.x - other.x;
+                    const dy = particle.y - other.y;
+                    const dz = particle.z - other.z;
+                    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                    
+                    if (distance < maxDistance && lineIndex < maxConnections * 6) {
+                        linePositions[lineIndex++] = particle.x;
+                        linePositions[lineIndex++] = particle.y;
+                        linePositions[lineIndex++] = particle.z;
+                        linePositions[lineIndex++] = other.x;
+                        linePositions[lineIndex++] = other.y;
+                        linePositions[lineIndex++] = other.z;
+                    }
                 }
             }
         }
         
         mesh.geometry.attributes.position.needsUpdate = true;
-        lines.geometry.attributes.position.needsUpdate = true;
-        lines.geometry.setDrawRange(0, lineIndex / 3);
+        if (frameCount % 2 === 0) {
+            lines.geometry.attributes.position.needsUpdate = true;
+            lines.geometry.setDrawRange(0, lineIndex / 3);
+        }
         
         renderer.render(scene, camera);
     }
+
+    animate();
+
+    // Pause rAF when tab is hidden
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+        } else {
+            if (!animationId) animate();
+        }
+    });
 }
 
 let mouseX = 0, mouseY = 0;
@@ -1161,41 +1157,6 @@ function generateVCard(cardData) {
             .replace(/;/g, '\\;')
             .replace(/,/g, '\\,')
             .replace(/\n/g, '\\n');
-    };
-
-    // URL 處理函數（與 renderCard 一致）
-    const getLineUrl = (input) => {
-        if (!input) return null;
-        
-        // 清理輸入
-        const trimmed = input.trim();
-        if (!trimmed) return null;
-
-        // 規則 1：若已是完整 URL，直接返回
-        if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-            return trimmed;
-        }
-
-        // 規則 2：視為 ID，移除空白與前置 @
-        const cleanId = trimmed.replace(/\s+/g, '').replace(/^@+/, '');
-        
-        // 規則 3：若清理後為空，返回 null
-        if (!cleanId) return null;
-
-        // 組成標準 URL
-        return `https://line.me/ti/p/~${cleanId}`;
-    };
-
-    const getSignalUrl = (input) => {
-        if (!input) return null;
-        input = input.trim();
-        if (input.startsWith('http://') || input.startsWith('https://')) {
-            return input;
-        }
-        if (input.startsWith('signal.me/') || input.startsWith('signal.group/')) {
-            return `https://${input}`;
-        }
-        return `https://signal.me/#p/${input}`;
     };
 
     // 取得當前語言的資料（iOS 對 vCard 4.0 支援不完整，改用 3.0 單語言）
@@ -1310,14 +1271,35 @@ function generateVCard(cardData) {
 }
 
 document.getElementById('lang-switch').addEventListener('click', () => {
+    if (isFlipping) return;
+
+    // Client-side language switch — flip card without page reload
+    currentLanguage = currentLanguage === 'zh' ? 'en' : 'zh';
+
+    // Update URL without reload (for bookmarking/sharing)
     const params = new URLSearchParams(window.location.search);
-    const newLang = currentLanguage === 'zh' ? 'en' : 'zh';
+    params.set('lang', currentLanguage);
+    history.replaceState(null, '', '?' + params.toString());
 
-    // 保留 uuid 和 session 參數，新增/更新 lang 參數
-    params.set('lang', newLang);
+    // Update HTML lang attribute
+    document.documentElement.lang = currentLanguage === 'zh' ? 'zh-TW' : 'en';
 
-    // 重新載入頁面
-    window.location.search = params.toString();
+    // Flip card to matching face (with debounce)
+    const card = document.getElementById('card');
+    if (card) {
+        isFlipping = true;
+        if (currentLanguage === 'en') {
+            card.classList.add('is-flipped');
+        } else {
+            card.classList.remove('is-flipped');
+        }
+        const duration = window.innerWidth >= 1024 ? 800 : 1200;
+        setTimeout(() => { isFlipping = false; }, duration);
+    }
+
+    // Update UI texts
+    document.getElementById('lang-switch').textContent = currentLanguage === 'zh' ? 'EN' : '繁中';
+    updateButtonTexts();
 });
 
 // vCard 下載
@@ -1400,6 +1382,16 @@ document.getElementById('close-qr').addEventListener('click', () => {
     document.getElementById('qr-modal').classList.add('hidden');
 });
 
+// QR modal: Escape key close
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('qr-modal');
+        if (modal && !modal.classList.contains('hidden')) {
+            modal.classList.add('hidden');
+        }
+    }
+});
+
 function initLoadingIcon() {
     const icons = ['contact', 'user-circle'];
     const randomIcon = icons[Math.floor(Math.random() * icons.length)];
@@ -1433,7 +1425,8 @@ window.toggleFlip = function(event) {
     const card = document.getElementById('card');
     if (card) {
         card.classList.toggle('is-flipped');
-        setTimeout(() => { isFlipping = false; }, 800);
+        const duration = window.innerWidth >= 1024 ? 800 : 1200;
+        setTimeout(() => { isFlipping = false; }, duration);
     }
 };
 
@@ -1469,7 +1462,6 @@ function initDesktopParallax() {
         if (ticking) return;
 
         requestAnimationFrame(() => {
-            // 加入 transition 讓回位動畫平滑（0.1s）
             cardInner.style.transition = 'transform 0.1s ease';
             currentRotation = { x: 0, y: 0 };
             applyCardTransform();
@@ -1478,8 +1470,8 @@ function initDesktopParallax() {
         ticking = true;
     });
 
-    // mouseenter 時清除臨時 transition，保持傾斜即時響應
-    cardPerspective.addEventListener('mouseenter', () => {
+    // Clean up inline transition after reset animation completes
+    cardInner.addEventListener('transitionend', () => {
         cardInner.style.transition = '';
     });
 
@@ -1490,7 +1482,7 @@ function initDesktopParallax() {
     }
 }
 
-// 動態高度匹配
+// 動態高度匹配 (ResizeObserver for efficient layout tracking)
 function matchCardHeight() {
     const front = document.querySelector('.card-front');
     const back = document.querySelector('.card-back');
@@ -1501,6 +1493,20 @@ function matchCardHeight() {
     const maxHeight = Math.max(front.scrollHeight, back.scrollHeight, 600);
     card.style.height = `${maxHeight}px`;
 }
+
+// Use ResizeObserver instead of resize event for card height
+(function initCardHeightObserver() {
+    const front = document.querySelector('.card-front');
+    const back = document.querySelector('.card-back');
+    if (!front || !back || typeof ResizeObserver === 'undefined') {
+        // Fallback for old browsers
+        window.addEventListener('resize', matchCardHeight);
+        return;
+    }
+    const ro = new ResizeObserver(() => { requestAnimationFrame(matchCardHeight); });
+    ro.observe(front);
+    ro.observe(back);
+})();
 
 // 浮動提示自動隱藏
 function initHintBadge() {
@@ -1550,7 +1556,6 @@ function initCardPhysics() {
 }
 
 // 初始化
-window.addEventListener('resize', matchCardHeight);
 setTimeout(() => {
     matchCardHeight();
     initHintBadge();

@@ -6,11 +6,17 @@
     <!-- Resource Hints for Performance Optimization -->
     <meta name="description" content="DB-Card 數位名片系統 - 安全預設數位名片">
     <title>數位名片 | 名片顯示</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;700&family=Noto+Sans+TC:wght@300;500;900&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;700&family=Noto+Sans+TC:wght@300;500;900&display=swap"></noscript>
     <link rel="icon" type="image/png" sizes="192x192" href="favicon.png">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
 
     <!-- WCAG配色 v1.1 2026-01-19 -->
-    <script src="/js/tailwind-suppress.js"></script>
+    <script>
+    (function(){var w=console.warn;console.warn=function(){if(arguments[0]&&arguments[0].indexOf&&arguments[0].indexOf('cdn.tailwindcss.com')!==-1)return;w.apply(console,arguments)};})();
+    </script>
 
     <!-- Async load Tailwind CSS with media print trick -->
     <link rel="stylesheet" href="/css/tailwind.css" media="print" onload="this.media='all'">
@@ -271,6 +277,8 @@ body {
     text-transform: uppercase;
     font-family: ui-monospace, monospace;
 }
+
+.icon-fallback {
     line-height: 1;
     display: inline-block;
     text-align: center;
@@ -285,6 +293,13 @@ body {
     /* Size controlled by Tailwind classes (w-3, w-4, w-5, w-6, w-10) */
     flex-shrink: 0;
 }
+
+/* Critical Tailwind utilities to prevent FOUC */
+.hidden { display: none !important; }
+.flex { display: flex; }
+.fixed { position: fixed; }
+.relative { position: relative; }
+.absolute { position: absolute; }
 </style>
     <!-- Progressive Icon Enhancement with Unicode Fallbacks -->
     <script>
@@ -359,6 +374,12 @@ body {
     })();
     </script>
 
+    <!-- Module Preload for critical JS dependencies -->
+    <link rel="modulepreload" href="js/api.js">
+    <link rel="modulepreload" href="js/utils/bilingual.js">
+    <link rel="modulepreload" href="js/api-retry.js">
+    <link rel="modulepreload" href="js/config.js">
+
     <!-- Vite Icon Bundle (Tree-shaken: 11.62 KB, 96.9% reduction) - Dynamic Loading -->
     <script src="/js/manifest-loader.js"></script>
 
@@ -366,12 +387,12 @@ body {
     <script src="/vendor/qr-creator.min.js" 
             integrity="sha384-cmmVU8dn+rGH6Yvlt0Q1+31iG9lS4wdVsqV/ZP/53RBddef+VZcYakA+NhG4S8wE" 
             crossorigin="anonymous" 
-            async></script>
+            defer></script>
 
     <script src="/vendor/purify.min.js" 
             integrity="sha384-qJNkHwhlYywDHfyoEe1np+1lYvX/8x+3gHCKFhSSBMQyCFlvFnn+zXmaebXl21rV" 
             crossorigin="anonymous" 
-            async></script>
+            defer></script>
 
     <!-- Conditionally load Three.js only on desktop (defer for non-blocking) -->
     <script>
@@ -396,6 +417,9 @@ body {
     <noscript><link rel="stylesheet" href="/css/components.css"></noscript>
 </head>
 <body class="no-scrollbar flex flex-col items-center">
+
+    <!-- Skip to content (accessibility) -->
+    <a href="#main-content" class="fixed top-0 left-0 z-[200] bg-slate-900 text-white px-4 py-2 text-sm -translate-y-full focus:translate-y-0 transition-transform" style="transform:translateY(-100%);" onfocus="this.style.transform='translateY(0)'" onblur="this.style.transform='translateY(-100%)'">Skip to content</a>
 
     <!-- Three.js 透視網格背景 -->
     <canvas id="three-canvas"></canvas>
@@ -641,7 +665,7 @@ body {
         <footer class="mt-10 w-full flex flex-col md:flex-row gap-6 items-stretch">
             <div class="flex-1 flex gap-4 lg:justify-center">
                 <button id="save-vcard"
-                        class="flex-1 bg-slate-900 text-white font-black uppercase text-xs md:text-[10px] tracking-wider md:tracking-[0.3em] py-4 px-8 rounded-2xl hover:bg-moda shadow-xl transition-all flex items-center justify-center gap-3 focus:outline-none focus:ring-2 focus:ring-moda focus:ring-offset-2 lg:hidden"
+                        class="flex-1 bg-slate-900 text-white font-black uppercase text-xs md:text-[10px] tracking-wider md:tracking-[0.3em] py-4 px-8 rounded-2xl hover:bg-moda shadow-xl transition-all flex items-center justify-center gap-3 focus:outline-none focus:ring-2 focus:ring-moda focus:ring-offset-2"
                         aria-label="下載 vCard 名片">
                     <i id="vcard-icon" data-lucide="user-plus" class="w-5 h-5 md:w-4 md:h-4" aria-hidden="true"></i>
                     <span id="vcard-text" data-i18n="add_to_contacts">加入聯絡人</span>
@@ -723,6 +747,30 @@ body {
     </div>
 
     <script type="module" src="js/main.js"></script>
+    <script>
+    // Fallback: if module never loads, card click won't throw
+    if (!window.toggleFlip) window.toggleFlip = function() {};
+    // Module load safety net — if main.js fails to load/execute, hide loading after 15s
+    (function() {
+        var safetyTimer = setTimeout(function() {
+            var loading = document.getElementById('loading');
+            if (loading && loading.style.visibility !== 'hidden') {
+                loading.style.opacity = '0';
+                setTimeout(function() {
+                    loading.style.visibility = 'hidden';
+                    loading.style.pointerEvents = 'none';
+                }, 1000);
+                var errContainer = document.getElementById('error-container');
+                if (errContainer) {
+                    var msg = (navigator.language || '').startsWith('zh') ? '頁面載入逾時，請重新整理' : 'Page load timeout, please refresh';
+                    errContainer.innerHTML = '<div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;padding:2rem;"><p style="font-size:1rem;color:#334155;">' + msg + '</p><button onclick="location.reload()" style="margin-top:1rem;padding:0.5rem 1.5rem;background:#1e293b;color:#fff;border:none;border-radius:0.5rem;cursor:pointer;">Reload</button></div>';
+                }
+            }
+        }, 15000);
+        // main.js will clear this timer on successful init
+        window.__loadingSafetyTimer = safetyTimer;
+    })();
+    </script>
     <script>
     // 桌面版互動提示：淡入 → 淡出
     const hint = document.getElementById('desktop-hint');

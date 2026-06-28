@@ -96,7 +96,9 @@ async function executeD1(sql: string, params: (string | number)[] = []): Promise
   const output = execSync(cmd, { encoding: 'utf-8' });
 
   try {
-    return JSON.parse(output);
+    const jsonStart = output.indexOf('[');
+    if (jsonStart === -1) return output;
+    return JSON.parse(output.slice(jsonStart));
   } catch {
     return output;
   }
@@ -111,7 +113,10 @@ async function queryD1<T>(sql: string): Promise<T[]> {
   const cmd = `wrangler d1 execute DB --remote --command="${sql.replace(/"/g, '\\"')}" --json`;
   const output = execSync(cmd, { encoding: 'utf-8' });
 
-  const result = JSON.parse(output);
+  // Strip non-JSON preamble (wrangler agent messages)
+  const jsonStart = output.indexOf('[');
+  if (jsonStart === -1) return [];
+  const result = JSON.parse(output.slice(jsonStart));
   return result[0]?.results || [];
 }
 

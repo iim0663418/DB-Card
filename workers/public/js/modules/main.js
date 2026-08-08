@@ -1,9 +1,14 @@
 // DB-Card User Portal — ES Module Entry Point
-// Phase 2 POC: modules co-exist with classic user-portal-init.js
-// Once full refactoring is complete, classic script will be removed.
+// Phase 2: particles module activated; i18n remains in classic script (35 consumers)
 
-import { currentLang, applyTranslations } from './i18n.js'
-// particles.js imported but not called here — classic script still handles Three.js init
-// This import validates the module works; activation happens when classic code is removed.
-import './particles.js'
+import { initParticles } from './particles.js'
 
+// Initialize particles when THREE.js is available
+// Module scripts are deferred — THREE.js (also deferred) executes in document order before this
+if (typeof THREE !== 'undefined') {
+    setTimeout(() => initParticles(), 100)
+} else {
+    window.addEventListener('load', () => {
+        if (typeof THREE !== 'undefined') initParticles()
+    })
+}

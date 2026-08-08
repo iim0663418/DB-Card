@@ -320,7 +320,7 @@ export default {
     }
 
     if (url.pathname === '/mcp/authorize' && request.method === 'GET') {
-      return addMinimalSecurityHeaders(await handleMcpAuthorize(request, env));
+      return addMinimalSecurityHeaders(await handleMcpAuthorize(request, env, ctx));
     }
 
     if (url.pathname === '/mcp/callback' && request.method === 'GET') {

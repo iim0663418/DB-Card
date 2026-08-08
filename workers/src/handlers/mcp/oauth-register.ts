@@ -81,6 +81,9 @@ export async function handleMcpRegister(request: Request, env: Env, ctx: Executi
     return registerResponse({ error: 'invalid_client_metadata' }, 400);
   }
 
+  // application_type: optional, valid values 'web' | 'native', default 'web'
+  const applicationType = body['application_type'] === 'native' ? 'native' : 'web';
+
   const clientId = crypto.randomUUID();
   const clientData = {
     client_id: clientId,
@@ -88,6 +91,7 @@ export async function handleMcpRegister(request: Request, env: Env, ctx: Executi
     redirect_uris: redirectUris,
     grant_types: grantTypes,
     token_endpoint_auth_method: tokenEndpointAuthMethod,
+    application_type: applicationType,
   };
 
   await env.KV.put(`mcp_client:${clientId}`, JSON.stringify(clientData));

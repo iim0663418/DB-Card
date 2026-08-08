@@ -32,6 +32,7 @@ export interface Env {
   AGENT_SHADOW_MODE?: string;   // 'true' to enable shadow mode (log only, no routing)
   ENABLE_AGENT_SEARCH?: string; // 'true' to enable agent-based routing
   ENABLE_AGENT_META?: string;   // 'true' to include meta field in search response
+  MCP_STRICT_HEADERS?: string;  // truthy = enable strict header validation
 }
 
 // Bilingual support types

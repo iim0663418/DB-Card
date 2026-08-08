@@ -17,6 +17,14 @@ import {
   toolExportVCard,
 } from './tools';
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+/** @internal */
+export const SERVER_INFO = { name: 'db-card-mcp', version: '5.2.0' } as const;
+
+const SUPPORTED_PROTOCOLS = ['2026-07-28', '2025-06-18'] as const;
+type SupportedProtocol = (typeof SUPPORTED_PROTOCOLS)[number];
+
 // ── JSON-RPC helpers ──────────────────────────────────────────────────────────
 
 function rpcResult(id: unknown, result: unknown): Response {
@@ -31,6 +39,61 @@ function rpcError(id: unknown, code: number, message: string): Response {
     JSON.stringify({ jsonrpc: '2.0', id, error: { code, message } }),
     { status: 200, headers: { 'Content-Type': 'application/json' } }
   );
+}
+
+/** @internal */
+export function rpcResultModern(id: unknown, result: Record<string, unknown>): Response {
+  return new Response(JSON.stringify({
+    jsonrpc: '2.0',
+    id,
+    result: {
+      resultType: 'complete',
+      ...result,
+      _meta: { 'io.modelcontextprotocol/serverInfo': SERVER_INFO },
+    },
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+}
+
+// ── Protocol version detection ────────────────────────────────────────────────
+
+/** @internal */
+export function getClientProtocol(params: Record<string, unknown>): SupportedProtocol | null {
+  const meta = params['_meta'] as Record<string, unknown> | undefined;
+  if (!meta) return '2025-06-18';
+
+  const version = meta['io.modelcontextprotocol/protocolVersion'];
+  if (version === undefined) return '2025-06-18';
+
+  if (version === '2026-07-28') return '2026-07-28';
+  if (version === '2025-06-18') return '2025-06-18';
+
+  return null;
+}
+
+// ── Header validation (MCP 2026-07-28 strict mode) ───────────────────────────
+
+/** @internal */
+export function validateMcpHeaders(
+  mcpMethodHeader: string | null,
+  mcpNameHeader: string | null,
+  bodyMethod: string | undefined,
+  bodyToolName: string | undefined,
+  protocol: string | null,
+  strictMode: boolean
+): { valid: boolean; errorMessage?: string } {
+  if (!strictMode) return { valid: true };
+  if (protocol !== '2026-07-28') return { valid: true };
+
+  if (!mcpMethodHeader) {
+    return { valid: false, errorMessage: 'Missing required Mcp-Method header' };
+  }
+  if (mcpMethodHeader !== bodyMethod) {
+    return { valid: false, errorMessage: 'Header mismatch: Mcp-Method does not match body method' };
+  }
+  if (bodyMethod === 'tools/call' && mcpNameHeader && bodyToolName && mcpNameHeader !== bodyToolName) {
+    return { valid: false, errorMessage: 'Header mismatch: Mcp-Name does not match tool name' };
+  }
+  return { valid: true };
 }
 
 // ── Token validation ──────────────────────────────────────────────────────────
@@ -98,7 +161,7 @@ export async function handleMcp(request: Request, env: Env, ctx: ExecutionContex
     return rpcError(null, -32700, 'Parse error');
   }
 
-  const { id = null, method, params = {} } = body;
+  const { id, method, params = {} } = body;
 
   // Validate token (resource URI derived from request origin)
   const tokenPayload = await validateToken(authHeader, request, env);
@@ -108,21 +171,55 @@ export async function handleMcp(request: Request, env: Env, ctx: ExecutionContex
 
   const { email, scope } = tokenPayload;
 
+  // ── Notification handling (JSON-RPC notification has no id) ────────────────
+  if (id === undefined || id === null) {
+    return new Response(null, { status: 204 });
+  }
+
+  // ── Header validation (MCP 2026-07-28 strict mode) ────────────────────────
+  const headerCheck = validateMcpHeaders(
+    request.headers.get('Mcp-Method'),
+    request.headers.get('Mcp-Name'),
+    method,
+    params['name'] as string | undefined,
+    getClientProtocol(params),
+    !!env.MCP_STRICT_HEADERS
+  );
+  if (!headerCheck.valid) {
+    return rpcError(id, -32020, headerCheck.errorMessage!);
+  }
+
   // ── Method dispatch ───────────────────────────────────────────────────────
+
+  if (method === 'server/discover') {
+    return rpcResultModern(id, {
+      protocolVersions: ['2026-07-28', '2025-06-18'],
+      capabilities: { tools: {} },
+      serverInfo: SERVER_INFO,
+    });
+  }
 
   if (method === 'initialize') {
     return rpcResult(id, {
-      protocolVersion: '2025-06-18',
+      protocolVersion: '2026-07-28',
       capabilities: { tools: {} },
-      serverInfo: { name: 'db-card-mcp', version: '0.1.0' },
+      serverInfo: SERVER_INFO,
     });
   }
 
   if (method === 'tools/list') {
+    const protocol = getClientProtocol(params);
+    if (protocol === null) return rpcError(id, -32022, 'Unsupported protocol version');
+    if (protocol === '2026-07-28') {
+      return rpcResultModern(id, { tools: TOOL_DEFINITIONS, ttlMs: 3600000, cacheScope: 'public' });
+    }
     return rpcResult(id, { tools: TOOL_DEFINITIONS });
   }
 
   if (method === 'tools/call') {
+    const protocol = getClientProtocol(params);
+    if (protocol === null) return rpcError(id, -32022, 'Unsupported protocol version');
+
     const toolName = params['name'] as string | undefined;
     const args = (params['arguments'] ?? {}) as Record<string, unknown>;
 
@@ -134,6 +231,8 @@ export async function handleMcp(request: Request, env: Env, ctx: ExecutionContex
     const hasWriteScope = scope.split(' ').includes('received_cards:write');
 
     const ip = anonymizeIP(request.headers.get('CF-Connecting-IP') || '0.0.0.0');
+    const mcpMethod = request.headers.get('Mcp-Method') || undefined;
+    const mcpName = request.headers.get('Mcp-Name') || undefined;
     const logToolCall = (tool: string, success: boolean, reason?: string) => {
       ctx.waitUntil(env.DB.prepare(`
         INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details)
@@ -141,7 +240,7 @@ export async function handleMcp(request: Request, env: Env, ctx: ExecutionContex
       `).bind(
         request.headers.get('User-Agent') || 'mcp-client',
         ip, Date.now(),
-        JSON.stringify({ tool, email, success, ...(reason && { reason }) })
+        JSON.stringify({ tool, email, success, mcpMethod, mcpName, ...(reason && { reason }) })
       ).run().catch(() => {}));
     };
 
@@ -186,6 +285,10 @@ export async function handleMcp(request: Request, env: Env, ctx: ExecutionContex
           return rpcError(id, -32602, `Unknown tool: ${toolName}`);
       }
       logToolCall(toolName, true);
+
+      if (protocol === '2026-07-28') {
+        return rpcResultModern(id, result as Record<string, unknown>);
+      }
       return rpcResult(id, result);
     } catch (err) {
       console.error('[MCP tools/call error]', err);

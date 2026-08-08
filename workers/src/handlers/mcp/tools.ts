@@ -4,11 +4,44 @@
 import type { Env } from '../../types';
 import { generateVCard } from '../user/received-cards/vcard';
 import { extractTagsFromOrganization } from '../../utils/tags';
+import { normalizeToTraditional } from '../../utils/chinese-converter';
 
 export interface ToolDefinition {
   name: string;
   description: string;
   inputSchema: Record<string, unknown>;
+}
+
+// ── Field-Level Write Scope ───────────────────────────────────────────────────
+
+export type WriteScope = 'summary' | 'full';
+
+/** Fields writable with basic `received_cards:write` scope */
+export const SUMMARY_FIELDS = ['note', 'company_summary', 'personal_summary'] as const;
+
+/** Fields allowed in save_received_card with basic write scope (full_name is always required) */
+const SUMMARY_SAVE_FIELDS = ['full_name', ...SUMMARY_FIELDS] as const;
+
+export interface WriteProvenance {
+  clientId?: string | null;
+  sourceType: string;
+}
+
+function checkWriteScope(
+  args: Record<string, unknown>,
+  writeScope: WriteScope,
+  allowedFields: readonly string[]
+): string | null {
+  if (writeScope === 'full') return null;
+  const disallowed: string[] = [];
+  for (const key of Object.keys(args)) {
+    if (key === 'uuid') continue;
+    if (args[key] !== undefined && !allowedFields.includes(key)) {
+      disallowed.push(key);
+    }
+  }
+  if (disallowed.length === 0) return null;
+  return `Insufficient scope: fields [${disallowed.join(', ')}] require received_cards:write:full`;
 }
 
 export const TOOL_DEFINITIONS: ToolDefinition[] = [
@@ -128,6 +161,61 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       required: ['uuid'],
     },
   },
+  {
+    name: 'save_organization',
+    description: 'Save a new organization profile for reuse across received cards',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Organization name (primary, any language)' },
+        name_en: { type: 'string', description: 'English name' },
+        industry: { type: 'string', description: 'Industry/sector' },
+        summary: { type: 'string', description: 'Organization summary (max 5000 chars)' },
+        source_url: { type: 'string', description: 'Source URL for the information' },
+        aliases: { type: 'string', description: 'JSON array of known aliases' },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'get_organization',
+    description: 'Get an organization profile by name or UUID. Includes freshness status and related card count',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Organization name to search (fuzzy match on name/name_en/aliases)' },
+        uuid: { type: 'string', description: 'Organization UUID (exact match)' },
+      },
+    },
+  },
+  {
+    name: 'update_organization',
+    description: 'Update an existing organization profile. Preserves version history',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        uuid: { type: 'string', description: 'Organization UUID' },
+        name: { type: 'string' },
+        name_en: { type: 'string' },
+        industry: { type: 'string' },
+        summary: { type: 'string', description: 'Organization summary (max 5000 chars)' },
+        source_url: { type: 'string', description: 'Source URL for the information' },
+        aliases: { type: 'string', description: 'JSON array of known aliases' },
+      },
+      required: ['uuid'],
+    },
+  },
+  {
+    name: 'apply_organization_summary',
+    description: 'Batch apply organization summary to all cards of the same company. Requires two calls: first without confirm_token returns preview, second with confirm_token executes.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        org_uuid: { type: 'string', description: 'Organization UUID (required for preview)' },
+        confirm_token: { type: 'string', description: 'One-time confirmation token from preview step' },
+      },
+    },
+  },
 ];
 
 // ── Input length validation ───────────────────────────────────────────────────
@@ -153,11 +241,11 @@ function validateFieldLengths(args: Record<string, unknown>): string | null {
 
 // ── Tool result helper ────────────────────────────────────────────────────────
 
-function textResult(text: string) {
+export function textResult(text: string) {
   return { content: [{ type: 'text', text }] };
 }
 
-function jsonResult(data: unknown) {
+export function jsonResult(data: unknown) {
   return textResult(JSON.stringify(data, null, 2));
 }
 
@@ -320,11 +408,16 @@ export async function toolSaveReceivedCard(
     personal_summary?: string;
   },
   userEmail: string,
-  env: Env
+  env: Env,
+  writeScope: WriteScope = 'full'
 ): Promise<unknown> {
   if (!args.full_name) {
     return textResult('full_name is required');
   }
+
+  // Field-level write scope check
+  const scopeErr = checkWriteScope(args as Record<string, unknown>, writeScope, SUMMARY_SAVE_FIELDS as unknown as string[]);
+  if (scopeErr) return textResult(scopeErr);
 
   const lenErr = validateFieldLengths(args as Record<string, unknown>);
   if (lenErr) return textResult(lenErr);
@@ -379,7 +472,49 @@ export async function toolSaveReceivedCard(
     }
   }
 
-  return jsonResult({ uuid: cardUuid });
+  // Auto-inherit org profile summary + mismatch detection
+  let inheritedSummary: string | null = null;
+  let orgMismatch: Array<{field: string; profile_value: string | null; card_value: string | null}> | null = null;
+
+  if (args.organization) {
+    try {
+      const orgNameNormalized = await normalizeToTraditional(args.organization.trim(), env) ?? args.organization.trim();
+      const orgProfile = await env.DB.prepare(`
+        SELECT uuid, summary, metadata_json
+        FROM organizations
+        WHERE user_email = ? AND (
+          name_normalized = ? OR name LIKE ? OR name_en LIKE ?
+        )
+        LIMIT 1
+      `).bind(userEmail, orgNameNormalized, `%${args.organization}%`, `%${args.organization}%`)
+      .first<{ uuid: string; summary: string | null; metadata_json: string | null }>();
+
+      if (orgProfile) {
+        // Auto-inherit: if card has no company_summary and org has one
+        if (!args.company_summary && orgProfile.summary) {
+          inheritedSummary = orgProfile.summary;
+          await env.DB.prepare(`
+            UPDATE received_cards SET company_summary = ? WHERE uuid = ?
+          `).bind(inheritedSummary, cardUuid).run();
+
+          // Record provenance
+          try {
+            await env.DB.prepare(`
+              INSERT INTO field_history (entity_type, entity_uuid, field_name, old_value, new_value, source_type, client_id, user_email, changed_at)
+              VALUES ('card', ?, 'company_summary', NULL, ?, 'inherited', NULL, ?, ?)
+            `).bind(cardUuid, inheritedSummary, userEmail, now).run();
+          } catch { /* field_history failure must not block main operation */ }
+        }
+
+        // TODO: Mismatch detection deferred — requires address/phone/website in organizations schema
+      }
+    } catch { /* org profile lookup failure must not block main operation */ }
+  }
+
+  const response: Record<string, unknown> = { uuid: cardUuid };
+  if (inheritedSummary) response.inherited_company_summary = true;
+  if (orgMismatch) response.org_mismatch = orgMismatch;
+  return jsonResult(response);
 }
 
 export async function toolUpdateReceivedCard(
@@ -403,8 +538,14 @@ export async function toolUpdateReceivedCard(
     personal_summary?: string;
   },
   userEmail: string,
-  env: Env
+  env: Env,
+  writeScope: WriteScope = 'full',
+  provenance: WriteProvenance = { sourceType: 'mcp_agent' }
 ): Promise<unknown> {
+  // Field-level write scope check
+  const scopeErr = checkWriteScope(args as Record<string, unknown>, writeScope, SUMMARY_FIELDS as unknown as string[]);
+  if (scopeErr) return textResult(scopeErr);
+
   const lenErr = validateFieldLengths(args as Record<string, unknown>);
   if (lenErr) return textResult(lenErr);
 
@@ -416,11 +557,14 @@ export async function toolUpdateReceivedCard(
   ] as const;
   const setClauses: string[] = [];
   const bindings: unknown[] = [];
+  const fieldsToUpdate: { field: string; newValue: string | null }[] = [];
 
   for (const field of updatable) {
     if (args[field] !== undefined) {
       setClauses.push(`${field} = ?`);
-      bindings.push(args[field] ?? null);
+      const value = args[field] ?? null;
+      bindings.push(value);
+      fieldsToUpdate.push({ field, newValue: value });
     }
   }
 
@@ -431,6 +575,16 @@ export async function toolUpdateReceivedCard(
 
   if (setClauses.length === 0) {
     return textResult('No fields to update');
+  }
+
+  // Read old values for provenance tracking
+  let oldValues: Record<string, unknown> | null = null;
+  if (fieldsToUpdate.length > 0) {
+    const selectFields = fieldsToUpdate.map(f => f.field).join(', ');
+    oldValues = await env.DB.prepare(`
+      SELECT ${selectFields} FROM received_cards
+      WHERE uuid = ? AND user_email = ? AND deleted_at IS NULL
+    `).bind(args.uuid, userEmail).first<Record<string, unknown>>();
   }
 
   const now = Date.now();
@@ -446,6 +600,40 @@ export async function toolUpdateReceivedCard(
 
   if (result.meta.changes === 0) {
     return textResult('Card not found or not authorized');
+  }
+
+  // Write field_history (non-blocking, failure does not affect main operation)
+  if (oldValues && fieldsToUpdate.length > 0) {
+    try {
+      const historyStatements = fieldsToUpdate
+        .filter(f => {
+          const oldVal = oldValues![f.field];
+          const oldStr = oldVal == null ? null : String(oldVal);
+          return oldStr !== f.newValue;
+        })
+        .map(f => {
+          const oldVal = oldValues![f.field];
+          const oldStr = oldVal == null ? null : String(oldVal);
+          return env.DB.prepare(`
+            INSERT INTO field_history (entity_type, entity_uuid, field_name, old_value, new_value, source_type, client_id, user_email, changed_at)
+            VALUES ('card', ?, ?, ?, ?, ?, ?, ?, ?)
+          `).bind(
+            args.uuid,
+            f.field,
+            oldStr,
+            f.newValue,
+            provenance.sourceType,
+            provenance.clientId ?? null,
+            userEmail,
+            now
+          );
+        });
+      if (historyStatements.length > 0) {
+        await env.DB.batch(historyStatements);
+      }
+    } catch {
+      // field_history write failure must not block the main operation
+    }
   }
 
   return jsonResult({ uuid: args.uuid, updated: true });

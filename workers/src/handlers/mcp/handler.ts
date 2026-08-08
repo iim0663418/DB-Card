@@ -16,6 +16,13 @@ import {
   toolDeleteReceivedCard,
   toolExportVCard,
 } from './tools';
+import type { WriteScope, WriteProvenance } from './tools';
+import {
+  toolSaveOrganization,
+  toolGetOrganization,
+  toolUpdateOrganization,
+  toolApplyOrganizationSummary,
+} from './org-tools';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -102,6 +109,7 @@ export function validateMcpHeaders(
 interface TokenPayload {
   email: string;
   scope: string;
+  clientId: string | null;
 }
 
 async function validateToken(
@@ -124,6 +132,7 @@ async function validateToken(
     const email = payload['email'] as string | undefined;
     const scope = payload['scope'] as string | undefined;
     if (!email || !scope) return null;
+    const clientId = (payload['azp'] as string) ?? (payload['client_id'] as string) ?? null;
 
     // Check email allowlist
     const domain = email.split('@')[1];
@@ -139,7 +148,7 @@ async function validateToken(
     // Check disabled accounts (RISC events, etc.)
     if (await isUserDisabled(env.DB, email)) return null;
 
-    return { email, scope };
+    return { email, scope, clientId };
   } catch {
     return null;
   }
@@ -170,7 +179,7 @@ export async function handleMcp(request: Request, env: Env, ctx: ExecutionContex
     return mcpUnauthorizedResponse(request, env);
   }
 
-  const { email, scope } = tokenPayload;
+  const { email, scope, clientId } = tokenPayload;
 
   // ── Notification handling (JSON-RPC notification has no id) ────────────────
   if (id === undefined || id === null) {
@@ -244,7 +253,10 @@ export async function handleMcp(request: Request, env: Env, ctx: ExecutionContex
     }
 
     const hasReadScope = scope.split(' ').includes('received_cards:read');
-    const hasWriteScope = scope.split(' ').includes('received_cards:write');
+    const hasWriteScope = scope.split(' ').includes('received_cards:write') || scope.split(' ').includes('received_cards:write:full');
+    const hasFullWriteScope = scope.split(' ').includes('received_cards:write:full');
+    const hasOrgReadScope = scope.split(' ').includes('organizations:read');
+    const hasOrgWriteScope = scope.split(' ').includes('organizations:write');
 
     const ip = anonymizeIP(request.headers.get('CF-Connecting-IP') || '0.0.0.0');
     const mcpMethod = request.headers.get('Mcp-Method') || undefined;
@@ -272,8 +284,44 @@ export async function handleMcp(request: Request, env: Env, ctx: ExecutionContex
       return rpcError(id, -32600, 'Insufficient scope');
     }
 
+    const needsOrgRead = ['get_organization'];
+    const needsOrgWrite = ['save_organization', 'update_organization', 'apply_organization_summary'];
+
+    if (needsOrgRead.includes(toolName) && !hasOrgReadScope) {
+      logToolCall(toolName, false, 'insufficient_scope');
+      return rpcError(id, -32600, 'Insufficient scope');
+    }
+    if (needsOrgWrite.includes(toolName) && !hasOrgWriteScope) {
+      logToolCall(toolName, false, 'insufficient_scope');
+      return rpcError(id, -32600, 'Insufficient scope');
+    }
+
+    // Rate limit: max 10 org write operations per 60s per user
+    if (needsOrgWrite.includes(toolName)) {
+      try {
+        const sixtySecondsAgo = Date.now() - 60000;
+        const recentCount = await env.DB.prepare(`
+          SELECT COUNT(*) AS count FROM audit_logs
+          WHERE event_type = 'mcp_tool_call'
+          AND timestamp > ?
+          AND json_extract(details, '$.email') = ?
+          AND json_extract(details, '$.tool') IN ('save_organization', 'update_organization', 'apply_organization_summary')
+        `).bind(sixtySecondsAgo, email).first<{ count: number }>();
+
+        if (recentCount && recentCount.count >= 10) {
+          logToolCall(toolName, false, 'rate_limited');
+          return rpcError(id, -32600, 'Rate limited: max 10 organization write operations per 60 seconds');
+        }
+      } catch (err) {
+        console.warn('[MCP] Rate limit check failed, allowing request:', err);
+      }
+    }
+
     try {
       let result: unknown;
+      const writeScope: WriteScope = hasFullWriteScope ? 'full' : 'summary';
+      const provenance: WriteProvenance = { clientId, sourceType: 'mcp_agent' };
+
       switch (toolName) {
         case 'list_received_cards':
           result = await toolListReceivedCards(args as Parameters<typeof toolListReceivedCards>[0], email, env);
@@ -285,16 +333,28 @@ export async function handleMcp(request: Request, env: Env, ctx: ExecutionContex
           result = await toolGetReceivedCard(args as Parameters<typeof toolGetReceivedCard>[0], email, env);
           break;
         case 'save_received_card':
-          result = await toolSaveReceivedCard(args as Parameters<typeof toolSaveReceivedCard>[0], email, env);
+          result = await toolSaveReceivedCard(args as Parameters<typeof toolSaveReceivedCard>[0], email, env, writeScope);
           break;
         case 'update_received_card':
-          result = await toolUpdateReceivedCard(args as Parameters<typeof toolUpdateReceivedCard>[0], email, env);
+          result = await toolUpdateReceivedCard(args as Parameters<typeof toolUpdateReceivedCard>[0], email, env, writeScope, provenance);
           break;
         case 'delete_received_card':
           result = await toolDeleteReceivedCard(args as Parameters<typeof toolDeleteReceivedCard>[0], email, env);
           break;
         case 'export_vcard':
           result = await toolExportVCard(args as Parameters<typeof toolExportVCard>[0], email, env);
+          break;
+        case 'save_organization':
+          result = await toolSaveOrganization(args as any, email, env, clientId);
+          break;
+        case 'get_organization':
+          result = await toolGetOrganization(args as any, email, env);
+          break;
+        case 'update_organization':
+          result = await toolUpdateOrganization(args as any, email, env, clientId);
+          break;
+        case 'apply_organization_summary':
+          result = await toolApplyOrganizationSummary(args as any, email, env, clientId);
           break;
         default:
           logToolCall(toolName, false, 'unknown_tool');

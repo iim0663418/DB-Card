@@ -30,43 +30,55 @@ import {
 registerConsentHandlers(showConsentModal, showRestoreConsentModal);
 registerRenderSelectionPage(renderSelectionPage);
 
-// ==================== Window Exposure for inline onclick ====================
-window.handleGoogleLogin = handleGoogleLogin;
-window.handleLogout = handleLogout;
-window.closeWebViewWarning = closeWebViewWarning;
-window.copyCurrentURL = copyCurrentURL;
-window.showView = showView;
+// ==================== Window Exposure (classic scripts interop only) ====================
+// These are needed by received-cards.js, feature-api.js (classic scripts)
 window.showToast = showToast;
 window.toggleLoading = toggleLoading;
-
-// Consent
-window.checkConsentStatus = checkConsentStatus;
-window.acceptConsent = acceptConsent;
-window.toggleFullContent = toggleFullContent;
-window.showWithdrawConsentModal = showWithdrawConsentModal;
-window.closeWithdrawConsentModal = closeWithdrawConsentModal;
-window.confirmWithdrawConsent = confirmWithdrawConsent;
-window.showRestoreConsentModal = showRestoreConsentModal;
-window.closeRestoreConsentModal = closeRestoreConsentModal;
-window.confirmRestoreConsent = confirmRestoreConsent;
-window.showConsentHistoryModal = showConsentHistoryModal;
-window.closeConsentHistoryModal = closeConsentHistoryModal;
-window.handleDataExport = handleDataExport;
-
-// Self-card / OCR
-window.SelfCardOCR = SelfCardOCR;
-window.viewCard = viewCard;
-window.copyCardLink = copyCardLink;
-window.copyModalLink = copyModalLink;
-window.viewModalCard = viewModalCard;
-window.closeSuccessModal = closeSuccessModal;
-window.showRevokeModal = showRevokeModal;
-window.closeRevokeModal = closeRevokeModal;
-window.confirmRevokeCard = confirmRevokeCard;
-window.handleRestoreCard = handleRestoreCard;
-window.updatePreview = updatePreview;
+window.showView = showView;
 window.renderSelectionPage = renderSelectionPage;
-window.openEditForm = openEditForm;
+
+// ==================== Event Delegation ====================
+document.addEventListener('click', (e) => {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+
+    const action = target.dataset.action;
+    const actions = {
+        'google-login': () => handleGoogleLogin(),
+        'logout': () => handleLogout(),
+        'show-view': () => showView(target.dataset.view),
+        'ocr-scan': () => SelfCardOCR.scan(),
+        'ocr-cancel': () => SelfCardOCR.cancel(),
+        'close-success-modal': () => closeSuccessModal(),
+        'copy-modal-link': () => copyModalLink(),
+        'view-modal-card': () => viewModalCard(),
+        'close-webview-error': () => document.getElementById('webview-error-modal').classList.add('hidden'),
+        'consent-history': () => showConsentHistoryModal(),
+        'data-export': () => handleDataExport(),
+        'consent-withdraw': () => showWithdrawConsentModal(),
+        'toggle-full-content': () => toggleFullContent(),
+        'accept-consent': () => acceptConsent(),
+        'close-withdraw-modal': () => closeWithdrawConsentModal(),
+        'confirm-withdraw': () => confirmWithdrawConsent(),
+        'confirm-restore': () => confirmRestoreConsent(),
+        'close-restore-modal': () => closeRestoreConsentModal(),
+        'close-history-modal': () => closeConsentHistoryModal(),
+        'close-revoke-modal': () => closeRevokeModal(),
+        'confirm-revoke': () => confirmRevokeCard(),
+        'copy-url': () => copyCurrentURL(),
+        'close-webview-warning': () => closeWebViewWarning(),
+        'show-received-cards': () => window.showReceivedCards(),
+        'back-to-selection': () => window.backToSelection(),
+        'retry-upload': () => window.ReceivedCards.retryUpload(),
+        'upload-cancel': () => window.CardUploadStateMachine.setState('idle'),
+        'upload-reset': () => window.CardUploadStateMachine.reset(),
+    };
+
+    if (actions[action]) {
+        e.preventDefault();
+        actions[action]();
+    }
+});
 
 // ==================== Three.js Particles Init ====================
 if (typeof THREE !== 'undefined') {

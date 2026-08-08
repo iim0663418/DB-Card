@@ -202,10 +202,10 @@
                     <span id="user-email-display" class="text-xs font-bold text-slate-400 uppercase tracking-widest">---</span>
                 </div>
             </div>
-            <button onclick="handleLogout()" class="px-3 md:px-6 py-2 md:py-2.5 bg-white border border-slate-200 rounded-lg md:rounded-xl text-xs font-black text-slate-700 hover:text-red-600 transition-all uppercase tracking-widest shadow-sm md:hidden">
+            <button data-action="logout" class="px-3 md:px-6 py-2 md:py-2.5 bg-white border border-slate-200 rounded-lg md:rounded-xl text-xs font-black text-slate-700 hover:text-red-600 transition-all uppercase tracking-widest shadow-sm md:hidden">
                 <i data-lucide="log-out" class="w-4 h-4"></i>
             </button>
-            <button onclick="handleLogout()" class="px-3 md:px-6 py-2 md:py-2.5 bg-white border border-slate-200 rounded-lg md:rounded-xl text-xs font-black text-slate-700 hover:text-red-600 transition-all uppercase tracking-widest shadow-sm hidden md:block">
+            <button data-action="logout" class="px-3 md:px-6 py-2 md:py-2.5 bg-white border border-slate-200 rounded-lg md:rounded-xl text-xs font-black text-slate-700 hover:text-red-600 transition-all uppercase tracking-widest shadow-sm hidden md:block">
                 Logout
             </button>
         </div>
@@ -226,7 +226,7 @@
                 <div id="login-error-box" class="hidden p-4 bg-red-50 border border-red-100 rounded-2xl text-xs text-red-600 font-bold mb-4">
                     <!-- 錯誤訊息注入 -->
                 </div>
-                <button id="google-login-btn" onclick="handleGoogleLogin()" class="btn-google w-full flex items-center justify-center gap-4 py-4 rounded-2xl font-bold text-sm">
+                <button id="google-login-btn" data-action="google-login" class="btn-google w-full flex items-center justify-center gap-4 py-4 rounded-2xl font-bold text-sm">
                     <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" class="w-5 h-5" alt="Google">
                     <span data-i18n="login-button">使用 Google 帳號登入</span>
                 </button>
@@ -255,7 +255,7 @@
                         <li>Android: 點擊右上角「⋮」→「在瀏覽器中開啟」</li>
                     </ul>
                 </div>
-                <button onclick="document.getElementById('webview-error-modal').classList.add('hidden')" 
+                <button data-action="close-webview-error" 
                         class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-2xl transition-colors">
                     我知道了
                 </button>
@@ -282,15 +282,15 @@
                     <h3 class="text-lg font-black text-slate-900" data-i18n="privacy-settings-title">個資管理</h3>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <button onclick="showConsentHistoryModal()" class="py-4 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition-all text-sm flex items-center justify-center gap-2">
+                    <button data-action="consent-history" class="py-4 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition-all text-sm flex items-center justify-center gap-2">
                         <i data-lucide="clock" class="w-4 h-4"></i>
                         <span data-i18n="privacy-view-history">查看同意歷史</span>
                     </button>
-                    <button onclick="handleDataExport()" class="py-4 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition-all text-sm flex items-center justify-center gap-2">
+                    <button data-action="data-export" class="py-4 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition-all text-sm flex items-center justify-center gap-2">
                         <i data-lucide="download" class="w-4 h-4"></i>
                         <span data-i18n="privacy-export-data">匯出我的資料</span>
                     </button>
-                    <button onclick="showWithdrawConsentModal()" class="py-4 bg-white border border-red-200 text-red-600 rounded-xl font-bold hover:bg-red-50 transition-all text-sm flex items-center justify-center gap-2">
+                    <button data-action="consent-withdraw" class="py-4 bg-white border border-red-200 text-red-600 rounded-xl font-bold hover:bg-red-50 transition-all text-sm flex items-center justify-center gap-2">
                         <i data-lucide="user-x" class="w-4 h-4"></i>
                         <span data-i18n="privacy-withdraw-consent">撤回同意</span>
                     </button>
@@ -306,7 +306,7 @@
                     <h3 class="text-lg font-black text-slate-900" data-i18n="received-cards-title">收到的名片</h3>
                 </div>
                 <p class="text-sm text-slate-600" data-i18n="received-cards-description">拍照上傳名片，AI 自動辨識並整理。管理您收到的所有名片</p>
-                <button onclick="showReceivedCards()" class="w-full py-4 text-white rounded-xl font-bold hover:shadow-lg transition-all text-sm flex items-center justify-center gap-2" style="background: linear-gradient(135deg, var(--moda-accent) 0%, #8b8bc8 100%);">
+                <button data-action="show-received-cards" class="w-full py-4 text-white rounded-xl font-bold hover:shadow-lg transition-all text-sm flex items-center justify-center gap-2" style="background: linear-gradient(135deg, var(--moda-accent) 0%, #8b8bc8 100%);">
                     <i data-lucide="camera" class="w-4 h-4"></i>
                     <span data-i18n="received-cards-open">開啟名片夾</span>
                 </button>
@@ -316,7 +316,7 @@
         <!-- 2.5 收到的名片 -->
         <section id="view-received-cards" class="hidden space-y-8 fade-in">
             <div class="flex items-center gap-4">
-                <button onclick="backToSelection()" class="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-colors">
+                <button data-action="back-to-selection" class="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-colors">
                     <i data-lucide="arrow-left" class="w-5 h-5"></i>
                 </button>
                 <div>
@@ -364,14 +364,14 @@
                         <p id="error-text" class="text-red-800 leading-relaxed"></p>
                         <div class="flex gap-3">
                             <button
-                                onclick="ReceivedCards.retryUpload()"
+                                data-action="retry-upload"
                                 class="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-colors"
                             >
                                 <i data-lucide="refresh-cw" class="w-4 h-4 inline-block mr-2"></i>
                                 <span data-i18n="retry">重試</span>
                             </button>
                             <button
-                                onclick="CardUploadStateMachine.setState('idle')"
+                                data-action="upload-cancel"
                                 class="px-6 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition-colors"
                             >
                                 <span data-i18n="cancel">取消</span>
@@ -533,7 +533,7 @@
                 </div>
 
                 <div class="flex gap-3">
-                    <button onclick="CardUploadStateMachine.reset()" class="flex-1 py-4 bg-slate-100 text-slate-700 rounded-2xl font-black uppercase tracking-wider hover:bg-slate-200 transition-colors">取消</button>
+                    <button data-action="upload-reset" class="flex-1 py-4 bg-slate-100 text-slate-700 rounded-2xl font-black uppercase tracking-wider hover:bg-slate-200 transition-colors">取消</button>
                     <button id="preview-save-btn" class="flex-1 py-4 text-white rounded-2xl font-black uppercase tracking-wider hover:opacity-90 transition-all" style="background: var(--moda-accent);">儲存</button>
                 </div>
             </div>
@@ -820,7 +820,7 @@
         <section id="view-form" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-10 fade-in">
             <div class="lg:col-span-8 space-y-8">
                 <div class="flex items-center gap-4 mb-2">
-                    <button onclick="showView('selection')" class="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-colors">
+                    <button data-action="show-view" data-view="selection" class="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-colors">
                         <i data-lucide="arrow-left" class="w-5 h-5"></i>
                     </button>
                     <div>
@@ -833,7 +833,7 @@
                 <div id="scan-ui" class="hidden">
                     <!-- Scan Button -->
                     <div id="scan-btn-area">
-                        <button type="button" id="scan-btn" onclick="SelfCardOCR.scan()" class="w-full py-3 px-5 bg-white border border-slate-200 rounded-2xl text-sm font-black text-moda uppercase tracking-widest hover:bg-slate-50 transition-colors flex items-center justify-center gap-2">
+                        <button type="button" id="scan-btn" data-action="ocr-scan" class="w-full py-3 px-5 bg-white border border-slate-200 rounded-2xl text-sm font-black text-moda uppercase tracking-widest hover:bg-slate-50 transition-colors flex items-center justify-center gap-2">
                             <span data-i18n="scan-button">📷 從實體名片掃描</span>
                         </button>
                     </div>
@@ -843,7 +843,7 @@
                             <div class="w-4 h-4 border-2 border-moda border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
                             <span class="text-sm font-bold text-moda" data-i18n="scan-processing">AI 辨識中...</span>
                         </div>
-                        <button type="button" onclick="SelfCardOCR.cancel()" class="text-xs font-black text-slate-400 hover:text-red-500 uppercase tracking-widest transition-colors">✕</button>
+                        <button type="button" data-action="ocr-cancel" class="text-xs font-black text-slate-400 hover:text-red-500 uppercase tracking-widest transition-colors">✕</button>
                     </div>
                 </div>
                 <!-- Hidden file input -->
@@ -1054,7 +1054,7 @@
                     <div id="form-error-msg" class="hidden p-4 bg-red-50 border border-red-200 text-red-600 rounded-2xl text-xs font-bold"></div>
 
                     <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-6">
-                        <button type="button" onclick="showView('selection')" class="sm:flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-200" data-i18n="button-cancel">取消</button>
+                        <button type="button" data-action="show-view" data-view="selection" class="sm:flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-200" data-i18n="button-cancel">取消</button>
                         <button id="submit-btn" type="submit" class="sm:flex-[2] py-4 bg-moda text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-moda/90 shadow-xl shadow-moda transition-all">
                             <span id="submit-btn-text" data-i18n="button-submit">儲存並預覽名片</span>
                             <span id="submit-btn-loading" class="hidden">
@@ -1170,7 +1170,7 @@
                     </div>
                     
                     <!-- Toggle Full Content Button -->
-                    <button id="toggle-full-content-btn" onclick="toggleFullContent()" class="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+                    <button id="toggle-full-content-btn" data-action="toggle-full-content" class="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
                         <span data-i18n="consent-view-full">查看完整條款</span>
                         <i data-lucide="chevron-down" class="w-4 h-4"></i>
                     </button>
@@ -1217,7 +1217,7 @@
 
             <!-- Footer -->
             <div class="p-6 border-t border-slate-200 flex gap-3">
-                <button id="consent-agree-btn" disabled onclick="acceptConsent()" 
+                <button id="consent-agree-btn" disabled data-action="accept-consent" 
                     class="flex-1 py-4 rounded-xl font-bold transition-colors disabled:cursor-not-allowed" 
                     style="background-color: #2563eb; color: white;"
                     data-i18n="consent-agree-button">
@@ -1258,8 +1258,8 @@
             </div>
 
             <div class="flex gap-3">
-                <button onclick="closeWithdrawConsentModal()" class="flex-1 px-6 py-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200" data-i18n="button-cancel">取消</button>
-                <button id="withdraw-consent-confirm-btn" disabled onclick="confirmWithdrawConsent()" class="flex-1 px-6 py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 disabled:bg-slate-300 disabled:cursor-not-allowed" data-i18n="withdraw-button">
+                <button data-action="close-withdraw-modal" class="flex-1 px-6 py-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200" data-i18n="button-cancel">取消</button>
+                <button id="withdraw-consent-confirm-btn" disabled data-action="confirm-withdraw" class="flex-1 px-6 py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 disabled:bg-slate-300 disabled:cursor-not-allowed" data-i18n="withdraw-button">
                     確認撤回同意
                 </button>
             </div>
@@ -1285,10 +1285,10 @@
             </div>
 
             <div class="flex gap-3">
-                <button onclick="confirmRestoreConsent()" class="flex-1 px-6 py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700" data-i18n="restore-button">
+                <button data-action="confirm-restore" class="flex-1 px-6 py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700" data-i18n="restore-button">
                     取消撤回
                 </button>
-                <button onclick="closeRestoreConsentModal()" class="flex-1 px-6 py-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200" data-i18n="restore-continue-delete">
+                <button data-action="close-restore-modal" class="flex-1 px-6 py-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200" data-i18n="restore-continue-delete">
                     繼續刪除
                 </button>
             </div>
@@ -1300,7 +1300,7 @@
         <div class="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full mx-4 max-h-[90vh] flex flex-col">
             <div class="p-6 border-b border-slate-200 flex justify-between items-center">
                 <h3 class="text-xl font-black text-slate-900" data-i18n="history-title">同意歷史記錄</h3>
-                <button onclick="closeConsentHistoryModal()" class="p-2 hover:bg-slate-100 rounded-lg">
+                <button data-action="close-history-modal" class="p-2 hover:bg-slate-100 rounded-lg">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
@@ -1331,7 +1331,7 @@
                 <label class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block" data-i18n="modal-share-link">分享連結</label>
                 <div class="flex gap-2">
                     <input id="modal-share-link" type="text" readonly class="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono text-slate-700">
-                    <button id="modal-copy-btn" onclick="copyModalLink()" class="px-6 py-3 bg-moda text-white rounded-xl font-bold hover:bg-moda/90 transition-colors flex items-center gap-2 min-h-[48px]">
+                    <button id="modal-copy-btn" data-action="copy-modal-link" class="px-6 py-3 bg-moda text-white rounded-xl font-bold hover:bg-moda/90 transition-colors flex items-center gap-2 min-h-[48px]">
                         <i data-lucide="copy" class="w-4 h-4"></i>
                         <span id="modal-copy-text" class="hidden sm:inline" data-i18n="button-copy">複製</span>
                     </button>
@@ -1388,10 +1388,10 @@
 
             <!-- Actions -->
             <div class="flex flex-col sm:flex-row gap-3">
-                <button id="modal-view-btn" onclick="viewModalCard()" class="flex-1 px-6 py-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors min-h-[48px] text-sm">
+                <button id="modal-view-btn" data-action="view-modal-card" class="flex-1 px-6 py-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors min-h-[48px] text-sm">
                     查看名片效果
                 </button>
-                <button onclick="closeSuccessModal()" class="flex-1 px-6 py-4 bg-moda text-white rounded-xl font-bold hover:bg-moda/90 transition-colors min-h-[48px] text-sm">
+                <button data-action="close-success-modal" class="flex-1 px-6 py-4 bg-moda text-white rounded-xl font-bold hover:bg-moda/90 transition-colors min-h-[48px] text-sm">
                     完成
                 </button>
             </div>
@@ -1400,7 +1400,7 @@
 
     <!-- Revoke Confirmation Modal -->
     <div id="revoke-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center">
-        <div class="modal-backdrop absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeRevokeModal()"></div>
+        <div class="modal-backdrop absolute inset-0 bg-black/50 backdrop-blur-sm" data-action="close-revoke-modal"></div>
         <div class="modal-content relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-8">
             <div class="text-center mb-6">
                 <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1434,10 +1434,10 @@
             </div>
 
             <div class="flex gap-3">
-                <button onclick="closeRevokeModal()" class="flex-1 px-6 py-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors" data-i18n="button-cancel">
+                <button data-action="close-revoke-modal" class="flex-1 px-6 py-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors" data-i18n="button-cancel">
                     取消
                 </button>
-                <button id="confirm-revoke-btn" onclick="confirmRevokeCard()" class="flex-1 px-6 py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors" data-i18n="button-confirm">
+                <button id="confirm-revoke-btn" data-action="confirm-revoke" class="flex-1 px-6 py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors" data-i18n="button-confirm">
                     確認撤銷
                 </button>
             </div>
@@ -1495,10 +1495,10 @@
         <p class="mb-4" data-i18n="webview_warning_message">
           此頁面不支援應用程式內建瀏覽器。請使用系統瀏覽器（Chrome、Safari、Firefox）開啟此連結。
         </p>
-        <button onclick="copyCurrentURL()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 mb-2" data-i18n="copy_url">
+        <button data-action="copy-url" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 mb-2" data-i18n="copy_url">
           複製網址
         </button>
-        <button onclick="closeWebViewWarning()" class="w-full bg-gray-300 py-2 rounded hover:bg-gray-400" data-i18n="close">
+        <button data-action="close-webview-warning" class="w-full bg-gray-300 py-2 rounded hover:bg-gray-400" data-i18n="close">
           關閉
         </button>
       </div>

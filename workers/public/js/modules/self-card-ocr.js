@@ -410,7 +410,7 @@ export function renderSelectionPage() {
                     return canRestore ? `
                         <div class="space-y-3 mt-10">
                             <p class="text-xs text-amber-600 text-center font-medium">可在 ${restoreDeadline.toLocaleDateString('zh-TW')} 前自行恢復</p>
-                            <button onclick="handleRestoreCard('${data.uuid}')"
+                            <button data-action="restore-card" data-uuid="${data.uuid}"
                                     class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all">
                                 恢復名片
                             </button>
@@ -418,7 +418,7 @@ export function renderSelectionPage() {
                     ` : `
                         <div class="space-y-3 mt-10">
                             <p class="text-xs text-red-600 text-center font-medium">恢復期限已過（7 天），請聯繫管理員</p>
-                            <button onclick="showToast('請聯繫管理員恢復名片')"
+                            <button data-action="toast-admin-restore"
                                     class="w-full py-3 bg-slate-100 text-slate-400 rounded-2xl font-black uppercase text-[10px] tracking-widest cursor-not-allowed">
                                 已過期
                             </button>
@@ -427,19 +427,19 @@ export function renderSelectionPage() {
                 })() : `
                     <div class="space-y-3 mt-10">
                         <p class="text-xs text-red-600 text-center font-medium">此名片已被管理員撤銷，無法使用或編輯</p>
-                        <button onclick="showToast('請聯繫管理員恢復名片')"
+                        <button data-action="toast-admin-restore"
                                 class="w-full py-3 bg-slate-100 text-slate-400 rounded-2xl font-black uppercase text-[10px] tracking-widest cursor-not-allowed">
                             已撤銷
                         </button>
                     </div>
                 `) : (isBound ? `
                     <div class="space-y-3 mt-10">
-                        <button onclick="viewCard('${data.uuid}')"
+                        <button data-action="view-card" data-uuid="${data.uuid}"
                                 ${data._optimistic ? 'disabled' : ''}
                                 class="w-full py-3 ${data._optimistic ? 'bg-slate-300 cursor-not-allowed' : 'bg-moda hover:scale-[1.02] shadow-moda'} text-white rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all">
                             ${data._optimistic ? '同步中...' : '查看名片'}
                         </button>
-                        <button onclick="createQRShortcut('${data.uuid}', '${(data.name_zh || data.name_en || '').replace(/'/g, "\\'")}', '${data.type}')"
+                        <button data-action="create-qr-shortcut" data-uuid="${data.uuid}" data-card-name="${(data.name_zh || data.name_en || '').replace(/"/g, '&quot;')}" data-card-type="${data.type}"
                                 ${data._optimistic ? 'disabled' : ''}
                                 class="w-full py-3 ${data._optimistic ? 'bg-slate-200 cursor-not-allowed' : 'bg-white border-2 border-moda/30 text-moda hover:border-moda hover:bg-moda/5'} rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all flex items-center justify-center gap-2">
                             <i data-lucide="qr-code" class="w-4 h-4"></i>
@@ -450,11 +450,11 @@ export function renderSelectionPage() {
                                     class="py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all">
                                 ${i18n[currentLang]['button-edit']}
                             </button>
-                            <button onclick="copyCardLink('${data.uuid}')"
+                            <button data-action="copy-card-link" data-uuid="${data.uuid}"
                                     class="py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all">
                                 ${i18n[currentLang]['button-copy']}
                             </button>
-                            <button onclick="showRevokeModal('${data.uuid}', '${config.id}')"
+                            <button data-action="show-revoke-modal" data-uuid="${data.uuid}" data-card-type="${config.id}"
                                     class="py-3 bg-white border border-red-200 text-red-600 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-red-50 transition-all">
                                 ${i18n[currentLang]['button-revoke']}
                             </button>
@@ -468,15 +468,37 @@ export function renderSelectionPage() {
                 `)}
             </div>
         `;
-    }).join(''), { ADD_ATTR: ['onclick'] });
+    }).join(''), { ADD_ATTR: ['data-action', 'data-uuid', 'data-card-name', 'data-card-type', 'data-type'] });
     if (window.initIcons) window.initIcons();
 
-    // Event delegation for edit buttons
+    // Event delegation for card slot actions
     container.addEventListener('click', (e) => {
-        const button = e.target.closest('[data-action="edit"]');
-        if (button) {
-            const type = button.dataset.type;
-            openEditForm(type);
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        switch (action) {
+            case 'edit':
+                openEditForm(target.dataset.type);
+                break;
+            case 'view-card':
+                viewCard(target.dataset.uuid);
+                break;
+            case 'copy-card-link':
+                copyCardLink(target.dataset.uuid);
+                break;
+            case 'show-revoke-modal':
+                showRevokeModal(target.dataset.uuid, target.dataset.cardType);
+                break;
+            case 'restore-card':
+                handleRestoreCard(target.dataset.uuid);
+                break;
+            case 'toast-admin-restore':
+                showToast('請聯繫管理員恢復名片');
+                break;
+            case 'create-qr-shortcut':
+                window.createQRShortcut(target.dataset.uuid, target.dataset.cardName, target.dataset.cardType);
+                break;
         }
     });
 }

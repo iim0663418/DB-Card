@@ -93,8 +93,10 @@ if (typeof THREE !== 'undefined') {
 // ==================== WebView Check ====================
 initWebViewCheck();
 
-// ==================== DOMContentLoaded ====================
-document.addEventListener('DOMContentLoaded', async () => {
+// ==================== App Init ====================
+// Module is dynamically injected by manifest-loader AFTER DOMContentLoaded,
+// so we must check readyState instead of listening for the event.
+async function initApp() {
     applyTranslations(currentLang);
 
     if (window.initIcons) window.initIcons();
@@ -304,4 +306,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             closeSuccessModal();
         }
     });
-});
+}
+
+// Execute: DOM is already ready when dynamically-injected modules load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
+}

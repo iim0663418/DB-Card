@@ -4,7 +4,7 @@
  */
 
 // Add social link validation to form inputs
-document.addEventListener('DOMContentLoaded', () => {
+function initSocialLinkValidation() {
     const socialFields = [
         'social_github',
         'social_linkedin', 
@@ -50,5 +50,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSocialLinkValidation);
+} else {
+    initSocialLinkValidation();
+}
 

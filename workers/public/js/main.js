@@ -1401,9 +1401,11 @@ function initLoadingIcon() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => initApp());
+} else {
     initApp();
-});
+}
 
 // ========================================
 // 3D Card Flip - Bilingual Support

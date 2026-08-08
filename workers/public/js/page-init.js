@@ -1,12 +1,18 @@
 // Display APP_VERSION
 import { APP_VERSION } from './config.js';
-document.addEventListener('DOMContentLoaded', () => {
+function initPageVersion() {
     const appVersionEl = document.getElementById('app-version');
     const footerVersionEl = document.getElementById('footer-version');
     if (appVersionEl) appVersionEl.textContent = `v${APP_VERSION}`;
     if (footerVersionEl) footerVersionEl.textContent = `DB-Card v${APP_VERSION} | Apache License 2.0`;
     window.APP_VERSION = APP_VERSION;
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPageVersion);
+} else {
+    initPageVersion();
+}
 
         // Three.js 背景初始化
         let scene, camera, renderer, mesh, grid;
@@ -468,7 +474,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // 初始化
-        document.addEventListener('DOMContentLoaded', () => {
+        function initPageUI() {
             if (window.initIcons) window.initIcons();
             initThree();
             
@@ -485,4 +491,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     langToggle.textContent = newLang === 'zh' ? 'EN' : '中';
                 });
             }
-        });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initPageUI);
+        } else {
+            initPageUI();
+        }

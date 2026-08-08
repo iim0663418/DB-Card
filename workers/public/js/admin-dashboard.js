@@ -2657,7 +2657,7 @@ const logger = {
         window.registerPasskey = registerPasskey;
         window.handleLogout = handleLogout;
 
-        document.addEventListener('DOMContentLoaded', () => {
+        function initAdminDashboard() {
             safeInitIcons();
             checkPasskeyAvailable();
             
@@ -2699,7 +2699,7 @@ const logger = {
                 }
             });
 
-            // 地址預設選單事件監聽器
+            // 地址預設選單事件監聯器
             document.getElementById('address-preset').addEventListener('change', (e) => {
                 const value = e.target.value;
                 const customFields = document.getElementById('custom-address-fields');
@@ -2761,7 +2761,13 @@ const logger = {
                     loadSecurityEvents(1, e.target.value);
                 });
             }
-        });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initAdminDashboard);
+        } else {
+            initAdminDashboard();
+        }
 
         window.onresize = () => {
             if (camera && renderer) {
@@ -2798,7 +2804,7 @@ const logger = {
         }
 
         // Setup drag and drop
-        document.addEventListener('DOMContentLoaded', () => {
+        function initDragAndDrop() {
             const dropZone = document.getElementById('drop-zone');
             const fileInput = document.getElementById('file-input');
 
@@ -2837,7 +2843,13 @@ const logger = {
                     document.getElementById('assets-table-body').innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">請選擇名片以查看已上傳的圖片</td></tr>';
                 }
             });
-        });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initDragAndDrop);
+        } else {
+            initDragAndDrop();
+        }
 
         // File validation
         function validateFile(file) {

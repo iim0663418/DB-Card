@@ -12,7 +12,7 @@
 - **NFC 數位名片** — 觸碰即開、24h 授權會話、即時撤銷
 - **收到的名片管理** — 多模態 AI 辨識（Gemini）、智慧壓縮、冪等上傳
 - **自建名片 OCR** — 拍照自動填入、Provenance 標記（可見/翻譯/推測）
-- **MCP AI Agent 介面** — 7 個 Tools、OAuth 2.1 + PKCE、結構化搜尋
+- **MCP AI Agent 介面** — 7 個 Tools、OAuth 2.1 + PKCE、MCP 2026-07-28 Stateless Protocol
 - **信封加密** — 每張名片獨立 DEK、KEK 定期輪換
 - **GDPR 合規** — 分層揭露、撤回機制、資料可攜權
 
@@ -30,7 +30,7 @@ npm run dev                       # http://localhost:8787
 
 ## MCP 連接
 
-讓 AI 助手直接查詢、管理你收到的名片：
+讓 AI 助手直接查詢、管理你收到的名片（支援 MCP 2026-07-28 Stateless Protocol）：
 
 **claude.ai** — 🔌 Integrations → Add custom integration → 貼上 URL
 
@@ -41,6 +41,7 @@ https://db-card.sfan-tech.com/mcp
 ```
 
 首次連線會開啟 Google 登入授權，完成後即可使用。
+支援 Client ID Metadata Documents (CIMD) 和 Dynamic Client Registration (DCR)。
 
 ## 架構
 
@@ -74,7 +75,7 @@ Cloudflare Workers (全球邊緣)
 ## 測試
 
 ```bash
-npm test             # 56 tests (Vitest 4 + Cloudflare Workers Pool)
+npm test             # 86 tests (Vitest 4 + Cloudflare Workers Pool)
 npm run typecheck    # TypeScript 嚴格模式
 ```
 
@@ -92,6 +93,7 @@ npm run typecheck    # TypeScript 嚴格模式
 
 | 版本 | 日期 | 重點 |
 |------|------|------|
+| v5.3.0 | 2026-08 | MCP 2026-07-28 Stateless Protocol + OAuth CIMD |
 | v5.2.0 | 2026-04 | MCP 介面 + OAuth 2.1 |
 | v5.1.0 | 2026-04 | 自建名片 OCR 掃描 |
 | v5.0.x | 2026-02 | 收到的名片管理系統 |

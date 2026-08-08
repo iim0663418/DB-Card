@@ -4,6 +4,7 @@ import { generateCodeVerifier, generateCodeChallenge } from '../../utils/pkce';
 import { generateOAuthNonce, storeOAuthNonce } from '../../utils/oauth-nonce';
 import { validateIDToken } from '../../utils/oidc-validator';
 import { isUserDisabled } from '../../utils/user-security';
+import { resolveClientMetadata } from './oauth-client-metadata';
 
 const MCP_AUTH_STATE_PREFIX = 'mcp_auth_state:';
 const MCP_AUTH_CODE_PREFIX = 'mcp_auth_code:';
@@ -22,14 +23,6 @@ interface McpAuthState {
   nonce: string;
 }
 
-interface McpClientData {
-  client_id: string;
-  client_name: string;
-  redirect_uris: string[];
-  grant_types: string[];
-  token_endpoint_auth_method: string;
-}
-
 function authorizeError(error: string, description?: string, status = 400): Response {
   const body: Record<string, string> = { error };
   if (description) body['error_description'] = description;
@@ -40,7 +33,21 @@ function authorizeError(error: string, description?: string, status = 400): Resp
 }
 
 // Scenario 1: Initiate MCP authorization, delegate to Google OIDC
-export async function handleMcpAuthorize(request: Request, env: Env): Promise<Response> {
+export async function handleMcpAuthorize(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  // Rate limit authorize endpoint (prevents SSRF abuse via CIMD fetch)
+  const ip = request.headers.get('CF-Connecting-IP') || '0.0.0.0';
+  try {
+    const doId = env.RATE_LIMITER.idFromName(`mcp_authorize:${ip}`);
+    const stub = env.RATE_LIMITER.get(doId);
+    const rl = await (stub as any).checkAndIncrement('mcp_authorize', ip, 60_000, 10);
+    if (!rl.allowed) {
+      return authorizeError('rate_limit_exceeded', 'Too many authorization requests', 429);
+    }
+  } catch (e) {
+    console.error('[MCP authorize rate limit error]', e);
+    // Fail open — don't block on DO failure
+  }
+
   const url = new URL(request.url);
   const p = url.searchParams;
 
@@ -85,12 +92,10 @@ export async function handleMcpAuthorize(request: Request, env: Env): Promise<Re
     return authorizeError('invalid_client');
   }
 
-  const clientRaw = await env.KV.get(`mcp_client:${clientId}`);
-  if (!clientRaw) {
+  const client = await resolveClientMetadata(clientId, env);
+  if (!client) {
     return authorizeError('invalid_client');
   }
-
-  const client = JSON.parse(clientRaw) as McpClientData;
 
   // Scenario 3: redirect_uri must match exactly
   if (!redirectUri || !client.redirect_uris.includes(redirectUri)) {
@@ -264,6 +269,9 @@ export async function handleMcpCallback(request: Request, env: Env, ctx: Executi
     const dest = new URL(redirect_uri);
     dest.searchParams.set('code', mcpCode);
     if (client_state) dest.searchParams.set('state', client_state);
+    // RFC 9207: issuer identification
+    const issuer = env.CUSTOM_DOMAIN || env.WORKER_URL;
+    dest.searchParams.set('iss', issuer);
     return Response.redirect(dest.toString(), 302);
 
   } catch (err) {

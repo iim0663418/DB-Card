@@ -45,6 +45,7 @@ export function handleAuthorizationServerMetadata(request: Request, env: Env): R
     token_endpoint_auth_methods_supported: ['none'],
     code_challenge_methods_supported: ['S256'],
     resource_indicators_supported: true,
+    authorization_response_iss_parameter_supported: true,
   });
 }
 

@@ -46,6 +46,3 @@ secrets/
 *.tmp
 *~
 *.bak
-
-# Vite build output (copied to public for deploy)
-workers/public/assets/

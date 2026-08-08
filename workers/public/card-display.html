@@ -10,8 +10,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;700&family=Noto+Sans+TC:wght@300;500;900&display=swap" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;700&family=Noto+Sans+TC:wght@300;500;900&display=swap"></noscript>
-    <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon.PvnjVI7q.PvnjVI7q.png">
-    <link rel="icon" type="image/x-icon" href="/assets/favicon.BHSy2twG.BHSy2twG.ico">
+    <link rel="icon" type="image/png" sizes="192x192" href="favicon.png">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
 
     <!-- WCAG配色 v1.1 2026-01-19 -->
     <script>
@@ -19,8 +19,8 @@
     </script>
 
     <!-- Async load Tailwind CSS with media print trick -->
-    <link rel="stylesheet" href="/assets/tailwind.pmL6RrhZ.pmL6RrhZ.css" media="print" onload="this.media='all'">
-    <noscript></noscript>
+    <link rel="stylesheet" href="/css/tailwind.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="/css/tailwind.css"></noscript>
 
     <!-- Inline Critical CSS -->
     <style>
@@ -406,14 +406,24 @@ body {
     </script>
 
     <!-- Module Preload for critical JS dependencies -->
-    <link rel="modulepreload" href="/assets/api.Bh_NV_Iu.Bh_NV_Iu.js">
-    <link rel="modulepreload" href="data:text/javascript;base64,LyoqCiAqIEdldCBsb2NhbGl6ZWQgdGV4dCBmcm9tIHNpbmdsZS1sYW5ndWFnZSBvciBiaWxpbmd1YWwgdmFsdWUKICogQHBhcmFtIHtzdHJpbmd8b2JqZWN0fSB2YWx1ZSAtIFNpbmdsZSBsYW5ndWFnZSBzdHJpbmcgb3Ige3poOiBzdHJpbmcsIGVuOiBzdHJpbmd9CiAqIEBwYXJhbSB7c3RyaW5nfSBsYW5ndWFnZSAtIExhbmd1YWdlIGNvZGUgKCd6aCcgb3IgJ2VuJykKICogQHJldHVybnMge3N0cmluZ30KICovCmV4cG9ydCBmdW5jdGlvbiBnZXRMb2NhbGl6ZWRUZXh0KHZhbHVlLCBsYW5ndWFnZSA9ICd6aCcpIHsKICBpZiAodHlwZW9mIHZhbHVlID09PSAnc3RyaW5nJykgewogICAgcmV0dXJuIHZhbHVlOwogIH0KICBpZiAodHlwZW9mIHZhbHVlID09PSAnb2JqZWN0JyAmJiB2YWx1ZSAhPT0gbnVsbCkgewogICAgcmV0dXJuIHZhbHVlW2xhbmd1YWdlXSB8fCB2YWx1ZS56aCB8fCAnJzsKICB9CiAgcmV0dXJuICcnOwp9CgovKioKICogR2V0IGxvY2FsaXplZCBhcnJheSBmcm9tIHNpbmdsZS1sYW5ndWFnZSBvciBiaWxpbmd1YWwgdmFsdWUKICogQHBhcmFtIHtBcnJheXxvYmplY3R9IHZhbHVlIC0gU2luZ2xlIGxhbmd1YWdlIGFycmF5IG9yIHt6aDogQXJyYXksIGVuOiBBcnJheX0KICogQHBhcmFtIHtzdHJpbmd9IGxhbmd1YWdlIC0gTGFuZ3VhZ2UgY29kZSAoJ3poJyBvciAnZW4nKQogKiBAcmV0dXJucyB7QXJyYXl9CiAqLwpleHBvcnQgZnVuY3Rpb24gZ2V0TG9jYWxpemVkQXJyYXkodmFsdWUsIGxhbmd1YWdlID0gJ3poJykgewogIGlmIChBcnJheS5pc0FycmF5KHZhbHVlKSkgewogICAgcmV0dXJuIHZhbHVlOwogIH0KICBpZiAodHlwZW9mIHZhbHVlID09PSAnb2JqZWN0JyAmJiB2YWx1ZSAhPT0gbnVsbCkgewogICAgY29uc3QgcmVzdWx0ID0gdmFsdWVbbGFuZ3VhZ2VdIHx8IHZhbHVlLnpoOwogICAgcmV0dXJuIEFycmF5LmlzQXJyYXkocmVzdWx0KSA/IHJlc3VsdCA6IFtdOwogIH0KICByZXR1cm4gW107Cn0K">
-    <link rel="modulepreload" href="/assets/api-retry.CBAr20Ye.CBAr20Ye.js">
-    <link rel="modulepreload" href="data:text/javascript;base64,Ly8gQXBwbGljYXRpb24gVmVyc2lvbgpleHBvcnQgY29uc3QgQVBQX1ZFUlNJT04gPSAnNS4yLjAnOwoKLy8gQVBJIENvbmZpZ3VyYXRpb24KZXhwb3J0IGNvbnN0IEFQSV9CQVNFID0gd2luZG93LmxvY2F0aW9uLm9yaWdpbjsKCi8vIEluZGV4ZWREQiBDb25maWd1cmF0aW9uCmV4cG9ydCBjb25zdCBEQl9OQU1FID0gJ0RCQ2FyZFN0b3JhZ2UnOwpleHBvcnQgY29uc3QgREJfVkVSU0lPTiA9IDE7CgovLyBDYWNoZSBDb25maWd1cmF0aW9uCmV4cG9ydCBjb25zdCBDQUNIRV9NQVhfUkVDT1JEUyA9IDIwMDsKZXhwb3J0IGNvbnN0IENBQ0hFX01BWF9EQVlTID0gNzsK">
+    <link rel="modulepreload" href="js/api.js">
+    <link rel="modulepreload" href="js/utils/bilingual.js">
+    <link rel="modulepreload" href="js/api-retry.js">
+    <link rel="modulepreload" href="js/config.js">
 
     <!-- Vite Icon Bundle (Tree-shaken: 11.62 KB, 96.9% reduction) - Dynamic Loading -->
+    <script src="/js/manifest-loader.js"></script>
 
-    <!-- Vendor loaded via Vite entry -->
+    <!-- Optimized: Async loading for independent scripts -->
+    <script src="/vendor/qr-creator.min.js" 
+            integrity="sha384-cmmVU8dn+rGH6Yvlt0Q1+31iG9lS4wdVsqV/ZP/53RBddef+VZcYakA+NhG4S8wE" 
+            crossorigin="anonymous" 
+            defer></script>
+
+    <script src="/vendor/purify.min.js" 
+            integrity="sha384-qJNkHwhlYywDHfyoEe1np+1lYvX/8x+3gHCKFhSSBMQyCFlvFnn+zXmaebXl21rV" 
+            crossorigin="anonymous" 
+            defer></script>
 
     <!-- Conditionally load Three.js only on desktop (defer for non-blocking) -->
     <script>
@@ -428,18 +438,8 @@ body {
     </script>
 
     <!-- Async load non-critical CSS -->
-    <link rel="stylesheet" href="/assets/components.DbGsYYRr.DbGsYYRr.css" media="print" onload="this.media='all'">
-    <noscript></noscript>
-  <link rel="modulepreload" crossorigin href="data:text/javascript;base64,KGZ1bmN0aW9uKCl7Y29uc3QgdD1kb2N1bWVudC5jcmVhdGVFbGVtZW50KCJsaW5rIikucmVsTGlzdDtpZih0JiZ0LnN1cHBvcnRzJiZ0LnN1cHBvcnRzKCJtb2R1bGVwcmVsb2FkIikpcmV0dXJuO2Zvcihjb25zdCBlIG9mIGRvY3VtZW50LnF1ZXJ5U2VsZWN0b3JBbGwoJ2xpbmtbcmVsPSJtb2R1bGVwcmVsb2FkIl0nKSlpKGUpO25ldyBNdXRhdGlvbk9ic2VydmVyKGU9Pntmb3IoY29uc3QgciBvZiBlKWlmKHIudHlwZT09PSJjaGlsZExpc3QiKWZvcihjb25zdCBvIG9mIHIuYWRkZWROb2RlcylvLnRhZ05hbWU9PT0iTElOSyImJm8ucmVsPT09Im1vZHVsZXByZWxvYWQiJiZpKG8pfSkub2JzZXJ2ZShkb2N1bWVudCx7Y2hpbGRMaXN0OiEwLHN1YnRyZWU6ITB9KTtmdW5jdGlvbiBzKGUpe2NvbnN0IHI9e307cmV0dXJuIGUuaW50ZWdyaXR5JiYoci5pbnRlZ3JpdHk9ZS5pbnRlZ3JpdHkpLGUucmVmZXJyZXJQb2xpY3kmJihyLnJlZmVycmVyUG9saWN5PWUucmVmZXJyZXJQb2xpY3kpLGUuY3Jvc3NPcmlnaW49PT0idXNlLWNyZWRlbnRpYWxzIj9yLmNyZWRlbnRpYWxzPSJpbmNsdWRlIjplLmNyb3NzT3JpZ2luPT09ImFub255bW91cyI/ci5jcmVkZW50aWFscz0ib21pdCI6ci5jcmVkZW50aWFscz0ic2FtZS1vcmlnaW4iLHJ9ZnVuY3Rpb24gaShlKXtpZihlLmVwKXJldHVybjtlLmVwPSEwO2NvbnN0IHI9cyhlKTtmZXRjaChlLmhyZWYscil9fSkoKTsKLy8jIHNvdXJjZU1hcHBpbmdVUkw9bW9kdWxlcHJlbG9hZC1wb2x5ZmlsbC5CNVF0OUVNWC5qcy5tYXAK">
-  <link rel="modulepreload" crossorigin href="/assets/qr-creator.min.BbHVHGix.XFmGivbc.js">
-  <link rel="modulepreload" crossorigin href="/assets/purify.min.WprL7C2b.CJFMNEUa.js">
-  <link rel="modulepreload" crossorigin href="data:text/javascript;base64,Y29uc3Qgbz0iNS4yLjAiLG49d2luZG93LmxvY2F0aW9uLm9yaWdpbix0PSJEQkNhcmRTdG9yYWdlIixBPTEsXz0yMDAsYz03O2V4cG9ydHtuIGFzIEFQSV9CQVNFLG8gYXMgQVBQX1ZFUlNJT04sYyBhcyBDQUNIRV9NQVhfREFZUyxfIGFzIENBQ0hFX01BWF9SRUNPUkRTLHQgYXMgREJfTkFNRSxBIGFzIERCX1ZFUlNJT059OwovLyMgc291cmNlTWFwcGluZ1VSTD1jb25maWcuQkpCd19oSC0uanMubWFwCg==">
-  <script type="module" crossorigin src="/assets/card-display.D80vvbXX.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill.B5Qt9EMX.ulV_1b7r.js">
-  <link rel="modulepreload" crossorigin href="/assets/qr-creator.min.BbHVHGix.Cb9oq8oH.js">
-  <link rel="modulepreload" crossorigin href="/assets/purify.min.WprL7C2b.DwXJ7K5U.js">
-  <link rel="modulepreload" crossorigin href="/assets/config.BJBw_hH-.CJmX1QAf.js">
-  <link rel="stylesheet" crossorigin href="/assets/components.DEh1ws48.css">
+    <link rel="stylesheet" href="/css/components.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="/css/components.css"></noscript>
 </head>
 <body class="no-scrollbar flex flex-col items-center">
 
@@ -455,7 +455,7 @@ body {
             <div class="absolute inset-0 border-2 border-moda opacity-10 rounded-full animate-ping"></div>
             <div class="absolute inset-0 border-t-2 border-moda rounded-full animate-spin"></div>
             <div id="loading-icon" class="absolute inset-0 flex items-center justify-center">
-                <img src="/assets/favicon.PvnjVI7q.PvnjVI7q.png" alt="" class="w-16 h-16 rounded-xl animate-pulse">
+                <img src="/icons/icon-192.png" alt="" class="w-16 h-16 rounded-xl animate-pulse">
             </div>
         </div>
         <p id="loading-text" class="mt-8 hud-text animate-pulse">雲端資料解密中...</p>
@@ -598,7 +598,7 @@ body {
 
             <!-- 品牌收尾 -->
             <div class="text-center pb-6">
-                <img src="/assets/favicon.PvnjVI7q.PvnjVI7q.png" alt="" class="w-5 h-5 inline rounded opacity-30">
+                <img src="/icons/icon-192.png" alt="" class="w-5 h-5 inline rounded opacity-30">
                 <span class="text-[10px] text-slate-300 ml-1 tracking-widest">DB-Card</span>
             </div>
         </main>
@@ -677,7 +677,7 @@ body {
 
             <!-- 品牌收尾 -->
             <div class="text-center pb-6">
-                <img src="/assets/favicon.PvnjVI7q.PvnjVI7q.png" alt="" class="w-5 h-5 inline rounded opacity-30">
+                <img src="/icons/icon-192.png" alt="" class="w-5 h-5 inline rounded opacity-30">
                 <span class="text-[10px] text-slate-300 ml-1 tracking-widest">DB-Card</span>
             </div>
         </main>
@@ -771,7 +771,7 @@ body {
         </section>
     </div>
 
-    <!-- main.js loaded via Vite entry -->
+    <script type="module" src="js/main.js"></script>
     <script>
     // Fallback: if module never loads, card click won't throw
     if (!window.toggleFlip) window.toggleFlip = function() {};
@@ -959,6 +959,6 @@ body {
     </script>
 
     <!-- Web Vitals Monitoring (non-blocking) -->
-    <!-- web-vitals loaded via Vite entry -->
+    <script src="/js/web-vitals-minimal.js" async></script>
 </body>
 </html>

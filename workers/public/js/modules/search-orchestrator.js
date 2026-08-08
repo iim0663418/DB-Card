@@ -3,7 +3,7 @@
  * Handles debounce, cancellation, deduplication, and circuit breaking
  */
 
-class SearchOrchestrator {
+export class SearchOrchestrator {
   constructor(options = {}) {
     this.currentController = null;
     this.lastQuery = null;
@@ -113,6 +113,3 @@ class SearchOrchestrator {
     this.lastQuery = null;
   }
 }
-
-// Export for use in received-cards.js
-window.SearchOrchestrator = SearchOrchestrator;

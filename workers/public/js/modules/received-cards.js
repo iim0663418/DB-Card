@@ -1,7 +1,9 @@
 // Received Cards Module
 // AI-First Card Capture Feature
 
-/* global FeatureAPI */
+import { FeatureAPI } from './feature-api.js';
+import { SearchOrchestrator } from './search-orchestrator.js';
+import { showToast, API_BASE } from './core.js';
 
 // ==================== Mobile Upload Optimization ====================
 
@@ -141,7 +143,6 @@ async function fileToBase64(file) {
  */
 async function uploadWithRetry(file, thumbnail, signal, maxRetries = 3) {
   const idempotencyKey = generateIdempotencyKey();
-  const API_BASE = window.API_BASE || '';
   const csrfToken = sessionStorage.getItem('csrfToken');
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -2839,4 +2840,6 @@ function showReceivedCards() {
 function backToSelection() {
   ReceivedCards.hide();
 }
+
+export { ReceivedCards, CardUploadStateMachine, showReceivedCards, backToSelection };
 

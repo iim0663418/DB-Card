@@ -7,7 +7,7 @@
  * - Return structured result: { ok, status, data, error }
  */
 
-const APIClient = {
+export const APIClient = {
   /**
    * Unified fetch with structured error handling
    * 

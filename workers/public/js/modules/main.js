@@ -25,17 +25,18 @@ import {
     confirmRevokeCard, handleRestoreCard, updatePreview,
     handleFormSubmit, updateUserDisplay, prefillFormWithOIDC
 } from './self-card-ocr.js';
+import {
+    ReceivedCards, CardUploadStateMachine, showReceivedCards, backToSelection
+} from './received-cards.js';
 
 // ==================== Register cross-module handlers ====================
 registerConsentHandlers(showConsentModal, showRestoreConsentModal);
 registerRenderSelectionPage(renderSelectionPage);
 
 // ==================== Window Exposure (classic scripts interop only) ====================
-// These are needed by received-cards.js, feature-api.js (classic scripts)
-window.showToast = showToast;
-window.toggleLoading = toggleLoading;
-window.showView = showView;
-window.renderSelectionPage = renderSelectionPage;
+// Migrated: received-cards.js now imports directly from modules
+// ReceivedCards exposed on window for inline onclick handlers in dynamically rendered HTML
+window.ReceivedCards = ReceivedCards;
 
 // ==================== Event Delegation ====================
 document.addEventListener('click', (e) => {
@@ -67,11 +68,11 @@ document.addEventListener('click', (e) => {
         'confirm-revoke': () => confirmRevokeCard(),
         'copy-url': () => copyCurrentURL(),
         'close-webview-warning': () => closeWebViewWarning(),
-        'show-received-cards': () => window.showReceivedCards(),
-        'back-to-selection': () => window.backToSelection(),
-        'retry-upload': () => window.ReceivedCards.retryUpload(),
-        'upload-cancel': () => window.CardUploadStateMachine.setState('idle'),
-        'upload-reset': () => window.CardUploadStateMachine.reset(),
+        'show-received-cards': () => showReceivedCards(),
+        'back-to-selection': () => backToSelection(),
+        'retry-upload': () => ReceivedCards.retryUpload(),
+        'upload-cancel': () => CardUploadStateMachine.setState('idle'),
+        'upload-reset': () => CardUploadStateMachine.reset(),
     };
 
     if (actions[action]) {

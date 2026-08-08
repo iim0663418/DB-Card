@@ -7,7 +7,11 @@
  * - Provide context-specific wrappers
  */
 
-const FeatureAPI = {
+import { APIClient } from './api-client.js';
+import { ErrorPolicy } from './error-policy.js';
+import { showToast } from './core.js';
+
+export const FeatureAPI = {
   /**
    * Generic API call with error handling
    * 
@@ -78,7 +82,7 @@ const FeatureAPI = {
 
       case 'redirect':
         // Show toast then redirect
-        if (action.message && typeof showToast === 'function') {
+        if (action.message) {
           showToast(action.message, 'info', action.delay || 2000);
         }
         setTimeout(() => {
@@ -95,9 +99,7 @@ const FeatureAPI = {
 
       case 'toast':
         // Show toast notification
-        if (typeof showToast === 'function') {
-          showToast(action.message, action.type || 'error', action.duration || 5000);
-        }
+        showToast(action.message, action.type || 'error', action.duration || 5000);
         return false;
 
       default:

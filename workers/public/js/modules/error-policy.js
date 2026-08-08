@@ -14,7 +14,7 @@
  * - throw: Throw error to caller
  */
 
-const ErrorPolicy = {
+export const ErrorPolicy = {
   /**
    * Handle error and return structured action
    * 

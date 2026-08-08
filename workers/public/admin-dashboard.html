@@ -4,44 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>數位名片 | 管理後台</title>
-    <link rel="icon" type="image/png" sizes="192x192" href="favicon.png">
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon.PvnjVI7q.PvnjVI7q.png">
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.BHSy2twG.BHSy2twG.ico">
     <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="/css/tailwind.css">
-    <link rel="stylesheet" href="/css/components.css">
     <script src="/js/tailwind-suppress.js"></script>
-    <!-- Vite Icon Bundle (Tree-shaken: 11.62 KB, 96.9% reduction) - Dynamic Loading -->
-    <script src="/js/manifest-loader.js"></script>
-    <script src="/vendor/panzoom.min.js"
-            integrity="sha384-u8bfQFCgKdKTTif7iRiNzaUcfforzK6TX9dtMm6yqWCfFRmzlg3cz2npEiioASrH"
-            crossorigin="anonymous"
-            defer></script>
-    <script src="/vendor/simplewebauthn.min.js"
-            integrity="sha384-LXX7Wq4Ygc47p1Tw1tlv1G83JPgHQzVzu3WDtaZpekmpq5DTOz3JwqHAa65L/wAE"
-            crossorigin="anonymous"
-            defer></script>
-    <script src="/vendor/qr-creator.min.js"
-            integrity="sha384-cmmVU8dn+rGH6Yvlt0Q1+31iG9lS4wdVsqV/ZP/53RBddef+VZcYakA+NhG4S8wE"
-            crossorigin="anonymous"
-            defer></script>
-    <script src="/vendor/purify.min.js"
-            integrity="sha384-qJNkHwhlYywDHfyoEe1np+1lYvX/8x+3gHCKFhSSBMQyCFlvFnn+zXmaebXl21rV"
-            crossorigin="anonymous"
-            defer></script>
-    <script src="/vendor/chart.min.js"
-            integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ"
-            crossorigin="anonymous"
-            defer></script>
-    <script type="module" src="/js/config.js"></script>
-    <script src="/js/social-link-validation.js"></script>
-    <script src="/js/social-link-integration.js"></script>
+    <!-- Vite Entry (bundles all JS + vendors + icons) -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Noto+Sans+TC:wght@300;500;700;900&display=swap');
 
         /* Page-specific: admin uses Inter + lower Three.js opacity */
+
         body { font-family: var(--font-data); }
+
         @media (prefers-color-scheme: dark) {
             body { background: var(--color-surface); color: var(--color-text); }
             .tab-btn.logout-btn { color: #f87171; }
@@ -57,10 +33,13 @@
         }
 
         /* Tab: logout variant */
+
         .tab-btn.logout-btn { color: var(--color-error); }
+
         .tab-btn.logout-btn:hover { color: #b91c1c; }
 
         /* Lang indicator (admin-specific) */
+
         .lang-indicator {
             font-size: 9px;
             font-weight: 800;
@@ -73,11 +52,13 @@
         }
 
         /* Budget Badge (admin-specific) */
+
         .badge-budget-warning {
             background: var(--color-warning-bg);
             color: var(--color-warning);
             border: 1px solid rgba(245, 158, 11, 0.3);
         }
+
         .badge-budget-critical {
             background: var(--color-error-bg);
             color: var(--color-error);
@@ -85,15 +66,19 @@
         }
 
         /* Skeleton sub-types */
+
         .skeleton-text { height: 12px; margin: 4px 0; }
+
         .skeleton-badge { width: 60px; height: 20px; display: inline-block; }
 
         /* Button loading state */
+
         .btn-loading {
             position: relative;
             pointer-events: none;
             opacity: 0.7;
         }
+
         .btn-loading::after {
             content: '';
             position: absolute;
@@ -107,10 +92,21 @@
             border-radius: 50%;
             animation: btn-spin 0.6s linear infinite;
         }
+
         @keyframes btn-spin {
             to { transform: translateY(-50%) rotate(360deg); }
         }
     </style>
+  <link rel="modulepreload" crossorigin href="data:text/javascript;base64,KGZ1bmN0aW9uKCl7Y29uc3QgdD1kb2N1bWVudC5jcmVhdGVFbGVtZW50KCJsaW5rIikucmVsTGlzdDtpZih0JiZ0LnN1cHBvcnRzJiZ0LnN1cHBvcnRzKCJtb2R1bGVwcmVsb2FkIikpcmV0dXJuO2Zvcihjb25zdCBlIG9mIGRvY3VtZW50LnF1ZXJ5U2VsZWN0b3JBbGwoJ2xpbmtbcmVsPSJtb2R1bGVwcmVsb2FkIl0nKSlpKGUpO25ldyBNdXRhdGlvbk9ic2VydmVyKGU9Pntmb3IoY29uc3QgciBvZiBlKWlmKHIudHlwZT09PSJjaGlsZExpc3QiKWZvcihjb25zdCBvIG9mIHIuYWRkZWROb2RlcylvLnRhZ05hbWU9PT0iTElOSyImJm8ucmVsPT09Im1vZHVsZXByZWxvYWQiJiZpKG8pfSkub2JzZXJ2ZShkb2N1bWVudCx7Y2hpbGRMaXN0OiEwLHN1YnRyZWU6ITB9KTtmdW5jdGlvbiBzKGUpe2NvbnN0IHI9e307cmV0dXJuIGUuaW50ZWdyaXR5JiYoci5pbnRlZ3JpdHk9ZS5pbnRlZ3JpdHkpLGUucmVmZXJyZXJQb2xpY3kmJihyLnJlZmVycmVyUG9saWN5PWUucmVmZXJyZXJQb2xpY3kpLGUuY3Jvc3NPcmlnaW49PT0idXNlLWNyZWRlbnRpYWxzIj9yLmNyZWRlbnRpYWxzPSJpbmNsdWRlIjplLmNyb3NzT3JpZ2luPT09ImFub255bW91cyI/ci5jcmVkZW50aWFscz0ib21pdCI6ci5jcmVkZW50aWFscz0ic2FtZS1vcmlnaW4iLHJ9ZnVuY3Rpb24gaShlKXtpZihlLmVwKXJldHVybjtlLmVwPSEwO2NvbnN0IHI9cyhlKTtmZXRjaChlLmhyZWYscil9fSkoKTsKLy8jIHNvdXJjZU1hcHBpbmdVUkw9bW9kdWxlcHJlbG9hZC1wb2x5ZmlsbC5CNVF0OUVNWC5qcy5tYXAK">
+  <link rel="modulepreload" crossorigin href="/assets/qr-creator.min.BbHVHGix.XFmGivbc.js">
+  <link rel="modulepreload" crossorigin href="/assets/purify.min.WprL7C2b.CJFMNEUa.js">
+  <link rel="modulepreload" crossorigin href="data:text/javascript;base64,dmFyIGM9KGUsbyk9PigpPT4ob3x8ZSgobz17ZXhwb3J0czp7fX0pLmV4cG9ydHMsbyksby5leHBvcnRzKTt2YXIgcD1jKCh1LGkpPT57ZnVuY3Rpb24gbChlKXtpZighZXx8ZS50cmltKCk9PT0iIilyZXR1cm4hMDtpZihlPWUudHJpbSgpLGUuaW5jbHVkZXMoIiAiKSlyZXR1cm4hMTtjb25zdCBvPVsiamF2YXNjcmlwdDoiLCJkYXRhOiIsInZic2NyaXB0OiIsImZpbGU6IiwiYWJvdXQ6IiwiYmxvYjoiXSxyPWUudG9Mb3dlckNhc2UoKTtmb3IoY29uc3QgdCBvZiBvKWlmKHIuc3RhcnRzV2l0aCh0KSlyZXR1cm4hMTtpZighci5zdGFydHNXaXRoKCJodHRwOi8vIikmJiFyLnN0YXJ0c1dpdGgoImh0dHBzOi8vIikpcmV0dXJuITE7Y29uc3Qgcz1bLzxzY3JpcHQvaSwvPGlmcmFtZS9pLC9qYXZhc2NyaXB0Oi9pLC9vblx3K1xzKj0vaSwvWyciXVxzKm9uL2ldO2Zvcihjb25zdCB0IG9mIHMpaWYodC50ZXN0KGUpKXJldHVybiExO3RyeXtjb25zdCB0PW5ldyBVUkwoZSk7cmV0dXJuISh0LnByb3RvY29sIT09Imh0dHA6IiYmdC5wcm90b2NvbCE9PSJodHRwczoifHwhdC5ob3N0bmFtZSl9Y2F0Y2h7cmV0dXJuITF9fWZ1bmN0aW9uIGYoZSl7aWYoIWV8fGUudHJpbSgpPT09IiIpcmV0dXJuIG51bGw7ZT1lLnRyaW0oKTtjb25zdCBvPVsiamF2YXNjcmlwdDoiLCJkYXRhOiIsInZic2NyaXB0OiIsImZpbGU6IiwiYWJvdXQ6IiwiYmxvYjoiXSxyPWUudG9Mb3dlckNhc2UoKTtmb3IoY29uc3QgdCBvZiBvKWlmKHIuc3RhcnRzV2l0aCh0KSlyZXR1cm4i5LiN5YWB6Kix55qE5Y2U5a6a44CC5YOF5pSv5o+0IGh0dHA6Ly8g5oiWIGh0dHBzOi8vIjtjb25zdCBzPVsvPHNjcmlwdC9pLC88aWZyYW1lL2ksL29uXHcrXHMqPS9pLC9bJyJdXHMqb24vaV07Zm9yKGNvbnN0IHQgb2YgcylpZih0LnRlc3QoZSkpcmV0dXJuIuWBtea4rOWIsOS4jeWuieWFqOeahOWFp+WuuSI7dHJ5e2NvbnN0IHQ9bmV3IFVSTChlKTtyZXR1cm4gdC5wcm90b2NvbCE9PSJodHRwOiImJnQucHJvdG9jb2whPT0iaHR0cHM6Ij8i5LiN5YWB6Kix55qE5Y2U5a6a44CC5YOF5pSv5o+0IGh0dHA6Ly8g5oiWIGh0dHBzOi8vIjp0Lmhvc3RuYW1lP251bGw6IueEoeaViOeahCBVUkwg5qC85byPIn1jYXRjaHtyZXR1cm4i54Sh5pWI55qEIFVSTCDmoLzlvI/jgILoq4vovLjlhaXlrozmlbTnmoQgVVJM77yI5YyF5ZCrIGh0dHA6Ly8g5oiWIGh0dHBzOi8v77yJIn19dHlwZW9mIGk8InUiJiZpLmV4cG9ydHMmJihpLmV4cG9ydHM9e3ZhbGlkYXRlU29jaWFsTGluazpsLGdldFNvY2lhbExpbmtFcnJvcjpmfSk7ZG9jdW1lbnQuYWRkRXZlbnRMaXN0ZW5lcigiRE9NQ29udGVudExvYWRlZCIsKCk9PntbInNvY2lhbF9naXRodWIiLCJzb2NpYWxfbGlua2VkaW4iLCJzb2NpYWxfZmFjZWJvb2siLCJzb2NpYWxfaW5zdGFncmFtIiwic29jaWFsX3R3aXR0ZXIiLCJzb2NpYWxfeW91dHViZSJdLmZvckVhY2gobz0+e2NvbnN0IHI9ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQobyk7ciYmKHIuYWRkRXZlbnRMaXN0ZW5lcigiYmx1ciIsKCk9Pntjb25zdCBzPXIudmFsdWUudHJpbSgpLHQ9Z2V0U29jaWFsTGlua0Vycm9yKHMpLGE9ci5wYXJlbnRFbGVtZW50LnF1ZXJ5U2VsZWN0b3IoIi5zb2NpYWwtbGluay1lcnJvciIpO2lmKGEmJmEucmVtb3ZlKCksdCl7ci5jbGFzc0xpc3QuYWRkKCJib3JkZXItcmVkLTUwMCIpO2NvbnN0IG49ZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgiZGl2Iik7bi5jbGFzc05hbWU9InNvY2lhbC1saW5rLWVycm9yIHRleHQteHMgdGV4dC1yZWQtNjAwIG10LTEiLG4udGV4dENvbnRlbnQ9dCxyLnBhcmVudEVsZW1lbnQuYXBwZW5kQ2hpbGQobil9ZWxzZSByLmNsYXNzTGlzdC5yZW1vdmUoImJvcmRlci1yZWQtNTAwIil9KSxyLmFkZEV2ZW50TGlzdGVuZXIoImlucHV0IiwoKT0+e3IuY2xhc3NMaXN0LnJlbW92ZSgiYm9yZGVyLXJlZC01MDAiKTtjb25zdCBzPXIucGFyZW50RWxlbWVudC5xdWVyeVNlbGVjdG9yKCIuc29jaWFsLWxpbmstZXJyb3IiKTtzJiZzLnJlbW92ZSgpfSkpfSl9KX0pO2V4cG9ydCBkZWZhdWx0IHAoKTsKLy8jIHNvdXJjZU1hcHBpbmdVUkw9c29jaWFsLWxpbmstaW50ZWdyYXRpb24uQmYyeXNOdnIuanMubWFwCg==">
+  <script type="module" crossorigin src="/assets/admin.GLlt4HfS.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill.B5Qt9EMX.ulV_1b7r.js">
+  <link rel="modulepreload" crossorigin href="/assets/qr-creator.min.BbHVHGix.Cb9oq8oH.js">
+  <link rel="modulepreload" crossorigin href="/assets/purify.min.WprL7C2b.DwXJ7K5U.js">
+  <link rel="modulepreload" crossorigin href="/assets/social-link-integration.Bf2ysNvr.DBM9-bb0.js">
+  <link rel="stylesheet" crossorigin href="/assets/components.DEh1ws48.css">
 </head>
 <body class="p-4 lg:p-8">
 
@@ -1184,7 +1180,7 @@ wrangler secret delete OLD_KEK
         </div>
     </div>
 
-    <script type="module" src="/js/admin-dashboard.js" defer></script>
+    <!-- admin-dashboard.js loaded via Vite entry -->
 
 </body>
 </html>

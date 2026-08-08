@@ -44,20 +44,7 @@
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&family=Noto+Sans+TC:wght@300;500;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&family=Noto+Sans+TC:wght@300;500;900&display=swap" rel="stylesheet"></noscript>
 
-    <script src="/js/tailwind-suppress.js"></script>
-    <link rel="stylesheet" href="/css/tailwind.css">
-    <link rel="stylesheet" href="/css/components.css">
-    <!-- Vite Icon Bundle (Tree-shaken: 11.62 KB, 96.9% reduction) - Dynamic Loading -->
-    <script src="/js/manifest-loader.js"></script>
-    <script src="/vendor/three.min.js"
-            integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu"
-            crossorigin="anonymous"
-            defer></script>
-    <script src="/vendor/purify.min.js"
-            integrity="sha384-qJNkHwhlYywDHfyoEe1np+1lYvX/8x+3gHCKFhSSBMQyCFlvFnn+zXmaebXl21rV"
-            crossorigin="anonymous"
-            defer></script>
-    <script type="module" src="/js/config.js"></script>
+    <!-- Vite entry point -->
 
     <!-- Scenario 2: 結構化資料 JSON-LD -->
     <script type="application/ld+json">
@@ -120,6 +107,14 @@
             opacity: 0.6;
         }
     </style>
+  <link rel="modulepreload" crossorigin href="data:text/javascript;base64,KGZ1bmN0aW9uKCl7Y29uc3QgdD1kb2N1bWVudC5jcmVhdGVFbGVtZW50KCJsaW5rIikucmVsTGlzdDtpZih0JiZ0LnN1cHBvcnRzJiZ0LnN1cHBvcnRzKCJtb2R1bGVwcmVsb2FkIikpcmV0dXJuO2Zvcihjb25zdCBlIG9mIGRvY3VtZW50LnF1ZXJ5U2VsZWN0b3JBbGwoJ2xpbmtbcmVsPSJtb2R1bGVwcmVsb2FkIl0nKSlpKGUpO25ldyBNdXRhdGlvbk9ic2VydmVyKGU9Pntmb3IoY29uc3QgciBvZiBlKWlmKHIudHlwZT09PSJjaGlsZExpc3QiKWZvcihjb25zdCBvIG9mIHIuYWRkZWROb2RlcylvLnRhZ05hbWU9PT0iTElOSyImJm8ucmVsPT09Im1vZHVsZXByZWxvYWQiJiZpKG8pfSkub2JzZXJ2ZShkb2N1bWVudCx7Y2hpbGRMaXN0OiEwLHN1YnRyZWU6ITB9KTtmdW5jdGlvbiBzKGUpe2NvbnN0IHI9e307cmV0dXJuIGUuaW50ZWdyaXR5JiYoci5pbnRlZ3JpdHk9ZS5pbnRlZ3JpdHkpLGUucmVmZXJyZXJQb2xpY3kmJihyLnJlZmVycmVyUG9saWN5PWUucmVmZXJyZXJQb2xpY3kpLGUuY3Jvc3NPcmlnaW49PT0idXNlLWNyZWRlbnRpYWxzIj9yLmNyZWRlbnRpYWxzPSJpbmNsdWRlIjplLmNyb3NzT3JpZ2luPT09ImFub255bW91cyI/ci5jcmVkZW50aWFscz0ib21pdCI6ci5jcmVkZW50aWFscz0ic2FtZS1vcmlnaW4iLHJ9ZnVuY3Rpb24gaShlKXtpZihlLmVwKXJldHVybjtlLmVwPSEwO2NvbnN0IHI9cyhlKTtmZXRjaChlLmhyZWYscil9fSkoKTsKLy8jIHNvdXJjZU1hcHBpbmdVUkw9bW9kdWxlcHJlbG9hZC1wb2x5ZmlsbC5CNVF0OUVNWC5qcy5tYXAK">
+  <link rel="modulepreload" crossorigin href="data:text/javascript;base64,Y29uc3QgcD0ibW9kdWxlcHJlbG9hZCIsdj1mdW5jdGlvbihsKXtyZXR1cm4iLyIrbH0sdT17fSx5PWZ1bmN0aW9uKGQsYyxFKXtsZXQgaT1Qcm9taXNlLnJlc29sdmUoKTtpZihjJiZjLmxlbmd0aD4wKXtsZXQgZj1mdW5jdGlvbihlKXtyZXR1cm4gUHJvbWlzZS5hbGwoZS5tYXAobz0+UHJvbWlzZS5yZXNvbHZlKG8pLnRoZW4ocz0+KHtzdGF0dXM6ImZ1bGZpbGxlZCIsdmFsdWU6c30pLHM9Pih7c3RhdHVzOiJyZWplY3RlZCIscmVhc29uOnN9KSkpKX07ZG9jdW1lbnQuZ2V0RWxlbWVudHNCeVRhZ05hbWUoImxpbmsiKTtjb25zdCByPWRvY3VtZW50LnF1ZXJ5U2VsZWN0b3IoIm1ldGFbcHJvcGVydHk9Y3NwLW5vbmNlXSIpLHQ9cj8ubm9uY2V8fHI/LmdldEF0dHJpYnV0ZSgibm9uY2UiKTtpPWYoYy5tYXAoZT0+e2lmKGU9dihlKSxlIGluIHUpcmV0dXJuO3VbZV09ITA7Y29uc3Qgbz1lLmVuZHNXaXRoKCIuY3NzIikscz1vPydbcmVsPSJzdHlsZXNoZWV0Il0nOiIiO2lmKGRvY3VtZW50LnF1ZXJ5U2VsZWN0b3IoYGxpbmtbaHJlZj0iJHtlfSJdJHtzfWApKXJldHVybjtjb25zdCBuPWRvY3VtZW50LmNyZWF0ZUVsZW1lbnQoImxpbmsiKTtpZihuLnJlbD1vPyJzdHlsZXNoZWV0IjpwLG98fChuLmFzPSJzY3JpcHQiKSxuLmNyb3NzT3JpZ2luPSIiLG4uaHJlZj1lLHQmJm4uc2V0QXR0cmlidXRlKCJub25jZSIsdCksZG9jdW1lbnQuaGVhZC5hcHBlbmRDaGlsZChuKSxvKXJldHVybiBuZXcgUHJvbWlzZSgobSxoKT0+e24uYWRkRXZlbnRMaXN0ZW5lcigibG9hZCIsbSksbi5hZGRFdmVudExpc3RlbmVyKCJlcnJvciIsKCk9PmgobmV3IEVycm9yKGBVbmFibGUgdG8gcHJlbG9hZCBDU1MgZm9yICR7ZX1gKSkpfSl9KSl9ZnVuY3Rpb24gYShyKXtjb25zdCB0PW5ldyBFdmVudCgidml0ZTpwcmVsb2FkRXJyb3IiLHtjYW5jZWxhYmxlOiEwfSk7aWYodC5wYXlsb2FkPXIsd2luZG93LmRpc3BhdGNoRXZlbnQodCksIXQuZGVmYXVsdFByZXZlbnRlZCl0aHJvdyByfXJldHVybiBpLnRoZW4ocj0+e2Zvcihjb25zdCB0IG9mIHJ8fFtdKXQuc3RhdHVzPT09InJlamVjdGVkIiYmYSh0LnJlYXNvbik7cmV0dXJuIGQoKS5jYXRjaChhKX0pfTtleHBvcnR7eSBhcyBffTsKLy8jIHNvdXJjZU1hcHBpbmdVUkw9cHJlbG9hZC1oZWxwZXIuQlhsM0xPRWguanMubWFwCg==">
+  <link rel="modulepreload" crossorigin href="data:text/javascript;base64,Y29uc3Qgbz0iNS4yLjAiLG49d2luZG93LmxvY2F0aW9uLm9yaWdpbix0PSJEQkNhcmRTdG9yYWdlIixBPTEsXz0yMDAsYz03O2V4cG9ydHtuIGFzIEFQSV9CQVNFLG8gYXMgQVBQX1ZFUlNJT04sYyBhcyBDQUNIRV9NQVhfREFZUyxfIGFzIENBQ0hFX01BWF9SRUNPUkRTLHQgYXMgREJfTkFNRSxBIGFzIERCX1ZFUlNJT059OwovLyMgc291cmNlTWFwcGluZ1VSTD1jb25maWcuQkpCd19oSC0uanMubWFwCg==">
+  <script type="module" crossorigin src="/assets/index.DAMK8GVX.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill.B5Qt9EMX.ulV_1b7r.js">
+  <link rel="modulepreload" crossorigin href="/assets/preload-helper.BXl3LOEh.x-nPGzrI.js">
+  <link rel="modulepreload" crossorigin href="/assets/config.BJBw_hH-.CJmX1QAf.js">
+  <link rel="stylesheet" crossorigin href="/assets/components.DEh1ws48.css">
 </head>
 <body>
     <canvas id="three-canvas" aria-hidden="true"></canvas>
@@ -128,7 +123,7 @@
 
         <header class="container mx-auto px-6 py-16 text-center" role="banner">
             <div class="inline-block mb-6">
-                <img src="/icons/icon-192.png" alt="DB-Card" class="w-16 h-16 rounded-2xl shadow-lg mx-auto">
+                <img src="/assets/favicon.PvnjVI7q.PvnjVI7q.png" alt="DB-Card" class="w-16 h-16 rounded-2xl shadow-lg mx-auto">
             </div>
             <h1 class="text-5xl md:text-7xl font-black mb-4 text-moda">
                 DB-Card
@@ -217,19 +212,19 @@
                 <h2 id="use-cases-heading" class="text-2xl font-black text-center mb-8 text-moda" data-i18n="use-cases-title">功能一覽</h2>
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-4" role="list">
                     <div class="glass-card rounded-2xl p-4 overflow-hidden group cursor-pointer" role="listitem">
-                        <img src="/images/use-case-1.jpg" alt="NFC 卡片觸碰手機啟動數位名片" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110" loading="lazy">
+                        <img src="/assets/use-case-1.BRwEBaTm.BRwEBaTm.jpg" alt="NFC 卡片觸碰手機啟動數位名片" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110" loading="lazy">
                     </div>
                     <div class="glass-card rounded-2xl p-4 overflow-hidden group cursor-pointer" role="listitem">
-                        <img src="/images/use-case-2.jpg" alt="AI 辨識實體名片自動擷取聯絡資訊" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110" loading="lazy">
+                        <img src="/assets/use-case-2.BjtwCHat.BjtwCHat.jpg" alt="AI 辨識實體名片自動擷取聯絡資訊" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110" loading="lazy">
                     </div>
                     <div class="glass-card rounded-2xl p-4 overflow-hidden group cursor-pointer" role="listitem">
-                        <img src="/images/use-case-3.jpg" alt="MCP AI Agent 自然語言查詢名片" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110" loading="lazy">
+                        <img src="/assets/use-case-3.C7fglYr2.C7fglYr2.jpg" alt="MCP AI Agent 自然語言查詢名片" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110" loading="lazy">
                     </div>
                     <div class="glass-card rounded-2xl p-4 overflow-hidden group cursor-pointer" role="listitem">
-                        <img src="/images/use-case-4.jpg" alt="信封加密保護名片資料 DEK KEK 分層" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110" loading="lazy">
+                        <img src="/assets/use-case-4.DiaK1rZv.DiaK1rZv.jpg" alt="信封加密保護名片資料 DEK KEK 分層" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110" loading="lazy">
                     </div>
                     <div class="glass-card rounded-2xl p-4 overflow-hidden group cursor-pointer" role="listitem">
-                        <img src="/images/use-case-5.jpg" alt="QR Code 快速分享數位名片" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110" loading="lazy">
+                        <img src="/assets/use-case-5.HgU5t1Cf.HgU5t1Cf.jpg" alt="QR Code 快速分享數位名片" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110" loading="lazy">
                     </div>
                 </div>
             </section>
@@ -802,7 +797,6 @@
         </footer>
     </div>
 
-    <script type="module" src="/js/page-init.js"></script>
     <script>
         // Load version from API
         fetch('/health')

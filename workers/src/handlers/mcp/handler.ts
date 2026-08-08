@@ -201,9 +201,25 @@ export async function handleMcp(request: Request, env: Env, ctx: ExecutionContex
   }
 
   if (method === 'initialize') {
-    return rpcResultModern(id, {
-      protocolVersion: '2026-07-28',
+    // Detect client protocol: 2026-07-28 uses _meta, legacy uses params.protocolVersion
+    const metaProtocol = getClientProtocol(params);
+    const clientRequestedVersion = params['protocolVersion'] as string | undefined;
+
+    if (metaProtocol === '2026-07-28') {
+      return rpcResultModern(id, {
+        protocolVersion: '2026-07-28',
+        capabilities: { tools: {} },
+      });
+    }
+
+    // Legacy client (2025-11-25 or 2025-06-18) — respond with serverInfo at top level
+    const negotiatedVersion = clientRequestedVersion === '2025-11-25'
+      ? '2025-11-25'
+      : '2025-06-18';
+    return rpcResult(id, {
+      protocolVersion: negotiatedVersion,
       capabilities: { tools: {} },
+      serverInfo: SERVER_INFO,
     });
   }
 

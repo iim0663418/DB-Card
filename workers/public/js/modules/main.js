@@ -101,7 +101,8 @@ async function initApp() {
 
     if (window.initIcons) window.initIcons();
 
-    document.getElementById('edit-form').onsubmit = handleFormSubmit;
+    const editForm = document.getElementById('edit-form');
+    if (editForm) editForm.onsubmit = handleFormSubmit;
 
     // Initialize scan file input
     initScanFileInput();

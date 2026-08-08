@@ -1,13 +1,20 @@
-// SelfCardOCR Module — extracted from user-portal-init.js
-/* global isHEIC, compressImageWithCancellation, fileToBase64, generateIdempotencyKey, DOMPurify */
+// SelfCardOCR Module — ES module conversion
+// Converted from /js/self-card-ocr.js
+/* global DOMPurify */
 
-// Mutable state (moved from user-portal-init.js)
+import {
+    i18n, currentLang, applyTranslations, apiCall, getHeadersWithCSRF,
+    fetchUserCards, showToast, showView, toggleLoading,
+    state, stateManager, errorHandler, API_BASE,
+    ADDRESS_PRESETS, CARD_TYPES, SocialParser, getCardTypeLabel
+} from './core.js';
+
+// Mutable state
 let currentModalUuid = null;
 let currentRevokeUuid = null;
 let currentRevokeType = null;
 
-
-// ==================== SelfCardOCR Module ====================
+// ==================== SelfCardOCR ====================
 const PRESET_DEPARTMENTS_OCR = [
     '數位策略司', '數位政府司', '資源管理司', '韌性建設司',
     '數位國際司', '資料創新司', '秘書處', '人事處',
@@ -15,7 +22,7 @@ const PRESET_DEPARTMENTS_OCR = [
     '部長室', '政務次長室', '常務次長室', '主任秘書室'
 ];
 
-const SelfCardOCR = {
+export const SelfCardOCR = {
     abortController: null,
 
     async scan() {
@@ -48,7 +55,6 @@ const SelfCardOCR = {
         this._showProcessing();
 
         try {
-            // 1. HEIC detection
             if (await isHEIC(file)) {
                 showToast('不支援 HEIC 格式');
                 this._resetUI();
@@ -57,17 +63,14 @@ const SelfCardOCR = {
 
             if (signal.aborted) return;
 
-            // 2. Compress
             const compressed = await compressImageWithCancellation(file, signal);
 
             if (signal.aborted) return;
 
-            // 3. Convert to base64
             const imageBase64 = await fileToBase64(compressed);
             const csrfToken = sessionStorage.getItem('csrfToken');
             const idempotencyKey = generateIdempotencyKey();
 
-            // 4. Upload with X-Upload-Flow: own_card
             const uploadResp = await fetch(`${API_BASE}/api/user/received-cards/upload`, {
                 method: 'POST',
                 credentials: 'include',
@@ -94,7 +97,6 @@ const SelfCardOCR = {
 
             if (signal.aborted) return;
 
-            // 5. Extract draft
             const extractResp = await fetch(`${API_BASE}/api/user/cards/extract-draft`, {
                 method: 'POST',
                 credentials: 'include',
@@ -120,7 +122,6 @@ const SelfCardOCR = {
 
             if (signal.aborted) return;
 
-            // 6. Fill form
             this.fillForm(draft);
 
         } catch (err) {
@@ -133,7 +134,6 @@ const SelfCardOCR = {
     },
 
     fillForm(draft) {
-        // Simple scalar fields: draftKey → formFieldId
         const fieldMap = {
             'name_zh': 'name_zh', 'name_en': 'name_en',
             'title_zh': 'title_zh', 'title_en': 'title_en',
@@ -164,7 +164,6 @@ const SelfCardOCR = {
             if (draftKey === 'mobile' && fieldDraft.value) hasSocialOrMobile = true;
         });
 
-        // Department mapping
         if (draft.department && draft.department.value != null) {
             const deptValue = draft.department.value;
             if (PRESET_DEPARTMENTS_OCR.includes(deptValue)) {
@@ -178,7 +177,6 @@ const SelfCardOCR = {
             this.setBadge('department-preset', draft.department.provenance);
         }
 
-        // Address mapping (always custom from OCR)
         if ((draft.address_zh && draft.address_zh.value != null) ||
             (draft.address_en && draft.address_en.value != null)) {
             document.getElementById('address-preset').value = 'custom';
@@ -193,7 +191,6 @@ const SelfCardOCR = {
             }
         }
 
-        // Auto-expand advanced section if needed
         if (hasSocialOrMobile) {
             const details = document.querySelector('#edit-form details');
             if (details) details.open = true;
@@ -213,17 +210,14 @@ const SelfCardOCR = {
         const el = document.getElementById(fieldId);
         if (!el) return;
 
-        // Find badge anchor: label[for], or closest label/span ancestor, or insert before the input
         let anchor = document.querySelector(`label[for="${fieldId}"]`);
         if (!anchor) {
-            // Walk up to find a label-like container (span with text, or the parent's first text node)
             const parent = el.closest('.space-y-2, .flex');
             if (parent) {
                 anchor = parent.querySelector('label, span[class*="text-"]');
             }
         }
         if (!anchor) {
-            // Last resort: insert badge right before the input element
             anchor = el.parentElement;
         }
         if (!anchor) return;
@@ -239,7 +233,6 @@ const SelfCardOCR = {
             anchor.appendChild(badge);
         }
 
-        // Remove badge on manual input
         const handler = () => {
             this.removeBadge(fieldId);
             el.removeEventListener('input', handler);
@@ -252,8 +245,8 @@ const SelfCardOCR = {
     }
 };
 
-// Wire up file input
-document.addEventListener('DOMContentLoaded', () => {
+// Wire up file input on DOMContentLoaded
+export function initScanFileInput() {
     const fileInput = document.getElementById('scan-file-input');
     if (fileInput) {
         fileInput.addEventListener('change', (e) => {
@@ -261,13 +254,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (file) SelfCardOCR._processFile(file);
         });
     }
-});
+}
 
-// Scenario F5: GET /api/user/cards/:uuid (編輯模式)
-async function openEditForm(type) {
+// ==================== Form & Selection ====================
+export async function openEditForm(type) {
     const card = state.cards.find(c => c.type === type);
 
-    // 阻擋 revoked 卡片
     if (card && card.status === 'revoked') {
         showToast(i18n[currentLang]['error-revoke-failed'] || '此名片已被撤銷，無法編輯');
         return;
@@ -279,7 +271,6 @@ async function openEditForm(type) {
     document.getElementById('form-error-msg').classList.add('hidden');
     document.getElementById('form-type').value = type;
 
-    // Show scan button only in create mode; clear badges
     SelfCardOCR.clearBadges();
     SelfCardOCR._resetUI();
     const scanUI = document.getElementById('scan-ui');
@@ -288,7 +279,7 @@ async function openEditForm(type) {
             scanUI.classList.add('hidden');
         } else {
             scanUI.classList.remove('hidden');
-            applyTranslations(currentLang); // refresh i18n on scan button
+            applyTranslations(currentLang);
         }
     }
 
@@ -300,7 +291,6 @@ async function openEditForm(type) {
 
             document.getElementById('form-uuid').value = card.uuid;
 
-            // 預填所有欄位（扁平結構）
             ['name_zh', 'name_en', 'title_zh', 'title_en',
              'email', 'phone', 'mobile', 'web', 'avatar_url',
              'greetings_zh', 'greetings_en',
@@ -311,7 +301,6 @@ async function openEditForm(type) {
                 if (el && fullCard[key] !== undefined) el.value = fullCard[key];
             });
 
-            // 處理部門預設選項
             const PRESET_DEPARTMENTS = [
                 '數位策略司', '數位政府司', '資源管理司', '韌性建設司',
                 '數位國際司', '資料創新司', '秘書處', '人事處',
@@ -324,7 +313,6 @@ async function openEditForm(type) {
                     document.getElementById('department-preset').value = fullCard.department;
                     document.getElementById('custom-department-field').classList.add('hidden');
                 } else {
-                    // 自訂部門
                     document.getElementById('department-preset').value = 'custom';
                     document.getElementById('custom-department-field').classList.remove('hidden');
 
@@ -338,9 +326,7 @@ async function openEditForm(type) {
                 }
             }
 
-            // 處理地址預設選項
             if (fullCard.address_zh || fullCard.address_en) {
-                // 檢查是否為預設地址
                 if (fullCard.address_zh === ADDRESS_PRESETS.yanping.zh) {
                     document.getElementById('address-preset').value = 'yanping';
                     document.getElementById('custom-address-fields').classList.add('hidden');
@@ -348,7 +334,6 @@ async function openEditForm(type) {
                     document.getElementById('address-preset').value = 'shinkong';
                     document.getElementById('custom-address-fields').classList.add('hidden');
                 } else {
-                    // 自訂地址
                     document.getElementById('address-preset').value = 'custom';
                     document.getElementById('address_zh').value = fullCard.address_zh || '';
                     document.getElementById('address_en').value = fullCard.address_en || '';
@@ -366,8 +351,6 @@ async function openEditForm(type) {
     } else {
         document.getElementById('form-uuid').value = '';
         document.getElementById('form-title').innerText = i18n[currentLang]['button-create'];
-
-        // BDD Scenario 1-4: 自動填入 OIDC 資訊(僅創建時)
         prefillFormWithOIDC(state.currentUser);
     }
 
@@ -375,8 +358,7 @@ async function openEditForm(type) {
     showView('form');
 }
 
-
-function renderSelectionPage() {
+export function renderSelectionPage() {
     const container = document.getElementById('card-slots-container');
     container.innerHTML = DOMPurify.sanitize(CARD_TYPES.map(config => {
         const data = state.cards.find(c => c.type === config.id) || { status: 'empty' };
@@ -486,10 +468,6 @@ function renderSelectionPage() {
                 `)}
             </div>
         `;
-    // Security Note: ADD_ATTR is required here because onclick handlers are used
-    // for card operations (handleRestoreCard, viewCard, createQRShortcut, etc.)
-    // All parameters are server-controlled (UUID, type), not user input.
-    // Future: Consider migrating to event delegation pattern.
     }).join(''), { ADD_ATTR: ['onclick'] });
     if (window.initIcons) window.initIcons();
 
@@ -503,20 +481,16 @@ function renderSelectionPage() {
     });
 }
 
-
-// 顯示成功 Modal
-function showSuccessModal(uuid, type) {
+// ==================== Success Modal ====================
+export function showSuccessModal(uuid, type) {
     currentModalUuid = uuid;
 
-    // 設定名片類型文字
     const subtitleText = i18n[currentLang]['modal-success-subtitle'];
     document.getElementById('modal-card-type').innerText = subtitleText;
 
-    // 設定分享連結（不帶 session）
     const shareLink = `${window.location.origin}/card-display.html?uuid=${uuid}`;
     document.getElementById('modal-share-link').value = shareLink;
 
-    // 重置複製按鈕
     const copyBtn = document.getElementById('modal-copy-btn');
     const copyBtnText = document.getElementById('modal-copy-text');
     const copyBtnIcon = copyBtn.querySelector('i[data-lucide]');
@@ -529,37 +503,26 @@ function showSuccessModal(uuid, type) {
         copyBtnIcon.setAttribute('data-lucide', 'copy');
     }
 
-    // 顯示 Modal
     document.getElementById('success-modal').classList.remove('hidden');
 
-    // 初始化 lucide icons（確保 check-circle 顯示）
-    if (window.initIcons) {
-        window.initIcons();
-    }
-
-    // 綁定 ESC 鍵
+    if (window.initIcons) window.initIcons();
     document.addEventListener('keydown', handleModalEscape);
 }
 
-// 關閉 Modal
-function closeSuccessModal() {
+export function closeSuccessModal() {
     document.getElementById('success-modal').classList.add('hidden');
     document.removeEventListener('keydown', handleModalEscape);
     currentModalUuid = null;
-
-    // 返回選擇頁面
     showView('selection');
 }
 
-// ESC 鍵處理
 function handleModalEscape(e) {
     if (e.key === 'Escape') {
         closeSuccessModal();
     }
 }
 
-// 複製連結
-async function copyModalLink() {
+export async function copyModalLink() {
     const link = document.getElementById('modal-share-link').value;
     const btn = document.getElementById('modal-copy-btn');
     const btnText = document.getElementById('modal-copy-text');
@@ -568,24 +531,20 @@ async function copyModalLink() {
     try {
         await navigator.clipboard.writeText(link);
 
-        // 視覺反饋
         btnText.innerText = i18n[currentLang]['modal-copied'];
         btn.classList.remove('bg-moda', 'hover:bg-moda/90');
         btn.classList.add('bg-green-600', 'hover:bg-green-700');
 
-        // 更換 icon 為 check
         if (btnIcon) {
             btnIcon.setAttribute('data-lucide', 'check');
             if (window.initIcons) window.initIcons();
         }
 
-        // 2 秒後恢復
         setTimeout(() => {
             btnText.innerText = i18n[currentLang]['button-copy'];
             btn.classList.remove('bg-green-600', 'hover:bg-green-700');
             btn.classList.add('bg-moda', 'hover:bg-moda/90');
 
-            // 恢復原始 icon
             if (btnIcon) {
                 btnIcon.setAttribute('data-lucide', 'copy');
                 if (window.initIcons) window.initIcons();
@@ -596,18 +555,17 @@ async function copyModalLink() {
     }
 }
 
-// 查看名片（從 Modal）
-function viewModalCard() {
+export function viewModalCard() {
     if (currentModalUuid) {
         window.open(`/card-display.html?uuid=${currentModalUuid}`, '_blank');
     }
 }
 
-async function viewCard(uuid) {
+// ==================== View Card ====================
+export async function viewCard(uuid) {
     try {
         toggleLoading(true);
 
-        // 先 tap 獲取 session（與 admin-dashboard 一致）
         const tapResponse = await fetch(`${API_BASE}/api/nfc/tap`, {
             method: 'POST',
             headers: getHeadersWithCSRF({ 'Content-Type': 'application/json' }),
@@ -615,7 +573,6 @@ async function viewCard(uuid) {
             body: JSON.stringify({ card_uuid: uuid })
         });
 
-        // v4.1.0 & v4.2.0: Handle rate_limited error
         if (!tapResponse.ok) {
             const error = await tapResponse.json();
             if (error.error?.code === 'rate_limited') {
@@ -633,20 +590,18 @@ async function viewCard(uuid) {
             throw { code: 'SESSION_ERROR', message: '無法獲取查看授權' };
         }
 
-        // 打開名片頁面（帶 session）
         const url = `${window.location.origin}/card-display.html?uuid=${uuid}&session=${sessionId}`;
         window.open(url, '_blank');
 
         toggleLoading(false);
     } catch (error) {
         toggleLoading(false);
-        // 使用統一錯誤處理
         const errorMsg = errorHandler.handle(error.error || error);
         showToast(errorMsg, 'error');
     }
 }
 
-function copyCardLink(uuid) {
+export function copyCardLink(uuid) {
     const url = `${window.location.origin}/card-display.html?uuid=${uuid}`;
     navigator.clipboard.writeText(url).then(() => {
         showToast('連結已複製到剪貼簿');
@@ -655,225 +610,8 @@ function copyCardLink(uuid) {
     });
 }
 
-function toggleLoading(show) {
-    state.loading = show;
-    document.getElementById('global-loading').classList.toggle('hidden', !show);
-}
-
-function showView(viewId) {
-    document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
-    document.getElementById(`view-${viewId}`).classList.remove('hidden');
-    if (state.isLoggedIn) document.getElementById('app-header').classList.remove('hidden');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-// Department mapping for preview (same as main.js)
-const ORG_DEPT_MAPPING = {
-    departments: {
-        '數位策略司': 'Department of Digital Strategy',
-        '數位政府司': 'Department of Digital Service',
-        '資源管理司': 'Department of Resource Management',
-        '韌性建設司': 'Department of Communications and Cyber Resilience',
-        '數位國際司': 'Department of International Cooperation',
-        '資料創新司': 'Department of Data Innovation',
-        '秘書處': 'Secretariat',
-        '人事處': 'Department of Personnel',
-        '政風處': 'Department of Civil Service Ethics',
-        '主計處': 'Department of Budget, Accounting and Statistics',
-        '資訊處': 'Department of Information Management',
-        '法制處': 'Department of Legal Affairs',
-        '部長室': "Minister's Office",
-        '政務次長室': "Deputy Minister's Office",
-        '常務次長室': "Administrative Deputy Minister's Office",
-        '主任秘書室': "Secretary-General's Office"
-    }
-};
-
-function updatePreview() {
-    const isEn = window.previewLang === 'en';
-    const name = isEn ? document.getElementById('name_en').value || '---' : document.getElementById('name_zh').value || '---';
-    const title = isEn ? document.getElementById('title_en').value || '---' : document.getElementById('title_zh').value || '---';
-
-    // 問候語
-    const greetingInput = isEn ? document.getElementById('greetings_en').value : document.getElementById('greetings_zh').value;
-    const greet = greetingInput ? greetingInput.split('\n').filter(g => g.trim())[0] || '' : '';
-
-    const email = document.getElementById('email').value || '---';
-    const phone = document.getElementById('phone').value || '---';
-
-    // 地址
-    const preset = document.getElementById('address-preset').value;
-    let addressZh = '', addressEn = '';
-    if (preset === 'yanping') {
-        addressZh = ADDRESS_PRESETS.yanping.zh;
-        addressEn = ADDRESS_PRESETS.yanping.en;
-    } else if (preset === 'shinkong') {
-        addressZh = ADDRESS_PRESETS.shinkong.zh;
-        addressEn = ADDRESS_PRESETS.shinkong.en;
-    } else {
-        addressZh = document.getElementById('address_zh').value || '';
-        addressEn = document.getElementById('address_en').value || '';
-    }
-    const addressText = isEn ? (addressEn || '---') : (addressZh || '---');
-
-    // 更新預覽
-    document.getElementById('prev-name').innerText = name;
-
-    // Title (conditional display - align with card-display)
-    const titleElement = document.getElementById('prev-title');
-    const titleZh = document.getElementById('title_zh').value;
-    const titleEn = document.getElementById('title_en').value;
-    if (title && title !== '---') {
-        titleElement.style.display = 'block';
-        titleElement.innerText = title;
-    } else if (!titleZh && !titleEn) {
-        titleElement.style.display = 'none';
-    } else {
-        titleElement.style.display = 'block';
-        titleElement.innerText = title;
-    }
-
-    // Department (conditional display with bilingual support)
-    const departmentPreset = document.getElementById('department-preset').value;
-    let deptValue;
-
-    if (departmentPreset === 'custom') {
-        const zh = document.getElementById('department-custom-zh').value.trim();
-        const en = document.getElementById('department-custom-en').value.trim();
-
-        if (zh && en) {
-            deptValue = { zh, en };
-        } else if (zh) {
-            deptValue = zh;
-        } else if (en) {
-            deptValue = en;
-        }
-    } else if (departmentPreset) {
-        deptValue = departmentPreset;
-    }
-
-    const deptElement = document.getElementById('prev-department');
-    if (deptValue) {
-        let deptText;
-
-        // Handle bilingual object
-        if (typeof deptValue === 'object' && deptValue !== null) {
-            deptText = isEn ? (deptValue.en || deptValue.zh || '') : (deptValue.zh || deptValue.en || '');
-        }
-        // Handle string (preset or single language)
-        else if (typeof deptValue === 'string') {
-            // Use ORG_DEPT_MAPPING for preset departments
-            if (isEn && ORG_DEPT_MAPPING.departments[deptValue]) {
-                deptText = ORG_DEPT_MAPPING.departments[deptValue];
-            } else {
-                deptText = deptValue;
-            }
-        }
-
-        if (deptText) {
-            deptElement.style.display = 'flex';
-            document.getElementById('prev-department-text').innerText = deptText;
-        } else {
-            deptElement.style.display = 'none';
-        }
-    } else {
-        deptElement.style.display = 'none';
-    }
-
-    document.getElementById('prev-email').innerText = email;
-    document.getElementById('prev-phone').innerText = phone;
-
-    // Web (官網連結) - conditional display
-    const web = document.getElementById('web')?.value || '';
-    const webContainer = document.getElementById('prev-web-container');
-    if (web && web.trim()) {
-        webContainer.style.display = 'flex';
-        document.getElementById('prev-web').innerText = web;
-    } else {
-        webContainer.style.display = 'none';
-    }
-
-    // Mobile (手機) - conditional display
-    const mobile = document.getElementById('mobile')?.value || '';
-    const mobileContainer = document.getElementById('prev-mobile-container');
-    if (mobile && mobile.trim()) {
-        mobileContainer.style.display = 'flex';
-        document.getElementById('prev-mobile').innerText = mobile;
-    } else {
-        mobileContainer.style.display = 'none';
-    }
-
-    document.getElementById('prev-address').innerText = addressText;
-
-    // 問候語條件顯示
-    const greetingSection = document.getElementById('prev-greeting-section');
-    if (greet) {
-        greetingSection.classList.remove('hidden');
-        document.getElementById('prev-greeting').innerText = greet;
-    } else {
-        greetingSection.classList.add('hidden');
-    }
-
-    // 大頭貼條件顯示
-    const prevAvatar = document.getElementById('prev-avatar');
-    const avatarUrl = document.getElementById('avatar_url').value;
-    if (avatarUrl && avatarUrl.trim()) {
-        prevAvatar.classList.remove('hidden');
-        prevAvatar.src = avatarUrl;
-    } else {
-        prevAvatar.classList.add('hidden');
-    }
-    prevAvatar.onerror = function() {
-        this.src = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80';
-    };
-
-    // 社群連結預覽
-    const icons = SocialParser.collectFromInputs();
-    const cluster = document.getElementById('prev-social-cluster');
-    cluster.innerHTML = '';
-    icons.forEach(icon => {
-        const node = document.createElement('div');
-        node.className = 'social-chip-prev';
-
-        // LINE 和 Signal 使用 SVG，其他使用 Lucide
-        if (icon === 'line') {
-            node.innerHTML = DOMPurify.sanitize(`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>`);
-        } else if (icon === 'signal') {
-            node.innerHTML = DOMPurify.sanitize(`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0q-.934 0-1.83.139l.17 1.111a11 11 0 0 1 3.32 0l.172-1.111A12 12 0 0 0 12 0M9.152.34A12 12 0 0 0 5.77 1.742l.584.961a10.8 10.8 0 0 1 3.066-1.27zm5.696 0-.268 1.094a10.8 10.8 0 0 1 3.066 1.27l.584-.962A12 12 0 0 0 14.848.34M12 2.25a9.75 9.75 0 0 0-8.539 14.459c.074.134.1.292.064.441l-1.013 4.338 4.338-1.013a.62.62 0 0 1 .441.064A9.7 9.7 0 0 0 12 21.75c5.385 0 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25m-7.092.068a12 12 0 0 0-2.59 2.59l.909.664a11 11 0 0 1 2.345-2.345zm14.184 0-.664.909a11 11 0 0 1 2.345 2.345l.909-.664a12 12 0 0 0-2.59-2.59M1.742 5.77A12 12 0 0 0 .34 9.152l1.094.268a10.8 10.8 0 0 1 1.269-3.066zm20.516 0-.961.584a10.8 10.8 0 0 1 1.27 3.066l1.093-.268a12 12 0 0 0-1.402-3.383M.138 10.168A12 12 0 0 0 0 12q0 .934.139 1.83l1.111-.17A11 11 0 0 1 1.125 12q0-.848.125-1.66zm23.723.002-1.111.17q.125.812.125 1.66c0 .848-.042 1.12-.125 1.66l1.111.172a12.1 12.1 0 0 0 0-3.662M1.434 14.58l-1.094.268a12 12 0 0 0 .96 2.591l-.265 1.14 1.096.255.36-1.539-.188-.365a10.8 10.8 0 0 1-.87-2.35m21.133 0a10.8 10.8 0 0 1-1.27 3.067l.962.584a12 12 0 0 0 1.402-3.383zm-1.793 3.848a11 11 0 0 1-2.345 2.345l.664.909a12 12 0 0 0 2.59-2.59zm-19.959 1.1L.357 21.48a1.8 1.8 0 0 0 2.162 2.161l1.954-.455-.256-1.095-1.953.455a.675.675 0 0 1-.81-.81l.454-1.954zm16.832 1.769a10.8 10.8 0 0 1-3.066 1.27l.268 1.093a12 12 0 0 0 3.382-1.402zm-10.94.213-1.54.36.256 1.095 1.139-.266c.814.415 1.683.74 2.591.961l.268-1.094a10.8 10.8 0 0 1-2.35-.869zm3.634 1.24-.172 1.111a12.1 12.1 0 0 0 3.662 0l-.17-1.111q-.812.125-1.66.125a11 11 0 0 1-1.66-.125"/></svg>`);
-        } else {
-            node.innerHTML = DOMPurify.sanitize(`<i data-lucide="${icon}" class="w-4 h-4"></i>`);
-        }
-
-        cluster.appendChild(node);
-    });
-    if (window.initIcons) {
-        window.initIcons();
-    }
-}
-
-function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.innerText = msg;
-    t.classList.remove('hidden');
-    setTimeout(() => t.classList.add('hidden'), 3000);
-}
-
-function handleError(err) {
-    console.error('[API Error]', err);
-
-    if (err.status === 401 || err.status === 403) {
-        // Silent logout for token expiration
-        state.isLoggedIn = false;
-        showView('login');
-    } else if (err.status === 429) {
-        showToast(i18n[currentLang]['error-rate-limit'] || '操作過於頻繁,請稍後再試');
-    } else {
-        showToast(err.message || i18n[currentLang]['error-save-failed'] || '操作失敗');
-    }
-}
-
-// User Self-Revoke Functions
-function showRevokeModal(uuid, type) {
+// ==================== Revoke / Restore ====================
+export function showRevokeModal(uuid, type) {
     currentRevokeUuid = uuid;
     currentRevokeType = type;
     document.getElementById('revoke-modal').classList.remove('hidden');
@@ -882,21 +620,19 @@ function showRevokeModal(uuid, type) {
     if (window.initIcons) window.initIcons();
 }
 
-function closeRevokeModal() {
+export function closeRevokeModal() {
     document.getElementById('revoke-modal').classList.add('hidden');
     currentRevokeUuid = null;
     currentRevokeType = null;
-    
-    // Reset button state
+
     const confirmBtn = document.getElementById('confirm-revoke-btn');
     confirmBtn.disabled = false;
     confirmBtn.textContent = '確認撤銷';
-    
-    // Reset reason select
+
     document.getElementById('revoke-reason').value = '';
 }
 
-async function confirmRevokeCard() {
+export async function confirmRevokeCard() {
     if (!currentRevokeUuid) return;
 
     const reason = document.getElementById('revoke-reason').value || undefined;
@@ -909,16 +645,13 @@ async function confirmRevokeCard() {
         const response = await fetch(`/api/user/cards/${currentRevokeUuid}/revoke`, {
             method: 'POST',
             credentials: 'include',
-            headers: getHeadersWithCSRF({
-                'Content-Type': 'application/json'
-            }),
+            headers: getHeadersWithCSRF({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(reason ? { reason } : {})
         });
 
         const data = await response.json();
 
         if (response.status === 429) {
-            // Rate limit exceeded
             showRateLimitError(data);
             confirmBtn.disabled = false;
             confirmBtn.textContent = '確認撤銷';
@@ -930,7 +663,6 @@ async function confirmRevokeCard() {
                 || (typeof data.error === 'string' ? data.error : data.error?.message)
                 || 'Revoke failed';
 
-            // Special handling for CSRF token errors
             if (data.error?.code === 'csrf_token_invalid' || data.error?.code === 'csrf_token_missing') {
                 showToast('登入已過期，請重新整理頁面後再試');
                 confirmBtn.disabled = false;
@@ -941,21 +673,16 @@ async function confirmRevokeCard() {
             throw new Error(errorMsg);
         }
 
-        // Success
         closeRevokeModal();
-        
-        // Format restore deadline
-        const restoreDate = data.restore_deadline 
-            ? new Date(data.restore_deadline).toLocaleDateString('zh-TW', { 
-                year: 'numeric', 
-                month: '2-digit', 
-                day: '2-digit' 
+
+        const restoreDate = data.restore_deadline
+            ? new Date(data.restore_deadline).toLocaleDateString('zh-TW', {
+                year: 'numeric', month: '2-digit', day: '2-digit'
             })
             : '7 天內';
-        
+
         showToast(`名片已撤銷，可在 ${restoreDate} 前恢復`);
 
-        // Reload cards
         await fetchUserCards();
         renderSelectionPage();
     } catch (error) {
@@ -966,7 +693,7 @@ async function confirmRevokeCard() {
     }
 }
 
-async function handleRestoreCard(uuid) {
+export async function handleRestoreCard(uuid) {
     if (!confirm('確定要恢復此名片嗎？恢復後所有分享連結將重新生效。')) {
         return;
     }
@@ -991,7 +718,6 @@ async function handleRestoreCard(uuid) {
             return;
         }
 
-        // Success
         showToast('名片已成功恢復');
         await fetchUserCards();
         renderSelectionPage();
@@ -1019,21 +745,344 @@ function showRateLimitError(data) {
     setTimeout(() => banner.classList.add('hidden'), 10000);
 }
 
+// ==================== Preview ====================
+const ORG_DEPT_MAPPING = {
+    departments: {
+        '數位策略司': 'Department of Digital Strategy',
+        '數位政府司': 'Department of Digital Service',
+        '資源管理司': 'Department of Resource Management',
+        '韌性建設司': 'Department of Communications and Cyber Resilience',
+        '數位國際司': 'Department of International Cooperation',
+        '資料創新司': 'Department of Data Innovation',
+        '秘書處': 'Secretariat',
+        '人事處': 'Department of Personnel',
+        '政風處': 'Department of Civil Service Ethics',
+        '主計處': 'Department of Budget, Accounting and Statistics',
+        '資訊處': 'Department of Information Management',
+        '法制處': 'Department of Legal Affairs',
+        '部長室': "Minister's Office",
+        '政務次長室': "Deputy Minister's Office",
+        '常務次長室': "Administrative Deputy Minister's Office",
+        '主任秘書室': "Secretary-General's Office"
+    }
+};
 
-// ==================== Window Exposure for onclick handlers ====================
-window.SelfCardOCR = SelfCardOCR;
-window.viewCard = viewCard;
-window.copyCardLink = copyCardLink;
-window.copyModalLink = copyModalLink;
-window.viewModalCard = viewModalCard;
-window.closeSuccessModal = closeSuccessModal;
-window.showRevokeModal = showRevokeModal;
-window.closeRevokeModal = closeRevokeModal;
-window.confirmRevokeCard = confirmRevokeCard;
-window.handleRestoreCard = handleRestoreCard;
-window.showView = showView;
-window.showToast = showToast;
-window.updatePreview = updatePreview;
-window.renderSelectionPage = renderSelectionPage;
-window.openEditForm = openEditForm;
-window.toggleLoading = toggleLoading;
+export function updatePreview() {
+    const isEn = window.previewLang === 'en';
+    const name = isEn ? document.getElementById('name_en').value || '---' : document.getElementById('name_zh').value || '---';
+    const title = isEn ? document.getElementById('title_en').value || '---' : document.getElementById('title_zh').value || '---';
+
+    const greetingInput = isEn ? document.getElementById('greetings_en').value : document.getElementById('greetings_zh').value;
+    const greet = greetingInput ? greetingInput.split('\n').filter(g => g.trim())[0] || '' : '';
+
+    const email = document.getElementById('email').value || '---';
+    const phone = document.getElementById('phone').value || '---';
+
+    const preset = document.getElementById('address-preset').value;
+    let addressZh = '', addressEn = '';
+    if (preset === 'yanping') {
+        addressZh = ADDRESS_PRESETS.yanping.zh;
+        addressEn = ADDRESS_PRESETS.yanping.en;
+    } else if (preset === 'shinkong') {
+        addressZh = ADDRESS_PRESETS.shinkong.zh;
+        addressEn = ADDRESS_PRESETS.shinkong.en;
+    } else {
+        addressZh = document.getElementById('address_zh').value || '';
+        addressEn = document.getElementById('address_en').value || '';
+    }
+    const addressText = isEn ? (addressEn || '---') : (addressZh || '---');
+
+    document.getElementById('prev-name').innerText = name;
+
+    const titleElement = document.getElementById('prev-title');
+    const titleZh = document.getElementById('title_zh').value;
+    const titleEn = document.getElementById('title_en').value;
+    if (title && title !== '---') {
+        titleElement.style.display = 'block';
+        titleElement.innerText = title;
+    } else if (!titleZh && !titleEn) {
+        titleElement.style.display = 'none';
+    } else {
+        titleElement.style.display = 'block';
+        titleElement.innerText = title;
+    }
+
+    const departmentPreset = document.getElementById('department-preset').value;
+    let deptValue;
+
+    if (departmentPreset === 'custom') {
+        const zh = document.getElementById('department-custom-zh').value.trim();
+        const en = document.getElementById('department-custom-en').value.trim();
+        if (zh && en) { deptValue = { zh, en }; }
+        else if (zh) { deptValue = zh; }
+        else if (en) { deptValue = en; }
+    } else if (departmentPreset) {
+        deptValue = departmentPreset;
+    }
+
+    const deptElement = document.getElementById('prev-department');
+    if (deptValue) {
+        let deptText;
+        if (typeof deptValue === 'object' && deptValue !== null) {
+            deptText = isEn ? (deptValue.en || deptValue.zh || '') : (deptValue.zh || deptValue.en || '');
+        } else if (typeof deptValue === 'string') {
+            if (isEn && ORG_DEPT_MAPPING.departments[deptValue]) {
+                deptText = ORG_DEPT_MAPPING.departments[deptValue];
+            } else {
+                deptText = deptValue;
+            }
+        }
+
+        if (deptText) {
+            deptElement.style.display = 'flex';
+            document.getElementById('prev-department-text').innerText = deptText;
+        } else {
+            deptElement.style.display = 'none';
+        }
+    } else {
+        deptElement.style.display = 'none';
+    }
+
+    document.getElementById('prev-email').innerText = email;
+    document.getElementById('prev-phone').innerText = phone;
+
+    const web = document.getElementById('web')?.value || '';
+    const webContainer = document.getElementById('prev-web-container');
+    if (web && web.trim()) {
+        webContainer.style.display = 'flex';
+        document.getElementById('prev-web').innerText = web;
+    } else {
+        webContainer.style.display = 'none';
+    }
+
+    const mobile = document.getElementById('mobile')?.value || '';
+    const mobileContainer = document.getElementById('prev-mobile-container');
+    if (mobile && mobile.trim()) {
+        mobileContainer.style.display = 'flex';
+        document.getElementById('prev-mobile').innerText = mobile;
+    } else {
+        mobileContainer.style.display = 'none';
+    }
+
+    document.getElementById('prev-address').innerText = addressText;
+
+    const greetingSection = document.getElementById('prev-greeting-section');
+    if (greet) {
+        greetingSection.classList.remove('hidden');
+        document.getElementById('prev-greeting').innerText = greet;
+    } else {
+        greetingSection.classList.add('hidden');
+    }
+
+    const prevAvatar = document.getElementById('prev-avatar');
+    const avatarUrl = document.getElementById('avatar_url').value;
+    if (avatarUrl && avatarUrl.trim()) {
+        prevAvatar.classList.remove('hidden');
+        prevAvatar.src = avatarUrl;
+    } else {
+        prevAvatar.classList.add('hidden');
+    }
+    prevAvatar.onerror = function() {
+        this.src = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80';
+    };
+
+    const icons = SocialParser.collectFromInputs();
+    const cluster = document.getElementById('prev-social-cluster');
+    cluster.innerHTML = '';
+    icons.forEach(icon => {
+        const node = document.createElement('div');
+        node.className = 'social-chip-prev';
+
+        if (icon === 'line') {
+            node.innerHTML = DOMPurify.sanitize(`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>`);
+        } else if (icon === 'signal') {
+            node.innerHTML = DOMPurify.sanitize(`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0q-.934 0-1.83.139l.17 1.111a11 11 0 0 1 3.32 0l.172-1.111A12 12 0 0 0 12 0M9.152.34A12 12 0 0 0 5.77 1.742l.584.961a10.8 10.8 0 0 1 3.066-1.27zm5.696 0-.268 1.094a10.8 10.8 0 0 1 3.066 1.27l.584-.962A12 12 0 0 0 14.848.34"/></svg>`);
+        } else {
+            node.innerHTML = DOMPurify.sanitize(`<i data-lucide="${icon}" class="w-4 h-4"></i>`);
+        }
+
+        cluster.appendChild(node);
+    });
+    if (window.initIcons) window.initIcons();
+}
+
+// ==================== Form Helpers ====================
+function detectNameLanguage(name) {
+    const hasChinese = /[\u4e00-\u9fa5]/.test(name);
+    const hasEnglish = /[a-zA-Z]/.test(name);
+
+    if (hasChinese && hasEnglish) {
+        const parts = name.split(/\s+/);
+        const zhPart = parts.filter(p => /[\u4e00-\u9fa5]/.test(p)).join(' ');
+        const enPart = parts.filter(p => /[a-zA-Z]/.test(p)).join(' ');
+        return { name_zh: zhPart, name_en: enPart };
+    } else if (hasChinese) {
+        return { name_zh: name, name_en: '' };
+    } else {
+        return { name_zh: '', name_en: name };
+    }
+}
+
+export function prefillFormWithOIDC(userData) {
+    if (!userData) return;
+
+    if (userData.email) {
+        document.getElementById('email').value = userData.email;
+    }
+
+    if (userData.picture && userData.picture !== 'undefined') {
+        const avatarInput = document.getElementById('avatar_url');
+        if (avatarInput) {
+            avatarInput.value = userData.picture;
+        }
+    }
+
+    if (userData.name) {
+        const nameResult = detectNameLanguage(userData.name);
+        if (nameResult.name_zh) {
+            document.getElementById('name_zh').value = nameResult.name_zh;
+        }
+        if (nameResult.name_en) {
+            document.getElementById('name_en').value = nameResult.name_en;
+        }
+    }
+
+    updatePreview();
+}
+
+export function updateUserDisplay(email, name, picture) {
+    document.getElementById('user-email-display').innerText = email || '---';
+
+    if (name) {
+        document.getElementById('user-name-display').innerText = name;
+    }
+
+    if (picture) {
+        const avatarEl = document.getElementById('user-avatar-display');
+        avatarEl.src = picture;
+        avatarEl.classList.remove('hidden');
+        avatarEl.onerror = function() {
+            this.classList.add('hidden');
+        };
+    }
+}
+
+export async function handleFormSubmit(e) {
+    e.preventDefault();
+
+    const submitBtn = document.getElementById('submit-btn');
+    const submitBtnText = document.getElementById('submit-btn-text');
+    const submitBtnLoading = document.getElementById('submit-btn-loading');
+
+    submitBtn.disabled = true;
+    submitBtnText.classList.add('hidden');
+    submitBtnLoading.classList.remove('hidden');
+    if (window.initIcons) window.initIcons();
+
+    const formData = new FormData(e.target);
+    const data = {};
+
+    ['type', 'name_zh', 'name_en', 'title_zh', 'title_en',
+     'email', 'phone', 'mobile', 'web', 'avatar_url', 'greetings_zh', 'greetings_en',
+     'social_github', 'social_linkedin', 'social_facebook',
+     'social_instagram', 'social_twitter', 'social_youtube',
+     'social_line', 'social_signal'].forEach(key => {
+        const val = formData.get(key);
+        if (val !== null && val !== undefined) data[key] = val;
+    });
+
+    const addressPreset = document.getElementById('address-preset').value;
+    if (addressPreset === 'yanping') {
+        data.address_zh = ADDRESS_PRESETS.yanping.zh;
+        data.address_en = ADDRESS_PRESETS.yanping.en;
+    } else if (addressPreset === 'shinkong') {
+        data.address_zh = ADDRESS_PRESETS.shinkong.zh;
+        data.address_en = ADDRESS_PRESETS.shinkong.en;
+    } else {
+        data.address_zh = formData.get('address_zh') || '';
+        data.address_en = formData.get('address_en') || '';
+    }
+
+    const departmentPreset = document.getElementById('department-preset').value;
+    if (departmentPreset === 'custom') {
+        const zh = document.getElementById('department-custom-zh').value.trim();
+        const en = document.getElementById('department-custom-en').value.trim();
+        if (zh && en) { data.department = { zh, en }; }
+        else if (zh) { data.department = zh; }
+        else if (en) { data.department = en; }
+        else { data.department = ''; }
+    } else {
+        data.department = departmentPreset;
+    }
+
+    const uuid = formData.get('form-uuid');
+    const type = formData.get('form-type');
+
+    try {
+        if (uuid) {
+            submitBtnText.textContent = '更新中...';
+            submitBtnText.classList.remove('hidden');
+            submitBtnLoading.classList.add('hidden');
+
+            await apiCall(`/api/user/cards/${uuid}`, {
+                method: 'PUT',
+                body: JSON.stringify(data)
+            });
+            showToast('名片更新成功');
+            await fetchUserCards();
+            showView('selection');
+        } else {
+            submitBtnText.textContent = '驗證中...';
+            submitBtnText.classList.remove('hidden');
+            submitBtnLoading.classList.add('hidden');
+
+            const tempId = stateManager.optimisticCreate(type, data);
+            state.cards = stateManager.getState().cards;
+            renderSelectionPage();
+
+            submitBtnText.textContent = '加密中...';
+            const response = await apiCall('/api/user/cards', {
+                method: 'POST',
+                body: JSON.stringify({ ...data, type })
+            });
+
+            const realUuid = response.data?.uuid;
+            if (!realUuid) {
+                throw new Error('API 未返回 UUID');
+            }
+
+            submitBtnText.textContent = '儲存中...';
+
+            stateManager.confirmCreate(tempId, realUuid, {
+                name_zh: data.name_zh,
+                name_en: data.name_en,
+                updated_at: new Date().toISOString()
+            });
+            state.cards = stateManager.getState().cards;
+
+            showSuccessModal(realUuid, type);
+
+            stateManager.queueSync(async () => {
+                await fetchUserCards();
+            });
+        }
+    } catch (err) {
+        if (!uuid) {
+            const rolled = stateManager.rollback();
+            if (rolled) {
+                state.cards = stateManager.getState().cards;
+                renderSelectionPage();
+            }
+        }
+
+        const errorMsg = errorHandler.handle(err);
+        const errEl = document.getElementById('form-error-msg');
+        errEl.innerText = errorMsg;
+        errEl.classList.remove('hidden');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtnText.textContent = uuid ? '儲存變更' : '建立名片';
+        submitBtnText.classList.remove('hidden');
+        submitBtnLoading.classList.add('hidden');
+    }
+}

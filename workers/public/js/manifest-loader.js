@@ -9,7 +9,11 @@
   // Fallback hashes — updated by build process or manually
   var FALLBACK = {
     'icons': 'icons.sS1r72aF.js',
-    'user-portal': 'user-portal.Bui6l3bK.js'
+    'user-portal': 'user-portal.Bui6l3bK.js',
+    'index': 'index.Cfu5iNai.js',
+    'admin-dashboard': 'admin-dashboard.Zot_nVbf.js',
+    'card-display': 'card-display.BtMsubxh.js',
+    'qr-quick': 'qr-quick.HcaXRGQV.js'
   };
 
   // Determine which entries this page needs
@@ -17,6 +21,14 @@
   var entries = ['icons']; // Always load icons
   if (page === 'user-portal') {
     entries.push('user-portal');
+  } else if (page === 'index') {
+    entries.push('index');
+  } else if (page === 'admin-dashboard') {
+    entries.push('admin-dashboard');
+  } else if (page === 'card-display') {
+    entries.push('card-display');
+  } else if (page === 'qr-quick') {
+    entries.push('qr-quick');
   }
 
   function loadScript(src) {

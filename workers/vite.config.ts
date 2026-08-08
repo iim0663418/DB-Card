@@ -12,8 +12,10 @@ export default defineConfig({
       input: {
         icons: resolve(import.meta.dirname, 'src/icons.js'),
         'user-portal': resolve(import.meta.dirname, 'public/js/modules/main.js'),
-        // 其他頁面後續加入：
-        // 'admin-dashboard': resolve(import.meta.dirname, 'public/js/admin-main.js'),
+        'index': resolve(import.meta.dirname, 'public/js/page-init.js'),
+        'admin-dashboard': resolve(import.meta.dirname, 'public/js/admin-dashboard.js'),
+        'card-display': resolve(import.meta.dirname, 'public/js/main.js'),
+        'qr-quick': resolve(import.meta.dirname, 'public/js/qr-quick.js'),
       },
       output: {
         entryFileNames: '[name].[hash].js',

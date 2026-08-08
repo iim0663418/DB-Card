@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-TW" data-page="admin-dashboard">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -34,7 +34,6 @@
             integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ"
             crossorigin="anonymous"
             defer></script>
-    <script type="module" src="/js/config.js"></script>
     <script src="/js/social-link-validation.js"></script>
     <script src="/js/social-link-integration.js"></script>
     <style>
@@ -865,7 +864,7 @@
                                 <option value="confirmed">已確認</option>
                                 <option value="rejected">已拒絕</option>
                             </select>
-                            <button onclick="loadCandidates()" class="px-3 py-1 text-sm bg-moda-accent text-white rounded-lg hover:opacity-80">
+                            <button data-action="loadCandidates" class="px-3 py-1 text-sm bg-moda-accent text-white rounded-lg hover:opacity-80">
                                 <i data-lucide="refresh-cw" class="w-4 h-4 inline"></i> 重新載入
                             </button>
                         </div>
@@ -1184,7 +1183,6 @@ wrangler secret delete OLD_KEK
         </div>
     </div>
 
-    <script type="module" src="/js/admin-dashboard.js" defer></script>
 
 </body>
 </html>

@@ -3416,3 +3416,13 @@ document.addEventListener('click', (e) => {
 document.getElementById('candidate-status-filter')?.addEventListener('change', () => {
     window.loadCandidates();
 });
+
+// Delegated event handler for data-action buttons
+document.addEventListener('click', (e) => {
+    const actionEl = e.target.closest('[data-action]');
+    if (!actionEl) return;
+    const action = actionEl.dataset.action;
+    if (action === 'loadCandidates' && typeof window.loadCandidates === 'function') {
+        window.loadCandidates();
+    }
+});

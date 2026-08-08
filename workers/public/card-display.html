@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-TW" data-page="card-display">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -405,12 +405,6 @@ body {
     })();
     </script>
 
-    <!-- Module Preload for critical JS dependencies -->
-    <link rel="modulepreload" href="js/api.js">
-    <link rel="modulepreload" href="js/utils/bilingual.js">
-    <link rel="modulepreload" href="js/api-retry.js">
-    <link rel="modulepreload" href="js/config.js">
-
     <!-- Vite Icon Bundle (Tree-shaken: 11.62 KB, 96.9% reduction) - Dynamic Loading -->
     <script src="/js/manifest-loader.js"></script>
 
@@ -525,7 +519,7 @@ body {
         <!-- Actual card content -->
 
         <div class="card-perspective">
-            <div id="card" class="card-inner" tabindex="0" role="button" aria-label="點擊翻面切換語言" onclick="toggleFlip(event)">
+            <div id="card" class="card-inner" tabindex="0" role="button" aria-label="點擊翻面切換語言" data-action="toggleFlip">
                 
                 <div class="card-face card-front">
                     <main id="main-content">
@@ -551,14 +545,14 @@ body {
 
             <!-- 資訊晶片網格 -->
             <section data-animate class="p-6 grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10" aria-label="聯絡資訊">
-                <a id="email-link" href="#" class="info-chip p-4 rounded-2xl flex items-center gap-3 group md:col-span-2 focus:outline-none focus:ring-2 focus:ring-moda relative" aria-label="Email 聯絡" onclick="handleEmailClick(event, 'user-email')">
+                <a id="email-link" href="#" class="info-chip p-4 rounded-2xl flex items-center gap-3 group md:col-span-2 focus:outline-none focus:ring-2 focus:ring-moda relative" aria-label="Email 聯絡" data-action="handleEmailClick" data-target="user-email">
                     <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
                         <i data-lucide="mail" class="w-5 h-5" aria-hidden="true"></i>
                     </div>
                     <div class="min-w-0 flex-1">
                         <p id="user-email" class="font-bold text-slate-700 truncate">---</p>
                     </div>
-                    <button type="button" id="copy-email-btn" onclick="copyEmail(event, 'user-email')" class="hidden md:block ml-2 p-2 rounded-lg hover:bg-slate-100 transition-colors opacity-0 group-hover:opacity-100" aria-label="Copy email">
+                    <button type="button" id="copy-email-btn" data-action="copyEmail" data-target="user-email" class="hidden md:block ml-2 p-2 rounded-lg hover:bg-slate-100 transition-colors opacity-0 group-hover:opacity-100" aria-label="Copy email">
                         <i data-lucide="copy" class="w-4 h-4 text-slate-600"></i>
                     </button>
                 </a>
@@ -628,14 +622,14 @@ body {
 
             <!-- 資訊晶片網格 -->
             <section data-animate class="p-6 grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10" aria-label="Contact Information">
-                <a id="email-link-en" href="#" class="info-chip p-4 rounded-2xl flex items-center gap-3 group md:col-span-2 focus:outline-none focus:ring-2 focus:ring-moda relative" aria-label="Email Contact" onclick="handleEmailClick(event, 'user-email-en')">
+                <a id="email-link-en" href="#" class="info-chip p-4 rounded-2xl flex items-center gap-3 group md:col-span-2 focus:outline-none focus:ring-2 focus:ring-moda relative" aria-label="Email Contact" data-action="handleEmailClick" data-target="user-email-en">
                     <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
                         <i data-lucide="mail" class="w-5 h-5" aria-hidden="true"></i>
                     </div>
                     <div class="min-w-0 flex-1">
                         <p id="user-email-en" class="font-bold text-slate-700 truncate">---</p>
                     </div>
-                    <button type="button" onclick="copyEmail(event, 'user-email-en')" class="hidden md:block ml-2 p-2 rounded-lg hover:bg-slate-100 transition-colors opacity-0 group-hover:opacity-100" aria-label="Copy Email" title="Copy Email">
+                    <button type="button" data-action="copyEmail" data-target="user-email-en" class="hidden md:block ml-2 p-2 rounded-lg hover:bg-slate-100 transition-colors opacity-0 group-hover:opacity-100" aria-label="Copy Email" title="Copy Email">
                         <i data-lucide="copy" class="w-4 h-4 text-slate-600"></i>
                     </button>
                 </a>
@@ -771,7 +765,6 @@ body {
         </section>
     </div>
 
-    <script type="module" src="js/main.js"></script>
     <script>
     // Fallback: if module never loads, card click won't throw
     if (!window.toggleFlip) window.toggleFlip = function() {};
@@ -956,6 +949,20 @@ body {
     };
 
     // ========================================
+    // Delegated event handler for data-action elements
+    document.addEventListener('click', (e) => {
+        const actionEl = e.target.closest('[data-action]');
+        if (!actionEl) return;
+        const action = actionEl.dataset.action;
+        const target = actionEl.dataset.target;
+        if (action === 'toggleFlip' && typeof window.toggleFlip === 'function') {
+            window.toggleFlip(e);
+        } else if (action === 'handleEmailClick' && typeof window.handleEmailClick === 'function') {
+            window.handleEmailClick(e, target);
+        } else if (action === 'copyEmail' && typeof window.copyEmail === 'function') {
+            window.copyEmail(e, target);
+        }
+    });
     </script>
 
     <!-- Web Vitals Monitoring (non-blocking) -->

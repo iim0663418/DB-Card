@@ -308,11 +308,15 @@ export default {
 
     // MCP OAuth 2.1 Metadata Endpoints (RFC 9728 / RFC 8414)
     if (url.pathname === '/.well-known/oauth-protected-resource' && request.method === 'GET') {
-      return addMinimalSecurityHeaders(await handleProtectedResourceMetadata(request, env));
+      return addMinimalSecurityHeaders(handleProtectedResourceMetadata(request, env));
+    }
+
+    if (url.pathname === '/.well-known/oauth-protected-resource/mcp' && request.method === 'GET') {
+      return addMinimalSecurityHeaders(handleProtectedResourceMetadata(request, env));
     }
 
     if (url.pathname === '/.well-known/oauth-authorization-server' && request.method === 'GET') {
-      return addMinimalSecurityHeaders(await handleAuthorizationServerMetadata(request, env));
+      return addMinimalSecurityHeaders(handleAuthorizationServerMetadata(request, env));
     }
 
     if (url.pathname === '/mcp/register' && request.method === 'POST') {
@@ -329,6 +333,13 @@ export default {
 
     if (url.pathname === '/mcp/token' && request.method === 'POST') {
       return addMinimalSecurityHeaders(await handleMcpToken(request, env, ctx));
+    }
+
+    if (url.pathname === '/mcp' && (request.method === 'GET' || request.method === 'DELETE')) {
+      return addMinimalSecurityHeaders(new Response(null, {
+        status: 405,
+        headers: { 'Allow': 'POST' },
+      }));
     }
 
     if (url.pathname === '/mcp' && request.method === 'POST') {

@@ -34,6 +34,7 @@ function rpcResult(id: unknown, result: unknown): Response {
   });
 }
 
+
 function rpcError(id: unknown, code: number, message: string): Response {
   return new Response(
     JSON.stringify({ jsonrpc: '2.0', id, error: { code, message } }),
@@ -51,7 +52,7 @@ export function rpcResultModern(id: unknown, result: Record<string, unknown>): R
       ...result,
       _meta: { 'io.modelcontextprotocol/serverInfo': SERVER_INFO },
     },
-  }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }), { status: 200, headers: { 'Content-Type': 'application/json', 'MCP-Protocol-Version': '2026-07-28' } });
 }
 
 // ── Protocol version detection ────────────────────────────────────────────────
@@ -193,17 +194,16 @@ export async function handleMcp(request: Request, env: Env, ctx: ExecutionContex
 
   if (method === 'server/discover') {
     return rpcResultModern(id, {
-      protocolVersions: ['2026-07-28', '2025-06-18'],
+      supportedVersions: ['2026-07-28', '2025-06-18'],
       capabilities: { tools: {} },
-      serverInfo: SERVER_INFO,
+      instructions: 'DB-Card MCP server: manage received business cards — list, search, get, save, update, delete, and export as vCard.',
     });
   }
 
   if (method === 'initialize') {
-    return rpcResult(id, {
+    return rpcResultModern(id, {
       protocolVersion: '2026-07-28',
       capabilities: { tools: {} },
-      serverInfo: SERVER_INFO,
     });
   }
 

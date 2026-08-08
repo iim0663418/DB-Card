@@ -104,7 +104,6 @@ export async function handleMcpToken(request: Request, env: Env, ctx: ExecutionC
     const resource = params.get('resource') || '';
 
     if (!code) return failToken('invalid_grant');
-    if (!resource) return failToken('invalid_request', 'resource parameter is required');
 
     const raw = await env.KV.get(`${MCP_AUTH_CODE_PREFIX}${code}`);
     if (!raw) return failToken('invalid_grant');
@@ -114,17 +113,19 @@ export async function handleMcpToken(request: Request, env: Env, ctx: ExecutionC
 
     if (data.client_id !== clientId) return failToken('invalid_grant');
     if (data.redirect_uri !== redirectUri) return failToken('invalid_grant');
-    if (data.resource !== resource) return failToken('invalid_grant');
+    // If client sends resource, it must match code data; otherwise fallback to stored resource
+    if (resource && data.resource !== resource) return failToken('invalid_grant');
+    const effectiveResource = resource || data.resource;
 
     const expectedChallenge = await generateCodeChallenge(codeVerifier ?? '');
     if (expectedChallenge !== data.code_challenge) return failToken('invalid_grant');
 
-    const accessToken = await issueAccessToken(data.email, data.resource, data.scope, env);
+    const accessToken = await issueAccessToken(data.email, effectiveResource, data.scope, env);
     const refreshToken = await issueRefreshToken({
       client_id: data.client_id,
       email: data.email,
       scope: data.scope,
-      resource: data.resource,
+      resource: effectiveResource,
     }, env);
 
     ctx.waitUntil(env.DB.prepare(`INSERT INTO audit_logs (event_type, user_agent, ip_address, timestamp, details) VALUES (?, ?, ?, ?, ?)`)

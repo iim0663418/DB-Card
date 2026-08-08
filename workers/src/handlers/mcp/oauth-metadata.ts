@@ -25,7 +25,7 @@ function metadataResponse(body: unknown): Response {
 export function handleProtectedResourceMetadata(request: Request, env: Env): Response {
   const base = getBaseUrl(request, env);
   return metadataResponse({
-    resource: base,
+    resource: `${base}/mcp`,
     authorization_servers: [base],
     scopes_supported: SCOPES,
     bearer_methods_supported: ['header'],
@@ -45,6 +45,7 @@ export function handleAuthorizationServerMetadata(request: Request, env: Env): R
     token_endpoint_auth_methods_supported: ['none'],
     code_challenge_methods_supported: ['S256'],
     resource_indicators_supported: true,
+    client_id_metadata_document_supported: true,
     authorization_response_iss_parameter_supported: true,
   });
 }
@@ -55,7 +56,7 @@ export function mcpUnauthorizedResponse(request: Request, env: Env): Response {
     status: 401,
     headers: {
       'Content-Type': 'application/json',
-      'WWW-Authenticate': `Bearer resource_metadata="${base}/.well-known/oauth-protected-resource"`,
+      'WWW-Authenticate': `Bearer resource_metadata="${base}/.well-known/oauth-protected-resource/mcp"`,
       'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
     },
   });

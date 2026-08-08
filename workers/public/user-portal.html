@@ -12,6 +12,8 @@
     <link rel="stylesheet" href="/css/tailwind.css">
     <link rel="stylesheet" href="/css/components.css">
     <script src="/js/tailwind-suppress.js"></script>
+    <!-- Phase 2 POC: ES Module entry (co-exists with classic scripts during migration) -->
+    <script type="module" src="/js/modules/main.js"></script>
     <!-- Vite Icon Bundle (Tree-shaken: 13.01 KB, 96.6% reduction) - Dynamic Loading -->
     <script src="/js/manifest-loader.js"></script>
     <script src="/vendor/three.min.js"

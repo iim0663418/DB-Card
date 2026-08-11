@@ -9,10 +9,10 @@
   // Fallback hashes — updated by build process or manually
   var FALLBACK = {
     'icons': 'icons.sS1r72aF.js',
-    'user-portal': 'user-portal.B9oIbRgM.js',
+    'user-portal': 'user-portal.IOU4A1v_.js',
     'index': 'index.Cl2MLZ2s.js',
     'admin-dashboard': 'admin-dashboard.uN8GgcOK.js',
-    'card-display': 'card-display.Bj1oh34R.js',
+    'card-display': 'card-display.BlK0n1Xf.js',
     'qr-quick': 'qr-quick.HcaXRGQV.js'
   };
 

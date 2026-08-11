@@ -183,7 +183,22 @@ When tools/call save_received_card with organization "台積電" and company_sum
 Then card.company_summary remains "自訂摘要" (not overwritten)
 ```
 
-#### Scenario 5.3: Cron backfill applies org profile to existing cards without summary
+#### Scenario 5.3: Frontend save card auto-inherits organization profile
+```gherkin
+Given organization "台積電" exists with summary "全球最大晶圓代工..."
+When frontend handleSaveCard with organization "台積電" and no company_summary
+Then card.company_summary is populated from organization profile
+And provenance marks it as source_type "inherited"
+```
+
+#### Scenario 5.4: Frontend save card with OCR-produced summary does not inherit
+```gherkin
+Given organization "台積電" exists with summary
+When frontend handleSaveCard with organization "台積電" and company_summary "OCR產出摘要"
+Then card.company_summary remains "OCR產出摘要" (not overwritten by org profile)
+```
+
+#### Scenario 5.5: Cron backfill applies org profile to existing cards without summary
 ```gherkin
 Given 5 cards with organization_normalized matching "台積電"
 And 3 of them have NULL company_summary

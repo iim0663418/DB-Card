@@ -10,7 +10,7 @@ const MCP_AUTH_STATE_PREFIX = 'mcp_auth_state:';
 const MCP_AUTH_CODE_PREFIX = 'mcp_auth_code:';
 const MCP_AUTH_STATE_TTL = 600; // 10 minutes
 const MCP_AUTH_CODE_TTL = 600;  // 10 minutes
-const ALLOWED_SCOPES = new Set(['received_cards:read', 'received_cards:write']);
+const ALLOWED_SCOPES = new Set(['received_cards:read', 'received_cards:write', 'organizations:read', 'organizations:write']);
 
 interface McpAuthState {
   client_id: string;

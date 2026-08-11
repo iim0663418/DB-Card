@@ -1307,17 +1307,23 @@ document.getElementById('save-vcard').addEventListener('click', () => {
     if (currentCardData) {
         const vcard = generateVCard(currentCardData);
 
-        // Safari iOS 不支援 Blob URL 下載，改用 data URI
-        const dataUri = 'data:text/vcard;charset=utf-8,' + encodeURIComponent(vcard);
-        const a = document.createElement('a');
-        a.href = dataUri;
-
         // 根據當前語言狀態決定檔名
         const name = typeof currentCardData.name === 'object'
             ? (currentLanguage === 'zh' ? (currentCardData.name.zh || currentCardData.name.en) : (currentCardData.name.en || currentCardData.name.zh))
             : currentCardData.name;
-        a.download = `${name || 'contact'}.vcf`;
+        const filename = `${name || 'contact'}.vcf`;
+
+        // Blob URL 下載（相容 CSP default-src 'self'，現代瀏覽器通用）
+        const blob = new Blob([vcard], { type: 'text/vcard;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.style.display = 'none';
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
         showNotification('vCard 已下載', 'success');
     } else {
         showError(currentLanguage === 'zh' ? '無法下載 vCard，請重新載入頁面' : 'Failed to download vCard, please reload the page');

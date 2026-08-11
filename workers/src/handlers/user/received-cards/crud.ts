@@ -222,6 +222,38 @@ export async function handleSaveCard(request: Request, env: Env, ctx: ExecutionC
         permanentUrl, thumbnailUrl, body.ocr_raw_text || null, now.toString()
       ).run();
 
+      // Auto-inherit org profile summary (if card has no company_summary)
+      if (body.organization && !body.company_summary) {
+        try {
+          const orgProfile = await env.DB.prepare(`
+            SELECT uuid, summary
+            FROM organizations
+            WHERE user_email = ? AND (
+              name_normalized = ? OR name LIKE ? OR name_en LIKE ?
+            )
+            LIMIT 1
+          `).bind(
+            user.email, organizationNormalized,
+            `%${body.organization}%`, `%${body.organization}%`
+          ).first<{ uuid: string; summary: string | null }>();
+
+          if (orgProfile?.summary) {
+            await env.DB.prepare(
+              `UPDATE received_cards SET company_summary = ? WHERE uuid = ?`
+            ).bind(orgProfile.summary, cardUuid).run();
+
+            // Record provenance (non-blocking)
+            try {
+              await env.DB.prepare(`
+                INSERT INTO field_history (entity_type, entity_uuid, field_name,
+                  old_value, new_value, source_type, client_id, user_email, changed_at)
+                VALUES ('card', ?, 'company_summary', NULL, ?, 'inherited', NULL, ?, ?)
+              `).bind(cardUuid, orgProfile.summary, user.email, now).run();
+            } catch { /* provenance failure must not block */ }
+          }
+        } catch { /* org lookup failure must not block card save */ }
+      }
+
       // Auto-extract tags based on organization field
       if (body.organization) {
         const tags = extractTagsFromOrganization(body.organization);

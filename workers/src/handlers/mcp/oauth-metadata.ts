@@ -1,6 +1,6 @@
 import type { Env } from '../../types';
 
-const SCOPES = ['received_cards:read', 'received_cards:write'];
+const SCOPES = ['received_cards:read', 'received_cards:write', 'organizations:read', 'organizations:write'];
 const CACHE_CONTROL = 'public, max-age=3600';
 
 /** Use the request's origin so metadata URLs match the domain the client connected to */

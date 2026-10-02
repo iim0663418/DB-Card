@@ -5,7 +5,7 @@
 import type { Env } from '../../../types';
 import { verifyOAuth } from '../../../middleware/oauth';
 import { jsonResponse, errorResponse } from '../../../utils/response';
-import { arrayBufferToBase64Chunked, retryWithBackoff, parseGeminiJSON } from '../../../utils/ocr-helpers';
+import { arrayBufferToBase64Chunked, retryWithBackoff, parseGeminiJSON, throwGeminiHttpError } from '../../../utils/ocr-helpers';
 
 interface UnifiedExtractRequest {
   upload_id: string;
@@ -242,15 +242,7 @@ async function performUnifiedExtract(
   );
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Gemini API error:', errorText);
-
-    // Handle 412 FAILED_PRECONDITION (safety filters or image quality issues)
-    if (response.status === 412) {
-      throw new Error('Content blocked by safety filters or image quality too low');
-    }
-
-    throw new Error('Gemini API request failed');
+    await throwGeminiHttpError(response, 'UnifiedExtract');
   }
 
   const data = await response.json() as any;
@@ -409,7 +401,11 @@ export async function handleUnifiedExtract(
     let statusCode = 500;
     let userMessage = message;
 
-    if (message.startsWith('SAFETY_FILTER:')) {
+    if (message.startsWith('FAILED_PRECONDITION:')) {
+      errorCode = 'SERVICE_PRECONDITION';
+      statusCode = 503;
+      userMessage = '服務設定異常，請聯繫管理者 / Service configuration error, please contact support';
+    } else if (message.startsWith('SAFETY_FILTER:')) {
       errorCode = 'SAFETY_FILTER';
       statusCode = 422;
       userMessage = '圖片內容被安全過濾器阻擋 / Image content blocked by safety filters';
@@ -421,11 +417,6 @@ export async function handleUnifiedExtract(
       errorCode = 'CONTENT_BLOCKED';
       statusCode = 422;
       userMessage = '圖片無法處理，原因未知 / Image cannot be processed due to unknown reason';
-    } else if (message.includes('Content blocked by safety filters or image quality too low')) {
-      // Fallback for legacy 412 errors
-      errorCode = 'CONTENT_BLOCKED';
-      statusCode = 422;
-      userMessage = '圖片內容無法辨識，請確認圖片清晰且不包含敏感內容 / Image content cannot be recognized. Please ensure the image is clear and does not contain sensitive content.';
     }
 
     // Update OCR status to failed

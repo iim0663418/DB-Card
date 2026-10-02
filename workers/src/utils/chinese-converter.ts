@@ -136,10 +136,14 @@ async function learnNewChars(
     );
 
     if (!response.ok) {
+      const errBody = await response.text().catch(() => '');
       const error = `Gemini API ${response.status}`;
-      console.error(`[ChineseConverter] ${error}`);
-      for (const char of chars) {
-        await addToLearningQueue(char, error, env);
+      console.error(`[ChineseConverter] HTTP ${response.status}:`, errBody);
+      if (response.status !== 412) {
+        // 非 412 才進 retry queue；412 為持續性設定問題，重試無效
+        for (const char of chars) {
+          await addToLearningQueue(char, error, env);
+        }
       }
 
       // Update daily metrics (failure)

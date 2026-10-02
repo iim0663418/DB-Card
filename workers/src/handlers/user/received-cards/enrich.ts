@@ -4,6 +4,7 @@
 import type { Env } from '../../../types';
 import { verifyOAuth } from '../../../middleware/oauth';
 import { jsonResponse, errorResponse } from '../../../utils/response';
+import { throwGeminiHttpError } from '../../../utils/ocr-helpers';
 
 interface EnrichRequest {
   upload_id?: string;      // Optional: for upload flow
@@ -70,9 +71,7 @@ async function performEnrichment(
   );
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Gemini Grounding API error:', errorText);
-    throw new Error('Gemini Grounding API request failed');
+    await throwGeminiHttpError(response, 'Enrich');
   }
 
   const data = await response.json() as any;
@@ -201,6 +200,9 @@ export async function handleEnrich(request: Request, env: Env): Promise<Response
         env.GEMINI_MODEL
       );
     } catch (error) {
+      // FAILED_PRECONDITION (412) 為帳號/計費/區域層前置條件，屬持續性問題。
+      // enrich 設計為 best-effort 可降級，此處吞掉例外並回傳空結果。
+      // 若 412 持續出現，應從 console log 告警追查根因，不應對使用者重試。
       console.error('Enrichment error (non-fatal):', error);
       // Return empty result on error (best-effort)
       enrichResult = {

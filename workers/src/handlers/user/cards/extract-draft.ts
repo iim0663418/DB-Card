@@ -4,7 +4,7 @@
 import type { Env, UserCardExtractDraft } from '../../../types';
 import { verifyOAuth } from '../../../middleware/oauth';
 import { jsonResponse, errorResponse } from '../../../utils/response';
-import { arrayBufferToBase64Chunked, retryWithBackoff, parseGeminiJSON } from '../../../utils/ocr-helpers';
+import { arrayBufferToBase64Chunked, retryWithBackoff, parseGeminiJSON, throwGeminiHttpError } from '../../../utils/ocr-helpers';
 
 const SCHEMA_VERSION = '1.0';
 
@@ -103,8 +103,7 @@ async function performSelfCardExtract(
   );
 
   if (!response.ok) {
-    if (response.status === 412) throw new Error('Content blocked by safety filters or image quality too low');
-    throw new Error('Gemini API request failed');
+    await throwGeminiHttpError(response, 'ExtractDraft');
   }
 
   const data = await response.json() as any;
@@ -204,7 +203,11 @@ export async function handleExtractDraft(request: Request, env: Env): Promise<Re
     let statusCode = 500;
     let userMessage = message;
 
-    if (message.startsWith('SAFETY_FILTER:')) {
+    if (message.startsWith('FAILED_PRECONDITION:')) {
+      errorCode = 'SERVICE_PRECONDITION';
+      statusCode = 503;
+      userMessage = 'Service configuration error, please contact support';
+    } else if (message.startsWith('SAFETY_FILTER:')) {
       errorCode = 'SAFETY_FILTER';
       statusCode = 422;
       userMessage = 'Image content blocked by safety filters';
@@ -212,10 +215,6 @@ export async function handleExtractDraft(request: Request, env: Env): Promise<Re
       errorCode = 'QUOTA_EXCEEDED';
       statusCode = 429;
       userMessage = 'API quota exceeded or rate limit hit. Please try again later.';
-    } else if (message.includes('Content blocked by safety filters')) {
-      errorCode = 'SAFETY_FILTER';
-      statusCode = 422;
-      userMessage = 'Image content blocked by safety filters';
     }
 
     if (uploadId && userEmail) {

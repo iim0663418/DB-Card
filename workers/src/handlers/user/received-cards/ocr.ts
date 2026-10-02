@@ -4,6 +4,7 @@
 import type { Env } from '../../../types';
 import { verifyOAuth } from '../../../middleware/oauth';
 import { jsonResponse, errorResponse } from '../../../utils/response';
+import { throwGeminiHttpError } from '../../../utils/ocr-helpers';
 
 interface OCRRequest {
   upload_id: string;
@@ -99,9 +100,7 @@ vCard 標準辨識規則：
   );
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Gemini API error:', errorText);
-    throw new Error('Gemini API request failed');
+    await throwGeminiHttpError(response, 'OCR');
   }
 
   const data = await response.json() as any;
@@ -215,6 +214,9 @@ export async function handleOCR(request: Request, env: Env): Promise<Response> {
       console.error('Failed to update OCR status:', updateError);
     }
 
+    if (message.startsWith('FAILED_PRECONDITION:')) {
+      return errorResponse('SERVICE_PRECONDITION', '服務暫時無法使用，請聯繫管理者 / Service configuration error, please contact support', 503);
+    }
     return errorResponse('OCR_FAILED', message, 500);
   }
 }

@@ -154,6 +154,10 @@ async function callGemini(
     );
 
     if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      if (response.status === 412) {
+        console.error('[IntentAnalyzer] Gemini 412 FAILED_PRECONDITION:', body);
+      }
       throw new Error(`Gemini error: ${response.status}`);
     }
 

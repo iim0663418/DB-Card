@@ -96,6 +96,23 @@ export class LearningBatcher {
       );
 
       if (!apiResponse.ok) {
+        const errBody = await apiResponse.text().catch(() => '');
+        console.error(`[LearningBatcher] Gemini HTTP ${apiResponse.status}:`, errBody);
+        if (apiResponse.status === 412) {
+          // 412 FAILED_PRECONDITION 是持續性設定問題，重試無效。
+          // 不再拋出讓字元進入 retry queue，只記錄失敗。
+          const today = new Date().toISOString().split('T')[0];
+          const nowTs = Date.now();
+          await this.env.DB.prepare(
+            `INSERT INTO learning_metrics (date, api_calls, failure_count, updated_at)
+             VALUES (?, 1, 1, ?)
+             ON CONFLICT(date) DO UPDATE SET
+               api_calls = api_calls + 1,
+               failure_count = failure_count + 1,
+               updated_at = ?`
+          ).bind(today, nowTs, nowTs).run();
+          return;
+        }
         throw new Error(`Gemini API ${apiResponse.status}`);
       }
 

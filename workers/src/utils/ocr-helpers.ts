@@ -31,7 +31,9 @@ export async function retryWithBackoff<T>(
       const msg = error instanceof Error ? error.message : String(error);
       const shouldRetry = msg.includes('QUOTA_OR_LIMIT') || msg.includes('SERVICE_UNAVAILABLE');
 
-      if (!shouldRetry || i === maxRetries - 1) throw error;
+      // 不可重試的錯誤：直接拋出，不消耗 retry budget
+      const isNonRetryable = msg.includes('FAILED_PRECONDITION') || msg.includes('SERVICE_PRECONDITION');
+      if (isNonRetryable || !shouldRetry || i === maxRetries - 1) throw error;
 
       const baseDelay = Math.pow(2, i) * 1000;
       const jitter = baseDelay * 0.2 * (Math.random() - 0.5);
@@ -97,4 +99,18 @@ export function parseGeminiJSON(text: string): unknown {
   }
 
   return JSON.parse(jsonString);
+}
+
+/**
+ * Reads Gemini HTTP error response body once and throws a classified error.
+ * - 412 FAILED_PRECONDITION: throws 'FAILED_PRECONDITION: <body>'
+ * - Other: throws 'GEMINI_HTTP_<status>'
+ */
+export async function throwGeminiHttpError(res: Response, label: string): Promise<never> {
+  const body = await res.text();
+  console.error(`[${label}] Gemini HTTP ${res.status}:`, body);
+  if (res.status === 412) {
+    throw new Error(`FAILED_PRECONDITION: ${body.substring(0, 300)}`);
+  }
+  throw new Error(`GEMINI_HTTP_${res.status}: ${body.substring(0, 200)}`);
 }

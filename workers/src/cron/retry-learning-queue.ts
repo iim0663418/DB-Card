@@ -57,6 +57,28 @@ export async function retryLearningQueue(env: Env): Promise<void> {
     );
 
     if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      console.error(`[RetryQueue] Gemini HTTP ${response.status}:`, body);
+      if (response.status === 412) {
+        // 412 FAILED_PRECONDITION 是持續性設定問題，重試無效。
+        // 直接將所有字元標記為 'failed'，不再排程 retry。
+        for (const { char } of results) {
+          await env.DB.prepare(
+            `UPDATE learning_queue SET status = 'failed', last_error = ?, updated_at = ? WHERE char = ?`
+          ).bind(`FAILED_PRECONDITION: ${body.substring(0, 200)}`, now, char).run();
+        }
+        // 更新 metrics
+        const today = new Date().toISOString().split('T')[0];
+        await env.DB.prepare(
+          `INSERT INTO learning_metrics (date, api_calls, failure_count, updated_at)
+           VALUES (?, 1, 1, ?)
+           ON CONFLICT(date) DO UPDATE SET
+             api_calls = api_calls + 1,
+             failure_count = failure_count + 1,
+             updated_at = ?`
+        ).bind(today, now, now).run();
+        return;
+      }
       throw new Error(`Gemini API ${response.status}`);
     }
 

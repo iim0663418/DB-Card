@@ -34,13 +34,15 @@ export async function handleOAuthCallback(
 
   // ✅ BDD Scenario 5, 6: OAuth State Parameter Validation (CSRF Protection)
   // RFC 6749 Section 10.12
+  const origin = new URL(request.url).origin;
   if (!state) {
-    return new Response('Missing state parameter', { status: 403 });
+    return Response.redirect(`${origin}/user-portal.html?login=error&error=missing_state`, 302);
   }
 
   const stateData = await getAndConsumeOAuthState(state, env);
   if (!stateData) {
-    return new Response('Invalid or expired state parameter', { status: 403 });
+    // Safari BFCache or expired state — redirect to login instead of raw 403
+    return Response.redirect(`${origin}/user-portal.html?login=error&error=session_expired`, 302);
   }
 
   // Extract code_verifier from state data for PKCE
@@ -222,12 +224,14 @@ export async function handleOAuthCallback(
     }), { expirationTtl: 60 });
 
     // Create redirect response with cookie header
+    // Cache-Control: no-store prevents Safari BFCache from replaying this callback URL
     const redirectUrl = `${url.origin}/user-portal.html?login=success&session=${sessionId}`;
     const response = new Response(null, {
       status: 302,
       headers: {
         'Location': redirectUrl,
-        'Set-Cookie': `auth_token=${sessionId}; HttpOnly; Secure; SameSite=Lax; Max-Age=3600; Path=/`
+        'Set-Cookie': `auth_token=${sessionId}; HttpOnly; Secure; SameSite=Lax; Max-Age=3600; Path=/`,
+        'Cache-Control': 'no-store, no-cache, must-revalidate'
       }
     });
 

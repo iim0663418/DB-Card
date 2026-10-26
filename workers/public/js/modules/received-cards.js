@@ -1712,7 +1712,7 @@ const ReceivedCards = {
     // Desktop: 120x80px, Mobile: 80x53px (responsive via CSS)
     if (card.thumbnail_url) {
       return `
-        <div class="card-thumbnail flex-shrink-0 w-20 h-[53px] md:w-[120px] md:h-20 bg-gray-100 rounded overflow-hidden cursor-pointer"
+        <div class="card-thumbnail flex-shrink-0 w-16 h-16 md:w-20 md:h-20 bg-gray-100 rounded overflow-hidden cursor-pointer"
              data-card-uuid="${card.uuid}">
           <img
             src="/api/user/received-cards/${card.uuid}/thumbnail"
@@ -1726,7 +1726,7 @@ const ReceivedCards = {
     } else {
       // No thumbnail: show default icon
       return `
-        <div class="card-thumbnail flex-shrink-0 w-20 h-[53px] md:w-[120px] md:h-20 bg-gray-100 rounded overflow-hidden flex items-center justify-center">
+        <div class="card-thumbnail flex-shrink-0 w-16 h-16 md:w-20 md:h-20 bg-gray-100 rounded overflow-hidden flex items-center justify-center">
           <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -1899,6 +1899,18 @@ const ReceivedCards = {
       }
     }
 
+    // U2-3: 標籤上限 2 個，其餘以 +N 呈現
+    const visibleTags = (card.tags && card.tags.length > 0) ? card.tags : [];
+    const maxTags = 2;
+    const extraCount = visibleTags.length - maxTags;
+    const tagHTML = visibleTags.slice(0, maxTags).map(tag => {
+      const displayText = typeof tag === 'string' ? tag : tag.raw || tag.normalized;
+      return `<span class="px-2 py-1 rounded-full text-xs font-medium" style="background: rgba(104, 104, 172, 0.1); color: var(--moda-accent);">${this.escapeHTML(displayText)}</span>`;
+    }).join('');
+    const extraHTML = extraCount > 0
+      ? `<span class="px-2 py-1 rounded-full text-xs font-medium text-slate-400">+${extraCount}</span>`
+      : '';
+
     return `
       <div class="received-card glass-panel p-6 rounded-[2rem] space-y-4"
            data-card-id="${card.uuid}"
@@ -1907,7 +1919,7 @@ const ReceivedCards = {
         <div class="flex items-start gap-4">
           ${this.renderCardThumbnail(card)}
           <div class="flex-1 min-w-0">
-            <h3 class="text-lg font-black text-slate-900 truncate tracking-tight">${this.highlightText(card.full_name, keyword)}</h3>
+            <h3 class="text-lg font-black text-slate-900 line-clamp-2 tracking-tight">${this.highlightText(card.full_name, keyword)}</h3>
             ${card.organization ? `<p class="text-sm font-bold text-slate-600 truncate">${this.highlightText(card.organization, keyword)}</p>` : ''}
             ${card.organization_en ? `<p class="text-xs text-slate-500 truncate">${this.escapeHTML(card.organization_en)}</p>` : ''}
             ${aliasDisplay ? `<p class="text-xs text-slate-400 truncate italic">(${this.escapeHTML(aliasDisplay)})</p>` : ''}
@@ -1925,11 +1937,7 @@ const ReceivedCards = {
         ${card.tags && card.tags.length > 0 || card.related_contacts > 0 ? `
         <div class="flex flex-wrap gap-2">
           ${card.related_contacts > 0 ? `<span class="px-2 py-1 rounded-full text-xs font-medium" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">相關聯絡人: ${card.related_contacts} 人</span>` : ''}
-          ${card.tags && card.tags.length > 0 ? card.tags.map(tag => {
-            // 向後相容：支援舊格式 string 和新格式 object
-            const displayText = typeof tag === 'string' ? tag : tag.raw || tag.normalized;
-            return `<span class="px-2 py-1 rounded-full text-xs font-medium" style="background: rgba(104, 104, 172, 0.1); color: var(--moda-accent);">${this.escapeHTML(displayText)}</span>`;
-          }).join('') : ''}
+          ${tagHTML}${extraHTML}
         </div>
         ` : ''}
         <div class="pt-4 mt-4 border-t border-white/30 flex items-center justify-between gap-3">
@@ -1961,11 +1969,11 @@ const ReceivedCards = {
           <button onclick="ReceivedCards.exportVCard('${card.uuid}')" class="card-action-btn py-3 px-3 rounded-xl font-black transition-all flex items-center justify-center" style="background: rgba(16, 185, 129, 0.15); color: #10b981;" title="匯出 vCard">
             <i data-lucide="download" class="w-5 h-5"></i>
           </button>
+          ${card.source === 'own' ? `<button onclick="ReceivedCards.deleteCardFromElement(this)" class="card-action-btn py-2.5 px-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+            <span data-i18n="delete-card">刪除</span>
+          </button>` : ''}
         </div>
-        ${card.source === 'own' ? `<button onclick="ReceivedCards.deleteCardFromElement(this)" class="w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
-          <i data-lucide="trash-2" class="w-4 h-4"></i>
-          <span data-i18n="delete-card">刪除名片</span>
-        </button>` : ''}
       </div>
     `;
   },
@@ -2053,7 +2061,7 @@ const ReceivedCards = {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        showToast('vCard 已下載', 'success');
+        showToast('已開始下載，請在裝置上完成加入通訊錄', 'success');
         return;
       }
 
@@ -2067,7 +2075,7 @@ const ReceivedCards = {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      showToast('vCard 已下載', 'success');
+      showToast('已開始下載，請在裝置上完成加入通訊錄', 'success');
     } catch (_error) {
       showToast('匯出失敗', 'error');
     }

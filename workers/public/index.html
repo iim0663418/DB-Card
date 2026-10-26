@@ -118,6 +118,27 @@
             pointer-events: none;
             opacity: 0.6;
         }
+
+        /* H1: Secondary button */
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--color-primary);
+            padding: 0.6rem 1.25rem;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            font-size: var(--text-xs);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            border: 1.5px solid var(--color-primary);
+        }
+        .btn-secondary:hover {
+            background-color: var(--color-primary-ghost);
+        }
     </style>
 </head>
 <body>
@@ -136,6 +157,15 @@
                 安全預設 NFC 數位名片系統
             </p>
             <div class="mt-4 text-xs text-slate-400 font-mono" id="app-version" aria-label="應用程式版本">
+            </div>
+
+            <!-- H1: Primary entry point -->
+            <div class="mt-8 flex flex-col items-center gap-3">
+                <a href="/user-portal.html" class="btn-primary text-base" aria-label="前往使用者入口">
+                    <i data-lucide="log-in" class="w-5 h-5" aria-hidden="true"></i>
+                    <span>開啟我的名片工作區</span>
+                </a>
+                <p class="text-xs text-slate-400">使用已授權的 Google 帳號登入</p>
             </div>
         </header>
 
@@ -170,7 +200,7 @@
                         <p class="text-sm text-slate-600 mb-6" data-i18n="admin-portal-desc">
                             完整 CRUD 操作與安全監控儀表板
                         </p>
-                        <a href="/admin-dashboard.html" class="btn-primary" aria-label="前往管理後台">
+                        <a href="/admin-dashboard.html" class="btn-secondary" aria-label="前往管理後台">
                             <span data-i18n="admin-portal-btn">管理系統</span>
                             <i data-lucide="arrow-right" class="w-4 h-4" aria-hidden="true"></i>
                         </a>
@@ -240,20 +270,20 @@
                     <!-- Step 1 -->
                     <li class="glass-card rounded-2xl p-8 text-center list-none">
                         <div class="w-12 h-12 mx-auto mb-4 rounded-2xl flex items-center justify-center feature-icon" aria-hidden="true">
-                            <i data-lucide="smartphone" class="w-6 h-6"></i>
+                            <i data-lucide="scan-line" class="w-6 h-6"></i>
                         </div>
                         <div class="text-xs font-black mb-2 text-moda" data-i18n="step-1-label">步驟 1</div>
-                        <h3 class="font-bold mb-2" data-i18n="step-1-title">碰觸 NFC 卡片</h3>
-                        <p class="text-xs text-slate-600" data-i18n="step-1-desc">手機靠近卡片，自動開啟數位名片</p>
+                        <h3 class="font-bold mb-2" data-i18n="step-1-title">碰觸 NFC 或掃描 QR Code</h3>
+                        <p class="text-xs text-slate-600" data-i18n="step-1-desc">手機靠近卡片或掃描 QR Code，自動開啟數位名片</p>
                     </li>
                     <!-- Step 2 -->
                     <li class="glass-card rounded-2xl p-8 text-center list-none">
                         <div class="w-12 h-12 mx-auto mb-4 rounded-2xl flex items-center justify-center feature-icon" aria-hidden="true">
-                            <i data-lucide="qr-code" class="w-6 h-6"></i>
+                            <i data-lucide="eye" class="w-6 h-6"></i>
                         </div>
                         <div class="text-xs font-black mb-2 text-moda" data-i18n="step-2-label">步驟 2</div>
-                        <h3 class="font-bold mb-2" data-i18n="step-2-title">掃描 QR Code</h3>
-                        <p class="text-xs text-slate-600" data-i18n="step-2-desc">快速分享聯絡資訊，無需實體接觸</p>
+                        <h3 class="font-bold mb-2" data-i18n="step-2-title">確認名片資訊</h3>
+                        <p class="text-xs text-slate-600" data-i18n="step-2-desc">檢視姓名、職稱與聯絡方式</p>
                     </li>
                     <!-- Step 3 -->
                     <li class="glass-card rounded-2xl p-8 text-center list-none">

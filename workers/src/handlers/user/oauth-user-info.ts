@@ -9,7 +9,11 @@ export async function handleGetOAuthUserInfo(
   env: Env
 ): Promise<Response> {
   const url = new URL(request.url);
-  const sessionId = url.searchParams.get('session');
+  // DET-001: Read sessionId from the HttpOnly auth_token cookie instead of the
+  // URL query string. The cookie is sent automatically with credentials:'include'.
+  const sessionId =
+    request.headers.get('Cookie')?.match(/auth_token=([^;]+)/)?.[1] ||
+    url.searchParams.get('session'); // backward-compat fallback
 
   if (!sessionId) {
     return Response.json({ error: 'Missing session parameter' }, { status: 400 });

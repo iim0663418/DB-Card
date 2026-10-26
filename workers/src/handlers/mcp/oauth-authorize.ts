@@ -45,7 +45,8 @@ export async function handleMcpAuthorize(request: Request, env: Env, ctx: Execut
     }
   } catch (e) {
     console.error('[MCP authorize rate limit error]', e);
-    // Fail open — don't block on DO failure
+    // Fail closed on DO failure — prevent SSRF amplification
+    return authorizeError('server_error', 'Rate limiter unavailable', 503);
   }
 
   const url = new URL(request.url);

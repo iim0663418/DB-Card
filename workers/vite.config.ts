@@ -6,7 +6,8 @@ export default defineConfig({
     outDir: 'public/dist',
     emptyOutDir: true,
     manifest: true,
-    sourcemap: true,
+    // DET-M11: never emit sourcemaps in production builds.
+    sourcemap: process.env.NODE_ENV !== 'production',
     modulePreload: false, // Avoid data: URI that CSP blocks
     rollupOptions: {
       input: {

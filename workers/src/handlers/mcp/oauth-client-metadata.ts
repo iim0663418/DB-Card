@@ -15,14 +15,27 @@ export interface ClientMetadata {
 function isValidCimdUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
+    // HTTPS only
     if (parsed.protocol !== 'https:') return false;
-    // Must use well-known path or known MCP platform paths
-    if (parsed.pathname === '/.well-known/mcp-client.json') return true;
-    if (parsed.pathname.startsWith('/.well-known/')) return true;
-    // Known MCP platforms that use non-standard CIMD paths
-    const knownHosts = ['claude.ai', 'cursor.sh', 'openai.com'];
-    if (knownHosts.includes(parsed.hostname)) return true;
-    return false;
+    // No credentials, no custom port, no fragment
+    if (parsed.username || parsed.password) return false;
+    if (parsed.port !== '') return false;  // 443 default → port 欄位為空
+    if (parsed.hash !== '') return false;
+    // Block IP literals: loopback, private, link-local
+    const BLOCKED_HOST_RE = /^(127\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|169\.254\.|0\.0\.0\.0|::1|\[::1\]|localhost(\.)?)/i;
+    if (BLOCKED_HOST_RE.test(parsed.hostname)) return false;
+    // Known hosts: exact hostname + exact path allowlist
+    const KNOWN_HOST_PATHS: Record<string, string[]> = {
+      'claude.ai': ['/.well-known/mcp-client.json', '/.well-known/oauth-client.json'],
+      'cursor.sh': ['/.well-known/mcp-client.json'],
+      'openai.com': ['/.well-known/mcp-client.json'],
+    };
+    const allowedPaths = KNOWN_HOST_PATHS[parsed.hostname];
+    if (allowedPaths !== undefined) {
+      return allowedPaths.includes(parsed.pathname);
+    }
+    // Arbitrary hosts: only exact well-known path
+    return parsed.pathname === '/.well-known/mcp-client.json';
   } catch {
     return false;
   }
@@ -62,6 +75,7 @@ export async function resolveClientMetadata(
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
     const response = await fetch(clientId, {
+      redirect: 'error',  // prevent redirect pivot SSRF
       signal: controller.signal,
       headers: { 'Accept': 'application/json' },
     });

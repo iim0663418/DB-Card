@@ -253,8 +253,10 @@ async function performUnifiedExtract(
 
   // Check for incomplete response (MAX_TOKENS)
   if (finishReason === 'MAX_TOKENS') {
-    console.error('[UnifiedExtract] Response truncated (MAX_TOKENS)');
-    console.error('[UnifiedExtract] Partial text:', text?.substring(0, 200));
+    // DET-M06 (GDPR): do not log OCR text (PII); log only usage metadata.
+    console.error('[UnifiedExtract] Response truncated (MAX_TOKENS)', JSON.stringify({
+      usageMetadata: data.usageMetadata
+    }));
     throw new Error('Response truncated due to token limit. Please try again or use a simpler image.');
   }
 
@@ -262,11 +264,12 @@ async function performUnifiedExtract(
   if (!text) {
     const promptFeedback = data.promptFeedback;
 
-    // Log full response for diagnosis
-    console.error('[Gemini 412 Diagnosis] Full response:', JSON.stringify({
-      promptFeedback,
-      candidates: data.candidates,
-      usageMetadata: data.usageMetadata
+    // DET-M06 (GDPR): Log only non-PII diagnostic fields. `data.candidates`
+    // contains OCR-extracted business-card PII and must never be logged.
+    console.error('[Gemini 412 Diagnosis]', JSON.stringify({
+      blockReason: promptFeedback?.blockReason,
+      usageMetadata: data.usageMetadata,
+      modelVersion: data.modelVersion
     }, null, 2));
 
     // Analyze blockReason
@@ -300,8 +303,8 @@ async function performUnifiedExtract(
     const result = parseGeminiJSON(text) as unknown as UnifiedExtractResult;
     return { ...result, sources, ocr_raw_text: text } as UnifiedExtractResult;
   } catch (error) {
+    // DET-M06 (GDPR): do not log the OCR text sample (PII); log only the error.
     console.error('[UnifiedExtract] JSON parse failed:', error);
-    console.error('[UnifiedExtract] Text sample:', text.substring(0, 300));
     throw new Error('Invalid response format');
   }
 }

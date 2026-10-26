@@ -225,7 +225,9 @@ export async function handleOAuthCallback(
 
     // Create redirect response with cookie header
     // Cache-Control: no-store prevents Safari BFCache from replaying this callback URL
-    const redirectUrl = `${url.origin}/user-portal.html?login=success&session=${sessionId}`;
+    // DET-001: sessionId is delivered only via the HttpOnly Set-Cookie below,
+    // never in the URL (avoids browser history / Referer / access-log leakage).
+    const redirectUrl = `${url.origin}/user-portal.html?login=success`;
     const response = new Response(null, {
       status: 302,
       headers: {

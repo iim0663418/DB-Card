@@ -191,6 +191,106 @@ describe('MCP OAuth Hardening — CIMD Resolver', () => {
   });
 });
 
+describe('MCP OAuth Hardening — CIMD SSRF validation (DET-006)', () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    vi.restoreAllMocks();
+  });
+
+  // For invalid CIMD URLs, resolveClientMetadata must NOT fetch; it falls back to
+  // KV (empty store here → null). We assert fetch was never called.
+  const rejectedUrls: Array<[string, string]> = [
+    ['IP literal 127.0.0.1', 'https://127.0.0.1/.well-known/mcp-client.json'],
+    ['IP literal [::1]', 'https://[::1]/.well-known/mcp-client.json'],
+    ['IP literal 169.254.169.254 (link-local)', 'https://169.254.169.254/.well-known/mcp-client.json'],
+    ['IP literal 10.0.0.1 (private)', 'https://10.0.0.1/.well-known/mcp-client.json'],
+    ['custom port', 'https://attacker.com:8443/.well-known/mcp-client.json'],
+    ['URL credentials', 'https://user:pass@attacker.com/.well-known/mcp-client.json'],
+    ['fragment', 'https://attacker.com/.well-known/mcp-client.json#frag'],
+    ['arbitrary host + non-standard well-known path', 'https://attacker.com/.well-known/anything'],
+    ['known host claude.ai + non-allowlisted path', 'https://claude.ai/exploit'],
+    ['known host claude.ai + deep well-known path', 'https://claude.ai/.well-known/evil.json'],
+  ];
+
+  for (const [label, url] of rejectedUrls) {
+    it(`rejects ${label} — no server-side fetch`, async () => {
+      globalThis.fetch = vi.fn();
+      const env = createMockEnv({});
+
+      const result = await resolveClientMetadata(url, env as any);
+
+      expect(result).toBeNull();
+      expect(globalThis.fetch).not.toHaveBeenCalled();
+    });
+  }
+
+  it('accepts arbitrary host with exact /.well-known/mcp-client.json path', async () => {
+    const clientId = 'https://legit.example.com/.well-known/mcp-client.json';
+    const cimdDoc = {
+      client_id: clientId,
+      client_name: 'Legit',
+      redirect_uris: ['https://legit.example.com/cb'],
+      grant_types: ['authorization_code'],
+      token_endpoint_auth_method: 'none',
+    };
+    globalThis.fetch = vi.fn(async () => new Response(JSON.stringify(cimdDoc), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+    const env = createMockEnv({});
+
+    const result = await resolveClientMetadata(clientId, env as any);
+
+    expect(result).toEqual(cimdDoc);
+    expect(globalThis.fetch).toHaveBeenCalled();
+  });
+
+  it('accepts known host claude.ai with allowlisted oauth-client.json path', async () => {
+    const clientId = 'https://claude.ai/.well-known/oauth-client.json';
+    const cimdDoc = {
+      client_id: clientId,
+      client_name: 'Claude',
+      redirect_uris: ['https://claude.ai/cb'],
+      grant_types: ['authorization_code'],
+      token_endpoint_auth_method: 'none',
+    };
+    globalThis.fetch = vi.fn(async () => new Response(JSON.stringify(cimdDoc), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+    const env = createMockEnv({});
+
+    const result = await resolveClientMetadata(clientId, env as any);
+
+    expect(result).toEqual(cimdDoc);
+    expect(globalThis.fetch).toHaveBeenCalled();
+  });
+
+  it('passes redirect: error to fetch and blocks redirect pivot', async () => {
+    const clientId = 'https://legit.example.com/.well-known/mcp-client.json';
+    // Mock fetch that throws when redirect: 'error' is set (simulating a 302 response)
+    globalThis.fetch = vi.fn(async (_input: any, init?: any) => {
+      if (init?.redirect === 'error') {
+        throw new TypeError('Fetch API cannot follow redirect — redirect mode is "error"');
+      }
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+    const env = createMockEnv({});
+
+    const result = await resolveClientMetadata(clientId, env as any);
+
+    // fetch called with redirect: 'error'
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      clientId,
+      expect.objectContaining({ redirect: 'error' })
+    );
+    // redirect rejection → fetch throws → KV fallback empty → null
+    expect(result).toBeNull();
+  });
+});
+
 describe('MCP OAuth Hardening — sha256 helper', () => {
   it('produces stable hex output for known input', async () => {
     const result = await sha256('hello');

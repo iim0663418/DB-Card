@@ -114,13 +114,13 @@ async function initApp() {
     if (loginStatus === 'success') {
         window.history.replaceState({}, '', '/user-portal.html');
 
-        const sessionId = urlParams.get('session');
-
-        if (sessionId) {
+        // DET-001: sessionId is no longer in the URL; it lives only in the
+        // HttpOnly auth_token cookie, sent automatically via credentials:'include'.
+        {
             try {
                 document.getElementById('global-loading').classList.remove('hidden');
 
-                const response = await fetch(`/api/user/oauth-user-info?session=${sessionId}`, {
+                const response = await fetch(`/api/user/oauth-user-info`, {
                     credentials: 'include'
                 });
 

@@ -40,6 +40,12 @@
   transform: translateY(-4px);
 }
 
+/* Static display panels should not lift on hover (no interactive affordance) */
+.static-panel:hover {
+  transform: none;
+  box-shadow: var(--glass-shadow);
+}
+
 .crystal-container {
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);

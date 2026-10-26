@@ -222,12 +222,12 @@
         <!-- 1. OAuth 登入頁 -->
         <section id="view-login" class="flex flex-col items-center justify-center min-h-[70vh] space-y-10 fade-in">
             <div class="text-center space-y-4">
-                <img src="/icons/icon-192.png" alt="DB-Card" class="w-20 h-20 rounded-[1.5rem] shadow-2xl mx-auto mb-8">
+                <img src="/icons/icon-192.png" alt="DB-Card" class="w-20 h-20 rounded-lg shadow-2xl mx-auto mb-8">
                 <h1 class="text-4xl font-black tracking-tighter" data-i18n="login-title">使用者入口</h1>
                 <p class="text-slate-400 font-medium" data-i18n="login-subtitle">請使用 Google 帳號登入</p>
             </div>
 
-            <div class="glass-panel p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] w-full max-w-md space-y-6 sm:space-y-8 text-center">
+            <div class="glass-panel p-6 sm:p-10 rounded-xl sm:rounded-2xl w-full max-w-md space-y-6 sm:space-y-8 text-center">
                 <div id="login-error-box" class="hidden p-4 bg-red-50 border border-red-100 rounded-2xl text-xs text-red-600 font-bold mb-4">
                     <!-- 錯誤訊息注入 -->
                 </div>
@@ -279,7 +279,7 @@
             </div>
 
             <!-- Privacy Management Section -->
-            <div class="glass-panel p-6 lg:p-8 rounded-[2rem] lg:rounded-[3rem] space-y-6">
+            <div class="glass-panel p-6 lg:p-8 rounded-xl lg:rounded-2xl space-y-6">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
                         <i data-lucide="shield" class="w-5 h-5 text-blue-600"></i>
@@ -303,7 +303,7 @@
             </div>
 
             <!-- Received Cards Section -->
-            <div class="glass-panel p-6 lg:p-8 rounded-[2rem] lg:rounded-[3rem] space-y-6">
+            <div class="glass-panel p-6 lg:p-8 rounded-xl lg:rounded-2xl space-y-6">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: var(--moda-glow);">
                         <i data-lucide="contact" class="w-5 h-5" style="color: var(--moda-accent);"></i>
@@ -331,7 +331,7 @@
             </div>
 
             <!-- Upload Area -->
-            <div id="upload-area" class="glass-panel p-12 rounded-[2rem] border-2 border-dashed border-slate-300 hover:border-[var(--moda-accent)] transition-all cursor-pointer text-center space-y-4">
+            <div id="upload-area" class="glass-panel p-12 rounded-xl border-2 border-dashed border-slate-300 hover:border-[var(--moda-accent)] transition-all cursor-pointer text-center space-y-4">
                 <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto" style="background: var(--moda-glow);">
                     <i data-lucide="camera" class="w-8 h-8" style="color: var(--moda-accent);"></i>
                 </div>
@@ -346,7 +346,7 @@
             </div>
 
             <!-- AI Processing -->
-            <div id="ai-processing" class="hidden glass-panel p-8 rounded-[2rem] space-y-6">
+            <div id="ai-processing" class="hidden glass-panel p-8 rounded-xl space-y-6">
                 <div class="flex items-center justify-center gap-3">
                     <div class="animate-spin w-6 h-6 border-3 border-t-transparent rounded-full" style="border-color: var(--moda-accent); border-top-color: transparent;"></div>
                     <p class="text-lg font-bold" data-i18n="ai-processing">AI 處理中...</p>
@@ -375,7 +375,7 @@
             </div>
 
             <!-- Error Message -->
-            <div id="error-message" class="hidden glass-panel p-8 rounded-[2rem] border-2 border-red-300 bg-red-50/80 space-y-4">
+            <div id="error-message" class="hidden glass-panel p-8 rounded-xl border-2 border-red-300 bg-red-50/80 space-y-4">
                 <div class="flex items-start gap-4">
                     <i data-lucide="alert-circle" class="w-8 h-8 text-red-600 flex-shrink-0"></i>
                     <div class="flex-1 space-y-3">
@@ -502,7 +502,7 @@
 
         <!-- Preview Modal (Global) -->
         <div id="preview-modal" class="modal-backdrop hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div class="modal-content p-4 sm:p-8 rounded-2xl sm:rounded-[2rem] max-w-2xl w-full max-h-[90vh] overflow-y-auto space-y-4 sm:space-y-6">
+            <div class="modal-content p-4 sm:p-8 rounded-2xl sm:rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto space-y-4 sm:space-y-6">
                 <div class="flex items-center gap-3">
                     <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background: var(--moda-glow);">
                         <i data-lucide="check-circle" class="w-6 h-6" style="color: var(--moda-accent);"></i>
@@ -601,7 +601,7 @@
 
         <!-- Delete Confirm Modal (Global) -->
         <div id="delete-confirm-modal" class="modal-backdrop hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div class="modal-content p-4 sm:p-8 rounded-2xl sm:rounded-[2rem] max-w-md w-full space-y-4 sm:space-y-6">
+            <div class="modal-content p-4 sm:p-8 rounded-2xl sm:rounded-xl max-w-md w-full space-y-4 sm:space-y-6">
                 <div class="flex items-center gap-3">
                     <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
                         <i data-lucide="alert-triangle" class="w-6 h-6 text-red-600"></i>
@@ -619,7 +619,7 @@
 
         <!-- QR Code Modal -->
         <div id="qrCodeModal" class="modal-backdrop hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div class="modal-content p-4 sm:p-8 rounded-2xl sm:rounded-[2rem] max-w-md w-full space-y-4 sm:space-y-6">
+            <div class="modal-content p-4 sm:p-8 rounded-2xl sm:rounded-xl max-w-md w-full space-y-4 sm:space-y-6">
                 <div class="flex items-center gap-3">
                     <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background: var(--moda-glow);">
                         <i data-lucide="qr-code" class="w-6 h-6" style="color: var(--moda-accent);"></i>
@@ -642,7 +642,7 @@
 
         <!-- Card Detail Modal -->
         <div id="cardDetailModal" class="modal-backdrop hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div class="modal-content p-8 rounded-[2rem] max-w-2xl w-full space-y-6 max-h-[90vh] overflow-y-auto">
+            <div class="modal-content p-8 rounded-xl max-w-2xl w-full space-y-6 max-h-[90vh] overflow-y-auto">
                 <!-- Header -->
                 <div class="flex items-start justify-between">
                     <div>
@@ -722,7 +722,7 @@
 
         <!-- Edit Card Modal -->
         <div id="editCardModal" class="modal-backdrop hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div class="modal-content p-4 sm:p-8 rounded-2xl sm:rounded-[2rem] max-w-2xl w-full max-h-[90vh] overflow-y-auto space-y-4 sm:space-y-6">
+            <div class="modal-content p-4 sm:p-8 rounded-2xl sm:rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto space-y-4 sm:space-y-6">
                 <div class="flex items-center gap-3">
                     <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background: var(--moda-glow);">
                         <i data-lucide="edit" class="w-6 h-6" style="color: var(--moda-accent);"></i>
@@ -909,7 +909,7 @@
                 <!-- Hidden file input -->
                 <input type="file" id="scan-file-input" accept="image/jpeg,image/png" class="hidden">
 
-                <form id="edit-form" class="glass-panel p-6 lg:p-10 rounded-[2rem] lg:rounded-[3rem] space-y-6 lg:space-y-8">
+                <form id="edit-form" class="glass-panel p-6 lg:p-10 rounded-xl lg:rounded-2xl space-y-6 lg:space-y-8">
                     <!-- 隱藏欄位 -->
                     <input type="hidden" id="form-type" name="form-type">
                     <input type="hidden" id="form-uuid" name="form-uuid">
@@ -1127,14 +1127,14 @@
 
             <!-- 右側預覽 -->
             <div class="lg:col-span-4 space-y-6">
-                <div class="glass-panel p-6 lg:p-8 rounded-[3rem] lg:sticky lg:top-28 text-center flex flex-col items-center">
+                <div class="glass-panel p-6 lg:p-8 rounded-2xl lg:sticky lg:top-28 text-center flex flex-col items-center">
                     <p class="text-xs font-black text-moda opacity-60 uppercase tracking-[0.3em] mb-10" data-i18n="preview-title">名片預覽</p>
                     <div id="preview-lang-switch" class="flex bg-slate-100 p-1 rounded-lg mb-6">
                         <button data-lang="zh" class="px-4 py-1 text-xs font-bold rounded-md bg-white shadow-sm transition-all">中</button>
                         <button data-lang="en" class="px-4 py-1 text-xs font-bold rounded-md text-slate-500 hover:text-slate-900 transition-all">EN</button>
                     </div>
-                    <div id="preview-card" class="w-full max-w-[240px] sm:max-w-[260px] bg-white rounded-[2rem] sm:rounded-[3rem] shadow-2xl border-t-[6px] sm:border-t-[8px] border-t-moda p-6 sm:p-8 space-y-4 sm:space-y-6">
-                        <img id="prev-avatar" src="" class="w-24 h-24 rounded-[2rem] mx-auto object-cover border-2 border-slate-50 hidden">
+                    <div id="preview-card" class="w-full max-w-[240px] sm:max-w-[260px] bg-white rounded-xl sm:rounded-2xl shadow-2xl border-t-[6px] sm:border-t-[8px] border-t-moda p-6 sm:p-8 space-y-4 sm:space-y-6">
+                        <img id="prev-avatar" src="" class="w-24 h-24 rounded-xl mx-auto object-cover border-2 border-slate-50 hidden">
                         <div>
                             <h3 id="prev-name" class="text-2xl font-black italic">---</h3>
                             <p id="prev-title" class="text-moda font-bold text-xs uppercase tracking-widest mt-2">---</p>

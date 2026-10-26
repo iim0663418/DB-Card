@@ -139,6 +139,9 @@
         .btn-secondary:hover {
             background-color: var(--color-primary-ghost);
         }
+        /* H3: feature figures */
+        .feature-figure { margin: 0; }
+        .feature-figure img { transition: none; }
     </style>
 </head>
 <body>
@@ -245,21 +248,26 @@
             <section class="mb-16" aria-labelledby="use-cases-heading">
                 <h2 id="use-cases-heading" class="text-2xl font-black text-center mb-8 text-moda" data-i18n="use-cases-title">功能一覽</h2>
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-4" role="list">
-                    <div class="glass-card rounded-2xl p-4 overflow-hidden group cursor-pointer" role="listitem">
-                        <img src="/images/use-case-1.jpg" alt="NFC 卡片觸碰手機啟動數位名片" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110" loading="lazy">
-                    </div>
-                    <div class="glass-card rounded-2xl p-4 overflow-hidden group cursor-pointer" role="listitem">
-                        <img src="/images/use-case-2.jpg" alt="AI 辨識實體名片自動擷取聯絡資訊" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110" loading="lazy">
-                    </div>
-                    <div class="glass-card rounded-2xl p-4 overflow-hidden group cursor-pointer" role="listitem">
-                        <img src="/images/use-case-3.jpg" alt="MCP AI Agent 自然語言查詢名片" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110" loading="lazy">
-                    </div>
-                    <div class="glass-card rounded-2xl p-4 overflow-hidden group cursor-pointer" role="listitem">
-                        <img src="/images/use-case-4.jpg" alt="信封加密保護名片資料 DEK KEK 分層" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110" loading="lazy">
-                    </div>
-                    <div class="glass-card rounded-2xl p-4 overflow-hidden group cursor-pointer" role="listitem">
-                        <img src="/images/use-case-5.jpg" alt="QR Code 快速分享數位名片" class="w-full h-32 object-cover rounded-xl transition-transform duration-300 group-hover:scale-110" loading="lazy">
-                    </div>
+                    <figure class="glass-card feature-figure rounded-2xl p-4 overflow-hidden" role="listitem">
+                        <img src="/images/use-case-1.jpg" alt="NFC 卡片觸碰手機啟動數位名片" class="w-full h-32 object-cover rounded-xl" loading="lazy">
+                        <figcaption class="mt-2 text-xs text-slate-600 font-medium text-center">碰觸 NFC 卡片</figcaption>
+                    </figure>
+                    <figure class="glass-card feature-figure rounded-2xl p-4 overflow-hidden" role="listitem">
+                        <img src="/images/use-case-2.jpg" alt="AI 辨識實體名片自動擷取聯絡資訊" class="w-full h-32 object-cover rounded-xl" loading="lazy">
+                        <figcaption class="mt-2 text-xs text-slate-600 font-medium text-center">AI 辨識名片</figcaption>
+                    </figure>
+                    <figure class="glass-card feature-figure rounded-2xl p-4 overflow-hidden" role="listitem">
+                        <img src="/images/use-case-3.jpg" alt="MCP AI Agent 自然語言查詢名片" class="w-full h-32 object-cover rounded-xl" loading="lazy">
+                        <figcaption class="mt-2 text-xs text-slate-600 font-medium text-center">AI Agent 查詢</figcaption>
+                    </figure>
+                    <figure class="glass-card feature-figure rounded-2xl p-4 overflow-hidden" role="listitem">
+                        <img src="/images/use-case-4.jpg" alt="信封加密保護名片資料 DEK KEK 分層" class="w-full h-32 object-cover rounded-xl" loading="lazy">
+                        <figcaption class="mt-2 text-xs text-slate-600 font-medium text-center">信封加密保護</figcaption>
+                    </figure>
+                    <figure class="glass-card feature-figure rounded-2xl p-4 overflow-hidden" role="listitem">
+                        <img src="/images/use-case-5.jpg" alt="QR Code 快速分享數位名片" class="w-full h-32 object-cover rounded-xl" loading="lazy">
+                        <figcaption class="mt-2 text-xs text-slate-600 font-medium text-center">掃碼快速分享</figcaption>
+                    </figure>
                 </div>
             </section>
 

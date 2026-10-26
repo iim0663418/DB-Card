@@ -2405,6 +2405,13 @@ const ReceivedCards = {
     // 顯示 AI 摘要容器
     if (aiContainer) {
       if (hasAnySummary) {
+        // U7: 常駐 AI 提醒（只加一次）
+        if (!aiContainer.querySelector('.ai-disclaimer')) {
+          const disclaimer = document.createElement('p');
+          disclaimer.className = 'ai-disclaimer text-xs text-slate-500 italic mb-2';
+          disclaimer.textContent = 'AI 生成內容，可能有誤，請核對後使用。';
+          aiContainer.insertBefore(disclaimer, aiContainer.firstChild);
+        }
         aiContainer.classList.remove('hidden');
       } else {
         aiContainer.classList.add('hidden');

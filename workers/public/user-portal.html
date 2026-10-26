@@ -331,7 +331,7 @@
                 </button>
                 <div>
                     <h2 class="text-2xl font-black tracking-tight" data-i18n="received-cards-title">收到的名片</h2>
-                    <p class="text-xs text-slate-400 font-bold uppercase tracking-widest" data-i18n="received-cards-subtitle">AI-First Card Capture</p>
+                    <p class="text-xs text-slate-400 font-bold uppercase tracking-widest" data-i18n="received-cards-subtitle">拍照辨識名片</p>
                 </div>
             </div>
 
@@ -518,30 +518,69 @@
                 <div class="space-y-4">
                     <!-- 姓名（含稱謂和後綴） -->
                     <div class="grid grid-cols-5 gap-2">
-                        <input type="text" id="preview-name-prefix" data-i18n-placeholder="field-name-prefix" placeholder="稱謂" class="col-span-1 px-3 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors text-sm">
-                        <input type="text" id="preview-full-name" data-i18n-placeholder="field-full-name" placeholder="姓名 *" class="col-span-3 px-5 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors">
-                        <input type="text" id="preview-name-suffix" data-i18n-placeholder="field-name-suffix" placeholder="後綴" class="col-span-1 px-3 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors text-sm">
+                        <div class="col-span-1">
+                            <label for="preview-name-prefix" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">稱謂（選填）</label>
+                            <input type="text" id="preview-name-prefix" data-i18n-placeholder="field-name-prefix" placeholder="稱謂" class="w-full px-3 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors text-sm">
+                        </div>
+                        <div class="col-span-3">
+                            <label for="preview-full-name" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">姓名（必填）</label>
+                            <input type="text" id="preview-full-name" data-i18n-placeholder="field-full-name" placeholder="姓名 *" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors">
+                        </div>
+                        <div class="col-span-1">
+                            <label for="preview-name-suffix" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">後綴（選填）</label>
+                            <input type="text" id="preview-name-suffix" data-i18n-placeholder="field-name-suffix" placeholder="後綴" class="w-full px-3 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors text-sm">
+                        </div>
                     </div>
                     
                     <!-- 公司資訊 -->
-                    <input type="text" id="preview-organization" data-i18n-placeholder="field-organization" placeholder="公司" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors">
+                    <div>
+                        <label for="preview-organization" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">公司</label>
+                        <input type="text" id="preview-organization" data-i18n-placeholder="field-organization" placeholder="公司" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors">
+                    </div>
                     <div class="grid grid-cols-2 gap-3">
-                        <input type="text" id="preview-organization-en" data-i18n-placeholder="field-organization-en" placeholder="公司英文名稱" class="px-4 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors text-sm">
-                        <input type="text" id="preview-organization-alias" data-i18n-placeholder="field-organization-alias" placeholder="公司簡稱" class="px-4 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors text-sm">
+                        <div>
+                            <label for="preview-organization-en" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">公司英文名稱（選填）</label>
+                            <input type="text" id="preview-organization-en" data-i18n-placeholder="field-organization-en" placeholder="公司英文名稱" class="w-full px-4 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors text-sm">
+                        </div>
+                        <div>
+                            <label for="preview-organization-alias" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">公司簡稱（選填）</label>
+                            <input type="text" id="preview-organization-alias" data-i18n-placeholder="field-organization-alias" placeholder="公司簡稱" class="w-full px-4 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors text-sm">
+                        </div>
                     </div>
                     
                     <!-- 職位資訊 -->
                     <div class="grid grid-cols-2 gap-3">
-                        <input type="text" id="preview-department" data-i18n-placeholder="field-department" placeholder="部門" class="px-4 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors">
-                        <input type="text" id="preview-title" data-i18n-placeholder="field-title" placeholder="職稱" class="px-4 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors">
+                        <div>
+                            <label for="preview-department" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">部門</label>
+                            <input type="text" id="preview-department" data-i18n-placeholder="field-department" placeholder="部門" class="w-full px-4 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors">
+                        </div>
+                        <div>
+                            <label for="preview-title" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">職稱</label>
+                            <input type="text" id="preview-title" data-i18n-placeholder="field-title" placeholder="職稱" class="w-full px-4 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors">
+                        </div>
                     </div>
                     
                     <!-- 聯絡資訊 -->
-                    <input type="text" id="preview-phone" data-i18n-placeholder="field-phone" placeholder="電話" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors">
-                    <input type="text" id="preview-email" data-i18n-placeholder="field-email" placeholder="Email" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors">
-                    <input type="text" id="preview-website" data-i18n-placeholder="field-website" placeholder="網站" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors">
-                    <input type="text" id="preview-address" data-i18n-placeholder="field-address" placeholder="地址" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors">
-                    <textarea id="preview-note" data-i18n-placeholder="field-note" placeholder="備註" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors" rows="3"></textarea>
+                    <div>
+                        <label for="preview-phone" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">電話</label>
+                        <input type="text" id="preview-phone" data-i18n-placeholder="field-phone" placeholder="電話" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors">
+                    </div>
+                    <div>
+                        <label for="preview-email" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Email</label>
+                        <input type="text" id="preview-email" data-i18n-placeholder="field-email" placeholder="Email" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors">
+                    </div>
+                    <div>
+                        <label for="preview-website" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">網站</label>
+                        <input type="text" id="preview-website" data-i18n-placeholder="field-website" placeholder="網站" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors">
+                    </div>
+                    <div>
+                        <label for="preview-address" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">地址</label>
+                        <input type="text" id="preview-address" data-i18n-placeholder="field-address" placeholder="地址" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors">
+                    </div>
+                    <div>
+                        <label for="preview-note" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">備註</label>
+                        <textarea id="preview-note" data-i18n-placeholder="field-note" placeholder="備註" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl font-bold outline-none focus:border-[var(--moda-accent)] transition-colors" rows="3"></textarea>
+                    </div>
                 </div>
 
                 <div id="ai-summary-section" class="hidden p-4 rounded-2xl space-y-3" style="background: var(--moda-glow);">
@@ -700,105 +739,105 @@
                     <div class="grid grid-cols-2 gap-4">
                         <!-- 稱謂 -->
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">稱謂</label>
-                            <input type="text" name="name_prefix" placeholder="Dr., Mr., Mrs."
+                            <label for="edit-name-prefix" class="block text-sm font-medium text-slate-700 mb-1">稱謂</label>
+                            <input type="text" id="edit-name-prefix" name="name_prefix" placeholder="Dr., Mr., Mrs."
                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         </div>
 
                         <!-- 姓名 -->
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">姓名 *</label>
-                            <input type="text" name="name" required
+                            <label for="edit-name" class="block text-sm font-medium text-slate-700 mb-1">姓名 *</label>
+                            <input type="text" id="edit-name" name="name" required
                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         </div>
 
                         <!-- 頭銜後綴 -->
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">頭銜後綴</label>
-                            <input type="text" name="name_suffix" placeholder="Ph.D., Jr., M.D."
+                            <label for="edit-name-suffix" class="block text-sm font-medium text-slate-700 mb-1">頭銜後綴</label>
+                            <input type="text" id="edit-name-suffix" name="name_suffix" placeholder="Ph.D., Jr., M.D."
                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         </div>
 
                         <!-- 公司 -->
                         <div class="col-span-2">
-                            <label class="block text-sm font-medium text-slate-700 mb-1">公司</label>
-                            <input type="text" name="organization"
+                            <label for="edit-organization" class="block text-sm font-medium text-slate-700 mb-1">公司</label>
+                            <input type="text" id="edit-organization" name="organization"
                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         </div>
                         
                         <!-- 公司英文名稱 -->
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">公司英文名稱</label>
-                            <input type="text" name="organization_en"
+                            <label for="edit-org-en" class="block text-sm font-medium text-slate-700 mb-1">公司英文名稱</label>
+                            <input type="text" id="edit-org-en" name="organization_en"
                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         </div>
                         
                         <!-- 公司簡稱 -->
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">公司簡稱</label>
-                            <input type="text" name="organization_alias"
+                            <label for="edit-org-alias" class="block text-sm font-medium text-slate-700 mb-1">公司簡稱</label>
+                            <input type="text" id="edit-org-alias" name="organization_alias"
                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         </div>
 
                         <!-- 部門 -->
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">部門</label>
-                            <input type="text" name="department"
+                            <label for="edit-department" class="block text-sm font-medium text-slate-700 mb-1">部門</label>
+                            <input type="text" id="edit-department" name="department"
                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         </div>
 
                         <!-- 職稱 -->
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">職稱</label>
-                            <input type="text" name="title"
+                            <label for="edit-title" class="block text-sm font-medium text-slate-700 mb-1">職稱</label>
+                            <input type="text" id="edit-title" name="title"
                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         </div>
 
                         <!-- Email -->
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                            <input type="email" name="email"
+                            <label for="edit-email" class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                            <input type="email" id="edit-email" name="email"
                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         </div>
 
                         <!-- 電話 -->
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">電話</label>
-                            <input type="tel" name="phone"
+                            <label for="edit-phone" class="block text-sm font-medium text-slate-700 mb-1">電話</label>
+                            <input type="tel" id="edit-phone" name="phone"
                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         </div>
 
                         <!-- 網站 -->
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">網站</label>
-                            <input type="url" name="website"
+                            <label for="edit-website" class="block text-sm font-medium text-slate-700 mb-1">網站</label>
+                            <input type="url" id="edit-website" name="website"
                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         </div>
 
                         <!-- 地址 -->
                         <div class="col-span-2">
-                            <label class="block text-sm font-medium text-slate-700 mb-1">地址</label>
-                            <input type="text" name="address"
+                            <label for="edit-address" class="block text-sm font-medium text-slate-700 mb-1">地址</label>
+                            <input type="text" id="edit-address" name="address"
                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         </div>
 
                         <!-- 備註 -->
                         <div class="col-span-2">
-                            <label class="block text-sm font-medium text-slate-700 mb-1">備註</label>
-                            <textarea name="notes" rows="3"
+                            <label for="edit-notes" class="block text-sm font-medium text-slate-700 mb-1">備註</label>
+                            <textarea id="edit-notes" name="notes" rows="3"
                                       class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
                         </div>
 
                         <!-- 公司摘要 (AI 生成) -->
                         <div class="col-span-2">
-                            <label class="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
+                            <label for="edit-company-summary" class="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
                                 <span data-i18n="company-summary">公司摘要</span>
                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-600 text-xs rounded-full">
                                     <i data-lucide="sparkles" class="w-3 h-3"></i>
                                     <span data-i18n="ai-generated">AI 生成</span>
                                 </span>
                             </label>
-                            <textarea name="company_summary" rows="3" 
+                            <textarea id="edit-company-summary" name="company_summary" rows="3" 
                                       data-i18n-placeholder="company-summary-placeholder"
                                       class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"></textarea>
                             <p class="mt-1 text-xs text-slate-500">
@@ -809,14 +848,14 @@
 
                         <!-- 個人摘要 (AI 生成) -->
                         <div class="col-span-2">
-                            <label class="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
+                            <label for="edit-personal-summary" class="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
                                 <span data-i18n="personal-summary">個人摘要</span>
                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-600 text-xs rounded-full">
                                     <i data-lucide="sparkles" class="w-3 h-3"></i>
                                     <span data-i18n="ai-generated">AI 生成</span>
                                 </span>
                             </label>
-                            <textarea name="personal_summary" rows="2" 
+                            <textarea id="edit-personal-summary" name="personal_summary" rows="2" 
                                       data-i18n-placeholder="personal-summary-placeholder"
                                       class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"></textarea>
                             <p class="mt-1 text-xs text-slate-500">
@@ -851,7 +890,7 @@
                     </button>
                     <div>
                         <h2 id="form-title" class="text-2xl font-black tracking-tight" data-i18n="form-title">編輯數位名片</h2>
-                        <p id="form-subtitle" class="text-xs text-slate-400 font-bold uppercase tracking-widest" data-i18n="form-subtitle">Self-Service Issuance</p>
+                        <p id="form-subtitle" class="text-xs text-slate-400 font-bold uppercase tracking-widest" data-i18n="form-subtitle">編輯自己的名片</p>
                     </div>
                 </div>
 
@@ -1094,7 +1133,7 @@
             <!-- 右側預覽 -->
             <div class="lg:col-span-4 space-y-6">
                 <div class="glass-panel p-6 lg:p-8 rounded-[3rem] lg:sticky lg:top-28 text-center flex flex-col items-center">
-                    <p class="text-xs font-black text-moda opacity-60 uppercase tracking-[0.3em] mb-10" data-i18n="preview-title">Real-time Context</p>
+                    <p class="text-xs font-black text-moda opacity-60 uppercase tracking-[0.3em] mb-10" data-i18n="preview-title">名片預覽</p>
                     <div id="preview-lang-switch" class="flex bg-slate-100 p-1 rounded-lg mb-6">
                         <button data-lang="zh" class="px-4 py-1 text-xs font-bold rounded-md bg-white shadow-sm transition-all">中</button>
                         <button data-lang="en" class="px-4 py-1 text-xs font-bold rounded-md text-slate-500 hover:text-slate-900 transition-all">EN</button>
@@ -1151,7 +1190,7 @@
                             <span id="prev-address" class="text-xs font-bold text-slate-600 truncate">---</span>
                         </div>
                     </div>
-                    <p class="text-xs text-slate-400 mt-10 italic uppercase font-bold tracking-widest" data-i18n="preview-footer">Digital Twin Preview</p>
+                    <p class="text-xs text-slate-400 mt-10 italic uppercase font-bold tracking-widest" data-i18n="preview-footer">即時預覽</p>
                 </div>
             </div>
         </section>

@@ -92,10 +92,18 @@ export async function resolveClientMetadata(
       return fallback ? JSON.parse(fallback) as ClientMetadata : null;
     }
 
+    const CIMD_MAX_BYTES = 64 * 1024; // 64 KB
+    const contentLength = parseInt(response.headers.get('Content-Length') || '0', 10);
+    if (contentLength > CIMD_MAX_BYTES) return null;
+
+    const responseText = await response.text();
+    if (responseText.length > CIMD_MAX_BYTES) return null;
+
     const contentType = response.headers.get('Content-Type') || '';
     if (!contentType.startsWith('application/json')) return null;
 
-    const doc = await response.json() as Record<string, unknown>;
+    // JSON.parse failure throws → caught by outer catch (KV fallback)
+    const doc = JSON.parse(responseText) as Record<string, unknown>;
 
     // Validate self-referential client_id
     if (doc['client_id'] !== clientId) return null;

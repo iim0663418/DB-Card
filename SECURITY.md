@@ -69,6 +69,40 @@ The following are **not** considered security vulnerabilities:
 
 For non-security issues, please use [GitHub Issues](https://github.com/iim0663418/DB-Card/issues).
 
+## Known Residual Risks
+
+### CIMD DNS Rebinding (Low-Medium)
+
+**Status**: Accepted residual risk  
+**Risk owner**: @iim0663418  
+**Accepted**: 2026-10-26  
+**Expiry**: 2027-04-26 (review required)
+
+The CIMD client metadata resolver (`oauth-client-metadata.ts`) performs
+server-side HTTPS fetch to arbitrary public hostnames. The `isValidCimdUrl`
+guard rejects IP literals, localhost, credentials, custom ports, redirects,
+and restricts paths to `/.well-known/mcp-client.json`, but cannot prevent
+DNS rebinding — an attacker-controlled domain could resolve to a private IP
+at fetch time.
+
+**Current mitigations**:
+- HTTPS required (TLS certificate must match hostname)
+- `redirect: 'error'` prevents redirect pivot
+- All IP literals rejected (IPv4 + IPv6)
+- Exact path allowlist (`/.well-known/mcp-client.json` only)
+- Content-Type: `application/json` required (exact prefix)
+- Response body capped at 64 KB
+- `client_id` self-referential validation required
+- Rate limiting: 10 req/min/IP (fail-closed on DO failure)
+- 1-hour KV cache reduces repeated fetch exposure
+
+**Limitation**: Cloudflare Workers `fetch()` cannot pin to a pre-resolved IP.
+Mitigating this fully requires Workers VPC + Cloudflare Gateway (Zero Trust),
+which is not currently provisioned for this account.
+
+**Impact**: Blind SSRF to public internet only (no private network reachable).
+Attacker cannot exfiltrate response body directly. CVSS 3.1 ~5.8 Medium.
+
 ---
 
 **Last Updated**: 2026-02-02  

@@ -169,6 +169,17 @@
         @media (prefers-reduced-motion: reduce) {
             .fade-in { animation: none; }
         }
+
+        /* U1: Share toggle keyboard focus */
+        .share-toggle:focus-visible + .toggle-switch {
+            outline: 2px solid var(--color-primary);
+            outline-offset: 4px;
+            border-radius: 9999px;
+        }
+        .share-control {
+            min-height: 44px;
+            align-items: center;
+        }
     </style>
 </head>
 <body class="flex flex-col items-center min-h-screen p-4 lg:p-8">
@@ -333,6 +344,9 @@
                     <p class="text-lg font-bold text-slate-900" data-i18n="upload-title">拍照或上傳名片</p>
                     <p class="text-sm text-slate-600" data-i18n="upload-subtitle">支援 JPG/PNG，最大 5MB</p>
                 </div>
+                <button type="button" id="choose-card-image" class="sr-only focus:not-sr-only focus:absolute focus:z-10 focus:px-3 focus:py-1.5 focus:text-sm focus:bg-white focus:border focus:border-moda focus:rounded-lg" aria-label="選擇名片照片">
+                    選擇名片照片
+                </button>
                 <input type="file" id="card-image-input" accept="image/jpeg,image/png" class="hidden">
             </div>
 
@@ -351,6 +365,17 @@
                         <div class="w-8 h-8 rounded-full bg-slate-200 mx-auto"></div>
                         <p class="text-xs font-bold text-slate-600" data-i18n="ai-step-ocr">辨識與補全</p>
                     </div>
+                </div>
+                <!-- U6: 取消辨識按鈕 -->
+                <div class="flex justify-center">
+                    <button
+                        id="cancel-extraction-btn"
+                        type="button"
+                        class="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors text-sm"
+                        data-action="cancel-extraction"
+                    >
+                        取消辨識
+                    </button>
                 </div>
             </div>
 
@@ -530,6 +555,8 @@
                         <p id="preview-personal-summary" class="text-sm text-slate-700"></p>
                     </div>
                 </div>
+
+                <div id="preview-save-error" role="alert" class="hidden p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 font-medium"></div>
 
                 <div class="flex gap-3">
                     <button data-action="upload-reset" class="flex-1 py-4 bg-slate-100 text-slate-700 rounded-2xl font-black uppercase tracking-wider hover:bg-slate-200 transition-colors">取消</button>

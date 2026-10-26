@@ -717,25 +717,33 @@ const CardUploadStateMachine = {
         saveBtn.textContent = originalText || '確認儲存';
 
         this.reset();
+        saveBtn.removeEventListener('click', handleSave);
 
       } catch (error) {
-        if (typeof showToast === 'function') {
+        // U5: 不 reset，保留草稿
+        const saveError = document.getElementById('preview-save-error');
+        if (saveError) {
+          saveError.textContent = `儲存失敗，請檢查連線後重試。您的修改已保留。`;
+          saveError.classList.remove('hidden');
+        } else if (typeof showToast === 'function') {
           showToast(`儲存失敗：${error.message}`, 'error');
         }
 
         // 錯誤時恢復按鈕狀態
         saveBtn.disabled = false;
         saveBtn.textContent = originalText || '確認儲存';
-        
-        // 重置狀態以允許重新上傳
-        this.reset();
-      } finally {
-        saveBtn.removeEventListener('click', handleSave);
+        // 不移除 event listener，讓使用者可以重試
       }
     };
     
     saveBtn.addEventListener('click', handleSave);
-    
+
+    const saveError = document.getElementById('preview-save-error');
+    if (saveError) {
+      saveError.textContent = '';
+      saveError.classList.add('hidden');
+    }
+
     modal.classList.remove('hidden');
   },
 
@@ -830,6 +838,14 @@ const ReceivedCards = {
 
     uploadArea.addEventListener('click', () => fileInput.click());
 
+    const chooseBtn = document.getElementById('choose-card-image');
+    if (chooseBtn) {
+      chooseBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // 避免冒泡觸發 uploadArea click
+        fileInput.click();
+      });
+    }
+
     fileInput.addEventListener('change', (e) => {
       if (e.target.files[0]) {
         this.handleFileUpload(e.target.files[0]);
@@ -863,6 +879,23 @@ const ReceivedCards = {
     if (skipBtn) {
       skipBtn.addEventListener('click', () => {
         CardUploadStateMachine.skipAI();
+      });
+    }
+
+    // U6: 取消辨識按鈕
+    const cancelBtn = document.getElementById('cancel-extraction-btn');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', () => {
+        if (CardUploadStateMachine.abortController) {
+          CardUploadStateMachine.abortController.abort();
+        }
+        CardUploadStateMachine.reset();
+        // 焦點歸還到上傳入口
+        const chooseBtn = document.getElementById('choose-card-image') || document.getElementById('upload-area');
+        if (chooseBtn) chooseBtn.focus();
+        if (typeof showToast === 'function') {
+          showToast('已取消辨識', 'info');
+        }
       });
     }
   },
@@ -1530,15 +1563,34 @@ const ReceivedCards = {
         }
       }
     } catch (_error) {
-      this.cards = [];
-      this.allCards = [];
-      this.nextCursor = null;
-      this.hasMore = false;
-      this.renderCards([]);
+      // U4: 讀取失敗不清空資料，不偽裝成空狀態
       const resultCount = document.getElementById('resultCount');
       if (resultCount) {
-        resultCount.textContent = '0 張名片';
+        resultCount.textContent = '名片暫時無法載入，請重試';
+        resultCount.className = 'text-sm font-medium text-red-600';
       }
+      // 若是首次載入（無既有資料），顯示可重試的 error state
+      if (!this.allCards || this.allCards.length === 0) {
+        this.cards = [];
+        this.allCards = [];
+        this.nextCursor = null;
+        this.hasMore = false;
+        const grid = document.getElementById('cards-grid');
+        if (grid) {
+          grid.innerHTML = `
+            <div class="col-span-full text-center py-12 space-y-4">
+              <svg class="mx-auto h-16 w-16 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+              </svg>
+              <p class="text-slate-500 font-medium">名片載入失敗</p>
+              <button onclick="ReceivedCards.loadCards()" class="px-4 py-2 text-sm font-bold text-white bg-moda rounded-xl hover:bg-moda/90 transition-colors">
+                重試
+              </button>
+            </div>
+          `;
+        }
+      }
+      // 若有既有資料，保留現有顯示，僅提示更新失敗
     }
   },
 
@@ -1709,8 +1761,13 @@ const ReceivedCards = {
       toggle.addEventListener('change', async (e) => {
         const uuid = e.target.dataset.cardUuid;
         const isShared = e.target.checked;
+        const previousValue = !isShared;
 
-        // 立即更新 UI
+        // U8: pending — 立即 disabled，防止連續操作
+        toggle.disabled = true;
+        if (switchEl) switchEl.style.opacity = '0.6';
+
+        // 樂觀更新 UI
         if (isShared) {
           if (switchEl) switchEl.style.backgroundColor = '#3b82f6';
           if (slider) slider.style.transform = 'translateX(20px)';
@@ -1726,9 +1783,9 @@ const ReceivedCards = {
             await this.unshareCard(uuid);
           }
         } catch (error) {
-          // Revert toggle and styles on error
-          e.target.checked = !isShared;
-          if (!isShared) {
+          // 恢復
+          e.target.checked = previousValue;
+          if (!previousValue) {
             if (switchEl) switchEl.style.backgroundColor = '#3b82f6';
             if (slider) slider.style.transform = 'translateX(20px)';
           } else {
@@ -1738,6 +1795,10 @@ const ReceivedCards = {
           if (typeof showToast === 'function') {
             showToast(error.message, 'error');
           }
+        } finally {
+          // U8: 恢復可互動
+          toggle.disabled = false;
+          if (switchEl) switchEl.style.opacity = '1';
         }
       });
     });
@@ -1873,12 +1934,11 @@ const ReceivedCards = {
         ` : ''}
         <div class="pt-4 mt-4 border-t border-white/30 flex items-center justify-between gap-3">
           ${card.source === 'own' ? `
-          <label class="inline-flex items-center cursor-pointer">
+          <label class="inline-flex items-center cursor-pointer share-control">
             <input type="checkbox"
-                   class="share-toggle"
+                   class="share-toggle sr-only"
                    data-card-uuid="${card.uuid}"
-                   ${card.is_shared ? 'checked' : ''}
-                   style="display: none;">
+                   ${card.is_shared ? 'checked' : ''}>
             <div class="toggle-switch" style="position: relative; width: 44px; height: 24px; background-color: ${card.is_shared ? '#3b82f6' : '#d1d5db'}; border-radius: 9999px; transition: background-color 0.3s;">
               <div class="toggle-slider" style="position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background-color: white; border-radius: 50%; transition: transform 0.3s; ${card.is_shared ? 'transform: translateX(20px);' : ''}"></div>
             </div>

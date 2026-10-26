@@ -21,9 +21,14 @@ function isValidCimdUrl(url: string): boolean {
     if (parsed.username || parsed.password) return false;
     if (parsed.port !== '') return false;  // 443 default → port 欄位為空
     if (parsed.hash !== '') return false;
-    // Block IP literals: loopback, private, link-local
-    const BLOCKED_HOST_RE = /^(127\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|169\.254\.|0\.0\.0\.0|::1|\[::1\]|localhost(\.)?)/i;
-    if (BLOCKED_HOST_RE.test(parsed.hostname)) return false;
+    // Block all IP literals (covers loopback, private, link-local, ULA, v4-mapped)
+    const hostname = parsed.hostname.toLowerCase();
+    // Reject all IPv6 literals (start with '[') — covers ULA, link-local, v4-mapped, loopback
+    if (hostname.startsWith('[')) return false;
+    // Reject all dotted-decimal IPv4 literals (canonicalized by WHATWG URL parser)
+    if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname)) return false;
+    // Reject localhost
+    if (hostname === 'localhost' || hostname.endsWith('.localhost')) return false;
     // Known hosts: exact hostname + exact path allowlist
     const KNOWN_HOST_PATHS: Record<string, string[]> = {
       'claude.ai': ['/.well-known/mcp-client.json', '/.well-known/oauth-client.json'],
@@ -88,7 +93,7 @@ export async function resolveClientMetadata(
     }
 
     const contentType = response.headers.get('Content-Type') || '';
-    if (!contentType.includes('application/json')) return null;
+    if (!contentType.startsWith('application/json')) return null;
 
     const doc = await response.json() as Record<string, unknown>;
 

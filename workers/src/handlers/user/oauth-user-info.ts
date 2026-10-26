@@ -8,15 +8,12 @@ export async function handleGetOAuthUserInfo(
   request: Request,
   env: Env
 ): Promise<Response> {
-  const url = new URL(request.url);
-  // DET-001: Read sessionId from the HttpOnly auth_token cookie instead of the
-  // URL query string. The cookie is sent automatically with credentials:'include'.
+  // Read sessionId only from HttpOnly auth_token cookie
   const sessionId =
-    request.headers.get('Cookie')?.match(/auth_token=([^;]+)/)?.[1] ||
-    url.searchParams.get('session'); // backward-compat fallback
+    request.headers.get('Cookie')?.match(/(?:^|;\s*)auth_token=([^;]+)/)?.[1] ?? null;
 
   if (!sessionId) {
-    return Response.json({ error: 'Missing session parameter' }, { status: 400 });
+    return Response.json({ error: 'Missing authentication cookie' }, { status: 401 });
   }
 
   // Retrieve user info from KV (one-time use)

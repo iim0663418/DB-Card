@@ -204,6 +204,10 @@ describe('MCP OAuth Hardening — CIMD SSRF validation (DET-006)', () => {
   const rejectedUrls: Array<[string, string]> = [
     ['IP literal 127.0.0.1', 'https://127.0.0.1/.well-known/mcp-client.json'],
     ['IP literal [::1]', 'https://[::1]/.well-known/mcp-client.json'],
+    ['IPv6 v4-mapped [::ffff:7f00:1]', 'https://[::ffff:7f00:1]/.well-known/mcp-client.json'],
+    ['IPv6 ULA [fd00::1]', 'https://[fd00::1]/.well-known/mcp-client.json'],
+    ['IPv6 link-local [fe80::1]', 'https://[fe80::1]/.well-known/mcp-client.json'],
+    ['IPv6 documentation range [2001:db8::1]', 'https://[2001:db8::1]/.well-known/mcp-client.json'],
     ['IP literal 169.254.169.254 (link-local)', 'https://169.254.169.254/.well-known/mcp-client.json'],
     ['IP literal 10.0.0.1 (private)', 'https://10.0.0.1/.well-known/mcp-client.json'],
     ['custom port', 'https://attacker.com:8443/.well-known/mcp-client.json'],

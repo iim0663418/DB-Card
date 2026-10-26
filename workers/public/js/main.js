@@ -1159,31 +1159,72 @@ function generateVCard(cardData) {
             .replace(/\n/g, '\\n');
     };
 
+    // 嚴格語言取值：英文缺值不回退中文，避免語言污染（僅 vCard 內部使用，不影響外部 UI 渲染）
+    const getLocalizedTextStrict = (value, language) => {
+        if (typeof value === 'string') return value;
+        if (typeof value === 'object' && value !== null) {
+            // 若該語言 key 存在，輸出其對應值（含空字串）
+            if (Object.prototype.hasOwnProperty.call(value, language)) {
+                return value[language] ?? '';
+            }
+            // key 不存在（undefined）才 fallback
+            if (language === 'en') return ''; // 英文缺值不回退
+            return value.zh ?? '';
+        }
+        return '';
+    };
+
     // 取得當前語言的資料（iOS 對 vCard 4.0 支援不完整，改用 3.0 單語言）
-    const name = getLocalizedText(cardData.name, currentLanguage);
-    const title = getLocalizedText(cardData.title, currentLanguage);
-    const dept = cardData.department || '';
-    const addr = getLocalizedText(cardData.address, currentLanguage);
+    let name = getLocalizedTextStrict(cardData.name, currentLanguage);
+    const title = getLocalizedTextStrict(cardData.title, currentLanguage);
+    const addr = getLocalizedTextStrict(cardData.address, currentLanguage);
+
+    // 部門正規化（可能為 object 型別）
+    let dept = cardData.department || '';
+    if (typeof dept === 'object' && dept !== null) {
+        dept = currentLanguage === 'en'
+            ? (dept.en || '')            // 英文缺值不回退中文
+            : (dept.zh || dept.en || '');
+    } else if (typeof dept !== 'string') {
+        dept = '';
+    }
 
     // 組織與部門翻譯
     const organization = ORG_DEPT_MAPPING.organization[currentLanguage];
-    const departmentTranslated = currentLanguage === 'en' && ORG_DEPT_MAPPING.departments[dept]
-        ? ORG_DEPT_MAPPING.departments[dept]
-        : dept;
+    let departmentTranslated = dept; // 預設保留原值（中文版用）
+    if (currentLanguage === 'en') {
+        const mapped = ORG_DEPT_MAPPING.departments[dept];
+        departmentTranslated = mapped || ''; // 英文缺翻譯就空白，不輸出部門段
+    }
 
     let vcard = 'BEGIN:VCARD\n';
     vcard += 'VERSION:3.0\n';
     vcard += 'CHARSET:UTF-8\n';
 
-    // FN (Formatted Name)
-    if (name) {
-        vcard += `FN:${escapeVCardValue(name)}\n`;
+    // FN (Formatted Name) — vCard 3.0 必填，即使為空也要輸出
+    if (!name) {
+        name = getLocalizedTextStrict(cardData.name, 'zh') // 中文 fallback
+            || cardData.email
+            || '';
     }
+    vcard += `FN:${escapeVCardValue(name)}\n`;
 
     // N (Structured Name)
     if (name) {
-        const familyName = name.charAt(0);
-        const givenName = name.substring(1);
+        let familyName, givenName;
+        if (currentLanguage === 'en') {
+            const parts = name.trim().split(/\s+/);
+            if (parts.length >= 2) {
+                familyName = parts[parts.length - 1]; // 英文慣例：最後一字為姓
+                givenName = parts.slice(0, -1).join(' ');
+            } else {
+                familyName = '';
+                givenName = name;
+            }
+        } else {
+            familyName = name.charAt(0); // 中文：第一字為姓
+            givenName = name.substring(1);
+        }
         vcard += `N:${escapeVCardValue(familyName)};${escapeVCardValue(givenName)};;;\n`;
     }
 

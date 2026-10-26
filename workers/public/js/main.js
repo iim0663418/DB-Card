@@ -401,8 +401,10 @@ async function initApp() {
     }
 
     // 2. 內容已顯示，延遲初始化特效
+    // X3: reduced-motion gate
     const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
-    if (isDesktop && typeof THREE !== 'undefined') {
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (isDesktop && !prefersReduced && typeof THREE !== 'undefined') {
         window.safeIdle(() => initThree());
     }
 }
@@ -595,7 +597,17 @@ async function loadCard(uuid) {
 function renderCard(cardData, sessionData) {
     renderCardFace(cardData, sessionData, 'zh', '');
     renderCardFace(cardData, sessionData, 'en', '-en');
-    
+
+    // C1: 初始化 inert 依相當語言
+    const front = document.querySelector('.card-front');
+    const back = document.querySelector('.card-back');
+    if (front && back) {
+        front.inert = (currentLanguage === 'en');
+        back.inert = (currentLanguage !== 'en');
+        front.setAttribute('aria-hidden', String(currentLanguage === 'en'));
+        back.setAttribute('aria-hidden', String(currentLanguage !== 'en'));
+    }
+
     hideLoading();
     document.getElementById('main-container').classList.remove('hidden');
     if (window.reportCardReady) window.reportCardReady(performance.now());
@@ -925,8 +937,7 @@ function initThree() {
     canvas.style.display = 'block';
 
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf8f9fb);
-    scene.fog = new THREE.Fog(0xf8f9fb, 20, 80);
+    scene.background = null; // 透明，暗色模式不出現淺灰
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 5, 50);
@@ -1334,6 +1345,17 @@ document.getElementById('lang-switch').addEventListener('click', () => {
         } else {
             card.classList.remove('is-flipped');
         }
+
+        // C1: 語言按鈕切換後，同步 inert
+        const front = document.querySelector('.card-front');
+        const back = document.querySelector('.card-back');
+        if (front && back) {
+            front.inert = (currentLanguage === 'en');
+            back.inert = (currentLanguage !== 'en');
+            front.setAttribute('aria-hidden', String(currentLanguage === 'en'));
+            back.setAttribute('aria-hidden', String(currentLanguage !== 'en'));
+        }
+
         const duration = window.innerWidth >= 1024 ? 800 : 1200;
         setTimeout(() => { isFlipping = false; }, duration);
     }
@@ -1419,6 +1441,14 @@ document.getElementById('open-qr').addEventListener('click', () => {
     // Show modal immediately (decouple from QR generation)
     document.getElementById('qr-modal').classList.remove('hidden');
 
+    // X1: 焦點移入 modal、背景 inert
+    const mainContainer = document.getElementById('main-container');
+    if (mainContainer) mainContainer.inert = true;
+    requestAnimationFrame(() => {
+        const closeBtn = document.getElementById('close-qr');
+        if (closeBtn) closeBtn.focus();
+    });
+
     // Generate QR Code asynchronously
     window.safeIdle(() => {
         generateQRCode('qrcode-target');
@@ -1427,6 +1457,12 @@ document.getElementById('open-qr').addEventListener('click', () => {
 
 document.getElementById('close-qr').addEventListener('click', () => {
     document.getElementById('qr-modal').classList.add('hidden');
+
+    // X1: 焦點歸還觸發者、解除 inert
+    const mainContainer = document.getElementById('main-container');
+    if (mainContainer) mainContainer.inert = false;
+    const openBtn = document.getElementById('open-qr');
+    if (openBtn) openBtn.focus();
 });
 
 // QR modal: Escape key close
@@ -1435,6 +1471,11 @@ document.addEventListener('keydown', (e) => {
         const modal = document.getElementById('qr-modal');
         if (modal && !modal.classList.contains('hidden')) {
             modal.classList.add('hidden');
+            // X1: 焦點歸還觸發者、解除 inert
+            const mainContainer = document.getElementById('main-container');
+            if (mainContainer) mainContainer.inert = false;
+            const openBtn = document.getElementById('open-qr');
+            if (openBtn) openBtn.focus();
         }
     }
 });
@@ -1474,6 +1515,18 @@ window.toggleFlip = function(event) {
     const card = document.getElementById('card');
     if (card) {
         card.classList.toggle('is-flipped');
+
+        // C1: 同步 inert/aria-hidden 至對應面
+        const front = document.querySelector('.card-front');
+        const back = document.querySelector('.card-back');
+        const flipped = card.classList.contains('is-flipped');
+        if (front && back) {
+            front.inert = flipped;
+            back.inert = !flipped;
+            front.setAttribute('aria-hidden', String(flipped));
+            back.setAttribute('aria-hidden', String(!flipped));
+        }
+
         const duration = window.innerWidth >= 1024 ? 800 : 1200;
         setTimeout(() => { isFlipping = false; }, duration);
     }
@@ -1484,6 +1537,8 @@ window.toggleFlip = function(event) {
 // ========================================
 function initDesktopParallax() {
     if (window.innerWidth < 1024) return; // 僅桌面版
+    // X3: reduced-motion gate
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     const cardPerspective = document.querySelector('.card-perspective');
     const cardInner = document.querySelector('.card-inner');
@@ -1580,6 +1635,8 @@ function initHintBadge() {
 // ========================================
 function initCardPhysics() {
     if (window.innerWidth < 1024) return;
+    // X3: reduced-motion gate
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     const cardPerspective = document.querySelector('.card-perspective');
     if (!cardPerspective) return;

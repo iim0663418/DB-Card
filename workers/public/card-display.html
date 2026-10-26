@@ -452,7 +452,7 @@ body {
                 <img src="/icons/icon-192.png" alt="" class="w-16 h-16 rounded-xl animate-pulse">
             </div>
         </div>
-        <p id="loading-text" class="mt-8 hud-text animate-pulse">雲端資料解密中...</p>
+        <p id="loading-text" class="mt-8 text-sm text-slate-500 animate-pulse tracking-wide">雲端資料解密中...</p>
         <button id="loading-cancel-btn" style="display: none;" class="mt-4 px-4 py-2 text-sm text-slate-600 hover:text-slate-900 transition-colors inline-flex items-center gap-2">
             <i data-lucide="x-circle" class="w-4 h-4"></i>
             <span>取消</span>
@@ -490,8 +490,8 @@ body {
          role="dialog"
          aria-modal="true"
          aria-labelledby="qr-modal-title">
-        <div class="bg-white p-8 rounded-2xl shadow-2xl border border-slate-100">
-            <div id="qrcode-target" class="w-64 h-64 flex items-center justify-center text-black font-bold border-4 border-slate-50" role="img" aria-label="名片 QR Code">QR CODE</div>
+        <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-2xl border border-slate-100 w-full" style="max-width: min(100%, 320px);">
+            <div id="qrcode-target" class="w-full aspect-square flex items-center justify-center text-black font-bold border-4 border-slate-50" role="img" aria-label="名片 QR Code" style="max-width: 256px; max-height: 256px; margin: 0 auto;">QR CODE</div>
         </div>
         <p id="qr-modal-title" class="hud-text mt-8 mb-10 text-slate-800" data-i18n="qr-title">掃描分享名片</p>
         <button id="close-qr"
@@ -552,7 +552,7 @@ body {
                     <div class="min-w-0 flex-1">
                         <p id="user-email" class="font-bold text-slate-700 truncate">---</p>
                     </div>
-                    <button type="button" id="copy-email-btn" data-action="copyEmail" data-target="user-email" class="hidden md:block ml-2 p-2 rounded-lg hover:bg-slate-100 transition-colors opacity-0 group-hover:opacity-100" aria-label="Copy email">
+                    <button type="button" id="copy-email-btn" data-action="copyEmail" data-target="user-email" class="hidden md:block ml-2 p-2 rounded-lg hover:bg-slate-100 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-moda" aria-label="Copy email">
                         <i data-lucide="copy" class="w-4 h-4 text-slate-600"></i>
                     </button>
                 </a>
@@ -629,7 +629,7 @@ body {
                     <div class="min-w-0 flex-1">
                         <p id="user-email-en" class="font-bold text-slate-700 truncate">---</p>
                     </div>
-                    <button type="button" data-action="copyEmail" data-target="user-email-en" class="hidden md:block ml-2 p-2 rounded-lg hover:bg-slate-100 transition-colors opacity-0 group-hover:opacity-100" aria-label="Copy Email" title="Copy Email">
+                    <button type="button" data-action="copyEmail" data-target="user-email-en" class="hidden md:block ml-2 p-2 rounded-lg hover:bg-slate-100 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-moda" aria-label="Copy Email" title="Copy Email">
                         <i data-lucide="copy" class="w-4 h-4 text-slate-600"></i>
                     </button>
                 </a>
@@ -712,9 +712,9 @@ body {
         </footer>
 
         <!-- 階段資訊 -->
-        <div id="token-info" class="lg:hidden mt-12 opacity-40 text-center space-y-2" role="status" aria-live="polite">
-            <p id="session-expiry" class="hud-text text-[8px] text-slate-400">有效期限: --</p>
-            <p id="session-reads" class="hud-text text-[8px] text-slate-400">可分享次數: --</p>
+        <div id="token-info" class="lg:hidden mt-12 text-center space-y-2" role="status" aria-live="polite">
+            <p id="session-expiry" class="text-xs text-slate-500">有效期限: --</p>
+            <p id="session-reads" class="text-xs text-slate-500">可分享次數: --</p>
         </div>
 
         <!-- 桌面版提示區塊 (≥1024px) -->
@@ -832,15 +832,11 @@ body {
         // Timeline: 0-4s: "雲端資料解密中..." → 4s+: "連線逾時，請稍候..."
     }
 
-    // Handle email click (mobile: copy, desktop: mailto)
+    // Handle email click — unified mailto behavior across devices
     window.handleEmailClick = async (event, elementId) => {
-        const isMobile = window.innerWidth < 768; // md breakpoint
-        
-        if (isMobile) {
-            event.preventDefault();
-            await copyEmailWithToast(event, elementId);
-        }
-        // Desktop: let mailto link work normally
+        // C2: 手機與桌面都使用 mailto，不再分岐
+        // 信筒連結被點擊即完成，不需要額外處理
+        // 如果使用者希望複製，使用右側的複製按鈕
     };
 
     // Copy email with toast notification (for mobile)

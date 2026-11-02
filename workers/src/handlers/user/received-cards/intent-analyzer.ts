@@ -134,10 +134,10 @@ async function callGemini(
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
         signal: controller.signal,
         body: JSON.stringify({
           contents: [{ parts: [{ text: PROMPT + query }] }],
@@ -156,7 +156,10 @@ async function callGemini(
     if (!response.ok) {
       const body = await response.text().catch(() => '');
       if (response.status === 412) {
-        console.error('[IntentAnalyzer] Gemini 412 FAILED_PRECONDITION:', body);
+        // Log only Google's error status enum; the raw body may echo user query content.
+        let upstreamStatus = 'UNKNOWN';
+        try { upstreamStatus = String((JSON.parse(body) as any)?.error?.status ?? 'UNKNOWN'); } catch { /* non-JSON */ }
+        console.error('[IntentAnalyzer] Gemini 412 FAILED_PRECONDITION', JSON.stringify({ upstreamStatus }));
       }
       throw new Error(`Gemini error: ${response.status}`);
     }

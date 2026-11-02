@@ -116,10 +116,10 @@ async function learnNewChars(
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_LITE_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_LITE_MODEL}:generateContent`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
         body: JSON.stringify({
           system_instruction: {
             parts: [{ text: systemInstruction }]

@@ -37,10 +37,10 @@ export async function retryLearningQueue(env: Env): Promise<void> {
     const userQuery = `請將以下字元轉換為繁體字（如果已是繁體則保持不變）：\n\n字元：${chars.join(', ')}`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_LITE_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_LITE_MODEL}:generateContent`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
         body: JSON.stringify({
           system_instruction: {
             parts: [{ text: systemInstruction }]

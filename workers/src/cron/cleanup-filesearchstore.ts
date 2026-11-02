@@ -24,8 +24,8 @@ export async function cleanupFileSearchStore(env: Env): Promise<{ deleted: numbe
 
   try {
     // List all documents
-    const listUrl = `https://generativelanguage.googleapis.com/v1beta/${env.FILE_SEARCH_STORE_NAME}/documents?key=${env.GEMINI_API_KEY}`;
-    const listResponse = await fetch(listUrl);
+    const listUrl = `https://generativelanguage.googleapis.com/v1beta/${env.FILE_SEARCH_STORE_NAME}/documents`;
+    const listResponse = await fetch(listUrl, { headers: { 'x-goog-api-key': env.GEMINI_API_KEY } });
 
     if (!listResponse.ok) {
       throw new Error(`List failed (${listResponse.status})`);
@@ -46,8 +46,8 @@ export async function cleanupFileSearchStore(env: Env): Promise<{ deleted: numbe
 
     // Delete old documents
     for (const doc of oldDocuments) {
-      const deleteUrl = `https://generativelanguage.googleapis.com/v1beta/${doc.name}?force=true&key=${env.GEMINI_API_KEY}`;
-      const deleteResponse = await fetch(deleteUrl, { method: 'DELETE' });
+      const deleteUrl = `https://generativelanguage.googleapis.com/v1beta/${doc.name}?force=true`;
+      const deleteResponse = await fetch(deleteUrl, { method: 'DELETE', headers: { 'x-goog-api-key': env.GEMINI_API_KEY } });
 
       if (deleteResponse.ok) {
         deleted++;

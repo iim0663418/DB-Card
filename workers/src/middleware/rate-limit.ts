@@ -12,6 +12,10 @@ const USER_CREATE_WINDOW = 3600;  // 1 hour
 const USER_EDIT_LIMIT = 20;  // 20 requests/hour
 const USER_EDIT_WINDOW = 3600;  // 1 hour
 
+// AI extraction (Gemini vision + Google Search; the most expensive endpoint), per user email
+const AI_EXTRACT_LIMIT = 60;  // 60 extractions/hour
+const AI_EXTRACT_WINDOW = 3600;  // 1 hour
+
 /**
  * Log security event directly (simplified)
  */
@@ -99,6 +103,56 @@ export async function checkUserRateLimit(
     });
 
     return null; // Not rate limited
+  } catch (error) {
+    console.error('Rate limit check failed:', error);
+    return null; // Fail open
+  }
+}
+
+/**
+ * Check rate limit for AI card extraction (costly Gemini calls).
+ * Keyed by user email only (not IP) so mobile network changes do not reset the budget.
+ * KV counters are not atomic, so this is a soft cost guard, not a security boundary.
+ * Fails open if KV is unavailable.
+ */
+export async function checkAiExtractRateLimit(
+  request: Request,
+  env: Env,
+  email: string
+): Promise<Response | null> {
+  const key = `rate_limit:ai_extract:${email}`;
+
+  try {
+    const countStr = await env.KV?.get(key);
+    const count = countStr ? parseInt(countStr) : 0;
+
+    if (count >= AI_EXTRACT_LIMIT) {
+      await logEvent(env.DB, 'rate_limit_ai_extract', request.headers.get('CF-Connecting-IP') || 'unknown', {
+        count,
+        path: new URL(request.url).pathname
+      });
+
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: {
+            code: 'rate_limit_exceeded',
+            message: 'Too many extraction requests. Please try again later.',
+            retry_after: AI_EXTRACT_WINDOW
+          }
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': AI_EXTRACT_WINDOW.toString()
+          }
+        }
+      );
+    }
+
+    await env.KV?.put(key, (count + 1).toString(), { expirationTtl: AI_EXTRACT_WINDOW });
+    return null;
   } catch (error) {
     console.error('Rate limit check failed:', error);
     return null; // Fail open

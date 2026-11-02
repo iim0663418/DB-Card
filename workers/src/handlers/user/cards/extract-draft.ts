@@ -4,7 +4,11 @@
 import type { Env, UserCardExtractDraft } from '../../../types';
 import { verifyOAuth } from '../../../middleware/oauth';
 import { jsonResponse, errorResponse } from '../../../utils/response';
-import { arrayBufferToBase64Chunked, retryWithBackoff, parseGeminiJSON, throwGeminiHttpError } from '../../../utils/ocr-helpers';
+import { arrayBufferToBase64Chunked, retryWithBackoff, parseGeminiJSON, throwGeminiHttpError, mapGeminiError } from '../../../utils/ocr-helpers';
+
+// No google_search here, so a single call is much faster than unified-extract.
+const GEMINI_CALL_TIMEOUT_MS = 90_000;
+const MAX_ATTEMPTS = 2;
 
 const SCHEMA_VERSION = '1.0';
 
@@ -75,11 +79,14 @@ async function performSelfCardExtract(
   apiKey: string,
   model: string
 ): Promise<UserCardExtractDraft['fields']> {
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+  let response: Response;
+  try {
+    response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      signal: AbortSignal.timeout(GEMINI_CALL_TIMEOUT_MS),
       body: JSON.stringify({
         contents: [{
           parts: [
@@ -101,6 +108,13 @@ async function performSelfCardExtract(
       })
     }
   );
+  } catch (e) {
+    if (e instanceof Error && (e.name === 'TimeoutError' || e.name === 'AbortError')) {
+      console.error('[ExtractDraft] Gemini call timed out', JSON.stringify({ budgetMs: GEMINI_CALL_TIMEOUT_MS }));
+      throw new Error(`GEMINI_TIMEOUT: exceeded ${GEMINI_CALL_TIMEOUT_MS}ms`);
+    }
+    throw e;
+  }
 
   if (!response.ok) {
     await throwGeminiHttpError(response, 'ExtractDraft');
@@ -182,8 +196,9 @@ export async function handleExtractDraft(request: Request, env: Env): Promise<Re
     const mimeType = (upload.image_url as string).endsWith('.png') ? 'image/png' : 'image/jpeg';
 
     // 6. Call Gemini (no google_search)
-    const fields = await retryWithBackoff(() =>
-      performSelfCardExtract(imageBase64, mimeType, env.GEMINI_API_KEY, env.GEMINI_MODEL)
+    const fields = await retryWithBackoff(
+      () => performSelfCardExtract(imageBase64, mimeType, env.GEMINI_API_KEY, env.GEMINI_MODEL),
+      MAX_ATTEMPTS
     );
 
     // 7. Update OCR status
@@ -199,30 +214,15 @@ export async function handleExtractDraft(request: Request, env: Env): Promise<Re
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to extract card data';
 
-    let errorCode = 'EXTRACT_FAILED';
-    let statusCode = 500;
-    let userMessage = message;
-
-    if (message.startsWith('FAILED_PRECONDITION:')) {
-      errorCode = 'SERVICE_PRECONDITION';
-      statusCode = 503;
-      userMessage = 'Service configuration error, please contact support';
-    } else if (message.startsWith('SAFETY_FILTER:')) {
-      errorCode = 'SAFETY_FILTER';
-      statusCode = 422;
-      userMessage = 'Image content blocked by safety filters';
-    } else if (message.startsWith('QUOTA_OR_LIMIT:')) {
-      errorCode = 'QUOTA_EXCEEDED';
-      statusCode = 429;
-      userMessage = 'API quota exceeded or rate limit hit. Please try again later.';
-    }
+    // Messages from throwGeminiHttpError carry no upstream body, so mapping + storing is PII-safe.
+    const { errorCode, statusCode, userMessage } = mapGeminiError(message);
 
     if (uploadId && userEmail) {
       try {
         await env.DB.prepare(`
           UPDATE temp_uploads SET ocr_status = 'failed', ocr_error = ?
           WHERE upload_id = ? AND user_email = ?
-        `).bind(message.substring(0, 500), uploadId, userEmail).run();
+        `).bind(`${errorCode}: ${message}`.substring(0, 200), uploadId, userEmail).run();
       } catch { /* ignore update failure */ }
     }
 

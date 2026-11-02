@@ -23,9 +23,9 @@ export interface Env {
   GOOGLE_CLIENT_SECRET: string;
   JWT_SECRET: string;
   GEMINI_API_KEY: string;
-  GEMINI_MODEL: string;  // gemini-3.5-flash
-  GEMINI_LITE_MODEL: string;  // gemini-3.1-flash-lite (lightweight tasks)
-  GEMINI_EMBEDDING_MODEL: string;  // text-embedding-004
+  GEMINI_MODEL: string;  // gemini-3.8-flash
+  GEMINI_LITE_MODEL: string;  // gemini-3.5-flash-lite (lightweight tasks)
+  GEMINI_EMBEDDING_MODEL: string;  // gemini-embedding-001
   FILE_SEARCH_STORE_NAME?: string;
   ctx?: ExecutionContext;  // For waitUntil in auto-learning
   // Agent Search feature flags (Phase 2)

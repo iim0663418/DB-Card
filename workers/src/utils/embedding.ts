@@ -54,10 +54,13 @@ export function generateCardText(card: ReceivedCardData): string {
  */
 export async function generateEmbedding(env: Env, text: string): Promise<number[]> {
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_EMBEDDING_MODEL}:embedContent?key=${env.GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_EMBEDDING_MODEL}:embedContent`,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': env.GEMINI_API_KEY,
+      },
       body: JSON.stringify({
         content: { parts: [{ text }] },
         outputDimensionality: 768,
@@ -66,14 +69,15 @@ export async function generateEmbedding(env: Env, text: string): Promise<number[
   );
 
   if (!response.ok) {
-    const errorBody = await response.text().catch(() => 'Unable to read response');
+    const errorBody = await response.text().catch(() => '');
+    let upstreamStatus = 'UNKNOWN';
+    try { upstreamStatus = String((JSON.parse(errorBody) as any)?.error?.status ?? 'UNKNOWN'); } catch { /* non-JSON */ }
+    // Never log the raw body: a 400 can echo the input text (card PII).
     console.error('[Embedding API Error]', {
       status: response.status,
-      statusText: response.statusText,
-      errorBody,
+      upstreamStatus,
       model: env.GEMINI_EMBEDDING_MODEL,
       inputTextLength: text.length,
-      inputTextPreview: text.substring(0, 200),
     });
     throw new Error(`Embedding API failed: ${response.status}`);
   }
@@ -98,10 +102,10 @@ export async function extractLocation(
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_MODEL}:generateContent`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
         body: JSON.stringify({
           contents: [{
             parts: [{
@@ -152,10 +156,10 @@ export async function extractIndustry(
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_MODEL}:generateContent`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
         body: JSON.stringify({
           contents: [{
             parts: [{

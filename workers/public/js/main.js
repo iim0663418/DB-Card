@@ -709,9 +709,10 @@ function renderCardFace(cardData, sessionData, lang, suffix) {
     if (cardData.email && emailLink && emailEl) {
         emailEl.textContent = cardData.email;
         emailLink.href = `mailto:${cardData.email}`;
-        emailLink.style.display = 'flex';
+        // The chip wrapper (.email-row) holds the link and the copy button as siblings
+        (emailLink.closest('.email-row') || emailLink).style.display = 'flex';
     } else if (emailLink) {
-        emailLink.style.display = 'none';
+        (emailLink.closest('.email-row') || emailLink).style.display = 'none';
     }
 
     // 電話處理
@@ -1386,7 +1387,7 @@ document.getElementById('save-vcard').addEventListener('click', () => {
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
         showNotification('vCard 已下載', 'success');
     } else {
         showError(currentLanguage === 'zh' ? '無法下載 vCard，請重新載入頁面' : 'Failed to download vCard, please reload the page');

@@ -1186,7 +1186,26 @@ const logger = {
             }
         }
 
+        // Parse 'YYYY-MM-DD HH:MM:SS' (UTC) safely for Safari; leaves ISO strings with T/Z intact
+        function parseUtcDate(value) {
+            let str = String(value).replace(' ', 'T');
+            if (!/(Z|[+-]\d{2}:?\d{2})$/.test(str)) str += 'Z';
+            return new Date(str);
+        }
+
+        // localStorage can throw in Safari private mode / when storage is blocked
+        function getAdminToken() {
+            try {
+                return localStorage.getItem('admin_token');
+            } catch {
+                return null;
+            }
+        }
+
         async function viewCard(uuid) {
+            // Open synchronously within the user gesture (Safari blocks window.open after await)
+            const win = window.open('', '_blank');
+            if (win) win.opener = null;
             // Show loading notification
             const loadingNotif = showNotification('正在開啟名片預覽...', 'info');
             
@@ -1209,6 +1228,7 @@ const logger = {
                     if (loadingNotif && loadingNotif.parentNode) {
                         loadingNotif.parentNode.removeChild(loadingNotif);
                     }
+                    if (win) win.close();
                     showNotification(errorMsg, 'error');
                     return;
                 }
@@ -1222,9 +1242,15 @@ const logger = {
                 }
 
                 // 打開名片頁面（帶 session）
-                window.open(`./card-display?uuid=${uuid}&session=${sessionId}`, '_blank');
+                const cardUrl = `./card-display?uuid=${uuid}&session=${sessionId}`;
+                if (win) {
+                    win.location.href = cardUrl;
+                } else {
+                    location.assign(cardUrl);
+                }
 
             } catch (error) {
+                if (win) win.close();
                 // Remove loading notification
                 if (loadingNotif && loadingNotif.parentNode) {
                     loadingNotif.parentNode.removeChild(loadingNotif);
@@ -2629,7 +2655,7 @@ const logger = {
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
-                window.URL.revokeObjectURL(downloadUrl);
+                setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 1000);
 
                 showNotification('CSV 已匯出', 'success');
 
@@ -3049,7 +3075,7 @@ const logger = {
                         </td>
                         <td class="px-4 py-3">${asset.asset_type}</td>
                         <td class="px-4 py-3">v${asset.current_version}</td>
-                        <td class="px-4 py-3">${new Date(asset.created_at + 'Z').toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}</td>
+                        <td class="px-4 py-3">${parseUtcDate(asset.created_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}</td>
                         <td class="px-4 py-3">
                             <button data-action="viewAsset" data-asset-id="${asset.asset_id}"
                                     class="px-3 py-1 bg-[#6868ac] text-white rounded-lg hover:bg-[#5555aa] transition-colors text-sm">
@@ -3282,7 +3308,7 @@ window.loadPrecisionStats = async function() {
     try {
         const response = await fetch(`${API_BASE}/api/admin/candidates/precision`, {
             credentials: 'include',
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
+            headers: { 'Authorization': `Bearer ${getAdminToken()}` }
         });
         
         if (!response.ok) throw new Error('Failed to load precision stats');
@@ -3321,7 +3347,7 @@ window.loadCandidates = async function() {
     try {
         const response = await fetch(`${API_BASE}/api/admin/candidates?status=${status}&limit=50`, {
             credentials: 'include',
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
+            headers: { 'Authorization': `Bearer ${getAdminToken()}` }
         });
         
         if (!response.ok) throw new Error('Failed to load candidates');
@@ -3395,7 +3421,7 @@ window.validateCandidate = async function(pairKey, status) {
             method: 'PUT',
             credentials: 'include',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`,
+                'Authorization': `Bearer ${getAdminToken()}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ status })

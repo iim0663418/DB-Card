@@ -15,8 +15,10 @@ body {
   background-color: var(--color-surface);
   color: var(--color-text);
   margin: 0;
-  overflow-x: hidden;
+  overflow-x: hidden; /* fallback */
+  overflow-x: clip; /* Safari 16+: no scroll container, keeps position:sticky working */
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* Data-heavy pages use Inter */

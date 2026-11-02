@@ -2,7 +2,7 @@
 <html lang="zh-TW" data-page="admin-dashboard">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>數位名片 | 管理後台</title>
     <link rel="icon" type="image/png" sizes="192x192" href="favicon.png">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -108,6 +108,17 @@
         }
         @keyframes btn-spin {
             to { transform: translateY(-50%) rotate(360deg); }
+        }
+        /* viewport-fit=cover: keep content out of landscape notch areas */
+        body {
+            padding-left: max(1rem, env(safe-area-inset-left));
+            padding-right: max(1rem, env(safe-area-inset-right));
+        }
+        @media (min-width: 1024px) {
+            body {
+                padding-left: max(2rem, env(safe-area-inset-left));
+                padding-right: max(2rem, env(safe-area-inset-right));
+            }
         }
     </style>
 </head>
@@ -1011,7 +1022,7 @@
 
     <!-- KEK 輪替指引 Modal -->
     <div id="rotation-guide-modal" class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md hidden flex items-center justify-center p-6">
-        <div class="bg-white max-w-2xl w-full p-8 rounded-2xl space-y-6 max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div class="bg-white max-w-2xl w-full p-8 rounded-2xl space-y-6 max-h-[90dvh] overflow-y-auto shadow-2xl">
             <div class="flex items-center justify-between">
                 <h2 class="text-xl font-black text-slate-900 flex items-center gap-3">
                     <i data-lucide="shield-alert" class="text-red-500 animate-pulse"></i>
@@ -1142,7 +1153,7 @@ wrangler secret delete OLD_KEK
 
     <!-- IP 詳情 Modal -->
     <div id="ip-detail-modal" class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md hidden flex items-center justify-center p-6">
-        <div class="glass-surface max-w-2xl w-full p-8 rounded-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+        <div class="glass-surface max-w-2xl w-full p-8 rounded-2xl space-y-6 max-h-[90dvh] overflow-y-auto">
             <div class="flex justify-between items-center">
                 <h2 class="text-xl font-black text-slate-900">IP Details</h2>
                 <button data-action="closeIPDetailModal" class="p-2 hover:bg-slate-100 rounded-lg"><i data-lucide="x" class="w-5 h-5"></i></button>

@@ -82,13 +82,7 @@ document.addEventListener('click', (e) => {
 });
 
 // ==================== Three.js Particles Init ====================
-if (typeof THREE !== 'undefined') {
-    setTimeout(() => initParticles(), 100);
-} else {
-    window.addEventListener('load', () => {
-        if (typeof THREE !== 'undefined') initParticles();
-    });
-}
+setTimeout(() => initParticles(), 100);
 
 // ==================== WebView Check ====================
 initWebViewCheck();

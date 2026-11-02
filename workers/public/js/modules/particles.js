@@ -3,6 +3,8 @@
 /* global THREE */
 
 let scene, camera, renderer, mesh, grid;
+let animationId = null;
+let started = false;
 const particles = [];
 let mouseX = 0, mouseY = 0;
 
@@ -109,13 +111,18 @@ function initThree() {
     const lines = new THREE.LineSegments(lineGeo, lineMat);
     scene.add(lines);
 
+    let frameCount = 0;
+    let lineIndex = 0;
+
     function animate() {
-        requestAnimationFrame(animate);
+        animationId = requestAnimationFrame(animate);
+        frameCount++;
+        const updateLines = frameCount % 2 === 0;
 
         const positions = mesh.geometry.attributes.position.array;
         const linePositions = lines.geometry.attributes.position.array;
-        let lineIndex = 0;
         const maxDistance = 15;
+        if (updateLines) lineIndex = 0;
 
         for (let i = 0; i < particleCount; i++) {
             const particle = particles[i];
@@ -141,7 +148,7 @@ function initThree() {
             positions[i * 3 + 1] = particle.y;
             positions[i * 3 + 2] = particle.z;
 
-            for (let j = i + 1; j < particleCount; j++) {
+            for (let j = i + 1; updateLines && j < particleCount; j++) {
                 const other = particles[j];
                 const dx = particle.x - other.x;
                 const dy = particle.y - other.y;
@@ -160,21 +167,62 @@ function initThree() {
         }
 
         mesh.geometry.attributes.position.needsUpdate = true;
-        lines.geometry.attributes.position.needsUpdate = true;
-        lines.geometry.setDrawRange(0, lineIndex / 3);
+        if (updateLines) {
+            lines.geometry.attributes.position.needsUpdate = true;
+            lines.geometry.setDrawRange(0, lineIndex / 3);
+        }
 
         renderer.render(scene, camera);
     }
     animate();
+
+    // Pause when tab hidden, resume when visible
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            if (animationId !== null) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+        } else if (animationId === null) {
+            animate();
+        }
+    });
+}
+
+function loadThree() {
+    return new Promise((resolve) => {
+        if (typeof THREE !== 'undefined') return resolve(true);
+        try {
+            const s = document.createElement('script');
+            s.src = '/vendor/three.min.js';
+            s.integrity = 'sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu';
+            s.crossOrigin = 'anonymous';
+            s.onload = () => resolve(typeof THREE !== 'undefined');
+            s.onerror = () => resolve(false);
+            document.head.appendChild(s);
+        } catch {
+            resolve(false);
+        }
+    });
 }
 
 /**
  * Initialize the particle system.
- * Call this after THREE.js is loaded and DOM is ready.
+ * Only runs on desktop (>=1024px) without prefers-reduced-motion.
+ * Loads THREE.js on demand if not already present; failures are silent.
  */
-export function initParticles() {
-    if (typeof THREE === 'undefined') return;
-    initThree();
+export async function initParticles() {
+    if (started) return;
+    const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!isDesktop || prefersReduced) return;
+    started = true;
+    try {
+        if (!(await loadThree())) return;
+        initThree();
+    } catch {
+        // Decorative only; never affect the page
+    }
 }
 
 export { initParticles as default };

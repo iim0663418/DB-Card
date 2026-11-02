@@ -585,6 +585,9 @@ export function viewModalCard() {
 
 // ==================== View Card ====================
 export async function viewCard(uuid) {
+    // Open synchronously within the user gesture (Safari blocks window.open after await)
+    const win = window.open('', '_blank');
+    if (win) win.opener = null;
     try {
         toggleLoading(true);
 
@@ -599,6 +602,7 @@ export async function viewCard(uuid) {
             const error = await tapResponse.json();
             if (error.error?.code === 'rate_limited') {
                 showToast('名片預覽功能暫時無法使用（請求過於頻繁）', 'warning');
+                if (win) win.close();
                 toggleLoading(false);
                 return;
             }
@@ -613,10 +617,15 @@ export async function viewCard(uuid) {
         }
 
         const url = `${window.location.origin}/card-display.html?uuid=${uuid}&session=${sessionId}`;
-        window.open(url, '_blank');
+        if (win) {
+            win.location.href = url;
+        } else {
+            location.assign(url);
+        }
 
         toggleLoading(false);
     } catch (error) {
+        if (win) win.close();
         toggleLoading(false);
         const errorMsg = errorHandler.handle(error.error || error);
         showToast(errorMsg, 'error');

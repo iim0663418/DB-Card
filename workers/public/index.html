@@ -2,7 +2,7 @@
 <html lang="zh-TW" data-page="index">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
     <!-- Scenario 1: 完整 Meta Tags -->
     <meta name="description" content="DB-Card 安全預設 NFC 數位名片系統 - 名片管理（多模態 AI、智慧壓縮）、MCP AI Agent 介面、信封加密、可撤銷會話。隱私優先、GDPR 合規。">
@@ -49,10 +49,6 @@
     <link rel="stylesheet" href="/css/components.css">
     <!-- Vite Icon Bundle (Tree-shaken: 11.62 KB, 96.9% reduction) - Dynamic Loading -->
     <script src="/js/manifest-loader.js"></script>
-    <script src="/vendor/three.min.js"
-            integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu"
-            crossorigin="anonymous"
-            defer></script>
     <script src="/vendor/purify.min.js"
             integrity="sha384-qJNkHwhlYywDHfyoEe1np+1lYvX/8x+3gHCKFhSSBMQyCFlvFnn+zXmaebXl21rV"
             crossorigin="anonymous"
@@ -142,12 +138,17 @@
         /* H3: feature figures */
         .feature-figure { margin: 0; }
         .feature-figure img { transition: none; }
+        /* viewport-fit=cover: keep content out of landscape notch / home-indicator areas */
+        body {
+            padding-left: max(0px, env(safe-area-inset-left));
+            padding-right: max(0px, env(safe-area-inset-right));
+        }
     </style>
 </head>
 <body>
     <canvas id="three-canvas" aria-hidden="true"></canvas>
 
-    <div class="relative z-10 min-h-screen flex flex-col">
+    <div class="relative z-10 min-h-dvh flex flex-col">
 
         <header class="container mx-auto px-6 py-16 text-center" role="banner">
             <div class="inline-block mb-6">

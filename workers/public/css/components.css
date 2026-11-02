@@ -12,13 +12,18 @@
 .border-moda-light { border-color: var(--color-primary-ghost); }
 .shadow-moda { box-shadow: 0 20px 25px -5px rgba(104, 104, 172, 0.1), 0 8px 10px -6px rgba(104, 104, 172, 0.1); }
 
-.hover\:bg-moda:hover { background-color: var(--color-primary-hover); }
-.hover\:text-moda:hover { color: var(--color-primary); }
-.hover\:border-moda:hover { border-color: var(--color-primary); }
+/* :hover rules are gated so touch devices don't get sticky hover (iOS Safari) */
+@media (hover: hover) and (pointer: fine) {
+  .hover\:bg-moda:hover { background-color: var(--color-primary-hover); }
+  .hover\:text-moda:hover { color: var(--color-primary); }
+  .hover\:border-moda:hover { border-color: var(--color-primary); }
+}
 .focus\:border-moda:focus { border-color: var(--color-primary); }
 .focus\:ring-moda:focus { --tw-ring-color: var(--color-primary); }
-.group:hover .group-hover\:bg-moda { background-color: var(--color-primary); }
-.group:hover .group-hover\:text-white { color: white; }
+@media (hover: hover) and (pointer: fine) {
+  .group:hover .group-hover\:bg-moda { background-color: var(--color-primary); }
+  .group:hover .group-hover\:text-white { color: white; }
+}
 
 /* === Glassmorphism Surfaces (unified naming) === */
 .glass-card,
@@ -32,18 +37,20 @@
   transition: all var(--duration-normal) var(--ease-default);
 }
 
-.glass-card:hover,
-.glass-panel:hover,
-.glass-surface:hover {
-  background: var(--glass-bg-hover);
-  box-shadow: var(--glass-shadow-hover);
-  transform: translateY(-4px);
-}
+@media (hover: hover) and (pointer: fine) {
+  .glass-card:hover,
+  .glass-panel:hover,
+  .glass-surface:hover {
+    background: var(--glass-bg-hover);
+    box-shadow: var(--glass-shadow-hover);
+    transform: translateY(-4px);
+  }
 
-/* Static display panels should not lift on hover (no interactive affordance) */
-.static-panel:hover {
-  transform: none;
-  box-shadow: var(--glass-shadow);
+  /* Static display panels should not lift on hover (no interactive affordance) */
+  .static-panel:hover {
+    transform: none;
+    box-shadow: var(--glass-shadow);
+  }
 }
 
 .crystal-container {
@@ -74,10 +81,12 @@
   cursor: pointer;
 }
 
-.btn-primary:hover {
-  background-color: var(--color-primary-hover);
-  transform: scale(1.02);
-  box-shadow: var(--shadow-md);
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover {
+    background-color: var(--color-primary-hover);
+    transform: scale(1.02);
+    box-shadow: var(--shadow-md);
+  }
 }
 
 /* === Feature Icon Container === */
@@ -109,16 +118,21 @@
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
   box-shadow: var(--shadow-md);
-  transition: all 0.4s var(--ease-default);
+  transition:
+    transform 0.4s var(--ease-default),
+    box-shadow 0.4s var(--ease-default),
+    border-color 0.4s var(--ease-default),
+    background-color 0.4s var(--ease-default);
 }
 
-.info-chip:hover {
-  background: var(--glass-bg-hover);
-  backdrop-filter: blur(16px) saturate(200%);
-  -webkit-backdrop-filter: blur(16px) saturate(200%);
-  border-color: var(--color-primary-border);
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(104, 104, 172, 0.15), 0 4px 12px rgba(0, 0, 0, 0.06);
+/* backdrop-filter intentionally static on hover (animating it is expensive) */
+@media (hover: hover) and (pointer: fine) {
+  .info-chip:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--color-primary-border);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(104, 104, 172, 0.15), 0 4px 12px rgba(0, 0, 0, 0.06);
+  }
 }
 
 /* === Social Node (card-display) === */
@@ -129,16 +143,19 @@
   transition: all var(--duration-normal) ease;
 }
 
-.social-node:hover {
-  background: var(--color-primary);
-  color: #ffffff;
-  transform: scale(1.1) rotate(3deg);
+@media (hover: hover) and (pointer: fine) {
+  .social-node:hover {
+    background: var(--color-primary);
+    color: #ffffff;
+    transform: scale(1.1) rotate(3deg);
+  }
 }
 
 /* === Notifications === */
 #notification-container {
   position: fixed;
   bottom: 2rem;
+  bottom: max(2rem, env(safe-area-inset-bottom));
   right: 2rem;
   z-index: 90;
   display: flex;
@@ -301,7 +318,7 @@
 .bilingual-field textarea {
   background: #fff;
   padding: 14px 18px;
-  font-size: 14px;
+  font-size: 14px; /* raised to 16px on <=1024px by the iOS zoom guard below */
   border: none;
   outline: none;
 }
@@ -325,9 +342,8 @@
 
 .modal-content {
   animation: slideUp 0.4s var(--ease-default);
+  /* Opaque in light/dark (--color-surface-elevated), so no backdrop-filter; outer .backdrop-blur-sm handles blur */
   background: var(--color-surface-elevated, rgba(255, 255, 255, 0.98));
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   box-shadow: var(--shadow-xl);
 }
 
@@ -343,6 +359,7 @@
   z-index: 200;
   background: color-mix(in srgb, var(--color-surface) 80%, transparent);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   align-items: center;
   justify-content: center;
 }
@@ -352,15 +369,25 @@
 
 /* === Skeleton Loading === */
 .skeleton {
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-  background-size: 200% 100%;
-  animation: skeleton-loading 1.5s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+  background: #f1f5f9;
   border-radius: var(--radius-sm);
 }
 
+/* Shimmer via transform (compositor-friendly) instead of animating background-position */
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, #e2e8f0 50%, transparent 100%);
+  transform: translateX(-100%);
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
 @keyframes skeleton-loading {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 /* === Badge System === */
@@ -421,9 +448,11 @@
   color: #3c4043;
   transition: all 0.2s;
 }
-.btn-google:hover:not(:disabled) {
-  background-color: #f8f9fa;
-  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.3);
+@media (hover: hover) and (pointer: fine) {
+  .btn-google:hover:not(:disabled) {
+    background-color: #f8f9fa;
+    box-shadow: 0 1px 3px rgba(60, 64, 67, 0.3);
+  }
 }
 
 /* === Responsive Overrides === */
@@ -434,6 +463,7 @@
 
   #notification-container {
     bottom: 1rem;
+    bottom: max(1rem, env(safe-area-inset-bottom));
     right: 1rem;
     left: 1rem;
   }
@@ -560,13 +590,15 @@
     }
 
     /* Hover 效果：陰影增強 */
-    .card-inner:hover .card-face {
-        box-shadow:
-            0 0 0 1px rgba(0,0,0,0.08),
-            0 4px 8px rgba(0,0,0,0.08),
-            0 16px 32px rgba(0,0,0,0.15),
-            0 50px 100px -15px rgba(0,0,0,0.3),
-            inset 0 1px 0 0 rgba(255,255,255,0.5);
+    @media (hover: hover) and (pointer: fine) {
+        .card-inner:hover .card-face {
+            box-shadow:
+                0 0 0 1px rgba(0,0,0,0.08),
+                0 4px 8px rgba(0,0,0,0.08),
+                0 16px 32px rgba(0,0,0,0.15),
+                0 50px 100px -15px rgba(0,0,0,0.3),
+                inset 0 1px 0 0 rgba(255,255,255,0.5);
+        }
     }
 
     /* 桌面版字體放大 */
@@ -633,14 +665,17 @@
     /* 浮動：套用在 perspective 容器，不干涉 card-inner 的 3D transform */
     .card-perspective {
         animation: cardFloating 3s ease-in-out infinite;
+        /* 放大用獨立 scale 屬性：animation 覆蓋 transform 時不會蓋掉 scale */
+        transition: scale 0.3s ease-out;
     }
 
     /* Hover 時暫停浮動，啟動放大 */
-    .card-perspective:hover {
-        animation-play-state: paused;
-        transform: scale(1.05);
-        transition: transform 0.3s ease-out;
-        z-index: 20;
+    @media (hover: hover) and (pointer: fine) {
+        .card-perspective:hover {
+            animation-play-state: paused;
+            scale: 1.05;
+            z-index: 20;
+        }
     }
 
     /* Bounce 時暫停浮動，由 JS 添加此 class */
@@ -662,7 +697,6 @@
     overflow-x: hidden; /* Prevent horizontal scrolling from watermark */
     scrollbar-width: none;
     -ms-overflow-style: none;
-    -webkit-overflow-scrolling: touch;
     scrollbar-gutter: stable both-edges;
 
     backface-visibility: hidden;
@@ -672,9 +706,6 @@
 
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-
-    transform-style: preserve-3d;
-    -webkit-transform-style: preserve-3d;
 
     /* Physical card standard radius (16px ≈ 6mm) */
     border-radius: 1rem;
@@ -696,6 +727,14 @@
 
     /* Refined border */
     border: 0.5px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Mobile: heavy blur on a flipping, scrollable surface is costly in Safari */
+@media (max-width: 1024px) {
+    .card-face {
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
 }
 
 /* Ambient glow — NFC signal metaphor */
@@ -831,17 +870,19 @@
   .border-green-300 { border-color: rgba(110, 231, 183, 0.4) !important; }
 
   /* Hover */
-  .hover\:bg-slate-50:hover, .hover\:bg-gray-50:hover {
-    background-color: rgba(255, 255, 255, 0.05) !important;
+  @media (hover: hover) and (pointer: fine) {
+    .hover\:bg-slate-50:hover, .hover\:bg-gray-50:hover {
+      background-color: rgba(255, 255, 255, 0.05) !important;
+    }
+    .hover\:bg-slate-100:hover { background-color: rgba(255, 255, 255, 0.08) !important; }
+    .hover\:bg-slate-200:hover { background-color: rgba(255, 255, 255, 0.1) !important; }
+    .hover\:bg-slate-300:hover { background-color: rgba(255, 255, 255, 0.12) !important; }
+    .hover\:bg-white:hover { background-color: rgba(255, 255, 255, 0.08) !important; }
+    .hover\:bg-green-200:hover { background-color: rgba(16, 185, 129, 0.2) !important; }
+    .hover\:bg-blue-100:hover, .hover\:bg-blue-200:hover { background-color: rgba(59, 130, 246, 0.2) !important; }
+    .hover\:bg-red-50:hover { background-color: rgba(239, 68, 68, 0.1) !important; }
+    .hover\:bg-gray-400:hover { background-color: rgba(255, 255, 255, 0.15) !important; }
   }
-  .hover\:bg-slate-100:hover { background-color: rgba(255, 255, 255, 0.08) !important; }
-  .hover\:bg-slate-200:hover { background-color: rgba(255, 255, 255, 0.1) !important; }
-  .hover\:bg-slate-300:hover { background-color: rgba(255, 255, 255, 0.12) !important; }
-  .hover\:bg-white:hover { background-color: rgba(255, 255, 255, 0.08) !important; }
-  .hover\:bg-green-200:hover { background-color: rgba(16, 185, 129, 0.2) !important; }
-  .hover\:bg-blue-100:hover, .hover\:bg-blue-200:hover { background-color: rgba(59, 130, 246, 0.2) !important; }
-  .hover\:bg-red-50:hover { background-color: rgba(239, 68, 68, 0.1) !important; }
-  .hover\:bg-gray-400:hover { background-color: rgba(255, 255, 255, 0.15) !important; }
   .bg-white\/70 { background-color: var(--color-surface-alt) !important; }
 
   /* Input fields */
@@ -858,9 +899,9 @@
   .bilingual-field { background: var(--color-border); border-color: var(--color-border); }
   .bilingual-field input,
   .bilingual-field textarea { background: var(--color-surface-alt); color: var(--color-text); }
-  .skeleton {
-    background: linear-gradient(90deg, #1a1a24 25%, #222230 50%, #1a1a24 75%);
-    background-size: 200% 100%;
+  .skeleton { background: #1a1a24; }
+  .skeleton::after {
+    background: linear-gradient(90deg, transparent 0%, #222230 50%, transparent 100%);
   }
   .btn-google { background: var(--color-surface-alt); border-color: var(--color-border); color: var(--color-text); }
 
@@ -905,18 +946,22 @@
               0 30px 60px -10px rgba(0, 0, 0, 0.4),
               inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
       }
-      .card-inner:hover .card-face {
-          box-shadow:
-              0 0 0 1px rgba(255, 255, 255, 0.08),
-              0 4px 8px rgba(0, 0, 0, 0.3),
-              0 16px 32px rgba(0, 0, 0, 0.4),
-              0 50px 100px -15px rgba(0, 0, 0, 0.5),
-              inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+      @media (hover: hover) and (pointer: fine) {
+          .card-inner:hover .card-face {
+              box-shadow:
+                  0 0 0 1px rgba(255, 255, 255, 0.08),
+                  0 4px 8px rgba(0, 0, 0, 0.3),
+                  0 16px 32px rgba(0, 0, 0, 0.4),
+                  0 50px 100px -15px rgba(0, 0, 0, 0.5),
+                  inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+          }
       }
   }
 
-  .info-chip:hover {
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+  @media (hover: hover) and (pointer: fine) {
+      .info-chip:hover {
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
   }
 
   .error-message {
@@ -945,8 +990,21 @@
   .card-face .hud-text { color: #2a2a4e !important; }
   .card-face .opacity-40 { opacity: 1 !important; }
   .card-face .info-chip { background: rgba(104,104,172,0.06) !important; border-color: rgba(104,104,172,0.12) !important; }
-  .card-face .info-chip:hover { background: rgba(104,104,172,0.1) !important; }
+  @media (hover: hover) and (pointer: fine) {
+    .card-face .info-chip:hover { background: rgba(104,104,172,0.1) !important; }
+  }
   .card-face .social-node { background: rgba(104,104,172,0.06) !important; border-color: rgba(104,104,172,0.12) !important; color: #4a4a8a !important; }
   .card-face .bg-white { background-color: rgba(104,104,172,0.06) !important; }
 
+}
+
+/* === iOS Safari: prevent focus auto-zoom (font-size < 16px) ===
+   !important is required: Tailwind text-sm/text-xs utilities live in a later
+   layer (utilities) and would otherwise win over this components-layer rule. */
+@media (max-width: 1024px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }

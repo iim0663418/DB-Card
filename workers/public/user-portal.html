@@ -2,7 +2,7 @@
 <html lang="zh-TW" data-page="user-portal">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>數位名片 | 使用者入口</title>
     <link rel="icon" type="image/png" sizes="192x192" href="favicon.png">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -14,10 +14,6 @@
     <script src="/js/tailwind-suppress.js"></script>
     <!-- Vite Icon Bundle (Tree-shaken: 13.01 KB, 96.6% reduction) - Dynamic Loading -->
     <script src="/js/manifest-loader.js"></script>
-    <script src="/vendor/three.min.js"
-            integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu"
-            crossorigin="anonymous"
-            defer></script>
     <!-- ES Module entry: loaded dynamically by manifest-loader.js -->
     <script src="/vendor/purify.min.js"
             integrity="sha384-qJNkHwhlYywDHfyoEe1np+1lYvX/8x+3gHCKFhSSBMQyCFlvFnn+zXmaebXl21rV"
@@ -50,10 +46,12 @@
             transition: all 0.4s var(--ease-default);
             border: 1px solid var(--color-primary-ghost);
         }
-        .selection-card:hover:not(.disabled) {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 40px -10px var(--color-primary-glow);
-            border-color: var(--color-primary);
+        @media (hover: hover) and (pointer: fine) {
+            .selection-card:hover:not(.disabled) {
+                transform: translateY(-8px);
+                box-shadow: 0 20px 40px -10px var(--color-primary-glow);
+                border-color: var(--color-primary);
+            }
         }
         .selection-card.revoked {
             border: 2px solid var(--color-error);
@@ -90,17 +88,21 @@
             transition: all 0.4s var(--ease-default);
             border: 1px solid rgba(104, 104, 172, 0.08);
         }
-        .received-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 40px -10px var(--color-primary-glow);
-            border-color: var(--color-primary);
+        @media (hover: hover) and (pointer: fine) {
+            .received-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 20px 40px -10px var(--color-primary-glow);
+                border-color: var(--color-primary);
+            }
         }
         
         .card-action-btn {
             transition: all var(--duration-normal) var(--ease-default);
         }
-        .card-action-btn:hover {
-            transform: translateY(-2px);
+        @media (hover: hover) and (pointer: fine) {
+            .card-action-btn:hover {
+                transform: translateY(-2px);
+            }
         }
 
         /* Success Modal */
@@ -119,6 +121,7 @@
         @media (max-width: 640px) {
             #success-modal .modal-content {
                 max-height: 90vh;
+                max-height: 90dvh;
                 overflow-y: auto;
                 padding: 1.5rem;
             }
@@ -133,8 +136,10 @@
             background-color: rgba(104, 104, 172, 0.9);
         }
 
-        .hover\:bg-moda\/90:hover {
-            background-color: rgba(104, 104, 172, 0.9);
+        @media (hover: hover) and (pointer: fine) {
+            .hover\:bg-moda\/90:hover {
+                background-color: rgba(104, 104, 172, 0.9);
+            }
         }
 
         /* Provenance badges */
@@ -175,9 +180,26 @@
             min-height: 44px;
             align-items: center;
         }
+        /* viewport-fit=cover: keep content out of landscape notch / home-indicator areas */
+        body {
+            padding-left: max(1rem, env(safe-area-inset-left));
+            padding-right: max(1rem, env(safe-area-inset-right));
+        }
+        @media (min-width: 1024px) {
+            body {
+                padding-left: max(2rem, env(safe-area-inset-left));
+                padding-right: max(2rem, env(safe-area-inset-right));
+            }
+        }
+        #app-header {
+            padding-top: max(0.75rem, env(safe-area-inset-top));
+        }
+        @media (min-width: 768px) {
+            #app-header { padding-top: max(1.5rem, env(safe-area-inset-top)); }
+        }
     </style>
 </head>
-<body class="flex flex-col items-center min-h-screen p-4 lg:p-8">
+<body class="flex flex-col items-center min-h-dvh p-4 lg:p-8">
 
     <canvas id="three-canvas"></canvas>
 
@@ -220,7 +242,7 @@
     <main id="view-container" class="relative z-10 w-full max-w-6xl mt-20 lg:mt-24">
 
         <!-- 1. OAuth 登入頁 -->
-        <section id="view-login" class="flex flex-col items-center justify-center min-h-[70vh] space-y-10 fade-in">
+        <section id="view-login" class="flex flex-col items-center justify-center min-h-[70dvh] space-y-10 fade-in">
             <div class="text-center space-y-4">
                 <img src="/icons/icon-192.png" alt="DB-Card" class="w-20 h-20 rounded-lg shadow-2xl mx-auto mb-8">
                 <h1 class="text-4xl font-black tracking-tighter" data-i18n="login-title">使用者入口</h1>
@@ -502,7 +524,7 @@
 
         <!-- Preview Modal (Global) -->
         <div id="preview-modal" class="modal-backdrop hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div class="modal-content p-4 sm:p-8 rounded-2xl sm:rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto space-y-4 sm:space-y-6">
+            <div class="modal-content p-4 sm:p-8 rounded-2xl sm:rounded-xl max-w-2xl w-full max-h-[90dvh] overflow-y-auto space-y-4 sm:space-y-6">
                 <div class="flex items-center gap-3">
                     <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background: var(--moda-glow);">
                         <i data-lucide="check-circle" class="w-6 h-6" style="color: var(--moda-accent);"></i>
@@ -642,7 +664,7 @@
 
         <!-- Card Detail Modal -->
         <div id="cardDetailModal" class="modal-backdrop hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div class="modal-content p-8 rounded-xl max-w-2xl w-full space-y-6 max-h-[90vh] overflow-y-auto">
+            <div class="modal-content p-8 rounded-xl max-w-2xl w-full space-y-6 max-h-[90dvh] overflow-y-auto">
                 <!-- Header -->
                 <div class="flex items-start justify-between">
                     <div>
@@ -722,7 +744,7 @@
 
         <!-- Edit Card Modal -->
         <div id="editCardModal" class="modal-backdrop hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div class="modal-content p-4 sm:p-8 rounded-2xl sm:rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto space-y-4 sm:space-y-6">
+            <div class="modal-content p-4 sm:p-8 rounded-2xl sm:rounded-xl max-w-2xl w-full max-h-[90dvh] overflow-y-auto space-y-4 sm:space-y-6">
                 <div class="flex items-center gap-3">
                     <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background: var(--moda-glow);">
                         <i data-lucide="edit" class="w-6 h-6" style="color: var(--moda-accent);"></i>
@@ -1191,11 +1213,11 @@
         </section>
     </main>
 
-    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[300] px-8 py-4 bg-slate-900 text-white rounded-2xl shadow-2xl text-xs font-bold uppercase tracking-widest hidden fade-in"></div>
+    <div id="toast" class="fixed bottom-[max(2.5rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-[300] px-8 py-4 bg-slate-900 text-white rounded-2xl shadow-2xl text-xs font-bold uppercase tracking-widest hidden fade-in"></div>
 
     <!-- Consent Modal (First-time / Version Update) -->
     <div id="consent-modal" class="hidden fixed inset-0 z-[250] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-        <div class="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full flex flex-col overflow-hidden" style="height: 90vh;">
+        <div class="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full flex flex-col overflow-hidden" style="height: 90vh; height: 90dvh;">
             <!-- Header -->
             <div class="p-6 border-b border-slate-200">
                 <div class="flex items-center gap-3 mb-2">
@@ -1357,7 +1379,7 @@
 
     <!-- Consent History Modal -->
     <div id="consent-history-modal" class="hidden fixed inset-0 z-[250] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-        <div class="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full mx-4 max-h-[90vh] flex flex-col">
+        <div class="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full mx-4 max-h-[90dvh] flex flex-col">
             <div class="p-6 border-b border-slate-200 flex justify-between items-center">
                 <h3 class="text-xl font-black text-slate-900" data-i18n="history-title">同意歷史記錄</h3>
                 <button data-action="close-history-modal" class="p-2 hover:bg-slate-100 rounded-lg">

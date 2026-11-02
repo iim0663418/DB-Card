@@ -73,7 +73,8 @@ if (isStandalone) {
   if (!isMobile) {
     document.getElementById('desktop-guide').classList.remove('hidden');
   } else {
-    const isIOS = /iPad|iPhone|iPod/i.test(ua);
+    // iPadOS 13+ reports a Macintosh UA, so also check touch support
+    const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const isIOSChrome = isIOS && /CriOS/i.test(ua);
     const isAndroid = /Android/i.test(ua);
 

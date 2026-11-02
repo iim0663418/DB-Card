@@ -342,7 +342,7 @@ const ReceivedCardsAPI = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ upload_id: uploadId }),
       signal,
-      timeoutMs: 240000  // 4 minutes for Gemini API + Google Search
+      timeoutMs: 360000  // 6 minutes for Gemini API + Google Search (server total budget: 320s)
     });
   },
 
@@ -787,15 +787,23 @@ const ReceivedCards = {
   },
   
   initDonationReminder() {
-    if (!localStorage.getItem('cardsSavedCount')) {
-      localStorage.setItem('cardsSavedCount', '0');
+    try {
+      if (!localStorage.getItem('cardsSavedCount')) {
+        localStorage.setItem('cardsSavedCount', '0');
+      }
+    } catch {
+      // localStorage unavailable (e.g. Safari private mode)
     }
   },
   
   checkDonationReminder() {
-    const count = parseInt(localStorage.getItem('cardsSavedCount') || '0');
-    const newCount = count + 1;
-    localStorage.setItem('cardsSavedCount', newCount.toString());
+    let newCount = 1;
+    try {
+      newCount = parseInt(localStorage.getItem('cardsSavedCount') || '0') + 1;
+      localStorage.setItem('cardsSavedCount', newCount.toString());
+    } catch {
+      // localStorage unavailable; skip reminder persistence
+    }
     
     if (newCount % 5 === 0) {
       this.showDonationReminder();
@@ -2025,14 +2033,22 @@ const ReceivedCards = {
 
       // 4. 設備檢測與平台特定處理
       const userAgent = navigator.userAgent || '';
-      const isIOS = /(iPhone|iPad|iPod)/i.test(userAgent);
+      // iPadOS 13+ reports a Macintosh UA, so also check touch support
+      const isIOS = /iPad|iPhone|iPod/.test(userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
       const isAndroid = /Android/i.test(userAgent);
 
-      // iOS: 使用 data URI 打開系統通訊錄
+      // iOS: 使用 blob URL 打開系統通訊錄（避免 await 後 window.open 與 data: URL 被阻擋）
       if (isIOS) {
-        const vcardText = await blob.text();
-        const dataUri = 'data:text/vcard;charset=utf-8,' + encodeURIComponent(vcardText);
-        window.open(dataUri, '_blank');
+        const vcardBlob = new Blob([blob], { type: 'text/vcard;charset=utf-8' });
+        const vcardUrl = URL.createObjectURL(vcardBlob);
+        const a = document.createElement('a');
+        a.href = vcardUrl;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(vcardUrl), 60000);
         showToast('請選擇「加入聯絡資訊」', 'success');
         return;
       }
@@ -2060,7 +2076,7 @@ const ReceivedCards = {
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
         showToast('已開始下載，請在裝置上完成加入通訊錄', 'success');
         return;
       }
@@ -2073,7 +2089,7 @@ const ReceivedCards = {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
 
       showToast('已開始下載，請在裝置上完成加入通訊錄', 'success');
     } catch (_error) {
@@ -2196,7 +2212,7 @@ const ReceivedCards = {
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
 
         if (typeof showToast === 'function') {
           showToast('QR Code 已下載', 'success');

@@ -136,7 +136,7 @@ body {
     #desktop-hints .border-slate-200 { border-color: rgba(255,255,255,0.06) !important; }
     #desktop-hints .bg-moda-light { background-color: rgba(104,104,172,0.15) !important; }
     /* QR modal — glass overlay on dark */
-    #qr-modal { background: rgba(14,14,22,0.85) !important; backdrop-filter: blur(20px) !important; }
+    #qr-modal { background: rgba(14,14,22,0.85) !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important; }
     #qr-modal .bg-white { background-color: #222230 !important; border-color: rgba(255,255,255,0.08) !important; }
     #qr-modal .border-slate-100 { border-color: rgba(255,255,255,0.06) !important; }
     #qr-modal #qr-modal-title { color: #e8e8f0 !important; }
@@ -545,17 +545,19 @@ body {
 
             <!-- 資訊晶片網格 -->
             <section data-animate class="p-6 grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10" aria-label="聯絡資訊">
-                <a id="email-link" href="#" class="info-chip p-4 rounded-2xl flex items-center gap-3 group md:col-span-2 focus:outline-none focus:ring-2 focus:ring-moda relative" aria-label="Email 聯絡" data-action="handleEmailClick" data-target="user-email">
-                    <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
-                        <i data-lucide="mail" class="w-5 h-5" aria-hidden="true"></i>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                        <p id="user-email" class="font-bold text-slate-700 truncate">---</p>
-                    </div>
+                <div class="email-row info-chip p-4 rounded-2xl flex items-center gap-3 group md:col-span-2 relative">
+                    <a id="email-link" href="#" class="flex items-center gap-3 flex-1 min-w-0 rounded-2xl focus:outline-none focus:ring-2 focus:ring-moda" aria-label="Email 聯絡" data-action="handleEmailClick" data-target="user-email">
+                        <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                            <i data-lucide="mail" class="w-5 h-5" aria-hidden="true"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p id="user-email" class="font-bold text-slate-700 truncate">---</p>
+                        </div>
+                    </a>
                     <button type="button" id="copy-email-btn" data-action="copyEmail" data-target="user-email" class="hidden md:block ml-2 p-2 rounded-lg hover:bg-slate-100 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-moda" aria-label="Copy email">
                         <i data-lucide="copy" class="w-4 h-4 text-slate-600"></i>
                     </button>
-                </a>
+                </div>
                 <a id="phone-link" href="#" class="info-chip p-4 rounded-2xl flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-moda" aria-label="電話聯絡">
                     <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
                         <i data-lucide="phone" class="w-5 h-5" aria-hidden="true"></i>
@@ -622,17 +624,19 @@ body {
 
             <!-- 資訊晶片網格 -->
             <section data-animate class="p-6 grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10" aria-label="Contact Information">
-                <a id="email-link-en" href="#" class="info-chip p-4 rounded-2xl flex items-center gap-3 group md:col-span-2 focus:outline-none focus:ring-2 focus:ring-moda relative" aria-label="Email Contact" data-action="handleEmailClick" data-target="user-email-en">
-                    <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
-                        <i data-lucide="mail" class="w-5 h-5" aria-hidden="true"></i>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                        <p id="user-email-en" class="font-bold text-slate-700 truncate">---</p>
-                    </div>
+                <div class="email-row info-chip p-4 rounded-2xl flex items-center gap-3 group md:col-span-2 relative">
+                    <a id="email-link-en" href="#" class="flex items-center gap-3 flex-1 min-w-0 rounded-2xl focus:outline-none focus:ring-2 focus:ring-moda" aria-label="Email Contact" data-action="handleEmailClick" data-target="user-email-en">
+                        <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
+                            <i data-lucide="mail" class="w-5 h-5" aria-hidden="true"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p id="user-email-en" class="font-bold text-slate-700 truncate">---</p>
+                        </div>
+                    </a>
                     <button type="button" data-action="copyEmail" data-target="user-email-en" class="hidden md:block ml-2 p-2 rounded-lg hover:bg-slate-100 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-moda" aria-label="Copy Email" title="Copy Email">
                         <i data-lucide="copy" class="w-4 h-4 text-slate-600"></i>
                     </button>
-                </a>
+                </div>
                 <a id="phone-link-en" href="#" class="info-chip p-4 rounded-2xl flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-moda" aria-label="Phone Contact">
                     <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-moda-light flex items-center justify-center text-moda-dark group-hover:bg-moda group-hover:text-white transition-all">
                         <i data-lucide="phone" class="w-5 h-5" aria-hidden="true"></i>
@@ -872,12 +876,17 @@ body {
         try {
             const textarea = document.createElement('textarea');
             textarea.value = text;
-            textarea.style.position = 'absolute';
-            textarea.style.left = '-9999px';
-            textarea.readOnly = true;
+            // iOS: execCommand('copy') needs an editable, in-viewport element (not readOnly / off-screen)
+            textarea.contentEditable = true;
+            textarea.readOnly = false;
+            textarea.style.cssText = 'position:fixed;top:0;left:0;opacity:0;font-size:16px;';
             document.body.appendChild(textarea);
 
-            textarea.select();
+            const range = document.createRange();
+            range.selectNodeContents(textarea);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
             textarea.setSelectionRange(0, text.length);
 
             const success = document.execCommand('copy');

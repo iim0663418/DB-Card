@@ -291,7 +291,7 @@ export async function handleDataExport() {
         a.download = `db-card-data-export-${Date.now()}.json`;
         document.body.appendChild(a);
         a.click();
-        window.URL.revokeObjectURL(url);
+        setTimeout(() => window.URL.revokeObjectURL(url), 1000);
         document.body.removeChild(a);
 
         showToast('資料已匯出');

@@ -17,12 +17,19 @@
   fcpObserver.observe({ type: 'paint', buffered: true });
 
   // Collect LCP (Largest Contentful Paint)
-  const lcpObserver = new PerformanceObserver((list) => {
-    const entries = list.getEntries();
-    const lastEntry = entries[entries.length - 1];
-    vitals.lcp = Math.round(lastEntry.startTime);
-  });
-  lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
+  // Safari does not support largest-contentful-paint; lcp stays undefined (reported as null)
+  try {
+    if (PerformanceObserver.supportedEntryTypes.includes('largest-contentful-paint')) {
+      const lcpObserver = new PerformanceObserver((list) => {
+        const entries = list.getEntries();
+        const lastEntry = entries[entries.length - 1];
+        vitals.lcp = Math.round(lastEntry.startTime);
+      });
+      lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
+    }
+  } catch (e) {
+    console.warn('LCP collection not supported:', e);
+  }
 
   // Collect INP (Interaction to Next Paint) - use first-input as fallback
   vitals.inp = null;
@@ -55,6 +62,9 @@
   // Collect CLS (Cumulative Layout Shift)
   vitals.cls = 0;
   try {
+    if (!PerformanceObserver.supportedEntryTypes.includes('layout-shift')) {
+      throw new Error('layout-shift not supported');
+    }
     const clsObserver = new PerformanceObserver((list) => {
       const entries = list.getEntries();
       entries.forEach((entry) => {
@@ -76,10 +86,10 @@
   // Send vitals after page load
   window.addEventListener('load', () => {
     setTimeout(() => {
-      if (vitals.fcp && vitals.lcp) {
+      if (vitals.fcp) {
         navigator.sendBeacon(`${API_BASE}/api/analytics/vitals`, JSON.stringify({
           fcp: vitals.fcp,
-          lcp: vitals.lcp,
+          lcp: vitals.lcp !== undefined ? vitals.lcp : null,
           inp: vitals.inp !== undefined ? vitals.inp : null,
           cls: vitals.cls !== null ? Math.round(vitals.cls * 1000) / 1000 : null,
           card_content_ready: vitals.card_content_ready || null,
